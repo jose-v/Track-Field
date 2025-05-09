@@ -42,13 +42,25 @@ export function Team() {
       id: '1',
       name: 'John Doe',
       role: 'Coach',
-      avatar: 'https://bit.ly/dan-abramov',
+      avatar: '/images/coach-avatar.jpg',
     },
     {
       id: '2',
       name: 'Jane Smith',
       role: 'Athlete',
-      avatar: 'https://bit.ly/ryan-florence',
+      avatar: '/images/athlete-avatar.jpg',
+    },
+    {
+      id: '3',
+      name: 'Mike Johnson',
+      role: 'Athlete',
+      avatar: '/images/athlete-avatar2.jpg',
+    },
+    {
+      id: '4',
+      name: 'Sarah Williams',
+      role: 'Athlete',
+      avatar: '/images/athlete-avatar3.jpg',
     },
   ])
 

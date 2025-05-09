@@ -1,23 +1,44 @@
-import { extendTheme } from '@chakra-ui/react'
+import { extendTheme, type ThemeConfig } from '@chakra-ui/react'
 
-export const theme = extendTheme({
+const config: ThemeConfig = {
+  initialColorMode: 'light',
+  useSystemColorMode: false,
+}
+
+const theme = extendTheme({
+  config,
   colors: {
     brand: {
-      50: '#f0f9ff',
-      100: '#e0f2fe',
-      200: '#bae6fd',
-      300: '#7dd3fc',
-      400: '#38bdf8',
-      500: '#0ea5e9',
-      600: '#0284c7',
-      700: '#0369a1',
-      800: '#075985',
-      900: '#0c4a6e',
+      50: '#E6F6FF',
+      100: '#BAE3FF',
+      200: '#7CC4FA',
+      300: '#47A3F3',
+      400: '#2186EB',
+      500: '#0967D2',
+      600: '#0552B5',
+      700: '#03449E',
+      800: '#01337D',
+      900: '#002159',
     },
   },
   fonts: {
-    heading: 'Inter, sans-serif',
-    body: 'Inter, sans-serif',
+    heading: 'Inter, system-ui, sans-serif',
+    body: 'Inter, system-ui, sans-serif',
+  },
+  fontSizes: {
+    xs: '0.75rem',
+    sm: '0.875rem',
+    md: '1rem',
+    lg: '1.125rem',
+    xl: '1.25rem',
+    '2xl': '1.5rem',
+    '3xl': '1.875rem',
+    '4xl': '2.25rem',
+    '5xl': '3rem',
+    '6xl': '3.75rem',
+    '7xl': '4.5rem',
+    '8xl': '6rem',
+    '9xl': '8rem',
   },
   components: {
     Button: {
@@ -35,6 +56,16 @@ export const theme = extendTheme({
         },
       },
     },
+    Text: {
+      baseStyle: {
+        fontSize: 'md',
+      },
+    },
+    Heading: {
+      baseStyle: {
+        fontWeight: 'bold',
+      },
+    },
   },
   styles: {
     global: {
@@ -44,4 +75,6 @@ export const theme = extendTheme({
       },
     },
   },
-}) 
+})
+
+export { theme } 

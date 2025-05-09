@@ -1,5 +1,15 @@
 import { supabase } from '../lib/supabase'
 
+interface Exercise {
+  name: string
+  sets: number
+  reps: number
+  weight?: number
+  rest?: number
+  distance?: number
+  notes?: string
+}
+
 interface Workout {
   id: string
   user_id: string
@@ -7,8 +17,10 @@ interface Workout {
   type: string
   date: string
   duration: string
+  time?: string
   notes: string
   created_at: string
+  exercises: Exercise[]
 }
 
 interface TeamPost {
@@ -123,6 +135,18 @@ export const api = {
         .select()
         .single()
 
+      if (error) throw error
+      return data
+    },
+
+    async upsert(profile: any) {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('No user found')
+      const { data, error } = await supabase
+        .from('profiles')
+        .upsert([{ ...profile, id: user.id }], { onConflict: 'id' })
+        .select()
+        .single()
       if (error) throw error
       return data
     },

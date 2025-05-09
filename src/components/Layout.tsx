@@ -1,12 +1,14 @@
 import { Box, Flex, HStack, IconButton, Button, useColorModeValue, useDisclosure, Stack, Menu, MenuButton, MenuList, MenuItem, Avatar, Text } from '@chakra-ui/react'
-import { HamburgerIcon, CloseIcon } from '@chakra-ui/icons'
+import { HamburgerIcon, CloseIcon, ExternalLinkIcon } from '@chakra-ui/icons'
 import { Link as RouterLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { FaHome } from 'react-icons/fa'
 
 const Links = [
   { name: 'Dashboard', path: '/dashboard' },
   { name: 'Workouts', path: '/workouts' },
   { name: 'Team', path: '/team' },
+  { name: 'Events', path: '/events' },
   { name: 'Profile', path: '/profile' },
 ]
 
@@ -44,7 +46,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           w="100%"
           zIndex={1}
         >
-          <Flex h={16} alignItems="center" justifyContent="space-between" maxW="6xl" mx="auto" px={4}>
+          <Flex h={16} alignItems="center" justifyContent="space-between" w="100%" px={8}>
             <IconButton
               size="md"
               icon={isOpen ? <CloseIcon /> : <HamburgerIcon />}
@@ -53,14 +55,25 @@ export function Layout({ children }: { children: React.ReactNode }) {
               onClick={isOpen ? onClose : onOpen}
             />
             <HStack spacing={8} alignItems="center">
-              <Text fontWeight="bold" fontSize="lg">Track & Field</Text>
+              <RouterLink to="/dashboard">
+                <Text fontWeight="bold" fontSize="xl" color="blue.500">Track & Field</Text>
+              </RouterLink>
               <HStack as="nav" spacing={4} display={{ base: 'none', md: 'flex' }}>
                 {Links.map((link) => (
                   <NavLink key={link.name} {...link} />
                 ))}
               </HStack>
             </HStack>
-            <Flex alignItems="center">
+            <Flex alignItems="center" gap={4}>
+              <IconButton
+                as={RouterLink}
+                to="/"
+                icon={<FaHome />}
+                aria-label="Home"
+                colorScheme="blue"
+                variant="ghost"
+                size="md"
+              />
               <Menu>
                 <MenuButton as={Button} rounded="full" variant="link" cursor="pointer" minW={0}>
                   <Avatar size="sm" name={user.email} />
@@ -73,17 +86,27 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </Flex>
           </Flex>
           {isOpen ? (
-            <Box pb={4} display={{ md: 'none' }}>
+            <Box pb={4} display={{ md: 'none' }} px={8}>
               <Stack as="nav" spacing={4}>
                 {Links.map((link) => (
                   <NavLink key={link.name} {...link} />
                 ))}
+                <Button
+                  as={RouterLink}
+                  to="/"
+                  leftIcon={<FaHome />}
+                  variant="ghost"
+                  size="sm"
+                  justifyContent="flex-start"
+                >
+                  Home
+                </Button>
               </Stack>
             </Box>
           ) : null}
         </Box>
       )}
-      <Box pt={user ? 20 : 0} maxW="6xl" mx="auto" px={4}>
+      <Box pt={user ? 20 : 0} w="full" px={8}>
         {children}
       </Box>
     </Box>
