@@ -12,15 +12,24 @@ import {
   Badge,
   ButtonGroup,
   Divider,
+  VStack,
+  SimpleGrid,
+  List,
+  ListItem,
+  ListIcon,
 } from '@chakra-ui/react'
 import { CheckIcon } from '@chakra-ui/icons'
 import { useState } from 'react'
+import { FaCheckCircle } from 'react-icons/fa'
 
 function Pricing() {
-  const textColor = useColorModeValue('gray.600', 'gray.400')
+  const bgColor = useColorModeValue('gray.50', 'gray.900')
+  const textColor = useColorModeValue('gray.700', 'gray.300')
+  const subtitleColor = useColorModeValue('gray.600', 'gray.400')
   const cardBg = useColorModeValue('white', 'gray.800')
-  const blackCardBg = useColorModeValue('gray.900', 'gray.900')
-  const blackCardColor = 'white'
+  const borderColor = useColorModeValue('gray.100', 'gray.700')
+  const accentCardBorder = useColorModeValue('blue.200', 'blue.500')
+  
   const [billingCycle, setBillingCycle] = useState<'annual' | 'monthly'>('annual')
   
   // Pricing details based on billing cycle
@@ -30,283 +39,442 @@ function Pricing() {
     : 'Billed monthly + tax'
   
   return (
-    <Box w="100%">
+    <Box bg={bgColor} minH="100vh">
       {/* Hero Section */}
-      <Box bg={useColorModeValue('blue.50', 'blue.900')} py={20} w="100%">
-        <Box w="100%" px={8}>
-          <Stack spacing={8} align="center" textAlign="center">
-            <Heading size="2xl">Pricing Plans</Heading>
-            <Text fontSize="xl" maxW="3xl" color={textColor}>
-              Choose a plan that fits your needs - whether you're an individual athlete or a coach managing a team.
-            </Text>
-          </Stack>
-        </Box>
-      </Box>
-
-      {/* Pricing Plans Section */}
-      <Box py={20} w="100%">
-        <Box w="100%" px={8}>
-          <Flex 
-            direction={{ base: 'column', lg: 'row' }} 
-            gap={6} 
-            align="stretch"
-            justify="center"
-            maxW="1200px"
-            mx="auto"
-          >
-            {/* Individual Plan */}
-            <Box 
-              flex={1} 
-              bg={blackCardBg} 
-              p={6} 
-              rounded="md" 
-              shadow="xl"
-              color={blackCardColor}
-              position="relative"
-              maxW={{ base: "100%", lg: "33%" }}
-              borderWidth="1px"
-              borderColor="gray.700"
-              transition="transform 0.2s"
-              _hover={{ transform: "translateY(-5px)" }}
+      <Box py={{ base: 16, md: 24 }} bg="white">
+        <Container maxW="container.lg">
+          <VStack spacing={6} align="center" textAlign="center">
+            <Heading
+              as="h1"
+              size="2xl"
+              fontWeight="bold"
+              color={textColor}
+              lineHeight="1.2"
             >
-              <Badge 
-                colorScheme="blue" 
-                position="absolute" 
-                top={4} 
-                left={4}
-                borderRadius="full"
-                px={2}
-                py={1}
-                fontSize="xs"
-                fontWeight="bold"
-              >
-                Save 44%
-              </Badge>
-              
-              <Heading size="md" mb={4} mt={4} textAlign="center">Individual Plan</Heading>
-              
+              Choose Your Plan
+            </Heading>
+            <Text 
+              color={subtitleColor}
+              fontSize="xl"
+              maxW="2xl"
+              lineHeight="1.6"
+            >
+              Select the perfect plan for your track & field journey, whether you're an individual athlete or part of a team.
+            </Text>
+            
+            {/* Billing Toggle */}
+            <Box mt={8}>
               <ButtonGroup 
-                size="sm" 
+                size="md" 
                 isAttached 
                 variant="outline" 
-                w="full" 
                 borderRadius="full" 
-                mb={4}
-                bg="whiteAlpha.200"
-                p={1}
+                boxShadow="sm"
+                overflow="hidden"
               >
                 <Button 
                   borderRadius="full" 
-                  colorScheme={billingCycle === 'annual' ? 'blue' : undefined}
-                  bg={billingCycle === 'annual' ? 'blue.500' : 'transparent'}
-                  color={billingCycle === 'annual' ? 'white' : 'gray.200'}
-                  borderWidth={0}
-                  flex={1}
+                  colorScheme={billingCycle === 'annual' ? 'blue' : 'gray'}
+                  bg={billingCycle === 'annual' ? 'blue.500' : undefined}
+                  color={billingCycle === 'annual' ? 'white' : undefined}
+                  fontWeight="medium"
+                  px={8}
                   onClick={() => setBillingCycle('annual')}
                 >
                   Annual
                 </Button>
                 <Button 
                   borderRadius="full" 
-                  colorScheme={billingCycle === 'monthly' ? 'blue' : undefined}
-                  bg={billingCycle === 'monthly' ? 'blue.500' : 'transparent'}
-                  color={billingCycle === 'monthly' ? 'white' : 'gray.200'}
-                  borderWidth={0}
-                  flex={1}
+                  colorScheme={billingCycle === 'monthly' ? 'blue' : 'gray'}
+                  bg={billingCycle === 'monthly' ? 'blue.500' : undefined}
+                  color={billingCycle === 'monthly' ? 'white' : undefined}
+                  fontWeight="medium"
+                  px={8}
                   onClick={() => setBillingCycle('monthly')}
                 >
                   Monthly
                 </Button>
               </ButtonGroup>
-              
-              <Box textAlign="center" mb={6}>
-                <HStack justify="center" spacing={1}>
-                  <Text fontSize="3xl" fontWeight="bold">{individualPlanPrice}</Text>
-                  <Text fontSize="md" color="gray.300">/month</Text>
-                </HStack>
-              </Box>
-              
-              <Divider borderColor="whiteAlpha.300" mb={6} />
-              
-              <Stack spacing={2} mb={6}>
-                <Text fontSize="sm" textAlign="center">30-day trial for $0</Text>
-                <Text fontSize="sm" textAlign="center">{individualPlanBilling}</Text>
-              </Stack>
-              
-              <Button colorScheme="blue" size="lg" width="full" borderRadius="md">
-                Try it free
-              </Button>
+              {billingCycle === 'annual' && (
+                <Text fontSize="sm" color="green.500" fontWeight="medium" mt={2}>
+                  Save up to 44% with annual billing
+                </Text>
+              )}
             </Box>
+          </VStack>
+        </Container>
+      </Box>
 
+      {/* Pricing Plans Section */}
+      <Box py={{ base: 12, md: 20 }} bg={bgColor}>
+        <Container maxW="container.lg">
+          <SimpleGrid 
+            columns={{ base: 1, lg: 3 }} 
+            spacing={8}
+            alignItems="stretch"
+          >
+            {/* Individual Plan */}
+            <Box>
+              <Box 
+                bg={cardBg} 
+                p={8} 
+                rounded="xl" 
+                shadow="sm"
+                borderWidth="1px"
+                borderColor={borderColor}
+                position="relative"
+                transition="all 0.2s"
+                height="full"
+                display="flex"
+                flexDirection="column"
+                _hover={{ 
+                  transform: "translateY(-5px)", 
+                  boxShadow: "md",
+                }}
+              >
+                <VStack align="start" spacing={6} flex="1">
+                  <Box>
+                    <Text fontWeight="medium" fontSize="sm" color={subtitleColor} mb={1}>
+                      INDIVIDUAL
+                    </Text>
+                    <Heading size="lg" color={textColor}>
+                      Personal Plan
+                    </Heading>
+                  </Box>
+                  
+                  <Flex align="baseline">
+                    <Heading size="3xl" fontWeight="bold">
+                      {individualPlanPrice}
+                    </Heading>
+                    <Text fontSize="lg" fontWeight="medium" color={subtitleColor} ml={2}>
+                      /mo
+                    </Text>
+                  </Flex>
+                  
+                  <Text fontSize="sm" color={subtitleColor}>
+                    {individualPlanBilling}
+                  </Text>
+                  
+                  <Divider borderColor={borderColor} />
+                  
+                  <List spacing={3} flex="1" alignSelf="stretch">
+                    <ListItem fontSize="sm" color={textColor}>
+                      <ListIcon as={FaCheckCircle} color="green.500" />
+                      Performance analytics
+                    </ListItem>
+                    <ListItem fontSize="sm" color={textColor}>
+                      <ListIcon as={FaCheckCircle} color="green.500" />
+                      Personalized training plans
+                    </ListItem>
+                    <ListItem fontSize="sm" color={textColor}>
+                      <ListIcon as={FaCheckCircle} color="green.500" />
+                      Video analysis tools
+                    </ListItem>
+                    <ListItem fontSize="sm" color={textColor}>
+                      <ListIcon as={FaCheckCircle} color="green.500" />
+                      Competition tracking
+                    </ListItem>
+                  </List>
+                </VStack>
+                
+                <Button
+                  colorScheme="blue"
+                  size="lg"
+                  w="full"
+                  mt={8}
+                  fontWeight="medium"
+                  borderRadius="md"
+                >
+                  Start Free Trial
+                </Button>
+                <Text fontSize="xs" mt={2} textAlign="center" color={subtitleColor}>
+                  30-day trial, no credit card required
+                </Text>
+              </Box>
+            </Box>
+            
             {/* Student Plan */}
-            <Box 
-              flex={1} 
-              bg={cardBg} 
-              p={6} 
-              rounded="md" 
-              shadow="md"
-              borderWidth="1px"
-              borderColor={useColorModeValue('gray.200', 'gray.700')}
-              position="relative"
-              maxW={{ base: "100%", lg: "33%" }}
-              transition="transform 0.2s"
-              _hover={{ transform: "translateY(-5px)" }}
-            >
-              <Badge 
-                colorScheme="blue" 
-                position="absolute" 
-                top={4} 
-                left={4}
-                borderRadius="full"
-                px={2}
-                py={1}
-                fontSize="xs"
-                fontWeight="bold"
-                color="gray.800"
+            <Box>
+              <Box 
+                bg={cardBg} 
+                p={8} 
+                rounded="xl" 
+                shadow="md"
+                borderWidth="2px"
+                borderColor={accentCardBorder}
+                position="relative"
+                transition="all 0.2s"
+                height="full"
+                display="flex"
+                flexDirection="column"
+                _hover={{ 
+                  transform: "translateY(-5px)", 
+                  boxShadow: "md",
+                }}
               >
-                50% Off (Verified Students)
-              </Badge>
-              
-              <Heading size="md" mb={4} mt={4} textAlign="center">Student Plan</Heading>
-              
-              <Box h="42px" mb={4} /> {/* Spacer for where toggle would be */}
-              
-              <Box textAlign="center" mb={6}>
-                <HStack justify="center" spacing={1}>
-                  <Text fontSize="3xl" fontWeight="bold">$3.33</Text>
-                  <Text fontSize="md" color={textColor}>/month</Text>
-                </HStack>
+                <Badge
+                  position="absolute"
+                  top="-12px"
+                  left="50%"
+                  transform="translateX(-50%)"
+                  colorScheme="blue"
+                  rounded="full"
+                  px={3}
+                  py={1}
+                  fontSize="xs"
+                  fontWeight="bold"
+                  textTransform="uppercase"
+                >
+                  Most Popular
+                </Badge>
+                
+                <VStack align="start" spacing={6} flex="1">
+                  <Box>
+                    <Text fontWeight="medium" fontSize="sm" color={subtitleColor} mb={1}>
+                      STUDENT
+                    </Text>
+                    <Heading size="lg" color={textColor}>
+                      Student Plan
+                    </Heading>
+                  </Box>
+                  
+                  <Flex align="baseline">
+                    <Heading size="3xl" fontWeight="bold">
+                      $3.33
+                    </Heading>
+                    <Text fontSize="lg" fontWeight="medium" color={subtitleColor} ml={2}>
+                      /mo
+                    </Text>
+                  </Flex>
+                  
+                  <Text fontSize="sm" color={subtitleColor}>
+                    Billed at $39.99/year + tax
+                  </Text>
+                  
+                  <Divider borderColor={borderColor} />
+                  
+                  <List spacing={3} flex="1" alignSelf="stretch">
+                    <ListItem fontSize="sm" color={textColor}>
+                      <ListIcon as={FaCheckCircle} color="green.500" />
+                      All features in Personal Plan
+                    </ListItem>
+                    <ListItem fontSize="sm" color={textColor}>
+                      <ListIcon as={FaCheckCircle} color="green.500" />
+                      50% discount with valid student ID
+                    </ListItem>
+                    <ListItem fontSize="sm" color={textColor}>
+                      <ListIcon as={FaCheckCircle} color="green.500" />
+                      Team collaboration tools
+                    </ListItem>
+                    <ListItem fontSize="sm" color={textColor}>
+                      <ListIcon as={FaCheckCircle} color="green.500" />
+                      Priority customer support
+                    </ListItem>
+                  </List>
+                </VStack>
+                
+                <Button
+                  colorScheme="blue"
+                  size="lg"
+                  w="full"
+                  mt={8}
+                  fontWeight="medium"
+                  borderRadius="md"
+                >
+                  Verify Student Status
+                </Button>
+                <Text fontSize="xs" mt={2} textAlign="center" color={subtitleColor}>
+                  Requires verification with school email
+                </Text>
               </Box>
-              
-              <Divider borderColor={useColorModeValue('gray.200', 'gray.700')} mb={6} />
-              
-              <Stack spacing={2} mb={6}>
-                <Text fontSize="sm" textAlign="center">30-day trial for $0</Text>
-                <Text fontSize="sm" textAlign="center">Billed at $39.99/year + tax</Text>
-              </Stack>
-              
-              <Button colorScheme="blue" size="lg" width="full" borderRadius="md">
-                Try it free
-              </Button>
             </Box>
-
+            
             {/* Family Plan */}
-            <Box 
-              flex={1} 
-              bg={cardBg} 
-              p={6} 
-              rounded="md" 
-              shadow="md"
-              borderWidth="1px"
-              borderColor={useColorModeValue('gray.200', 'gray.700')}
-              position="relative"
-              maxW={{ base: "100%", lg: "33%" }}
-              transition="transform 0.2s"
-              _hover={{ transform: "translateY(-5px)" }}
-            >
-              <Badge 
-                colorScheme="blue" 
-                position="absolute" 
-                top={4} 
-                left={4}
-                borderRadius="full"
-                px={2}
-                py={1}
-                fontSize="xs"
-                fontWeight="bold"
-                color="gray.800"
+            <Box>
+              <Box 
+                bg={cardBg} 
+                p={8} 
+                rounded="xl" 
+                shadow="sm"
+                borderWidth="1px"
+                borderColor={borderColor}
+                position="relative"
+                transition="all 0.2s"
+                height="full"
+                display="flex"
+                flexDirection="column"
+                _hover={{ 
+                  transform: "translateY(-5px)", 
+                  boxShadow: "md",
+                }}
               >
-                4 Accounts
-              </Badge>
-              
-              <Heading size="md" mb={4} mt={4} textAlign="center">Family Plan</Heading>
-              
-              <Box h="42px" mb={4} /> {/* Spacer for where toggle would be */}
-              
-              <Box textAlign="center" mb={6}>
-                <HStack justify="center" alignItems="baseline" spacing={1}>
-                  <Text fontSize="3xl" fontWeight="bold">$2.92</Text>
-                  <Stack spacing={0} alignItems="start">
-                    <Text fontSize="sm" color={textColor}>/mo.</Text>
-                    <Text fontSize="xs" color={textColor}>per person*</Text>
-                  </Stack>
-                </HStack>
+                <VStack align="start" spacing={6} flex="1">
+                  <Box>
+                    <Text fontWeight="medium" fontSize="sm" color={subtitleColor} mb={1}>
+                      FAMILY
+                    </Text>
+                    <Heading size="lg" color={textColor}>
+                      Family Plan
+                    </Heading>
+                  </Box>
+                  
+                  <Flex align="baseline">
+                    <Heading size="3xl" fontWeight="bold">
+                      $2.92
+                    </Heading>
+                    <Box ml={2}>
+                      <Text fontSize="lg" fontWeight="medium" color={subtitleColor}>
+                        /mo
+                      </Text>
+                      <Text fontSize="xs" color={subtitleColor} lineHeight="1">
+                        per person
+                      </Text>
+                    </Box>
+                  </Flex>
+                  
+                  <Text fontSize="sm" color={subtitleColor}>
+                    Billed at $139.99/year for 4 members
+                  </Text>
+                  
+                  <Divider borderColor={borderColor} />
+                  
+                  <List spacing={3} flex="1" alignSelf="stretch">
+                    <ListItem fontSize="sm" color={textColor}>
+                      <ListIcon as={FaCheckCircle} color="green.500" />
+                      All features in Personal Plan
+                    </ListItem>
+                    <ListItem fontSize="sm" color={textColor}>
+                      <ListIcon as={FaCheckCircle} color="green.500" />
+                      Up to 4 family members
+                    </ListItem>
+                    <ListItem fontSize="sm" color={textColor}>
+                      <ListIcon as={FaCheckCircle} color="green.500" />
+                      Family activity dashboard
+                    </ListItem>
+                    <ListItem fontSize="sm" color={textColor}>
+                      <ListIcon as={FaCheckCircle} color="green.500" />
+                      Shared calendar & events
+                    </ListItem>
+                  </List>
+                </VStack>
+                
+                <Button
+                  colorScheme="blue"
+                  size="lg"
+                  w="full"
+                  mt={8}
+                  fontWeight="medium"
+                  borderRadius="md"
+                >
+                  Choose Family Plan
+                </Button>
+                <Text fontSize="xs" mt={2} textAlign="center" color={subtitleColor}>
+                  30-day trial, invite family members anytime
+                </Text>
               </Box>
-              
-              <Divider borderColor={useColorModeValue('gray.200', 'gray.700')} mb={6} />
-              
-              <Stack spacing={2} mb={6}>
-                <Text fontSize="sm" textAlign="center">*Price reflects plans with 4 members</Text>
-                <Text fontSize="sm" textAlign="center">Billed at $139.99/year + tax</Text>
-              </Stack>
-              
-              <Button colorScheme="blue" size="lg" width="full" borderRadius="md">
-                Choose plan
-              </Button>
             </Box>
-          </Flex>
+          </SimpleGrid>
+        </Container>
+      </Box>
 
-          {/* Features Section */}
-          <Box mt={20}>
-            <Heading size="lg" mb={8} textAlign="center">
+      {/* Features Section */}
+      <Box py={20} bg="white">
+        <Container maxW="container.lg">
+          <VStack spacing={12}>
+            <Heading 
+              textAlign="center" 
+              size="xl" 
+              color={textColor} 
+              fontWeight="bold"
+            >
               All Plans Include
             </Heading>
-            <Stack
-              direction={{ base: 'column', md: 'row' }}
-              spacing={8}
-              justify="center"
-            >
-              <Box
-                bg={useColorModeValue('white', 'gray.800')}
-                p={6}
-                rounded="lg"
-                shadow="md"
-                flex={1}
+            
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={8}>
+              <VStack 
+                p={6} 
+                spacing={4} 
+                align="start" 
                 borderWidth="1px"
-                borderColor={useColorModeValue('gray.200', 'gray.700')}
+                borderColor={borderColor}
+                borderRadius="lg"
+                bg={cardBg}
               >
-                <Heading size="md" mb={4}>
+                <Heading size="md" color={textColor}>
                   Mobile Access
                 </Heading>
-                <Text color={textColor}>
+                <Text color={subtitleColor} fontSize="sm">
                   Track your workouts and progress from your smartphone, tablet, or computer.
                 </Text>
-              </Box>
-              <Box
-                bg={useColorModeValue('white', 'gray.800')}
-                p={6}
-                rounded="lg"
-                shadow="md"
-                flex={1}
+              </VStack>
+              
+              <VStack 
+                p={6} 
+                spacing={4} 
+                align="start" 
                 borderWidth="1px"
-                borderColor={useColorModeValue('gray.200', 'gray.700')}
+                borderColor={borderColor}
+                borderRadius="lg"
+                bg={cardBg}
               >
-                <Heading size="md" mb={4}>
+                <Heading size="md" color={textColor}>
                   Data Security
                 </Heading>
-                <Text color={textColor}>
+                <Text color={subtitleColor} fontSize="sm">
                   Your information is always encrypted and secure with our state-of-the-art protection.
                 </Text>
-              </Box>
-              <Box
-                bg={useColorModeValue('white', 'gray.800')}
-                p={6}
-                rounded="lg"
-                shadow="md"
-                flex={1}
+              </VStack>
+              
+              <VStack 
+                p={6} 
+                spacing={4} 
+                align="start" 
                 borderWidth="1px"
-                borderColor={useColorModeValue('gray.200', 'gray.700')}
+                borderColor={borderColor}
+                borderRadius="lg"
+                bg={cardBg}
               >
-                <Heading size="md" mb={4}>
-                  Regular Updates
+                <Heading size="md" color={textColor}>
+                  Cloud Storage
                 </Heading>
-                <Text color={textColor}>
-                  We constantly improve our platform with new features based on user feedback.
+                <Text color={subtitleColor} fontSize="sm">
+                  All your training data, videos, and records are securely stored in the cloud.
                 </Text>
-              </Box>
-            </Stack>
-          </Box>
-        </Box>
+              </VStack>
+              
+              <VStack 
+                p={6} 
+                spacing={4} 
+                align="start" 
+                borderWidth="1px"
+                borderColor={borderColor}
+                borderRadius="lg"
+                bg={cardBg}
+              >
+                <Heading size="md" color={textColor}>
+                  24/7 Support
+                </Heading>
+                <Text color={subtitleColor} fontSize="sm">
+                  Get assistance whenever you need it from our dedicated support team.
+                </Text>
+              </VStack>
+            </SimpleGrid>
+            
+            <Box textAlign="center" mt={8}>
+              <Text fontSize="sm" color={subtitleColor}>
+                Need a custom solution for your team or organization?
+              </Text>
+              <Button 
+                variant="link" 
+                colorScheme="blue" 
+                mt={2}
+                fontWeight="medium"
+              >
+                Contact us for team pricing
+              </Button>
+            </Box>
+          </VStack>
+        </Container>
       </Box>
     </Box>
   )

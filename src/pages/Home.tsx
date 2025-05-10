@@ -9,12 +9,22 @@ import {
   Text,
   useColorModeValue,
   keyframes,
+  SimpleGrid,
+  Icon,
+  VStack,
+  HStack,
 } from '@chakra-ui/react'
 import { Link as RouterLink } from 'react-router-dom'
+import { FaChartLine, FaUsers, FaTrophy } from 'react-icons/fa'
 
 const Home = () => {
-  const bgColor = useColorModeValue('white', 'gray.800')
-  const textColor = useColorModeValue('gray.600', 'gray.400')
+  const bgGradient = useColorModeValue(
+    'linear-gradient(to bottom, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.9))',
+    'linear-gradient(to bottom, rgba(26, 32, 44, 0.8), rgba(26, 32, 44, 0.9))'
+  )
+  const textColor = useColorModeValue('gray.700', 'gray.300')
+  const subtitleColor = useColorModeValue('gray.600', 'gray.400')
+  const cardBg = useColorModeValue('white', 'gray.800')
   
   // Animation keyframes
   const fadeIn = keyframes`
@@ -28,44 +38,51 @@ const Home = () => {
     <Box w="100%">
       {/* Hero Section */}
       <Box 
-        bg={useColorModeValue('blue.50', 'blue.900')} 
-        py={{ base: 24, md: 36 }}
-        minHeight={{ base: "70vh", md: "80vh" }}
-        w="100%"
-        backgroundImage="url('/images/hero-image.jpg')"
-        backgroundSize="cover"
-        backgroundPosition="center"
+        bg={useColorModeValue('gray.50', 'gray.900')} 
+        py={{ base: 24, md: 32 }}
         position="relative"
-        display="flex"
-        alignItems="center"
+        overflow="hidden"
       >
-        {/* Dark overlay for better text readability */}
-        <Box 
+        {/* Background Image with Overlay */}
+        <Box
           position="absolute"
           top="0"
           left="0"
-          width="100%"
-          height="100%"
-          bg="rgba(0, 0, 0, 0.5)"
+          right="0"
+          bottom="0"
+          backgroundImage="url('/images/hero-image.jpg')"
+          backgroundSize="cover"
+          backgroundPosition="center"
+          filter="grayscale(40%)"
+          opacity="0.2"
+          zIndex={0}
         />
-        <Container maxW="100%" px={8} position="relative" zIndex={1}>
-          <Flex direction={{ base: 'column', md: 'row' }} align="center" justify="space-between">
-            <Box flex={1} pr={{ base: 0, md: 8 }}>
+        
+        <Container maxW="container.lg" position="relative" zIndex={1}>
+          <Stack
+            direction={{ base: 'column', lg: 'row' }}
+            align="center"
+            spacing={{ base: 8, md: 10 }}
+            py={{ base: 8, md: 16 }}
+          >
+            <Stack flex={1} spacing={{ base: 5, md: 8 }}>
               <Heading
                 as="h1"
                 size="2xl"
-                mb={6}
-                color="white"
+                fontWeight="bold"
+                lineHeight="1.2"
+                letterSpacing="tight"
                 animation={fadeInAnimation}
+                color={textColor}
               >
                 Elevate Your Track & Field Journey
               </Heading>
               <Text 
                 fontSize="xl" 
-                mb={8} 
-                color="gray.100"
+                color={subtitleColor}
                 animation={`${fadeIn} 1s ease-out 0.3s forwards`}
                 opacity="0"
+                lineHeight="1.6"
               >
                 Join the ultimate platform for track and field athletes. Track your progress, connect with coaches, and achieve your athletic goals.
               </Text>
@@ -77,10 +94,15 @@ const Home = () => {
               >
                 <Button
                   as={RouterLink}
-                  to="/register"
+                  to="/signup"
                   size="lg"
-                  colorScheme="blue"
+                  bg="blue.500"
+                  color="white"
+                  _hover={{ bg: 'blue.600' }}
                   px={8}
+                  fontSize="md"
+                  fontWeight="medium"
+                  borderRadius="md"
                 >
                   Get Started
                 </Button>
@@ -89,128 +111,167 @@ const Home = () => {
                   to="/login"
                   size="lg"
                   variant="outline"
-                  colorScheme="blue"
-                  bg="rgba(255, 255, 255, 0.1)"
-                  color="white"
-                  _hover={{ bg: 'rgba(255, 255, 255, 0.2)' }}
+                  bg="transparent"
+                  borderColor="blue.500"
+                  color="blue.500"
+                  _hover={{ bg: 'blue.50' }}
                   px={8}
+                  fontSize="md"
+                  fontWeight="medium"
+                  borderRadius="md"
                 >
                   Log In
                 </Button>
               </Stack>
-            </Box>
-          </Flex>
+            </Stack>
+            <Flex
+              flex={1}
+              justify="center"
+              align="center"
+              position="relative"
+              w="full"
+              display={{ base: 'none', lg: 'flex' }}
+            >
+              <Box
+                position="relative"
+                height="400px"
+                width="full"
+                overflow="hidden"
+                borderRadius="2xl"
+                boxShadow="xl"
+              >
+                <Image
+                  alt="Hero Image"
+                  fit="cover"
+                  align="center"
+                  w="100%"
+                  h="100%"
+                  src="/images/hero-image.jpg"
+                />
+              </Box>
+            </Flex>
+          </Stack>
         </Container>
       </Box>
 
       {/* Features Section */}
-      <Box py={20} w="100%">
-        <Container maxW="100%" px={8}>
-          <Heading textAlign="center" mb={12}>
-            Why Choose Our Platform?
-          </Heading>
-          <Flex
-            direction={{ base: 'column', md: 'row' }}
-            gap={8}
-            justify="space-between"
-          >
-            <Box flex={1} textAlign="center">
-              <Box
-                w={16}
-                h={16}
-                mx="auto"
-                mb={4}
-                bg="blue.100"
-                borderRadius="full"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
+      <Box py={20} bg={useColorModeValue('white', 'gray.900')}>
+        <Container maxW="container.lg">
+          <VStack spacing={12}>
+            <VStack spacing={4} textAlign="center">
+              <Heading
+                fontSize={{ base: '3xl', md: '4xl' }}
+                fontWeight="bold"
+                color={textColor}
               >
-                <Text fontSize="2xl">📊</Text>
-              </Box>
-              <Heading size="md" mb={4}>
-                Advanced Analytics
+                Why Choose Our Platform?
               </Heading>
-              <Text color={textColor}>
-                Track your performance metrics, analyze your progress, and get insights to improve your training.
+              <Text fontSize="lg" color={subtitleColor} maxW="3xl">
+                Innovative tools designed to elevate your track and field experience
               </Text>
-            </Box>
-            <Box flex={1} textAlign="center">
-              <Box
-                w={16}
-                h={16}
-                mx="auto"
-                mb={4}
-                bg="blue.100"
-                borderRadius="full"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-              >
-                <Text fontSize="2xl">👥</Text>
-              </Box>
-              <Heading size="md" mb={4}>
-                Expert Coaching
-              </Heading>
-              <Text color={textColor}>
-                Connect with professional coaches who can guide you through personalized training programs.
-              </Text>
-            </Box>
-            <Box flex={1} textAlign="center">
-              <Box
-                w={16}
-                h={16}
-                mx="auto"
-                mb={4}
-                bg="blue.100"
-                borderRadius="full"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-              >
-                <Text fontSize="2xl">🏆</Text>
-              </Box>
-              <Heading size="md" mb={4}>
-                Competition Ready
-              </Heading>
-              <Text color={textColor}>
-                Prepare for competitions with specialized training plans and performance tracking tools.
-              </Text>
-            </Box>
-          </Flex>
+            </VStack>
+            
+            <SimpleGrid columns={{ base: 1, md: 3 }} spacing={10} w="full">
+              <Feature
+                icon={<Icon as={FaChartLine} w={10} h={10} color="blue.500" />}
+                title="Advanced Analytics"
+                text="Track your performance metrics, analyze your progress, and get insights to improve your training."
+              />
+              <Feature
+                icon={<Icon as={FaUsers} w={10} h={10} color="blue.500" />}
+                title="Expert Coaching"
+                text="Connect with professional coaches who can guide you through personalized training programs."
+              />
+              <Feature
+                icon={<Icon as={FaTrophy} w={10} h={10} color="blue.500" />}
+                title="Competition Ready"
+                text="Prepare for competitions with specialized training plans and performance tracking tools."
+              />
+            </SimpleGrid>
+          </VStack>
         </Container>
       </Box>
 
       {/* Testimonials Section */}
-      <Box py={20} bg={useColorModeValue('gray.50', 'gray.900')} w="100%">
-        <Container maxW="100%" px={8}>
+      <Box py={20} bg={useColorModeValue('gray.50', 'gray.800')} w="100%">
+        <Container maxW="container.lg">
           {/* Testimonials content */}
         </Container>
       </Box>
 
       {/* CTA Section */}
-      <Box py={20} w="100%">
-        <Container maxW="100%" px={8}>
-          <Stack spacing={8} textAlign="center" maxW="3xl" mx="auto">
-            <Heading mb={6}>
+      <Box py={24} bg={useColorModeValue('white', 'gray.900')}>
+        <Container maxW="container.md">
+          <VStack spacing={8} textAlign="center">
+            <Heading
+              fontSize={{ base: '3xl', md: '4xl' }}
+              fontWeight="bold"
+              color={textColor}
+            >
               Ready to Transform Your Track & Field Journey?
             </Heading>
-            <Text fontSize="xl" color={textColor}>
+            <Text fontSize="lg" color={subtitleColor} maxW="2xl">
               Join thousands of athletes who are already achieving their goals with our platform.
             </Text>
             <Button
               as={RouterLink}
-              to="/register"
+              to="/signup"
               size="lg"
-              colorScheme="blue"
-              px={8}
+              bg="blue.500"
+              color="white"
+              _hover={{ bg: 'blue.600' }}
+              px={10}
+              py={7}
+              fontSize="md"
+              fontWeight="medium"
+              borderRadius="md"
+              mt={4}
             >
               Start Your Free Trial
             </Button>
-          </Stack>
+          </VStack>
         </Container>
       </Box>
     </Box>
+  )
+}
+
+// Feature component
+const Feature = ({ title, text, icon }: { title: string; text: string; icon: React.ReactNode }) => {
+  const cardBg = useColorModeValue('white', 'gray.800')
+  const textColor = useColorModeValue('gray.700', 'gray.300')
+  const subtitleColor = useColorModeValue('gray.600', 'gray.400')
+  
+  return (
+    <VStack
+      p={8}
+      bg={cardBg}
+      borderRadius="lg"
+      boxShadow="sm"
+      border="1px solid"
+      borderColor={useColorModeValue('gray.100', 'gray.700')}
+      align="start"
+      spacing={5}
+      transition="all 0.3s"
+      _hover={{
+        transform: 'translateY(-5px)',
+        boxShadow: 'md',
+      }}
+    >
+      <Box
+        p={2}
+        borderRadius="md"
+        bg={useColorModeValue('blue.50', 'blue.900')}
+      >
+        {icon}
+      </Box>
+      <Heading size="md" fontWeight="semibold" color={textColor}>
+        {title}
+      </Heading>
+      <Text color={subtitleColor}>
+        {text}
+      </Text>
+    </VStack>
   )
 }
 

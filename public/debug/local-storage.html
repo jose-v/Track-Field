@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalStorage Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 4px; }
+        .controls { margin-bottom: 20px; }
+        button { padding: 8px 16px; margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <h1>LocalStorage Debug</h1>
+    
+    <div class="controls">
+        <button onclick="refresh()">Refresh</button>
+        <button onclick="clearProgress()">Clear Progress Data</button>
+        <button onclick="clearAll()">Clear All LocalStorage</button>
+    </div>
+    
+    <h2>Contents of LocalStorage:</h2>
+    <pre id="storage"></pre>
+    
+    <script>
+        function refresh() {
+            const storageEl = document.getElementById('storage');
+            let content = '';
+            
+            try {
+                if (localStorage.length === 0) {
+                    content = 'LocalStorage is empty.';
+                } else {
+                    // Format all localStorage items
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        let value = localStorage.getItem(key);
+                        
+                        // Try to parse JSON values for better readability
+                        try {
+                            const parsed = JSON.parse(value);
+                            value = JSON.stringify(parsed, null, 2);
+                        } catch (e) {
+                            // Not JSON, leave as is
+                        }
+                        
+                        content += `${key}:\n${value}\n\n`;
+                    }
+                }
+            } catch (e) {
+                content = `Error accessing localStorage: ${e.message}`;
+            }
+            
+            storageEl.textContent = content;
+        }
+        
+        function clearProgress() {
+            try {
+                // Only clear workout-related entries
+                const keysToRemove = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && (key.startsWith('workout-') || key.includes('workout'))) {
+                        keysToRemove.push(key);
+                    }
+                }
+                
+                keysToRemove.forEach(key => localStorage.removeItem(key));
+                
+                alert(`Removed ${keysToRemove.length} workout-related items from localStorage.`);
+                refresh();
+            } catch (e) {
+                alert(`Error clearing progress: ${e.message}`);
+            }
+        }
+        
+        function clearAll() {
+            if (confirm('This will clear ALL localStorage data. Continue?')) {
+                try {
+                    localStorage.clear();
+                    alert('All localStorage data has been cleared.');
+                    refresh();
+                } catch (e) {
+                    alert(`Error clearing localStorage: ${e.message}`);
+                }
+            }
+        }
+        
+        // Initial display
+        refresh();
+    </script>
+</body>
+</html> 

@@ -10,6 +10,9 @@ import {
   useColorModeValue,
   Image,
   Flex,
+  Divider,
+  VStack,
+  HStack,
 } from '@chakra-ui/react';
 import { FaTwitter, FaInstagram, FaFacebook, FaLinkedin } from 'react-icons/fa';
 import { Link as RouterLink } from 'react-router-dom';
@@ -25,19 +28,20 @@ const SocialButton = ({
 }) => {
   return (
     <chakra.button
-      bg={useColorModeValue('blackAlpha.100', 'whiteAlpha.100')}
+      bg={useColorModeValue('gray.100', 'whiteAlpha.100')}
       rounded={'full'}
-      w={8}
-      h={8}
+      w={10}
+      h={10}
       cursor={'pointer'}
       as={'a'}
       href={href}
       display={'inline-flex'}
       alignItems={'center'}
       justifyContent={'center'}
-      transition={'background 0.3s ease'}
+      transition={'background 0.3s ease, transform 0.2s ease'}
       _hover={{
-        bg: useColorModeValue('blackAlpha.200', 'whiteAlpha.200'),
+        bg: useColorModeValue('gray.200', 'whiteAlpha.200'),
+        transform: 'translateY(-2px)',
       }}
       target="_blank"
       rel="noopener noreferrer"
@@ -50,92 +54,105 @@ const SocialButton = ({
 
 const ListHeader = ({ children }: { children: React.ReactNode }) => {
   return (
-    <Text fontWeight={'500'} fontSize={'lg'} mb={2}>
+    <Text fontWeight={'600'} fontSize={'sm'} mb={4} color={useColorModeValue('gray.700', 'gray.400')} textTransform="uppercase" letterSpacing="wide">
       {children}
     </Text>
   );
 };
 
 export function Footer() {
+  const bgColor = useColorModeValue('white', 'gray.900');
+  const borderColor = useColorModeValue('gray.100', 'gray.800');
+  const textColor = useColorModeValue('gray.600', 'gray.400');
+  const headingColor = useColorModeValue('gray.800', 'white');
+  
   return (
     <Box
-      bg={useColorModeValue('gray.50', 'gray.900')}
-      color={useColorModeValue('gray.700', 'gray.200')}
+      bg={bgColor}
+      color={textColor}
       borderTop={1}
       borderStyle={'solid'}
-      borderColor={useColorModeValue('gray.200', 'gray.700')}
+      borderColor={borderColor}
     >
-      <Container as={Stack} maxW={'100%'} py={10} px={8}>
+      <Container as={Stack} maxW={'container.lg'} py={10}>
         <SimpleGrid
           templateColumns={{ sm: '1fr 1fr', md: '2fr 1fr 1fr 1fr' }}
-          spacing={8}
+          spacing={12}
         >
-          <Stack spacing={6}>
+          <VStack spacing={6} align="flex-start">
             <Box>
-              <Text fontWeight="bold" fontSize="xl" color="blue.500">
+              <Text fontWeight="bold" fontSize="xl" color={headingColor} mb={2}>
                 Track & Field
               </Text>
+              <Text fontSize="sm" maxW="xs">
+                The ultimate platform for track and field athletes to improve their performance.
+              </Text>
             </Box>
-            <Text fontSize={'sm'}>
-              © {new Date().getFullYear()} Track & Field. All rights reserved
-            </Text>
-            <Stack direction={'row'} spacing={6}>
+            <HStack spacing={5}>
               <SocialButton label={'Twitter'} href={'https://twitter.com'}>
-                <FaTwitter />
+                <FaTwitter size={18} />
               </SocialButton>
               <SocialButton label={'Facebook'} href={'https://facebook.com'}>
-                <FaFacebook />
+                <FaFacebook size={18} />
               </SocialButton>
               <SocialButton label={'Instagram'} href={'https://instagram.com'}>
-                <FaInstagram />
+                <FaInstagram size={18} />
               </SocialButton>
               <SocialButton label={'LinkedIn'} href={'https://linkedin.com'}>
-                <FaLinkedin />
+                <FaLinkedin size={18} />
               </SocialButton>
-            </Stack>
-          </Stack>
-          <Stack align={'flex-start'}>
+            </HStack>
+          </VStack>
+          
+          <VStack align={'flex-start'} spacing={3}>
             <ListHeader>Company</ListHeader>
-            <Link as={RouterLink} to={'/about'}>About</Link>
-            <Link as={RouterLink} to={'/contact'}>Contact</Link>
-            <Link as={RouterLink} to={'/privacy'}>Privacy</Link>
-            <Link as={RouterLink} to={'/terms'}>Terms of Service</Link>
-          </Stack>
-          <Stack align={'flex-start'}>
+            <Link as={RouterLink} to={'/about'} fontSize="sm" _hover={{ color: 'blue.500' }}>About</Link>
+            <Link as={RouterLink} to={'/contact'} fontSize="sm" _hover={{ color: 'blue.500' }}>Contact</Link>
+            <Link as={RouterLink} to={'/privacy'} fontSize="sm" _hover={{ color: 'blue.500' }}>Privacy</Link>
+            <Link as={RouterLink} to={'/terms'} fontSize="sm" _hover={{ color: 'blue.500' }}>Terms of Service</Link>
+          </VStack>
+          
+          <VStack align={'flex-start'} spacing={3}>
             <ListHeader>Platform</ListHeader>
-            <Link as={RouterLink} to={'/features'}>Features</Link>
-            <Link as={RouterLink} to={'/pricing'}>Pricing</Link>
-            <Link href={'#'}>Resources</Link>
-            <Link href={'#'}>Blog</Link>
-          </Stack>
-          <Stack align={'flex-start'}>
-            <ListHeader>Download Our App</ListHeader>
-            <Flex direction="column" gap={3}>
-              <Link 
-                href={'https://apps.apple.com'} 
-                isExternal
-                _hover={{ opacity: 0.8 }}
-              >
-                <Image 
-                  src="/images/app-store-badge.svg" 
-                  alt="Download on the App Store" 
-                  h="40px"
-                />
-              </Link>
-              <Link 
-                href={'https://play.google.com'} 
-                isExternal
-                _hover={{ opacity: 0.8 }}
-              >
-                <Image 
-                  src="/images/google-play-badge.png" 
-                  alt="Get it on Google Play" 
-                  h="45px"
-                />
-              </Link>
-            </Flex>
-          </Stack>
+            <Link as={RouterLink} to={'/features'} fontSize="sm" _hover={{ color: 'blue.500' }}>Features</Link>
+            <Link as={RouterLink} to={'/pricing'} fontSize="sm" _hover={{ color: 'blue.500' }}>Pricing</Link>
+            <Link href={'#'} fontSize="sm" _hover={{ color: 'blue.500' }}>Resources</Link>
+            <Link href={'#'} fontSize="sm" _hover={{ color: 'blue.500' }}>Blog</Link>
+          </VStack>
+          
+          <VStack align={'flex-start'} spacing={3}>
+            <ListHeader>Download</ListHeader>
+            <Link 
+              href={'https://apps.apple.com'} 
+              isExternal
+              _hover={{ opacity: 0.8 }}
+            >
+              <Image 
+                src="/images/app-store-badge.svg" 
+                alt="Download on the App Store" 
+                h="36px"
+              />
+            </Link>
+            <Link 
+              href={'https://play.google.com'} 
+              isExternal
+              _hover={{ opacity: 0.8 }}
+              mt={2}
+            >
+              <Image 
+                src="/images/google-play-badge.png" 
+                alt="Get it on Google Play" 
+                h="40px"
+              />
+            </Link>
+          </VStack>
         </SimpleGrid>
+        
+        <Divider my={8} borderColor={borderColor} />
+        
+        <Text fontSize={'sm'} textAlign="center">
+          © {new Date().getFullYear()} Track & Field. All rights reserved
+        </Text>
       </Container>
     </Box>
   );
