@@ -17,6 +17,9 @@ import {
   Code,
   IconButton,
   Spinner,
+  Grid,
+  GridItem,
+  SimpleGrid,
 } from '@chakra-ui/react'
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
@@ -41,6 +44,51 @@ const EVENT_OPTIONS = [
   // Steeplechase
   '3000m steeplechase',
 ]
+
+// Country and state data
+const COUNTRIES = [
+  'United States',
+  'Canada',
+  'United Kingdom',
+  'Australia',
+  'France',
+  'Germany',
+  'Japan',
+  'China',
+  'Brazil',
+  'Mexico',
+  'Spain',
+  'Italy',
+  'South Africa',
+  'Kenya',
+  'Jamaica',
+];
+
+// States by country
+const STATES_BY_COUNTRY: Record<string, string[]> = {
+  'United States': [
+    'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut',
+    'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa',
+    'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan',
+    'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire',
+    'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma',
+    'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee',
+    'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'
+  ],
+  'Canada': [
+    'Alberta', 'British Columbia', 'Manitoba', 'New Brunswick', 'Newfoundland and Labrador',
+    'Northwest Territories', 'Nova Scotia', 'Nunavut', 'Ontario', 'Prince Edward Island',
+    'Quebec', 'Saskatchewan', 'Yukon'
+  ],
+  'United Kingdom': [
+    'England', 'Scotland', 'Wales', 'Northern Ireland'
+  ],
+  'Australia': [
+    'Australian Capital Territory', 'New South Wales', 'Northern Territory', 
+    'Queensland', 'South Australia', 'Tasmania', 'Victoria', 'Western Australia'
+  ],
+  // Add more countries and their states/provinces as needed
+};
 
 // Add the following type to match the database schema
 type UserRole = 'athlete' | 'coach' | 'team_manager';
@@ -75,6 +123,7 @@ interface ProfileData {
   school?: string;
   state?: string;
   address?: string;
+  country?: string;
 }
 
 // Map UI role labels to DB roles
@@ -121,11 +170,22 @@ export function Profile() {
     school: '',
     state: '',
     address: '',
+    country: 'United States',
   })
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [coaches, setCoaches] = useState<Array<{id: string, full_name: string}>>([])
   const [isLoadingCoaches, setIsLoadingCoaches] = useState(false)
+  const [availableStates, setAvailableStates] = useState<string[]>([])
+
+  // Update available states when country changes
+  useEffect(() => {
+    if (profile.country && STATES_BY_COUNTRY[profile.country]) {
+      setAvailableStates(STATES_BY_COUNTRY[profile.country]);
+    } else {
+      setAvailableStates([]);
+    }
+  }, [profile.country]);
 
   // Format phone number to (xxx) xxx-xxxx
   const formatPhone = (phone: string) => {
@@ -168,6 +228,7 @@ export function Profile() {
         school: remoteProfile.school || '',
         state: remoteProfile.state || '',
         address: remoteProfile.address || '',
+        country: remoteProfile.country || 'United States',
       })
       
       // Load avatar URL if it exists
@@ -232,6 +293,7 @@ export function Profile() {
       coach: profile.coach || '',
       state: profile.state || '',
       address: profile.address || '',
+      country: profile.country || '',
     }
     
     // Get athlete-specific data
@@ -272,6 +334,7 @@ export function Profile() {
             city: dbProfile.city,
             state: dbProfile.state,
             address: dbProfile.address,
+            country: dbProfile.country,
             updated_at: new Date().toISOString()
           })
           .eq('id', user.id)
@@ -316,11 +379,11 @@ export function Profile() {
                 
                 // Success!
                 setIsEditing(false);
-    toast({
-      title: 'Profile updated',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
+                toast({
+                  title: 'Profile updated',
+                  status: 'success',
+                  duration: 3000,
+                  isClosable: true,
                 });
                 
                 // Refresh the page after 1 second
@@ -976,7 +1039,7 @@ WHERE id = '${user.id}';
             </Box>
           </Box>
         ) : (
-          // Edit Form - Keep the existing form when in edit mode
+          // Edit Form - with our updates
         <Box p={6} borderWidth={1} borderRadius="lg" bg="white">
           <form onSubmit={handleSubmit}>
             <VStack spacing={6} align="stretch">
@@ -1097,7 +1160,20 @@ WHERE id = '${user.id}';
                   />
                 </FormControl>
 
-                {/* City - New field */}
+                {/* Address Section - Reordered */}
+                <Heading size="sm" mt={2} mb={2}>Address Information</Heading>
+                
+                {/* Address */}
+                <FormControl>
+                  <FormLabel>Street Address</FormLabel>
+                  <Input
+                    value={profile.address || ''}
+                    onChange={(e) => setProfile({ ...profile, address: e.target.value })}
+                    placeholder="Enter your street address"
+                  />
+                </FormControl>
+
+                {/* City */}
                 <FormControl>
                   <FormLabel>City</FormLabel>
                   <Input
@@ -1109,24 +1185,40 @@ WHERE id = '${user.id}';
                 />
               </FormControl>
 
-              {/* State */}
-              <FormControl mt={4}>
-                <FormLabel>State</FormLabel>
-                <Input
-                  value={profile.state || ''}
-                  onChange={(e) => setProfile({ ...profile, state: e.target.value })}
-                  placeholder="Enter your state/province"
-                />
+              {/* Country dropdown */}
+              <FormControl>
+                <FormLabel>Country</FormLabel>
+                <Select
+                  value={profile.country || ''}
+                  onChange={(e) => setProfile({ ...profile, country: e.target.value, state: '' })}
+                  placeholder="Select country"
+                >
+                  {COUNTRIES.map((country) => (
+                    <option key={country} value={country}>{country}</option>
+                  ))}
+                </Select>
               </FormControl>
 
-              {/* Address */}
-              <FormControl mt={4}>
-                <FormLabel>Address</FormLabel>
-                <Input
-                  value={profile.address || ''}
-                  onChange={(e) => setProfile({ ...profile, address: e.target.value })}
-                  placeholder="Enter your street address"
-                />
+              {/* State dropdown - dynamic based on selected country */}
+              <FormControl>
+                <FormLabel>State/Province</FormLabel>
+                {availableStates.length > 0 ? (
+                  <Select
+                    value={profile.state || ''}
+                    onChange={(e) => setProfile({ ...profile, state: e.target.value })}
+                    placeholder="Select state/province"
+                  >
+                    {availableStates.map((state) => (
+                      <option key={state} value={state}>{state}</option>
+                    ))}
+                  </Select>
+                ) : (
+                  <Input
+                    value={profile.state || ''}
+                    onChange={(e) => setProfile({ ...profile, state: e.target.value })}
+                    placeholder="Enter your state/province"
+                  />
+                )}
               </FormControl>
 
               {/* Gender */}
@@ -1157,7 +1249,7 @@ WHERE id = '${user.id}';
                 )}
               </FormControl>
 
-              {/* Events */}
+              {/* Events - Updated to 3 columns */}
               <FormControl>
                 <FormLabel>Events</FormLabel>
                 <CheckboxGroup
@@ -1168,13 +1260,13 @@ WHERE id = '${user.id}';
                     setProfile({ ...profile, events: vals as string[] });
                   }}
                 >
-                  <Stack spacing={2} direction="column">
+                  <SimpleGrid columns={{ base: 1, md: 3 }} spacing={2}>
                     {EVENT_OPTIONS.map((ev) => (
                       <Checkbox key={ev} value={ev} isChecked={profile.events?.includes(ev)}>
                         {ev}
                       </Checkbox>
                     ))}
-                  </Stack>
+                  </SimpleGrid>
                 </CheckboxGroup>
               </FormControl>
 
@@ -1203,7 +1295,7 @@ WHERE id = '${user.id}';
                 )}
               </FormControl>
 
-                <Button type="submit" colorScheme="brand">
+                <Button type="submit" colorScheme="blue" size="lg" mt={4}>
                   Save Changes
                 </Button>
             </VStack>

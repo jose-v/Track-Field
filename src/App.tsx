@@ -22,6 +22,7 @@ import { About } from './pages/About'
 import { Navigation } from './components/Navigation'
 import { Footer } from './components/Footer'
 import { Events } from './pages/Events'
+import { Contact } from './pages/Contact'
 import { PageContainer } from './components/PageContainer'
 import RoleDashboardRouter from './pages/RoleDashboardRouter'
 import { CoachDashboard } from './pages/coach/Dashboard'
@@ -61,7 +62,7 @@ function App() {
                   <Route path="/features" element={<Features />} />
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/about" element={<About />} />
-                  <Route path="/contact" element={<Events />} />
+                  <Route path="/contact" element={<Contact />} />
                   <Route path="/events" element={<Events />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
