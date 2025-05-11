@@ -73,6 +73,8 @@ interface ProfileData {
   avatar_url?: string;
   city?: string;
   school?: string;
+  state?: string;
+  address?: string;
 }
 
 // Map UI role labels to DB roles
@@ -117,6 +119,8 @@ export function Profile() {
     events: [],
     coach: '',
     school: '',
+    state: '',
+    address: '',
   })
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -162,6 +166,8 @@ export function Profile() {
         coach: remoteProfile.coach || '',
         city: remoteProfile.city || '',
         school: remoteProfile.school || '',
+        state: remoteProfile.state || '',
+        address: remoteProfile.address || '',
       })
       
       // Load avatar URL if it exists
@@ -224,6 +230,8 @@ export function Profile() {
       school: profile.school || '',
       city: profile.city || '',
       coach: profile.coach || '',
+      state: profile.state || '',
+      address: profile.address || '',
     }
     
     // Get athlete-specific data
@@ -257,11 +265,13 @@ export function Profile() {
             email: dbProfile.email,
             phone: dbProfile.phone,
             bio: dbProfile.bio,
-            role: dbProfile.role,
+            role: profile.role,
             team: dbProfile.team,
+            coach: dbProfile.coach,
             school: dbProfile.school,
             city: dbProfile.city,
-            coach: dbProfile.coach,
+            state: dbProfile.state,
+            address: dbProfile.address,
             updated_at: new Date().toISOString()
           })
           .eq('id', user.id)
@@ -1051,7 +1061,7 @@ WHERE id = '${user.id}';
                   onChange={(e) =>
                     setProfile({ ...profile, school: e.target.value })
                   }
-                  placeholder="Your school or institution"
+                  placeholder="Enter your school name"
                 />
               </FormControl>
 
@@ -1095,7 +1105,27 @@ WHERE id = '${user.id}';
                     onChange={(e) =>
                       setProfile({ ...profile, city: e.target.value })
                     }
-                    placeholder="Your city"
+                    placeholder="Enter your city"
+                />
+              </FormControl>
+
+              {/* State */}
+              <FormControl mt={4}>
+                <FormLabel>State</FormLabel>
+                <Input
+                  value={profile.state || ''}
+                  onChange={(e) => setProfile({ ...profile, state: e.target.value })}
+                  placeholder="Enter your state/province"
+                />
+              </FormControl>
+
+              {/* Address */}
+              <FormControl mt={4}>
+                <FormLabel>Address</FormLabel>
+                <Input
+                  value={profile.address || ''}
+                  onChange={(e) => setProfile({ ...profile, address: e.target.value })}
+                  placeholder="Enter your street address"
                 />
               </FormControl>
 

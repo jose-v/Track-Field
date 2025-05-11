@@ -27,10 +27,11 @@ import {
   Card,
   CardBody,
   Container,
+  useToast,
 } from '@chakra-ui/react'
 import { useState, useRef, useEffect } from 'react'
 import { useWorkouts } from '../hooks/useWorkouts'
-import { CheckIcon, EditIcon, DeleteIcon } from '@chakra-ui/icons'
+import { CheckIcon, EditIcon, DeleteIcon, RepeatIcon } from '@chakra-ui/icons'
 import { useWorkoutStore } from '../lib/workoutStore'
 import { FaRunning, FaDumbbell, FaRegClock, FaCalendarAlt, FaListUl, FaPlayCircle } from 'react-icons/fa'
 
@@ -47,7 +48,8 @@ type Exercise = {
 
 export function Workouts() {
   const { isOpen, onOpen, onClose } = useDisclosure()
-  const { workouts, createWorkout, deleteWorkout, updateWorkout } = useWorkouts()
+  const { workouts, createWorkout, deleteWorkout, updateWorkout, refetch } = useWorkouts()
+  const toast = useToast()
   const [newWorkout, setNewWorkout] = useState({
     name: '',
     type: '',
@@ -271,13 +273,70 @@ export function Workouts() {
     }
   }
 
+  // Add a refresh function
+  const handleRefresh = async () => {
+    try {
+      await refetch();
+      toast({
+        title: "Workouts refreshed",
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error("Error refreshing workouts:", error);
+      toast({
+        title: "Error refreshing workouts",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  // Handler for safely closing the exercise modal
+  const handleExecModalClose = () => {
+    // Stop the timer if it's running
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
+    // Reset the modal state completely
+    setExecModal({
+      isOpen: false,
+      workout: null,
+      exerciseIdx: 0,
+      timer: 0,
+      running: false,
+    });
+  };
+
+  // Handler for safely closing the video modal
+  const handleVideoModalClose = () => {
+    setVideoModal({
+      isOpen: false,
+      videoUrl: '',
+      exerciseName: '',
+    });
+  };
+
   return (
     <Container maxW="container.xl" py={8}>
       <HStack justify="space-between" mb={6}>
         <Heading>Workouts</Heading>
-        <Button colorScheme="brand" onClick={onOpen}>
-          Add Workout
-        </Button>
+        <HStack spacing={2}>
+          <IconButton
+            aria-label="Refresh workouts"
+            icon={<RepeatIcon />}
+            onClick={handleRefresh}
+            colorScheme="blue"
+            variant="outline"
+          />
+          <Button colorScheme="blue" onClick={onOpen}>
+            Add Workout
+          </Button>
+        </HStack>
       </HStack>
 
       {workouts.length === 0 ? (
@@ -625,7 +684,7 @@ export function Workouts() {
       </Modal>
 
       {/* --- Exercise Execution Modal --- */}
-      <Modal isOpen={execModal.isOpen} onClose={() => setExecModal({ ...execModal, isOpen: false, running: false })} isCentered>
+      <Modal isOpen={execModal.isOpen} onClose={handleExecModalClose} isCentered>
         <ModalOverlay />
         <ModalContent borderRadius="lg" overflow="hidden">
           {/* Hero Background */}
@@ -664,7 +723,7 @@ export function Workouts() {
           </Box>
           
           <ModalHeader textAlign="center" pt={8}>Exercise Execution</ModalHeader>
-          <ModalCloseButton top="85px" onClick={() => setExecModal({ ...execModal, isOpen: false, running: false })} />
+          <ModalCloseButton top="85px" onClick={handleExecModalClose} />
           <ModalBody pb={6}>
             {execModal.workout && (
               <VStack spacing={4} align="center">
@@ -881,7 +940,7 @@ export function Workouts() {
       </Modal>
 
       {/* --- Exercise Video Modal --- */}
-      <Modal isOpen={videoModal.isOpen} onClose={() => setVideoModal({ ...videoModal, isOpen: false })} isCentered size="xl">
+      <Modal isOpen={videoModal.isOpen} onClose={handleVideoModalClose} isCentered size="xl">
         <ModalOverlay />
         <ModalContent borderRadius="lg" overflow="hidden">
           {/* Hero Background */}
@@ -908,7 +967,7 @@ export function Workouts() {
           </Box>
           
           <ModalHeader textAlign="center" pt={8}>How to: {videoModal.exerciseName}</ModalHeader>
-          <ModalCloseButton top="85px" onClick={() => setVideoModal({ ...videoModal, isOpen: false })} />
+          <ModalCloseButton top="85px" onClick={handleVideoModalClose} />
           <ModalBody pb={6} display="flex" flexDirection="column" alignItems="center">
             <Box w="100%" h="0" pb="56.25%" position="relative" borderRadius="md" overflow="hidden" boxShadow="md">
               <iframe

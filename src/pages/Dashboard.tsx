@@ -87,6 +87,12 @@ export function Dashboard() {
   const { workouts, isLoading: workoutsLoading } = useWorkouts()
   const [teamInfo, setTeamInfo] = useState<any>(null)
   const [isLoadingTeam, setIsLoadingTeam] = useState(false)
+  const [weather, setWeather] = useState({
+    temp: '72',
+    condition: 'Sunny',
+    description: 'Perfect for running outdoors'
+  })
+  const [isLoadingWeather, setIsLoadingWeather] = useState(false)
 
   // Debug profile structure
   React.useEffect(() => {
@@ -231,10 +237,24 @@ export function Dashboard() {
 
   // Reset progress if workout changes (but read from localStorage first)
   React.useEffect(() => {
-    if (!execModal.isOpen && execModal.workout && todayWorkout && execModal.workout.id === todayWorkout.id) {
-      workoutStore.updateProgress(execModal.workout.id, execModal.exerciseIdx, execModal.workout.exercises.length);
+    // Only update progress in the store if the modal was just closed
+    // and we have a valid workout reference
+    if (!execModal.isOpen && execModal.workout && todayWorkout && 
+        execModal.workout.id === todayWorkout.id && 
+        execModal.exerciseIdx > 0) { // Ensure we only update if we've completed at least one exercise
+      
+      // Use a ref to track if we've already done this update for this closing event
+      // to prevent infinite loops of state updates
+      const workoutId = execModal.workout.id;
+      const currIdx = execModal.exerciseIdx;
+      const totalExercises = execModal.workout.exercises.length;
+      
+      // Use setTimeout to break the React render cycle
+      setTimeout(() => {
+        workoutStore.updateProgress(workoutId, currIdx, totalExercises);
+      }, 0);
     }
-  }, [execModal.isOpen, execModal.workout, execModal.exerciseIdx, todayWorkout, workoutStore]);
+  }, [execModal.isOpen]); // Only depend on isOpen, not all the other state values
 
   // Timer logic
   React.useEffect(() => {
@@ -346,7 +366,66 @@ export function Dashboard() {
     return user?.email?.split('@')[0] || user?.email || 'Athlete';
   };
 
+  // Fetch weather when profile updates
+  useEffect(() => {
+    const fetchWeather = async () => {
+      if (!profile?.city) return;
+      
+      try {
+        setIsLoadingWeather(true);
+        // Note: In a real app, you would call a weather API here
+        // This is just a simulation
+        console.log(`Fetching weather for ${profile.city}`);
+        
+        // Simulate weather API response with some randomness
+        const conditions = ['Sunny', 'Partly Cloudy', 'Cloudy', 'Rainy', 'Stormy'];
+        const descriptions = [
+          'Perfect for running outdoors',
+          'Good conditions for training',
+          'Consider indoor activities today',
+          'Take caution if training outside',
+          'Indoor training recommended'
+        ];
+        
+        const randomTemp = Math.floor(Math.random() * 30) + 50; // 50-80 F
+        const randomCondition = conditions[Math.floor(Math.random() * conditions.length)];
+        const randomDescription = descriptions[Math.floor(Math.random() * descriptions.length)];
+        
+        setWeather({
+          temp: randomTemp.toString(),
+          condition: randomCondition,
+          description: randomDescription
+        });
+        
+      } catch (error) {
+        console.error('Error fetching weather:', error);
+      } finally {
+        setIsLoadingWeather(false);
+      }
+    };
 
+    if (profile) {
+      fetchWeather();
+    }
+  }, [profile]);
+
+  // Add a safe close handler function
+  const handleModalClose = () => {
+    // Stop the timer if it's running
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
+    // Reset the modal state in a way that won't trigger the useEffect loop
+    setExecModal({
+      isOpen: false,
+      workout: null,
+      exerciseIdx: 0,
+      timer: 0,
+      running: false,
+    });
+  };
 
   return (
     <Box pt={8}>
@@ -526,7 +605,7 @@ export function Dashboard() {
           )}
 
           {/* Weather Card */}
-          {profileLoading ? (
+          {profileLoading || isLoadingWeather ? (
             <SkeletonCard height="280px" />
           ) : (
             <Card 
@@ -559,10 +638,10 @@ export function Dashboard() {
               <CardBody pt={6}>
                 <Heading size="sm" mb={4} textAlign="center">Weather</Heading>
                 <VStack spacing={1}>
-                  <Text fontSize="lg">New York, NY</Text>
-                  <Text fontSize="4xl" fontWeight="bold">72°F</Text>
-                  <Text color="gray.600">Sunny</Text>
-                  <Text fontSize="sm" color="gray.500">Perfect for running outdoors</Text>
+                  <Text fontSize="lg">{profile?.city || 'Location not set'}{profile?.state ? `, ${profile.state}` : ''}</Text>
+                  <Text fontSize="4xl" fontWeight="bold">{weather.temp}°F</Text>
+                  <Text color="gray.600">{weather.condition}</Text>
+                  <Text fontSize="sm" color="gray.500">{weather.description}</Text>
                 </VStack>
               </CardBody>
             </Card>
@@ -716,7 +795,7 @@ export function Dashboard() {
           </Card>
 
         {/* --- Exercise Execution Modal --- */}
-        <Modal isOpen={execModal.isOpen} onClose={() => setExecModal({ ...execModal, isOpen: false, running: false })} isCentered>
+        <Modal isOpen={execModal.isOpen} onClose={handleModalClose} isCentered>
           <ModalOverlay />
           <ModalContent borderRadius="lg" overflow="hidden">
             {/* Hero Background */}
@@ -755,7 +834,7 @@ export function Dashboard() {
             </Box>
             
             <ModalHeader textAlign="center" pt={8}>Exercise Execution</ModalHeader>
-            <ModalCloseButton top="85px" onClick={() => setExecModal({ ...execModal, isOpen: false, running: false })} />
+            <ModalCloseButton top="85px" onClick={handleModalClose} />
             <ModalBody pb={6}>
               {execModal.workout && (
                 <VStack spacing={4} align="center">

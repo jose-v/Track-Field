@@ -1,5 +1,5 @@
 import {
-  Box, Heading, Text, Spinner, Alert, AlertIcon, Stack, Card, CardBody, Button, Flex, HStack, Progress, Tag, VStack, Divider, Center, Icon, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, IconButton, SimpleGrid, Container, Tooltip, useDisclosure, Tabs, TabList, TabPanels, Tab, TabPanel
+  Box, Heading, Text, Spinner, Alert, AlertIcon, Stack, Card, CardBody, Button, Flex, HStack, Progress, Tag, VStack, Divider, Center, Icon, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, IconButton, SimpleGrid, Container, Tooltip, useDisclosure, Tabs, TabList, TabPanels, Tab, TabPanel, useToast
 } from '@chakra-ui/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link as RouterLink } from 'react-router-dom';
@@ -12,6 +12,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useWorkoutStore } from '../../lib/workoutStore'; // Import the store
 import { WorkoutCard } from '../../components/WorkoutCard'; // Import our shared card component
 import { supabase } from '../../lib/supabase';
+import { RepeatIcon } from '@chakra-ui/icons';
 
 // Consistent Exercise type
 interface Exercise {
@@ -99,6 +100,7 @@ export function AthleteWorkouts() {
   const workoutStore = useWorkoutStore();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const today = getCurrentDate();
+  const toast = useToast();
 
   const [execModal, setExecModal] = useState({
     isOpen: false,
@@ -415,11 +417,57 @@ export function AthleteWorkouts() {
     );
   };
 
+  // Handle refresh
+  const handleRefresh = async () => {
+    try {
+      await refetch();
+      toast({
+        title: "Workouts refreshed",
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error("Error refreshing workouts:", error);
+      toast({
+        title: "Error refreshing workouts",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  // Handle safe modal closing to prevent infinite update loops
+  const handleModalClose = () => {
+    // Stop the timer if it's running
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
+    // Reset the modal state completely
+    setExecModal({
+      isOpen: false,
+      workout: null,
+      exerciseIdx: 0,
+      timer: 0,
+      running: false,
+    });
+  };
+
   return (
-    <Box>
-      <Heading as="h1" size="xl" mb={6}>
-        My Workouts
-      </Heading>
+    <Container maxW="container.xl" p={4}>
+      <HStack justify="space-between" mb={6}>
+        <Heading size="lg">My Workouts</Heading>
+        <IconButton
+          aria-label="Refresh workouts"
+          icon={<RepeatIcon />}
+          onClick={handleRefresh}
+          colorScheme="blue"
+          variant="outline"
+        />
+      </HStack>
 
       {isLoading && (
         <Center py={10}><Spinner thickness="4px" speed="0.65s" emptyColor="gray.200" color="blue.500" size="xl" /></Center>
@@ -440,7 +488,7 @@ export function AthleteWorkouts() {
       )}
       
       {/* Exercise Execution Modal - Copied and adapted from Workouts.tsx */}
-      <Modal isOpen={execModal.isOpen} onClose={() => setExecModal({ ...execModal, isOpen: false, running: false })} isCentered>
+      <Modal isOpen={execModal.isOpen} onClose={handleModalClose} isCentered>
         <ModalOverlay />
         <ModalContent borderRadius="lg" overflow="hidden">
           <Box h="80px" bg={execModal.running ? "linear-gradient(135deg, #38A169 0%, #68D391 100%)" : "linear-gradient(135deg, #4299E1 0%, #90CDF4 100%)"} position="relative">
@@ -454,7 +502,7 @@ export function AthleteWorkouts() {
             )}
           </Box>
           <ModalHeader textAlign="center" pt={8}>Exercise Execution</ModalHeader>
-          <ModalCloseButton top="85px" onClick={() => setExecModal({ ...execModal, isOpen: false, running: false })} />
+          <ModalCloseButton top="85px" onClick={handleModalClose} />
           <ModalBody pb={6}>
             {execModal.workout && execModal.workout.exercises && execModal.workout.exercises[execModal.exerciseIdx] && (
               <VStack spacing={4} align="center">
@@ -513,6 +561,6 @@ export function AthleteWorkouts() {
       </Modal>
 
       <DebugInfo />
-    </Box>
+    </Container>
   );
 } 

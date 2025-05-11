@@ -1,5 +1,5 @@
 import {
-  Box, Heading, Text, SimpleGrid, Spinner, useDisclosure, Button, HStack
+  Box, Heading, Text, SimpleGrid, Spinner, useDisclosure, Button, HStack, IconButton, useToast
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
 import { useWorkouts } from '../../hooks/useWorkouts'; 
@@ -11,6 +11,7 @@ import { useWorkoutCompletionStats } from '../../hooks/useWorkoutCompletionStats
 import { api } from '../../services/api'; // Import the API instance
 import { WorkoutCard } from '../../components/WorkoutCard'; // Import our shared card component
 import { supabase } from '../../lib/supabase'; // Import supabase client
+import { RepeatIcon } from '@chakra-ui/icons';
 
 // Athlete assignment type
 interface AthleteAssignment {
@@ -27,6 +28,7 @@ export function CoachWorkouts() {
   const [editingWorkout, setEditingWorkout] = useState<ApiWorkout | null>(null); // Use imported ApiWorkout
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [isSaving, setIsSaving] = useState(false);
+  const toast = useToast();
   
   // State to track assignments
   const [assignments, setAssignments] = useState<AthleteAssignment[]>([]);
@@ -170,12 +172,58 @@ export function CoachWorkouts() {
     }
   }, [workouts?.length, coachAthletes?.length, assignments?.length]); // Only log when counts change
 
+  // Add a refresh function
+  const handleRefresh = async () => {
+    try {
+      await refetch();
+      await refetchStats();
+      
+      // Refetch assignments
+      if (workoutIds.length > 0) {
+        setAssignmentsLoading(true);
+        const { data } = await supabase
+          .from('athlete_workouts')
+          .select('*')
+          .in('workout_id', workoutIds);
+          
+        if (data) {
+          setAssignments(data);
+        }
+        setAssignmentsLoading(false);
+      }
+      
+      toast({
+        title: "Workouts refreshed",
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error("Error refreshing workouts:", error);
+      toast({
+        title: "Error refreshing workouts",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
   return (
     <Box py={8}>
       <Heading mb={6}>Coach Workouts</Heading>
-      <Button colorScheme="blue" mb={6} onClick={() => { setEditingWorkout(null); onOpen(); }}>
-        Create Workout
-      </Button>
+      <HStack mb={6} spacing={2}>
+        <Button colorScheme="blue" onClick={() => { setEditingWorkout(null); onOpen(); }}>
+          Create Workout
+        </Button>
+        <IconButton
+          aria-label="Refresh workouts"
+          icon={<RepeatIcon />}
+          onClick={handleRefresh}
+          colorScheme="blue"
+          variant="outline"
+        />
+      </HStack>
       
       {/* Add a loading indicator when a workout is being saved */}
       {isSaving && (
