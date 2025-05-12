@@ -28,6 +28,7 @@ import {
   Skeleton,
   SkeletonCircle,
   SkeletonText,
+  Tag,
 } from '@chakra-ui/react'
 import { useAuth } from '../contexts/AuthContext'
 import { useProfile } from '../hooks/useProfile'
@@ -40,6 +41,10 @@ import React from 'react'
 import { useWorkoutStore } from '../lib/workoutStore'
 import { FaUser, FaRunning, FaUsers, FaCloudSun, FaCalendarAlt, FaTrophy, FaChartLine, FaRegClock, FaPlayCircle } from 'react-icons/fa'
 import { CheckIcon } from '@chakra-ui/icons'
+import { api } from '../services/api'
+import { useQueryClient } from '@tanstack/react-query'
+import { dateUtils } from '../utils/date'
+import { Link as RouterLink } from 'react-router-dom'
 
 // Function to format date in "Month Day, Year" format
 function formatDate(dateString: string): string {
@@ -62,6 +67,17 @@ function formatDate(dateString: string): string {
   
   // Put it all together
   return `${month} ${day}${suffix}, ${date.getFullYear()}`;
+}
+
+// Helper to format date string to YYYY-MM-DD for comparison
+function formatDateForComparison(dateStr: string | undefined): string {
+  if (!dateStr) return '';
+  try {
+    return dateUtils.localDateString(dateUtils.parseLocalDate(dateStr));
+  } catch (e) {
+    console.error('Error formatting date for comparison:', e);
+    return '';
+  }
 }
 
 // Create a skeleton card component for loading states
@@ -144,51 +160,41 @@ export function Dashboard() {
   }, [profile]);
 
   // Find ONLY today's workout - no next workout
-  const today = new Date().toISOString().slice(0, 10)
-  let todayWorkout = null
-  if (workouts && workouts.length > 0) {
-    // Debug workouts
-    console.log('Today is:', today);
-    console.log('All workouts:', workouts);
+  const todayStr = dateUtils.localDateString(new Date());
+  
+  // Instead of finding just one workout, get all workouts for today and future dates
+  const currentAndFutureWorkouts = workouts?.filter(workout => {
+    if (!workout.date) return false;
     
-    // More flexible date matching (format might differ based on how it's stored)
-    const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0); // Reset time part to compare dates only
+    const workoutDate = dateUtils.parseLocalDate(workout.date);
+    const today = dateUtils.parseLocalDate(todayStr);
     
-    todayWorkout = workouts.find(workout => {
-      // Try to parse the workout date and compare with today
-      const workoutDate = new Date(workout.date);
-      workoutDate.setHours(0, 0, 0, 0);
-      return workoutDate.getTime() === currentDate.getTime();
-    });
-    
-    // If no exact match, log for debugging
-    console.log('Found today workout:', todayWorkout);
-    
-    // If still no workout, use the one with closest date
-    if (!todayWorkout && workouts.length > 0) {
-      // First check if any workout date is after or equal to today
-      const futureWorkouts = workouts.filter(w => {
-        const workoutDate = new Date(w.date);
-        workoutDate.setHours(0, 0, 0, 0);
-        return workoutDate.getTime() >= currentDate.getTime();
-      });
-      
-      if (futureWorkouts.length > 0) {
-        // Sort by closest date
-        futureWorkouts.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        todayWorkout = futureWorkouts[0];
-        console.log('Using nearest future workout instead:', todayWorkout);
-      }
-    }
-  }
+    // Return workouts for today and future dates
+    return workoutDate >= today;
+  }) || [];
+  
+  // Sort workouts by date (earliest first)
+  currentAndFutureWorkouts.sort((a, b) => {
+    const dateA = a.date ? dateUtils.parseLocalDate(a.date).getTime() : 0;
+    const dateB = b.date ? dateUtils.parseLocalDate(b.date).getTime() : 0;
+    return dateA - dateB;
+  });
+  
+  // Separate today's workouts specifically
+  const todayWorkouts = currentAndFutureWorkouts.filter(workout => {
+    return formatDateForComparison(workout.date) === todayStr;
+  });
+  
+  // Get the upcoming workouts (not today, but future)
+  const upcomingWorkouts = currentAndFutureWorkouts.filter(workout => {
+    return formatDateForComparison(workout.date) !== todayStr;
+  }).slice(0, 3); // Limit to 3 upcoming workouts
+  
+  console.log('Today workouts:', todayWorkouts);
+  console.log('Upcoming workouts:', upcomingWorkouts);
 
   // Use our centralized workout store for progress tracking
   const workoutStore = useWorkoutStore();
-  
-  // Get progress for today's workout
-  const todayProgress = todayWorkout ? workoutStore.getProgress(todayWorkout.id) : null;
-  const todayProgressIdx = todayProgress ? todayProgress.currentExerciseIndex : 0;
   
   // Function to get completion count for a workout
   const getCompletionCount = (workoutId: string): number => {
@@ -196,20 +202,21 @@ export function Dashboard() {
     return progress?.completedExercises?.length || 0;
   };
   
-  // Initialize workout in store if needed
-  useEffect(() => {
-    if (todayWorkout && todayWorkout.exercises) {
-      // Debug current workout store
-      workoutStore.debugStore();
-      
-      // If workout exists but not in store, initialize it
-      const currentProgress = workoutStore.getProgress(todayWorkout.id);
-      if (!currentProgress) {
-        console.log(`Initializing workout ${todayWorkout.id} in store with ${todayWorkout.exercises.length} exercises`);
-        workoutStore.updateProgress(todayWorkout.id, 0, todayWorkout.exercises.length);
-      }
-    }
-  }, [todayWorkout, workoutStore]);
+  // Function to get completion percentage for a workout
+  const getCompletionPercentage = (workout: any): number => {
+    if (!workout || !workout.id) return 0;
+    
+    const progress = workoutStore.getProgress(workout.id);
+    if (!progress) return 0;
+    
+    // Calculate based on number of exercises
+    const totalExercises = progress.totalExercises || 
+      (workout.exercises && Array.isArray(workout.exercises) ? workout.exercises.length : 0);
+    
+    if (totalExercises === 0) return 0;
+    
+    return (progress.completedExercises.length / totalExercises) * 100;
+  };
 
   // Mock stats for graph
   const statsData = {
@@ -239,8 +246,8 @@ export function Dashboard() {
   React.useEffect(() => {
     // Only update progress in the store if the modal was just closed
     // and we have a valid workout reference
-    if (!execModal.isOpen && execModal.workout && todayWorkout && 
-        execModal.workout.id === todayWorkout.id && 
+    if (!execModal.isOpen && execModal.workout && todayWorkouts.length > 0 && 
+        execModal.workout.id === todayWorkouts[0].id && 
         execModal.exerciseIdx > 0) { // Ensure we only update if we've completed at least one exercise
       
       // Use a ref to track if we've already done this update for this closing event
@@ -270,29 +277,49 @@ export function Dashboard() {
     }
   }, [execModal.isOpen, execModal.running])
 
+  const queryClient = useQueryClient();
+
   // Handle DONE button
-  const handleDone = () => {
-    if (!execModal.workout) return
-    const nextIdx = execModal.exerciseIdx + 1
-    
+  const handleDone = async () => {
+    if (!execModal.workout) return;
+    const nextIdx = execModal.exerciseIdx + 1;
+    const workoutId = execModal.workout.id;
     // Mark current exercise as completed
-    workoutStore.markExerciseCompleted(execModal.workout.id, execModal.exerciseIdx);
-    
+    workoutStore.markExerciseCompleted(workoutId, execModal.exerciseIdx);
+    // Update completed_exercises in DB after marking as completed
+    if (user?.id) {
+      const completedExercises = workoutStore.getProgress(workoutId)?.completedExercises || [];
+      try {
+        await api.athleteWorkouts.updateCompletedExercises(user.id, workoutId, completedExercises);
+      } catch (e) {
+        console.error('Failed to update completed_exercises in DB:', e);
+      }
+    }
     if (nextIdx < execModal.workout.exercises.length) {
       // Update progress in store
-      workoutStore.updateProgress(execModal.workout.id, nextIdx, execModal.workout.exercises.length, true);
-      
+      workoutStore.updateProgress(workoutId, nextIdx, execModal.workout.exercises.length, true);
       // Update modal state
       setExecModal({
         ...execModal,
         exerciseIdx: nextIdx,
         timer: 0,
         running: true,
-      })
+      });
     } else {
       // Workout completed
-      workoutStore.updateProgress(execModal.workout.id, execModal.workout.exercises.length, execModal.workout.exercises.length);
-      
+      workoutStore.updateProgress(workoutId, execModal.workout.exercises.length, execModal.workout.exercises.length);
+      // Update DB and invalidate queries so coach dashboard updates
+      if (user?.id) {
+        try {
+          await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutId, 'completed');
+          // Invalidate all relevant queries for real-time update
+          queryClient.invalidateQueries({ queryKey: ['workoutCompletionStats'] });
+          queryClient.invalidateQueries({ queryKey: ['workouts'] });
+          queryClient.invalidateQueries({ queryKey: ['athleteWorkouts'] });
+        } catch (e) {
+          console.error('Failed to update workout status:', e);
+        }
+      }
       // Close modal
       setExecModal({
         isOpen: false,
@@ -300,9 +327,9 @@ export function Dashboard() {
         exerciseIdx: 0,
         timer: 0,
         running: false,
-      })
+      });
     }
-  }
+  };
 
   // Helper: get video URL for an exercise (mock for now)
   function getVideoUrl(exerciseName: string) {
@@ -444,111 +471,223 @@ export function Dashboard() {
           </Skeleton>
         </Box>
 
-        {/* Dashboard Cards */}
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={10}>
-          {/* Today's Workout Card */}
-          {(profileLoading || workoutsLoading) ? (
-            <SkeletonCard />
-          ) : (
-            <Card 
-              borderRadius="lg" 
-              overflow="hidden" 
-              boxShadow="md"
+        {/* New Full-Width Today Card */}
+        {(profileLoading || workoutsLoading) ? (
+          <Skeleton height="200px" mb={10} borderRadius="lg" />
+        ) : (
+          <Card 
+            borderRadius="lg" 
+            overflow="hidden" 
+            boxShadow="md"
+            mb={10}
+          >
+            {/* Updated header style */}
+            <Box 
+              h="80px" 
+              bg="linear-gradient(135deg, #4FD1C5 0%, #68D391 100%)" 
+              position="relative"
+              display="flex"
+              alignItems="center"
+              px={6}
             >
-              {/* Hero Background */}
-              <Box 
-                h="80px" 
-                bg="linear-gradient(135deg, #4FD1C5 0%, #68D391 100%)" 
-                position="relative"
+              <Flex 
+                bg="white" 
+                borderRadius="full" 
+                w="50px" 
+                h="50px" 
+                justifyContent="center" 
+                alignItems="center"
+                boxShadow="none"
+                mr={4}
               >
-                <Flex 
-                  position="absolute" 
-                  top="50%" 
-                  left="50%" 
-                  transform="translate(-50%, -50%)"
-                  bg="white" 
-                  borderRadius="full" 
-                  w="50px" 
-                  h="50px" 
-                  justifyContent="center" 
-                  alignItems="center"
-                  boxShadow="md"
-                >
-                  <Icon as={FaRunning} w={6} h={6} color="green.400" />
-                </Flex>
-              </Box>
-              <CardBody pt={6}>
-                <Heading size="sm" mb={4} textAlign="center">Today</Heading>
-                {todayWorkout ? (
-                  <VStack spacing={2} align="stretch">
-                    <Text fontWeight="bold" textAlign="center">{todayWorkout.name}</Text>
-                    <HStack justify="center">
-                      <Text>{todayWorkout.type} • {todayWorkout.duration}</Text>
-                    </HStack>
-                    <HStack justify="center">
-                      <Text fontSize="sm">{todayWorkout.date}</Text>
-                      <Text fontSize="sm">{todayWorkout.time ? todayWorkout.time : 'Time: Not set'}</Text>
-                    </HStack>
-                    {todayWorkout.notes && (
-                      <Text fontSize="sm" textAlign="center" color="gray.600" mt={1}>{todayWorkout.notes}</Text>
-                    )}
-                    
-                    {/* Progress Bar */}
-                    {todayWorkout.exercises && todayWorkout.exercises.length > 0 && (
-                      <Box mt={3} mb={2}>
-                        <Progress
-                          value={execModal.isOpen && execModal.workout?.id === todayWorkout.id
-                            ? ((execModal.exerciseIdx) / todayWorkout.exercises.length) * 100
-                            : (todayProgressIdx / todayWorkout.exercises.length) * 100}
-                          size="sm"
-                          colorScheme="green"
-                          borderRadius="md"
-                        />
-                        <Text fontSize="xs" textAlign="center" mt={1}>
-                          {execModal.isOpen && execModal.workout?.id === todayWorkout.id
-                            ? `Exercise ${Math.min(execModal.exerciseIdx + 1, todayWorkout.exercises.length)} of ${todayWorkout.exercises.length}`
-                            : todayProgressIdx > 0
-                              ? `Exercise ${Math.min(todayProgressIdx + 1, todayWorkout.exercises.length)} of ${todayWorkout.exercises.length}`
-                              : `Exercise 1 of ${todayWorkout.exercises.length}`}
-                        </Text>
-                      </Box>
-                    )}
-                    
-                    <Box mt={4} display="flex" justifyContent="center">
-                      <Button
-                        colorScheme={todayProgressIdx >= todayWorkout.exercises?.length ? "green" : "blue"}
-                        size="md"
-                        onClick={() => {
-                          // If workout is complete and user clicks "Done", reset progress
-                          if (todayProgressIdx >= todayWorkout.exercises.length) {
-                            // Reset progress
-                            workoutStore.updateProgress(todayWorkout.id, 0, todayWorkout.exercises.length);
-                          }
-                          
-                          setExecModal({
-                            isOpen: true,
-                            workout: todayWorkout,
-                            exerciseIdx: todayProgressIdx >= todayWorkout.exercises.length ? 0 : todayProgressIdx,
-                            timer: 0,
-                            running: true,
-                          });
-                        }}
+                <Icon as={FaRunning} w={6} h={6} color="green.400" />
+              </Flex>
+              <Tag
+                size="lg"
+                variant="subtle"
+                bg="whiteAlpha.300"
+                color="white"
+                fontWeight="bold"
+                px={4}
+                py={2}
+                borderRadius="md"
+              >
+                RUNNING
+              </Tag>
+            </Box>
+            
+            <CardBody>
+              {todayWorkouts.length > 0 ? (
+                <Box>
+                  <Heading size="md" mb={4}>Today's Workouts</Heading>
+                  <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4} mb={6}>
+                    {todayWorkouts.map((workout, idx) => (
+                      <Box 
+                        key={workout.id || idx}
+                        p={4}
+                        borderWidth="1px"
+                        borderRadius="md"
+                        borderColor="gray.200"
+                        bg="white"
+                        boxShadow="sm"
                       >
-                        {todayProgressIdx >= todayWorkout.exercises?.length 
-                          ? 'Done' 
-                          : (todayProgressIdx > 0 && todayProgressIdx < todayWorkout.exercises.length 
-                            ? `Continue (${todayProgressIdx}/${todayWorkout.exercises.length})` 
-                            : 'Start Workout')}
-                      </Button>
-                    </Box>
-                  </VStack>
-                ) : (
-                  <Text textAlign="center">No workout scheduled for today.</Text>
-                )}
-              </CardBody>
-            </Card>
-          )}
+                        <Flex justifyContent="space-between" alignItems="center" mb={2}>
+                          <Heading size="sm">{workout.name}</Heading>
+                          <Tag size="sm" colorScheme="green">{workout.type}</Tag>
+                        </Flex>
+                        
+                        <Text fontSize="sm" color="gray.500" mb={2}>
+                          {workout.time || 'Any time'} • {workout.duration || '?'} min
+                        </Text>
+                        
+                        {workout.notes && (
+                          <Text fontSize="sm" noOfLines={2} mb={2}>{workout.notes}</Text>
+                        )}
+                        
+                        <Box mb={2}>
+                          <Text fontSize="xs" color="gray.500" mb={1}>
+                            {getCompletionCount(workout.id)} of {
+                              Array.isArray(workout.exercises) ? workout.exercises.length : '?'
+                            } exercises completed
+                          </Text>
+                          <Progress
+                            value={getCompletionPercentage(workout)}
+                            size="xs"
+                            colorScheme="green"
+                            borderRadius="full"
+                          />
+                        </Box>
+                        
+                        <Button 
+                          size="sm" 
+                          colorScheme="blue" 
+                          width="100%"
+                          onClick={() => {
+                            // Get current progress for this workout
+                            const progress = workoutStore.getProgress(workout.id);
+                            const currentIdx = progress ? progress.currentExerciseIndex : 0;
+                            const exercises = Array.isArray(workout.exercises) ? workout.exercises : [];
+                            
+                            // Open modal with current progress
+                            setExecModal({
+                              isOpen: true,
+                              workout: workout,
+                              exerciseIdx: currentIdx >= exercises.length ? 0 : currentIdx,
+                              timer: 0,
+                              running: true,
+                            });
+                          }}
+                        >
+                          {getCompletionPercentage(workout) >= 100 
+                            ? 'Restart Workout' 
+                            : getCompletionPercentage(workout) > 0 
+                              ? 'Continue Workout' 
+                              : 'Start Workout'
+                          }
+                        </Button>
+                      </Box>
+                    ))}
+                  </SimpleGrid>
+                  
+                  {upcomingWorkouts.length > 0 && (
+                    <>
+                      <Heading size="md" mb={4}>Upcoming Workouts</Heading>
+                      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+                        {upcomingWorkouts.map((workout, idx) => (
+                          <Box 
+                            key={workout.id || idx}
+                            p={4}
+                            borderWidth="1px"
+                            borderRadius="md"
+                            borderColor="gray.200"
+                            bg="gray.50"
+                            boxShadow="sm"
+                          >
+                            <Flex justifyContent="space-between" alignItems="center" mb={2}>
+                              <Heading size="sm">{workout.name}</Heading>
+                              <Tag size="sm" colorScheme="blue">{workout.type}</Tag>
+                            </Flex>
+                            
+                            <Text fontSize="sm" fontWeight="medium" color="blue.600" mb={2}>
+                              {workout.date ? formatDate(workout.date) : 'Date not set'}
+                            </Text>
+                            
+                            <Text fontSize="sm" color="gray.500" mb={2}>
+                              {workout.time || 'Any time'} • {workout.duration || '?'} min
+                            </Text>
+                            
+                            {workout.notes && (
+                              <Text fontSize="sm" noOfLines={2} color="gray.600">{workout.notes}</Text>
+                            )}
+                            
+                            <Text fontSize="xs" color="gray.500" mt={2}>
+                              {Array.isArray(workout.exercises) ? workout.exercises.length : '?'} exercises
+                            </Text>
+                          </Box>
+                        ))}
+                      </SimpleGrid>
+                    </>
+                  )}
+                </Box>
+              ) : (
+                <VStack spacing={4} py={6} align="center">
+                  <Text>No workouts scheduled for today.</Text>
+                  {upcomingWorkouts.length > 0 ? (
+                    <>
+                      <Heading size="md" mt={2} mb={4}>Upcoming Workouts</Heading>
+                      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4} width="100%">
+                        {upcomingWorkouts.map((workout, idx) => (
+                          <Box 
+                            key={workout.id || idx}
+                            p={4}
+                            borderWidth="1px"
+                            borderRadius="md"
+                            borderColor="gray.200"
+                            bg="gray.50"
+                            boxShadow="sm"
+                          >
+                            <Flex justifyContent="space-between" alignItems="center" mb={2}>
+                              <Heading size="sm">{workout.name}</Heading>
+                              <Tag size="sm" colorScheme="blue">{workout.type}</Tag>
+                            </Flex>
+                            
+                            <Text fontSize="sm" fontWeight="medium" color="blue.600" mb={2}>
+                              {workout.date ? formatDate(workout.date) : 'Date not set'}
+                            </Text>
+                            
+                            <Text fontSize="sm" color="gray.500" mb={2}>
+                              {workout.time || 'Any time'} • {workout.duration || '?'} min
+                            </Text>
+                            
+                            {workout.notes && (
+                              <Text fontSize="sm" noOfLines={2} color="gray.600">{workout.notes}</Text>
+                            )}
+                            
+                            <Text fontSize="xs" color="gray.500" mt={2}>
+                              {Array.isArray(workout.exercises) ? workout.exercises.length : '?'} exercises
+                            </Text>
+                          </Box>
+                        ))}
+                      </SimpleGrid>
+                    </>
+                  ) : (
+                    <Button 
+                      colorScheme="blue" 
+                      leftIcon={<FaCalendarAlt />}
+                      as={RouterLink}
+                      to="/workouts"
+                    >
+                      View All Workouts
+                    </Button>
+                  )}
+                </VStack>
+              )}
+            </CardBody>
+          </Card>
+        )}
 
+        {/* Regular Dashboard Cards */}
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={10}>
           {/* Team Card */}
           {profileLoading ? (
             <SkeletonCard />
@@ -558,30 +697,41 @@ export function Dashboard() {
               overflow="hidden" 
               boxShadow="md"
             >
-              {/* Hero Background */}
+              {/* Updated header style */}
               <Box 
                 h="80px" 
                 bg="linear-gradient(135deg, #805AD5 0%, #B794F4 100%)" 
                 position="relative"
+                display="flex"
+                alignItems="center"
+                px={6}
               >
                 <Flex 
-                  position="absolute" 
-                  top="50%" 
-                  left="50%" 
-                  transform="translate(-50%, -50%)"
                   bg="white" 
                   borderRadius="full" 
                   w="50px" 
                   h="50px" 
                   justifyContent="center" 
                   alignItems="center"
-                  boxShadow="md"
+                  boxShadow="none"
+                  mr={4}
                 >
                   <Icon as={FaUsers} w={6} h={6} color="purple.500" />
                 </Flex>
+                <Tag
+                  size="lg"
+                  variant="subtle"
+                  bg="whiteAlpha.300"
+                  color="white"
+                  fontWeight="bold"
+                  px={4}
+                  py={2}
+                  borderRadius="md"
+                >
+                  TEAM
+                </Tag>
               </Box>
-              <CardBody pt={6}>
-                <Heading size="sm" mb={4} textAlign="center">Team</Heading>
+              <CardBody>
                 <VStack spacing={2} align="start">
                   <HStack w="100%">
                     <Text fontWeight="medium" minW="80px">Team:</Text>
@@ -613,30 +763,41 @@ export function Dashboard() {
               overflow="hidden" 
               boxShadow="md"
             >
-              {/* Hero Background */}
+              {/* Updated header style */}
               <Box 
                 h="80px" 
                 bg="linear-gradient(135deg, #DD6B20 0%, #F6AD55 100%)" 
                 position="relative"
+                display="flex"
+                alignItems="center"
+                px={6}
               >
                 <Flex 
-                  position="absolute" 
-                  top="50%" 
-                  left="50%" 
-                  transform="translate(-50%, -50%)"
                   bg="white" 
                   borderRadius="full" 
                   w="50px" 
                   h="50px" 
                   justifyContent="center" 
                   alignItems="center"
-                  boxShadow="md"
+                  boxShadow="none"
+                  mr={4}
                 >
                   <Icon as={FaCloudSun} w={6} h={6} color="orange.500" />
                 </Flex>
+                <Tag
+                  size="lg"
+                  variant="subtle"
+                  bg="whiteAlpha.300"
+                  color="white"
+                  fontWeight="bold"
+                  px={4}
+                  py={2}
+                  borderRadius="md"
+                >
+                  WEATHER
+                </Tag>
               </Box>
-              <CardBody pt={6}>
-                <Heading size="sm" mb={4} textAlign="center">Weather</Heading>
+              <CardBody>
                 <VStack spacing={1}>
                   <Text fontSize="lg">{profile?.city || 'Location not set'}{profile?.state ? `, ${profile.state}` : ''}</Text>
                   <Text fontSize="4xl" fontWeight="bold">{weather.temp}°F</Text>
@@ -656,30 +817,41 @@ export function Dashboard() {
               overflow="hidden" 
               boxShadow="md"
             >
-              {/* Hero Background */}
+              {/* Updated header style */}
               <Box 
                 h="80px" 
                 bg="linear-gradient(135deg, #E53E3E 0%, #FC8181 100%)" 
                 position="relative"
+                display="flex"
+                alignItems="center"
+                px={6}
               >
                 <Flex 
-                  position="absolute" 
-                  top="50%" 
-                  left="50%" 
-                  transform="translate(-50%, -50%)"
                   bg="white" 
                   borderRadius="full" 
                   w="50px" 
                   h="50px" 
                   justifyContent="center" 
                   alignItems="center"
-                  boxShadow="md"
+                  boxShadow="none"
+                  mr={4}
                 >
                   <Icon as={FaCalendarAlt} w={6} h={6} color="red.500" />
                 </Flex>
+                <Tag
+                  size="lg"
+                  variant="subtle"
+                  bg="whiteAlpha.300"
+                  color="white"
+                  fontWeight="bold"
+                  px={4}
+                  py={2}
+                  borderRadius="md"
+                >
+                  UPCOMING EVENTS
+                </Tag>
               </Box>
-              <CardBody pt={6}>
-                <Heading size="sm" mb={4} textAlign="center">Upcoming Events</Heading>
+              <CardBody>
                 <VStack spacing={2} align="start">
                   <Text fontWeight="bold">Annual Track Championship</Text>
                   <HStack w="100%">
@@ -709,30 +881,41 @@ export function Dashboard() {
               boxShadow="md"
               gridColumn={{ lg: 'span 2' }}
             >
-              {/* Hero Background */}
+              {/* Updated header style */}
               <Box 
                 h="80px" 
                 bg="linear-gradient(135deg, #D69E2E 0%, #F6E05E 100%)" 
                 position="relative"
+                display="flex"
+                alignItems="center"
+                px={6}
               >
                 <Flex 
-                  position="absolute" 
-                  top="50%" 
-                  left="50%" 
-                  transform="translate(-50%, -50%)"
                   bg="white" 
                   borderRadius="full" 
                   w="50px" 
                   h="50px" 
                   justifyContent="center" 
                   alignItems="center"
-                  boxShadow="md"
+                  boxShadow="none"
+                  mr={4}
                 >
                   <Icon as={FaTrophy} w={6} h={6} color="yellow.500" />
                 </Flex>
+                <Tag
+                  size="lg"
+                  variant="subtle"
+                  bg="whiteAlpha.300"
+                  color="white"
+                  fontWeight="bold"
+                  px={4}
+                  py={2}
+                  borderRadius="md"
+                >
+                  TEAM MILESTONES
+                </Tag>
               </Box>
-              <CardBody pt={6}>
-                <Heading size="sm" mb={4} textAlign="center">Team Milestones</Heading>
+              <CardBody>
                 {isLoadingTeam ? (
                   <VStack spacing={2} align="start">
                     <Skeleton height="20px" width="100%" />
@@ -763,36 +946,47 @@ export function Dashboard() {
           overflow="hidden" 
           boxShadow="md"
         >
-          {/* Hero Background */}
+          {/* Updated header style */}
           <Box 
             h="80px" 
             bg="linear-gradient(135deg, #2C5282 0%, #4299E1 100%)" 
             position="relative"
+            display="flex"
+            alignItems="center"
+            px={6}
           >
             <Flex 
-              position="absolute" 
-              top="50%" 
-              left="50%" 
-              transform="translate(-50%, -50%)"
               bg="white" 
               borderRadius="full" 
               w="50px" 
               h="50px" 
               justifyContent="center" 
               alignItems="center"
-              boxShadow="md"
+              boxShadow="none"
+              mr={4}
             >
               <Icon as={FaChartLine} w={6} h={6} color="blue.700" />
             </Flex>
+            <Tag
+              size="lg"
+              variant="subtle"
+              bg="whiteAlpha.300"
+              color="white"
+              fontWeight="bold"
+              px={4}
+              py={2}
+              borderRadius="md"
+            >
+              WEEKLY STATS
+            </Tag>
           </Box>
           <CardBody pt={6}>
-            <Heading size="md" mb={8} textAlign="center">Weekly Workout Stats</Heading>
-              {/* Placeholder Bar Chart */}
-              <Box h="250px">
-                <Bar data={statsData} options={{ responsive: true, plugins: { legend: { display: false } } }} />
-              </Box>
-            </CardBody>
-          </Card>
+            {/* Placeholder Bar Chart */}
+            <Box h="250px">
+              <Bar data={statsData} options={{ responsive: true, plugins: { legend: { display: false } } }} />
+            </Box>
+          </CardBody>
+        </Card>
 
         {/* --- Exercise Execution Modal --- */}
         <Modal isOpen={execModal.isOpen} onClose={handleModalClose} isCentered>
@@ -989,8 +1183,8 @@ export function Dashboard() {
           <Card mt={8} borderColor="red.200" borderWidth={1}>
             <CardBody>
               <Heading size="sm" mb={2}>Debug Information</Heading>
-              <Text><b>Today Workout ID:</b> {todayWorkout?.id || 'None'}</Text>
-              <Text><b>Progress Index:</b> {todayProgressIdx}</Text>
+              <Text><b>Today Workout ID:</b> {todayWorkouts.length > 0 ? todayWorkouts[0].id : 'None'}</Text>
+              <Text><b>Progress Index:</b> {execModal.exerciseIdx}</Text>
               <Text><b>Today's Date:</b> {new Date().toISOString()}</Text>
               <Button 
                 size="sm" 
@@ -998,8 +1192,8 @@ export function Dashboard() {
                 mt={2} 
                 onClick={() => {
                   // Clear workout progress from localStorage
-                  if (todayWorkout?.id) {
-                    localStorage.removeItem(`workout-progress-${todayWorkout.id}`);
+                  if (todayWorkouts.length > 0 && todayWorkouts[0].id) {
+                    localStorage.removeItem(`workout-progress-${todayWorkouts[0].id}`);
                     alert('Progress cleared! Refresh the page to see changes.');
                   } else {
                     alert('No workout ID available to clear progress.');
