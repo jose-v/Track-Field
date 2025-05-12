@@ -5,13 +5,17 @@ import {
 } from '@chakra-ui/react';
 import type { Workout, Exercise } from '../services/api'; // Import shared types
 import { FaPlus, FaTrash } from 'react-icons/fa';
-
-const EXERCISE_OPTIONS = [
-  'Pushups', 'Squats', 'Lunges', 'Plank', 'Burpees', 
-  'Sprints', 'Long Jump Practice', 'Interval Training', 'Strength Circuit', 'Relay Baton Pass'
-];
+import { supabase } from '../lib/supabase'; // Import supabase client
 
 const TYPE_OPTIONS = ['Strength', 'Running', 'Flexibility', 'Recovery', 'Custom'];
+
+// Interface for exercises from the database
+interface DbExercise {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string | null;
+}
 
 interface Athlete {
   id: string;
@@ -27,7 +31,7 @@ export type WorkoutFormData = Partial<Omit<Workout, 'exercises' | 'assignedAthle
     type: string; // Required
     date: string; // Required
     duration: string; // Required
-    notes: string; // Required
+    notes?: string; // Optional
     exercises: Exercise[]; // Required, with full Exercise structure
     assignedAthletes?: string[];
     location?: string;
@@ -45,6 +49,10 @@ interface WorkoutModalProps {
 export function WorkoutModal({ isOpen, onClose, initialWorkout, athletes, onSave }: WorkoutModalProps) {
   const toast = useToast();
   const [isSaving, setIsSaving] = useState(false);
+  
+  // New state for database exercises
+  const [dbExercises, setDbExercises] = useState<DbExercise[]>([]);
+  const [isLoadingExercises, setIsLoadingExercises] = useState(false);
   
   // State for form fields
   const [id, setId] = useState<string | undefined>(undefined);
@@ -64,6 +72,41 @@ export function WorkoutModal({ isOpen, onClose, initialWorkout, athletes, onSave
     name: '', sets: 1, reps: 1, weight: undefined, rest: undefined, distance: undefined, notes: ''
   });
   const [searchExercise, setSearchExercise] = useState<string>('');
+
+  // Fetch exercises from database when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchExercises();
+    }
+  }, [isOpen]);
+
+  // Function to fetch exercises from Supabase
+  const fetchExercises = async () => {
+    setIsLoadingExercises(true);
+    try {
+      const { data, error } = await supabase
+        .from('exercises')
+        .select('id, name, description, category')
+        .order('name');
+      
+      if (error) {
+        console.error('Error fetching exercises:', error);
+        toast({
+          title: 'Error fetching exercises',
+          description: error.message,
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+      } else {
+        setDbExercises(data || []);
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching exercises:', err);
+    } finally {
+      setIsLoadingExercises(false);
+    }
+  };
 
   useEffect(() => {
     if (isOpen && initialWorkout) {
@@ -98,7 +141,15 @@ export function WorkoutModal({ isOpen, onClose, initialWorkout, athletes, onSave
       toast({ title: 'Invalid exercise data', description: 'Exercise name, sets, and reps are required.', status: 'warning' });
       return;
     }
-    setCurrentExercises([...currentExercises, { ...currentExerciseInput } as Exercise]);
+    
+    // Find the selected exercise ID if it exists in our database
+    const selectedExercise = dbExercises.find(ex => ex.name === currentExerciseInput.name);
+    
+    setCurrentExercises([...currentExercises, { 
+      ...currentExerciseInput,
+      id: selectedExercise?.id // Add the exercise ID if it exists in our database
+    } as Exercise]);
+    
     setCurrentExerciseInput({ name: '', sets: 1, reps: 1, weight: undefined, rest: undefined, distance: undefined, notes: '' });
     setSearchExercise('');
   };
@@ -107,14 +158,15 @@ export function WorkoutModal({ isOpen, onClose, initialWorkout, athletes, onSave
     setCurrentExercises(currentExercises.filter((_, i) => i !== index));
   };
 
-  const filteredExerciseOptions = EXERCISE_OPTIONS.filter(ex => 
-    ex.toLowerCase().includes(searchExercise.toLowerCase())
-  );
+  // Filter exercises from the database based on search input
+  const filteredExerciseOptions = dbExercises
+    .filter(ex => ex.name.toLowerCase().includes(searchExercise.toLowerCase()))
+    .map(ex => ex.name);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Validation for required fields (as per WorkoutFormData and api.ts create expectation)
-    if (!name || !type || !date || !duration || !notes || currentExercises.length === 0) {
-      toast({ title: 'Please fill all required fields', description: 'Name, Type, Date, Duration, Notes, and at least one Exercise are required.', status: 'error' });
+    if (!name || !type || !date || !duration || currentExercises.length === 0) {
+      toast({ title: 'Please fill all required fields', description: 'Name, Type, Date, Duration, and at least one Exercise are required.', status: 'error' });
       return;
     }
 
@@ -125,7 +177,7 @@ export function WorkoutModal({ isOpen, onClose, initialWorkout, athletes, onSave
       type,
       date,
       duration,
-      notes,
+      notes: notes || '', // Make notes optional but provide empty string as default
       exercises: currentExercises,
       time: time || undefined,
       location: location || undefined,
@@ -133,13 +185,21 @@ export function WorkoutModal({ isOpen, onClose, initialWorkout, athletes, onSave
       file: file || undefined,
     };
     
-    // Create a promise to simulate async behavior and show loading state
-    Promise.resolve()
-      .then(() => onSave(workoutOutput))
-      .catch(err => {
-        console.error("Error in handleSave:", err);
-        setIsSaving(false);
+    try {
+      // Wrap onSave in a Promise.resolve to handle both synchronous and asynchronous onSave implementations
+      await Promise.resolve(onSave(workoutOutput));
+      // Success - modal will be closed by parent component
+    } catch (err) {
+      console.error("Error in handleSave:", err);
+      toast({ 
+        title: 'Error saving workout', 
+        description: 'Please try again or check console for details.',
+        status: 'error'
       });
+    } finally {
+      // Always set saving to false after completion or error
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -163,7 +223,15 @@ export function WorkoutModal({ isOpen, onClose, initialWorkout, athletes, onSave
             <HStack>
                 <FormControl isRequired flex={1}>
                     <FormLabel>Date</FormLabel>
-                    <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                    <Input 
+                      type="date" 
+                      value={date} 
+                      onChange={(e) => {
+                        // Store the date string directly from the input
+                        // This ensures ISO format (YYYY-MM-DD) is preserved without timezone adjustments
+                        setDate(e.target.value);
+                      }} 
+                    />
                 </FormControl>
                 <FormControl flex={1}>
                     <FormLabel>Time (Optional)</FormLabel>
@@ -331,6 +399,7 @@ export function WorkoutModal({ isOpen, onClose, initialWorkout, athletes, onSave
                         width="100%"
                         mt={2}
                         isDisabled={!currentExerciseInput.name}
+                        isLoading={isLoadingExercises}
                     >
                         ADD THIS EXERCISE TO WORKOUT
                     </Button>
