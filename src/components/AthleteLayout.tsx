@@ -4,15 +4,16 @@ import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../hooks/useProfile';
 // Athlete-relevant icons (can be adjusted)
-import { FaHome, FaRunning, FaUserCircle, FaBell, FaChartLine, FaTrophy, FaCalendarAlt } from 'react-icons/fa'; 
+import { FaHome, FaRunning, FaUserCircle, FaBell, FaChartLine, FaTrophy, FaCalendarAlt, FaUtensils, FaBed } from 'react-icons/fa'; 
 import { useState, useEffect } from 'react';
 
 // Links for the Athlete navigation
 const AthleteLinks = [
   { name: 'Dashboard', path: '/athlete/dashboard', icon: <FaChartLine /> },
-  { name: 'My Workouts', path: '/athlete/workouts', icon: <FaRunning /> }, // Path to be created
-  { name: 'My Events', path: '/athlete/events', icon: <FaCalendarAlt /> }, // Path to be created
-  { name: 'My Stats', path: '/athlete/stats', icon: <FaTrophy /> },       // Path to be created
+  { name: 'My Workouts', path: '/athlete/workouts', icon: <FaRunning /> },
+  { name: 'Events', path: '/athlete/events', icon: <FaCalendarAlt /> },
+  { name: 'Nutrition', path: '/athlete/nutrition', icon: <FaUtensils /> },
+  { name: 'Sleep', path: '/athlete/sleep', icon: <FaBed /> },
   { name: 'Profile', path: '/athlete/profile', icon: <FaUserCircle /> },
 ];
 
@@ -61,8 +62,7 @@ export function AthleteLayout({ children }: { children: React.ReactNode }) {
   }, []);
   
   const handleViewNotifications = () => {
-    // TODO: Navigate to athlete-specific notifications page or relevant section
-    // For now, perhaps link to their events or dashboard
+    // Navigate to athlete events page
     window.location.href = '/athlete/events'; 
     setNotificationCount(0);
     localStorage.setItem('athleteNotificationCount', '0');
@@ -101,7 +101,7 @@ export function AthleteLayout({ children }: { children: React.ReactNode }) {
                   <Badge colorScheme="green" fontSize="0.8em" ml={1}>ATHLETE</Badge>
                 </HStack>
               </RouterLink>
-              <HStack as="nav" spacing={4} display={{ base: 'none', md: 'flex' }}>
+              <HStack as="nav" spacing={4} display="flex">
                 {AthleteLinks.map((link) => (
                   <NavLink key={link.name} name={link.name} path={link.path} icon={link.icon} />
                 ))}

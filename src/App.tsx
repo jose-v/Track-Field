@@ -1,7 +1,7 @@
-import { ChakraProvider } from '@chakra-ui/react'
-import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom'
+import { ChakraProvider, useToast } from '@chakra-ui/react'
+import { BrowserRouter as Router, Routes, Route, Outlet, useNavigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { AuthProvider } from './contexts/AuthContext'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { Login } from './pages/Login'
 import { Dashboard as AthleteDashboard } from './pages/Dashboard'
 import { Workouts } from './pages/Workouts'
@@ -28,12 +28,37 @@ import RoleDashboardRouter from './pages/RoleDashboardRouter'
 import { CoachDashboard } from './pages/coach/Dashboard'
 import { CoachWorkouts } from './pages/coach/Workouts'
 import { CoachEvents } from './pages/coach/Events'
+import { AthleteEvents } from './pages/athlete/Events'
 import { CoachStats } from './pages/coach/Stats'
 import { CoachAthletes } from './pages/coach/Athletes'
 import { AthleteWorkouts } from './pages/athlete/AthleteWorkouts'
+import { CreateWorkout } from './pages/coach/CreateWorkout'
+import { ImportWorkout } from './pages/coach/ImportWorkout'
+import { EditWorkout } from './pages/coach/EditWorkout'
+import { Nutrition } from './pages/athlete/Nutrition'
+import { Sleep } from './pages/athlete/Sleep'
+import { useEffect, useState } from 'react'
+import { supabase } from './lib/supabase'
+import { initDebugUtils } from './utils/debugUtils'
 
-// Create a client
-const queryClient = new QueryClient()
+// Create a client with reasonable defaults
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 3,
+      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+      staleTime: 1000
+    },
+    mutations: {
+      retry: 2
+    }
+  }
+});
+
+// Initialize debug utilities in development mode
+if (process.env.NODE_ENV === 'development') {
+  initDebugUtils();
+}
 
 // Public Layout with Navigation
 const PublicLayout = () => {
@@ -48,13 +73,90 @@ const PublicLayout = () => {
   )
 }
 
+// Global auth error handler that monitors for auth errors
+const AuthErrorHandler = () => {
+  const { refreshSession } = useAuth();
+  const navigate = useNavigate();
+  const toast = useToast();
+  const [authErrorCount, setAuthErrorCount] = useState(0);
+  
+  // Set up global error handler for auth errors
+  useEffect(() => {
+    const handleAuthError = async (event: ErrorEvent) => {
+      // Check if it's an auth error
+      if (event.error?.message?.includes('JWT') || 
+          event.error?.message?.includes('refresh token') ||
+          event.error?.message?.includes('not authenticated')) {
+        
+        console.log('Global auth error detected', event.error);
+        
+        // Increment error counter
+        setAuthErrorCount(prev => prev + 1);
+        
+        // Try to refresh the session
+        const success = await refreshSession();
+        
+        if (success) {
+          console.log('Session refreshed successfully from global handler');
+          setAuthErrorCount(0);
+        } else if (authErrorCount >= 3) {
+          // After multiple failures, redirect to login
+          console.log('Multiple auth errors, redirecting to login');
+          toast({
+            title: "Authentication Error",
+            description: "Your session has expired. Please login again.",
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
+          navigate('/login');
+          setAuthErrorCount(0);
+        }
+      }
+    };
+    
+    // Listen for global errors
+    window.addEventListener('error', handleAuthError);
+    
+    return () => {
+      window.removeEventListener('error', handleAuthError);
+    };
+  }, [refreshSession, navigate, authErrorCount, toast]);
+  
+  return null; // This component doesn't render anything
+};
+
 function App() {
+  // Initialize auth detection on app load
+  useEffect(() => {
+    // Check auth status on app load
+    const checkInitialAuth = async () => {
+      try {
+        console.log('Checking initial auth status...');
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error checking initial auth:', error);
+        } else if (data.session) {
+          console.log('Initial auth check: Session exists');
+        } else {
+          console.log('Initial auth check: No session');
+        }
+      } catch (e) {
+        console.error('Error during initial auth check:', e);
+      }
+    };
+    
+    checkInitialAuth();
+  }, []);
+
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <ChakraProvider>
           <AuthProvider>
             <Router>
+              <AuthErrorHandler />
               <Routes>
                 {/* Public Routes */}
                 <Route element={<PublicLayout />}>
@@ -83,6 +185,9 @@ function App() {
                   <Route path="/coach/dashboard" element={<PrivateRoute><CoachDashboard /></PrivateRoute>} />
                   <Route path="/coach/athletes" element={<PrivateRoute><CoachAthletes /></PrivateRoute>} />
                   <Route path="/coach/workouts" element={<PrivateRoute><CoachWorkouts /></PrivateRoute>} />
+                  <Route path="/coach/workouts/new" element={<PrivateRoute><CreateWorkout /></PrivateRoute>} />
+                  <Route path="/coach/workouts/import" element={<PrivateRoute><ImportWorkout /></PrivateRoute>} />
+                  <Route path="/coach/workouts/edit/:id" element={<PrivateRoute><EditWorkout /></PrivateRoute>} />
                   <Route path="/coach/events" element={<PrivateRoute><CoachEvents /></PrivateRoute>} />
                   <Route path="/coach/stats" element={<PrivateRoute><CoachStats /></PrivateRoute>} />
                   <Route path="/coach/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
@@ -93,8 +198,11 @@ function App() {
                   <Route path="/athlete/dashboard" element={<PrivateRoute><AthleteDashboard /></PrivateRoute>} />
                   <Route path="/athlete/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
                   <Route path="/athlete/workouts" element={<PrivateRoute><AthleteWorkouts /></PrivateRoute>} />
-                  <Route path="/athlete/events" element={<PrivateRoute><NotFound /></PrivateRoute>} />
+                  <Route path="/athlete/workouts/edit/:id" element={<PrivateRoute><EditWorkout /></PrivateRoute>} />
+                  <Route path="/athlete/events" element={<PrivateRoute><AthleteEvents /></PrivateRoute>} />
                   <Route path="/athlete/stats" element={<PrivateRoute><NotFound /></PrivateRoute>} />
+                  <Route path="/athlete/nutrition" element={<PrivateRoute><Nutrition /></PrivateRoute>} />
+                  <Route path="/athlete/sleep" element={<PrivateRoute><Sleep /></PrivateRoute>} />
                 </Route>
                 
                 <Route path="*" element={<NotFound />} />
