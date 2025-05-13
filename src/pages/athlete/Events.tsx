@@ -21,11 +21,6 @@ import {
   Select,
   FormErrorMessage,
   useToast,
-  Tabs,
-  TabList,
-  Tab,
-  TabPanels,
-  TabPanel,
   Grid,
   GridItem,
   IconButton,
@@ -57,6 +52,7 @@ import { supabase } from '../../lib/supabase';
 import { format } from 'date-fns';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../../contexts/AuthContext';
+import React from 'react';
 // Use these interfaces instead of the imported ones
 // import type { TrackMeet, TrackMeetFormData, MeetEvent } from '../../types/trackMeets';
 
@@ -246,19 +242,6 @@ function AssignedMeets() {
   
   return (
     <Box>
-      <Flex justify="space-between" mb={6} align="center">
-        <Tooltip label="Refresh assigned events">
-          <IconButton
-            icon={<FaSync />}
-            aria-label="Refresh events"
-            isLoading={refreshing}
-            onClick={fetchMyEvents}
-            colorScheme="blue"
-            size="sm"
-          />
-        </Tooltip>
-      </Flex>
-      
       {loading ? (
         <Flex justify="center" my={8}>
           <Spinner size="xl" />
@@ -366,6 +349,7 @@ export function AthleteEvents() {
   const toast = useToast();
   
   const bgColor = useColorModeValue('white', 'gray.800');
+  const [filter, setFilter] = useState<'all' | 'my' | 'assigned'>('all');
 
   // Fetch track meets on component mount
   useEffect(() => {
@@ -785,117 +769,140 @@ export function AthleteEvents() {
   // Render UI
   return (
     <Box py={8}>
+      {/* Put all controls in a single row */}
       <Flex justify="space-between" align="center" mb={6}>
-        <Heading>Track Meets</Heading>
-        <Button 
-          leftIcon={<FaPlus />} 
-          colorScheme="blue" 
-          onClick={handleCreateMeet}
-        >
-          Create New Meet
-        </Button>
+        {/* Filter Buttons */}
+        <HStack spacing={4}>
+          <Button
+            colorScheme={filter === 'all' ? 'blue' : 'gray'}
+            variant={filter === 'all' ? 'solid' : 'outline'}
+            onClick={() => setFilter('all')}
+          >
+            All
+          </Button>
+          <Button
+            colorScheme={filter === 'my' ? 'blue' : 'gray'}
+            variant={filter === 'my' ? 'solid' : 'outline'}
+            onClick={() => setFilter('my')}
+          >
+            My Meets
+          </Button>
+          <Button
+            colorScheme={filter === 'assigned' ? 'blue' : 'gray'}
+            variant={filter === 'assigned' ? 'solid' : 'outline'}
+            onClick={() => setFilter('assigned')}
+          >
+            Assigned Meets
+          </Button>
+        </HStack>
+        
+        {/* Action Buttons */}
+        <HStack spacing={2}>
+          <Tooltip label="Refresh meets">
+            <IconButton
+              icon={<FaSync />}
+              aria-label="Refresh meets"
+              onClick={() => { fetchTrackMeets(); fetchCoachMeets(); }}
+              colorScheme="blue"
+              size="md" 
+            />
+          </Tooltip>
+          <Button 
+            leftIcon={<FaPlus />} 
+            colorScheme="blue" 
+            onClick={handleCreateMeet}
+          >
+            Create New Meet
+          </Button>
+        </HStack>
       </Flex>
       
-      <Tabs isFitted variant="enclosed" mb={6}>
-        <TabList>
-          <Tab>My Meets</Tab>
-          <Tab>Assigned Meets</Tab>
-        </TabList>
-        
-        <TabPanels>
-          <TabPanel px={0}>
-            {loading ? (
-              <Flex justify="center" my={8}>
-                <Spinner size="xl" />
-              </Flex>
-            ) : trackMeets.length === 0 ? (
-              <Box p={6} bg={bgColor} borderRadius="lg" shadow="md" textAlign="center">
-                <Text mb={4}>You haven't created any track meets yet.</Text>
-                <Button colorScheme="blue" onClick={handleCreateMeet}>Create Your First Meet</Button>
-              </Box>
-            ) : (
-              <VStack spacing={4} align="stretch">
-                {trackMeets.map((meet) => (
-                  <Box 
-                    key={meet.id} 
-                    p={5} 
-                    borderWidth="1px" 
-                    borderRadius="lg" 
-                    shadow="md"
-                    bg={bgColor}
-                  >
-                    <Flex justify="space-between" align="flex-start">
-                      <VStack align="start" spacing={1}>
-                        <Heading size="md">{meet.name}</Heading>
-                        <HStack spacing={2}>
-                          <FaCalendarAlt />
-                          <Text>{format(new Date(meet.meet_date), 'MMMM d, yyyy')}</Text>
-                        </HStack>
-                        {meet.city && meet.state && (
-                          <HStack spacing={2}>
-                            <FaMapMarkerAlt />
-                            <Text>{`${meet.city}, ${meet.state}`}</Text>
-                          </HStack>
-                        )}
-                        <Badge colorScheme={
-                          meet.status === 'Completed' ? 'green' : 
-                          meet.status === 'Cancelled' ? 'red' : 'blue'
-                        }>
-                          {meet.status}
-                        </Badge>
-                      </VStack>
-                      
-                      <HStack>
-                        <Tooltip label="Select Events">
-                          <IconButton
-                            aria-label="Select events"
-                            icon={<FaRunning />}
-                            onClick={() => {
-                              setCurrentMeet(meet);
-                              fetchMeetEvents(meet.id);
-                              onEventsOpen();
-                            }}
-                            colorScheme="teal"
-                            variant="outline"
-                          />
-                        </Tooltip>
-                        <Menu>
-                          <MenuButton
-                            as={IconButton}
-                            aria-label="Options"
-                            icon={<FaEllipsisV />}
-                            variant="outline"
-                          />
-                          <MenuList>
-                            <MenuItem icon={<FaEdit />} onClick={() => handleEditMeet(meet)}>
-                              Edit
-                            </MenuItem>
-                            <MenuItem 
-                              icon={<FaTrash />} 
-                              onClick={() => {
-                                // Set the current meet then show delete confirmation
-                                setCurrentMeet(meet);
-                                onDeleteConfirmOpen();
-                              }}
-                              color="red.500"
-                            >
-                              Delete
-                            </MenuItem>
-                          </MenuList>
-                        </Menu>
+      {/* Meets List */}
+      {(filter === 'all' || filter === 'my') && (
+        loading ? (
+          <Flex justify="center" my={8}>
+            <Spinner size="xl" />
+          </Flex>
+        ) : (
+          <VStack spacing={4} align="stretch" mb={8}>
+            {trackMeets.map((meet) => (
+              <Box 
+                key={meet.id} 
+                p={5} 
+                borderWidth="1px" 
+                borderRadius="lg" 
+                shadow="md"
+                bg={bgColor}
+              >
+                <Flex justify="space-between" align="flex-start">
+                  <VStack align="start" spacing={1}>
+                    <Heading size="md">{meet.name}</Heading>
+                    <HStack spacing={2}>
+                      <FaCalendarAlt />
+                      <Text>{format(new Date(meet.meet_date), 'MMMM d, yyyy')}</Text>
+                    </HStack>
+                    {meet.city && meet.state && (
+                      <HStack spacing={2}>
+                        <FaMapMarkerAlt />
+                        <Text>{`${meet.city}, ${meet.state}`}</Text>
                       </HStack>
-                    </Flex>
-                  </Box>
-                ))}
-              </VStack>
-            )}
-          </TabPanel>
-          
-          <TabPanel px={0}>
-            <AssignedMeets />
-          </TabPanel>
-        </TabPanels>
-      </Tabs>
+                    )}
+                    <Badge colorScheme={
+                      meet.status === 'Completed' ? 'green' : 
+                      meet.status === 'Cancelled' ? 'red' : 'blue'
+                    }>
+                      {meet.status}
+                    </Badge>
+                  </VStack>
+                  
+                  <HStack>
+                    <Tooltip label="Select Events">
+                      <IconButton
+                        aria-label="Select events"
+                        icon={<FaRunning />}
+                        onClick={() => {
+                          setCurrentMeet(meet);
+                          fetchMeetEvents(meet.id);
+                          onEventsOpen();
+                        }}
+                        colorScheme="teal"
+                        variant="outline"
+                      />
+                    </Tooltip>
+                    <Menu>
+                      <MenuButton
+                        as={IconButton}
+                        aria-label="Options"
+                        icon={<FaEllipsisV />}
+                        variant="outline"
+                      />
+                      <MenuList>
+                        <MenuItem icon={<FaEdit />} onClick={() => handleEditMeet(meet)}>
+                          Edit
+                        </MenuItem>
+                        <MenuItem 
+                          icon={<FaTrash />} 
+                          onClick={() => {
+                            // Set the current meet then show delete confirmation
+                            setCurrentMeet(meet);
+                            onDeleteConfirmOpen();
+                          }}
+                          color="red.500"
+                        >
+                          Delete
+                        </MenuItem>
+                      </MenuList>
+                    </Menu>
+                  </HStack>
+                </Flex>
+              </Box>
+            ))}
+          </VStack>
+        )
+      )}
+      {(filter === 'all' || filter === 'assigned') && (
+        <AssignedMeets />
+      )}
       
       {/* Event Selection Modal */}
       <Modal isOpen={isEventsOpen} onClose={onEventsClose} size="lg">
