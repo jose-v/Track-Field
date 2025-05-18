@@ -92,6 +92,9 @@ async function createCoachProfile(
     id: userId,
     specialties: [],
     certifications: [],
+    gender: undefined,
+    birth_date: undefined,
+    events: [],
   };
 
   const { error } = await supabase

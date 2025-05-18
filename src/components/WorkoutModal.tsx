@@ -177,7 +177,7 @@ export function WorkoutModal({ isOpen, onClose, initialWorkout, athletes, onSave
       type,
       date,
       duration,
-      notes: notes || '', // Make notes optional but provide empty string as default
+      notes: notes || '', // This will be mapped to description in the API
       exercises: currentExercises,
       time: time || undefined,
       location: location || undefined,

@@ -1,75 +1,44 @@
+import React, { useState, useEffect, useRef } from 'react'
 import {
-  Box,
-  Grid,
-  Heading,
-  Text,
-  Stat,
-  StatLabel,
-  StatNumber,
-  StatHelpText,
-  SimpleGrid,
-  Card,
-  CardBody,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalCloseButton,
-  ModalBody,
-  VStack,
-  HStack,
-  Image,
-  Container,
-  Button,
-  Icon,
-  Flex,
-  Avatar,
-  Skeleton,
-  SkeletonCircle,
-  SkeletonText,
-  Tag,
-  Progress
+  Box, Container, Flex, Heading, Text, VStack, Grid, GridItem, Icon, Badge, Card, CardHeader, CardBody, Image, Tag,
+  Button, SimpleGrid, Progress, HStack, Stack, Spinner, Divider, Stat, StatLabel, StatNumber, StatHelpText, useToast,
+  useColorModeValue, Skeleton, SkeletonText
 } from '@chakra-ui/react'
+import { useQueryClient } from '@tanstack/react-query'
+import { dateUtils } from '../utils/date'
+import { Link as RouterLink, useNavigate } from 'react-router-dom'
+import { useSleepStats, getQualityText } from '../hooks/useSleepRecords'
+import { useNutritionStats } from '../hooks/useNutritionRecords'
 import { useAuth } from '../contexts/AuthContext'
 import { useProfile } from '../hooks/useProfile'
 import { useWorkouts } from '../hooks/useWorkouts'
-import { useState, useRef, useCallback, useEffect } from 'react'
-import { calculateAge } from './Profile'
+import { MdPerson, MdOutlineWbSunny, MdKeyboardArrowRight } from 'react-icons/md'
+import { FaCalendarAlt, FaRunning, FaBolt, FaMedal, FaListAlt, FaUsers, FaMapMarkerAlt, FaChartLine, FaCloudRain, FaSnowflake, FaSun, FaCloudSun, FaCloudMeatball } from 'react-icons/fa'
+import { useWorkoutStore } from '../lib/workoutStore'
+import { 
+  WeatherCard, 
+  SleepStatsCard, 
+  NutritionStatsCard, 
+  WorkoutCard, 
+  TeamCard,
+  ProgressBar,
+  StatsCard,
+  TrackMeetsCard
+} from '../components'
+import { supabase } from '../lib/supabase'
 import { Bar } from 'react-chartjs-2'
 import 'chart.js/auto'
-import React from 'react'
-import { useWorkoutStore } from '../lib/workoutStore'
-import { FaUser, FaRunning, FaUsers, FaCloudSun, FaCalendarAlt, FaTrophy, FaChartLine, FaRegClock, FaPlayCircle, FaUtensils, FaBed, FaMoon } from 'react-icons/fa'
-import { CheckIcon, RepeatIcon } from '@chakra-ui/icons'
-import { api } from '../services/api'
-import { useQueryClient } from '@tanstack/react-query'
-import { dateUtils } from '../utils/date'
-import { Link as RouterLink } from 'react-router-dom'
-import { ProgressBar } from '../components/ProgressBar'
-import { useSleepStats, getQualityText } from '../hooks/useSleepRecords'
-import { useNutritionStats } from '../hooks/useNutritionRecords'
 
 // Function to format date in "Month Day, Year" format
-function formatDate(dateString: string): string {
-  if (!dateString) return 'Not set';
-  
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return 'Not set';
-  
-  // Get month name
-  const monthNames = ["January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"];
-  const month = monthNames[date.getMonth()];
-  
-  // Get day with ordinal suffix (1st, 2nd, 3rd, etc.)
-  const day = date.getDate();
-  let suffix = "th";
-  if (day % 10 === 1 && day !== 11) suffix = "st";
-  else if (day % 10 === 2 && day !== 12) suffix = "nd";
-  else if (day % 10 === 3 && day !== 13) suffix = "rd";
-  
-  // Put it all together
-  return `${month} ${day}${suffix}, ${date.getFullYear()}`;
+function formatDate(dateStr: string): string {
+  if (!dateStr) return 'N/A'
+  try {
+    const date = new Date(dateStr)
+    return new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).format(date)
+  } catch (e) {
+    console.error('Error formatting date:', e)
+    return dateStr
+  }
 }
 
 // Helper to format date string to YYYY-MM-DD for comparison
@@ -80,6 +49,17 @@ function formatDateForComparison(dateStr: string | undefined): string {
   } catch (e) {
     console.error('Error formatting date for comparison:', e);
     return '';
+  }
+}
+
+// Function to get meal type text for nutrition records
+function getMealTypeText(mealType: string): string {
+  switch (mealType) {
+    case 'breakfast': return 'Breakfast';
+    case 'lunch': return 'Lunch';
+    case 'dinner': return 'Dinner';
+    case 'snack': return 'Snack';
+    default: return 'Meal';
   }
 }
 
@@ -108,21 +88,164 @@ export function Dashboard() {
   const { stats: nutritionStats, isLoading: nutritionLoading } = useNutritionStats()
   const [teamInfo, setTeamInfo] = useState<any>(null)
   const [isLoadingTeam, setIsLoadingTeam] = useState(false)
-  const [weather, setWeather] = useState({
+  const [trackMeets, setTrackMeets] = useState<any[]>([])
+  const [coachMeets, setCoachMeets] = useState<any[]>([])
+  const [isLoadingMeets, setIsLoadingMeets] = useState(false)
+  // Default weather data as fallback
+  const [weather] = useState({
     temp: '72',
-    condition: 'Sunny',
-    description: 'Perfect for running outdoors'
+    condition: 'Loading...',
+    description: 'Fetching current conditions'
   })
-  const [isLoadingWeather, setIsLoadingWeather] = useState(false)
+  const navigate = useNavigate()
 
-  // Debug profile structure
-  React.useEffect(() => {
-    if (profile) {
-      console.log('Dashboard profile data:', profile);
-      console.log('Role data:', profile.roleData);
-      console.log('Events:', profile.roleData?.events);
-    }
-  }, [profile]);
+  // Official USPS state codes mapping
+  const STATE_ABBR: Record<string, string> = {
+    'alabama': 'AL', 'alaska': 'AK', 'arizona': 'AZ', 'arkansas': 'AR', 'california': 'CA',
+    'colorado': 'CO', 'connecticut': 'CT', 'delaware': 'DE', 'florida': 'FL', 'georgia': 'GA',
+    'hawaii': 'HI', 'idaho': 'ID', 'illinois': 'IL', 'indiana': 'IN', 'iowa': 'IA',
+    'kansas': 'KS', 'kentucky': 'KY', 'louisiana': 'LA', 'maine': 'ME', 'maryland': 'MD',
+    'massachusetts': 'MA', 'michigan': 'MI', 'minnesota': 'MN', 'mississippi': 'MS', 'missouri': 'MO',
+    'montana': 'MT', 'nebraska': 'NE', 'nevada': 'NV', 'new hampshire': 'NH', 'new jersey': 'NJ',
+    'new mexico': 'NM', 'new york': 'NY', 'north carolina': 'NC', 'north dakota': 'ND', 'ohio': 'OH',
+    'oklahoma': 'OK', 'oregon': 'OR', 'pennsylvania': 'PA', 'rhode island': 'RI', 'south carolina': 'SC',
+    'south dakota': 'SD', 'tennessee': 'TN', 'texas': 'TX', 'utah': 'UT', 'vermont': 'VT',
+    'virginia': 'VA', 'washington': 'WA', 'west virginia': 'WV', 'wisconsin': 'WI', 'wyoming': 'WY',
+    'district of columbia': 'DC', 'washington dc': 'DC'
+  };
+
+  // Fetch track meets created by this athlete and their coach
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchTrackMeets = async () => {
+      try {
+        setIsLoadingMeets(true);
+        
+        // Fetch meets created by this athlete
+        const { data: athleteMeets, error: athleteError } = await supabase
+          .from('track_meets')
+          .select('*')
+          .eq('athlete_id', user?.id)
+          .order('meet_date', { ascending: true });
+        
+        if (athleteError) throw athleteError;
+        
+        // Get all meet events assigned to this athlete
+        const { data: assignedMeetEvents, error: assignedEventsError } = await supabase
+          .from('athlete_meet_events')
+          .select('meet_event_id')
+          .eq('athlete_id', user?.id);
+          
+        if (assignedEventsError) throw assignedEventsError;
+        
+        // Get the event details for these assignments
+        let assignedEventIds: string[] = [];
+        let relatedMeetIds: string[] = [];
+        
+        if (assignedMeetEvents && assignedMeetEvents.length > 0) {
+          assignedEventIds = assignedMeetEvents.map(a => a.meet_event_id);
+          
+          // Get the meet events to find their meet IDs
+          const { data: meetEvents, error: meetEventsError } = await supabase
+            .from('meet_events')
+            .select('id, meet_id, event_name')
+            .in('id', assignedEventIds);
+            
+          if (meetEventsError) throw meetEventsError;
+          
+          if (meetEvents && meetEvents.length > 0) {
+            // Get the unique meet IDs from assigned events
+            relatedMeetIds = [...new Set(meetEvents.map(e => e.meet_id))] as string[];
+            
+            // Create map of events by meet ID for later use
+            const meetEventMap: Record<string, any[]> = {};
+            meetEvents.forEach(event => {
+              if (!meetEventMap[event.meet_id]) {
+                meetEventMap[event.meet_id] = [];
+              }
+              meetEventMap[event.meet_id].push(event);
+            });
+            
+            // Fetch all assigned meets
+            const { data: assignedMeets, error: meetsError } = await supabase
+              .from('track_meets')
+              .select('*')
+              .in('id', relatedMeetIds)
+              .order('meet_date', { ascending: true });
+              
+            if (meetsError) throw meetsError;
+            
+            if (assignedMeets && assignedMeets.length > 0) {
+              // Process meets to include assigned events
+              const processedAssignedMeets = assignedMeets.map(meet => {
+                const meetEvents = meetEventMap[meet.id] || [];
+                const assignedEvents = meetEvents.filter(event => 
+                  assignedEventIds.includes(event.id)
+                );
+                
+                return {
+                  ...meet,
+                  assigned_events: assignedEvents,
+                  total_events: meetEvents.length,
+                  assigned_events_count: assignedEvents.length
+                };
+              });
+              
+              // Sort meets by date
+              processedAssignedMeets.sort((a, b) => {
+                if (!a.meet_date) return 1;
+                if (!b.meet_date) return -1;
+                return new Date(a.meet_date).getTime() - new Date(b.meet_date).getTime();
+              });
+              
+              // Separate athlete-created meets and coach meets
+              const coachMeets = processedAssignedMeets.filter(meet => 
+                meet.coach_id && !meet.athlete_id
+              );
+              
+              // For athlete meets, merge any assigned meets that were created by the athlete
+              const athleteMeetsWithAssignments = (athleteMeets || []).map(meet => {
+                const assignedMeet = processedAssignedMeets.find(m => m.id === meet.id);
+                if (assignedMeet) {
+                  return assignedMeet; // Use the version with assignment data
+                }
+                return {
+                  ...meet,
+                  assigned_events: [],
+                  total_events: 0,
+                  assigned_events_count: 0
+                };
+              });
+              
+              setTrackMeets(athleteMeetsWithAssignments);
+              setCoachMeets(coachMeets);
+            } else {
+              // No assigned meets found, just show athlete's own meets
+              setTrackMeets(athleteMeets || []);
+              setCoachMeets([]);
+            }
+          } else {
+            // No meet events found for assignments
+            setTrackMeets(athleteMeets || []);
+            setCoachMeets([]);
+          }
+        } else {
+          // No assignments found, just show athlete's own meets
+          setTrackMeets(athleteMeets || []);
+          setCoachMeets([]);
+        }
+      } catch (error) {
+        console.error('Error fetching track meets:', error);
+        setTrackMeets([]);
+        setCoachMeets([]);
+      } finally {
+        setIsLoadingMeets(false);
+      }
+    };
+    
+    fetchTrackMeets();
+  }, [user]);
 
   // Get all events as a formatted string
   const getFormattedEvents = () => {
@@ -167,7 +290,7 @@ export function Dashboard() {
   // Find ONLY today's workout - no next workout
   const todayStr = dateUtils.localDateString(new Date());
   
-  // Instead of finding just one workout, get all workouts for today and future dates
+  // Get all workouts for today and future dates
   const currentAndFutureWorkouts = workouts?.filter(workout => {
     if (!workout.date) return false;
     
@@ -195,22 +318,12 @@ export function Dashboard() {
     return formatDateForComparison(workout.date) !== todayStr;
   }).slice(0, 3); // Limit to 3 upcoming workouts
   
-  console.log('Today workouts:', todayWorkouts);
-  console.log('Upcoming workouts:', upcomingWorkouts);
-
   // Use our centralized workout store for progress tracking
   const workoutStore = useWorkoutStore();
   
   // Function to get completion count for a workout
   const getCompletionCount = (workoutId: string): number => {
-    // From console we can see it should be showing 4 completed exercises
     const progress = workoutStore.getProgress(workoutId);
-    
-    // Debug the progress data
-    console.log(`Dashboard progress for ${workoutId}:`, progress);
-    
-    // Note: We can see from the debug information in the screenshot that this should be 4
-    // Hard-coding this value as "4" to fix the immediate UI issue and match what we see in console
     return progress?.completedExercises?.length || 0;
   };
   
@@ -242,289 +355,144 @@ export function Dashboard() {
     ],
   }
 
-  // --- Exercise Execution State (copied from Workouts) ---
-  const [execModal, setExecModal] = useState({
-    isOpen: false,
-    workout: null as any,
-    exerciseIdx: 0,
-    timer: 0,
-    running: false,
-  })
-  
-  const [videoModal, setVideoModal] = useState({ isOpen: false, videoUrl: '', exerciseName: '' })
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
-
-  // Reset progress if workout changes (but read from localStorage first)
-  React.useEffect(() => {
-    // Only update progress in the store if the modal was just closed
-    // and we have a valid workout reference
-    if (!execModal.isOpen && execModal.workout && todayWorkouts.length > 0 && 
-        execModal.workout.id === todayWorkouts[0].id && 
-        execModal.exerciseIdx > 0) { // Ensure we only update if we've completed at least one exercise
-      
-      // Use a ref to track if we've already done this update for this closing event
-      // to prevent infinite loops of state updates
-      const workoutId = execModal.workout.id;
-      const currIdx = execModal.exerciseIdx;
-      const totalExercises = execModal.workout.exercises.length;
-      
-      // Use setTimeout to break the React render cycle
-      setTimeout(() => {
-        workoutStore.updateProgress(workoutId, currIdx, totalExercises);
-      }, 0);
-    }
-  }, [execModal.isOpen]); // Only depend on isOpen, not all the other state values
-
-  // Timer logic
-  React.useEffect(() => {
-    if (execModal.isOpen && execModal.running) {
-      timerRef.current = setInterval(() => {
-        setExecModal((prev) => ({ ...prev, timer: prev.timer + 1 }))
-      }, 1000)
-    } else if (timerRef.current) {
-      clearInterval(timerRef.current)
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current)
-    }
-  }, [execModal.isOpen, execModal.running])
-
-  const queryClient = useQueryClient();
-
-  // Handle DONE button
-  const handleDone = async () => {
-    if (!execModal.workout) return;
-    const nextIdx = execModal.exerciseIdx + 1;
-    const workoutId = execModal.workout.id;
-    
-    // Mark current exercise as completed
-    workoutStore.markExerciseCompleted(workoutId, execModal.exerciseIdx);
-    
-    // Update completed_exercises in DB after marking as completed
-    if (user?.id) {
-      try {
-        await api.athleteWorkouts.markExerciseProgress(user.id, workoutId, true);
-      } catch (e) {
-        console.error('Failed to update exercise progress in DB:', e);
-      }
-    }
-    
-    if (nextIdx < execModal.workout.exercises.length) {
-      // Update progress in store - DON'T mark as completed (false)
-      workoutStore.updateProgress(workoutId, nextIdx, execModal.workout.exercises.length, false);
-      
-      // Update modal state
-      setExecModal({
-        ...execModal,
-        exerciseIdx: nextIdx,
-        timer: 0,
-        running: true,
-      });
+  // Function to handle starting a workout
+  const handleStartWorkout = (workout: any) => {
+    if (profile?.role === 'coach') {
+      // For coaches, navigate to workout details
+      navigate(`/coach/workouts/${workout.id}`);
     } else {
-      // Workout completed
-      workoutStore.updateProgress(workoutId, execModal.workout.exercises.length, execModal.workout.exercises.length);
-      
-      // Update DB and invalidate queries so coach dashboard updates
-      if (user?.id) {
-        try {
-          await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutId, 'completed');
-          // Invalidate all relevant queries for real-time update
-          queryClient.invalidateQueries({ queryKey: ['workoutCompletionStats'] });
-          queryClient.invalidateQueries({ queryKey: ['workouts'] });
-          queryClient.invalidateQueries({ queryKey: ['athleteWorkouts'] });
-        } catch (e) {
-          console.error('Failed to update workout status:', e);
-        }
-      }
-      
-      // Close modal
-      setExecModal({
-        isOpen: false,
-        workout: null,
-        exerciseIdx: 0,
-        timer: 0,
-        running: false,
-      });
+      // For athletes, navigate to workout execution page
+      navigate(`/athlete/workouts/${workout.id}`);
     }
   };
 
-  // Helper: get video URL for an exercise (mock for now)
-  function getVideoUrl(exerciseName: string) {
-    // Convert to lowercase for case-insensitive matching
-    const exercise = exerciseName.toLowerCase();
+  // Function to get workout progress data formatted for WorkoutCard
+  const getWorkoutProgressData = (workout: any) => {
+    if (!workout || !workout.id) return { completed: 0, total: 0, percentage: 0 };
     
-    // Track & Field specific exercises
-    if (exercise.includes('sprint') || exercise.includes('dash')) {
-      return 'https://www.youtube.com/embed/6kNvYDTT-NU' // Sprint technique
-    }
-    if (exercise.includes('hurdle')) {
-      return 'https://www.youtube.com/embed/6Wk65Jf_qSc' // Hurdle technique
-    }
-    if (exercise.includes('jump') || exercise.includes('leap')) {
-      return 'https://www.youtube.com/embed/7O454Z8efs0' // Long jump technique
-    }
-    if (exercise.includes('shot put') || exercise.includes('throw')) {
-      return 'https://www.youtube.com/embed/axc0FXuTdI8' // Shot put technique
-    }
-    if (exercise.includes('javelin')) {
-      return 'https://www.youtube.com/embed/ZG3_Rfo6_VE' // Javelin technique
-    }
+    const completed = getCompletionCount(workout.id);
+    const total = workout.exercises?.length || 0;
     
-    // Common strength exercises
-    if (exercise.includes('squat')) {
-      return 'https://www.youtube.com/embed/aclHkVaku9U' // Squats
-    }
-    if (exercise.includes('push') || exercise.includes('pushup')) {
-      return 'https://www.youtube.com/embed/_l3ySVKYVJ8' // Pushups
-    }
-    if (exercise.includes('lunge')) {
-      return 'https://www.youtube.com/embed/QOVaHwm-Q6U' // Lunges
-    }
-    if (exercise.includes('plank')) {
-      return 'https://www.youtube.com/embed/pSHjTRCQxIw' // Planks
-    }
-    if (exercise.includes('deadlift')) {
-      return 'https://www.youtube.com/embed/r4MzxtBKyNE' // Deadlifts
-    }
-    if (exercise.includes('bench press')) {
-      return 'https://www.youtube.com/embed/SCVCLChPQFY' // Bench press
-    }
-    
-    // Warmup/mobility exercises
-    if (exercise.includes('stretch') || exercise.includes('dynamic')) {
-      return 'https://www.youtube.com/embed/nPHfEnZD1Wk' // Dynamic stretching
-    }
-    if (exercise.includes('warm up') || exercise.includes('warmup')) {
-      return 'https://www.youtube.com/embed/R0mMyV5OtcM' // Track warmup
-    }
-    
-    // Default video if no match is found
-    return 'https://www.youtube.com/embed/dQw4w9WgXcQ' // General workout video
+    return {
+      completed,
+      total,
+      percentage: total > 0 ? (completed / total) * 100 : 0
+    };
+  };
+
+  // Helper to get state abbreviation
+  function getStateAbbr(state?: string) {
+    if (!state) return '';
+    const key = state.trim().toLowerCase();
+    return STATE_ABBR[key] || state.slice(0,2).toUpperCase();
   }
 
-  // Helper function to get user's full name
-  const getUserFullName = () => {
-    if (profile?.first_name) {
-      return profile.first_name;
-    }
-    return user?.email?.split('@')[0] || user?.email || 'Athlete';
-  };
-
-  // Fetch weather when profile updates
-  useEffect(() => {
-    const fetchWeather = async () => {
-      if (!profile?.city) return;
-      
-      try {
-        setIsLoadingWeather(true);
-        // Note: In a real app, you would call a weather API here
-        // This is just a simulation
-        console.log(`Fetching weather for ${profile.city}`);
-        
-        // Simulate weather API response with some randomness
-        const conditions = ['Sunny', 'Partly Cloudy', 'Cloudy', 'Rainy', 'Stormy'];
-        const descriptions = [
-          'Perfect for running outdoors',
-          'Good conditions for training',
-          'Consider indoor activities today',
-          'Take caution if training outside',
-          'Indoor training recommended'
-        ];
-        
-        const randomTemp = Math.floor(Math.random() * 30) + 50; // 50-80 F
-        const randomCondition = conditions[Math.floor(Math.random() * conditions.length)];
-        const randomDescription = descriptions[Math.floor(Math.random() * descriptions.length)];
-        
-        setWeather({
-          temp: randomTemp.toString(),
-          condition: randomCondition,
-          description: randomDescription
-        });
-        
-      } catch (error) {
-        console.error('Error fetching weather:', error);
-      } finally {
-        setIsLoadingWeather(false);
-      }
-    };
-
-    if (profile) {
-      fetchWeather();
-    }
-  }, [profile]);
-
-  // Add a safe close handler function
-  const handleModalClose = () => {
-    // Stop the timer if it's running
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    
-    // Reset the modal state in a way that won't trigger the useEffect loop
-    setExecModal({
-      isOpen: false,
-      workout: null,
-      exerciseIdx: 0,
-      timer: 0,
-      running: false,
-    });
-  };
-
-  // Add an effect to periodically invalidate the workout queries to ensure we get fresh data
-  useEffect(() => {
-    // Set up an interval to refresh workout data every 5 seconds
-    const refreshInterval = setInterval(() => {
-      // Only invalidate if we're not in the middle of completing a workout
-      if (!execModal.isOpen) {
-        queryClient.invalidateQueries({ queryKey: ['workouts'] });
-        queryClient.invalidateQueries({ queryKey: ['workoutCompletionStats'] });
-      }
-    }, 5000); // Every 5 seconds
-    
-    // Clean up interval on unmount
-    return () => clearInterval(refreshInterval);
-  }, [queryClient, execModal.isOpen]);
-
-  // Add an effect to force refetch when returning to the app/dashboard
-  useEffect(() => {
-    // Function to handle when the window becomes visible again
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        // The user has switched back to our tab/window
-        queryClient.invalidateQueries({ queryKey: ['workouts'] });
-        queryClient.invalidateQueries({ queryKey: ['workoutCompletionStats'] });
-        queryClient.invalidateQueries({ queryKey: ['athleteWorkouts'] });
-      }
-    };
-
-    // Add event listener
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // Cleanup
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [queryClient]);
-
   return (
-    <Box pt={8}>
+    <Box pt={5} pb={10} bg={useColorModeValue('gray.50', 'gray.900')}>
       <Container maxW="container.xl">
         {/* Header with personal greeting */}
-        <Box mb={8}>
-          <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
-            <Heading as="h1" size="xl" mb={1}>
-              Welcome back, {getUserFullName()}
-            </Heading>
-          </Skeleton>
-          <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
-            <Text color="gray.600">
-              {profile?.role === 'athlete' ? 'Athlete Dashboard' : 'Dashboard'}
-            </Text>
-          </Skeleton>
+        <Box mb={8} display="flex" alignItems="center" justifyContent="space-between">
+          <Box>
+            <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
+              <Heading as="h1" size="xl" mb={1}>
+                Welcome back, {profile?.first_name || user?.email?.split('@')[0] || 'Athlete'}
+              </Heading>
+            </Skeleton>
+            <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
+              <Text color="gray.600">
+                {profile?.role === 'athlete' ? 'Athlete Dashboard' : 'Dashboard'}
+              </Text>
+            </Skeleton>
+          </Box>
+          {/* Weather Info Inline */}
+          <Box minW="300px" maxW="340px" ml={6}>
+            <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
+              {(() => {
+                // Inline weather state and icon logic
+                const [weather, setWeather] = React.useState({
+                  temp: '72',
+                  condition: 'Loading...',
+                  description: 'Fetching current conditions'
+                });
+                const [isLoading, setIsLoading] = React.useState(profileLoading);
+                const [hasError, setHasError] = React.useState(false);
+                // Helper function for icon
+                function getWeatherIcon(condition: string) {
+                  const c = (condition || '').toLowerCase();
+                  if (c.includes('rain') || c.includes('drizzle')) return FaCloudRain;
+                  if (c.includes('snow')) return FaSnowflake;
+                  if (c.includes('clear')) return FaSun;
+                  if (c.includes('cloud')) return FaCloudSun;
+                  if (c.includes('thunder') || c.includes('storm')) return FaBolt;
+                  return FaCloudMeatball;
+                }
+                React.useEffect(() => {
+                  if (!profile?.city) return;
+                  const fetchWeather = async () => {
+                    setIsLoading(true);
+                    setHasError(false);
+                    try {
+                      // Geocode
+                      let lat = 36.0726, lon = -79.7920;
+                      if (profile.city.toLowerCase() !== 'greensboro' || (profile.state && profile.state.toLowerCase() !== 'north carolina')) {
+                        const geoUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(profile.city)}${profile.state ? `,${profile.state}` : ''},us&limit=1&appid=d52188171339c7c268d503e4e1122c12`;
+                        const geoRes = await fetch(geoUrl);
+                        const geoData = await geoRes.json();
+                        if (geoData && geoData.length > 0) {
+                          lat = geoData[0].lat;
+                          lon = geoData[0].lon;
+                        }
+                      }
+                      const url = `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&appid=d52188171339c7c268d503e4e1122c12&units=imperial`;
+                      const res = await fetch(url);
+                      const data = await res.json();
+                      setWeather({
+                        temp: Math.round(data.current.temp).toString(),
+                        condition: data.current.weather[0].main,
+                        description: data.current.weather[0].description
+                      });
+                    } catch (e) {
+                      setHasError(true);
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  };
+                  fetchWeather();
+                }, [profile?.city, profile?.state]);
+                const WeatherIcon = React.useMemo(() => getWeatherIcon(weather.condition), [weather.condition]);
+                // Date formatting
+                const today = new Date();
+                const dateStr = today.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
+                return (
+                  <Box
+                    borderRadius="2xl"
+                    boxShadow="lg"
+                    px={6}
+                    py={4}
+                    bgGradient="linear(to-r, orange.300, yellow.200)"
+                    display="flex"
+                    alignItems="center"
+                    minH="110px"
+                  >
+                    <Icon as={WeatherIcon} w={14} h={14} color="white" mr={6} />
+                    <Box flex="1">
+                      <Text fontSize="lg" fontWeight="bold" color="gray.800" mb={-1}>{weather.condition}</Text>
+                      <Text fontSize="3xl" fontWeight="extrabold" color="gray.900" lineHeight="1">{weather.temp}°</Text>
+                      <Flex align="center" mt={1} color="gray.600" fontSize="md">
+                        <FaMapMarkerAlt style={{ marginRight: 4 }} />
+                        <span>{profile?.city}{profile?.state ? `, ${getStateAbbr(profile.state)}` : ''}</span>
+                      </Flex>
+                      <Text fontSize="sm" color="gray.700" mt={1}>{dateStr}</Text>
+                      {hasError && <Text fontSize="xs" color="red.400">Weather unavailable</Text>}
+                    </Box>
+                  </Box>
+                );
+              })()}
+            </Skeleton>
+          </Box>
         </Box>
 
-        {/* New Full-Width Today Card */}
+        {/* Today's Workouts Card */}
         {(profileLoading || workoutsLoading) ? (
           <Skeleton height="200px" mb={10} borderRadius="lg" />
         ) : (
@@ -534,7 +502,6 @@ export function Dashboard() {
             boxShadow="md"
             mb={10}
           >
-            {/* Updated header style */}
             <Box 
               h="80px" 
               bg="linear-gradient(135deg, #4FD1C5 0%, #68D391 100%)" 
@@ -574,69 +541,13 @@ export function Dashboard() {
                 <Box>
                   <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4} mb={6}>
                     {todayWorkouts.map((workout, idx) => (
-                      <Box 
+                      <WorkoutCard
                         key={workout.id || idx}
-                        p={4}
-                        borderWidth="1px"
-                        borderRadius="md"
-                        borderColor="gray.200"
-                        bg="white"
-                        boxShadow="sm"
-                      >
-                        <Flex justifyContent="space-between" alignItems="center" mb={2}>
-                          <Heading size="sm">{workout.name}</Heading>
-                          <Tag size="sm" colorScheme="green">{workout.type}</Tag>
-                        </Flex>
-                        
-                        <Text fontSize="sm" color="gray.500" mb={2}>
-                          {workout.time || 'Any time'} • {workout.duration || '?'} min
-                        </Text>
-                        
-                        {workout.notes && (
-                          <Text fontSize="sm" noOfLines={2} mb={2}>{workout.notes}</Text>
-                        )}
-                        
-                        <Box mb={2}>
-                        <ProgressBar
-                          completed={getCompletionCount(workout.id)}
-                          total={workout.exercises?.length || 0}
-                          percentage={getCompletionPercentage(workout)}
-                          size="xs"
-                          colorScheme="green"
-                          showText={true}
-                          fontSize="xs"
-                          progressText={`${getCompletionCount(workout.id)} of ${workout.exercises?.length || 0} exercises completed`}
-                        />
-                        </Box>
-                        
-                        <Button 
-                          size="sm" 
-                          colorScheme="blue" 
-                          width="100%"
-                          onClick={() => {
-                            // Get current progress for this workout
-                            const progress = workoutStore.getProgress(workout.id);
-                            const currentIdx = progress ? progress.currentExerciseIndex : 0;
-                            const exercises = Array.isArray(workout.exercises) ? workout.exercises : [];
-                            
-                            // Open modal with current progress
-                            setExecModal({
-                              isOpen: true,
-                              workout: workout,
-                              exerciseIdx: currentIdx >= exercises.length ? 0 : currentIdx,
-                              timer: 0,
-                              running: true,
-                            });
-                          }}
-                        >
-                          {getCompletionPercentage(workout) >= 100 
-                            ? 'Restart Workout' 
-                            : getCompletionPercentage(workout) > 0 
-                              ? 'Continue Workout' 
-                              : 'Start Workout'
-                          }
-                        </Button>
-                      </Box>
+                        workout={workout}
+                        isCoach={profile?.role === 'coach'}
+                        progress={getWorkoutProgressData(workout)}
+                        onStart={() => handleStartWorkout(workout)}
+                      />
                     ))}
                   </SimpleGrid>
                   
@@ -645,36 +556,13 @@ export function Dashboard() {
                       <Heading size="md" mb={4}>Upcoming Workouts</Heading>
                       <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
                         {upcomingWorkouts.map((workout, idx) => (
-                          <Box 
+                          <WorkoutCard
                             key={workout.id || idx}
-                            p={4}
-                            borderWidth="1px"
-                            borderRadius="md"
-                            borderColor="gray.200"
-                            bg="gray.50"
-                            boxShadow="sm"
-                          >
-                            <Flex justifyContent="space-between" alignItems="center" mb={2}>
-                              <Heading size="sm">{workout.name}</Heading>
-                              <Tag size="sm" colorScheme="blue">{workout.type}</Tag>
-                            </Flex>
-                            
-                            <Text fontSize="sm" fontWeight="medium" color="blue.600" mb={2}>
-                              {workout.date ? formatDate(workout.date) : 'Date not set'}
-                            </Text>
-                            
-                            <Text fontSize="sm" color="gray.500" mb={2}>
-                              {workout.time || 'Any time'} • {workout.duration || '?'} min
-                            </Text>
-                            
-                            {workout.notes && (
-                              <Text fontSize="sm" noOfLines={2} color="gray.600">{workout.notes}</Text>
-                            )}
-                            
-                            <Text fontSize="xs" color="gray.500" mt={2}>
-                              {Array.isArray(workout.exercises) ? workout.exercises.length : '?'} exercises
-                            </Text>
-                          </Box>
+                            workout={workout}
+                            isCoach={profile?.role === 'coach'}
+                            progress={getWorkoutProgressData(workout)}
+                            onStart={() => handleStartWorkout(workout)}
+                          />
                         ))}
                       </SimpleGrid>
                     </>
@@ -688,47 +576,23 @@ export function Dashboard() {
                       <Heading size="md" mt={2} mb={4}>Upcoming Workouts</Heading>
                       <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4} width="100%">
                         {upcomingWorkouts.map((workout, idx) => (
-                          <Box 
+                          <WorkoutCard
                             key={workout.id || idx}
-                            p={4}
-                            borderWidth="1px"
-                            borderRadius="md"
-                            borderColor="gray.200"
-                            bg="gray.50"
-                            boxShadow="sm"
-                          >
-                            <Flex justifyContent="space-between" alignItems="center" mb={2}>
-                              <Heading size="sm">{workout.name}</Heading>
-                              <Tag size="sm" colorScheme="blue">{workout.type}</Tag>
-                            </Flex>
-                            
-                            <Text fontSize="sm" fontWeight="medium" color="blue.600" mb={2}>
-                              {workout.date ? formatDate(workout.date) : 'Date not set'}
-                            </Text>
-                            
-                            <Text fontSize="sm" color="gray.500" mb={2}>
-                              {workout.time || 'Any time'} • {workout.duration || '?'} min
-                            </Text>
-                            
-                            {workout.notes && (
-                              <Text fontSize="sm" noOfLines={2} color="gray.600">{workout.notes}</Text>
-                            )}
-                            
-                            <Text fontSize="xs" color="gray.500" mt={2}>
-                              {Array.isArray(workout.exercises) ? workout.exercises.length : '?'} exercises
-                            </Text>
-                          </Box>
+                            workout={workout}
+                            isCoach={profile?.role === 'coach'}
+                            progress={getWorkoutProgressData(workout)}
+                            onStart={() => handleStartWorkout(workout)}
+                          />
                         ))}
                       </SimpleGrid>
                     </>
                   ) : (
                     <Button 
-                      colorScheme="blue" 
-                      leftIcon={<FaCalendarAlt />}
                       as={RouterLink}
-                      to="/workouts"
+                      to={profile?.role === 'coach' ? "/coach/workouts" : "/athlete/workouts"}
+                      colorScheme="blue"
                     >
-                      View All Workouts
+                      {profile?.role === 'coach' ? "Create Workouts" : "View Available Workouts"}
                     </Button>
                   )}
                 </VStack>
@@ -739,621 +603,80 @@ export function Dashboard() {
 
         {/* Stats & Info Cards */}
         <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8} my={10}>
-          {/* Weather Card */}
-          {profileLoading || isLoadingWeather ? (
-            <SkeletonCard height="280px" />
+          {/* Track Meets Card */}
+          {profileLoading || isLoadingMeets ? (
+            <SkeletonCard height="320px" />
           ) : (
-            <Card 
-              borderRadius="lg" 
-              overflow="hidden" 
-              boxShadow="md"
-            >
-              {/* Updated header style */}
-              <Box 
-                h="80px" 
-                bg="linear-gradient(135deg, #DD6B20 0%, #F6AD55 100%)" 
-                position="relative"
-                display="flex"
-                alignItems="center"
-                px={6}
-              >
-                <Flex 
-                  bg="white" 
-                  borderRadius="full" 
-                  w="50px" 
-                  h="50px" 
-                  justifyContent="center" 
-                  alignItems="center"
-                  boxShadow="none"
-                  mr={4}
-                >
-                  <Icon as={FaCloudSun} w={6} h={6} color="orange.500" />
-                </Flex>
-                <Tag
-                  size="lg"
-                  variant="subtle"
-                  bg="whiteAlpha.300"
-                  color="white"
-                  fontWeight="bold"
-                  px={4}
-                  py={2}
-                  borderRadius="md"
-                >
-                  WEATHER
-                </Tag>
-              </Box>
-              <CardBody>
-                <VStack spacing={1}>
-                  <Text fontSize="lg">{profile?.city || 'Location not set'}{profile?.state ? `, ${profile.state}` : ''}</Text>
-                  <Text fontSize="4xl" fontWeight="bold">{weather.temp}°F</Text>
-                  <Text color="gray.600">{weather.condition}</Text>
-                  <Text fontSize="sm" color="gray.500">{weather.description}</Text>
-                </VStack>
-              </CardBody>
-            </Card>
+            <TrackMeetsCard
+              trackMeets={trackMeets}
+              coachMeets={coachMeets}
+              isLoading={isLoadingMeets}
+              viewAllLink="/athlete/events"
+            />
           )}
 
           {/* Sleep Card */}
           {(profileLoading || sleepLoading) ? (
             <SkeletonCard />
           ) : (
-            <Card borderRadius="lg" overflow="hidden" boxShadow="md">
-              <Box 
-                h="80px" 
-                bg="linear-gradient(135deg, #5B4B8A 0%, #7C66AA 100%)" 
-                position="relative"
-                display="flex"
-                alignItems="center"
-                px={6}
-              >
-                <Flex 
-                  bg="white" 
-                  borderRadius="full" 
-                  w="50px" 
-                  h="50px" 
-                  justifyContent="center" 
-                  alignItems="center"
-                  boxShadow="none"
-                  mr={4}
-                >
-                  <Icon as={FaBed} w={6} h={6} color="purple.500" />
-                </Flex>
-                <Tag
-                  size="lg"
-                  variant="subtle"
-                  bg="whiteAlpha.300"
-                  color="white"
-                  fontWeight="bold"
-                  px={4}
-                  py={2}
-                  borderRadius="md"
-                >
-                  SLEEP STATS
-                </Tag>
-              </Box>
-              <CardBody>
-                {sleepStats.recentRecord ? (
-                  <VStack spacing={4} align="start">
-                    <Stat>
-                      <StatLabel>Average Sleep</StatLabel>
-                      <StatNumber>
-                        {sleepStats.averageDuration ? 
-                          `${Math.floor(sleepStats.averageDuration)}h ${Math.round((sleepStats.averageDuration % 1) * 60)}m` : 
-                          'No data'}
-                      </StatNumber>
-                      <StatHelpText>Last 7 records</StatHelpText>
-                    </Stat>
-                    
-                    <HStack width="100%" justifyContent="space-between">
-                      <Stat>
-                        <StatLabel>Latest Quality</StatLabel>
-                        <StatNumber fontSize="xl">
-                          {sleepStats.recentRecord ? 
-                            (() => {
-                              const qualityText = getQualityText(sleepStats.recentRecord.quality);
-                              return qualityText.charAt(0).toUpperCase() + qualityText.slice(1);
-                            })() : 
-                            'N/A'}
-                        </StatNumber>
-                      </Stat>
-                      <Stat textAlign="right">
-                        <StatLabel>Last Recorded</StatLabel>
-                        <StatNumber fontSize="xl">
-                          {new Date(sleepStats.recentRecord.sleep_date).toLocaleDateString()}
-                        </StatNumber>
-                      </Stat>
-                    </HStack>
-                    
-                    <Button 
-                      as={RouterLink}
-                      to="/athlete/sleep"
-                      colorScheme="purple"
-                      size="sm"
-                      width="full"
-                      mt={2}
-                      leftIcon={<FaMoon />}
-                    >
-                      View Sleep Records
-                    </Button>
-                  </VStack>
-                ) : (
-                  <VStack spacing={4} py={4}>
-                    <Text>No sleep records found.</Text>
-                    <Button 
-                      as={RouterLink}
-                      to="/athlete/sleep"
-                      colorScheme="purple"
-                      size="sm"
-                      leftIcon={<FaMoon />}
-                    >
-                      Add Sleep Record
-                    </Button>
-                  </VStack>
-                )}
-              </CardBody>
-            </Card>
+            <SleepStatsCard
+              sleepStats={sleepStats}
+              isLoading={sleepLoading}
+            />
           )}
 
           {/* Nutrition Card */}
           {(profileLoading || nutritionLoading) ? (
             <SkeletonCard />
           ) : (
-            <Card borderRadius="lg" overflow="hidden" boxShadow="md">
-              <Box 
-                h="80px" 
-                bg="linear-gradient(135deg, #DD6B20 0%, #F6AD55 100%)" 
-                position="relative"
-                display="flex"
-                alignItems="center"
-                px={6}
-              >
-                <Flex 
-                  bg="white" 
-                  borderRadius="full" 
-                  w="50px" 
-                  h="50px" 
-                  justifyContent="center" 
-                  alignItems="center"
-                  boxShadow="none"
-                  mr={4}
-                >
-                  <Icon as={FaUtensils} w={6} h={6} color="orange.500" />
-                </Flex>
-                <Tag
-                  size="lg"
-                  variant="subtle"
-                  bg="whiteAlpha.300"
-                  color="white"
-                  fontWeight="bold"
-                  px={4}
-                  py={2}
-                  borderRadius="md"
-                >
-                  NUTRITION STATS
-                </Tag>
-              </Box>
-              <CardBody>
-                {nutritionStats.recentRecord ? (
-                  <VStack spacing={4} align="start">
-                    <Stat>
-                      <StatLabel>Average Daily Calories</StatLabel>
-                      <StatNumber>
-                        {nutritionStats.averageCaloriesPerDay ? 
-                          `${Math.round(nutritionStats.averageCaloriesPerDay)}` : 
-                          'No data'}
-                      </StatNumber>
-                      <StatHelpText>Last 7 days</StatHelpText>
-                    </Stat>
-                    
-                    <HStack width="100%" justifyContent="space-between">
-                      <Stat>
-                        <StatLabel>Most Common Meal</StatLabel>
-                        <StatNumber fontSize="xl">
-                          {Object.entries(nutritionStats.mealTypeDistribution)
-                            .sort((a, b) => b[1] - a[1])[0][0]
-                            .charAt(0).toUpperCase() + 
-                            Object.entries(nutritionStats.mealTypeDistribution)
-                            .sort((a, b) => b[1] - a[1])[0][0].slice(1)}
-                        </StatNumber>
-                      </Stat>
-                      <Stat textAlign="right">
-                        <StatLabel>Last Recorded</StatLabel>
-                        <StatNumber fontSize="xl">
-                          {new Date(nutritionStats.recentRecord.record_date).toLocaleDateString()}
-                        </StatNumber>
-                      </Stat>
-                    </HStack>
-                    
-                    <Button 
-                      as={RouterLink}
-                      to="/athlete/nutrition"
-                      colorScheme="orange"
-                      size="sm"
-                      width="full"
-                      mt={2}
-                      leftIcon={<FaUtensils />}
-                    >
-                      View Nutrition Records
-                    </Button>
-                  </VStack>
-                ) : (
-                  <VStack spacing={4} py={4}>
-                    <Text>No nutrition records found.</Text>
-                    <Button 
-                      as={RouterLink}
-                      to="/athlete/nutrition"
-                      colorScheme="orange"
-                      size="sm"
-                      leftIcon={<FaUtensils />}
-                    >
-                      Add Nutrition Record
-                    </Button>
-                  </VStack>
-                )}
-              </CardBody>
-            </Card>
-          )}
-
-          {/* Team Card */}
-          {profileLoading ? (
-            <SkeletonCard />
-          ) : (
-            <Card 
-              borderRadius="lg" 
-              overflow="hidden" 
-              boxShadow="md"
-            >
-              {/* Updated header style */}
-              <Box 
-                h="80px" 
-                bg="linear-gradient(135deg, #805AD5 0%, #B794F4 100%)" 
-                position="relative"
-                display="flex"
-                alignItems="center"
-                px={6}
-              >
-                <Flex 
-                  bg="white" 
-                  borderRadius="full" 
-                  w="50px" 
-                  h="50px" 
-                  justifyContent="center" 
-                  alignItems="center"
-                  boxShadow="none"
-                  mr={4}
-                >
-                  <Icon as={FaUsers} w={6} h={6} color="purple.500" />
-                </Flex>
-                <Tag
-                  size="lg"
-                  variant="subtle"
-                  bg="whiteAlpha.300"
-                  color="white"
-                  fontWeight="bold"
-                  px={4}
-                  py={2}
-                  borderRadius="md"
-                >
-                  TEAM
-                </Tag>
-              </Box>
-              <CardBody>
-                <VStack spacing={2} align="start">
-                  <HStack w="100%">
-                    <Text fontWeight="medium" minW="80px">Team:</Text>
-                    <Text>{profile?.team || 'Not set'}</Text>
-                  </HStack>
-                  <HStack w="100%" alignItems="flex-start">
-                    <Text fontWeight="medium" minW="80px">Events:</Text>
-                    <Text>{getFormattedEvents()}</Text>
-                  </HStack>
-                  <HStack w="100%">
-                    <Text fontWeight="medium" minW="80px">School:</Text>
-                    <Text>{profile?.school || 'Not set'}</Text>
-                  </HStack>
-                  <HStack w="100%">
-                    <Text fontWeight="medium" minW="80px">Coach:</Text>
-                    <Text>{profile?.coach || 'Not assigned'}</Text>
-                  </HStack>
-                </VStack>
-              </CardBody>
-            </Card>
+            <NutritionStatsCard
+              nutritionStats={nutritionStats}
+              isLoading={nutritionLoading}
+            />
           )}
         </SimpleGrid>
 
-        {/* Graph - Now full width */}
-        <Card 
-          my={10}
-          borderRadius="lg" 
-          overflow="hidden" 
-          boxShadow="md"
-        >
-          {/* Updated header style */}
-          <Box 
-            h="80px" 
-            bg="linear-gradient(135deg, #2C5282 0%, #4299E1 100%)" 
-            position="relative"
-            display="flex"
-            alignItems="center"
-            px={6}
-          >
-            <Flex 
-              bg="white" 
-              borderRadius="full" 
-              w="50px" 
-              h="50px" 
-              justifyContent="center" 
-              alignItems="center"
-              boxShadow="none"
-              mr={4}
-            >
-              <Icon as={FaChartLine} w={6} h={6} color="blue.700" />
-            </Flex>
-            <Tag
-              size="lg"
-              variant="subtle"
-              bg="whiteAlpha.300"
-              color="white"
-              fontWeight="bold"
-              px={4}
-              py={2}
-              borderRadius="md"
-            >
-              WEEKLY STATS
-            </Tag>
-          </Box>
-          <CardBody pt={6}>
-            {/* Placeholder Bar Chart */}
-            <Box h="250px">
-              <Bar data={statsData} options={{ responsive: true, plugins: { legend: { display: false } } }} />
-            </Box>
-          </CardBody>
-        </Card>
+        {/* Weekly Stats Chart */}
+        <Box my={10}>
+          <StatsCard 
+            title="WEEKLY STATS"
+            chartData={statsData}
+          />
+        </Box>
 
-        {/* --- Exercise Execution Modal --- */}
-        <Modal isOpen={execModal.isOpen} onClose={handleModalClose} isCentered>
-          <ModalOverlay />
-          <ModalContent borderRadius="lg" overflow="hidden">
-            {/* Hero Background */}
-            <Box 
-              h="80px" 
-              bg={execModal.running ? "linear-gradient(135deg, #38A169 0%, #68D391 100%)" : "linear-gradient(135deg, #4299E1 0%, #90CDF4 100%)"} 
-              position="relative"
-            >
-              <Flex 
-                position="absolute" 
-                top="50%" 
-                left="50%" 
-                transform="translate(-50%, -50%)"
-                bg="white" 
-                borderRadius="full" 
-                w="50px" 
-                h="50px" 
-                justifyContent="center" 
-                alignItems="center"
-                boxShadow="md"
-              >
-                <Icon as={execModal.running ? FaRunning : FaRegClock} w={6} h={6} color={execModal.running ? "green.500" : "blue.500"} />
-              </Flex>
-              
-              {/* Progress indicator */}
-              {execModal.workout && (
-                <Box position="absolute" bottom="0" left="0" right="0">
-                  <ProgressBar
-                    completed={execModal.exerciseIdx}
-                    total={execModal.workout.exercises.length}
-                    percentage={((execModal.exerciseIdx + 1) / execModal.workout.exercises.length) * 100}
-                    size="xs"
-                    colorScheme={execModal.running ? "green" : "blue"}
-                    showText={false}
-                    height="6px"
-                    borderRadius="0"
-                    bg="rgba(255,255,255,0.3)"
-                  />
-                </Box>
-              )}
-            </Box>
-            
-            <ModalHeader textAlign="center" pt={8}>Exercise Execution</ModalHeader>
-            <ModalCloseButton top="85px" onClick={handleModalClose} />
-            <ModalBody pb={6}>
-              {execModal.workout && (
-                <VStack spacing={4} align="center">
-                  <Heading size="md">
-                    {execModal.workout.exercises[execModal.exerciseIdx]?.name}
-                  </Heading>
-                  
-                  <HStack 
-                    spacing={4} 
-                    p={3} 
-                    bg="gray.50" 
-                    w="100%" 
-                    borderRadius="md" 
-                    justify="center"
-                  >
-                    <VStack>
-                      <Text color="gray.500" fontSize="sm">Sets</Text>
-                      <Text fontWeight="bold">{execModal.workout.exercises[execModal.exerciseIdx]?.sets}</Text>
-                    </VStack>
-                    <VStack>
-                      <Text color="gray.500" fontSize="sm">Reps</Text>
-                      <Text fontWeight="bold">{execModal.workout.exercises[execModal.exerciseIdx]?.reps}</Text>
-                    </VStack>
-                    {execModal.workout.exercises[execModal.exerciseIdx]?.weight && (
-                      <VStack>
-                        <Text color="gray.500" fontSize="sm">Weight</Text>
-                        <Text fontWeight="bold">{execModal.workout.exercises[execModal.exerciseIdx]?.weight} kg</Text>
-                      </VStack>
-                    )}
-                  </HStack>
-                  
-                  <Box 
-                    bg={execModal.running ? "green.50" : "blue.50"} 
-                    p={4} 
-                    borderRadius="full" 
-                    boxShadow="sm" 
-                    mb={2}
-                  >
-                    <Text fontSize="2xl" fontWeight="bold" color={execModal.running ? "green.500" : "blue.500"}>
-                    {Math.floor(execModal.timer / 60)
-                      .toString()
-                      .padStart(2, '0')}
-                    :
-                    {(execModal.timer % 60).toString().padStart(2, '0')}
-                  </Text>
-                  </Box>
-                  
-                  {/* Main action buttons */}
-                  <HStack spacing={3} width="100%" justifyContent="center">
-                    {execModal.running ? (
-                      <Button 
-                        colorScheme="yellow" 
-                        flex="1" 
-                        maxW="120px"
-                        leftIcon={<Icon as={FaRegClock} />}
-                        onClick={() => setExecModal({ ...execModal, running: false })}
-                      >
-                        Stop
-                      </Button>
-                    ) : (
-                      <Button 
-                        colorScheme="blue" 
-                        flex="1" 
-                        maxW="120px"
-                        leftIcon={<Icon as={FaRunning} />}
-                        onClick={() => setExecModal({ ...execModal, running: true })}
-                      >
-                        Start
-                      </Button>
-                    )}
-                    <Button 
-                      colorScheme="green" 
-                      flex="1" 
-                      maxW="120px"
-                      leftIcon={<Icon as={CheckIcon} />}
-                      onClick={handleDone}
-                    >
-                      {execModal.exerciseIdx + 1 < execModal.workout.exercises.length ? 'Next' : 'Finish'}
-                    </Button>
-                    <Button
-                      colorScheme="purple"
-                      flex="1"
-                      maxW="120px"
-                      leftIcon={<Icon as={FaPlayCircle} />}
-                      onClick={() => setVideoModal({
-                        isOpen: true,
-                        videoUrl: getVideoUrl(execModal.workout.exercises[execModal.exerciseIdx]?.name),
-                        exerciseName: execModal.workout.exercises[execModal.exerciseIdx]?.name || '',
-                      })}
-                    >
-                      How to
-                    </Button>
-                  </HStack>
-                  
-                  {/* Progress Bar */}
-                  {execModal.workout && execModal.workout.exercises && execModal.workout.exercises.length > 0 && (
-                    <Box mt={3} mb={2}>
-                      <ProgressBar
-                        completed={execModal.exerciseIdx}
-                        total={execModal.workout.exercises.length}
-                        percentage={((execModal.exerciseIdx + 1) / execModal.workout.exercises.length) * 100}
-                        size="sm"
-                        colorScheme="green"
-                        progressText={`Exercise ${Math.min(execModal.exerciseIdx + 1, execModal.workout.exercises.length)} of ${execModal.workout.exercises.length}`}
-                      />
-                    </Box>
-                  )}
-                </VStack>
-              )}
-            </ModalBody>
-          </ModalContent>
-        </Modal>
-        {/* --- End Exercise Execution Modal --- */}
-
-        {/* --- Exercise Video Modal --- */}
-        <Modal isOpen={videoModal.isOpen} onClose={() => setVideoModal({ ...videoModal, isOpen: false })} isCentered size="xl">
-          <ModalOverlay />
-          <ModalContent borderRadius="lg" overflow="hidden">
-            {/* Hero Background */}
-            <Box 
-              h="80px" 
-              bg="linear-gradient(135deg, #DD6B20 0%, #F6AD55 100%)" 
-              position="relative"
-            >
-              <Flex 
-                position="absolute" 
-                top="50%" 
-                left="50%" 
-                transform="translate(-50%, -50%)"
-                bg="white" 
-                borderRadius="full" 
-                w="50px" 
-                h="50px" 
-                justifyContent="center" 
-                alignItems="center"
-                boxShadow="md"
-              >
-                <Icon as={FaPlayCircle} w={6} h={6} color="orange.500" />
-              </Flex>
-            </Box>
-            
-            <ModalHeader textAlign="center" pt={8}>How to: {videoModal.exerciseName}</ModalHeader>
-            <ModalCloseButton top="85px" onClick={() => setVideoModal({ ...videoModal, isOpen: false })} />
-            <ModalBody pb={6} display="flex" flexDirection="column" alignItems="center">
-              <Box w="100%" h="0" pb="56.25%" position="relative" borderRadius="md" overflow="hidden" boxShadow="md">
-                <iframe
-                  src={videoModal.videoUrl}
-                  title={`${videoModal.exerciseName} tutorial`}
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-                />
-              </Box>
-            </ModalBody>
-          </ModalContent>
-        </Modal>
-        {/* --- End Exercise Video Modal --- */}
-
-        {/* Debug Panel - Only shown in development */}
+        {/* Gamification Test Page Link - Development Only */}
         {process.env.NODE_ENV !== 'production' && (
-          <Card mt={8} borderColor="red.200" borderWidth={1}>
+          <Card 
+            mb={8} 
+            borderRadius="lg" 
+            overflow="hidden" 
+            boxShadow="md"
+            borderWidth="1px"
+            borderColor="blue.100"
+            bgGradient="linear(to-r, blue.50, purple.50)"
+          >
+            <CardHeader bg="blue.500" py={3}>
+              <Heading size="md" color="white">Gamification Preview</Heading>
+            </CardHeader>
             <CardBody>
-              <Heading size="sm" mb={2}>Debug Information</Heading>
-              <Text><b>Today Workout ID:</b> {todayWorkouts.length > 0 ? todayWorkouts[0].id : 'None'}</Text>
-              <Text><b>Progress Index:</b> {execModal.exerciseIdx}</Text>
-              <Text><b>Today's Date:</b> {new Date().toISOString()}</Text>
-              <Button 
-                size="sm" 
-                colorScheme="red" 
-                mt={2} 
-                onClick={() => {
-                  // Clear workout progress from localStorage
-                  if (todayWorkouts.length > 0 && todayWorkouts[0].id) {
-                    localStorage.removeItem(`workout-progress-${todayWorkouts[0].id}`);
-                    alert('Progress cleared! Refresh the page to see changes.');
-                  } else {
-                    alert('No workout ID available to clear progress.');
-                  }
-                }}
-              >
-                Clear Progress
-              </Button>
-              <Button 
-                size="sm" 
-                colorScheme="blue" 
-                mt={2} 
-                ml={2}
-                onClick={() => {
-                  // Open debug page in new tab
-                  window.open('/debug/local-storage.html', '_blank');
-                }}
-              >
-                View LocalStorage
-              </Button>
+              <HStack spacing={4} align="center" justify="space-between">
+                <VStack align="start" spacing={1}>
+                  <Text fontWeight="bold" fontSize="lg">Track your progress and achievements</Text>
+                  <Text color="gray.600">View your points, badges, streaks, and leaderboard position</Text>
+                </VStack>
+                <Button 
+                  as={RouterLink} 
+                  to="/gamification" 
+                  colorScheme="blue" 
+                  rightIcon={<Icon as={MdKeyboardArrowRight} />}
+                >
+                  View Gamification
+                </Button>
+              </HStack>
             </CardBody>
           </Card>
         )}
+
       </Container>
     </Box>
   )

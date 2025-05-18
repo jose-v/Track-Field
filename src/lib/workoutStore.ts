@@ -62,10 +62,13 @@ export const useWorkoutStore = create<WorkoutStore>()(
             completed: []
           };
           
+          // If totalExercises changed from what was stored, adjust the tracking
+          let shouldAdjustCompletion = existingProgress.totalExercises !== totalExercises;
+          
           // Update the progress
           const updatedProgress = {
             ...existingProgress,
-            currentExerciseIndex: exerciseIndex,
+            currentExerciseIndex: Math.min(exerciseIndex, totalExercises - 1 >= 0 ? totalExercises - 1 : 0),
             totalExercises,
             lastUpdated: Date.now(),
           };
@@ -75,7 +78,13 @@ export const useWorkoutStore = create<WorkoutStore>()(
             updatedProgress.completed = [...updatedProgress.completed, exerciseIndex];
           }
           
-          console.log(`[WorkoutStore] Updated progress for ${workoutId}:`, updatedProgress);
+          // If we're adjusting due to exercise count change, validate the completed array
+          if (shouldAdjustCompletion) {
+            // Filter out any completed exercises that are beyond the new total
+            updatedProgress.completed = updatedProgress.completed.filter(idx => idx < totalExercises);
+          }
+          
+          console.log(`[WorkoutStore] Updated progress for ${workoutId}: Exercise ${exerciseIndex}/${totalExercises}, Completed: ${updatedProgress.completed.length}, IsCompleted param: ${isCompleted}`);
           
           return {
             workoutProgress: {
@@ -92,17 +101,21 @@ export const useWorkoutStore = create<WorkoutStore>()(
         set((state) => {
           // Get existing workout progress or return
           const existingProgress = state.workoutProgress[workoutId];
-          if (!existingProgress) return state;
+          if (!existingProgress) {
+            console.warn(`[WorkoutStore] Tried to mark exercise ${exerciseIndex} completed for workout ${workoutId}, but no progress record exists`);
+            return state;
+          }
           
           // If already completed, do nothing
           if (existingProgress.completed.includes(exerciseIndex)) {
+            console.log(`[WorkoutStore] Exercise ${exerciseIndex} was already marked as completed for ${workoutId}`);
             return state;
           }
           
           // Add to completed list
           const updatedCompleted = [...existingProgress.completed, exerciseIndex];
           
-          console.log(`[WorkoutStore] Marked exercise ${exerciseIndex} as completed for ${workoutId}`);
+          console.log(`[WorkoutStore] Marked exercise ${exerciseIndex} as completed for ${workoutId}. Total completed: ${updatedCompleted.length}/${existingProgress.totalExercises}`);
           
           return {
             workoutProgress: {
@@ -114,6 +127,14 @@ export const useWorkoutStore = create<WorkoutStore>()(
               }
             }
           };
+        });
+        
+        // After updating the store, log the current state for debugging
+        const currentProgress = get().workoutProgress[workoutId];
+        console.log(`[WorkoutStore] Current progress after marking exercise as completed:`, {
+          workoutId,
+          exerciseIndex,
+          currentProgress
         });
       },
       
@@ -136,7 +157,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
           currentExerciseIndex: progress.currentExerciseIndex,
           totalExercises: progress.totalExercises,
           completionPercentage: progress.totalExercises > 0 
-            ? (progress.currentExerciseIndex / progress.totalExercises) * 100 
+            ? (progress.completed.length / progress.totalExercises) * 100 
             : 0,
           completedExercises: progress.completed
         };

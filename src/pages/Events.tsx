@@ -236,7 +236,8 @@ export function Events() {
       {/* Hero Section */}
       <Box 
         bg={lightBg} 
-        py={{ base: 8, md: 12 }}
+        pt={{ base: 28, md: 32 }}
+        pb={{ base: 8, md: 12 }}
         position="relative"
         overflow="hidden"
       >

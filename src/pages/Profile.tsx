@@ -14,12 +14,13 @@ import {
   Checkbox,
   CheckboxGroup,
   Stack,
-  Code,
   IconButton,
   Spinner,
   Grid,
   GridItem,
   SimpleGrid,
+  Icon,
+  Divider,
 } from '@chakra-ui/react'
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
@@ -27,6 +28,8 @@ import { useProfile } from '../hooks/useProfile'
 import { supabase } from '../lib/supabase'
 import { api } from '../services/api'
 import { FaCamera } from 'react-icons/fa'
+import { FiUser } from 'react-icons/fi'
+import { GamificationSummary } from '../features/gamification/GamificationSummary'
 
 // Add event list for selection
 const EVENT_OPTIONS = [
@@ -154,7 +157,6 @@ export function Profile() {
   const { profile: remoteProfile, isLoading, isError, updateProfile } = useProfile()
   const [isEditing, setIsEditing] = useState(false)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
-  const [debugInfo, setDebugInfo] = useState<any>(null)
   const [profile, setProfile] = useState<ProfileData>({
     first_name: '',
     last_name: '',
@@ -177,6 +179,7 @@ export function Profile() {
   const [coaches, setCoaches] = useState<Array<{id: string, full_name: string}>>([])
   const [isLoadingCoaches, setIsLoadingCoaches] = useState(false)
   const [availableStates, setAvailableStates] = useState<string[]>([])
+  const [needsReload, setNeedsReload] = useState(false);
 
   // Update available states when country changes
   useEffect(() => {
@@ -233,7 +236,6 @@ export function Profile() {
       
       // Load avatar URL if it exists
       if (remoteProfile.avatar_url) {
-        console.log('Setting avatar URL from profile:', remoteProfile.avatar_url);
         setAvatarUrl(remoteProfile.avatar_url);
       }
     }
@@ -246,10 +248,9 @@ export function Profile() {
       setIsLoadingCoaches(true)
       try {
         const coachesData = await api.coaches.getAll()
-        console.log('Fetched coaches:', coachesData)
         setCoaches(coachesData)
       } catch (error) {
-        console.error('Error fetching coaches:', error)
+        setCoaches(FALLBACK_COACHES)
         toast({
           title: 'Error fetching coaches',
           status: 'error',
@@ -262,11 +263,17 @@ export function Profile() {
     }
     
     fetchCoaches()
-  }, [])
+  }, [toast])
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    console.log('Form submitted with profile:', profile);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Route to the appropriate handler based on role
+    if (profile.role === 'coach' as UserRole) {
+      return handleCoachSubmit(e);
+    } else if (profile.role === 'athlete' as UserRole) {
+      return handleAthleteSubmit(e);
+    }
     
     if (!profile.events || profile.events.length === 0) {
       toast({
@@ -274,19 +281,18 @@ export function Profile() {
         status: 'error',
         duration: 3000,
         isClosable: true,
-      })
-      return
+      });
+      return;
     }
     
     // Transform UI profile to database format
     const dbProfile = {
-      // Map from name to first_name/last_name
       first_name: profile.first_name,
       last_name: profile.last_name,
       email: profile.email,
       phone: profile.phone,
       bio: profile.bio,
-      role: profile.role, // this is already in DB format
+      role: profile.role,
       team: profile.team,
       school: profile.school || '',
       city: profile.city || '',
@@ -294,253 +300,57 @@ export function Profile() {
       state: profile.state || '',
       address: profile.address || '',
       country: profile.country || '',
+      avatar_url: avatarUrl || remoteProfile?.avatar_url || '',
+    };
+    
+    // Create role-specific data based on profile.role
+    let roleData: any = {};
+    
+    if (profile.role === 'athlete') {
+      roleData = {
+        birth_date: profile.dob,
+        gender: profile.gender,
+        events: profile.events,
+      };
+    } else if (profile.role === 'team_manager') {
+      roleData = {
+        organization: remoteProfile?.roleData?.organization || ''
+      };
     }
     
-    // Get athlete-specific data
-    const athleteData = {
-      birth_date: profile.dob,
-      gender: profile.gender,
-      events: profile.events,
-      // We'd need team_id instead of team name, but for now let's skip it
-    }
-    
-    console.log('Saving profile:', dbProfile);
-    console.log('Athlete data:', athleteData);
-    
-    // Let's try a more direct approach
+    // Use the updateProfile function from the useProfile hook
     try {
-      // Get the current user
-      supabase.auth.getUser().then(({ data: { user } }) => {
-        if (!user) {
-          console.error('No user found');
-          return;
-        }
+      if (updateProfile) {
+        updateProfile({
+          profile: dbProfile,
+          roleData: roleData,
+        });
         
-        console.log('Current user:', user.id);
+        setIsEditing(false);
+        showSuccessToast();
         
-        // Update the profile record
-        supabase
-          .from('profiles')
-          .update({
-            first_name: dbProfile.first_name,
-            last_name: dbProfile.last_name,
-            email: dbProfile.email,
-            phone: dbProfile.phone,
-            bio: dbProfile.bio,
-            role: profile.role,
-            team: dbProfile.team,
-            coach: dbProfile.coach,
-            school: dbProfile.school,
-            city: dbProfile.city,
-            state: dbProfile.state,
-            address: dbProfile.address,
-            country: dbProfile.country,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', user.id)
-          .then(({ data, error }) => {
-            if (error) {
-              console.error('Error updating profile:', error);
-              toast({
-                title: 'Error updating profile',
-                description: error.message,
-                status: 'error',
-                duration: 5000,
-                isClosable: true,
-              });
-              return;
-            }
-            
-            console.log('Profile updated:', data);
-            
-            // Update the athlete record
-            supabase
-              .from('athletes')
-              .update({
-                birth_date: athleteData.birth_date,
-                gender: athleteData.gender,
-                events: athleteData.events
-              })
-              .eq('id', user.id)
-              .then(({ data: athleteData, error: athleteError }) => {
-                if (athleteError) {
-                  console.error('Error updating athlete:', athleteError);
-                  toast({
-                    title: 'Error updating athlete data',
-                    description: athleteError.message,
-                    status: 'error',
-                    duration: 5000,
-                    isClosable: true,
-                  });
-                  return;
-                }
-                
-                console.log('Athlete updated:', athleteData);
-                
-                // Success!
-                setIsEditing(false);
-                toast({
-                  title: 'Profile updated',
-                  status: 'success',
-                  duration: 3000,
-                  isClosable: true,
-                });
-                
-                // Refresh the page after 1 second
-                setTimeout(() => {
-                  window.location.reload();
-                }, 1000);
-              });
-          });
-      });
+        // Add a state to track if data has been saved and needs reloading
+        setNeedsReload(true);
+      } else {
+        throw new Error('Update profile function not available');
+      }
     } catch (err) {
-      console.error('Error in profile update:', err);
       toast({
         title: 'Error',
-        description: 'An unexpected error occurred',
+        description: 'An unexpected error occurred while saving your profile',
         status: 'error',
         duration: 5000,
         isClosable: true,
       });
     }
-  }
+  };
 
-  const showDebugInfo = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
+  // Special handler just for coach profiles
+  const handleCoachSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    // First check if there are multiple profile records
-    const { data: allProfiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user?.id)
-    
-    // Then check if there are multiple athlete records
-    const { data: allAthletes, error: athletesError } = await supabase
-      .from('athletes')
-      .select('*')
-      .eq('id', user?.id)
-
-    // Try to get a single profile
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user?.id)
-      .single()
-    
-    // Try to get a single athlete record
-    const { data: athleteData, error: athleteError } = await supabase
-      .from('athletes')
-      .select('*')
-      .eq('id', user?.id)
-      .single()
-    
-    setDebugInfo({
-      userId: user?.id,
-      email: user?.email,
-      profileCount: allProfiles?.length || 0,
-      allProfiles: allProfiles,
-      profilesError: profilesError?.message,
-      profileExists: !!profileData,
-      profileError: profileError?.message,
-      athleteCount: allAthletes?.length || 0,
-      allAthletes: allAthletes,
-      athletesError: athletesError?.message,
-      athleteExists: !!athleteData,
-      athleteError: athleteError?.message
-    })
-
-    // Add a fix button that will show only after checking
-    setShowFixButton(true);
-  }
-
-  const [showFixButton, setShowFixButton] = useState(false);
-  
-  const fixProfileIssue = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('No user found');
-
-      // 1. First, check if there's already a profile with this email
-      const { data: existingProfiles } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('email', user.email)
-        
-      // If profile with this email exists but with different ID, we need a different approach
-      if (existingProfiles && existingProfiles.length > 0) {
-        // Delete existing profile by email
-        await supabase
-          .from('profiles')
-          .delete()
-          .eq('email', user.email);
-      }
-
-      // 2. Delete any existing profiles for this user ID
-      await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', user.id);
-        
-      // 3. Delete any existing athlete records for this user
-      await supabase
-        .from('athletes')
-        .delete()
-        .eq('id', user.id);
-        
-      // 4. Create a new profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert([{
-          id: user.id,
-          email: user.email,
-          first_name: 'Your',
-          last_name: 'Name',
-          role: 'athlete' as UserRole,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }]);
-        
-      if (profileError) throw profileError;
-      
-      // 5. Create a new athlete record
-      const { error: athleteError } = await supabase
-        .from('athletes')
-        .insert([{
-          id: user.id,
-          birth_date: '2000-01-01',
-          gender: 'male',
-          events: ['100m Sprint', '200m Sprint']
-        }]);
-        
-      if (athleteError) throw athleteError;
-      
-      // 6. Show success message
-      toast({
-        title: 'Profile fixed',
-        description: 'Your profile has been repaired. Please refresh the page.',
-        status: 'success',
-        duration: 5000,
-        isClosable: true,
-      });
-      
-      // Refresh the debug info
-      await showDebugInfo();
-      
-    } catch (error: any) {
-      toast({
-        title: 'Error fixing profile',
-        description: error.message,
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-      console.error("Profile fix error:", error);
-    }
-  }
-
-  // Add a function to directly fix with SQL - updated to match actual DB schema
-  const directSqlFix = async () => {
-    try {
+      // Get the user ID
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast({
@@ -552,290 +362,227 @@ export function Profile() {
         });
         return;
       }
-
-      // Get profile values from the form
-      const firstName = profile.first_name;
-      const lastName = profile.last_name;
-      const email = profile.email;
-      const phone = profile.phone;
-      const bio = profile.bio;
       
-      // Athlete-specific data
-      const gender = profile.gender;
-      const dob = profile.dob;
-      const events = profile.events;
-
-      // Create SQL command
-      const sql = `
--- Update profile (name, contact info, bio)
-UPDATE public.profiles 
-SET 
-  first_name = '${firstName}',
-  last_name = '${lastName}',
-  phone = '${phone || ''}',
-  bio = '${bio || ''}',
-  updated_at = NOW()
-WHERE id = '${user.id}';
-
--- Update athlete data (birth date, gender, events)
-UPDATE public.athletes
-SET
-  birth_date = ${dob ? `'${dob}'` : 'NULL'},
-  gender = '${gender}',
-  events = ARRAY[${events.map(e => `'${e}'`).join(', ')}]
-WHERE id = '${user.id}';
-      `;
-
-      console.log('Running SQL:', sql);
-
-      // Show SQL for copying
-      toast({
-        title: 'SQL Command',
-        description: 'Copy this SQL and run it in Supabase SQL Editor:',
-        status: 'info',
-        duration: 10000,
-        isClosable: true,
+      // First update the basic profile
+      const basicProfile = {
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        email: profile.email,
+        phone: profile.phone,
+        bio: profile.bio,
+        role: 'coach',
+        team: profile.team,
+        school: profile.school || '',
+        city: profile.city || '',
+        state: profile.state || '',
+        address: profile.address || '',
+        country: profile.country || '',
+        avatar_url: avatarUrl || remoteProfile?.avatar_url || '',
+      };
+      
+      // Update basic profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update(basicProfile)
+        .eq('id', user.id);
+        
+      if (profileError) {
+        throw profileError;
+      }
+      
+      // Get the coach-specific data
+      const gender = profile.gender || 'male';
+      const dob = profile.dob || '2000-01-01';
+      const events = Array.isArray(profile.events) ? profile.events : [];
+      
+      // Update coach data directly
+      await api.profile.updateCoachDirectly(user.id, {
+        gender: gender,
+        birth_date: dob,
+        events: events,
+        specialties: remoteProfile?.roleData?.specialties || [],
+        certifications: remoteProfile?.roleData?.certifications || []
       });
-
-      // Copy to clipboard
-      navigator.clipboard.writeText(sql)
-        .then(() => {
-          console.log('SQL copied to clipboard');
-          toast({
-            title: 'SQL Copied',
-            description: 'The SQL command has been copied to your clipboard. Paste it in the Supabase SQL Editor.',
-            status: 'success',
-            duration: 5000,
-            isClosable: true,
-          });
-        })
-        .catch(err => {
-          console.error('Could not copy text: ', err);
-        });
-
+      
+      // Show success message
+      setIsEditing(false);
+      showSuccessToast();
+      
+      // Add a state to track if data has been saved and needs reloading
+      setNeedsReload(true);
     } catch (err) {
-      console.error('Error generating SQL:', err);
       toast({
         title: 'Error',
-        description: 'Could not generate SQL',
+        description: 'Failed to update coach profile',
         status: 'error',
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
     }
   };
 
-  // Function to handle avatar click - modified to be independent from isEditing
+  // Modified handleAthleteSubmit with better logging
+  const handleAthleteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      // Get the user ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: 'Error',
+          description: 'User not found',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+      
+      // Validate required fields
+      if (!profile.events || profile.events.length === 0) {
+        toast({
+          title: 'Please select at least one event',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+      
+      // Get the athlete-specific data
+      const gender = profile.gender || 'male';
+      const date_of_birth = profile.dob || '2000-01-01';
+      const events = Array.isArray(profile.events) ? profile.events : [];
+      const first_name = profile.first_name;
+      const last_name = profile.last_name;
+      
+      // Log the payload and field types for debugging
+      console.log('=== ATHLETE PATCH PAYLOAD ===', { gender, date_of_birth, events, first_name, last_name });
+      Object.entries({ gender, date_of_birth, events, first_name, last_name }).forEach(([key, value]) => {
+        console.log(`Field: ${key}, Value:`, value, ', Type:', Array.isArray(value) ? 'array' : typeof value);
+      });
+      
+      // First check if athlete record exists
+      const { data: existingAthlete, error: checkError } = await supabase
+        .from('athletes')
+        .select('id')
+        .eq('id', user.id)
+        .single();
+        
+      if (checkError) {
+        // Create athlete record if it doesn't exist
+        const { error: createError } = await supabase
+          .from('athletes')
+          .insert({
+            id: user.id,
+            gender: gender,
+            date_of_birth: date_of_birth,
+            events: events,
+            first_name: first_name,
+            last_name: last_name
+          });
+          
+        if (createError) {
+          throw createError;
+        }
+      } else {
+        // Update athlete data directly
+        const { error: athleteError } = await supabase
+          .from('athletes')
+          .update({
+            gender,
+            date_of_birth,
+            events,
+            first_name,
+            last_name
+          })
+          .eq('id', user.id);
+        
+        if (athleteError) {
+          throw athleteError;
+        }
+      }
+      
+      // Show success message
+      setIsEditing(false);
+      showSuccessToast();
+      
+      // Add a state to track if data has been saved and needs reloading
+      setNeedsReload(true);
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'Failed to update athlete profile',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
   const handleAvatarClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
-  
-  // Function to handle file selection - modified to work independent of profile editing state
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    
-    const file = files[0];
-    await uploadAvatar(file);
-  };
-  
-  // Dedicated function for avatar upload
-  const uploadAvatar = async (file: File) => {
-    if (!user?.id) {
-      toast({
-        title: 'Error',
-        description: 'User not authenticated',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      await uploadAvatar(file);
     }
-    
-    // First create a local preview immediately (this works without Supabase)
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        // Update local preview immediately
-        setAvatarUrl(event.target.result as string);
-      }
-    };
-    reader.readAsDataURL(file);
-    
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${user.id}.${fileExt}`;
-    
-    console.log('Starting avatar upload process', { userId: user.id, fileName });
-    
+  };
+
+  const uploadAvatar = async (file: File) => {
     try {
       setIsUploadingAvatar(true);
       
-      // Upload the file to Supabase Storage
-      let uploadResult;
-      try {
-        uploadResult = await supabase.storage
-          .from('avatars')
-          .upload(fileName, file, {
-            upsert: true, // Replace if exists
-            cacheControl: '3600',
-            contentType: file.type,
-          });
-      } catch (uploadError) {
-        console.error('Exception during upload:', uploadError);
-        uploadResult = { data: null, error: uploadError };
-      }
+      // Get the current authenticated user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
       
-      const { data, error } = uploadResult;
+      // Generate a unique file name to prevent overwriting existing files
+      const fileExt = file.name.split('.').pop();
+      const fileName = `avatar-${user.id}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
       
-      if (error) {
-        console.error('Error uploading to storage:', error);
-        // Don't throw - we'll still use the client-side preview
-        // and try to update the profile with the data URL
+      // Upload the file to Supabase storage
+      const { error: uploadError } = await supabase.storage
+        .from('profiles')
+        .upload(filePath, file);
         
-        // Extract preview data URL
-        const clientSideUrl = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(file);
-        });
-        
-        // Update profile with data URL as fallback
-        try {
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ avatar_url: clientSideUrl })
-            .eq('id', user.id);
-            
-          if (updateError) {
-            console.error('Error updating profile with client-side avatar:', updateError);
-          } else {
-            // Try to refresh profile
-            if (updateProfile) {
-              try {
-                await updateProfile({ profile: { avatar_url: clientSideUrl } });
-              } catch (e) {
-                console.error('Error refreshing profile after client-side avatar update', e);
-              }
-            }
-            
-            toast({
-              title: 'Avatar Updated (Client-Side Only)',
-              description: 'Storage upload failed, but avatar was saved to your profile.',
-              status: 'info',
-              duration: 5000,
-              isClosable: true,
-            });
-          }
-        } catch (updateException) {
-          console.error('Exception during profile update with client-side URL:', updateException);
-          toast({
-            title: 'Error',
-            description: 'Failed to update avatar',
-            status: 'error',
-            duration: 5000,
-            isClosable: true,
-          });
-        }
-        
-        setIsUploadingAvatar(false);
-        return; // Exit early with client-side solution
-      }
+      if (uploadError) throw uploadError;
       
-      console.log('File uploaded successfully:', data);
-      
-      // Get public URL
-      let publicUrl = '';
-      try {
-        const { data: urlData } = supabase.storage
-          .from('avatars')
-          .getPublicUrl(fileName);
-        publicUrl = urlData.publicUrl;
-      } catch (urlError) {
-        console.error('Error getting public URL:', urlError);
-        setIsUploadingAvatar(false);
-        return;
-      }
-      
-      console.log('Generated public URL:', publicUrl);
-      
-      // Add cache-busting query parameter to prevent browser caching
-      const cacheBustedUrl = `${publicUrl}?t=${new Date().getTime()}`;
-      
-      // Update the avatar URL state immediately for UI feedback
-      setAvatarUrl(cacheBustedUrl);
-      
-      // Update profile in database - using await to properly handle promise
-      console.log('Updating profile with new avatar URL');
-      try {
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ avatar_url: cacheBustedUrl })
-          .eq('id', user.id);
-          
-        if (updateError) {
-          console.error('Error updating profile with avatar URL:', updateError);
-          setIsUploadingAvatar(false);
-          toast({
-            title: 'Error',
-            description: 'Failed to update profile with avatar URL',
-            status: 'error',
-            duration: 5000,
-            isClosable: true,
-          });
-          return;
-        }
+      // Get the public URL for the uploaded file
+      const { data: urlData } = supabase.storage
+        .from('profiles')
+        .getPublicUrl(filePath);
         
-        console.log('Profile updated successfully with new avatar URL');
+      const avatarUrl = urlData.publicUrl;
+      
+      // Update the user's profile with the new avatar URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', user.id);
         
-        // Force reload image to ensure it's updated
-        const img = new Image();
-        img.src = cacheBustedUrl;
-        
-        // Refresh the profile data if needed
-        if (updateProfile) {
-          try {
-            // This is a controlled update that we'll try but not wait for
-            updateProfile({ profile: { avatar_url: cacheBustedUrl } });
-            console.log('Profile refresh initiated after avatar update');
-          } catch (refreshError) {
-            console.warn('Could not refresh profile after avatar update:', refreshError);
-          }
-        }
-        
-        toast({
-          title: 'Success',
-          description: 'Avatar updated',
-          status: 'success',
-          duration: 3000,
-          isClosable: true,
-        });
-        
-        // Optional: Force a page reload after timeout to refresh all components
-        // This is in a timeout to ensure all UI updates happen before reload
-        setTimeout(() => {
-          try {
-            window.location.reload();
-          } catch (reloadError) {
-            console.warn('Error during page reload:', reloadError);
-          }
-        }, 2000);
-      } catch (profileUpdateException) {
-        console.error('Exception during profile update:', profileUpdateException);
-        toast({
-          title: 'Error',
-          description: 'Unexpected error while updating avatar',
-          status: 'error',
-          duration: 5000,
-          isClosable: true,
-        });
-      }
-    } catch (err) {
-      console.error('Error uploading avatar:', err);
+      if (updateError) throw updateError;
+      
+      // Update local state
+      setAvatarUrl(avatarUrl);
+      
+      toast({
+        title: 'Success',
+        description: 'Avatar uploaded successfully',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to upload avatar. Make sure you have proper storage permissions.',
+        description: 'Failed to upload avatar',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -845,29 +592,18 @@ WHERE id = '${user.id}';
     }
   };
 
+  const showSuccessToast = () => {
+    toast({
+      title: 'Profile Updated',
+      description: 'Your profile has been successfully updated.',
+      status: 'success',
+      duration: 3000,
+      isClosable: true,
+    })
+  }
+
   if (isLoading) return <Text>Loading profile...</Text>
-  if (isError) return (
-    <Box py={8}>
-      <VStack spacing={4} align="stretch">
-        <Text>Error loading profile.</Text>
-        <HStack spacing={4}>
-          <Button colorScheme="blue" onClick={showDebugInfo}>Debug Profile</Button>
-          {showFixButton && (
-            <Button colorScheme="green" onClick={fixProfileIssue}>Fix Profile</Button>
-          )}
-          <Button colorScheme="purple" onClick={directSqlFix}>Generate SQL Fix</Button>
-        </HStack>
-        {debugInfo && (
-          <Box bg="gray.100" p={4} borderRadius="md">
-            <VStack align="start">
-              <Text fontWeight="bold">Debug Info:</Text>
-              <Code>{JSON.stringify(debugInfo, null, 2)}</Code>
-            </VStack>
-          </Box>
-        )}
-      </VStack>
-    </Box>
-  )
+  if (isError) return <Text>Error loading profile.</Text>
 
   return (
     <Box py={8} maxW="800px" mx="auto">
@@ -1009,11 +745,16 @@ WHERE id = '${user.id}';
                     </HStack>
                     <HStack>
                       <Text fontWeight="medium" minW="80px">DOB:</Text>
-                      <Text>{profile.dob ? new Date(profile.dob).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      }) : 'Not set'}</Text>
+                      <Text>{profile.dob ? (() => {
+                        // Fix timezone issue by parsing the date parts directly
+                        const [year, month, day] = profile.dob.split('-').map(num => parseInt(num, 10));
+                        const date = new Date(year, month - 1, day);
+                        return date.toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        });
+                      })() : 'Not set'}</Text>
                     </HStack>
                     <VStack align="start" spacing={1}>
                       <Text fontWeight="medium">Events:</Text>
@@ -1023,6 +764,11 @@ WHERE id = '${user.id}';
                     </VStack>
                   </VStack>
                 </Box>
+                
+                {/* Gamification Section - Only show for athletes */}
+                {profile.role === 'athlete' && user && (
+                  <GamificationSummary athleteId={user.id} />
+                )}
               </VStack>
               
               {/* Edit Button at Bottom */}
@@ -1042,77 +788,86 @@ WHERE id = '${user.id}';
           // Edit Form - with our updates
         <Box p={6} borderWidth={1} borderRadius="lg" bg="white">
           <form onSubmit={handleSubmit}>
-            <VStack spacing={6} align="stretch">
-              <HStack spacing={6}>
-                  {/* Avatar with upload capability - independent from profile editing */}
-                  <Box position="relative">
-                    <Avatar 
-                      size="xl" 
-                      name={`${profile.first_name} ${profile.last_name}`} 
-                      src={avatarUrl || undefined}
-                      cursor="pointer"
-                      onClick={handleAvatarClick}
-                      opacity={isUploadingAvatar ? 0.7 : 1}
-                    />
-                    <IconButton
-                      aria-label="Upload photo"
-                      icon={<FaCamera />}
-                      size="sm"
-                      colorScheme="brand"
-                      rounded="full"
-                      position="absolute"
-                      bottom="0"
-                      right="0"
-                      onClick={handleAvatarClick}
-                      isLoading={isUploadingAvatar}
-                    />
-                  </Box>
-                <VStack align="start" spacing={1}>
-                    <Heading size="md">{`${profile.first_name} ${profile.last_name}`}</Heading>
-                    <Text color="gray.600">{dbRolesToUiRoles[profile.role]}</Text>
-                  <Text fontSize="sm">{profile.team}</Text>
-                </VStack>
-              </HStack>
-
-                {/* First Name */}
+            <VStack spacing={5} align="stretch">
+              {/* Basic Information */}
               <FormControl isRequired>
-                  <FormLabel>First Name</FormLabel>
+                <FormLabel>First Name</FormLabel>
                 <Input
-                    value={profile.first_name}
+                  value={profile.first_name}
                   onChange={(e) =>
-                      setProfile({ ...profile, first_name: e.target.value })
+                    setProfile({ ...profile, first_name: e.target.value })
                   }
+                  placeholder="Enter your first name"
                 />
               </FormControl>
 
-                {/* Last Name */}
               <FormControl isRequired>
-                  <FormLabel>Last Name</FormLabel>
-                  <Input
-                    value={profile.last_name}
+                <FormLabel>Last Name</FormLabel>
+                <Input
+                  value={profile.last_name}
                   onChange={(e) =>
-                      setProfile({ ...profile, last_name: e.target.value })
-                    }
-                  />
-                </FormControl>
-
-                {/* Role - Read Only */}
-                <FormControl>
-                  <FormLabel>Role</FormLabel>
-                  <Input
-                    value={dbRolesToUiRoles[profile.role]}
-                    isReadOnly
-                    isDisabled
-                  />
+                    setProfile({ ...profile, last_name: e.target.value })
+                  }
+                  placeholder="Enter your last name"
+                />
               </FormControl>
 
               <FormControl isRequired>
+                <FormLabel>Email</FormLabel>
+                <Input
+                  type="email"
+                  value={profile.email}
+                  onChange={(e) =>
+                    setProfile({ ...profile, email: e.target.value })
+                  }
+                  placeholder="Enter your email"
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Phone</FormLabel>
+                <Input
+                  value={profile.phone}
+                  onChange={handlePhoneChange}
+                  placeholder="Enter your phone number"
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Bio</FormLabel>
+                <Input
+                  value={profile.bio}
+                  onChange={(e) =>
+                    setProfile({ ...profile, bio: e.target.value })
+                  }
+                  placeholder="Enter your bio"
+                />
+              </FormControl>
+
+              {/* Role Selection */}
+              <FormControl>
+                <FormLabel>Role</FormLabel>
+                <Select
+                  value={profile.role}
+                  onChange={(e) =>
+                    setProfile({ ...profile, role: e.target.value as UserRole })
+                  }
+                >
+                  <option value="athlete">Athlete</option>
+                  <option value="coach">Coach</option>
+                  <option value="team_manager">Team Manager</option>
+                </Select>
+              </FormControl>
+
+              {/* Team Name */}
+              <FormControl>
                 <FormLabel>Team</FormLabel>
                 <Input
                   value={profile.team}
                   onChange={(e) =>
                     setProfile({ ...profile, team: e.target.value })
                   }
+                  placeholder="Enter your team"
                 />
               </FormControl>
 
@@ -1124,59 +879,47 @@ WHERE id = '${user.id}';
                   onChange={(e) =>
                     setProfile({ ...profile, school: e.target.value })
                   }
-                  placeholder="Enter your school name"
+                  placeholder="Enter your school"
                 />
               </FormControl>
 
-                {/* Email - Read Only */}
+              {/* Coach Selection - Only show for athletes */}
+              {profile.role === 'athlete' && (
                 <FormControl>
-                <FormLabel>Email</FormLabel>
-                <Input
-                  type="email"
-                  value={profile.email}
-                    isReadOnly
-                    isDisabled
-                  />
-                  <Text fontSize="xs" color="gray.500" mt={1}>Email cannot be changed as it's used for login</Text>
-              </FormControl>
+                  <FormLabel>Coach</FormLabel>
+                  <Select
+                    value={profile.coach || ''}
+                    onChange={(e) =>
+                      setProfile({ ...profile, coach: e.target.value })
+                    }
+                    placeholder={isLoadingCoaches ? "Loading coaches..." : "Select a coach"}
+                    isDisabled={isLoadingCoaches}
+                  >
+                    {coaches.map((coach) => (
+                      <option key={coach.id} value={coach.full_name}>
+                        {coach.full_name}
+                      </option>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
 
+              {/* Address */}
               <FormControl>
-                <FormLabel>Phone</FormLabel>
+                <FormLabel>Address</FormLabel>
                 <Input
-                  type="tel"
-                  value={profile.phone}
-                    onChange={handlePhoneChange}
-                    placeholder="(123) 456-7890"
-                />
-              </FormControl>
-
-              <FormControl>
-                <FormLabel>Bio</FormLabel>
-                <Input
-                  value={profile.bio}
+                  value={profile.address || ''}
                   onChange={(e) =>
-                    setProfile({ ...profile, bio: e.target.value })
+                    setProfile({ ...profile, address: e.target.value })
                   }
-                  />
-                </FormControl>
+                  placeholder="Enter your address"
+                />
+              </FormControl>
 
-                {/* Address Section - Reordered */}
-                <Heading size="sm" mt={2} mb={2}>Address Information</Heading>
-                
-                {/* Address */}
-                <FormControl>
-                  <FormLabel>Street Address</FormLabel>
-                  <Input
-                    value={profile.address || ''}
-                    onChange={(e) => setProfile({ ...profile, address: e.target.value })}
-                    placeholder="Enter your street address"
-                  />
-                </FormControl>
-
-                {/* City */}
-                <FormControl>
-                  <FormLabel>City</FormLabel>
-                  <Input
+              {/* City */}
+              <FormControl>
+                <FormLabel>City</FormLabel>
+                <Input
                     value={profile.city || ''}
                     onChange={(e) =>
                       setProfile({ ...profile, city: e.target.value })
@@ -1249,50 +992,29 @@ WHERE id = '${user.id}';
                 )}
               </FormControl>
 
-              {/* Events - Updated to 3 columns */}
+              {/* Events - Updated to 3 columns with unique ids */}
               <FormControl>
                 <FormLabel>Events</FormLabel>
                 <CheckboxGroup
                   colorScheme="blue"
                   defaultValue={profile.events}
                   onChange={(vals) => {
-                    console.log('Selected events:', vals);
                     setProfile({ ...profile, events: vals as string[] });
                   }}
                 >
                   <SimpleGrid columns={{ base: 1, md: 3 }} spacing={2}>
-                    {EVENT_OPTIONS.map((ev) => (
-                      <Checkbox key={ev} value={ev} isChecked={profile.events?.includes(ev)}>
+                    {EVENT_OPTIONS.map((ev, idx) => (
+                      <Checkbox
+                        key={ev}
+                        value={ev}
+                        isChecked={profile.events?.includes(ev)}
+                        id={`event-checkbox-${idx}`}
+                      >
                         {ev}
                       </Checkbox>
                     ))}
                   </SimpleGrid>
                 </CheckboxGroup>
-              </FormControl>
-
-              {/* Coach Selection */}
-              <FormControl>
-                <FormLabel>Coach</FormLabel>
-                {isLoadingCoaches ? (
-                  <HStack spacing={2} py={2}>
-                    <Spinner size="sm" />
-                    <Text>Loading coaches...</Text>
-                  </HStack>
-                ) : (
-                  <Select
-                    value={profile.coach || ''}
-                    onChange={e => setProfile({ ...profile, coach: e.target.value })}
-                    placeholder="Select coach"
-                  >
-                    {coaches.length > 0 ? (
-                      coaches.map(coach => (
-                        <option key={coach.id} value={coach.full_name}>{coach.full_name}</option>
-                      ))
-                    ) : (
-                      <option value="" disabled>No coaches available</option>
-                    )}
-                  </Select>
-                )}
               </FormControl>
 
                 <Button type="submit" colorScheme="blue" size="lg" mt={4}>
@@ -1301,27 +1023,6 @@ WHERE id = '${user.id}';
             </VStack>
           </form>
         </Box>
-        )}
-
-        {/* Debug Buttons - hidden in production */}
-        {process.env.NODE_ENV === 'development' && (
-          <>
-            <HStack spacing={4}>
-              <Button colorScheme="blue" onClick={showDebugInfo}>Debug Profile</Button>
-              {showFixButton && (
-                <Button colorScheme="green" onClick={fixProfileIssue}>Fix Profile</Button>
-              )}
-              <Button colorScheme="purple" onClick={directSqlFix}>Generate SQL Fix</Button>
-            </HStack>
-            {debugInfo && (
-              <Box bg="gray.100" p={4} borderRadius="md">
-                <VStack align="start">
-                  <Text fontWeight="bold">Debug Info:</Text>
-                  <Code>{JSON.stringify(debugInfo, null, 2)}</Code>
-                </VStack>
-              </Box>
-            )}
-          </>
         )}
       </VStack>
     </Box>

@@ -248,7 +248,8 @@ const Navigation = () => {
                     colorScheme="blue" 
                     variant="solid"
                     fontSize="sm"
-                    fontWeight="medium"
+                    fontWeight="bold"
+                    color="white !important"
                     _focus={{
                       boxShadow: "none",
                       outline: "none"
@@ -259,16 +260,23 @@ const Navigation = () => {
                 </HStack>
               )
             ) : (
-              <HStack spacing={4}>
+              <HStack spacing={0}>
                 {/* Home Button */}
                 <IconButton
                   as={RouterLink}
                   to="/"
                   icon={<FaHome />}
                   aria-label="Home"
-                  colorScheme="blue"
-                  variant="ghost"
+                  variant="unstyled"
+                  color="#333333"
                   size="md"
+                  mx="12px"
+                  p={0}
+                  minW="auto"
+                  h="auto"
+                  _hover={{
+                    color: "black",
+                  }}
                   _focus={{
                     boxShadow: "none",
                     outline: "none"
@@ -281,9 +289,16 @@ const Navigation = () => {
                   to="/dashboard"
                   icon={<BiLineChart size="24px" />}
                   aria-label="Dashboard"
-                  colorScheme="blue"
-                  variant="ghost"
+                  variant="unstyled"
+                  color="#333333"
                   size="md"
+                  mx="12px"
+                  p={0}
+                  minW="auto"
+                  h="auto"
+                  _hover={{
+                    color: "black",
+                  }}
                   _focus={{
                     boxShadow: "none",
                     outline: "none"
@@ -295,10 +310,17 @@ const Navigation = () => {
                   <IconButton
                     icon={<FaCommentDots />}
                     aria-label="Give Feedback"
-                    colorScheme="orange"
-                    variant="ghost"
+                    variant="unstyled"
+                    color="#333333"
                     size="md"
+                    mx="12px"
+                    p={0}
+                    minW="auto"
+                    h="auto"
                     onClick={showFeedbackModal}
+                    _hover={{
+                      color: "black",
+                    }}
                     _focus={{
                       boxShadow: "none",
                       outline: "none"
@@ -313,15 +335,22 @@ const Navigation = () => {
                 />
                 
                 {/* Notification Bell */}
-                <Box position="relative">
+                <Box position="relative" mx="12px">
                   <Tooltip label="Event notifications" hasArrow>
                     <IconButton
                       icon={<FaBell />}
                       aria-label="Notifications"
-                      colorScheme="blue"
-                      variant="ghost"
+                      variant="unstyled"
+                      color="#333333"
                       size="md"
+                      mx="0"
+                      p={0}
+                      minW="auto"
+                      h="auto"
                       onClick={handleViewNotifications}
+                      _hover={{
+                        color: "black",
+                      }}
                       _focus={{
                         boxShadow: "none",
                         outline: "none"
@@ -392,8 +421,12 @@ const Navigation = () => {
             aria-label="Open Navigation"
             icon={<HamburgerIcon />}
             display={{ base: 'flex', md: 'none' }}
-            variant="ghost"
+            variant="unstyled"
+            color="#333333"
             onClick={onToggle}
+            _hover={{
+              color: "black",
+            }}
             _focus={{
               boxShadow: "none",
               outline: "none"
@@ -435,7 +468,7 @@ const Navigation = () => {
                     to="/dashboard"
                     w="100%"
                     justifyContent="flex-start"
-                    leftIcon={<BiLineChart />}
+                    leftIcon={<BiLineChart color="#333333" />}
                   >
                     Dashboard
                   </Button>
@@ -447,11 +480,11 @@ const Navigation = () => {
                     to="/profile"
                     w="100%"
                     justifyContent="flex-start"
+                    color="#333333"
                   >
                     Profile
                   </Button>
                   <Button 
-                    colorScheme="red"
                     variant="ghost"
                     size="sm"
                     onClick={() => {
@@ -460,6 +493,7 @@ const Navigation = () => {
                     }}
                     w="100%"
                     justifyContent="flex-start"
+                    color="#333333"
                   >
                     Sign Out
                   </Button>
@@ -474,6 +508,7 @@ const Navigation = () => {
                     to="/login"
                     w="100%"
                     justifyContent="flex-start"
+                    color="#333333"
                   >
                     Sign In
                   </Button>
@@ -484,6 +519,8 @@ const Navigation = () => {
                     as={RouterLink} 
                     to="/signup"
                     w="100%"
+                    fontWeight="bold"
+                    color="white !important"
                   >
                     Join Now
                   </Button>
@@ -499,7 +536,8 @@ const Navigation = () => {
                   to="/"
                   w="100%"
                   justifyContent="flex-start"
-                  leftIcon={<FaHome />}
+                  leftIcon={<FaHome color="#333333" />}
+                  color="#333333"
                 >
                   Home
                 </Button>
@@ -511,12 +549,12 @@ const Navigation = () => {
                   to="/dashboard"
                   w="100%"
                   justifyContent="flex-start"
-                  leftIcon={<BiLineChart />}
+                  leftIcon={<BiLineChart color="#333333" />}
+                  color="#333333"
                 >
                   Dashboard
                 </Button>
                 <Button 
-                  colorScheme="red"
                   variant="ghost"
                   size="sm"
                   onClick={() => {
@@ -525,6 +563,7 @@ const Navigation = () => {
                   }}
                   w="100%"
                   justifyContent="flex-start"
+                  color="#333333"
                 >
                   Sign Out
                 </Button>

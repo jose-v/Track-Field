@@ -18,7 +18,6 @@ import {
   Select,
   Textarea,
   SimpleGrid,
-  Progress,
   Tooltip,
   IconButton,
   Image,
@@ -28,12 +27,14 @@ import {
   CardBody,
   Container,
   useToast,
+  Progress
 } from '@chakra-ui/react'
 import { useState, useRef, useEffect } from 'react'
 import { useWorkouts } from '../hooks/useWorkouts'
 import { CheckIcon, EditIcon, DeleteIcon, RepeatIcon } from '@chakra-ui/icons'
 import { useWorkoutStore } from '../lib/workoutStore'
 import { FaRunning, FaDumbbell, FaRegClock, FaCalendarAlt, FaListUl, FaPlayCircle } from 'react-icons/fa'
+import { ProgressBar } from '../components/ProgressBar'
 
 // Add Exercise type for local state
 type Exercise = {
@@ -85,6 +86,8 @@ export function Workouts() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayWorkout = workouts.find(workout => {
+    if (!workout.date) return false;
+    
     const workoutDate = new Date(workout.date);
     workoutDate.setHours(0, 0, 0, 0);
     return workoutDate.getTime() === today.getTime();
@@ -248,8 +251,8 @@ export function Workouts() {
     
     // Move to next exercise
     if (exIdx + 1 < execModal.workout.exercises.length) {
-      // Update progress in store
-      workoutStore.updateProgress(workoutId, exIdx + 1, execModal.workout.exercises.length, true);
+      // Update progress in store - DON'T mark as completed (false)
+      workoutStore.updateProgress(workoutId, exIdx + 1, execModal.workout.exercises.length, false);
       
       // Update modal state
       setExecModal({
@@ -470,17 +473,12 @@ export function Workouts() {
                     {/* Progress Bar */}
                     {totalCount > 0 && (
                       <Box w="100%" mt={2} mb={1}>
-                        <Progress 
-                          value={(completedCount / totalCount) * 100} 
-                          size="sm" 
-                          colorScheme={completedCount === totalCount ? "green" : "blue"} 
-                          borderRadius="md" 
+                        <ProgressBar
+                          completed={completedCount}
+                          total={totalCount}
+                          completedText="Completed"
+                          itemLabel="exercises"
                         />
-                        <Text fontSize="xs" textAlign="center" mt={1}>
-                          {completedCount === totalCount 
-                            ? "Completed" 
-                            : `${completedCount}/${totalCount} exercises completed`}
-                        </Text>
                       </Box>
                     )}
                     

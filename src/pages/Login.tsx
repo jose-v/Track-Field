@@ -50,7 +50,8 @@ export function Login() {
     <Card 
       maxW="md" 
       mx="auto" 
-      mt={8} 
+      mt={20}
+      mb={20}
       borderRadius="lg" 
       overflow="hidden" 
       boxShadow="md"
@@ -155,7 +156,7 @@ export function Login() {
             <Button
               variant="link"
               colorScheme="blue"
-              onClick={() => navigate('/register')}
+              onClick={() => navigate('/signup')}
             >
               Sign Up
             </Button>

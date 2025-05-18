@@ -3,14 +3,52 @@ import { HamburgerIcon, CloseIcon } from '@chakra-ui/icons'
 import { Link as RouterLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useProfile } from '../hooks/useProfile'
-import { FaHome, FaUserFriends, FaCalendarAlt, FaClipboardList, FaChartLine, FaBell } from 'react-icons/fa'
+import { BiGroup, BiClipboard, BiCalendar, BiLineChart } from 'react-icons/bi'
+import { LuBellRing, LuHouse, LuMessageCircleMore, LuUpload } from 'react-icons/lu'
 import { useState, useEffect } from 'react'
+import { useFeedback } from './FeedbackProvider'
+import { ShareComponent } from './ShareComponent'
+
+// Simple clean icon style with complete removal of focus indicators
+const cleanIconStyle = {
+  bg: "transparent",
+  border: "none",
+  outline: "none",
+  _hover: {
+    bg: "transparent",
+    border: "none",
+    "& svg": { color: "#000000" }
+  },
+  _focus: {
+    outline: "none",
+    boxShadow: "none",
+    border: "none",
+    bg: "transparent",
+  },
+  _focusVisible: {
+    outline: "none",
+    boxShadow: "none",
+    border: "none",
+    bg: "transparent",
+  },
+  _active: {
+    outline: "none",
+    boxShadow: "none",
+    border: "none",
+    bg: "transparent",
+  },
+  transition: "all 0.2s ease-in",
+  color: "#333333",
+  mx: "18px",  // Increase margin for better spacing
+  p: 0         // Remove padding to keep just the icon
+};
 
 const CoachLinks = [
-  { name: 'Dashboard', path: '/coach/dashboard', icon: <FaChartLine /> },
-  { name: 'My Athletes', path: '/coach/athletes', icon: <FaUserFriends /> },
-  { name: 'Workouts', path: '/coach/workouts', icon: <FaClipboardList /> },
-  { name: 'Events', path: '/coach/events', icon: <FaCalendarAlt /> },
+  { name: 'Dashboard', path: '/coach/dashboard', icon: <BiLineChart /> },
+  { name: 'My Athletes', path: '/coach/athletes', icon: <BiGroup /> },
+  { name: 'Workouts', path: '/coach/workouts', icon: <BiClipboard /> },
+  { name: 'Events', path: '/coach/events', icon: <BiCalendar /> },
+  { name: 'Calendar', path: '/coach/calendar', icon: <BiCalendar /> },
   { name: 'Profile', path: '/coach/profile', icon: null },
 ]
 
@@ -23,8 +61,18 @@ function NavLink({ name, path, icon }: { name: string; path: string; icon: React
     as: RouterLink,
     to: path,
     variant: isActive ? 'solid' : 'ghost',
-    colorScheme: isActive ? 'blue' : undefined,
+    colorScheme: isActive ? 'black' : undefined,
+    bg: isActive ? 'black' : undefined,
+    color: isActive ? 'white !important' : 'black',
     size: "sm",
+    fontWeight: "medium",
+    _hover: {
+      bg: isActive ? 'black' : 'gray.100',
+      color: isActive ? 'white !important' : 'black',
+    },
+    sx: isActive ? {
+      '& svg': { color: 'white !important' }
+    } : {}
   }
   
   // Only add leftIcon if icon exists
@@ -45,6 +93,7 @@ export function CoachLayout({ children }: { children: React.ReactNode }) {
   const { profile } = useProfile()
   const bgColor = useColorModeValue('white', 'gray.800')
   const borderColor = useColorModeValue('gray.200', 'gray.700')
+  const { showFeedbackModal } = useFeedback()
   
   // State for notifications
   const [notificationCount, setNotificationCount] = useState(0)
@@ -113,26 +162,51 @@ export function CoachLayout({ children }: { children: React.ReactNode }) {
                 ))}
               </HStack>
             </HStack>
-            <Flex alignItems="center" gap={4}>
+            <Flex alignItems="center" gap={0}> {/* Remove gap as we're using mx in the style */}
               <IconButton
                 as={RouterLink}
                 to="/"
-                icon={<FaHome />}
+                icon={<LuHouse size="24px" color="#333333" />}
                 aria-label="Home"
-                colorScheme="blue"
-                variant="ghost"
-                size="md"
+                variant="unstyled"
+                sx={cleanIconStyle}
+                minW="auto" 
+                h="auto"
+                color="#333333 !important"
+              />
+              
+              {/* Feedback Button */}
+              <Tooltip label="Give Feedback" hasArrow>
+                <IconButton
+                  icon={<LuMessageCircleMore size="24px" color="#333333" />}
+                  aria-label="Give Feedback"
+                  variant="unstyled"
+                  sx={cleanIconStyle}
+                  minW="auto"
+                  h="auto"
+                  color="#333333 !important"
+                  onClick={showFeedbackModal}
+                />
+              </Tooltip>
+              
+              {/* Share Button */}
+              <ShareComponent 
+                title="Track & Field App for Coaches" 
+                description="Check out this awesome Track & Field app for coaches and athletes!" 
               />
               
               {/* Notification Bell */}
-              <Box position="relative">
+              <Box position="relative" mx="18px"> {/* Match the new spacing */}
                 <Tooltip label="Athlete notifications" hasArrow>
                   <IconButton
-                    icon={<FaBell />}
+                    icon={<LuBellRing size="24px" color="#333333" />}
                     aria-label="Notifications"
-                    colorScheme="purple"
-                    variant="ghost"
-                    size="md"
+                    variant="unstyled"
+                    sx={cleanIconStyle}
+                    minW="auto"
+                    h="auto"
+                    mx="0"  /* Override mx from cleanIconStyle since Box has mx */
+                    color="#333333 !important"
                     onClick={handleViewNotifications}
                   />
                 </Tooltip>
@@ -161,6 +235,8 @@ export function CoachLayout({ children }: { children: React.ReactNode }) {
                 <MenuList>
                   <MenuItem as={RouterLink} to="/coach/profile">Coach Profile</MenuItem>
                   <MenuItem as={RouterLink} to="/coach/athletes">My Athletes</MenuItem>
+                  <MenuItem as={RouterLink} to="/coach/calendar">My Calendar</MenuItem>
+                  <MenuItem onClick={showFeedbackModal}>Give Feedback</MenuItem>
                   <MenuItem onClick={signOut}>Sign out</MenuItem>
                 </MenuList>
               </Menu>
@@ -175,23 +251,49 @@ export function CoachLayout({ children }: { children: React.ReactNode }) {
                 <Button
                   as={RouterLink}
                   to="/"
-                  leftIcon={<FaHome />}
-                  variant="ghost"
-                  size="sm"
+                  leftIcon={<LuHouse size="20px" />}
+                  variant="unstyled"
+                  sx={cleanIconStyle}
+                  textAlign="left"
                   justifyContent="flex-start"
                 >
                   Home
                 </Button>
                 
+                {/* Mobile Feedback Link */}
+                <Button
+                  leftIcon={<LuMessageCircleMore size="20px" />}
+                  onClick={showFeedbackModal}
+                  variant="unstyled"
+                  sx={cleanIconStyle}
+                  textAlign="left"
+                  justifyContent="flex-start"
+                >
+                  Give Feedback
+                </Button>
+                
                 {/* Mobile Notifications Link */}
                 <Button
-                  leftIcon={<FaBell />}
+                  leftIcon={<LuBellRing size="20px" />}
                   onClick={handleViewNotifications}
-                  variant="ghost"
-                  size="sm"
+                  variant="unstyled"
+                  sx={cleanIconStyle}
+                  textAlign="left"
                   justifyContent="flex-start"
                 >
                   Notifications {notificationCount > 0 && `(${notificationCount})`}
+                </Button>
+                
+                {/* Mobile Share Link */}
+                <Button
+                  leftIcon={<LuUpload size="20px" />}
+                  onClick={() => document.querySelector<HTMLButtonElement>('button[aria-label="Share App"]')?.click()}
+                  variant="unstyled"
+                  sx={cleanIconStyle}
+                  textAlign="left"
+                  justifyContent="flex-start"
+                >
+                  Share App
                 </Button>
               </Stack>
             </Box>

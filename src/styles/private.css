@@ -1,0 +1,17 @@
+/* Private (authenticated) dashboard styles */
+
+body.private-page a {
+  color: #646cff;
+  text-decoration: none;
+}
+
+body.private-page a:hover {
+  color: #535bf2;
+}
+
+/* Maintain nested anchor color inside chakra buttons */
+body.private-page .chakra-button a,
+body.private-page .chakra-button .chakra-link {
+  color: inherit !important;
+  text-decoration: none;
+} 

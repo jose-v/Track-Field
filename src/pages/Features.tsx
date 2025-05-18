@@ -188,7 +188,7 @@ const Features = () => {
             <DetailFeature
               title="Track Your Progress with Advanced Analytics"
               text="Our analytics dashboard provides real-time insights into your performance. Track your personal records, analyze training patterns, and identify areas for improvement. With customizable metrics and visual reports, you can make data-driven decisions to enhance your training and competition strategies."
-              image="/images/analytics-dashboard.jpg"
+              image="https://images.unsplash.com/photo-1581093588401-230afc81d2d8?auto=format&fit=crop&w=800&q=80"
             />
             
             <Divider borderColor={borderColor} />
@@ -196,7 +196,7 @@ const Features = () => {
             <DetailFeature
               title="Collaborate with Your Team Seamlessly"
               text="Connect with coaches and teammates in one centralized platform. Share training plans, receive feedback on performances, and communicate effectively. Our team collaboration features ensure everyone stays aligned with goals and training objectives, fostering a supportive community environment."
-              image="/images/team-collaboration.jpg"
+              image="https://images.unsplash.com/photo-1526948128573-703ee1aeb6fa?auto=format&fit=crop&w=800&q=80"
               reverse={true}
             />
             
@@ -205,7 +205,7 @@ const Features = () => {
             <DetailFeature
               title="Analyze Your Technique with Video Tools"
               text="Upload training videos and receive detailed technique analysis. Our frame-by-frame review tools allow coaches to provide precise feedback on form and execution. Compare your technique to professional athletes or track improvements over time with side-by-side video comparison."
-              image="/images/video-analysis.jpg"
+              image="https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=800&q=80"
             />
           </VStack>
         </Container>

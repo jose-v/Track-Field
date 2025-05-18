@@ -104,7 +104,8 @@ function SignupContent() {
   return (
     <Card 
       mx="auto" 
-      mt={8}
+      mt={20}
+      mb={20}
       borderRadius="lg" 
       overflow="hidden" 
       boxShadow="md"

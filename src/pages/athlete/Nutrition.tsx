@@ -30,6 +30,8 @@ import { useState, useEffect } from 'react';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import EnhancedNutritionAnalysis from '../../components/EnhancedNutritionAnalysis';
+import { handleNutritionLog } from '../../services/integrationService';
 
 interface EatingRecord {
   id: string;
@@ -90,6 +92,17 @@ export function Nutrition() {
         .insert([{ ...formData, athlete_id: user?.id }]);
 
       if (error) throw error;
+
+      // Integrate with gamification system
+      if (user?.id) {
+        try {
+          await handleNutritionLog(user.id);
+          console.log('[Gamification] Nutrition log recorded for points and badges');
+        } catch (gamificationError) {
+          console.error('[Gamification] Error processing nutrition log:', gamificationError);
+          // Don't show error to user, just log it - the nutrition record was still saved
+        }
+      }
 
       toast({
         title: 'Record added',
@@ -157,6 +170,9 @@ export function Nutrition() {
             <Heading size="lg" mb={2}>Nutrition Tracking</Heading>
             <Text color="gray.600">Track your daily meals and nutrition intake</Text>
           </Box>
+
+          {/* Enhanced Nutrition Analysis */}
+          {user?.id && <EnhancedNutritionAnalysis athleteId={user.id} />}
 
           {/* Add Record Form */}
           <Box

@@ -17,7 +17,7 @@ export function PageContainer({ children, fullWidth = false, ...props }: PageCon
       width="100%" 
       maxW={fullWidth ? "100%" : { base: "100%", lg: "1200px" }}
       mx="auto"
-      px={{ base: 4, md: 6 }}
+      {...(!fullWidth && { px: { base: 4, md: 6 } })}
       {...props}
     >
       {children}

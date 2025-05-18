@@ -1,5 +1,6 @@
 import {
-  Box, Heading, Text, SimpleGrid, Spinner, useDisclosure, Button, HStack, IconButton, useToast
+  Box, Heading, Text, SimpleGrid, Spinner, useDisclosure, Button, HStack, IconButton, useToast,
+  Skeleton, SkeletonText, Card, CardBody
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
 import { useWorkouts } from '../../hooks/useWorkouts'; 
@@ -11,7 +12,12 @@ import { useWorkoutCompletionStats } from '../../hooks/useWorkoutCompletionStats
 import { api } from '../../services/api'; // Import the API instance
 import { WorkoutCard } from '../../components/WorkoutCard'; // Import our shared card component
 import { supabase } from '../../lib/supabase'; // Import supabase client
-import { RepeatIcon } from '@chakra-ui/icons';
+import { RepeatIcon, AddIcon } from '@chakra-ui/icons';
+import { useNavigate } from 'react-router-dom';
+import { FaFileImport } from 'react-icons/fa';
+import { useQueryClient } from '@tanstack/react-query';
+import { useWorkoutsRealtime } from '../../hooks/useWorkoutsRealtime';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Athlete assignment type
 interface AthleteAssignment {
@@ -21,14 +27,84 @@ interface AthleteAssignment {
   status: string;
 }
 
+// Create a skeleton workout card component for loading states
+const WorkoutSkeletonCard = () => (
+  <Card 
+    borderRadius="xl" 
+    overflow="hidden" 
+    boxShadow="md" 
+    borderWidth="1px" 
+    borderColor="gray.200"
+    h="100%"
+  >
+    {/* Skeleton header */}
+    <Box height="80px" bg="blue.400" position="relative">
+      <Box 
+        position="absolute" 
+        top="20px" 
+        left="20px" 
+        width="40px" 
+        height="40px" 
+        borderRadius="full" 
+        bg="whiteAlpha.300"
+      />
+      <Box 
+        position="absolute" 
+        top="25px" 
+        left="75px" 
+        width="100px" 
+        height="30px" 
+        borderRadius="md" 
+        bg="whiteAlpha.300"
+      />
+    </Box>
+    
+    <CardBody>
+      {/* Title */}
+      <Skeleton height="28px" width="70%" mb={6} />
+      
+      {/* Date and time */}
+      <HStack spacing={4} mb={4}>
+        <Skeleton height="18px" width="120px" borderRadius="md" />
+        <Skeleton height="18px" width="80px" borderRadius="md" />
+      </HStack>
+      
+      {/* Duration and location */}
+      <HStack spacing={4} mb={4}>
+        <Skeleton height="18px" width="80px" borderRadius="md" />
+        <Skeleton height="18px" width="100px" borderRadius="md" />
+      </HStack>
+      
+      {/* Exercises */}
+      <Box width="100%" py={2} mb={4}>
+        <Skeleton height="20px" width="130px" borderRadius="md" mb={3} />
+        <Skeleton height="14px" width="90%" borderRadius="md" mb={2} />
+        <Skeleton height="14px" width="85%" borderRadius="md" mb={2} />
+        <Skeleton height="14px" width="60%" borderRadius="md" />
+      </Box>
+      
+      {/* Assigned to */}
+      <Skeleton height="18px" width="80%" borderRadius="md" mb={5} />
+      
+      {/* Progress section */}
+      <Skeleton height="16px" width="150px" borderRadius="md" mb={2} />
+      <Skeleton height="8px" width="100%" borderRadius="full" mb={2} />
+      <Skeleton height="14px" width="100px" borderRadius="md" ml="auto" />
+    </CardBody>
+  </Card>
+);
+
 export function CoachWorkouts() {
   // useWorkouts returns Workout[] (imported type from api.ts via useWorkouts.ts)
   const { workouts, isLoading, deleteWorkout, createWorkout, updateWorkout, refetch } = useWorkouts(); 
   const { athletes: coachAthletes, isLoading: athletesLoading } = useCoachAthletes();
+  const { user } = useAuth();
   const [editingWorkout, setEditingWorkout] = useState<ApiWorkout | null>(null); // Use imported ApiWorkout
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [isSaving, setIsSaving] = useState(false);
   const toast = useToast();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   
   // State to track assignments
   const [assignments, setAssignments] = useState<AthleteAssignment[]>([]);
@@ -37,7 +113,63 @@ export function CoachWorkouts() {
   // Get all workout IDs for fetching stats
   const workoutIds = workouts?.map(workout => workout.id) || [];
   const { completionStats, isLoading: statsLoading, refetch: refetchStats } = useWorkoutCompletionStats(workoutIds);
-
+  
+  // Set up real-time updates
+  const { isSubscribed, lastUpdate, forceRefresh } = useWorkoutsRealtime({
+    coachId: user?.id,
+    workoutIds,
+    enabled: !!user?.id
+  });
+  
+  // Log real-time status in development
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Coach real-time status: ${isSubscribed ? 'Active' : 'Inactive'}`);
+      if (lastUpdate) {
+        console.log(`Coach last update: ${lastUpdate.toLocaleTimeString()}`);
+      }
+    }
+  }, [isSubscribed, lastUpdate]);
+  
+  // Set up automatic refresh for workout stats
+  useEffect(() => {
+    // Function to refresh data
+    const refreshData = async () => {
+      console.log('Auto-refreshing coach workout data...');
+      try {
+        // Invalidate queries to force refetch
+        await queryClient.invalidateQueries({ queryKey: ['workoutCompletionStats'] });
+        await queryClient.invalidateQueries({ queryKey: ['workouts'] });
+        await queryClient.invalidateQueries({ queryKey: ['athleteWorkouts'] });
+        
+        // Refetch assignments directly
+        if (workoutIds.length > 0) {
+          const { data, error } = await supabase
+            .from('athlete_workouts')
+            .select('*')
+            .in('workout_id', workoutIds);
+            
+          if (error) {
+            console.error('Error refreshing assignments:', error);
+          } else if (data) {
+            setAssignments(data);
+          }
+        }
+      } catch (err) {
+        console.error('Error during auto-refresh:', err);
+      }
+    };
+    
+    // Set up interval for periodic refresh (every 10 seconds)
+    const intervalId = setInterval(refreshData, 10000);
+    
+    // Initial refresh on mount
+    refreshData();
+    
+    // Clean up interval on unmount
+    return () => clearInterval(intervalId);
+  }, [queryClient, JSON.stringify(workoutIds)]);
+  
   // Fetch assignments when workouts change
   useEffect(() => {
     if (!workoutIds.length) return;
@@ -66,23 +198,93 @@ export function CoachWorkouts() {
     fetchAssignments();
   }, [JSON.stringify(workoutIds)]); // Use JSON.stringify to stabilize the dependency
 
+  // Helper to get progress for a workout from completionStats
   const getWorkoutProgress = (workout: ApiWorkout) => {
-    // Get real completion stats from our hook instead of random data
-    const stats = completionStats.find(stat => stat.workoutId === workout.id);
-    
-    if (stats) {
-      return {
-        completed: stats.completedCount,
-        total: stats.totalAssigned,
-        percentage: stats.percentage
+    // If no workout, return empty stats
+    if (!workout || !workout.id) {
+      return { 
+        completed: 0, 
+        total: 0, 
+        percentage: 0 
       };
     }
     
-    // Fallback to zeros if stats not available yet
+    // Get the real-time completion stats 
+    const workoutStat = completionStats?.find(stat => stat.workoutId === workout.id);
+    
+    if (workoutStat) {
+      console.log(`Coach: Workout ${workout.name} progress details:`, {
+        workoutId: workout.id,
+        totalAssigned: workoutStat.totalAssigned,
+        completedCount: workoutStat.completedCount,
+        inProgressCount: workoutStat.inProgressCount || 0,
+        exerciseCount: workoutStat.exerciseCount || workout.exercises?.length || 0,
+        percentage: workoutStat.percentage,
+      });
+      
+      return {
+        completed: workoutStat.completedCount || 0,
+        total: workoutStat.totalAssigned || 0,
+        percentage: workoutStat.percentage || 0,
+        inProgressCount: workoutStat.inProgressCount || 0,
+        exerciseCount: workoutStat.exerciseCount || workout.exercises?.length || 0
+      };
+    }
+    
+    // Fallback to manually calculating from assignments if stats not available
+    const workoutAssignments = assignments.filter(a => a.workout_id === workout.id);
+    const totalAssigned = workoutAssignments.length;
+    const completedCount = workoutAssignments.filter(a => a.status === 'completed').length;
+    const inProgressCount = workoutAssignments.filter(a => a.status === 'in_progress').length;
+    const exerciseCount = workout.exercises?.length || 0;
+    
+    // Calculate completion percentage based on completed and in-progress assignments
+    let percentage = 0;
+    
+    if (totalAssigned > 0 && exerciseCount > 0) {
+      // Calculate total possible completion (all exercises for all athletes)
+      const totalPossible = totalAssigned * exerciseCount;
+      
+      // Estimate completed exercises
+      const completedExercises = (completedCount * exerciseCount) + 
+                                 (inProgressCount * Math.ceil(exerciseCount / 2));
+                                 
+      percentage = (completedExercises / totalPossible) * 100;
+    } else {
+      percentage = totalAssigned > 0 ? (completedCount / totalAssigned) * 100 : 0;
+    }
+    
+    console.log(`Coach: Workout ${workout.name} fallback calculation:`, {
+      totalAssigned,
+      completedCount,
+      inProgressCount,
+      exerciseCount,
+      percentage
+    });
+    
+    // Adjust completed count for exercises
+    // Better calculation to match what's shown in athlete view
+    let adjustedCompletedCount = 0;
+    
+    if (completedCount > 0) {
+      // If workout is completed, count all exercises as done
+      adjustedCompletedCount = exerciseCount;
+    } else if (inProgressCount > 0) {
+      // For in-progress, estimate based on exercise count
+      adjustedCompletedCount = Math.floor(exerciseCount * 0.5); // Estimate half completion
+      
+      // Make sure we show at least 2 completed if in progress (matching athlete view)
+      if (adjustedCompletedCount < 2) {
+        adjustedCompletedCount = 2;
+      }
+    }
+    
     return { 
-      completed: 0, 
-      total: 0, 
-      percentage: 0 
+      completed: adjustedCompletedCount, 
+      total: totalAssigned, 
+      percentage,
+      inProgressCount,
+      exerciseCount
     };
   };
 
@@ -113,10 +315,13 @@ export function CoachWorkouts() {
     try {
       setIsSaving(true);
       let workoutId = id;
+      let isUpdate = false;
       
       if (id && editingWorkout) { 
         // Update existing workout
+        isUpdate = true;
         await updateWorkout({ id: id, workout: payloadForApi as Partial<ApiWorkout> });
+        workoutId = id;
       } else {
         // For new workouts, create and get the created workout
         const newWorkout = await createWorkout(payloadForApi as Omit<ApiWorkout, 'id' | 'user_id' | 'created_at'>);
@@ -132,14 +337,18 @@ export function CoachWorkouts() {
       setEditingWorkout(null);
       onClose();
       
+      // Add a small delay to ensure database consistency
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Force refresh of workouts data
       await refetch();
       
       // Only refresh stats and assignments after the refetch is complete
       await refetchStats();
       
-      // Refetch assignments only once after everything is done
+      // Refetch assignments
       if (workoutIds.length > 0) {
+        setAssignmentsLoading(true);
         const { data } = await supabase
           .from('athlete_workouts')
           .select('*')
@@ -148,9 +357,29 @@ export function CoachWorkouts() {
         if (data) {
           setAssignments(data);
         }
+        setAssignmentsLoading(false);
       }
+      
+      // Show success message
+      toast({
+        title: isUpdate ? "Workout Updated" : "Workout Created",
+        description: isUpdate ? 
+          "Workout has been updated successfully." : 
+          "New workout has been created successfully.",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      
     } catch (error) {
       console.error("Error saving workout or assigning to athletes:", error);
+      toast({
+        title: "Error",
+        description: "There was an error saving the workout. Please try again.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
     } finally {
       setIsSaving(false);
     }
@@ -175,34 +404,45 @@ export function CoachWorkouts() {
   // Add a refresh function
   const handleRefresh = async () => {
     try {
-      await refetch();
+      console.log('Manual refresh initiated by coach');
+      
+      // Force refetch of stats
       await refetchStats();
       
-      // Refetch assignments
+      // Refetch workouts
+      await refetch();
+      
+      // Refetch assignments directly
       if (workoutIds.length > 0) {
         setAssignmentsLoading(true);
-        const { data } = await supabase
+        
+        const { data, error } = await supabase
           .from('athlete_workouts')
           .select('*')
           .in('workout_id', workoutIds);
           
-        if (data) {
+        if (error) {
+          console.error('Error refreshing assignments:', error);
+        } else if (data) {
           setAssignments(data);
         }
+        
         setAssignmentsLoading(false);
       }
       
       toast({
-        title: "Workouts refreshed",
-        status: "success",
+        title: 'Progress Refreshed',
+        description: 'Latest workout progress data has been loaded.',
+        status: 'success',
         duration: 2000,
         isClosable: true,
       });
     } catch (error) {
-      console.error("Error refreshing workouts:", error);
+      console.error('Error refreshing workout data:', error);
       toast({
-        title: "Error refreshing workouts",
-        status: "error",
+        title: 'Refresh Failed',
+        description: 'Could not refresh workout progress. Please try again.',
+        status: 'error',
         duration: 3000,
         isClosable: true,
       });
@@ -212,16 +452,38 @@ export function CoachWorkouts() {
   return (
     <Box py={8}>
       <Heading mb={6}>Coach Workouts</Heading>
-      <HStack mb={6} spacing={2}>
-        <Button colorScheme="blue" onClick={() => { setEditingWorkout(null); onOpen(); }}>
-          Create Workout
+      <HStack mb={6} spacing={4} wrap="wrap">
+        <Button 
+          colorScheme="blue" 
+          leftIcon={<AddIcon />} 
+          onClick={() => navigate('/coach/workouts/new')}
+          size="md"
+        >
+          Create New Workout
+        </Button>
+        <Button 
+          colorScheme="blue" 
+          variant="outline" 
+          onClick={() => { setEditingWorkout(null); onOpen(); }}
+          size="md"
+        >
+          Quick Add Workout
+        </Button>
+        <Button
+          colorScheme="teal"
+          variant="outline"
+          leftIcon={<FaFileImport />}
+          onClick={() => navigate('/coach/workouts/import')}
+          size="md"
+        >
+          Import from File
         </Button>
         <IconButton
           aria-label="Refresh workouts"
           icon={<RepeatIcon />}
           onClick={handleRefresh}
           colorScheme="blue"
-          variant="outline"
+          variant="ghost"
         />
       </HStack>
       
@@ -246,14 +508,35 @@ export function CoachWorkouts() {
       )}
       
       <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-        {(isLoading || athletesLoading || assignmentsLoading) ? (
-          <Text>Loading workouts and athletes...</Text>
+        {/* When loading initial data, show skeleton cards */}
+        {isLoading || athletesLoading ? (
+          // Show skeleton loaders during initial load
+          <>
+            {[...Array(6)].map((_, index) => (
+              <WorkoutSkeletonCard key={index} />
+            ))}
+          </>
         ) : !workouts || workouts.length === 0 ? (
-          <Text>No workouts created yet.</Text>
+          // Only show "no workouts" when we're done loading and there are truly no workouts
+          <Box gridColumn="1 / -1" textAlign="center" p={8} bg="gray.50" borderRadius="lg">
+            <Text fontSize="lg" mb={4}>No workouts created yet.</Text>
+            <Button 
+              colorScheme="blue" 
+              size="md" 
+              onClick={() => { setEditingWorkout(null); onOpen(); }}
+            >
+              Create Your First Workout
+            </Button>
+          </Box>
         ) : (
+          // Show the actual workout cards
           (workouts as ApiWorkout[]).map((workout) => { 
-            const progress = getWorkoutProgress(workout);
-            const athleteNames = getAthleteNames(workout);
+            const progress = statsLoading 
+              ? { completed: 0, total: 0, percentage: 0 }
+              : getWorkoutProgress(workout);
+            const athleteNames = assignmentsLoading
+              ? 'Loading assignments...'
+              : getAthleteNames(workout);
 
             return (
               <WorkoutCard
@@ -262,9 +545,12 @@ export function CoachWorkouts() {
                 isCoach={true}
                 progress={progress}
                 assignedTo={athleteNames}
-                statsLoading={statsLoading}
-                onEdit={() => { setEditingWorkout(workout); onOpen(); }}
+                onEdit={() => navigate(`/coach/workouts/edit/${workout.id}`)}
                 onDelete={() => deleteWorkout(workout.id)}
+                onRefresh={handleRefresh}
+                showRefresh={true}
+                statsLoading={statsLoading || assignmentsLoading}
+                detailedProgress={true}
               />
             );
           })

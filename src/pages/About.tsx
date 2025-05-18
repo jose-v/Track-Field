@@ -73,41 +73,39 @@ const About = () => {
       </Box>
 
       {/* Story Section */}
-      <Box py={20} bg={bgColor}>
-        <Container maxW="container.lg">
-          <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={12} alignItems="center">
-            <GridItem>
-              <VStack align="flex-start" spacing={6}>
-                <Heading size="xl" color={textColor} lineHeight="1.2">
-                  Our Story
-                </Heading>
-                <Text color={subtitleColor} fontSize="lg" lineHeight="1.7">
-                  Founded by a team of former track & field athletes and coaches, we understand the challenges and opportunities in the sport. Our platform was born from a simple idea: make professional-grade training tools accessible to everyone.
-                </Text>
-                <Text color={subtitleColor} fontSize="lg" lineHeight="1.7">
-                  Today, we're proud to serve thousands of athletes and coaches worldwide, helping them track progress, analyze performance, and achieve their goals.
-                </Text>
-              </VStack>
-            </GridItem>
-            <GridItem>
-              <Box
-                borderRadius="xl"
-                overflow="hidden"
-                boxShadow="xl"
-                height={{ base: '300px', md: '400px' }}
-              >
-                <Image
-                  src="/images/about-image.jpg"
-                  alt="Track & Field Team"
-                  w="100%"
-                  h="100%"
-                  objectFit="cover"
-                  fallbackSrc="https://via.placeholder.com/800x600?text=Our+Team"
-                />
-              </Box>
-            </GridItem>
-          </Grid>
-        </Container>
+      <Box py={20} bgGradient="linear(to-r, #FF6C8C, #FFA94D)">
+        <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={12} alignItems="center" maxW="container.lg" mx="auto">
+          <GridItem>
+            <VStack align="flex-start" spacing={6}>
+              <Heading size="xl" color={textColor} lineHeight="1.2">
+                Our Story
+              </Heading>
+              <Text color={subtitleColor} fontSize="lg" lineHeight="1.7">
+                Founded by a team of former track & field athletes and coaches, we understand the challenges and opportunities in the sport. Our platform was born from a simple idea: make professional-grade training tools accessible to everyone.
+              </Text>
+              <Text color={subtitleColor} fontSize="lg" lineHeight="1.7">
+                Today, we're proud to serve thousands of athletes and coaches worldwide, helping them track progress, analyze performance, and achieve their goals.
+              </Text>
+            </VStack>
+          </GridItem>
+          <GridItem>
+            <Box
+              borderRadius="xl"
+              overflow="hidden"
+              boxShadow="xl"
+              height={{ base: '300px', md: '400px' }}
+            >
+              <Image
+                src="/images/about-image.jpg"
+                alt="Track & Field Team"
+                w="100%"
+                h="100%"
+                objectFit="cover"
+                fallbackSrc="https://via.placeholder.com/800x600?text=Our+Team"
+              />
+            </Box>
+          </GridItem>
+        </Grid>
       </Box>
 
       {/* Values Section */}
@@ -213,55 +211,53 @@ const About = () => {
       </Box>
       
       {/* Team Section */}
-      <Box py={20} bg={bgColor}>
-        <Container maxW="container.lg">
-          <VStack spacing={12}>
-            <VStack spacing={4} textAlign="center">
-              <Heading size="xl" color={textColor} fontWeight="bold">
-                Meet Our Team
-              </Heading>
-              <Text color={subtitleColor} fontSize="lg" maxW="2xl">
-                Our dedicated team of athletes, coaches, and technology experts
-              </Text>
-            </VStack>
-            
-            <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8}>
-              {teamMembers.map((member, index) => (
-                <VStack 
-                  key={index}
-                  p={6} 
-                  spacing={4} 
-                  align="center" 
-                  borderWidth="1px"
-                  borderColor={borderColor}
-                  borderRadius="lg"
-                  bg={cardBg}
-                >
-                  <Avatar 
-                    size="xl" 
-                    name={member.name} 
-                    src={member.image} 
-                    mb={2}
-                    borderWidth="4px"
-                    borderColor="white"
-                    boxShadow="lg"
-                  />
-                  <VStack spacing={1}>
-                    <Heading size="md" color={textColor}>
-                      {member.name}
-                    </Heading>
-                    <Text fontWeight="medium" color="blue.500" fontSize="sm">
-                      {member.role}
-                    </Text>
-                  </VStack>
-                  <Text color={subtitleColor} fontSize="sm" textAlign="center">
-                    {member.bio}
+      <Box py={20} bg="#F5F8FE">
+        <VStack spacing={12} maxW="container.lg" mx="auto">
+          <VStack spacing={4} textAlign="center">
+            <Heading size="xl" color={textColor} fontWeight="bold">
+              Meet Our Team
+            </Heading>
+            <Text color={subtitleColor} fontSize="lg" maxW="2xl">
+              Our dedicated team of athletes, coaches, and technology experts
+            </Text>
+          </VStack>
+          
+          <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8}>
+            {teamMembers.map((member, index) => (
+              <VStack 
+                key={index}
+                p={6} 
+                spacing={4} 
+                align="center" 
+                borderWidth="1px"
+                borderColor={borderColor}
+                borderRadius="lg"
+                bg={cardBg}
+              >
+                <Avatar 
+                  size="xl" 
+                  name={member.name} 
+                  src={member.image} 
+                  mb={2}
+                  borderWidth="4px"
+                  borderColor="white"
+                  boxShadow="lg"
+                />
+                <VStack spacing={1}>
+                  <Heading size="md" color={textColor}>
+                    {member.name}
+                  </Heading>
+                  <Text fontWeight="medium" color="blue.500" fontSize="sm">
+                    {member.role}
                   </Text>
                 </VStack>
-              ))}
-            </SimpleGrid>
-          </VStack>
-        </Container>
+                <Text color={subtitleColor} fontSize="sm" textAlign="center">
+                  {member.bio}
+                </Text>
+              </VStack>
+            ))}
+          </SimpleGrid>
+        </VStack>
       </Box>
     </Box>
   )

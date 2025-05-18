@@ -39,6 +39,7 @@ import {
   import { useState, useEffect } from 'react';
   import { api } from '../../services/api'; // Correctly imported
   import { useProfile } from '../../hooks/useProfile'; // Import the useProfile hook
+  import { useQueryClient } from '@tanstack/react-query';
   
   // Mock data for the dashboard (can be removed if API provides all necessary data)
   const athletesMockForLayout = [
@@ -84,6 +85,7 @@ import {
     const [searchExercise, setSearchExercise] = useState('');
     const toast = useToast();
     const [isSaving, setIsSaving] = useState(false);
+    const queryClient = useQueryClient();
     
     const { athletes: realAthletesData, isLoading: athletesLoading } = useCoachAthletes();
     const realAthletes = realAthletesData || []; // Ensure realAthletes is always an array
@@ -175,6 +177,31 @@ import {
       console.log('[CoachDashboard] Fetched Athletes:', realAthletesData);
       console.log('[CoachDashboard] Processed realAthletes (array):', realAthletes);
     }, [user, realAthletesData, realAthletes]);
+  
+    // Add a refresh mechanism to ensure stats stay current
+    useEffect(() => {
+      // Set up periodic refresh
+      const refreshInterval = setInterval(() => {
+        // Refresh athlete data which will update completion stats
+        queryClient.invalidateQueries({ queryKey: ['coachAthletes'] });
+      }, 10000); // Every 10 seconds
+      
+      // Clean up on unmount
+      return () => clearInterval(refreshInterval);
+    }, [queryClient]);
+  
+    // Force refresh when returning to the page
+    useEffect(() => {
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          queryClient.invalidateQueries({ queryKey: ['coachAthletes'] });
+          queryClient.invalidateQueries({ queryKey: ['workouts'] });
+        }
+      };
+      
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [queryClient]);
   
     return (
       <Box py={8}>

@@ -25,6 +25,7 @@ import { useState, useEffect } from 'react';
 import { FaTrash } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { handleSleepLog } from '../../services/integrationService';
 
 interface SleepRecord {
   id: string;
@@ -100,6 +101,17 @@ export function Sleep() {
       if (error) {
         console.error('Error saving sleep record:', error);
         throw error;
+      }
+
+      // Integrate with gamification system
+      if (user?.id) {
+        try {
+          await handleSleepLog(user.id);
+          console.log('[Gamification] Sleep log recorded for points and badges');
+        } catch (gamificationError) {
+          console.error('[Gamification] Error processing sleep log:', gamificationError);
+          // Don't show error to user, just log it - the sleep record was still saved
+        }
       }
 
       toast({

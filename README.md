@@ -52,3 +52,28 @@ export default tseslint.config({
   },
 })
 ```
+
+## Testing the Gamification System
+
+The gamification system has been thoroughly tested with unit tests covering the core functionality. To run tests:
+
+```bash
+npm test
+```
+
+This will run all unit tests for the gamification service. The tests cover:
+
+1. Points system - awarding, accumulating, and retrieving points
+2. Badge management - awarding badges and retrieving athlete badges 
+3. Streak tracking - creating, updating, and resetting activity streaks
+4. Leaderboard functionality - global and team-based leaderboards
+
+The tests use a mock Supabase implementation to simulate database interactions without requiring an actual database connection.
+
+### Remaining Test Work
+
+According to the project milestones, the following testing tasks remain:
+
+1. Write integration tests for React hooks (useGamification, etc.)
+2. Perform UI component testing for gamification components
+3. Conduct end-to-end testing of the gamification flow

@@ -4,36 +4,52 @@ import type { Workout, Exercise } from '../services/api'
 import { useToast } from '@chakra-ui/react'
 import { useAuth } from '../contexts/AuthContext'
 import { useProfile } from './useProfile'
+import { useApiWithAuth } from '../utils/apiUtils'
 
 export type { Workout, Exercise }
 
 export function useWorkouts() {
   const queryClient = useQueryClient()
   const toast = useToast()
-  const { user } = useAuth()
+  const { user, refreshSession } = useAuth()
   const { profile } = useProfile()
+  const { callApiWithAuth } = useApiWithAuth()
 
   const workoutsQuery = useQuery<Workout[], Error>({
     queryKey: ['workouts', user?.id, profile?.role],
     queryFn: async (): Promise<Workout[]> => {
       console.log('Fetching workouts for user:', user?.id, 'role:', profile?.role);
       if (!user?.id || !profile?.role) return [];
-      if (profile.role === 'athlete') {
-        const data = await api.workouts.getAssignedToAthlete(user.id);
-        console.log('Assigned workouts for athlete', user.id, data);
-        return data as Workout[];
-      } else if (profile.role === 'coach') {
-        const data = await api.workouts.getByCreator(user.id);
-        console.log('Workouts for coach', user.id, data);
-        return data;
-      } else {
-        return [];
+      
+      try {
+        if (profile.role === 'athlete') {
+          return await callApiWithAuth(async () => {
+            const data = await api.workouts.getAssignedToAthlete(user.id);
+            console.log('Assigned workouts for athlete', user.id, data?.length || 0);
+            return data as Workout[];
+          }, { maxRetries: 2 });
+        } else if (profile.role === 'coach') {
+          return await callApiWithAuth(async () => {
+            const data = await api.workouts.getByCreator(user.id);
+            console.log('Workouts for coach', user.id, data?.length || 0);
+            return data;
+          }, { maxRetries: 2 });
+        } else {
+          return [];
+        }
+      } catch (error) {
+        console.error('Error fetching workouts:', error);
+        // Attempt to refresh the session on error
+        await refreshSession();
+        throw error;
       }
     },
     enabled: !!user?.id && !!profile?.role,
-    staleTime: 30000,
+    staleTime: 1000, // Reduce stale time for faster updates
     refetchOnMount: true,
     refetchOnWindowFocus: true,
+    refetchInterval: 5000,
+    retry: 3, // Add retry attempts
   })
 
   const createWorkout = useMutation<
@@ -41,7 +57,11 @@ export function useWorkouts() {
     Error,
     Omit<Workout, 'id' | 'user_id' | 'created_at'>
   >({
-    mutationFn: api.workouts.create,
+    mutationFn: async (workoutData) => {
+      return await callApiWithAuth(async () => {
+        return api.workouts.create(workoutData);
+      }, { maxRetries: 2 });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workouts'] })
       toast({
@@ -53,6 +73,9 @@ export function useWorkouts() {
       })
     },
     onError: (error) => {
+      console.error('Error creating workout:', error);
+      refreshSession(); // Try to refresh on error
+      
       toast({
         title: 'Error',
         description: error.message || 'Failed to create workout',
@@ -68,7 +91,11 @@ export function useWorkouts() {
     Error,
     { id: string; workout: Partial<Workout> }
   >({
-    mutationFn: ({ id, workout }) => api.workouts.update(id, workout),
+    mutationFn: async ({ id, workout }) => {
+      return await callApiWithAuth(async () => {
+        return api.workouts.update(id, workout);
+      }, { maxRetries: 2 });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workouts'] })
       toast({
@@ -80,6 +107,9 @@ export function useWorkouts() {
       })
     },
     onError: (error) => {
+      console.error('Error updating workout:', error);
+      refreshSession(); // Try to refresh on error
+      
       toast({
         title: 'Error',
         description: error.message || 'Failed to update workout',
@@ -95,7 +125,11 @@ export function useWorkouts() {
     Error,
     string
   >({
-    mutationFn: api.workouts.delete,
+    mutationFn: async (id) => {
+      return await callApiWithAuth(async () => {
+        return api.workouts.delete(id);
+      }, { maxRetries: 2 });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workouts'] })
       toast({
@@ -107,6 +141,9 @@ export function useWorkouts() {
       })
     },
     onError: (error) => {
+      console.error('Error deleting workout:', error);
+      refreshSession(); // Try to refresh on error
+      
       toast({
         title: 'Error',
         description: error.message || 'Failed to delete workout',
@@ -124,11 +161,18 @@ export function useWorkouts() {
     error: workoutsQuery.error,
     refetch: workoutsQuery.refetch,
     createWorkout: async (data: Omit<Workout, 'id' | 'user_id' | 'created_at'>) => {
-      const newWorkout = await api.workouts.create(data);
-      
-      await queryClient.invalidateQueries({ queryKey: ['workouts'] });
-      
-      return newWorkout;
+      try {
+        const newWorkout = await callApiWithAuth(async () => {
+          return api.workouts.create(data);
+        }, { maxRetries: 2 });
+        
+        await queryClient.invalidateQueries({ queryKey: ['workouts'] });
+        return newWorkout;
+      } catch (error) {
+        console.error('Error in createWorkout:', error);
+        await refreshSession();
+        throw error;
+      }
     },
     updateWorkout: updateWorkout.mutate,
     deleteWorkout: deleteWorkout.mutate,

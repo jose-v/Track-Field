@@ -1,11 +1,13 @@
 import React from 'react';
 import {
   Box, Card, CardBody, Heading, Text, Icon, Flex, HStack, VStack, 
-  Progress, Button, Badge, IconButton, useColorModeValue, Tooltip
+  Button, Badge, IconButton, useColorModeValue, Tooltip
 } from '@chakra-ui/react';
 import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaEdit, FaTrash, FaPlayCircle, FaCalendarAlt, FaClock, FaMapMarkerAlt, FaUsers, FaTasks } from 'react-icons/fa';
 import type { Workout, Exercise } from '../services/api';
 import { dateUtils } from '../utils/date';
+import { ProgressBar } from './ProgressBar';
+import { Link as RouterLink } from 'react-router-dom';
 
 // Shared utility functions
 export function getTypeIcon(type: string | undefined) {
@@ -36,15 +38,8 @@ export function formatDate(dateStr: string | undefined) {
   if (!dateStr) return 'N/A';
   
   try {
-    // Ensure we have a valid date string before formatting
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) {
-      console.error(`Invalid date string: ${dateStr}`);
-      return 'Invalid date';
-    }
-    
-    // Use the standard date utility function for consistent formatting
-    return dateUtils.format(date, 'MMM d, yyyy');
+    // Use our date utilities to properly handle timezone issues
+    return dateUtils.format(dateUtils.parseLocalDate(dateStr), 'MMM d, yyyy');
   } catch (e) {
     console.error(`Error formatting date: ${dateStr}`, e);
     return 'Error';
@@ -58,12 +53,17 @@ interface WorkoutCardProps {
     completed: number;
     total: number;
     percentage: number;
+    inProgressCount?: number;
+    exerciseCount?: number;
   };
   assignedTo?: string;
   onEdit?: () => void;
   onDelete?: () => void;
   onStart?: () => void;
+  onRefresh?: () => void;
+  showRefresh?: boolean;
   statsLoading?: boolean;
+  detailedProgress?: boolean;
 }
 
 export function WorkoutCard({
@@ -74,7 +74,10 @@ export function WorkoutCard({
   onEdit,
   onDelete,
   onStart,
-  statsLoading = false
+  onRefresh,
+  showRefresh = false,
+  statsLoading = false,
+  detailedProgress = false
 }: WorkoutCardProps) {
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const iconBgColor = useColorModeValue('white', 'gray.800');
@@ -151,6 +154,17 @@ export function WorkoutCard({
               onClick={onEdit} 
             />
           )}
+          {!isCoach && (
+            <IconButton 
+              icon={<FaEdit />} 
+              aria-label="Edit" 
+              size="md" 
+              variant="ghost" 
+              color="white" 
+              as={RouterLink}
+              to={`/athlete/workouts/edit/${workout.id}`}
+            />
+          )}
           {isCoach && onDelete && (
             <IconButton 
               icon={<FaTrash />} 
@@ -159,6 +173,17 @@ export function WorkoutCard({
               variant="ghost" 
               color="white" 
               onClick={onDelete} 
+            />
+          )}
+          {showRefresh && onRefresh && (
+            <IconButton 
+              icon={<FaRedo />} 
+              aria-label="Refresh progress" 
+              size="md" 
+              variant="ghost" 
+              color="white" 
+              onClick={onRefresh}
+              title="Sync progress with database" 
             />
           )}
         </HStack>
@@ -232,20 +257,72 @@ export function WorkoutCard({
             </Flex>
           )}
           
+          {/* Card description/notes */}
+          {(workout.notes || workout.description) && (
+            <Box width="100%" bg={useColorModeValue('gray.50', 'gray.700')} p={3} borderRadius="md">
+              <Text fontSize="sm" color={infoColor} noOfLines={3}>
+                {workout.notes || workout.description}
+              </Text>
+            </Box>
+          )}
+          
           {/* Progress bar */}
           <Box width="100%" mt={2}>
-            <Text fontSize="sm" color={infoColor} mb={2} fontWeight="medium">
-              {isCoach ? 'Athlete Completion' : 'Your Progress'}
-            </Text>
-            <Progress 
-              value={progress.percentage} 
-              size="md" 
-              colorScheme={progress.completed === progress.total && progress.total > 0 ? "green" : typeColorBase} 
-              borderRadius="md" 
-            />
-            <Text fontSize="sm" color={infoColor} mt={2} textAlign="right">
-              {progress.completed} of {progress.total} {isCoach ? 'athlete(s)' : 'exercises'} completed
-            </Text>
+            <Flex justifyContent="space-between" alignItems="center" mb={2}>
+              {!detailedProgress && (
+                <Text fontSize="sm" color={infoColor} fontWeight="medium">
+                  {isCoach ? 'Athlete Completion' : 'Your Progress'}
+                </Text>
+              )}
+              {detailedProgress && (
+                <Text fontSize="sm" color={infoColor} fontWeight="medium">
+                  Progress
+                </Text>
+              )}
+              {!detailedProgress && showRefresh && onRefresh && (
+                <IconButton
+                  icon={<FaRedo />}
+                  aria-label="Sync progress"
+                  size="xs"
+                  colorScheme={typeColorBase}
+                  variant="outline"
+                  onClick={(e) => { 
+                    e.stopPropagation();
+                    onRefresh();
+                  }}
+                  title="Sync progress with database"
+                />
+              )}
+            </Flex>
+            
+            {detailedProgress && isCoach ? (
+              <>
+                <ProgressBar
+                  completed={progress.completed}
+                  total={progress.total}
+                  percentage={progress.percentage}
+                  colorScheme={progress.completed === progress.total && progress.total > 0 ? "green" : typeColorBase}
+                  itemLabel="athlete(s)"
+                  textColor={infoColor}
+                  showText={false}
+                />
+                
+                {statsLoading && (
+                  <Text fontSize="xs" color="gray.500" mt={1}>
+                    Updating progress...
+                  </Text>
+                )}
+              </>
+            ) : (
+              <ProgressBar
+                completed={progress.completed}
+                total={progress.total}
+                percentage={progress.percentage}
+                colorScheme={progress.completed === progress.total && progress.total > 0 ? "green" : typeColorBase}
+                itemLabel={isCoach ? "athlete(s)" : "exercises"}
+                textColor={infoColor}
+              />
+            )}
           </Box>
           
           {/* Action button */}

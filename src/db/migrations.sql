@@ -182,4 +182,46 @@ BEGIN
     NEW.updated_at = NOW();
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql; 
+$$ LANGUAGE plpgsql;
+
+-- Add missing fields to workouts table for compatibility with the app
+ALTER TABLE IF EXISTS public.workouts
+ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'Custom',
+ADD COLUMN IF NOT EXISTS date TEXT,
+ADD COLUMN IF NOT EXISTS duration TEXT,
+ADD COLUMN IF NOT EXISTS time TEXT,
+ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '',
+ADD COLUMN IF NOT EXISTS exercises JSONB DEFAULT '[]'::jsonb,
+ADD COLUMN IF NOT EXISTS location TEXT;
+
+-- Rename created_by to match the expected field in the API
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'workouts' AND column_name = 'created_by' AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'workouts' AND column_name = 'user_id')) THEN
+    ALTER TABLE public.workouts RENAME COLUMN created_by TO user_id;
+  END IF;
+END$$; 
+
+-- Add RLS policies for the workouts table
+ALTER TABLE public.workouts ENABLE ROW LEVEL SECURITY;
+
+-- Allow all authenticated users to view workouts
+CREATE POLICY "Workouts are viewable by authenticated users"
+  ON public.workouts FOR SELECT
+  USING (auth.role() = 'authenticated');
+
+-- Allow users to create their own workouts
+CREATE POLICY "Users can create their own workouts"
+  ON public.workouts FOR INSERT
+  WITH CHECK (auth.uid() = user_id OR auth.uid()::text = created_by::text);
+
+-- Allow users to update their own workouts
+CREATE POLICY "Users can update their own workouts"
+  ON public.workouts FOR UPDATE
+  USING (auth.uid() = user_id OR auth.uid()::text = created_by::text);
+
+-- Allow users to delete their own workouts
+CREATE POLICY "Users can delete their own workouts"
+  ON public.workouts FOR DELETE
+  USING (auth.uid() = user_id OR auth.uid()::text = created_by::text); 

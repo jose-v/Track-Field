@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { supabase } from '../supabaseClient'; // adjust path as needed
+import { supabase } from '../lib/supabase'; // corrected path
 
 export function useAthleteWorkoutsRealtime(refetch: () => void) {
   useEffect(() => {

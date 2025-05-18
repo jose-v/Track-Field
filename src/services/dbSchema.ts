@@ -71,6 +71,14 @@ export interface Profile {
   role: 'athlete' | 'coach' | 'team_manager';
   avatar_url?: string;
   bio?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  zip_code?: string;
+  team?: string;
+  school?: string;
+  coach?: string;
 }
 
 // Athlete type
@@ -87,6 +95,9 @@ export interface Coach {
   id: string; // References profile id
   specialties: string[];
   certifications: string[];
+  gender?: 'male' | 'female' | 'other';
+  birth_date?: string;
+  events: string[];
 }
 
 // Team Manager type
