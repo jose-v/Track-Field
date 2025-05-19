@@ -9,6 +9,7 @@ import { PersonalInfo } from '../components/signup/PersonalInfo';
 import { AthleteSelection } from '../components/signup/AthleteSelection';
 import { useAuth } from '../contexts/AuthContext';
 import { FaUserPlus } from 'react-icons/fa';
+import { signUp as signUpWithProfile } from '../services/authService';
 
 // Step labels for the progress indicator
 const getStepLabels = (totalSteps: number) => {
@@ -59,9 +60,9 @@ function SignupContent() {
   // Handle final submission
   const handleSubmit = async () => {
     try {
-      // Register the user with email and password
-      await signUp(signupData.email, signupData.password);
-      
+      // Register the user and create their profile
+      const { user, error } = await signUpWithProfile(signupData);
+      if (error) throw error;
       // Show success message
       toast({
         title: 'Account created!',
@@ -70,7 +71,6 @@ function SignupContent() {
         duration: 7000,
         isClosable: true,
       });
-      
       // Navigate to login page
       navigate('/login');
     } catch (error) {
@@ -104,8 +104,7 @@ function SignupContent() {
   return (
     <Card 
       mx="auto" 
-      mt={20}
-      mb={20}
+      mt={8}
       borderRadius="lg" 
       overflow="hidden" 
       boxShadow="md"
