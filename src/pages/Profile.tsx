@@ -214,6 +214,9 @@ export function Profile() {
   // Load profile from Supabase on mount or when remoteProfile changes
   useEffect(() => {
     if (remoteProfile) {
+      // Log the roleData to debug
+      console.log('Remote profile roleData:', remoteProfile.roleData);
+      
       // Map remote data to our format
       setProfile({
         first_name: remoteProfile.first_name || '',
@@ -224,7 +227,7 @@ export function Profile() {
         phone: formatPhone(remoteProfile.phone || ''),
         bio: remoteProfile.bio || '',
         gender: remoteProfile.roleData?.gender || '',
-        dob: remoteProfile.roleData?.birth_date || '',
+        dob: remoteProfile.roleData?.date_of_birth || '',
         events: remoteProfile.roleData?.events || [],
         coach: remoteProfile.coach || '',
         city: remoteProfile.city || '',
