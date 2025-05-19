@@ -182,6 +182,10 @@ export function CoachAthletes() {
                           <Text fontSize="sm">{athlete.phone || 'No phone number'}</Text>
                         </Flex>
                         <Flex align="center">
+                          <Icon as={FaEnvelope} color="blue.500" mr={2} />
+                          <Text fontSize="sm">{athlete.email || 'No email'}</Text>
+                        </Flex>
+                        <Flex align="center">
                           <Icon as={FaRunning} color="purple.500" mr={2} />
                           <Text fontSize="sm">{(athlete.events || []).join(', ') || 'No events assigned'}</Text>
                         </Flex>
@@ -214,6 +218,7 @@ export function CoachAthletes() {
                       <Th>Athlete</Th>
                       <Th>Events</Th>
                       <Th>Phone</Th>
+                      <Th>Email</Th>
                       <Th>Completion Rate</Th>
                       <Th>Actions</Th>
                     </Tr>
@@ -236,6 +241,7 @@ export function CoachAthletes() {
                         </Td>
                         <Td>{(athlete.events || []).join(', ') || 'No events'}</Td>
                         <Td>{athlete.phone || 'No phone'}</Td>
+                        <Td>{athlete.email || 'No email'}</Td>
                         <Td>
                           <Badge colorScheme={getCompletionColor(athlete.completion_rate || 0)}>
                             {athlete.completion_rate || 0}%
@@ -304,6 +310,10 @@ export function CoachAthletes() {
                     <HStack>
                       <Icon as={FaPhone} color="green.500" />
                       <Text>{selectedAthlete.phone || 'No phone number'}</Text>
+                    </HStack>
+                    <HStack>
+                      <Icon as={FaEnvelope} color="blue.500" />
+                      <Text>{selectedAthlete.email || 'No email'}</Text>
                     </HStack>
                   </VStack>
                 </Box>
