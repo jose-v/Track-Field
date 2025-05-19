@@ -17,10 +17,18 @@ export interface SignupData {
  */
 export async function signUp(data: SignupData): Promise<{ user: any; error: any }> {
   try {
-    // 1. Create the auth user
+    // 1. Create the auth user with metadata
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
+      options: {
+        data: {
+          role: data.role,
+          first_name: data.firstName,
+          last_name: data.lastName,
+          full_name: `${data.firstName} ${data.lastName}`,
+        }
+      }
     });
 
     if (authError) throw authError;
@@ -38,26 +46,43 @@ export async function signUp(data: SignupData): Promise<{ user: any; error: any 
       role: data.role,
     };
 
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .insert([profileData]);
+    try {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert([profileData]);
 
-    if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        throw profileError;
+      }
 
-    // 3. Create role-specific entry
-    switch (data.role) {
-      case 'athlete':
-        await createAthleteProfile(userId);
-        break;
-      case 'coach':
-        await createCoachProfile(userId, data.selectedAthletes);
-        break;
-      case 'team_manager':
-        await createTeamManagerProfile(userId, data.selectedAthletes);
-        break;
+      // 3. Create role-specific entry
+      switch (data.role) {
+        case 'athlete':
+          await createAthleteProfile(userId);
+          break;
+        case 'coach':
+          await createCoachProfile(userId, data.selectedAthletes);
+          break;
+        case 'team_manager':
+          await createTeamManagerProfile(userId, data.selectedAthletes);
+          break;
+      }
+
+      return { user: authData.user, error: null };
+    } catch (dbError) {
+      console.error('Database operation error:', dbError);
+      
+      // If profile creation fails, we should clean up the auth user
+      try {
+        // Note: In production, you might want to use admin functions to delete the user
+        console.warn('Auth user created but profile creation failed. Manual cleanup may be needed.');
+      } catch (cleanupError) {
+        console.error('Failed to clean up auth user after profile creation error:', cleanupError);
+      }
+      
+      throw dbError;
     }
-
-    return { user: authData.user, error: null };
   } catch (error) {
     console.error('Signup error:', error);
     return { user: null, error };
