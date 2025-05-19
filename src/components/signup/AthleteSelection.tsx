@@ -345,14 +345,51 @@ export function AthleteSelection() {
   
   return (
     <Box width="100%">
-      <Heading size="md" mb={4} textAlign="center">
+      <Heading size="md" mb={2} textAlign="center">
         Select Your Athletes
       </Heading>
       
-      <Text mb={6} textAlign="center" color="gray.600">
-        As a {roleText}, you can select the athletes you'll be working with.
-        You can always add or remove athletes later.
+      <Text textAlign="center" mb={4}>
+        As a {roleText}, you can select the athletes you'll be working with. This step is optional - you can always add or remove athletes later.
       </Text>
+      
+      {/* Search input */}
+      <InputGroup mb={6}>
+        <InputLeftElement pointerEvents="none">
+          <Icon as={FaSearch} color="gray.400" />
+        </InputLeftElement>
+        <Input
+          placeholder="Search athletes by name or event"
+          value={searchTerm}
+          onChange={handleSearch}
+        />
+      </InputGroup>
+      
+      {/* Loading state */}
+      {isLoading && (
+        <Center py={10}>
+          <VStack spacing={4}>
+            <Spinner size="xl" color="blue.500" />
+            <Text>Loading athletes...</Text>
+          </VStack>
+        </Center>
+      )}
+      
+      {/* Error state */}
+      {!isLoading && error && (
+        <VStack spacing={4} p={6} bg="red.50" borderRadius="md">
+          <Text color="red.500">{error}</Text>
+          <Text>Using demo data instead.</Text>
+        </VStack>
+      )}
+
+      {/* Athletes grid */}
+      {!isLoading && !error && filteredAthletes.length === 0 && (
+        <VStack spacing={4} p={6} bg="gray.50" borderRadius="md">
+          <Text>No athletes found matching your search.</Text>
+          <Button leftIcon={<FaPlus />} onClick={openAddAthleteModal}>Add New Athlete</Button>
+        </VStack>
+      )}
       
       {/* Selected Athletes */}
       {signupData.selectedAthletes.length > 0 && (
@@ -382,18 +419,6 @@ export function AthleteSelection() {
           </Wrap>
         </Box>
       )}
-      
-      {/* Search */}
-      <InputGroup mb={6}>
-        <InputLeftElement pointerEvents="none">
-          <Icon as={FaSearch} color="gray.400" />
-        </InputLeftElement>
-        <Input
-          placeholder="Search athletes by name or event"
-          value={searchTerm}
-          onChange={handleSearch}
-        />
-      </InputGroup>
       
       {/* Athletes Grid */}
       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
@@ -427,24 +452,6 @@ export function AthleteSelection() {
           </Box>
         ))}
       </SimpleGrid>
-      
-      {filteredAthletes.length === 0 && !isLoading && (
-        <Box textAlign="center" py={10}>
-          <Text>No athletes found matching your search.</Text>
-        </Box>
-      )}
-      
-      {/* Add New Athlete Button */}
-      <Box mt={6} textAlign="center">
-        <Button 
-          variant="outline" 
-          colorScheme="blue" 
-          leftIcon={<FaPlus />}
-          onClick={handleAddNewAthlete}
-        >
-          Add New Athlete
-        </Button>
-      </Box>
       
       {/* Add New Athlete Modal */}
       <Modal isOpen={isAddAthleteModalOpen} onClose={closeAddAthleteModal}>

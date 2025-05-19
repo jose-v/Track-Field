@@ -48,7 +48,7 @@ export async function getAllAthletes(): Promise<AthleteFrontend[]> {
   }
   
   try {
-    // Join profiles and athletes table
+    // Use a simpler query that doesn't depend on birth_date
     const { data, error } = await supabase
       .from('profiles')
       .select(`
@@ -58,8 +58,7 @@ export async function getAllAthletes(): Promise<AthleteFrontend[]> {
         email, 
         phone, 
         avatar_url,
-        athletes!inner (
-          birth_date,
+        athletes (
           events
         )
       `)
@@ -79,8 +78,8 @@ export async function getAllAthletes(): Promise<AthleteFrontend[]> {
     return data.map((item: any) => ({
       id: item.id,
       name: `${item.first_name || ''} ${item.last_name || ''}`.trim() || 'Unknown Athlete',
-      age: calculateAge(item.athletes.birth_date),
-      events: item.athletes.events || [],
+      age: item.athletes?.birth_date ? calculateAge(item.athletes.birth_date) : 0,
+      events: item.athletes?.events || [],
       avatar: item.avatar_url,
       email: item.email,
       phone: item.phone,
@@ -111,7 +110,7 @@ export async function searchAthletes(query: string): Promise<AthleteFrontend[]> 
   }
 
   try {
-    // Search in joined tables
+    // Use a simpler query that doesn't depend on birth_date
     const { data, error } = await supabase
       .from('profiles')
       .select(`
@@ -121,8 +120,7 @@ export async function searchAthletes(query: string): Promise<AthleteFrontend[]> 
         email, 
         phone, 
         avatar_url,
-        athletes!inner (
-          birth_date,
+        athletes (
           events
         )
       `)
@@ -143,8 +141,8 @@ export async function searchAthletes(query: string): Promise<AthleteFrontend[]> 
     return data.map((item: any) => ({
       id: item.id,
       name: `${item.first_name || ''} ${item.last_name || ''}`.trim() || 'Unknown Athlete',
-      age: calculateAge(item.athletes.birth_date),
-      events: item.athletes.events || [],
+      age: item.athletes?.birth_date ? calculateAge(item.athletes.birth_date) : 0,
+      events: item.athletes?.events || [],
       avatar: item.avatar_url,
       email: item.email,
       phone: item.phone,
