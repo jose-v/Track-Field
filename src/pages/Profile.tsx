@@ -452,14 +452,14 @@ export function Profile() {
       
       // Get the athlete-specific data
       const gender = profile.gender || 'male';
-      const birth_date = profile.dob || '2000-01-01';
+      const date_of_birth = profile.dob || '2000-01-01';
       const events = Array.isArray(profile.events) ? profile.events : [];
       const first_name = profile.first_name;
       const last_name = profile.last_name;
       
       // Log the payload and field types for debugging
-      console.log('=== ATHLETE PATCH PAYLOAD ===', { gender, birth_date, events, first_name, last_name });
-      Object.entries({ gender, birth_date, events, first_name, last_name }).forEach(([key, value]) => {
+      console.log('=== ATHLETE PATCH PAYLOAD ===', { gender, date_of_birth, events, first_name, last_name });
+      Object.entries({ gender, date_of_birth, events, first_name, last_name }).forEach(([key, value]) => {
         console.log(`Field: ${key}, Value:`, value, ', Type:', Array.isArray(value) ? 'array' : typeof value);
       });
       
@@ -477,7 +477,7 @@ export function Profile() {
           .insert({
             id: user.id,
             gender: gender,
-            birth_date: birth_date,
+            date_of_birth: date_of_birth,
             events: events,
             first_name: first_name,
             last_name: last_name
@@ -492,7 +492,7 @@ export function Profile() {
           .from('athletes')
           .update({
             gender,
-            birth_date,
+            date_of_birth,
             events,
             first_name,
             last_name
