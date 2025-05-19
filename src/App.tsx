@@ -5,6 +5,8 @@ import AuthErrorHandler from './auth/AuthErrorHandler'
 import { supabase } from './lib/supabase'
 import { initDebugUtils } from './utils/debugUtils'
 import AppRoutes from './routes/AppRoutes'
+import { Footer } from './components/Footer'
+import { Box, Flex } from '@chakra-ui/react'
 
 // Global styles for public/private pages
 import './styles/public.css'
@@ -39,11 +41,38 @@ function App() {
     initDebugUtils();
   }
 
+  useEffect(() => {
+    // Force button text color fix on app mount
+    const forceButtonColors = () => {
+      // Use timeout to ensure UI has rendered
+      setTimeout(() => {
+        const buttons = document.querySelectorAll('.chakra-button[data-variant="primary"]');
+        buttons.forEach(button => {
+          (button as HTMLElement).style.color = 'white';
+        });
+      }, 100);
+    };
+    
+    forceButtonColors();
+    
+    // Also listen for route changes which might load new buttons
+    window.addEventListener('popstate', forceButtonColors);
+    
+    return () => {
+      window.removeEventListener('popstate', forceButtonColors);
+    };
+  }, []);
+
   return (
     <ErrorBoundary>
       <Router>
-        <AuthErrorHandler />
-        <AppRoutes />
+        <Flex direction="column" minHeight="100vh">
+          <AuthErrorHandler />
+          <Box flex="1">
+            <AppRoutes />
+          </Box>
+          <Footer />
+        </Flex>
       </Router>
     </ErrorBoundary>
   )

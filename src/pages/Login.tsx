@@ -4,7 +4,6 @@ import {
   Box,
   Button,
   FormControl,
-  FormLabel,
   Input,
   VStack,
   Heading,
@@ -26,7 +25,7 @@ export function Login() {
   const navigate = useNavigate()
   const toast = useToast()
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
 
@@ -47,122 +46,123 @@ export function Login() {
   }
 
   return (
-    <Card 
-      maxW="md" 
-      mx="auto" 
-      mt={20}
-      mb={20}
-      borderRadius="lg" 
-      overflow="hidden" 
-      boxShadow="md"
+    <Flex 
+      direction="column" 
+      align="center" 
+      justify="center" 
+      minHeight="80vh"
+      marginTop="-80px"
+      px={4}
     >
-      {/* Hero Background */}
-      <Box 
-        h="120px" 
-        bg="linear-gradient(135deg, #4299E1 0%, #90CDF4 100%)" 
-        position="relative"
-      >
-        <Flex 
-          position="absolute" 
-          top="50%" 
-          left="50%" 
-          transform="translate(-50%, -50%)"
-          bg="white" 
-          borderRadius="full" 
-          w="70px" 
-          h="70px" 
-          justifyContent="center" 
+      <Card maxW="md" w="100%" borderRadius="lg" boxShadow="xl" overflow="hidden" p={0}>
+        {/* Full-width Hero Header */}
+        <Box 
+          w="full"
+          h="150px" 
+          bg="linear-gradient(135deg, #4299E1 0%, #90CDF4 100%)" 
+          display="flex"
+          flexDirection="column"
           alignItems="center"
-          boxShadow="md"
+          justifyContent="center"
+          p={0}
+          m={0}
         >
-          <Icon as={FaUser} w={8} h={8} color="blue.500" />
-        </Flex>
-      </Box>
-      
-      <CardBody pt={12}>
-        <VStack spacing={6} align="stretch">
-          <VStack spacing={2}>
-            <Heading textAlign="center" size="lg">Welcome Back</Heading>
-            <Text textAlign="center" color="gray.600">
-              Sign in to your account
+          <Flex 
+            bg="white" 
+            borderRadius="full" 
+            w="70px" 
+            h="70px" 
+            justify="center" 
+            align="center"
+            boxShadow="md"
+            mb={2}
+          >
+            <Icon as={FaUser} w={8} h={8} color="blue.500" />
+          </Flex>
+          <Heading size="md" color="white" fontWeight="bold" letterSpacing="wide" textAlign="center" mt={1} textTransform="uppercase">
+            Sign In
+          </Heading>
+        </Box>
+        <CardBody pt={8} px={8}>
+          <VStack spacing={6} align="stretch">
+            <form onSubmit={handleSubmit}>
+              <VStack spacing={4}>
+                <FormControl>
+                  <Flex align="center">
+                    <Flex
+                      align="center"
+                      justify="center"
+                      h="40px"
+                      w="40px"
+                      bg="blue.50"
+                      borderRadius="md"
+                      mr={2}
+                    >
+                      <Icon as={FaEnvelope} color="blue.500" />
+                    </Flex>
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Enter your email"
+                      bg="gray.50"
+                      autoComplete="email"
+                      aria-label="Email"
+                    />
+                  </Flex>
+                </FormControl>
+
+                <FormControl>
+                  <Flex align="center">
+                    <Flex
+                      align="center"
+                      justify="center"
+                      h="40px"
+                      w="40px"
+                      bg="blue.50"
+                      borderRadius="md"
+                      mr={2}
+                    >
+                      <Icon as={FaLock} color="blue.500" />
+                    </Flex>
+                    <Input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      bg="gray.50"
+                      autoComplete="current-password"
+                      aria-label="Password"
+                    />
+                  </Flex>
+                </FormControl>
+
+                <Button
+                  type="submit"
+                  colorScheme="blue"
+                  width="full"
+                  isLoading={isLoading}
+                  mt={2}
+                  size="lg"
+                >
+                  Sign In
+                </Button>
+              </VStack>
+            </form>
+
+            <Text textAlign="center" mt={4}>
+              Don't have an account?{' '}
+              <Button
+                variant="link"
+                colorScheme="blue"
+                onClick={() => navigate('/signup')}
+              >
+                Sign Up
+              </Button>
             </Text>
           </VStack>
-
-          <form onSubmit={handleSubmit}>
-            <VStack spacing={4}>
-              <FormControl isRequired>
-                <FormLabel>Email</FormLabel>
-                <Flex align="center">
-                  <Flex
-                    align="center"
-                    justify="center"
-                    h="40px"
-                    w="40px"
-                    bg="blue.50"
-                    borderRadius="md"
-                    mr={2}
-                  >
-                    <Icon as={FaEnvelope} color="blue.500" />
-                  </Flex>
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email"
-                    bg="gray.50"
-                  />
-                </Flex>
-              </FormControl>
-
-              <FormControl isRequired>
-                <FormLabel>Password</FormLabel>
-                <Flex align="center">
-                  <Flex
-                    align="center"
-                    justify="center"
-                    h="40px"
-                    w="40px"
-                    bg="blue.50"
-                    borderRadius="md"
-                    mr={2}
-                  >
-                    <Icon as={FaLock} color="blue.500" />
-                  </Flex>
-                  <Input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    bg="gray.50"
-                  />
-                </Flex>
-              </FormControl>
-
-              <Button
-                type="submit"
-                colorScheme="blue"
-                width="full"
-                isLoading={isLoading}
-                mt={2}
-                size="lg"
-              >
-                Sign In
-              </Button>
-            </VStack>
-          </form>
-
-          <Text textAlign="center" mt={4}>
-            Don't have an account?{' '}
-            <Button
-              variant="link"
-              colorScheme="blue"
-              onClick={() => navigate('/signup')}
-            >
-              Sign Up
-            </Button>
-          </Text>
-        </VStack>
-      </CardBody>
-    </Card>
+        </CardBody>
+      </Card>
+    </Flex>
   )
-} 
+}

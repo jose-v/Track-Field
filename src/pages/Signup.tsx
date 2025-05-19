@@ -108,88 +108,101 @@ function SignupContent() {
   };
   
   return (
-    <Card 
-      mx="auto" 
-      mt={8}
-      borderRadius="lg" 
-      overflow="hidden" 
-      boxShadow="md"
-      maxW={{ base: "100%", md: "4xl" }}
+    <Flex
+      direction="column"
+      align="center"
+      justify="center"
+      minHeight="80vh"
+      marginTop="-80px"
+      px={4}
     >
-      {/* Hero Background */}
-      <Box 
-        h="120px" 
-        bg="linear-gradient(135deg, #805AD5 0%, #B794F4 100%)" 
-        position="relative"
+      <Card 
+        maxW={{ base: "100%", md: "4xl" }}
+        w="100%"
+        borderRadius="lg" 
+        overflow="hidden" 
+        boxShadow="xl"
+        p={0}
       >
-        <Flex 
-          position="absolute" 
-          top="50%" 
-          left="50%" 
-          transform="translate(-50%, -50%)"
-          bg="white" 
-          borderRadius="full" 
-          w="70px" 
-          h="70px" 
-          justifyContent="center" 
+        {/* Full-width Hero Header */}
+        <Box 
+          w="full"
+          h="150px" 
+          bg="linear-gradient(135deg, #805AD5 0%, #B794F4 100%)" 
+          position="relative"
+          display="flex"
+          flexDirection="column"
           alignItems="center"
-          boxShadow="md"
+          justifyContent="center"
+          p={0}
+          m={0}
         >
-          <Icon as={FaUserPlus} w={8} h={8} color="purple.500" />
-        </Flex>
-      </Box>
-      
-      <CardBody pt={12} px={6}>
-        <Heading textAlign="center" mb={6} size="lg">Create Account</Heading>
-        
-        {/* Step indicator */}
-        <Box px={{ base: 2, md: 6 }}>
-          <StepIndicator 
-            currentStep={currentStep} 
-            totalSteps={totalSteps} 
-            stepLabels={stepLabels} 
-          />
-        </Box>
-        
-        {/* Step content */}
-        <Box mb={8} mt={6}>
-          {renderStep()}
-        </Box>
-        
-        {/* Navigation buttons */}
-        <Flex justify="space-between" mt={6}>
-          <Button 
-            onClick={handlePrevStep} 
-            visibility={currentStep === 1 ? 'hidden' : 'visible'}
-            size={{ base: "md", md: "lg" }}
+          <Flex 
+            bg="white" 
+            borderRadius="full" 
+            w="70px" 
+            h="70px" 
+            justify="center" 
+            align="center"
+            boxShadow="md"
+            mb={2}
           >
-            Previous
-          </Button>
+            <Icon as={FaUserPlus} w={8} h={8} color="purple.500" />
+          </Flex>
+          <Heading size="md" color="white" fontWeight="bold" letterSpacing="wide" textAlign="center" mt={1} textTransform="uppercase">
+            Sign Up
+          </Heading>
+        </Box>
+        <CardBody pt={8} px={8}>
+          {/* Step indicator */}
+          <Box px={{ base: 2, md: 6 }}>
+            <StepIndicator 
+              currentStep={currentStep} 
+              totalSteps={totalSteps} 
+              stepLabels={stepLabels} 
+            />
+          </Box>
           
-          {currentStep < totalSteps ? (
+          {/* Step content */}
+          <Box mb={8} mt={6}>
+            {renderStep()}
+          </Box>
+          
+          {/* Navigation buttons */}
+          <Flex justify="space-between" mt={6}>
             <Button 
-              colorScheme="purple" 
-              onClick={handleNextStep}
-              isDisabled={
-                (currentStep === 1 && !signupData.role) || 
-                (currentStep === 2 && (!signupData.email || !signupData.password))
-              }
+              onClick={handlePrevStep} 
+              visibility={currentStep === 1 ? 'hidden' : 'visible'}
               size={{ base: "md", md: "lg" }}
             >
-              Next
+              Previous
             </Button>
-          ) : (
-            <Button 
-              colorScheme="purple" 
-              onClick={handleSubmit}
-              size={{ base: "md", md: "lg" }}
-            >
-              Complete Signup
-            </Button>
-          )}
-        </Flex>
-      </CardBody>
-    </Card>
+            
+            {currentStep < totalSteps ? (
+              <Button 
+                colorScheme="purple" 
+                onClick={handleNextStep}
+                isDisabled={
+                  (currentStep === 1 && !signupData.role) || 
+                  (currentStep === 2 && (!signupData.email || !signupData.password))
+                }
+                size={{ base: "md", md: "lg" }}
+              >
+                Next
+              </Button>
+            ) : (
+              <Button 
+                colorScheme="purple" 
+                onClick={handleSubmit}
+                size={{ base: "md", md: "lg" }}
+              >
+                Complete Signup
+              </Button>
+            )}
+          </Flex>
+        </CardBody>
+      </Card>
+    </Flex>
   );
 }
 

@@ -73,7 +73,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const avatarUrl = profile?.avatar_url
 
   return (
-    <Box minH="100vh" bg={useColorModeValue('gray.50', 'gray.900')}> 
+    <Box bg={useColorModeValue('gray.50', 'gray.900')}> 
       {user && (
         <Box
           bg={bgColor}
@@ -192,7 +192,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </PageContainer>
         </Box>
       )}
-      <Box pt={user ? 20 : 0} w="full">
+      <Box pt={user ? 20 : 0} w="full" flex="1">
         <PageContainer py={6}>
           {children}
         </PageContainer>
