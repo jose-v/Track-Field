@@ -7,6 +7,24 @@
     <title>Track & Field</title>
     <!-- Inter font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+    <!-- Button style fixes -->
+    <link href="/style-fix.css" rel="stylesheet" />
+    <!-- Critical inline styles -->
+    <style>
+      /* Force all buttons with primary variant to have white text */
+      .chakra-button[data-variant="primary"],
+      .chakra-button[variant="primary"],
+      button[data-variant="primary"],
+      a[data-variant="primary"] {
+        color: white !important;
+      }
+      
+      /* Also handle hover states */
+      .chakra-button[data-variant="primary"]:hover,
+      .chakra-button[variant="primary"]:hover {
+        color: white !important;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

@@ -45,108 +45,33 @@ import {
   FormControl,
   FormLabel,
   Select,
+  Spinner,
+  Alert,
+  AlertIcon,
 } from '@chakra-ui/react'
 import { FaSearch, FaUserPlus, FaEnvelope, FaPhone, FaCalendarAlt, FaTrophy, FaRunning, FaEllipsisV, FaFilter } from 'react-icons/fa'
-import { useState } from 'react'
-
-// Mock data for athletes
-const athletes = [
-  { 
-    id: '1', 
-    name: 'John Smith', 
-    email: 'john.smith@example.com',
-    phone: '(555) 123-4567',
-    avatar: '/images/athlete-avatar.jpg', 
-    age: 22,
-    events: ['100m Sprint', '200m Sprint', '4x100m Relay'],
-    completionRate: 85,
-    personalBests: [
-      { event: '100m Sprint', time: '10.45s', date: '2023-06-15' },
-      { event: '200m Sprint', time: '21.32s', date: '2023-07-22' },
-    ]
-  },
-  { 
-    id: '2', 
-    name: 'Sarah Williams', 
-    email: 'sarah.w@example.com',
-    phone: '(555) 987-6543',
-    avatar: '/images/athlete-avatar3.jpg', 
-    age: 19,
-    events: ['Long Jump', 'Triple Jump'],
-    completionRate: 92,
-    personalBests: [
-      { event: 'Long Jump', distance: '6.45m', date: '2023-05-10' },
-      { event: 'Triple Jump', distance: '13.67m', date: '2023-06-05' },
-    ]
-  },
-  { 
-    id: '3', 
-    name: 'Mike Johnson', 
-    email: 'mike.j@example.com',
-    phone: '(555) 456-7890',
-    avatar: '/images/athlete-avatar2.jpg', 
-    age: 24,
-    events: ['400m Hurdles', '400m Sprint'],
-    completionRate: 78,
-    personalBests: [
-      { event: '400m Hurdles', time: '49.87s', date: '2023-04-18' },
-      { event: '400m Sprint', time: '45.92s', date: '2023-06-30' },
-    ]
-  },
-  { 
-    id: '4', 
-    name: 'Emily Davis', 
-    email: 'emily.d@example.com',
-    phone: '(555) 789-0123',
-    avatar: '', 
-    age: 20,
-    events: ['800m', '1500m'],
-    completionRate: 64,
-    personalBests: [
-      { event: '800m', time: '2:05.45', date: '2023-05-22' },
-      { event: '1500m', time: '4:15.33', date: '2023-06-12' },
-    ]
-  },
-  { 
-    id: '5', 
-    name: 'Robert Wilson', 
-    email: 'robert.w@example.com',
-    phone: '(555) 321-0987',
-    avatar: '', 
-    age: 21,
-    events: ['Shot Put', 'Discus'],
-    completionRate: 89,
-    personalBests: [
-      { event: 'Shot Put', distance: '18.75m', date: '2023-05-15' },
-      { event: 'Discus', distance: '57.23m', date: '2023-06-25' },
-    ]
-  },
-];
+import { useState, useEffect } from 'react'
+import { useCoachAthletes } from '../../hooks/useCoachAthletes'
 
 export function CoachAthletes() {
+  const { data: athletes = [], isLoading, isError, error } = useCoachAthletes();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAthlete, setSelectedAthlete] = useState<any>(null);
-  const [filteredAthletes, setFilteredAthletes] = useState(athletes);
   const { isOpen, onOpen, onClose } = useDisclosure();
   
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   
+  const filteredAthletes = !searchTerm
+    ? athletes
+    : athletes.filter(athlete =>
+        (athlete.first_name + ' ' + athlete.last_name).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (athlete.events || []).some((event: string) => event.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+  
   // Function to handle search
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const term = e.target.value;
-    setSearchTerm(term);
-    
-    if (term === '') {
-      setFilteredAthletes(athletes);
-    } else {
-      const filtered = athletes.filter(athlete => 
-        athlete.name.toLowerCase().includes(term.toLowerCase()) ||
-        athlete.email.toLowerCase().includes(term.toLowerCase()) ||
-        athlete.events.some(event => event.toLowerCase().includes(term.toLowerCase()))
-      );
-      setFilteredAthletes(filtered);
-    }
+    setSearchTerm(e.target.value);
   };
   
   // Function to open athlete details
@@ -209,154 +134,165 @@ export function CoachAthletes() {
         </Menu>
       </Flex>
       
-      {/* Athletes List */}
-      <Tabs variant="enclosed" bg={cardBg} borderRadius="md" shadow="base" borderWidth="1px" borderColor={borderColor}>
-        <TabList>
-          <Tab>Card View</Tab>
-          <Tab>Table View</Tab>
-        </TabList>
-        
-        <TabPanels>
-          {/* Card View */}
-          <TabPanel>
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-              {filteredAthletes.map(athlete => (
-                <Card 
-                  key={athlete.id} 
-                  shadow="md" 
-                  borderWidth="1px" 
-                  borderColor={borderColor}
-                  transition="transform 0.2s"
-                  _hover={{ transform: "translateY(-5px)" }}
-                  cursor="pointer"
-                  onClick={() => openAthleteDetails(athlete)}
-                >
-                  <CardBody>
-                    <HStack mb={4}>
-                      <Avatar size="md" name={athlete.name} src={athlete.avatar} />
-                      <Box>
-                        <Heading size="md">{athlete.name}</Heading>
-                        <Text fontSize="sm" color="gray.500">Age: {athlete.age}</Text>
-                      </Box>
-                    </HStack>
-                    
-                    <Stack spacing={2} mb={4}>
-                      <Flex align="center">
-                        <Icon as={FaEnvelope} color="blue.500" mr={2} />
-                        <Text fontSize="sm">{athlete.email}</Text>
-                      </Flex>
-                      <Flex align="center">
-                        <Icon as={FaPhone} color="green.500" mr={2} />
-                        <Text fontSize="sm">{athlete.phone}</Text>
-                      </Flex>
-                      <Flex align="center">
-                        <Icon as={FaRunning} color="purple.500" mr={2} />
-                        <Text fontSize="sm">{athlete.events.join(', ')}</Text>
-                      </Flex>
-                    </Stack>
-                    
-                    <Flex justify="space-between" align="center">
-                      <Text fontSize="sm" fontWeight="medium">Completion Rate:</Text>
-                      <Badge colorScheme={getCompletionColor(athlete.completionRate)}>
-                        {athlete.completionRate}%
-                      </Badge>
-                    </Flex>
-                  </CardBody>
-                </Card>
-              ))}
-            </SimpleGrid>
-            
-            {filteredAthletes.length === 0 && (
-              <Box textAlign="center" py={10}>
-                <Text>No athletes found matching your search criteria.</Text>
-              </Box>
-            )}
-          </TabPanel>
+      {/* Loading and Error States */}
+      {isLoading ? (
+        <Flex justify="center" align="center" minH="200px">
+          <Spinner size="xl" color="blue.500" />
+        </Flex>
+      ) : isError ? (
+        <Alert status="error" borderRadius="md">
+          <AlertIcon />
+          Error loading athletes: {error?.message || 'Please try again later'}
+        </Alert>
+      ) : (
+        <Tabs variant="enclosed">
+          <TabList>
+            <Tab>Grid View</Tab>
+            <Tab>Table View</Tab>
+          </TabList>
           
-          {/* Table View */}
-          <TabPanel>
-            <Box overflowX="auto">
-              <Table variant="simple">
-                <Thead>
-                  <Tr>
-                    <Th>Athlete</Th>
-                    <Th>Events</Th>
-                    <Th>Email</Th>
-                    <Th>Phone</Th>
-                    <Th>Completion Rate</Th>
-                    <Th>Actions</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {filteredAthletes.map(athlete => (
-                    <Tr key={athlete.id} _hover={{ bg: useColorModeValue('gray.50', 'gray.700') }}>
-                      <Td>
-                        <HStack>
-                          <Avatar size="sm" name={athlete.name} src={athlete.avatar} />
-                          <Box>
-                            <Text fontWeight="medium">{athlete.name}</Text>
-                            <Text fontSize="xs" color="gray.500">Age: {athlete.age}</Text>
-                          </Box>
-                        </HStack>
-                      </Td>
-                      <Td>{athlete.events.join(', ')}</Td>
-                      <Td>{athlete.email}</Td>
-                      <Td>{athlete.phone}</Td>
-                      <Td>
-                        <Badge colorScheme={getCompletionColor(athlete.completionRate)}>
-                          {athlete.completionRate}%
+          <TabPanels>
+            {/* Grid View */}
+            <TabPanel px={0}>
+              <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+                {filteredAthletes.map(athlete => (
+                  <Card 
+                    key={athlete.id}
+                    cursor="pointer"
+                    onClick={() => openAthleteDetails(athlete)}
+                    _hover={{ transform: 'translateY(-2px)', shadow: 'lg' }}
+                    transition="all 0.2s"
+                  >
+                    <CardBody>
+                      <HStack mb={4}>
+                        <Avatar 
+                          size="md" 
+                          name={`${athlete.first_name} ${athlete.last_name}`} 
+                          src={athlete.avatar_url} 
+                        />
+                        <Box>
+                          <Heading size="md">{`${athlete.first_name} ${athlete.last_name}`}</Heading>
+                          <Text fontSize="sm" color="gray.500">Age: {athlete.age}</Text>
+                        </Box>
+                      </HStack>
+                      
+                      <Stack spacing={2} mb={4}>
+                        <Flex align="center">
+                          <Icon as={FaPhone} color="green.500" mr={2} />
+                          <Text fontSize="sm">{athlete.phone || 'No phone number'}</Text>
+                        </Flex>
+                        <Flex align="center">
+                          <Icon as={FaRunning} color="purple.500" mr={2} />
+                          <Text fontSize="sm">{(athlete.events || []).join(', ') || 'No events assigned'}</Text>
+                        </Flex>
+                      </Stack>
+                      
+                      <Flex justify="space-between" align="center">
+                        <Text fontSize="sm" fontWeight="medium">Workout Completion:</Text>
+                        <Badge colorScheme={getCompletionColor(athlete.completion_rate || 0)}>
+                          {athlete.completion_rate || 0}%
                         </Badge>
-                      </Td>
-                      <Td>
-                        <Menu>
-                          <MenuButton
-                            as={IconButton}
-                            aria-label="Options"
-                            icon={<FaEllipsisV />}
-                            variant="ghost"
-                            size="sm"
-                          />
-                          <MenuList>
-                            <MenuItem onClick={() => openAthleteDetails(athlete)}>View Details</MenuItem>
-                            <MenuItem>Edit Athlete</MenuItem>
-                            <MenuItem>Assign Workout</MenuItem>
-                            <MenuItem>View Performance</MenuItem>
-                            <MenuItem color="red.500">Remove Athlete</MenuItem>
-                          </MenuList>
-                        </Menu>
-                      </Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
+                      </Flex>
+                    </CardBody>
+                  </Card>
+                ))}
+              </SimpleGrid>
               
               {filteredAthletes.length === 0 && (
                 <Box textAlign="center" py={10}>
                   <Text>No athletes found matching your search criteria.</Text>
                 </Box>
               )}
-            </Box>
-          </TabPanel>
-        </TabPanels>
-      </Tabs>
+            </TabPanel>
+            
+            {/* Table View */}
+            <TabPanel px={0}>
+              <Box overflowX="auto">
+                <Table variant="simple">
+                  <Thead>
+                    <Tr>
+                      <Th>Athlete</Th>
+                      <Th>Events</Th>
+                      <Th>Phone</Th>
+                      <Th>Completion Rate</Th>
+                      <Th>Actions</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {filteredAthletes.map(athlete => (
+                      <Tr key={athlete.id} _hover={{ bg: useColorModeValue('gray.50', 'gray.700') }}>
+                        <Td>
+                          <HStack>
+                            <Avatar 
+                              size="sm" 
+                              name={`${athlete.first_name} ${athlete.last_name}`} 
+                              src={athlete.avatar_url}
+                            />
+                            <Box>
+                              <Text fontWeight="medium">{`${athlete.first_name} ${athlete.last_name}`}</Text>
+                              <Text fontSize="xs" color="gray.500">Age: {athlete.age}</Text>
+                            </Box>
+                          </HStack>
+                        </Td>
+                        <Td>{(athlete.events || []).join(', ') || 'No events'}</Td>
+                        <Td>{athlete.phone || 'No phone'}</Td>
+                        <Td>
+                          <Badge colorScheme={getCompletionColor(athlete.completion_rate || 0)}>
+                            {athlete.completion_rate || 0}%
+                          </Badge>
+                        </Td>
+                        <Td>
+                          <Menu>
+                            <MenuButton
+                              as={IconButton}
+                              aria-label="Options"
+                              icon={<FaEllipsisV />}
+                              variant="ghost"
+                              size="sm"
+                            />
+                            <MenuList>
+                              <MenuItem onClick={() => openAthleteDetails(athlete)}>View Details</MenuItem>
+                              <MenuItem>Edit Athlete</MenuItem>
+                              <MenuItem>Assign Workout</MenuItem>
+                              <MenuItem>View Performance</MenuItem>
+                              <MenuItem color="red.500">Remove Athlete</MenuItem>
+                            </MenuList>
+                          </Menu>
+                        </Td>
+                      </Tr>
+                    ))}
+                  </Tbody>
+                </Table>
+                
+                {filteredAthletes.length === 0 && (
+                  <Box textAlign="center" py={10}>
+                    <Text>No athletes found matching your search criteria.</Text>
+                  </Box>
+                )}
+              </Box>
+            </TabPanel>
+          </TabPanels>
+        </Tabs>
+      )}
       
       {/* Athlete Details Modal */}
-      {selectedAthlete && (
-        <Modal isOpen={isOpen} onClose={onClose} size="lg">
-          <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>Athlete Details</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody>
-              <VStack spacing={6} align="stretch">
-                <HStack spacing={4}>
-                  <Avatar size="xl" name={selectedAthlete.name} src={selectedAthlete.avatar} />
+      <Modal isOpen={isOpen} onClose={onClose} size="xl">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Athlete Details</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            {selectedAthlete && (
+              <VStack align="stretch" spacing={4}>
+                <HStack>
+                  <Avatar 
+                    size="xl" 
+                    name={`${selectedAthlete.first_name} ${selectedAthlete.last_name}`} 
+                    src={selectedAthlete.avatar_url}
+                  />
                   <Box>
-                    <Heading size="md">{selectedAthlete.name}</Heading>
+                    <Heading size="lg">{`${selectedAthlete.first_name} ${selectedAthlete.last_name}`}</Heading>
                     <Text color="gray.500">Age: {selectedAthlete.age}</Text>
-                    <Badge colorScheme={getCompletionColor(selectedAthlete.completionRate)} mt={1}>
-                      {selectedAthlete.completionRate}% Completion Rate
-                    </Badge>
                   </Box>
                 </HStack>
                 
@@ -364,63 +300,50 @@ export function CoachAthletes() {
                 
                 <Box>
                   <Heading size="sm" mb={2}>Contact Information</Heading>
-                  <SimpleGrid columns={2} spacing={4}>
-                    <Flex align="center">
-                      <Icon as={FaEnvelope} color="blue.500" mr={2} />
-                      <Text>{selectedAthlete.email}</Text>
-                    </Flex>
-                    <Flex align="center">
-                      <Icon as={FaPhone} color="green.500" mr={2} />
-                      <Text>{selectedAthlete.phone}</Text>
-                    </Flex>
-                  </SimpleGrid>
+                  <VStack align="start" spacing={2}>
+                    <HStack>
+                      <Icon as={FaPhone} color="green.500" />
+                      <Text>{selectedAthlete.phone || 'No phone number'}</Text>
+                    </HStack>
+                  </VStack>
                 </Box>
                 
                 <Box>
                   <Heading size="sm" mb={2}>Events</Heading>
-                  <HStack spacing={2} flexWrap="wrap">
-                    {selectedAthlete.events.map((event: string) => (
-                      <Badge key={event} colorScheme="blue" py={1} px={2}>
+                  <Flex gap={2} flexWrap="wrap">
+                    {(selectedAthlete.events || []).map((event: string, index: number) => (
+                      <Badge key={index} colorScheme="purple" py={1} px={2}>
                         {event}
                       </Badge>
                     ))}
-                  </HStack>
+                  </Flex>
                 </Box>
                 
                 <Box>
-                  <Heading size="sm" mb={2}>Personal Bests</Heading>
-                  <Table variant="simple" size="sm">
-                    <Thead>
-                      <Tr>
-                        <Th>Event</Th>
-                        <Th>Result</Th>
-                        <Th>Date</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {selectedAthlete.personalBests.map((pb: any, index: number) => (
-                        <Tr key={index}>
-                          <Td>{pb.event}</Td>
-                          <Td>{pb.time || pb.distance}</Td>
-                          <Td>{new Date(pb.date).toLocaleDateString()}</Td>
-                        </Tr>
-                      ))}
-                    </Tbody>
-                  </Table>
+                  <Heading size="sm" mb={2}>Team Information</Heading>
+                  <Text>{selectedAthlete.team_id || 'No team assigned'}</Text>
+                </Box>
+                
+                <Box>
+                  <Heading size="sm" mb={2}>Performance</Heading>
+                  <HStack justify="space-between">
+                    <Text>Workout Completion Rate:</Text>
+                    <Badge colorScheme={getCompletionColor(selectedAthlete.completion_rate || 0)}>
+                      {selectedAthlete.completion_rate || 0}%
+                    </Badge>
+                  </HStack>
                 </Box>
               </VStack>
-            </ModalBody>
-            <ModalFooter>
-              <Button colorScheme="blue" mr={3} onClick={onClose}>
-                Close
-              </Button>
-              <Button variant="outline" leftIcon={<Icon as={FaRunning} />}>
-                Assign Workout
-              </Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
-      )}
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" mr={3}>
+              Edit Profile
+            </Button>
+            <Button onClick={onClose}>Close</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Box>
-  )
+  );
 } 

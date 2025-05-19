@@ -61,6 +61,10 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
       borderRadius="lg" 
       overflow="hidden" 
       boxShadow="md"
+      p="0"
+      height="100%"
+      display="flex"
+      flexDirection="column"
       {...rest}
     >
       {/* Header */}
@@ -71,6 +75,10 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
         display="flex"
         alignItems="center"
         px={6}
+        margin="0"
+        width="100%"
+        borderTopLeftRadius="inherit"
+        borderTopRightRadius="inherit"
       >
         <Flex 
           bg="white" 
@@ -97,129 +105,135 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
           TRACK MEETS
         </Tag>
       </Box>
-      <CardBody>
+      <CardBody px={4} py={4} display="flex" flexDirection="column" flex="1">
         {trackMeets.length === 0 && coachMeets.length === 0 ? (
-          <VStack spacing={4} py={4}>
+          <VStack spacing={4} py={4} flex="1" justifyContent="center">
             <Text>No upcoming track meets found.</Text>
-            <Button 
-              as={RouterLink}
-              to={viewAllLink}
-              colorScheme="blue"
-              size="sm"
-              leftIcon={<FaCalendarAlt />}
-            >
-              View All Meets
-            </Button>
+            <Box mt="auto" width="100%">
+              <Button 
+                as={RouterLink}
+                to={viewAllLink}
+                variant="primary"
+                size="md"
+                leftIcon={<FaCalendarAlt />}
+                width="full"
+              >
+                View All Track Meets
+              </Button>
+            </Box>
           </VStack>
         ) : (
-          <VStack spacing={4} align="start">
-            {/* Show athlete's track meets */}
-            {trackMeets.length > 0 && (
-              <>
-                <Heading size="sm">My Track Meets</Heading>
-                {trackMeets.slice(0, 2).map(meet => (
-                  <Box key={meet.id} width="100%" p={2} borderWidth="1px" borderRadius="md">
-                    <Flex justify="space-between" align="center">
-                      <Heading size="xs">{meet.name}</Heading>
-                      <Tag size="sm" colorScheme={
-                        meet.status === 'Completed' ? 'green' : 
-                        meet.status === 'Cancelled' ? 'red' : 'blue'
-                      }>
-                        {meet.status}
-                      </Tag>
-                    </Flex>
-                    <Text fontSize="sm" mt={1}>
-                      {formatDate(meet.meet_date)}
-                    </Text>
-                    {meet.city && meet.state && (
-                      <Text fontSize="xs" color="gray.500">
-                        {meet.city}, {meet.state}
+          <VStack spacing={4} align="stretch" height="100%">
+            <Box flex="1">
+              {/* Show athlete's track meets */}
+              {trackMeets.length > 0 && (
+                <>
+                  <Heading size="sm">My Track Meets</Heading>
+                  {trackMeets.slice(0, 2).map(meet => (
+                    <Box key={meet.id} width="100%" p={2} borderWidth="1px" borderRadius="md" mt={2}>
+                      <Flex justify="space-between" align="center">
+                        <Heading size="xs">{meet.name}</Heading>
+                        <Tag size="sm" colorScheme={
+                          meet.status === 'Completed' ? 'green' : 
+                          meet.status === 'Cancelled' ? 'red' : 'blue'
+                        }>
+                          {meet.status}
+                        </Tag>
+                      </Flex>
+                      <Text fontSize="sm" mt={1}>
+                        {formatDate(meet.meet_date)}
                       </Text>
-                    )}
-                    {/* Display assigned events */}
-                    {meet.assigned_events && meet.assigned_events.length > 0 && (
-                      <Box mt={2}>
-                        <Text fontSize="xs" fontWeight="medium" color="blue.700">
-                          Your events: {meet.assigned_events_count} of {meet.total_events}
+                      {meet.city && meet.state && (
+                        <Text fontSize="xs" color="gray.500">
+                          {meet.city}, {meet.state}
                         </Text>
-                        <Flex flexWrap="wrap" mt={1} gap={1}>
-                          {meet.assigned_events.slice(0, 3).map((event) => (
-                            <Tag key={event.id} size="sm" variant="subtle" colorScheme="blue" fontSize="xs">
-                              {event.event_name}
-                            </Tag>
-                          ))}
-                          {meet.assigned_events.length > 3 && (
-                            <Tag size="sm" variant="subtle" colorScheme="gray" fontSize="xs">
-                              +{meet.assigned_events.length - 3} more
-                            </Tag>
-                          )}
-                        </Flex>
-                      </Box>
-                    )}
-                  </Box>
-                ))}
-              </>
-            )}
-            
-            {/* Show coach's track meets */}
-            {coachMeets.length > 0 && (
-              <>
-                <Heading size="sm" mt={trackMeets.length > 0 ? 2 : 0}>Coach's Meets</Heading>
-                {coachMeets.slice(0, 2).map(meet => (
-                  <Box key={meet.id} width="100%" p={2} borderWidth="1px" borderRadius="md">
-                    <Flex justify="space-between" align="center">
-                      <Heading size="xs">{meet.name}</Heading>
-                      <Tag size="sm" colorScheme={
-                        meet.status === 'Completed' ? 'green' : 
-                        meet.status === 'Cancelled' ? 'red' : 'blue'
-                      }>
-                        {meet.status}
-                      </Tag>
-                    </Flex>
-                    <Text fontSize="sm" mt={1}>
-                      {formatDate(meet.meet_date)}
-                    </Text>
-                    {meet.city && meet.state && (
-                      <Text fontSize="xs" color="gray.500">
-                        {meet.city}, {meet.state}
+                      )}
+                      {/* Display assigned events */}
+                      {meet.assigned_events && meet.assigned_events.length > 0 && (
+                        <Box mt={2}>
+                          <Text fontSize="xs" fontWeight="medium" color="blue.700">
+                            Your events: {meet.assigned_events_count} of {meet.total_events}
+                          </Text>
+                          <Flex flexWrap="wrap" mt={1} gap={1}>
+                            {meet.assigned_events.slice(0, 3).map((event) => (
+                              <Tag key={event.id} size="sm" variant="subtle" colorScheme="blue" fontSize="xs">
+                                {event.event_name}
+                              </Tag>
+                            ))}
+                            {meet.assigned_events.length > 3 && (
+                              <Tag size="sm" variant="subtle" colorScheme="gray" fontSize="xs">
+                                +{meet.assigned_events.length - 3} more
+                              </Tag>
+                            )}
+                          </Flex>
+                        </Box>
+                      )}
+                    </Box>
+                  ))}
+                </>
+              )}
+              
+              {/* Show coach's track meets */}
+              {coachMeets.length > 0 && (
+                <>
+                  <Heading size="sm" mt={trackMeets.length > 0 ? 2 : 0}>Coach's Meets</Heading>
+                  {coachMeets.slice(0, 2).map(meet => (
+                    <Box key={meet.id} width="100%" p={2} borderWidth="1px" borderRadius="md" mt={2}>
+                      <Flex justify="space-between" align="center">
+                        <Heading size="xs">{meet.name}</Heading>
+                        <Tag size="sm" colorScheme={
+                          meet.status === 'Completed' ? 'green' : 
+                          meet.status === 'Cancelled' ? 'red' : 'blue'
+                        }>
+                          {meet.status}
+                        </Tag>
+                      </Flex>
+                      <Text fontSize="sm" mt={1}>
+                        {formatDate(meet.meet_date)}
                       </Text>
-                    )}
-                    {/* Display assigned events */}
-                    {meet.assigned_events && meet.assigned_events.length > 0 && (
-                      <Box mt={2}>
-                        <Text fontSize="xs" fontWeight="medium" color="blue.700">
-                          Your events: {meet.assigned_events_count} of {meet.total_events}
+                      {meet.city && meet.state && (
+                        <Text fontSize="xs" color="gray.500">
+                          {meet.city}, {meet.state}
                         </Text>
-                        <Flex flexWrap="wrap" mt={1} gap={1}>
-                          {meet.assigned_events.slice(0, 3).map((event) => (
-                            <Tag key={event.id} size="sm" variant="subtle" colorScheme="blue" fontSize="xs">
-                              {event.event_name}
-                            </Tag>
-                          ))}
-                          {meet.assigned_events.length > 3 && (
-                            <Tag size="sm" variant="subtle" colorScheme="gray" fontSize="xs">
-                              +{meet.assigned_events.length - 3} more
-                            </Tag>
-                          )}
-                        </Flex>
-                      </Box>
-                    )}
-                  </Box>
-                ))}
-              </>
-            )}
+                      )}
+                      {/* Display assigned events */}
+                      {meet.assigned_events && meet.assigned_events.length > 0 && (
+                        <Box mt={2}>
+                          <Text fontSize="xs" fontWeight="medium" color="blue.700">
+                            Your events: {meet.assigned_events_count} of {meet.total_events}
+                          </Text>
+                          <Flex flexWrap="wrap" mt={1} gap={1}>
+                            {meet.assigned_events.slice(0, 3).map((event) => (
+                              <Tag key={event.id} size="sm" variant="subtle" colorScheme="blue" fontSize="xs">
+                                {event.event_name}
+                              </Tag>
+                            ))}
+                            {meet.assigned_events.length > 3 && (
+                              <Tag size="sm" variant="subtle" colorScheme="gray" fontSize="xs">
+                                +{meet.assigned_events.length - 3} more
+                              </Tag>
+                            )}
+                          </Flex>
+                        </Box>
+                      )}
+                    </Box>
+                  ))}
+                </>
+              )}
+            </Box>
             
-            <Button 
-              as={RouterLink}
-              to={viewAllLink}
-              colorScheme="blue"
-              size="sm"
-              width="full"
-              mt={2}
-              leftIcon={<FaCalendarAlt />}
-            >
-              View All Track Meets
-            </Button>
+            <Box mt="auto" width="100%">
+              <Button 
+                as={RouterLink}
+                to={viewAllLink}
+                variant="primary"
+                size="md"
+                width="full"
+                leftIcon={<FaCalendarAlt />}
+              >
+                View All Track Meets
+              </Button>
+            </Box>
           </VStack>
         )}
       </CardBody>

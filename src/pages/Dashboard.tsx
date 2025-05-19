@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import {
   Box, Container, Flex, Heading, Text, VStack, Grid, GridItem, Icon, Badge, Card, CardHeader, CardBody, Image, Tag,
   Button, SimpleGrid, Progress, HStack, Stack, Spinner, Divider, Stat, StatLabel, StatNumber, StatHelpText, useToast,
-  useColorModeValue, Skeleton, SkeletonText
+  useColorModeValue, Skeleton, SkeletonText, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody
 } from '@chakra-ui/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { dateUtils } from '../utils/date'
@@ -13,7 +13,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { useProfile } from '../hooks/useProfile'
 import { useWorkouts } from '../hooks/useWorkouts'
 import { MdPerson, MdOutlineWbSunny, MdKeyboardArrowRight } from 'react-icons/md'
-import { FaCalendarAlt, FaRunning, FaBolt, FaMedal, FaListAlt, FaUsers, FaMapMarkerAlt, FaChartLine, FaCloudRain, FaSnowflake, FaSun, FaCloudSun, FaCloudMeatball } from 'react-icons/fa'
+import { FaCalendarAlt, FaRunning, FaBolt, FaMedal, FaListAlt, FaUsers, FaMapMarkerAlt, FaChartLine, FaCloudRain, FaSnowflake, FaSun, FaCloudSun, FaCloudMeatball, FaRegClock, FaPlayCircle } from 'react-icons/fa'
+import { CheckIcon } from '@chakra-ui/icons'
 import { useWorkoutStore } from '../lib/workoutStore'
 import { 
   WeatherCard, 
@@ -113,6 +114,80 @@ export function Dashboard() {
     'virginia': 'VA', 'washington': 'WA', 'west virginia': 'WV', 'wisconsin': 'WI', 'wyoming': 'WY',
     'district of columbia': 'DC', 'washington dc': 'DC'
   };
+
+  // Add state for exercise execution modal
+  const [execModal, setExecModal] = useState({
+    isOpen: false,
+    workout: null as any,
+    exerciseIdx: 0,
+    timer: 0,
+    running: false,
+  });
+
+  const [videoModal, setVideoModal] = useState({ isOpen: false, videoUrl: '', exerciseName: '' });
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Timer logic
+  useEffect(() => {
+    if (execModal.isOpen && execModal.running) {
+      timerRef.current = setInterval(() => {
+        setExecModal((prev) => ({ ...prev, timer: prev.timer + 1 }));
+      }, 1000);
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [execModal.isOpen, execModal.running]);
+
+  // Handle DONE button
+  const handleDone = async () => {
+    if (!execModal.workout) return;
+    const workoutId = execModal.workout.id;
+    const exIdx = execModal.exerciseIdx;
+    
+    // Mark current exercise as completed
+    workoutStore.markExerciseCompleted(workoutId, exIdx);
+    
+    // Move to next exercise
+    if (exIdx + 1 < execModal.workout.exercises.length) {
+      // Update progress in store - DON'T mark as completed (false)
+      workoutStore.updateProgress(workoutId, exIdx + 1, execModal.workout.exercises.length, false);
+      
+      // Update modal state
+      setExecModal({
+        ...execModal,
+        exerciseIdx: exIdx + 1,
+        timer: 0,
+        running: true,
+      });
+    } else {
+      // Workout completed
+      workoutStore.updateProgress(workoutId, execModal.workout.exercises.length, execModal.workout.exercises.length);
+      
+      // Close modal
+      setExecModal({
+        isOpen: false,
+        workout: null,
+        exerciseIdx: 0,
+        timer: 0,
+        running: false,
+      });
+    }
+  };
+
+  // Function to get video URL for exercise
+  function getVideoUrl(exerciseName: string) {
+    const exercise = exerciseName.toLowerCase();
+    
+    if (exercise.includes('warm up') || exercise.includes('warmup')) {
+      return 'https://www.youtube.com/embed/R0mMyV5OtcM'; // Track warmup
+    }
+    
+    // Default video if no match is found
+    return 'https://www.youtube.com/embed/dQw4w9WgXcQ'; // General workout video
+  }
 
   // Fetch track meets created by this athlete and their coach
   useEffect(() => {
@@ -361,8 +436,18 @@ export function Dashboard() {
       // For coaches, navigate to workout details
       navigate(`/coach/workouts/${workout.id}`);
     } else {
-      // For athletes, navigate to workout execution page
-      navigate(`/athlete/workouts/${workout.id}`);
+      // For athletes, open the execution modal
+      const progress = workoutStore.getProgress(workout.id);
+      const currentIdx = progress ? progress.currentExerciseIndex : 0;
+      const exercises = Array.isArray(workout.exercises) ? workout.exercises : [];
+      
+      setExecModal({
+        isOpen: true,
+        workout: workout,
+        exerciseIdx: currentIdx >= exercises.length ? 0 : currentIdx,
+        timer: 0,
+        running: true,
+      });
     }
   };
 
@@ -590,7 +675,7 @@ export function Dashboard() {
                     <Button 
                       as={RouterLink}
                       to={profile?.role === 'coach' ? "/coach/workouts" : "/athlete/workouts"}
-                      colorScheme="blue"
+                      variant="primary"
                     >
                       {profile?.role === 'coach' ? "Create Workouts" : "View Available Workouts"}
                     </Button>
@@ -616,13 +701,10 @@ export function Dashboard() {
           )}
 
           {/* Sleep Card */}
-          {(profileLoading || sleepLoading) ? (
+          {profileLoading ? (
             <SkeletonCard />
           ) : (
-            <SleepStatsCard
-              sleepStats={sleepStats}
-              isLoading={sleepLoading}
-            />
+            <SleepStatsCard />
           )}
 
           {/* Nutrition Card */}
@@ -667,7 +749,7 @@ export function Dashboard() {
                 <Button 
                   as={RouterLink} 
                   to="/gamification" 
-                  colorScheme="blue" 
+                  variant="primary"
                   rightIcon={<Icon as={MdKeyboardArrowRight} />}
                 >
                   View Gamification
@@ -676,6 +758,181 @@ export function Dashboard() {
             </CardBody>
           </Card>
         )}
+
+        {/* Exercise Execution Modal */}
+        <Modal isOpen={execModal.isOpen} onClose={() => setExecModal({ ...execModal, isOpen: false })} isCentered>
+          <ModalOverlay />
+          <ModalContent borderRadius="lg" overflow="hidden" p="0">
+            {/* Hero Background */}
+            <Box 
+              h="80px" 
+              bg={execModal.running ? "linear-gradient(135deg, #38A169 0%, #68D391 100%)" : "linear-gradient(135deg, #4299E1 0%, #90CDF4 100%)"} 
+              position="relative"
+              margin="0"
+              width="100%"
+              borderTopLeftRadius="inherit"
+              borderTopRightRadius="inherit"
+            >
+              <Flex 
+                position="absolute" 
+                top="50%" 
+                left="50%" 
+                transform="translate(-50%, -50%)"
+                bg="white" 
+                borderRadius="full" 
+                w="50px" 
+                h="50px" 
+                justifyContent="center" 
+                alignItems="center"
+                boxShadow="md"
+              >
+                <Icon as={execModal.running ? FaRunning : FaRegClock} w={6} h={6} color={execModal.running ? "green.500" : "blue.500"} />
+              </Flex>
+              
+              {/* Progress indicator */}
+              {execModal.workout && (
+                <Box position="absolute" bottom="0" left="0" right="0">
+                  <Progress 
+                    value={((execModal.exerciseIdx + 1) / execModal.workout.exercises.length) * 100} 
+                    size="xs" 
+                    colorScheme={execModal.running ? "green" : "blue"} 
+                    backgroundColor="rgba(255,255,255,0.3)"
+                  />
+                </Box>
+              )}
+            </Box>
+            
+            <ModalHeader textAlign="center" pt={8}>Exercise Execution</ModalHeader>
+            <ModalCloseButton top="85px" onClick={() => setExecModal({ ...execModal, isOpen: false })} />
+            <ModalBody pb={6}>
+              {execModal.workout && (
+                <VStack spacing={4} align="center">
+                  <Heading size="md">
+                    {execModal.workout.exercises[execModal.exerciseIdx]?.name}
+                  </Heading>
+                  
+                  <HStack 
+                    spacing={4} 
+                    p={3} 
+                    bg="gray.50" 
+                    w="100%" 
+                    borderRadius="md" 
+                    justify="center"
+                  >
+                    <VStack>
+                      <Text color="gray.500" fontSize="sm">Sets</Text>
+                      <Text fontWeight="bold">{execModal.workout.exercises[execModal.exerciseIdx]?.sets}</Text>
+                    </VStack>
+                    <VStack>
+                      <Text color="gray.500" fontSize="sm">Reps</Text>
+                      <Text fontWeight="bold">{execModal.workout.exercises[execModal.exerciseIdx]?.reps}</Text>
+                    </VStack>
+                    {execModal.workout.exercises[execModal.exerciseIdx]?.weight && (
+                      <VStack>
+                        <Text color="gray.500" fontSize="sm">Weight</Text>
+                        <Text fontWeight="bold">{execModal.workout.exercises[execModal.exerciseIdx]?.weight} kg</Text>
+                      </VStack>
+                    )}
+                  </HStack>
+                  
+                  <Box 
+                    bg={execModal.running ? "green.50" : "blue.50"} 
+                    p={4} 
+                    borderRadius="full" 
+                    boxShadow="sm" 
+                    mb={2}
+                  >
+                    <Text fontSize="2xl" fontWeight="bold" color={execModal.running ? "green.500" : "blue.500"}>
+                      {Math.floor(execModal.timer / 60)
+                        .toString()
+                        .padStart(2, '0')}
+                      :
+                      {(execModal.timer % 60).toString().padStart(2, '0')}
+                    </Text>
+                  </Box>
+                  
+                  {/* Exercise control buttons */}
+                  <HStack spacing={3} width="100%" justifyContent="center">
+                    {execModal.running ? (
+                      <Button 
+                        colorScheme="yellow" 
+                        flex="1" 
+                        maxW="120px"
+                        leftIcon={<Icon as={FaRegClock} />}
+                        onClick={() => setExecModal({ ...execModal, running: false })}
+                      >
+                        Stop
+                      </Button>
+                    ) : (
+                      <Button 
+                        colorScheme="blue" 
+                        flex="1" 
+                        maxW="120px"
+                        leftIcon={<Icon as={FaRunning} />}
+                        onClick={() => setExecModal({ ...execModal, running: true })}
+                      >
+                        Start
+                      </Button>
+                    )}
+                    <Button 
+                      colorScheme="green" 
+                      flex="1" 
+                      maxW="120px"
+                      leftIcon={<Icon as={CheckIcon} />}
+                      onClick={handleDone}
+                    >
+                      {execModal.exerciseIdx + 1 < execModal.workout.exercises.length ? 'Next' : 'Finish'}
+                    </Button>
+                    <Button
+                      colorScheme="purple"
+                      flex="1"
+                      maxW="120px"
+                      leftIcon={<Icon as={FaPlayCircle} />}
+                      onClick={() => setVideoModal({
+                        isOpen: true,
+                        videoUrl: getVideoUrl(execModal.workout.exercises[execModal.exerciseIdx]?.name),
+                        exerciseName: execModal.workout.exercises[execModal.exerciseIdx]?.name || '',
+                      })}
+                    >
+                      How to
+                    </Button>
+                  </HStack>
+                  
+                  <Text fontSize="sm" color="gray.500" mt={4} textAlign="center">
+                    Exercise {execModal.exerciseIdx + 1} of {execModal.workout.exercises.length}
+                  </Text>
+                </VStack>
+              )}
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+
+        {/* Video Modal */}
+        <Modal isOpen={videoModal.isOpen} onClose={() => setVideoModal({ ...videoModal, isOpen: false })} size="xl">
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader>How to: {videoModal.exerciseName}</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody pb={6}>
+              <Box position="relative" paddingTop="56.25%">
+                <iframe
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    border: 'none',
+                  }}
+                  src={videoModal.videoUrl}
+                  title="Exercise Tutorial"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </Box>
+            </ModalBody>
+          </ModalContent>
+        </Modal>
 
       </Container>
     </Box>

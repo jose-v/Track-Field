@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Box, Heading, Stat, StatLabel, StatNumber, StatHelpText, VStack, HStack, Tag, Text, Spinner, Divider, SimpleGrid
+  Box, Heading, Stat, StatLabel, StatNumber, StatHelpText, VStack, HStack, Tag, Text, Spinner, Divider, SimpleGrid, Card, CardBody, Flex
 } from '@chakra-ui/react';
 import { supabase } from '../lib/supabase';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import { FaCoffee, FaUtensils, FaAppleAlt, FaCookieBite } from 'react-icons/fa';
+import { FaCoffee, FaUtensils, FaAppleAlt, FaCookieBite, FaChartPie } from 'react-icons/fa';
 import MacroProgressCard from './MacroProgressCard';
 import type { MacroProgressCardProps } from './MacroProgressCard';
 
@@ -170,127 +170,188 @@ export const EnhancedNutritionAnalysis: React.FC<EnhancedNutritionAnalysisProps>
   ];
 
   return (
-    <Box
-      p={8}
-      borderRadius="2xl"
-      boxShadow="lg"
-      bgGradient="linear(to-br, whiteAlpha.900, orange.50 80%)"
+    <Card
+      borderRadius="lg"
+      overflow="hidden"
+      boxShadow="md"
       w="100%"
+      p="0"
     >
-      <Heading size="md" mb={6} fontWeight="extrabold" letterSpacing="tight">Enhanced Nutrition Analysis</Heading>
-      {isLoading ? (
-        <Spinner />
-      ) : (
-        <VStack align="stretch" spacing={8}>
-          {/* Macro Progress Cards Grid */}
-          <SimpleGrid columns={[1, 2, 3, 5]} spacing={6} mb={4}>
-            {macroData.map((macro) => (
-              <MacroProgressCard key={macro.label} {...macro} />
-            ))}
-          </SimpleGrid>
-          <SimpleGrid columns={[1, 2, 3]} spacing={6}>
-            <Stat>
-              <StatLabel fontSize="md" color="gray.500">Total Calories</StatLabel>
-              <StatNumber fontSize="3xl" fontWeight="bold">{totalCalories}</StatNumber>
-              <StatHelpText>All time</StatHelpText>
-            </Stat>
-            <Stat>
-              <StatLabel fontSize="md" color="gray.500">Meal Count</StatLabel>
-              <StatNumber fontSize="3xl" fontWeight="bold">{eatingRecords.length}</StatNumber>
-            </Stat>
-            <Stat>
-              <StatLabel fontSize="md" color="gray.500">Meal Type Distribution</StatLabel>
-              <StatNumber>
-                {Object.entries(mealTypeDist).map(([type, count]) => (
-                  <Tag key={type} colorScheme="orange" mr={1} fontSize="md" borderRadius="full" px={3} py={1}>
-                    {mealTypeIcons[type] || null} {type.charAt(0).toUpperCase() + type.slice(1)}: {count}
-                  </Tag>
+      {/* Card header with gradient background */}
+      <Box 
+        bg="linear-gradient(135deg, #2B6CB0 0%, #4299E1 100%)" 
+        py={4} 
+        px={5}
+        margin="0"
+        width="100%"
+        borderTopLeftRadius="inherit"
+        borderTopRightRadius="inherit"
+      >
+        <Heading size="md" color="white">Enhanced Nutrition Analysis</Heading>
+      </Box>
+
+      <CardBody px={5} py={5}>
+        {isLoading ? (
+          <Flex justify="center" align="center" h="200px">
+            <Spinner size="xl" />
+          </Flex>
+        ) : (
+          <VStack align="stretch" spacing={8}>
+            {/* Top Section: Macro Nutrient Cards */}
+            <Box>
+              <SimpleGrid columns={[1, 2, 5]} spacing={4}>
+                {macroData.map((macro) => (
+                  <MacroProgressCard key={macro.label} {...macro} />
                 ))}
-              </StatNumber>
-            </Stat>
-          </SimpleGrid>
+              </SimpleGrid>
+            </Box>
 
-          {/* Donut Chart for Meal Type Distribution */}
-          <Box w="100%" h="300px" display="flex" flexDirection="column" alignItems="center" justifyContent="center">
-            {mealTypePieData.length > 0 ? (
-              <ResponsiveContainer width="60%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={mealTypePieData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    label={({ name, percent }) => `${name.charAt(0).toUpperCase() + name.slice(1)} (${Math.round(percent * 100)}%)`}
-                    isAnimationActive
-                  >
-                    {mealTypePieData.map((entry, idx) => (
-                      <Cell key={`cell-${idx}`} fill={pieColors[idx % pieColors.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value: number, name: string, props: any) => [`${value} meals`, `${name.charAt(0).toUpperCase() + name.slice(1)}`]} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <Text color="gray.500">No meal type data to display.</Text>
-            )}
-            {/* Custom Legend */}
-            <HStack mt={4} spacing={6} justify="center">
-              {mealTypePieData.map((entry, idx) => (
-                <HStack key={entry.name} spacing={2}>
-                  <Box w={3} h={3} borderRadius="full" bg={pieColors[idx % pieColors.length]} />
-                  <Text fontWeight="medium" fontSize="md">
-                    {mealTypeIcons[entry.name] || null} {entry.name.charAt(0).toUpperCase() + entry.name.slice(1)}
-                  </Text>
+            <Divider />
+
+            {/* Middle Section: Key Stats */}
+            <SimpleGrid columns={[1, 3]} spacing={8}>
+              <Stat>
+                <StatLabel fontSize="md" fontWeight="medium" color="gray.600">Total Calories</StatLabel>
+                <StatNumber fontSize="3xl" fontWeight="bold">{totalCalories}</StatNumber>
+                <StatHelpText fontSize="sm">All time</StatHelpText>
+              </Stat>
+              
+              <Stat>
+                <StatLabel fontSize="md" fontWeight="medium" color="gray.600">Meal Count</StatLabel>
+                <StatNumber fontSize="3xl" fontWeight="bold">{eatingRecords.length}</StatNumber>
+                <StatHelpText fontSize="sm">Total meals tracked</StatHelpText>
+              </Stat>
+              
+              <Box>
+                <Text fontSize="md" fontWeight="medium" color="gray.600" mb={2}>Meal Distribution</Text>
+                <HStack flexWrap="wrap" spacing={2}>
+                  {Object.entries(mealTypeDist).map(([type, count]) => (
+                    <Tag key={type} colorScheme="blue" mr={1} fontSize="sm" borderRadius="full" px={3} py={1}>
+                      {mealTypeIcons[type] || null} {type.charAt(0).toUpperCase() + type.slice(1)}: {count}
+                    </Tag>
+                  ))}
                 </HStack>
-              ))}
-            </HStack>
-          </Box>
+              </Box>
+            </SimpleGrid>
 
-          <Divider />
+            {/* Distribution Chart Section */}
+            <Box>
+              <Flex align="center" mb={3}>
+                <FaChartPie color="#4299E1" />
+                <Text ml={2} fontSize="md" fontWeight="medium" color="gray.700">Meal Type Distribution</Text>
+              </Flex>
+              
+              <Flex direction={["column", "row"]} justify="space-between" align="center">
+                {/* Donut Chart */}
+                <Box w={["100%", "50%"]} h="250px">
+                  {mealTypePieData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={mealTypePieData}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={90}
+                          label={({ name, percent }) => `${Math.round(percent * 100)}%`}
+                          isAnimationActive
+                        >
+                          {mealTypePieData.map((entry, idx) => (
+                            <Cell key={`cell-${idx}`} fill={pieColors[idx % pieColors.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value: number) => [`${value} meals (${Math.round((value/totalMeals) * 100)}%)`]} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <Flex h="100%" justify="center" align="center">
+                      <Text color="gray.500">No meal data to display</Text>
+                    </Flex>
+                  )}
+                </Box>
+                
+                {/* Legend */}
+                <VStack align="start" spacing={4} ml={[0, 8]} mt={[4, 0]} w={["100%", "50%"]}>
+                  {mealTypePieData.map((entry, idx) => (
+                    <Flex key={entry.name} align="center" width="100%" minH="48px">
+                      {/* Colored Dot */}
+                      <Box
+                        boxSize="28px"
+                        borderRadius="full"
+                        bg={pieColors[idx % pieColors.length]}
+                        mr={3}
+                        flexShrink={0}
+                      />
+                      {/* Meal Icon */}
+                      <Box fontSize="2xl" color={pieColors[idx % pieColors.length]} mr={3} aria-label={entry.name + ' icon'}>
+                        {mealTypeIcons[entry.name]}
+                      </Box>
+                      {/* Meal Name */}
+                      <Text fontWeight="bold" fontSize="lg" flex="1" minW="120px">
+                        {entry.name.charAt(0).toUpperCase() + entry.name.slice(1)}
+                      </Text>
+                      {/* Meal Count */}
+                      <Text fontWeight="extrabold" fontSize="lg" color="gray.800" minW="70px" textAlign="right">
+                        {entry.value} meals
+                      </Text>
+                      {/* Percentage */}
+                      <Text color="gray.400" fontSize="lg" minW="60px" textAlign="right">
+                        ({Math.round((entry.value/totalMeals) * 100)}%)
+                      </Text>
+                    </Flex>
+                  ))}
+                </VStack>
+              </Flex>
+            </Box>
 
-          <Box>
-            <Heading size="sm" mb={2}>Micronutrients Consumed</Heading>
-            {hasMicronutrientData ? (
-              <VStack align="start">
-                {Object.entries(micronutrientTotals).map(([micId, total]) => {
-                  const micronutrient = micronutrients.find(m => m.id === micId);
-                  return (
-                    <Text key={micId}>
-                      {micronutrient?.name || 'Unknown'}: {total} {micronutrient?.unit || ''}
-                    </Text>
-                  );
-                })}
-              </VStack>
-            ) : (
-              <Text color="gray.500">No micronutrient data. Example: Iron: 12mg, Calcium: 800mg</Text>
-            )}
-          </Box>
+            <Divider />
 
-          <Divider />
+            {/* Bottom Section: Additional Nutrition Data */}
+            <SimpleGrid columns={[1, 2]} spacing={8}>
+              <Box>
+                <Heading size="sm" mb={3} color="gray.700">Micronutrients Consumed</Heading>
+                {hasMicronutrientData ? (
+                  <VStack align="start" spacing={2}>
+                    {Object.entries(micronutrientTotals).map(([micId, total]) => {
+                      const micronutrient = micronutrients.find(m => m.id === micId);
+                      return (
+                        <HStack key={micId} justify="space-between" w="100%">
+                          <Text fontWeight="medium">{micronutrient?.name || 'Unknown'}</Text>
+                          <Text>{total} {micronutrient?.unit || ''}</Text>
+                        </HStack>
+                      );
+                    })}
+                  </VStack>
+                ) : (
+                  <Text color="gray.500" fontSize="sm">No micronutrient data. Example: Iron: 12mg, Calcium: 800mg</Text>
+                )}
+              </Box>
 
-          <Box>
-            <Heading size="sm" mb={2}>Supplements Taken</Heading>
-            {hasSupplementData ? (
-              <VStack align="start">
-                {Object.entries(supplementTotals).map(([supId, total]) => {
-                  const supplement = supplements.find(s => s.id === supId);
-                  return (
-                    <Text key={supId}>
-                      {supplement?.name || 'Unknown'}: {total} times
-                    </Text>
-                  );
-                })}
-              </VStack>
-            ) : (
-              <Text color="gray.500">No supplement data. Example: Protein Shake: 3 times, Electrolytes: 2 times</Text>
-            )}
-          </Box>
-        </VStack>
-      )}
-    </Box>
+              <Box>
+                <Heading size="sm" mb={3} color="gray.700">Supplements Taken</Heading>
+                {hasSupplementData ? (
+                  <VStack align="start" spacing={2}>
+                    {Object.entries(supplementTotals).map(([supId, total]) => {
+                      const supplement = supplements.find(s => s.id === supId);
+                      return (
+                        <HStack key={supId} justify="space-between" w="100%">
+                          <Text fontWeight="medium">{supplement?.name || 'Unknown'}</Text>
+                          <Text>{total} times</Text>
+                        </HStack>
+                      );
+                    })}
+                  </VStack>
+                ) : (
+                  <Text color="gray.500" fontSize="sm">No supplement data. Example: Protein Shake: 3 times, Electrolytes: 2 times</Text>
+                )}
+              </Box>
+            </SimpleGrid>
+          </VStack>
+        )}
+      </CardBody>
+    </Card>
   );
 };
 

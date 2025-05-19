@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '../contexts/AuthContext'
 import { GamificationProvider } from '../contexts/GamificationContext'
 import { theme } from '../theme'
+import GlobalStylePatch from './GlobalStylePatch'
+import ButtonStyleFixer from './ButtonStyleFixer'
 
 // Shared query client for the whole app
 const queryClient = new QueryClient({
@@ -22,6 +24,8 @@ const queryClient = new QueryClient({
 export const RootProviders = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={queryClient}>
     <ChakraProvider theme={theme}>
+      <GlobalStylePatch />
+      <ButtonStyleFixer />
       <AuthProvider>
         <GamificationProvider>{children}</GamificationProvider>
       </AuthProvider>

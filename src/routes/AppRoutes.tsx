@@ -1,4 +1,4 @@
-import { Routes, Route, Outlet, Navigate } from 'react-router-dom';
+import { Routes, Route, Outlet } from 'react-router-dom';
 import Home from '../pages/Home';
 import HomeAlt from '../pages/HomeAlt';
 import { Login } from '../pages/Login';
@@ -57,7 +57,6 @@ export default function AppRoutes() {
         <Route path="events" element={<Events />} />
         <Route path="login" element={<Login />} />
         <Route path="signup" element={<Signup />} />
-        <Route path="register" element={<Navigate to="/signup" replace />} />
       </Route>
 
       {/* Original Protected Routes (general/unspecified roles) */}

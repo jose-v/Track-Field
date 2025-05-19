@@ -61,6 +61,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
       borderRadius="lg" 
       overflow="hidden" 
       boxShadow="md"
+      p="0"
       {...rest}
     >
       {/* Header */}
@@ -71,6 +72,10 @@ const StatsCard: React.FC<StatsCardProps> = ({
         display="flex"
         alignItems="center"
         px={6}
+        margin="0"
+        width="100%"
+        borderTopLeftRadius="inherit"
+        borderTopRightRadius="inherit"
       >
         <Flex 
           bg="white" 
@@ -97,7 +102,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
           {title}
         </Tag>
       </Box>
-      <CardBody pt={6}>
+      <CardBody px={4} py={4}>
         <Box h="250px">
           <Bar data={chartData} options={chartOptions} />
         </Box>

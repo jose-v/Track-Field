@@ -23,10 +23,18 @@ import { Link as RouterLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useProfile } from '../hooks/useProfile'
 import { FaBell, FaHome, FaCommentDots } from 'react-icons/fa'
-import { BiLineChart } from 'react-icons/bi'
 import { useState, useEffect } from 'react'
 import { useFeedback } from './FeedbackProvider'
 import { ShareComponent } from './ShareComponent'
+import { BiLineChart } from 'react-icons/bi'
+import { 
+  navIconStyle,
+  homeIconStyle,
+  dashboardIconStyle,
+  feedbackIconStyle,
+  bellIconStyle,
+  navNotificationBadgeStyle
+} from '../styles/navIconStyles'
 
 const Navigation = () => {
   const { isOpen, onToggle } = useDisclosure()
@@ -248,8 +256,7 @@ const Navigation = () => {
                     colorScheme="blue" 
                     variant="solid"
                     fontSize="sm"
-                    fontWeight="bold"
-                    color="white !important"
+                    fontWeight="medium"
                     _focus={{
                       boxShadow: "none",
                       outline: "none"
@@ -260,71 +267,38 @@ const Navigation = () => {
                 </HStack>
               )
             ) : (
-              <HStack spacing={0}>
+              <HStack spacing={4}>
                 {/* Home Button */}
                 <IconButton
                   as={RouterLink}
                   to="/"
-                  icon={<FaHome size="24px" color="#333333" />}
+                  icon={<FaHome />}
                   aria-label="Home"
-                  variant="unstyled"
-                  color="#333333 !important"
+                  variant="ghost"
                   size="md"
-                  mx="18px"
-                  p={0}
-                  minW="auto"
-                  h="auto"
-                  _hover={{
-                    color: "black",
-                  }}
-                  _focus={{
-                    boxShadow: "none",
-                    outline: "none"
-                  }}
+                  sx={homeIconStyle}
                 />
                 
                 {/* Dashboard Button */}
                 <IconButton
                   as={RouterLink}
                   to="/dashboard"
-                  icon={<BiLineChart size="24px" color="#333333" />}
+                  icon={<BiLineChart size="24px" />}
                   aria-label="Dashboard"
-                  variant="unstyled"
-                  color="#333333 !important"
+                  variant="ghost"
                   size="md"
-                  mx="18px"
-                  p={0}
-                  minW="auto"
-                  h="auto"
-                  _hover={{
-                    color: "black",
-                  }}
-                  _focus={{
-                    boxShadow: "none",
-                    outline: "none"
-                  }}
+                  sx={dashboardIconStyle}
                 />
                 
                 {/* Feedback Button */}
                 <Tooltip label="Give Feedback" hasArrow>
                   <IconButton
-                    icon={<FaCommentDots size="24px" color="#333333" />}
+                    icon={<FaCommentDots />}
                     aria-label="Give Feedback"
-                    variant="unstyled"
-                    color="#333333 !important"
+                    variant="ghost"
                     size="md"
-                    mx="18px"
-                    p={0}
-                    minW="auto"
-                    h="auto"
                     onClick={showFeedbackModal}
-                    _hover={{
-                      color: "black",
-                    }}
-                    _focus={{
-                      boxShadow: "none",
-                      outline: "none"
-                    }}
+                    sx={feedbackIconStyle}
                   />
                 </Tooltip>
                 
@@ -332,43 +306,26 @@ const Navigation = () => {
                 <ShareComponent 
                   title="Track & Field App" 
                   description="Check out this awesome Track & Field app for coaches and athletes!" 
+                  iconStyle={navIconStyle}
                 />
                 
                 {/* Notification Bell */}
-                <Box position="relative" mx="18px">
+                <Box position="relative">
                   <Tooltip label="Event notifications" hasArrow>
                     <IconButton
-                      icon={<FaBell size="24px" color="#333333" />}
+                      icon={<FaBell />}
                       aria-label="Notifications"
-                      variant="unstyled"
-                      color="#333333 !important"
+                      variant="ghost"
                       size="md"
-                      mx="0"
-                      p={0}
-                      minW="auto"
-                      h="auto"
                       onClick={handleViewNotifications}
-                      _hover={{
-                        color: "black",
-                      }}
-                      _focus={{
-                        boxShadow: "none",
-                        outline: "none"
-                      }}
+                      sx={bellIconStyle}
                     />
                   </Tooltip>
                   
                   {/* Notification Badge */}
                   {notificationCount > 0 && (
                     <Badge 
-                      position="absolute" 
-                      top="-5px" 
-                      right="-5px" 
-                      colorScheme="red" 
-                      borderRadius="full" 
-                      fontSize="0.8em"
-                      minW="1.6em"
-                      textAlign="center"
+                      {...navNotificationBadgeStyle}
                     >
                       {notificationCount}
                     </Badge>
@@ -421,16 +378,9 @@ const Navigation = () => {
             aria-label="Open Navigation"
             icon={<HamburgerIcon />}
             display={{ base: 'flex', md: 'none' }}
-            variant="unstyled"
-            color="#333333 !important"
+            variant="ghost"
             onClick={onToggle}
-            _hover={{
-              color: "black",
-            }}
-            _focus={{
-              boxShadow: "none",
-              outline: "none"
-            }}
+            sx={navIconStyle}
           />
         </Flex>
 
@@ -468,7 +418,7 @@ const Navigation = () => {
                     to="/dashboard"
                     w="100%"
                     justifyContent="flex-start"
-                    leftIcon={<BiLineChart color="#333333" />}
+                    leftIcon={<BiLineChart />}
                   >
                     Dashboard
                   </Button>
@@ -480,11 +430,11 @@ const Navigation = () => {
                     to="/profile"
                     w="100%"
                     justifyContent="flex-start"
-                    color="#333333"
                   >
                     Profile
                   </Button>
                   <Button 
+                    colorScheme="red"
                     variant="ghost"
                     size="sm"
                     onClick={() => {
@@ -493,7 +443,6 @@ const Navigation = () => {
                     }}
                     w="100%"
                     justifyContent="flex-start"
-                    color="#333333"
                   >
                     Sign Out
                   </Button>
@@ -508,7 +457,6 @@ const Navigation = () => {
                     to="/login"
                     w="100%"
                     justifyContent="flex-start"
-                    color="#333333"
                   >
                     Sign In
                   </Button>
@@ -519,8 +467,6 @@ const Navigation = () => {
                     as={RouterLink} 
                     to="/signup"
                     w="100%"
-                    fontWeight="bold"
-                    color="white !important"
                   >
                     Join Now
                   </Button>
@@ -536,8 +482,7 @@ const Navigation = () => {
                   to="/"
                   w="100%"
                   justifyContent="flex-start"
-                  leftIcon={<FaHome color="#333333" />}
-                  color="#333333"
+                  leftIcon={<FaHome />}
                 >
                   Home
                 </Button>
@@ -549,12 +494,12 @@ const Navigation = () => {
                   to="/dashboard"
                   w="100%"
                   justifyContent="flex-start"
-                  leftIcon={<BiLineChart color="#333333" />}
-                  color="#333333"
+                  leftIcon={<BiLineChart />}
                 >
                   Dashboard
                 </Button>
                 <Button 
+                  colorScheme="red"
                   variant="ghost"
                   size="sm"
                   onClick={() => {
@@ -563,7 +508,6 @@ const Navigation = () => {
                   }}
                   w="100%"
                   justifyContent="flex-start"
-                  color="#333333"
                 >
                   Sign Out
                 </Button>

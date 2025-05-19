@@ -2,7 +2,7 @@
 
 /* Brand link colours */
 body.public-page a {
-  color: #3E213A;
+  color: #2d3748;
   text-decoration: none;
 }
 
@@ -19,16 +19,16 @@ body.public-page .chakra-button .chakra-link {
 
 /* ------------- Design Tokens derived from brand-guidelines.html ------------- */
 :root {
-  --primary: #3E213A;
+  --primary: #c53030;
   --accent: #FFD204;
   --background: #F5F4FA;
   --surface: #FFFFFF;
-  --text-primary: #1A1A1A;
+  --text-primary: #2D3748;
   --text-secondary: #555555;
   --border: #E0E0E0;
   --success: #22C55E;
   --error: #EF4444;
-  --info: #3E213A;
+  --info: #c53030;
   --radius-sm: 6px;
   --radius-md: 8px;
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);

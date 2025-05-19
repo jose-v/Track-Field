@@ -256,8 +256,16 @@ function AssignedMeets() {
       ) : (
         <SimpleGrid columns={{ base: 1, md: 2, lg: 2 }} spacing={6}>
           {myEvents.map(({ meet, events }) => (
-            <Card key={meet.id} borderRadius="lg" overflow="hidden" boxShadow="md" bg={cardBg} borderWidth="1px" borderColor={borderColor}>
-              <CardHeader bg="blue.500" py={4} px={5}>
+            <Card key={meet.id} borderRadius="lg" overflow="hidden" boxShadow="md" bg={cardBg} borderWidth="1px" borderColor={borderColor} p="0">
+              <Box 
+                bg="linear-gradient(135deg, #2B6CB0 0%, #4299E1 100%)" 
+                py={4} 
+                px={5}
+                margin="0"
+                width="100%"
+                borderTopLeftRadius="inherit"
+                borderTopRightRadius="inherit"
+              >
                 <Flex justifyContent="space-between" alignItems="center">
                   <Heading size="md" color="white">{meet.name}</Heading>
                   <Badge 
@@ -270,9 +278,9 @@ function AssignedMeets() {
                     {meet.status || getEventStatus(meet)}
                   </Badge>
                 </Flex>
-              </CardHeader>
+              </Box>
               
-              <CardBody p={5}>
+              <CardBody px={4} py={4}>
                 <VStack align="stretch" spacing={3}>
                   <HStack>
                     <FaCalendarAlt color="blue" />
@@ -826,76 +834,105 @@ export function AthleteEvents() {
         ) : (
           <VStack spacing={4} align="stretch" mb={8}>
             {trackMeets.map((meet) => (
-              <Box 
-                key={meet.id} 
-                p={5} 
-                borderWidth="1px" 
-                borderRadius="lg" 
-                shadow="md"
-                bg={bgColor}
+              <Card
+                key={meet.id}
+                borderRadius="lg"
+                overflow="hidden"
+                boxShadow="md"
+                p="0"
               >
-                <Flex justify="space-between" align="flex-start">
-                  <VStack align="start" spacing={1}>
-                    <Heading size="md">{meet.name}</Heading>
-                    <HStack spacing={2}>
-                      <FaCalendarAlt />
-                      <Text>{format(new Date(meet.meet_date), 'MMMM d, yyyy')}</Text>
-                    </HStack>
-                    {meet.city && meet.state && (
-                      <HStack spacing={2}>
-                        <FaMapMarkerAlt />
-                        <Text>{`${meet.city}, ${meet.state}`}</Text>
-                      </HStack>
-                    )}
-                    <Badge colorScheme={
+                {/* Card header */}
+                <Box 
+                  h="80px" 
+                  bg="linear-gradient(135deg, #2B6CB0 0%, #4299E1 100%)" 
+                  position="relative"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  px={6}
+                  margin="0"
+                  width="100%"
+                  borderTopLeftRadius="inherit"
+                  borderTopRightRadius="inherit"
+                >
+                  <Heading size="md" color="white">{meet.name}</Heading>
+                  <Badge 
+                    colorScheme={
                       meet.status === 'Completed' ? 'green' : 
                       meet.status === 'Cancelled' ? 'red' : 'blue'
-                    }>
-                      {meet.status}
-                    </Badge>
-                  </VStack>
-                  
-                  <HStack>
-                    <Tooltip label="Select Events">
-                      <IconButton
-                        aria-label="Select events"
-                        icon={<FaRunning />}
-                        onClick={() => {
-                          setCurrentMeet(meet);
-                          fetchMeetEvents(meet.id);
-                          onEventsOpen();
-                        }}
-                        colorScheme="teal"
-                        variant="outline"
-                      />
-                    </Tooltip>
-                    <Menu>
-                      <MenuButton
-                        as={IconButton}
-                        aria-label="Options"
-                        icon={<FaEllipsisV />}
-                        variant="outline"
-                      />
-                      <MenuList>
-                        <MenuItem icon={<FaEdit />} onClick={() => handleEditMeet(meet)}>
-                          Edit
-                        </MenuItem>
-                        <MenuItem 
-                          icon={<FaTrash />} 
+                    }
+                    variant="solid" 
+                    px={2} 
+                    py={1} 
+                    borderRadius="md"
+                  >
+                    {meet.status || 'Upcoming'}
+                  </Badge>
+                </Box>
+                
+                {/* Card body */}
+                <CardBody px={4} py={4}>
+                  <Flex justify="space-between" align="flex-start">
+                    <VStack align="start" spacing={3}>
+                      <HStack spacing={2}>
+                        <FaCalendarAlt color="blue" />
+                        <Text>{format(new Date(meet.meet_date), 'MMMM d, yyyy')}</Text>
+                      </HStack>
+                      {meet.city && meet.state && (
+                        <HStack spacing={2}>
+                          <FaMapMarkerAlt color="blue" />
+                          <Text>{`${meet.city}, ${meet.state}`}</Text>
+                        </HStack>
+                      )}
+                      {meet.description && (
+                        <Text fontSize="sm" color="gray.600">
+                          {meet.description}
+                        </Text>
+                      )}
+                    </VStack>
+                    
+                    <HStack>
+                      <Tooltip label="Select Events">
+                        <IconButton
+                          aria-label="Select events"
+                          icon={<FaRunning />}
                           onClick={() => {
-                            // Set the current meet then show delete confirmation
                             setCurrentMeet(meet);
-                            onDeleteConfirmOpen();
+                            fetchMeetEvents(meet.id);
+                            onEventsOpen();
                           }}
-                          color="red.500"
-                        >
-                          Delete
-                        </MenuItem>
-                      </MenuList>
-                    </Menu>
-                  </HStack>
-                </Flex>
-              </Box>
+                          colorScheme="teal"
+                          variant="outline"
+                        />
+                      </Tooltip>
+                      <Menu>
+                        <MenuButton
+                          as={IconButton}
+                          aria-label="Options"
+                          icon={<FaEllipsisV />}
+                          variant="outline"
+                        />
+                        <MenuList>
+                          <MenuItem icon={<FaEdit />} onClick={() => handleEditMeet(meet)}>
+                            Edit
+                          </MenuItem>
+                          <MenuItem 
+                            icon={<FaTrash />} 
+                            onClick={() => {
+                              // Set the current meet then show delete confirmation
+                              setCurrentMeet(meet);
+                              onDeleteConfirmOpen();
+                            }}
+                            color="red.500"
+                          >
+                            Delete
+                          </MenuItem>
+                        </MenuList>
+                      </Menu>
+                    </HStack>
+                  </Flex>
+                </CardBody>
+              </Card>
             ))}
           </VStack>
         )

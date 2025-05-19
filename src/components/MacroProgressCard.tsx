@@ -26,18 +26,15 @@ export const MacroProgressCard: React.FC<MacroProgressCardProps> = ({ label, val
 
   return (
     <Box
-      p={4}
-      borderRadius="xl"
-      boxShadow="md"
-      bg="whiteAlpha.900"
-      minW="150px"
-      minH="180px"
+      p={3}
+      minW="140px"
+      minH="170px"
       display="flex"
       flexDirection="column"
       alignItems="center"
       justifyContent="center"
     >
-      <Box w="110px" h="110px" position="relative">
+      <Box w="100px" h="100px" position="relative">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -45,12 +42,12 @@ export const MacroProgressCard: React.FC<MacroProgressCardProps> = ({ label, val
               dataKey="value"
               startAngle={90}
               endAngle={-270}
-              innerRadius={40}
-              outerRadius={54}
+              innerRadius={35}
+              outerRadius={48}
               isAnimationActive
               stroke="none"
             >
-              <Cell key="progress" fill="#38BDF8" />
+              <Cell key="progress" fill={color} />
               <Cell key="remaining" fill="#F3F4F6" />
             </Pie>
           </PieChart>
@@ -63,18 +60,18 @@ export const MacroProgressCard: React.FC<MacroProgressCardProps> = ({ label, val
           transform="translate(-50%, -50%)"
           w="100%"
         >
-          <Text fontSize="xs" color="gray.400" fontWeight="bold" letterSpacing="wide" mb={-1}>
+          <Text fontSize="xs" color="gray.500" fontWeight="semibold" letterSpacing="wide" mb={-1}>
             {label.toUpperCase()}
           </Text>
           <Text fontSize="xl" fontWeight="bold" color="gray.700" lineHeight={1}>{value}
-            <Text as="span" fontSize="sm" color="gray.400" ml={1}>{unit}</Text>
+            <Text as="span" fontSize="sm" color="gray.500" ml={1}>{unit}</Text>
           </Text>
         </VStack>
       </Box>
-      <Badge colorScheme={status === 'under' ? 'green' : status === 'over' ? 'red' : 'blue'} fontSize="0.75em" mt={3} borderRadius="full" textAlign="center">
+      <Badge colorScheme={status === 'under' ? 'green' : status === 'over' ? 'red' : 'blue'} fontSize="0.7em" mt={2} borderRadius="full" textAlign="center">
         {status.toUpperCase()}
       </Badge>
-      <Text fontSize="sm" color="gray.500" mt={2}>{value} of {goal}{unit}</Text>
+      <Text fontSize="sm" color="gray.500" mt={1}>{value} of {goal}{unit}</Text>
     </Box>
   );
 };

@@ -257,10 +257,10 @@ import {
         
         <Stack direction={{ base: 'column', md: 'row' }} spacing={4} mb={8} bg={cardBg} p={5} rounded="lg" shadow="base" borderWidth="1px" borderColor={borderColor}>
           <Heading size="md" mb={{ base: 2, md: 0 }}>Quick Actions:</Heading>
-          <Button colorScheme="blue" leftIcon={<Icon as={FaClipboardList} />} onClick={onOpen}>Create Workout</Button>
-          <Button as={RouterLink} to="/coach/athletes" colorScheme="teal" leftIcon={<Icon as={FaUserFriends} />}>Manage Athletes</Button>
-          <Button as={RouterLink} to="/coach/events" colorScheme="purple" leftIcon={<Icon as={FaCalendarAlt} />}>Schedule Event</Button>
-          <Button as={RouterLink} to="/coach/stats" colorScheme="orange" leftIcon={<Icon as={FaChartLine} />}>View Statistics</Button>
+          <Button variant="primary" leftIcon={<Icon as={FaClipboardList} />} onClick={onOpen}>Create Workout</Button>
+          <Button as={RouterLink} to="/coach/athletes" variant="primary" leftIcon={<Icon as={FaUserFriends} />}>Manage Athletes</Button>
+          <Button as={RouterLink} to="/coach/events" variant="primary" leftIcon={<Icon as={FaCalendarAlt} />}>Schedule Event</Button>
+          <Button as={RouterLink} to="/coach/stats" variant="accent" leftIcon={<Icon as={FaChartLine} />}>View Statistics</Button>
         </Stack>
         
         <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8} mb={8}>
@@ -286,7 +286,7 @@ import {
                   ))}
                 </Stack>
               )}
-              <Button leftIcon={<FaUserPlus />} colorScheme="blue" mt={4} w="full" borderRadius="md" size="sm" isDisabled> {/* TODO: Implement Add Athlete Modal */}
+              <Button leftIcon={<FaUserPlus />} variant="primary" mt={4} w="full" borderRadius="md" size="sm" isDisabled>
                 Add Athlete
               </Button>
             </CardBody>
@@ -296,9 +296,9 @@ import {
             <CardBody>
               <Heading size="md" mb={4}>Coach Tools</Heading>
               <Stack spacing={4}>
-                <Button leftIcon={<FaUserPlus />} colorScheme="blue" variant="outline" w="full" borderRadius="md" size="sm" isDisabled>Add Athlete (Existing or New)</Button>
-                <Button leftIcon={<FaDumbbell />} colorScheme="purple" variant="outline" w="full" borderRadius="md" size="sm" onClick={onOpen}>Create Workout & Assign</Button>
-                <Button leftIcon={<FaFlagCheckered />} colorScheme="teal" variant="outline" w="full" borderRadius="md" size="sm" isDisabled>Create Track Meet & Assign</Button>
+                <Button leftIcon={<FaUserPlus />} variant="ghost" w="full" borderRadius="md" size="sm" isDisabled>Add Athlete (Existing or New)</Button>
+                <Button leftIcon={<FaDumbbell />} variant="primary" w="full" borderRadius="md" size="sm" onClick={onOpen}>Create Workout & Assign</Button>
+                <Button leftIcon={<FaFlagCheckered />} variant="accent" w="full" borderRadius="md" size="sm" isDisabled>Create Track Meet & Assign</Button>
               </Stack>
             </CardBody>
           </Card>
@@ -387,7 +387,7 @@ import {
               </FormControl>
             </ModalBody>
             <ModalFooter>
-              <Button colorScheme="blue" mr={3} onClick={handleSaveAndAssign} isLoading={isSaving} isDisabled={athletesLoading || realAthletes.length === 0}>
+              <Button variant="primary" mr={3} onClick={handleSaveAndAssign} isLoading={isSaving} isDisabled={athletesLoading || realAthletes.length === 0}>
                 Save & Assign
               </Button>
               <Button variant="ghost" onClick={onClose}>Cancel</Button>

@@ -4,7 +4,8 @@ import {
   Progress, 
   Text, 
   VStack,
-  useColorModeValue
+  useColorModeValue,
+  useTheme
 } from '@chakra-ui/react';
 
 interface ProgressBarProps {
@@ -34,7 +35,7 @@ interface ProgressBarProps {
   progressText?: string;
   
   /**
-   * Optional - Color scheme for the progress bar, defaults to "blue" for in-progress and "green" for completed
+   * Optional - Color scheme for the progress bar, defaults to "primary" for in-progress and "green" for completed
    */
   colorScheme?: string;
   
@@ -98,6 +99,8 @@ export function ProgressBar({
   fontSize = "xs",
   bg = "gray.100"
 }: ProgressBarProps) {
+  const theme = useTheme();
+  
   // Calculate percentage if not provided
   const calculatedPercentage = percentage !== undefined 
     ? percentage 
@@ -108,8 +111,14 @@ export function ProgressBar({
   // Determine if complete
   const isComplete = completed === total && total > 0;
   
-  // Determine color scheme
-  const progressColorScheme = colorScheme || (isComplete ? "green" : "blue");
+  // We'll use our theme colors directly for styling
+  const progressColor = isComplete 
+    ? theme.colors.success
+    : colorScheme === "green" 
+      ? theme.colors.success 
+      : colorScheme === "blue" 
+        ? "#3182CE" // Standard blue color 
+        : theme.colors.primary[500]; // Default to primary
   
   // Default text color if not specified
   const defaultTextColor = useColorModeValue("gray.600", "gray.400");
@@ -126,7 +135,11 @@ export function ProgressBar({
         value={calculatedPercentage}
         size={size}
         height={height}
-        colorScheme={progressColorScheme}
+        sx={{
+          '& > div': {
+            background: progressColor
+          }
+        }}
         borderRadius={borderRadius}
         bg={bg}
       />

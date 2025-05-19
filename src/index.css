@@ -42,7 +42,7 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: #2D3748;
   cursor: pointer;
   transition: border-color 0.25s;
 }
@@ -52,6 +52,136 @@ button:hover {
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
+}
+
+/* Custom CSS to enforce button styling */
+[data-theme] .chakra-button[data-variant='primary'],
+.chakra-button[variant='primary'],
+.chakra-button[data-variant='primary']:hover,
+.chakra-button[variant='primary']:hover,
+.chakra-button[data-variant='solid'],
+.chakra-button[variant='solid'],
+.chakra-button[data-variant='solid']:hover,
+.chakra-button[variant='solid']:hover {
+  background-color: #3e2122 !important;
+  color: white !important;
+}
+
+[data-theme] .chakra-button[data-variant='accent'],
+.chakra-button[variant='accent'],
+.chakra-button[data-variant='accent']:hover,
+.chakra-button[variant='accent']:hover {
+  background-color: #FFD204 !important;
+  color: #c53030 !important;
+}
+
+/* Fix for button styling issues with Chakra components */
+button.chakra-button[variant="primary"], 
+button.chakra-button[data-variant="primary"] {
+  color: white !important;
+}
+
+/* Enforce styles for specific components that might have overrides */
+.navbar button.chakra-button[data-variant="primary"],
+.card button.chakra-button[data-variant="primary"],
+.modal button.chakra-button[data-variant="primary"] {
+  color: white !important;
+}
+
+/* Higher specificity for hover states */
+button.chakra-button[data-variant="primary"]:hover {
+  color: white !important;
+  background-color: #c53030 !important;
+  opacity: 0.85;
+}
+
+/* Force styles regardless of nesting level */
+*[data-variant="primary"].chakra-button {
+  color: white !important;
+}
+
+/* Navbar icon styling - high specificity */
+header button.chakra-button[variant="ghost"] svg,
+header .chakra-icon,
+nav button.chakra-button[variant="ghost"] svg,
+nav .chakra-icon {
+  color: #4A5568 !important; /* Dark gray (gray.600 in Chakra UI) */
+}
+
+/* Navbar icon hover styling */
+header button.chakra-button[variant="ghost"]:hover svg,
+header button.chakra-button[variant="ghost"]:hover .chakra-icon,
+nav button.chakra-button[variant="ghost"]:hover svg,
+nav button.chakra-button[variant="ghost"]:hover .chakra-icon {
+  color: #c53030 !important; /* Primary color on hover */
+}
+
+/* Portal icon styling with high specificity - fix for home icon color */
+a[href="/"] svg,
+button[aria-label="Home"] svg,
+.chakra-icon-button[aria-label="Home"] svg,
+.chakra-button[aria-label="Home"] svg {
+  color: #4A5568 !important; /* Dark gray (gray.600 in Chakra UI) */
+}
+
+/* Portal icon hover styling */
+a[href="/"]:hover svg,
+button[aria-label="Home"]:hover svg,
+.chakra-icon-button[aria-label="Home"]:hover svg,
+.chakra-button[aria-label="Home"]:hover svg {
+  color: #c53030 !important; /* Primary color on hover */
+}
+
+/* Fix for all icons in the portals regardless of nesting */
+[role="navigation"] .chakra-button svg,
+[role="navigation"] a svg,
+[role="navigation"] .chakra-icon,
+[aria-label="Home"] svg,
+[aria-label="Give Feedback"] svg,
+[aria-label="Share App"] svg,
+[aria-label="Notifications"] svg {
+  color: #4A5568 !important; /* Dark gray (gray.600 in Chakra UI) */
+}
+
+/* Hover state for all portal icons */
+[role="navigation"] .chakra-button:hover svg,
+[role="navigation"] a:hover svg,
+[role="navigation"] .chakra-icon:hover,
+[aria-label="Home"]:hover svg,
+[aria-label="Give Feedback"]:hover svg,
+[aria-label="Share App"]:hover svg,
+[aria-label="Notifications"]:hover svg {
+  color: black !important; /* Primary color on hover */
+}
+
+/* Highest specificity override for home icon in the portal */
+*[aria-label="Home"] svg,
+*[as="RouterLink"][to="/"] svg,
+*[href="/"] svg,
+button.chakra-button[aria-label="Home"] svg,
+.chakra-button[as="RouterLink"][to="/"] svg {
+  color: #4A5568 !important; /* Dark gray (gray.600 in Chakra UI) */
+}
+
+/* Force edit icon buttons to always have white text and white icons */
+button.chakra-button[aria-label="Edit"],
+.chakra-button[aria-label="Edit"],
+button.chakra-icon-button[aria-label="Edit"],
+.chakra-icon-button[aria-label="Edit"],
+button.chakra-icon-button[aria-label*="Edit"],
+.chakra-icon-button[aria-label*="Edit"] {
+  color: white !important;
+}
+
+button.chakra-button[aria-label="Edit"] svg,
+.chakra-button[aria-label="Edit"] svg,
+button.chakra-icon-button[aria-label="Edit"] svg,
+.chakra-icon-button[aria-label="Edit"] svg,
+button.chakra-icon-button[aria-label*="Edit"] svg,
+.chakra-icon-button[aria-label*="Edit"] svg,
+[aria-label="Edit"] .chakra-icon,
+[data-icon="EditIcon"] {
+  color: white !important;
 }
 
 @media (prefers-color-scheme: light) {

@@ -59,6 +59,9 @@ export const NutritionStatsCard: React.FC<NutritionStatsCardProps> = ({
       overflow="hidden" 
       boxShadow="md"
       height="100%"
+      p="0"
+      display="flex"
+      flexDirection="column"
     >
       {/* Nutrition Card Header */}
       <Box 
@@ -68,6 +71,10 @@ export const NutritionStatsCard: React.FC<NutritionStatsCardProps> = ({
         display="flex"
         alignItems="center"
         px={6}
+        margin="0"
+        width="100%"
+        borderTopLeftRadius="inherit"
+        borderTopRightRadius="inherit"
       >
         <Flex 
           bg="white" 
@@ -94,58 +101,64 @@ export const NutritionStatsCard: React.FC<NutritionStatsCardProps> = ({
           NUTRITION STATS
         </Tag>
       </Box>
-      <CardBody>
+      <CardBody px={4} py={4} display="flex" flexDirection="column" flex="1">
         {nutritionStats.recentRecord ? (
-          <VStack spacing={4} align="start">
-            <Stat>
-              <StatLabel>Average Daily Calories</StatLabel>
-              <StatNumber>
-                {nutritionStats.averageCaloriesPerDay ? 
-                  `${Math.round(nutritionStats.averageCaloriesPerDay)}` : 
-                  'No data'}
-              </StatNumber>
-              <StatHelpText>Last 7 days</StatHelpText>
-            </Stat>
-            
-            <HStack width="100%" justifyContent="space-between">
+          <VStack spacing={4} align="stretch" height="100%">
+            <Box flex="1">
               <Stat>
-                <StatLabel>Most Common Meal</StatLabel>
-                <StatNumber fontSize="xl">
-                  {getMostCommonMeal()}
+                <StatLabel>Average Daily Calories</StatLabel>
+                <StatNumber>
+                  {nutritionStats.averageCaloriesPerDay ? 
+                    `${Math.round(nutritionStats.averageCaloriesPerDay)}` : 
+                    'No data'}
                 </StatNumber>
+                <StatHelpText>Last 7 days</StatHelpText>
               </Stat>
-              <Stat textAlign="right">
-                <StatLabel>Last Recorded</StatLabel>
-                <StatNumber fontSize="xl">
-                  {new Date(nutritionStats.recentRecord.record_date).toLocaleDateString()}
-                </StatNumber>
-              </Stat>
-            </HStack>
+              
+              <HStack width="100%" justifyContent="space-between" mt={4}>
+                <Stat>
+                  <StatLabel>Most Common Meal</StatLabel>
+                  <StatNumber fontSize="xl">
+                    {getMostCommonMeal()}
+                  </StatNumber>
+                </Stat>
+                <Stat textAlign="right">
+                  <StatLabel>Last Recorded</StatLabel>
+                  <StatNumber fontSize="xl">
+                    {new Date(nutritionStats.recentRecord.record_date).toLocaleDateString()}
+                  </StatNumber>
+                </Stat>
+              </HStack>
+            </Box>
             
-            <Button 
-              as={RouterLink}
-              to="/athlete/nutrition"
-              colorScheme="orange"
-              size="sm"
-              width="full"
-              mt={2}
-              leftIcon={<FaUtensils />}
-            >
-              View Nutrition Records
-            </Button>
+            <Box mt="auto" width="100%">
+              <Button 
+                as={RouterLink}
+                to="/athlete/nutrition"
+                variant="primary"
+                size="md"
+                width="full"
+                leftIcon={<FaUtensils />}
+              >
+                View Nutrition Records
+              </Button>
+            </Box>
           </VStack>
         ) : (
-          <VStack spacing={4} py={4}>
+          <VStack spacing={4} py={4} flex="1" justifyContent="center">
             <Text>No nutrition records found.</Text>
-            <Button 
-              as={RouterLink}
-              to="/athlete/nutrition"
-              colorScheme="orange"
-              size="sm"
-              leftIcon={<FaUtensils />}
-            >
-              Add Nutrition Record
-            </Button>
+            <Box mt="auto" width="100%">
+              <Button 
+                as={RouterLink}
+                to="/athlete/nutrition"
+                variant="primary"
+                size="md"
+                width="full"
+                leftIcon={<FaUtensils />}
+              >
+                Add Nutrition Record
+              </Button>
+            </Box>
           </VStack>
         )}
       </CardBody>

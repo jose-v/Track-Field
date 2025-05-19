@@ -382,12 +382,17 @@ export function Workouts() {
                 border={todayWorkout && workout.id === todayWorkout.id ? "2px solid" : "none"}
                 borderColor={todayWorkout && workout.id === todayWorkout.id ? "brand.500" : "transparent"}
                 h="100%"
+                p="0"
               >
                 {/* Hero Background */}
                 <Box 
                   h="80px" 
                   bg={gradientColors}
                   position="relative"
+                  margin="0"
+                  width="100%"
+                  borderTopLeftRadius="inherit"
+                  borderTopRightRadius="inherit"
                 >
                   {/* Today's workout badge */}
                   {todayWorkout && workout.id === todayWorkout.id && (
@@ -434,6 +439,7 @@ export function Workouts() {
                       onClick={() => setEditModal({ isOpen: true, workout })}
                       aria-label="Edit"
                       borderRadius="full"
+                      color="white"
                     />
                     <IconButton
                       icon={<DeleteIcon />}
@@ -443,85 +449,90 @@ export function Workouts() {
                       onClick={() => deleteWorkout(workout.id)}
                       aria-label="Delete"
                       borderRadius="full"
+                      color="white"
                     />
                   </HStack>
                 </Box>
                 
-                <CardBody pt={6}>
-                  <VStack spacing={3} align="stretch">
-                    <Heading size="md" textAlign="center" mb={1}>{workout.name}</Heading>
-                    
-                    <HStack justify="center" spacing={3}>
-                      <HStack spacing={1}>
-                        <Icon as={FaRegClock} color="gray.500" />
-                        <Text fontSize="sm" color="gray.600">{workout.duration}</Text>
-                      </HStack>
-                      <HStack spacing={1}>
-                        <Icon as={FaCalendarAlt} color="gray.500" />
-                        <Text fontSize="sm" color="gray.600">{workout.date}</Text>
-                      </HStack>
-                    </HStack>
-                    
-                    {workout.time && (
-                      <Text fontSize="sm" textAlign="center">Time: {workout.time}</Text>
-                    )}
-                    
-                    {workout.notes && (
-                      <Text fontSize="sm" color="gray.600" textAlign="center" mt={1} noOfLines={2}>{workout.notes}</Text>
-                    )}
-                    
-                    {/* Progress Bar */}
-                    {totalCount > 0 && (
-                      <Box w="100%" mt={2} mb={1}>
-                        <ProgressBar
-                          completed={completedCount}
-                          total={totalCount}
-                          completedText="Completed"
-                          itemLabel="exercises"
-                        />
-                      </Box>
-                    )}
-                    
-                    {/* Exercises Section */}
-                    {workout.exercises && workout.exercises.length > 0 && (
-                      <Box p={3} bg="gray.50" borderRadius="md" mt={2}>
-                        <HStack mb={2}>
-                          <Icon as={FaListUl} color="gray.600" />
-                          <Text fontWeight="medium">Exercises</Text>
+                <CardBody pt={6} px={4} pb={4}>
+                  <VStack spacing={3} align="stretch" height="100%" justify="space-between">
+                    <VStack spacing={3} align="stretch">
+                      <Heading size="md" textAlign="center" mb={1}>{workout.name}</Heading>
+                      
+                      <HStack justify="center" spacing={3}>
+                        <HStack spacing={1}>
+                          <Icon as={FaRegClock} color="gray.500" />
+                          <Text fontSize="sm" color="gray.600">{workout.duration}</Text>
                         </HStack>
-                        <VStack align="stretch" spacing={2}>
-                          {workout.exercises.map((ex: any, idx: number) => (
-                            <HStack key={idx} justify="space-between" py={1} px={2} bg="white" borderRadius="md" borderWidth="1px" borderColor="gray.200">
-                              <Text fontSize="sm">
-                                {ex.name} ({ex.sets} x {ex.reps})
-                              </Text>
-                              <IconButton
-                                icon={<FaPlayCircle />}
-                                size="xs"
-                                colorScheme="blue"
-                                onClick={() => handleGo(workout, idx)}
-                                aria-label="Start exercise"
-                                variant="ghost"
-                              />
-                            </HStack>
-                          ))}
-                        </VStack>
-                      </Box>
-                    )}
+                        <HStack spacing={1}>
+                          <Icon as={FaCalendarAlt} color="gray.500" />
+                          <Text fontSize="sm" color="gray.600">{workout.date}</Text>
+                        </HStack>
+                      </HStack>
+                      
+                      {workout.time && (
+                        <Text fontSize="sm" textAlign="center">Time: {workout.time}</Text>
+                      )}
+                      
+                      {workout.notes && (
+                        <Text fontSize="sm" color="gray.600" textAlign="center" mt={1} noOfLines={2}>{workout.notes}</Text>
+                      )}
+                      
+                      {/* Exercises Section */}
+                      {workout.exercises && workout.exercises.length > 0 && (
+                        <Box p={3} bg="gray.50" borderRadius="md" mt={2}>
+                          <HStack mb={2}>
+                            <Icon as={FaListUl} color="gray.600" />
+                            <Text fontWeight="medium">Exercises</Text>
+                          </HStack>
+                          <VStack align="stretch" spacing={2}>
+                            {workout.exercises.map((ex: any, idx: number) => (
+                              <HStack key={idx} justify="space-between" py={1} px={2} bg="white" borderRadius="md" borderWidth="1px" borderColor="gray.200">
+                                <Text fontSize="sm">
+                                  {ex.name} ({ex.sets} x {ex.reps})
+                                </Text>
+                                <IconButton
+                                  icon={<FaPlayCircle />}
+                                  size="xs"
+                                  colorScheme="blue"
+                                  onClick={() => handleGo(workout, idx)}
+                                  aria-label="Start exercise"
+                                  variant="ghost"
+                                />
+                              </HStack>
+                            ))}
+                          </VStack>
+                        </Box>
+                      )}
+                    </VStack>
                     
-                    {/* Start Workout Button */}
-                    {totalCount > 0 && (
-                      <Button 
-                        mt={3} 
-                        w="full" 
-                        colorScheme={completedCount === totalCount ? "green" : "blue"}
-                        leftIcon={<Icon as={FaPlayCircle} />}
-                        onClick={() => handleGo(workout, completedCount === totalCount ? 0 : completedCount)}
-                        size="sm"
-                      >
-                        {completedCount === totalCount ? "Restart Workout" : completedCount > 0 ? "Continue Workout" : "Start Workout"}
-                      </Button>
-                    )}
+                    {/* Bottom section - Progress bar and Start Button */}
+                    <VStack spacing={2} width="100%">
+                      {/* Progress Bar */}
+                      {totalCount > 0 && (
+                        <Box w="100%">
+                          <ProgressBar
+                            completed={completedCount}
+                            total={totalCount}
+                            completedText="Completed"
+                            itemLabel="exercises"
+                          />
+                        </Box>
+                      )}
+                      
+                      {/* Start Workout Button */}
+                      {totalCount > 0 && (
+                        <Button 
+                          w="full" 
+                          colorScheme={completedCount === totalCount ? "green" : "blue"}
+                          leftIcon={<Icon as={FaPlayCircle} />}
+                          onClick={() => handleGo(workout, completedCount === totalCount ? 0 : completedCount)}
+                          size="sm"
+                        >
+                          {completedCount === totalCount ? "Restart Workout" : completedCount > 0 ? "Continue Workout" : "Start Workout"}
+                        </Button>
+                      )}
+                    </VStack>
                   </VStack>
                 </CardBody>
               </Card>
@@ -532,12 +543,16 @@ export function Workouts() {
 
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
-        <ModalContent borderRadius="lg" overflow="hidden">
+        <ModalContent borderRadius="lg" overflow="hidden" p="0">
           {/* Hero Background */}
           <Box 
             h="80px" 
             bg="linear-gradient(135deg, #4299E1 0%, #90CDF4 100%)" 
             position="relative"
+            margin="0"
+            width="100%"
+            borderTopLeftRadius="inherit"
+            borderTopRightRadius="inherit"
           >
             <Flex 
               position="absolute" 
@@ -684,12 +699,16 @@ export function Workouts() {
       {/* --- Exercise Execution Modal --- */}
       <Modal isOpen={execModal.isOpen} onClose={handleExecModalClose} isCentered>
         <ModalOverlay />
-        <ModalContent borderRadius="lg" overflow="hidden">
+        <ModalContent borderRadius="lg" overflow="hidden" p="0">
           {/* Hero Background */}
           <Box 
             h="80px" 
             bg={execModal.running ? "linear-gradient(135deg, #38A169 0%, #68D391 100%)" : "linear-gradient(135deg, #4299E1 0%, #90CDF4 100%)"} 
             position="relative"
+            margin="0"
+            width="100%"
+            borderTopLeftRadius="inherit"
+            borderTopRightRadius="inherit"
           >
             <Flex 
               position="absolute" 
@@ -829,12 +848,16 @@ export function Workouts() {
       {/* Edit Workout Modal */}
       <Modal isOpen={editModal.isOpen} onClose={() => setEditModal({ isOpen: false, workout: null })}>
         <ModalOverlay />
-        <ModalContent borderRadius="lg" overflow="hidden">
+        <ModalContent borderRadius="lg" overflow="hidden" p="0">
           {/* Hero Background */}
           <Box 
             h="80px" 
             bg="linear-gradient(135deg, #805AD5 0%, #B794F4 100%)" 
             position="relative"
+            margin="0"
+            width="100%"
+            borderTopLeftRadius="inherit"
+            borderTopRightRadius="inherit"
           >
             <Flex 
               position="absolute" 
@@ -940,12 +963,16 @@ export function Workouts() {
       {/* --- Exercise Video Modal --- */}
       <Modal isOpen={videoModal.isOpen} onClose={handleVideoModalClose} isCentered size="xl">
         <ModalOverlay />
-        <ModalContent borderRadius="lg" overflow="hidden">
+        <ModalContent borderRadius="lg" overflow="hidden" p="0">
           {/* Hero Background */}
           <Box 
             h="80px" 
             bg="linear-gradient(135deg, #DD6B20 0%, #F6AD55 100%)" 
             position="relative"
+            margin="0"
+            width="100%"
+            borderTopLeftRadius="inherit"
+            borderTopRightRadius="inherit"
           >
             <Flex 
               position="absolute" 

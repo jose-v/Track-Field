@@ -411,10 +411,10 @@ export function WorkoutModal({ isOpen, onClose, initialWorkout, athletes, onSave
               {/* Using CheckboxGroup for multi-select of athletes */}
               <CheckboxGroup value={assignedAthletes} onChange={(values: string[]) => setAssignedAthletes(values)}>
                 <Stack direction="column" spacing={2} maxHeight="150px" overflowY="auto" borderWidth="1px" borderRadius="md" p={2}>
-                  {athletes.map((a) => (
+                  {(athletes || []).map((a) => (
                     <Checkbox key={a.id} value={a.id}>{a.full_name || a.name}</Checkbox>
                   ))}
-                  {athletes.length === 0 && <Text color="gray.500" fontSize="sm">No athletes available for assignment.</Text>}
+                  {(!athletes || athletes.length === 0) && <Text color="gray.500" fontSize="sm">No athletes available for assignment.</Text>}
                 </Stack>
               </CheckboxGroup>
             </FormControl>

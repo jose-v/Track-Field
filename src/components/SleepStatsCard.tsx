@@ -12,40 +12,70 @@ import {
   Stat,
   StatLabel,
   StatNumber,
-  StatHelpText
+  StatHelpText,
+  Spinner
 } from '@chakra-ui/react'
 import { FaBed, FaMoon } from 'react-icons/fa'
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
-import { getQualityText } from '../hooks/useSleepRecords'
+import { getQualityText, useSleepStats } from '../hooks/useSleepRecords'
 import type { SleepRecord } from '../hooks/useSleepRecords'
 
 interface SleepStatsCardProps {
-  sleepStats: {
-    averageDuration: number;
-    bestQuality: string;
-    latestBedtime: string;
-    countByQuality: {
-      poor: number;
-      fair: number;
-      good: number;
-      excellent: number;
-    };
-    recentRecord: SleepRecord | null;
-  };
-  isLoading: boolean;
+  viewAllLink?: string;
 }
 
 export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({ 
-  sleepStats,
-  isLoading 
+  viewAllLink = "/athlete/sleep"
 }) => {
+  // Fetch sleep stats directly from the database
+  const { stats: sleepStats, isLoading, error } = useSleepStats();
+  
+  // Log the data for debugging
+  useEffect(() => {
+    if (!isLoading && !error) {
+      console.log("Sleep stats from DB:", sleepStats);
+      console.log("Average duration:", sleepStats.averageDuration);
+      if (sleepStats.recentRecord) {
+        console.log("Latest quality:", sleepStats.recentRecord.quality, 
+          "which maps to:", getQualityText(sleepStats.recentRecord.quality));
+        console.log("Last recorded date:", sleepStats.recentRecord.sleep_date);
+      }
+    }
+  }, [sleepStats, isLoading, error]);
+
+  // Format average sleep duration as "Xh Ym"
+  const formatSleepDuration = (duration: number) => {
+    if (!duration) return "0h 0m";
+    const hours = Math.floor(duration);
+    const minutes = Math.round((duration % 1) * 60);
+    return `${hours}h ${minutes}m`;
+  };
+  
+  // Format date as MM/DD/YYYY
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        month: 'numeric',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } catch (e) {
+      console.error("Error formatting date:", e);
+      return dateString;
+    }
+  };
+
   return (
     <Card 
       borderRadius="lg" 
       overflow="hidden" 
       boxShadow="md"
       height="100%"
+      p="0"
+      display="flex"
+      flexDirection="column"
     >
       {/* Sleep Card Header */}
       <Box 
@@ -55,6 +85,10 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
         display="flex"
         alignItems="center"
         px={6}
+        margin="0"
+        width="100%"
+        borderTopLeftRadius="inherit"
+        borderTopRightRadius="inherit"
       >
         <Flex 
           bg="white" 
@@ -81,63 +115,84 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
           SLEEP STATS
         </Tag>
       </Box>
-      <CardBody>
-        {sleepStats.recentRecord ? (
-          <VStack spacing={4} align="start">
-            <Stat>
-              <StatLabel>Average Sleep</StatLabel>
-              <StatNumber>
-                {sleepStats.averageDuration ? 
-                  `${Math.floor(sleepStats.averageDuration)}h ${Math.round((sleepStats.averageDuration % 1) * 60)}m` : 
-                  'No data'}
-              </StatNumber>
-              <StatHelpText>Last 7 records</StatHelpText>
-            </Stat>
+      <CardBody px={6} py={5} display="flex" flexDirection="column" flex="1">
+        {isLoading ? (
+          <Flex justify="center" align="center" flex="1">
+            <Spinner size="xl" color="purple.500" />
+          </Flex>
+        ) : error ? (
+          <VStack spacing={4} py={4} flex="1" justifyContent="center">
+            <Text color="red.500">Error loading sleep data</Text>
+            <Box mt="auto" width="100%">
+              <Button 
+                as={RouterLink}
+                to={viewAllLink}
+                variant="primary"
+                size="md"
+                width="full"
+                leftIcon={<FaMoon />}
+              >
+                Try Again
+              </Button>
+            </Box>
+          </VStack>
+        ) : sleepStats.recentRecord ? (
+          <VStack spacing={6} align="stretch" height="100%">
+            <Box>
+              <Text fontSize="md" fontWeight="500" color="gray.600">Average Sleep</Text>
+              <Text fontSize="3xl" fontWeight="bold" mt={1} lineHeight="1">
+                {formatSleepDuration(sleepStats.averageDuration)}
+              </Text>
+              <Text color="gray.500" fontSize="sm" mt={1}>Last 7 records</Text>
+            </Box>
             
-            <HStack width="100%" justifyContent="space-between">
-              <Stat>
-                <StatLabel>Latest Quality</StatLabel>
-                <StatNumber fontSize="xl">
-                  {sleepStats.recentRecord ? 
-                    (() => {
-                      const qualityText = getQualityText(sleepStats.recentRecord.quality);
-                      return qualityText.charAt(0).toUpperCase() + qualityText.slice(1);
-                    })() : 
+            <Flex width="100%" justifyContent="space-between" mt={2}>
+              <Box>
+                <Text fontSize="md" fontWeight="500" color="gray.600">Latest Quality</Text>
+                <Text fontSize="2xl" fontWeight="bold" mt={1}>
+                  {sleepStats.recentRecord.quality ? 
+                    getQualityText(sleepStats.recentRecord.quality).charAt(0).toUpperCase() + 
+                    getQualityText(sleepStats.recentRecord.quality).slice(1) : 
                     'N/A'}
-                </StatNumber>
-              </Stat>
-              <Stat textAlign="right">
-                <StatLabel>Last Recorded</StatLabel>
-                <StatNumber fontSize="xl">
-                  {new Date(sleepStats.recentRecord.sleep_date).toLocaleDateString()}
-                </StatNumber>
-              </Stat>
-            </HStack>
+                </Text>
+              </Box>
+              
+              <Box textAlign="right">
+                <Text fontSize="md" fontWeight="500" color="gray.600">Last Recorded</Text>
+                <Text fontSize="2xl" fontWeight="bold" mt={1}>
+                  {formatDate(sleepStats.recentRecord.sleep_date)}
+                </Text>
+              </Box>
+            </Flex>
             
-            <Button 
-              as={RouterLink}
-              to="/athlete/sleep"
-              colorScheme="purple"
-              size="sm"
-              width="full"
-              mt={2}
-              leftIcon={<FaMoon />}
-            >
-              View Sleep Records
-            </Button>
+            <Box mt="auto" width="100%">
+              <Button 
+                as={RouterLink}
+                to={viewAllLink}
+                variant="primary"
+                size="md"
+                width="full"
+                leftIcon={<FaMoon />}
+              >
+                View Sleep Records
+              </Button>
+            </Box>
           </VStack>
         ) : (
-          <VStack spacing={4} py={4}>
+          <VStack spacing={4} py={4} flex="1" justifyContent="center">
             <Text>No sleep records found.</Text>
-            <Button 
-              as={RouterLink}
-              to="/athlete/sleep"
-              colorScheme="purple"
-              size="sm"
-              leftIcon={<FaMoon />}
-            >
-              Add Sleep Record
-            </Button>
+            <Box mt="auto" width="100%">
+              <Button 
+                as={RouterLink}
+                to={viewAllLink}
+                variant="primary"
+                size="md"
+                width="full"
+                leftIcon={<FaMoon />}
+              >
+                Add Sleep Record
+              </Button>
+            </Box>
           </VStack>
         )}
       </CardBody>
