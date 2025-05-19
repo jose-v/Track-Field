@@ -62,7 +62,11 @@ function SignupContent() {
     try {
       // Register the user and create their profile
       const { user, error } = await signUpWithProfile(signupData);
-      if (error) throw error;
+      if (error) {
+        console.error('Signup failed with error:', error);
+        throw error;
+      }
+      
       // Show success message
       toast({
         title: 'Account created!',
@@ -71,15 +75,17 @@ function SignupContent() {
         duration: 7000,
         isClosable: true,
       });
+      
       // Navigate to login page
       navigate('/login');
-    } catch (error) {
-      // Show error message
+    } catch (error: any) {
+      // Show more specific error message
+      console.error('Detailed signup error:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to create account. Please try again.',
+        title: 'Error Creating Account',
+        description: error.message || 'Failed to create account. Please try again.',
         status: 'error',
-        duration: 5000,
+        duration: 7000,
         isClosable: true,
       });
     }

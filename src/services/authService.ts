@@ -105,27 +105,41 @@ async function createCoachProfile(
 
   // 2. If coach has selected athletes, create relationships
   if (selectedAthletes && selectedAthletes.length > 0) {
-    // First verify athletes exist
-    const { data: existingAthletes } = await supabase
-      .from('athletes')
-      .select('id')
-      .in('id', selectedAthletes);
+    try {
+      // First verify athletes exist
+      const { data: existingAthletes, error: athletesError } = await supabase
+        .from('athletes')
+        .select('id')
+        .in('id', selectedAthletes);
 
-    // Only create relationships for existing athletes
-    const validAthleteIds = existingAthletes?.map(a => a.id) || [];
-    
-    if (validAthleteIds.length > 0) {
-      // Create coach-athlete relationships
-      const relationshipData = validAthleteIds.map(athleteId => ({
-        coach_id: userId,
-        athlete_id: athleteId,
-      }));
+      if (athletesError || !existingAthletes || existingAthletes.length === 0) {
+        // Log the error but don't throw - this part is optional
+        console.warn('No valid athletes found or error:', athletesError);
+        return; // Exit early, since we have no valid athletes
+      }
 
-      const { error: relationError } = await supabase
-        .from('coach_athletes')
-        .insert(relationshipData);
+      // Only create relationships for existing athletes
+      const validAthleteIds = existingAthletes.map(a => a.id);
+      
+      if (validAthleteIds.length > 0) {
+        // Create coach-athlete relationships
+        const relationshipData = validAthleteIds.map(athleteId => ({
+          coach_id: userId,
+          athlete_id: athleteId,
+        }));
 
-      if (relationError) throw relationError;
+        const { error: relationError } = await supabase
+          .from('coach_athletes')
+          .insert(relationshipData);
+
+        if (relationError) {
+          // Log the error but don't throw - this part is optional
+          console.warn('Error creating coach-athlete relationships:', relationError);
+        }
+      }
+    } catch (error) {
+      // Log the error but don't throw - athlete linking is optional
+      console.error('Error linking athletes to coach:', error);
     }
   }
 }
