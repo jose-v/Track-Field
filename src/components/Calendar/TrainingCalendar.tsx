@@ -272,85 +272,211 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
       let events: EventData[] = [];
       
       try {
-        console.log('Fetching events for user:', targetUserId, 'for year:', currentYear);
+        console.log('Fetching events for year:', currentYear);
         
         // Format year for date filtering
         const yearStart = `${currentYear}-01-01`;
         const yearEnd = `${currentYear}-12-31`;
         
-        // First try to get the athlete's meet event assignments
-        const { data: eventAssignments, error: eventError } = await supabase
-          .from('athlete_meet_events')
-          .select(`
-            meet_event_id,
-            meet_events (
-              id,
-              meet_id,
-              event_name,
-              track_meets (
-                id,
-                name,
-                meet_date,
-                city,
-                state
-              )
-            )
-          `)
-          .eq('athlete_id', targetUserId);
-        
-        if (eventError) throw eventError;
-        
-        if (eventAssignments && eventAssignments.length > 0) {
-          console.log('Found event assignments:', eventAssignments);
+        if (isCoach) {
+          // For coaches, fetch events for all of their athletes
+          console.log('Coach view: fetching events for all athletes');
           
-          // Transform the data to match our EventData interface and filter by year
-          events = eventAssignments
-            .map(item => {
-              const meetEvent = item.meet_events as any;
-              const trackMeet = meetEvent?.track_meets as any;
+          // First, get all athletes for this coach
+          const { data: coachAthletes, error: coachAthletesError } = await supabase
+            .from('coach_athletes')
+            .select('athlete_id')
+            .eq('coach_id', targetUserId);
+          
+          if (coachAthletesError) throw coachAthletesError;
+          
+          if (coachAthletes && coachAthletes.length > 0) {
+            const athleteIds = coachAthletes.map(row => row.athlete_id);
+            console.log(`Found ${athleteIds.length} athletes for coach:`, athleteIds);
+            
+            // Get profile information for each athlete
+            const { data: athleteProfiles, error: profilesError } = await supabase
+              .from('profiles')
+              .select('id, first_name, last_name')
+              .in('id', athleteIds);
               
-              return {
-                id: meetEvent?.id || '',
-                meet_id: meetEvent?.meet_id || '',
-                meet_name: trackMeet?.name || 'Unknown Meet',
-                meet_date: trackMeet?.meet_date || '',
-                location: `${trackMeet?.city || ''}, ${trackMeet?.state || ''}`.trim() || 'Unknown Location',
-                event_name: meetEvent?.event_name || 'Unknown Event'
-              };
-            })
-            .filter(event => {
-              // Filter events for the current year
-              if (!event.meet_date) return false;
-              const eventYear = new Date(event.meet_date).getFullYear();
-              return eventYear === currentYear;
-            });
-          
-          console.log(`Filtered ${events.length} events for year ${currentYear}`);
+            if (profilesError) throw profilesError;
+            
+            // Create a map of athlete IDs to names for later use
+            const athleteNames = new Map();
+            if (athleteProfiles) {
+              athleteProfiles.forEach(profile => {
+                athleteNames.set(profile.id, `${profile.first_name} ${profile.last_name}`);
+              });
+            }
+            
+            // Get a list of all track meets in the year range
+            const { data: yearMeets, error: yearMeetsError } = await supabase
+              .from('track_meets')
+              .select('id, name, meet_date, city, state')
+              .gte('meet_date', yearStart)
+              .lte('meet_date', yearEnd);
+            
+            if (yearMeetsError) throw yearMeetsError;
+            console.log(`Found ${yearMeets?.length || 0} track meets in year range`);
+            
+            // Create a map of track meets for quick lookup
+            const trackMeetsMap = new Map();
+            if (yearMeets) {
+              yearMeets.forEach(meet => {
+                trackMeetsMap.set(meet.id, meet);
+              });
+            }
+            
+            // Fetch events for all athletes
+            const { data: allEventAssignments, error: allEventsError } = await supabase
+              .from('athlete_meet_events')
+              .select(`
+                id,
+                athlete_id,
+                meet_event_id,
+                meet_events(id, meet_id, event_name)
+              `)
+              .in('athlete_id', athleteIds);
+            
+            if (allEventsError) throw allEventsError;
+            
+            if (allEventAssignments && allEventAssignments.length > 0) {
+              console.log(`Found ${allEventAssignments.length} event assignments for all athletes:`, allEventAssignments);
+              
+              // We need to get meet_events for each assignment
+              const meetEventIds = allEventAssignments.map(item => item.meet_event_id).filter(Boolean);
+              
+              // Get details for all meet events
+              const { data: meetEvents, error: meetEventsError } = await supabase
+                .from('meet_events')
+                .select('id, meet_id, event_name')
+                .in('id', meetEventIds);
+              
+              if (meetEventsError) throw meetEventsError;
+              console.log(`Found ${meetEvents?.length || 0} meet events:`, meetEvents);
+              
+              // Create a map of meet events for quick lookup
+              const meetEventsMap = new Map();
+              if (meetEvents) {
+                meetEvents.forEach(event => {
+                  meetEventsMap.set(event.id, event);
+                });
+              }
+              
+              // Now construct the complete event data
+              events = allEventAssignments
+                .map(item => {
+                  const meetEvent = meetEventsMap.get(item.meet_event_id);
+                  if (!meetEvent) return null;
+                  
+                  const trackMeet = trackMeetsMap.get(meetEvent.meet_id);
+                  if (!trackMeet) return null;
+                  
+                  const athleteName = athleteNames.get(item.athlete_id) || 'Unknown Athlete';
+                  
+                  return {
+                    id: `${item.id}`,
+                    meet_id: trackMeet.id,
+                    meet_name: trackMeet.name,
+                    meet_date: trackMeet.meet_date,
+                    location: `${trackMeet.city || ''}, ${trackMeet.state || ''}`.trim() || 'Unknown Location',
+                    event_name: `${meetEvent.event_name || 'Unknown Event'} (${athleteName})`
+                  };
+                })
+                .filter(Boolean) // Remove null entries
+                .filter(event => {
+                  // Filter events for the current year (redundant but keep as a safety check)
+                  if (!event || !event.meet_date) return false;
+                  const eventYear = new Date(event.meet_date).getFullYear();
+                  return eventYear === currentYear;
+                });
+              
+              console.log(`Processed ${events.length} events for all athletes in year ${currentYear}:`, events);
+            } else {
+              console.log('No event assignments found for any athletes');
+            }
+          } else {
+            console.log('No athletes found for coach:', targetUserId);
+          }
         } else {
-          console.log('No event assignments found for user:', targetUserId);
+          // For individual athletes, fetch only their events
+          console.log('Athlete view: fetching events for:', targetUserId);
           
-          // If no events in athlete_meet_events, try track_meets directly
-          const { data: trackMeets, error: meetsError } = await supabase
-            .from('track_meets')
-            .select('*')
-            .eq('athlete_id', targetUserId)
-            .gte('meet_date', yearStart)
-            .lte('meet_date', yearEnd);
-            
-          if (meetsError) throw meetsError;
+          // Get the athlete's meet event assignments
+          const { data: eventAssignments, error: eventError } = await supabase
+            .from('athlete_meet_events')
+            .select(`
+              meet_event_id,
+              meet_events (
+                id,
+                meet_id,
+                event_name,
+                track_meets (
+                  id,
+                  name,
+                  meet_date,
+                  city,
+                  state
+                )
+              )
+            `)
+            .eq('athlete_id', targetUserId);
           
-          if (trackMeets && trackMeets.length > 0) {
-            console.log(`Found ${trackMeets.length} track meets for year ${currentYear}:`, trackMeets);
+          if (eventError) throw eventError;
+          
+          if (eventAssignments && eventAssignments.length > 0) {
+            console.log('Found event assignments:', eventAssignments);
             
-            // Convert track meets to events format
-            events = trackMeets.map(meet => ({
-              id: meet.id,
-              meet_id: meet.id,
-              meet_name: meet.name,
-              meet_date: meet.meet_date,
-              location: `${meet.city || ''}, ${meet.state || ''}`.trim(),
-              event_name: meet.meet_type || 'Track Meet'
-            }));
+            // Transform the data to match our EventData interface and filter by year
+            events = eventAssignments
+              .map(item => {
+                const meetEvent = item.meet_events as any;
+                const trackMeet = meetEvent?.track_meets as any;
+                
+                return {
+                  id: meetEvent?.id || '',
+                  meet_id: meetEvent?.meet_id || '',
+                  meet_name: trackMeet?.name || 'Unknown Meet',
+                  meet_date: trackMeet?.meet_date || '',
+                  location: `${trackMeet?.city || ''}, ${trackMeet?.state || ''}`.trim() || 'Unknown Location',
+                  event_name: meetEvent?.event_name || 'Unknown Event'
+                };
+              })
+              .filter(event => {
+                // Filter events for the current year
+                if (!event.meet_date) return false;
+                const eventYear = new Date(event.meet_date).getFullYear();
+                return eventYear === currentYear;
+              });
+            
+            console.log(`Filtered ${events.length} events for year ${currentYear}`);
+          } else {
+            console.log('No event assignments found for user:', targetUserId);
+            
+            // If no events in athlete_meet_events, try track_meets directly
+            const { data: trackMeets, error: meetsError } = await supabase
+              .from('track_meets')
+              .select('*')
+              .eq('athlete_id', targetUserId)
+              .gte('meet_date', yearStart)
+              .lte('meet_date', yearEnd);
+              
+            if (meetsError) throw meetsError;
+            
+            if (trackMeets && trackMeets.length > 0) {
+              console.log(`Found ${trackMeets.length} track meets for year ${currentYear}:`, trackMeets);
+              
+              // Convert track meets to events format
+              events = trackMeets.map(meet => ({
+                id: meet.id,
+                meet_id: meet.id,
+                meet_name: meet.name,
+                meet_date: meet.meet_date,
+                location: `${meet.city || ''}, ${meet.state || ''}`.trim(),
+                event_name: meet.meet_type || 'Track Meet'
+              }));
+            }
           }
         }
       } catch (err) {
