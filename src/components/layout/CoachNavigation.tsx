@@ -56,12 +56,12 @@ export function useCoachNavigation(): CoachNavConfig & { isCurrentPathActive: (p
     },
     {
       name: 'Schedule',
-      path: '/coach/schedule',
+      path: '/coach/calendar',
       icon: <LuCalendarClock />
     },
     {
       name: 'Reports',
-      path: '/coach/reports',
+      path: '/coach/stats',
       icon: <LuClipboardList />
     }
   ];
