@@ -77,3 +77,16 @@ According to the project milestones, the following testing tasks remain:
 1. Write integration tests for React hooks (useGamification, etc.)
 2. Perform UI component testing for gamification components
 3. Conduct end-to-end testing of the gamification flow
+
+## Features
+
+### AI Chatbot Assistant
+
+The application includes an AI-powered chatbot assistant that helps users get personalized information about:
+- Training schedules and upcoming meets
+- Performance metrics and improvements
+- Sleep and recovery data
+
+The chatbot uses OpenAI's GPT models through a secure Supabase Edge Function. During local development, the chatbot uses mock responses to avoid API costs.
+
+For setup instructions, see [Chatbot Setup Guide](./docs/chatbot-setup.md).

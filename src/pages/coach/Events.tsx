@@ -65,6 +65,7 @@ export function CoachEvents() {
   const { isOpen: isFormOpen, onOpen: onFormOpen, onClose: onFormClose } = useDisclosure();
   const { isOpen: isEventDrawerOpen, onOpen: onEventDrawerOpen, onClose: onEventDrawerClose } = useDisclosure();
   const { isOpen: isAssignDrawerOpen, onOpen: onAssignDrawerOpen, onClose: onAssignDrawerClose } = useDisclosure();
+  const { isOpen: isDeleteConfirmOpen, onOpen: onDeleteConfirmOpen, onClose: onDeleteConfirmClose } = useDisclosure();
   const [trackMeets, setTrackMeets] = useState<TrackMeet[]>([]);
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -415,6 +416,61 @@ export function CoachEvents() {
     onFormOpen();
   };
 
+  // Handle track meet deletion
+  const handleDeleteMeet = async () => {
+    if (!currentMeet) return;
+    
+    try {
+      // First, delete all events associated with this meet
+      const { error: eventsError } = await supabase
+        .from('meet_events')
+        .delete()
+        .eq('meet_id', currentMeet.id);
+        
+      if (eventsError) throw eventsError;
+      
+      // Also delete any athlete assignments for this meet's events
+      const { error: assignmentsError } = await supabase
+        .from('athlete_meet_events')
+        .delete()
+        .eq('meet_id', currentMeet.id);
+        
+      if (assignmentsError) {
+        console.error('Error deleting athlete assignments:', assignmentsError);
+        // Continue with meet deletion even if assignments deletion fails
+      }
+      
+      // Then delete the meet itself
+      const { error } = await supabase
+        .from('track_meets')
+        .delete()
+        .eq('id', currentMeet.id);
+        
+      if (error) throw error;
+      
+      toast({
+        title: 'Track meet deleted',
+        status: 'success',
+        duration: 2000,
+        isClosable: true,
+      });
+      
+      // Remove the meet from the local state
+      setTrackMeets(prev => prev.filter(meet => meet.id !== currentMeet.id));
+      
+      onDeleteConfirmClose();
+    } catch (error) {
+      console.error('Error deleting track meet:', error);
+      toast({
+        title: 'Error deleting track meet',
+        description: (error as Error).message,
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
   // Render UI
   return (
     <Box py={8}>
@@ -511,7 +567,9 @@ export function CoachEvents() {
                       <MenuItem 
                         icon={<FaTrash />} 
                         onClick={() => {
-                          // Handle delete
+                          // Set the current meet then show delete confirmation
+                          setCurrentMeet(meet);
+                          onDeleteConfirmOpen();
                         }}
                         color="red.500"
                       >
@@ -814,6 +872,28 @@ export function CoachEvents() {
         </DrawerContent>
       </Drawer>
       
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={isDeleteConfirmOpen} onClose={onDeleteConfirmClose} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Confirm Deletion</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text>
+              Are you sure you want to delete "{currentMeet?.name}"? This will also delete all events
+              associated with this meet and cannot be undone.
+            </Text>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="outline" mr={3} onClick={onDeleteConfirmClose}>
+              Cancel
+            </Button>
+            <Button colorScheme="red" onClick={handleDeleteMeet}>
+              Delete
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 } 

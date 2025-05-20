@@ -178,11 +178,24 @@ const AddAthleteModal = ({ isOpen, onClose }: AddAthleteModalProps) => {
     try {
       setIsSaving(true);
       
-      // Create coach-athlete relationships
+      // Get coach info for notification
+      const { data: coachData } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', user.id)
+        .single();
+      
+      const coachName = coachData 
+        ? `${coachData.first_name || ''} ${coachData.last_name || ''}`.trim() 
+        : 'Your coach';
+      
+      // Create coach-athlete relationship requests with pending status
       const relationships = selectedAthletes.map(athleteId => ({
         coach_id: user.id,
         athlete_id: athleteId,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        requested_at: new Date().toISOString(),
+        approval_status: 'pending'
       }));
       
       const { error } = await supabase
@@ -191,14 +204,47 @@ const AddAthleteModal = ({ isOpen, onClose }: AddAthleteModalProps) => {
       
       if (error) throw error;
       
+      // Send notifications to athletes about the request
+      for (const athleteId of selectedAthletes) {
+        try {
+          // Get athlete's email or other contact info if needed
+          const { data: athleteData } = await supabase
+            .from('profiles')
+            .select('email, first_name, last_name')
+            .eq('id', athleteId)
+            .single();
+            
+          if (athleteData?.email) {
+            // Insert notification for the athlete
+            await supabase
+              .from('notifications')
+              .insert({
+                user_id: athleteId,
+                title: 'New Coach Request',
+                message: `Coach ${coachName} wants to add you to their team.`,
+                type: 'coach_request',
+                metadata: { coach_id: user.id },
+                created_at: new Date().toISOString(),
+                is_read: false
+              });
+              
+            // In a real app, you would send an email here if needed
+            console.log(`Notification sent to ${athleteData.email}`);
+          }
+        } catch (notificationError) {
+          console.error('Error sending notification:', notificationError);
+          // Continue with other athletes even if one notification fails
+        }
+      }
+      
       // Invalidate the coach athletes query to refresh data
       queryClient.invalidateQueries({ queryKey: ['coach-athletes', user.id] });
       
       toast({
-        title: 'Success',
-        description: `Added ${selectedAthletes.length} athlete(s) to your team`,
+        title: 'Request Sent',
+        description: `Friend request sent to ${selectedAthletes.length} athlete(s). They will need to approve your request.`,
         status: 'success',
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
       
@@ -207,10 +253,10 @@ const AddAthleteModal = ({ isOpen, onClose }: AddAthleteModalProps) => {
       setSelectedAthletes([]);
       setSearchTerm('');
     } catch (error) {
-      console.error('Error adding athletes:', error);
+      console.error('Error sending athlete requests:', error);
       toast({
         title: 'Error',
-        description: 'Failed to add athletes to your team',
+        description: 'Failed to send athlete requests',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -281,25 +327,77 @@ const AddAthleteModal = ({ isOpen, onClose }: AddAthleteModalProps) => {
       
       if (athleteError) throw athleteError;
       
-      // Create coach-athlete relationship
-      const { error: relationshipError } = await supabase
-        .from('coach_athletes')
-        .insert({
-          coach_id: user.id,
-          athlete_id: athleteId,
-          created_at: new Date().toISOString()
+      // Get coach info for the relationship
+      const { data: coachData } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', user.id)
+        .single();
+      
+      const coachName = coachData 
+        ? `${coachData.first_name || ''} ${coachData.last_name || ''}`.trim() 
+        : 'Your coach';
+      
+      // If email is provided, we'll send a request for approval
+      if (newAthleteEmail) {
+        // Create coach-athlete relationship with pending status
+        const { error: relationshipError } = await supabase
+          .from('coach_athletes')
+          .insert({
+            coach_id: user.id,
+            athlete_id: athleteId,
+            created_at: new Date().toISOString(),
+            requested_at: new Date().toISOString(),
+            approval_status: 'pending'
+          });
+        
+        if (relationshipError) throw relationshipError;
+        
+        // Create notification for the athlete
+        await supabase
+          .from('notifications')
+          .insert({
+            user_id: athleteId,
+            title: 'New Coach Request',
+            message: `Coach ${coachName} wants to add you to their team.`,
+            type: 'coach_request',
+            metadata: { coach_id: user.id },
+            created_at: new Date().toISOString(),
+            is_read: false
+          });
+          
+        // Show success message with pending notice
+        toast({
+          title: 'Athlete Created',
+          description: `${newAthleteFirstName} ${newAthleteLastName} has been created and a request has been sent for them to approve you as their coach.`,
+          status: 'success',
+          duration: 5000,
+          isClosable: true,
         });
-      
-      if (relationshipError) throw relationshipError;
-      
-      // Show success message
-      toast({
-        title: 'Athlete Created',
-        description: `${newAthleteFirstName} ${newAthleteLastName} has been added to your team`,
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
+      } else {
+        // If no email, we'll auto-approve the relationship since this is likely a placeholder account
+        const { error: relationshipError } = await supabase
+          .from('coach_athletes')
+          .insert({
+            coach_id: user.id,
+            athlete_id: athleteId,
+            created_at: new Date().toISOString(),
+            requested_at: new Date().toISOString(),
+            approved_at: new Date().toISOString(),
+            approval_status: 'approved'
+          });
+        
+        if (relationshipError) throw relationshipError;
+        
+        // Show success message
+        toast({
+          title: 'Athlete Created',
+          description: `${newAthleteFirstName} ${newAthleteLastName} has been added to your team.`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
       
       // Reset form and refetch
       setNewAthleteFirstName('');

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
 export interface Athlete {
@@ -28,37 +28,82 @@ export function useCoachAthletes() {
   return useQuery({
     queryKey: ['coach-athletes', user?.id],
     queryFn: async (): Promise<Athlete[]> => {
-      if (!user?.id) throw new Error('User not authenticated');
+      if (!user?.id) {
+        console.log("[useCoachAthletes] No user ID, returning empty array");
+        throw new Error('User not authenticated');
+      }
 
-      // First get the athletes data
+      console.log(`[useCoachAthletes] Fetching athletes for coach ${user.id}...`);
+
+      // First, get all athlete IDs for this coach from the coach_athletes table
+      const { data: coachAthleteData, error: relationError } = await supabase
+        .from('coach_athletes')
+        .select('athlete_id, id')
+        .eq('coach_id', user.id);
+
+      if (relationError) {
+        console.error('[useCoachAthletes] Error fetching coach-athlete relationships:', relationError);
+        throw relationError;
+      }
+
+      console.log('[useCoachAthletes] Coach-athlete relationships found:', coachAthleteData);
+      
+      // If there are no athletes assigned to this coach, return empty array
+      if (!coachAthleteData || coachAthleteData.length === 0) {
+        console.log('[useCoachAthletes] No athletes found for this coach');
+        return [];
+      }
+
+      // Extract athlete IDs
+      const athleteIds = coachAthleteData.map(relation => relation.athlete_id);
+      console.log('[useCoachAthletes] Athlete IDs to fetch:', athleteIds);
+
+      // Get athlete data for these IDs
       const { data: athletesData, error: athletesError } = await supabase
         .from('athletes')
         .select(`
-          id,
-          gender,
-          events,
-          team_id,
-          first_name,
-          last_name,
-          date_of_birth,
-          created_at,
-          created_by,
-          updated_at,
-          updated_by,
-          weight_kg
+          *
         `)
-        .order('first_name');
+        .in('id', athleteIds);
 
-      if (athletesError) throw athletesError;
+      if (athletesError) {
+        console.error('[useCoachAthletes] Error fetching athletes data:', athletesError);
+        console.error('[useCoachAthletes] Query params:', { ids: athleteIds });
+        throw athletesError;
+      }
+
+      console.log('[useCoachAthletes] Athletes data fetched:', athletesData);
+      
+      if (!athletesData || athletesData.length === 0) {
+        console.log('[useCoachAthletes] WARNING: No athlete records found for IDs:', athleteIds);
+        console.log('[useCoachAthletes] This might indicate that the athletes exist in coach_athletes but not in the athletes table');
+
+        // Try querying each athlete ID individually to see if any exist
+        for (const athleteId of athleteIds) {
+          const { data: singleAthlete, error: singleError } = await supabase
+            .from('athletes')
+            .select('id, first_name, last_name')
+            .eq('id', athleteId)
+            .single();
+            
+          console.log(`[useCoachAthletes] Checking athlete ID ${athleteId}:`, singleAthlete || 'Not found', singleError || 'No error');
+        }
+        
+        return [];
+      }
 
       // Now get the profiles data
-      const athleteIds = athletesData.map(athlete => athlete.id);
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, email, phone, avatar_url')
         .in('id', athleteIds);
 
-      if (profilesError) throw profilesError;
+      if (profilesError) {
+        console.error('[useCoachAthletes] Error fetching profiles data:', profilesError);
+        throw profilesError;
+      }
+
+      console.log('[useCoachAthletes] Profiles data fetched:', profilesData);
 
       // Create a map of profiles by id for easy lookup
       const profilesMap = new Map();
@@ -95,8 +140,13 @@ export function useCoachAthletes() {
         };
       });
       
+      console.log('[useCoachAthletes] Final combined athlete data:', combinedData);
       return combinedData;
     },
     enabled: !!user?.id,
+    staleTime: 300000, // 5 minutes
+    gcTime: 600000, // 10 minutes
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 } 

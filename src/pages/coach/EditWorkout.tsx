@@ -748,7 +748,7 @@ export function EditWorkout() {
           <Heading size="sm" mb={4}>Manage Assignments</Heading>
           {isAthletesLoading ? (
             <Spinner />
-          ) : athletes.length === 0 ? (
+          ) : !athletes || athletes.length === 0 ? (
             <Text>No athletes available to assign.</Text>
           ) : (
             <VStack align="stretch" spacing={2} maxH="300px" overflowY="auto">

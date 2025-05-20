@@ -7,13 +7,16 @@ import {
   Text,
   Badge,
   chakra,
+  Spinner,
 } from '@chakra-ui/react';
 import { keyframes } from '@emotion/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { FaChevronRight, FaRunning, FaUsers, FaClipboardList } from 'react-icons/fa';
+import { FaChevronRight, FaRunning, FaUsers, FaClipboardList, FaCalendarAlt, FaTrophy } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { useProfile } from '../../hooks/useProfile';
+import { supabase } from '../../lib/supabase';
+import { format } from 'date-fns';
 
 const HeroSection = () => {
   // Use theme accent color
@@ -30,6 +33,12 @@ const HeroSection = () => {
   const [wordIndex, setWordIndex] = useState(0);
   const { user } = useAuth();
   const { profile, isLoading: profileLoading } = useProfile();
+  
+  // State for contextual statistics
+  const [upcomingMeets, setUpcomingMeets] = useState<any[]>([]);
+  const [athleteCount, setAthleteCount] = useState<number | null>(null);
+  const [coachCount, setCoachCount] = useState<number | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -37,6 +46,131 @@ const HeroSection = () => {
     }, 2000);
     return () => clearInterval(timer);
   }, []);
+
+  // Fetch contextual statistics based on user role
+  useEffect(() => {
+    if (!user) {
+      // For logged-out users, fetch global statistics
+      fetchGlobalStats();
+    } else if (profile?.role === 'coach') {
+      // For coaches, fetch their athletes and upcoming meets
+      fetchCoachStats();
+    } else if (profile?.role === 'athlete') {
+      // For athletes, fetch their upcoming meets and personal stats
+      fetchAthleteStats();
+    }
+  }, [user, profile]);
+
+  // Fetch global user statistics for logged-out users
+  const fetchGlobalStats = async () => {
+    try {
+      setStatsLoading(true);
+      
+      // Count athletes
+      const { count: athleteCount, error: athleteError } = await supabase
+        .from('athletes')
+        .select('*', { count: 'exact', head: true });
+        
+      if (athleteError) throw athleteError;
+      
+      // Count coaches
+      const { count: coachCount, error: coachError } = await supabase
+        .from('coaches')
+        .select('*', { count: 'exact', head: true });
+        
+      if (coachError) throw coachError;
+      
+      setAthleteCount(athleteCount);
+      setCoachCount(coachCount);
+    } catch (error) {
+      console.error('Error fetching global stats:', error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  // Fetch coach-specific statistics
+  const fetchCoachStats = async () => {
+    try {
+      setStatsLoading(true);
+      
+      // Count athletes coached by this coach
+      const { count: athleteCount, error: athleteError } = await supabase
+        .from('coach_athletes')
+        .select('*', { count: 'exact', head: true })
+        .eq('coach_id', user?.id);
+        
+      if (athleteError) throw athleteError;
+      
+      // Fetch upcoming meets for this coach
+      const today = new Date().toISOString().split('T')[0];
+      const { data: meets, error: meetsError } = await supabase
+        .from('track_meets')
+        .select('*')
+        .eq('coach_id', user?.id)
+        .gte('meet_date', today)
+        .order('meet_date', { ascending: true })
+        .limit(3);
+        
+      if (meetsError) throw meetsError;
+      
+      setAthleteCount(athleteCount);
+      setUpcomingMeets(meets || []);
+    } catch (error) {
+      console.error('Error fetching coach stats:', error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  // Fetch athlete-specific statistics
+  const fetchAthleteStats = async () => {
+    try {
+      setStatsLoading(true);
+      
+      // Get the coaches for this athlete
+      const { count: coachCount, error: coachError } = await supabase
+        .from('coach_athletes')
+        .select('*', { count: 'exact', head: true })
+        .eq('athlete_id', user?.id);
+        
+      if (coachError) throw coachError;
+      
+      // Find upcoming meets for this athlete through their coaches
+      const today = new Date().toISOString().split('T')[0];
+      
+      // First get the athlete's coaches
+      const { data: coachData, error: coachDataError } = await supabase
+        .from('coach_athletes')
+        .select('coach_id')
+        .eq('athlete_id', user?.id);
+      
+      if (coachDataError) throw coachDataError;
+      
+      if (coachData && coachData.length > 0) {
+        // Then get meets created by those coaches
+        const coachIds = coachData.map((c: any) => c.coach_id);
+        
+        const { data: meets, error: meetsError } = await supabase
+          .from('track_meets')
+          .select('*')
+          .in('coach_id', coachIds)
+          .gte('meet_date', today)
+          .order('meet_date', { ascending: true })
+          .limit(3);
+        
+        if (meetsError) throw meetsError;
+        
+        setUpcomingMeets(meets || []);
+      }
+      
+      setCoachCount(coachCount);
+    } catch (error) {
+      console.error('Error fetching athlete stats:', error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
 
   // Animation keyframes
   const fadeIn = keyframes`
@@ -193,6 +327,119 @@ const HeroSection = () => {
     );
   };
 
+  // Render contextual statistics based on user role
+  const renderContextualStats = () => {
+    if (statsLoading) {
+      return (
+        <Flex justify="center" align="center" p={4}>
+          <Spinner color="white" size="lg" />
+        </Flex>
+      );
+    }
+
+    // For logged-out users, show global stats
+    if (!user) {
+      return (
+        <>
+          <Box bg="whiteAlpha.200" px={6} py={3} borderRadius="lg" minW="180px">
+            <Text fontSize="xl" fontWeight="bold" color="white">
+              {athleteCount ? `${athleteCount.toLocaleString()}+ Athletes` : '5,000+ Athletes'}
+            </Text>
+          </Box>
+          <Box bg="whiteAlpha.200" px={6} py={3} borderRadius="lg" minW="180px">
+            <Text fontSize="xl" fontWeight="bold" color="white">
+              {coachCount ? `${coachCount.toLocaleString()}+ Coaches` : '200+ Coaches'}
+            </Text>
+          </Box>
+        </>
+      );
+    }
+
+    // For coaches, show athlete count and upcoming meets
+    if (profile?.role === 'coach') {
+      return (
+        <>
+          <Box bg="whiteAlpha.200" px={6} py={3} borderRadius="lg" minW="180px">
+            <Flex align="center" justify="center" mb={1}>
+              <FaUsers color="white" style={{ marginRight: '8px' }} />
+              <Text fontSize="lg" fontWeight="bold" color="white">
+                {athleteCount !== null ? `${athleteCount} Athletes` : 'No Athletes Yet'}
+              </Text>
+            </Flex>
+            <Text fontSize="xs" color="gray.300">
+              {athleteCount === 0 ? 'Add athletes to your team' : 'On your team'}
+            </Text>
+          </Box>
+          <Box bg="whiteAlpha.200" px={6} py={3} borderRadius="lg" minW="220px">
+            <Flex align="center" justify="center" mb={1}>
+              <FaCalendarAlt color="white" style={{ marginRight: '8px' }} />
+              <Text fontSize="lg" fontWeight="bold" color="white">
+                {upcomingMeets.length > 0 
+                  ? `${upcomingMeets.length} Upcoming ${upcomingMeets.length === 1 ? 'Meet' : 'Meets'}` 
+                  : 'No Upcoming Meets'}
+              </Text>
+            </Flex>
+            {upcomingMeets.length > 0 && (
+              <Text fontSize="xs" color="gray.300">
+                Next: {format(new Date(upcomingMeets[0].meet_date), 'MMM d, yyyy')}
+              </Text>
+            )}
+          </Box>
+        </>
+      );
+    }
+
+    // For athletes, show coach count and upcoming meets
+    if (profile?.role === 'athlete') {
+      return (
+        <>
+          <Box bg="whiteAlpha.200" px={6} py={3} borderRadius="lg" minW="180px">
+            <Flex align="center" justify="center" mb={1}>
+              <FaUsers color="white" style={{ marginRight: '8px' }} />
+              <Text fontSize="lg" fontWeight="bold" color="white">
+                {coachCount !== null ? `${coachCount} ${coachCount === 1 ? 'Coach' : 'Coaches'}` : 'No Coach Yet'}
+              </Text>
+            </Flex>
+            <Text fontSize="xs" color="gray.300">
+              {coachCount === 0 ? 'Find coaches to join' : 'Working with you'}
+            </Text>
+          </Box>
+          <Box bg="whiteAlpha.200" px={6} py={3} borderRadius="lg" minW="220px">
+            <Flex align="center" justify="center" mb={1}>
+              <FaTrophy color="white" style={{ marginRight: '8px' }} />
+              <Text fontSize="lg" fontWeight="bold" color="white">
+                {upcomingMeets.length > 0 
+                  ? `${upcomingMeets.length} Upcoming ${upcomingMeets.length === 1 ? 'Meet' : 'Meets'}` 
+                  : 'No Upcoming Meets'}
+              </Text>
+            </Flex>
+            {upcomingMeets.length > 0 && (
+              <Text fontSize="xs" color="gray.300">
+                Next: {format(new Date(upcomingMeets[0].meet_date), 'MMM d, yyyy')}
+              </Text>
+            )}
+          </Box>
+        </>
+      );
+    }
+
+    // Default fallback
+    return (
+      <>
+        <Box bg="whiteAlpha.200" px={6} py={3} borderRadius="lg" minW="180px">
+          <Text fontSize="xl" fontWeight="bold" color="white">
+            Track & Field
+          </Text>
+        </Box>
+        <Box bg="whiteAlpha.200" px={6} py={3} borderRadius="lg" minW="180px">
+          <Text fontSize="xl" fontWeight="bold" color="white">
+            Platform
+          </Text>
+        </Box>
+      </>
+    );
+  };
+
   return (
     <Box w="100vw" maxW="100vw" overflowX="hidden" position="relative">
       {/* Hero Section - Full viewport, no margin or padding, behind navbar */}
@@ -325,16 +572,7 @@ const HeroSection = () => {
               justify="center"
               width="100%"
             >
-              <Box bg="whiteAlpha.200" px={6} py={3} borderRadius="lg" minW="180px">
-                <Text fontSize="xl" fontWeight="bold" color="white">
-                  5,000+ Athletes
-                </Text>
-              </Box>
-              <Box bg="whiteAlpha.200" px={6} py={3} borderRadius="lg" minW="180px">
-                <Text fontSize="xl" fontWeight="bold" color="white">
-                  200+ Coaches
-                </Text>
-              </Box>
+              {renderContextualStats()}
             </Stack>
           </Stack>
         </Flex>

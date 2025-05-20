@@ -61,6 +61,9 @@ CREATE TABLE IF NOT EXISTS public.coach_athletes (
   coach_id UUID REFERENCES public.coaches(id) ON DELETE CASCADE,
   athlete_id UUID REFERENCES public.athletes(id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+  approval_status TEXT CHECK (approval_status IN ('pending', 'approved', 'declined')) DEFAULT 'pending',
+  requested_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+  approved_at TIMESTAMP WITH TIME ZONE,
   UNIQUE(coach_id, athlete_id)
 );
 

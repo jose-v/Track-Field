@@ -1,6 +1,6 @@
 import { useLocation } from 'react-router-dom';
 import { NavLink } from './BaseLayout';
-import { BiRun, BiUser, BiCalendar, BiLineChart, BiDish, BiMoon } from 'react-icons/bi';
+import { BiRun, BiUser, BiCalendar, BiLineChart, BiDish, BiMoon, BiBell } from 'react-icons/bi';
 import { ReactNode } from 'react';
 
 // Athlete navigation links
@@ -66,6 +66,11 @@ export function useAthleteNavigation(): AthleteNavConfig & { isCurrentPathActive
       name: 'Sleep',
       path: '/athlete/sleep',
       icon: <BiMoon />
+    },
+    {
+      name: 'Notifications',
+      path: '/athlete/notifications',
+      icon: <BiBell />
     },
     {
       name: 'Profile',

@@ -1,6 +1,6 @@
 import { useLocation } from 'react-router-dom';
 import { NavLink } from './BaseLayout';
-import { LuUsers, LuCalendarClock, LuClipboardList } from 'react-icons/lu';
+import { LuUsers, LuCalendarClock, LuClipboardList, LuBell } from 'react-icons/lu';
 import { BiLineChart } from 'react-icons/bi';
 import { IoFitnessOutline } from 'react-icons/io5';
 import { ReactNode } from 'react';
@@ -55,7 +55,7 @@ export function useCoachNavigation(): CoachNavConfig & { isCurrentPathActive: (p
       icon: <IoFitnessOutline />
     },
     {
-      name: 'Schedule',
+      name: 'Calendar',
       path: '/coach/calendar',
       icon: <LuCalendarClock />
     },
@@ -63,6 +63,11 @@ export function useCoachNavigation(): CoachNavConfig & { isCurrentPathActive: (p
       name: 'Reports',
       path: '/coach/stats',
       icon: <LuClipboardList />
+    },
+    {
+      name: 'Notifications',
+      path: '/coach/notifications',
+      icon: <LuBell />
     }
   ];
   

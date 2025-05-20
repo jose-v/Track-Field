@@ -7,6 +7,7 @@ import {
     CardBody,
     Stack,
     HStack,
+    VStack,
     Button,
     Stat,
     StatLabel,
@@ -16,7 +17,20 @@ import {
     Flex,
     useColorModeValue,
     useToast,
-    Spinner
+    Spinner,
+    Modal,
+    ModalOverlay,
+    ModalContent,
+    ModalHeader,
+    ModalFooter,
+    ModalBody,
+    ModalCloseButton,
+    FormControl,
+    FormLabel,
+    Input,
+    FormErrorMessage,
+    Select,
+    useDisclosure
   } from '@chakra-ui/react';
   import { useAuth } from '../../contexts/AuthContext';
 import { FaUserFriends, FaRunning, FaClipboardCheck, FaCalendarAlt, FaChartLine, FaClipboardList, FaFlagCheckered, FaCloudSun, FaMapMarkerAlt } from 'react-icons/fa';
@@ -28,6 +42,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { YourTeamCard, WeatherCard, TrackMeetsCard } from '../../components';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
+import { useForm } from 'react-hook-form';
 
   
 // Mock data that's still needed for the exercises dropdown
@@ -208,6 +223,135 @@ function useCoachAthleteEvents() {
   });
 }
   
+// Add TrackMeetFormData interface
+interface TrackMeetFormData {
+  name: string;
+  meet_date: string;
+  city?: string;
+  state?: string;
+  status?: string;
+}
+
+// Schedule Event Modal Component
+function ScheduleEventModal({ isOpen, onClose }) {
+  const { user } = useAuth();
+  const toast = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const {
+    handleSubmit,
+    register,
+    reset,
+    formState: { errors }
+  } = useForm<TrackMeetFormData>();
+  
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      reset();
+    }
+  }, [isOpen, reset]);
+  
+  const onSubmit = async (data: TrackMeetFormData) => {
+    try {
+      setIsSubmitting(true);
+      
+      // Create new track meet
+      const { error } = await supabase
+        .from('track_meets')
+        .insert([{
+          ...data,
+          coach_id: user?.id
+        }]);
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'Event scheduled',
+        description: 'The track meet has been scheduled successfully',
+        status: 'success',
+        duration: 2000,
+        isClosable: true,
+      });
+      
+      onClose();
+    } catch (error) {
+      console.error('Error scheduling event:', error);
+      toast({
+        title: 'Error scheduling event',
+        description: (error as Error).message,
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="xl">
+      <ModalOverlay />
+      <ModalContent>
+        <ModalHeader>Schedule New Event</ModalHeader>
+        <ModalCloseButton />
+        <ModalBody>
+                     <form id="schedule-event-form" onSubmit={handleSubmit(onSubmit)}>
+             <VStack spacing={4}>
+               <FormControl isInvalid={!!errors.name} isRequired>
+                 <FormLabel>Meet Name</FormLabel>
+                 <Input {...register('name', { required: 'Name is required' })} />
+                 <FormErrorMessage>{errors.name?.message}</FormErrorMessage>
+               </FormControl>
+               
+               <FormControl isInvalid={!!errors.meet_date} isRequired>
+                 <FormLabel>Date</FormLabel>
+                 <Input type="date" {...register('meet_date', { required: 'Date is required' })} />
+                 <FormErrorMessage>{errors.meet_date?.message}</FormErrorMessage>
+               </FormControl>
+               
+               <FormControl isInvalid={!!errors.city}>
+                 <FormLabel>City</FormLabel>
+                 <Input {...register('city')} />
+                 <FormErrorMessage>{errors.city?.message}</FormErrorMessage>
+               </FormControl>
+               
+               <FormControl isInvalid={!!errors.state}>
+                 <FormLabel>State</FormLabel>
+                 <Input {...register('state')} />
+                 <FormErrorMessage>{errors.state?.message}</FormErrorMessage>
+               </FormControl>
+               
+               <FormControl isInvalid={!!errors.status}>
+                 <FormLabel>Status</FormLabel>
+                 <Select {...register('status')} defaultValue="Planned">
+                   <option value="Planned">Planned</option>
+                   <option value="Completed">Completed</option>
+                   <option value="Cancelled">Cancelled</option>
+                 </Select>
+                 <FormErrorMessage>{errors.status?.message}</FormErrorMessage>
+               </FormControl>
+             </VStack>
+           </form>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="ghost" mr={3} onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            colorScheme="blue"
+            isLoading={isSubmitting}
+            type="submit"
+            form="schedule-event-form"
+          >
+            Schedule Event
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+}
+
 export function CoachDashboard() {
   const { user } = useAuth();
   const { profile, isLoading: profileLoading } = useProfile(); // Get the profile
@@ -266,6 +410,9 @@ export function CoachDashboard() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [queryClient]);
+
+  // Get the disclosure hooks for the schedule event modal
+  const { isOpen: isScheduleModalOpen, onOpen: onScheduleModalOpen, onClose: onScheduleModalClose } = useDisclosure();
 
   return (
     <Box py={8}>
@@ -349,7 +496,13 @@ export function CoachDashboard() {
           Create Workout
         </Button>
         <Button as={RouterLink} to="/coach/athletes" variant="primary" leftIcon={<Icon as={FaUserFriends} />}>Manage Athletes</Button>
-        <Button as={RouterLink} to="/coach/calendar" variant="primary" leftIcon={<Icon as={FaCalendarAlt} />}>Schedule Event</Button>
+        <Button 
+          variant="primary" 
+          leftIcon={<Icon as={FaCalendarAlt} />}
+          onClick={onScheduleModalOpen}
+        >
+          Schedule Event
+        </Button>
         <Button as={RouterLink} to="/coach/stats" variant="accent" leftIcon={<Icon as={FaChartLine} />}>View Statistics</Button>
       </Stack>
       
@@ -427,6 +580,9 @@ export function CoachDashboard() {
           />
         )}
       </Box>
+      
+      {/* Schedule Event Modal */}
+      <ScheduleEventModal isOpen={isScheduleModalOpen} onClose={onScheduleModalClose} />
     </Box>
   );
 }

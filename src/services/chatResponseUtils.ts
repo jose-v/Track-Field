@@ -1,11 +1,11 @@
 /**
- * Mock ChatGPT API for local development
- * This file provides mock responses for the chatbot during local development
+ * Chat Response Utilities for development
+ * This file provides fallback responses for the chatbot during development
  * to avoid hitting the actual OpenAI API and incurring costs during testing.
  */
 
-// Mock responses for specific intents
-const MOCK_RESPONSES: Record<string, string[]> = {
+// Response templates for specific intents
+const RESPONSE_TEMPLATES: Record<string, string[]> = {
   nextMeet: [
     "Your next meet is the Regional Championships on November 15th at Central Stadium. It starts at 9 AM. Would you like me to remind you the day before?",
     "You're scheduled for the County Finals on December 5th at Riverside Track. Coach wants everyone there by 7:30 AM for warm-ups.",
@@ -35,15 +35,15 @@ const MOCK_RESPONSES: Record<string, string[]> = {
  * Get a random response from the given category
  */
 const getRandomResponse = (category: string): string => {
-  const responses = MOCK_RESPONSES[category] || MOCK_RESPONSES.general;
+  const responses = RESPONSE_TEMPLATES[category] || RESPONSE_TEMPLATES.general;
   const randomIndex = Math.floor(Math.random() * responses.length);
   return responses[randomIndex];
 };
 
 /**
- * Mock function to determine the intent of a message
+ * Analyze the intent of a message for testing
  */
-export const mockAnalyzeIntent = (message: string): string => {
+export const analyzeMessageIntentFallback = (message: string): string => {
   const lowerMessage = message.toLowerCase();
   
   if (lowerMessage.includes('next meet') || 
@@ -70,18 +70,18 @@ export const mockAnalyzeIntent = (message: string): string => {
 };
 
 /**
- * Mock ChatGPT API call that returns appropriate responses based on message content
+ * Fallback response generator when API is unavailable
  */
-export const mockChatGptResponse = async (prompt: string): Promise<string> => {
+export const getFallbackChatResponse = async (prompt: string): Promise<string> => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 1000));
   
   // Determine intent and get appropriate response
-  const intent = mockAnalyzeIntent(prompt);
+  const intent = analyzeMessageIntentFallback(prompt);
   return getRandomResponse(intent);
 };
 
 export default {
-  mockChatGptResponse,
-  mockAnalyzeIntent
+  getFallbackChatResponse,
+  analyzeMessageIntentFallback
 }; 
