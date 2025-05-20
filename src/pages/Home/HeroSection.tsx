@@ -11,7 +11,9 @@ import {
 import { keyframes } from '@emotion/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { FaChevronRight } from 'react-icons/fa';
+import { FaChevronRight, FaRunning, FaUsers, FaClipboardList } from 'react-icons/fa';
+import { useAuth } from '../../contexts/AuthContext';
+import { useProfile } from '../../hooks/useProfile';
 
 const HeroSection = () => {
   // Use theme accent color
@@ -26,6 +28,8 @@ const HeroSection = () => {
     "Elite"
   ];
   const [wordIndex, setWordIndex] = useState(0);
+  const { user } = useAuth();
+  const { profile, isLoading: profileLoading } = useProfile();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -47,6 +51,147 @@ const HeroSection = () => {
   `;
   const fadeInAnimation = `${fadeIn} 1s ease-out forwards`;
   const wordChangeAnimation = `${wordChange} 2s infinite`;
+
+  // Define contextual action buttons based on user role
+  const getActionButtons = () => {
+    // For logged out users, show standard signup/login
+    if (!user) {
+      return (
+        <>
+          <Button
+            className="btn-primary"
+            as={RouterLink}
+            to="/signup"
+            size="lg"
+            variant="solid"
+            colorScheme="primary"
+            px={8}
+            fontSize="md"
+            fontWeight="medium"
+            borderRadius="md"
+            rightIcon={<FaChevronRight />}
+            transition="all 0.3s"
+          >
+            Get Started
+          </Button>
+          <Button
+            className="btn-accent"
+            as={RouterLink}
+            to="/login"
+            size="lg"
+            variant="accent"
+            px={8}
+            fontSize="md"
+            fontWeight="medium"
+            borderRadius="md"
+            transition="all 0.3s"
+          >
+            Log In
+          </Button>
+        </>
+      );
+    }
+
+    // For athletes, show workout and stats focused actions
+    if (profile?.role === 'athlete') {
+      return (
+        <>
+          <Button
+            className="btn-primary"
+            as={RouterLink}
+            to="/athlete/dashboard"
+            size="lg"
+            variant="solid"
+            colorScheme="primary"
+            px={8}
+            fontSize="md"
+            fontWeight="medium"
+            borderRadius="md"
+            rightIcon={<FaRunning />}
+            transition="all 0.3s"
+          >
+            Continue Training
+          </Button>
+          <Button
+            className="btn-accent"
+            as={RouterLink}
+            to="/athlete/workouts"
+            size="lg"
+            variant="accent"
+            px={8}
+            fontSize="md"
+            fontWeight="medium"
+            borderRadius="md"
+            rightIcon={<FaClipboardList />}
+            transition="all 0.3s"
+          >
+            View Workouts
+          </Button>
+        </>
+      );
+    }
+
+    // For coaches, show athlete and team management actions
+    if (profile?.role === 'coach') {
+      return (
+        <>
+          <Button
+            className="btn-primary"
+            as={RouterLink}
+            to="/coach/dashboard"
+            size="lg"
+            variant="solid"
+            colorScheme="primary"
+            px={8}
+            fontSize="md"
+            fontWeight="medium"
+            borderRadius="md"
+            rightIcon={<FaChevronRight />}
+            transition="all 0.3s"
+          >
+            Coach Dashboard
+          </Button>
+          <Button
+            className="btn-accent"
+            as={RouterLink}
+            to="/coach/athletes"
+            size="lg"
+            variant="accent"
+            px={8}
+            fontSize="md"
+            fontWeight="medium"
+            borderRadius="md"
+            rightIcon={<FaUsers />}
+            transition="all 0.3s"
+          >
+            Manage Athletes
+          </Button>
+        </>
+      );
+    }
+
+    // Default buttons for any other role or if role is loading
+    return (
+      <>
+        <Button
+          className="btn-primary"
+          as={RouterLink}
+          to="/dashboard"
+          size="lg"
+          variant="solid"
+          colorScheme="primary"
+          px={8}
+          fontSize="md"
+          fontWeight="medium"
+          borderRadius="md"
+          rightIcon={<FaChevronRight />}
+          transition="all 0.3s"
+        >
+          Go to Dashboard
+        </Button>
+      </>
+    );
+  };
 
   return (
     <Box w="100vw" maxW="100vw" overflowX="hidden" position="relative">
@@ -158,7 +303,9 @@ const HeroSection = () => {
               opacity="0"
               lineHeight="1.8"
             >
-              Join the ultimate platform for track and field athletes. Track your progress, connect with coaches, and transform your training into championship performance.
+              {user 
+                ? `Welcome back${profile?.first_name ? `, ${profile.first_name}` : ''}! Continue your journey to athletic excellence.`
+                : 'Join the ultimate platform for track and field athletes. Track your progress, connect with coaches, and transform your training into championship performance.'}
             </Text>
             <Stack 
               direction={{ base: 'column', sm: 'row' }} 
@@ -167,36 +314,7 @@ const HeroSection = () => {
               opacity="0"
               pt={4}
             >
-              <Button
-                className="btn-primary"
-                as={RouterLink}
-                to="/signup"
-                size="lg"
-                variant="solid"
-                colorScheme="primary"
-                px={8}
-                fontSize="md"
-                fontWeight="medium"
-                borderRadius="md"
-                rightIcon={<FaChevronRight />}
-                transition="all 0.3s"
-              >
-                Get Started
-              </Button>
-              <Button
-                className="btn-accent"
-                as={RouterLink}
-                to="/login"
-                size="lg"
-                variant="accent"
-                px={8}
-                fontSize="md"
-                fontWeight="medium"
-                borderRadius="md"
-                transition="all 0.3s"
-              >
-                Log In
-              </Button>
+              {getActionButtons()}
             </Stack>
             <Stack 
               spacing={8} 
