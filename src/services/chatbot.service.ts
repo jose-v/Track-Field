@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { supabase } from '../lib/supabase';
 import { mockChatGptResponse } from './mockChatApi';
 
@@ -79,14 +78,25 @@ export const sendChatGPTPrompt = async (prompt: string): Promise<string> => {
       console.error('Error using Supabase function, falling back to direct API:', supabaseError);
       
       // Fallback to direct OpenAI API (requires server with CORS handling)
-      const response = await axios.post('/api/chat/gpt', {
-        prompt,
-        model: 'gpt-4',
-        max_tokens: 150,
-        temperature: 0.7,
+      const response = await fetch('/api/chat/gpt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt,
+          model: 'gpt-4',
+          max_tokens: 150,
+          temperature: 0.7,
+        }),
       });
       
-      return response.data.response;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      return result.response;
     }
   } catch (error) {
     console.error('Error calling ChatGPT API:', error);
