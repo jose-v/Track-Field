@@ -20,7 +20,9 @@ import {
 import { FaPaperPlane, FaRobot, FaUser } from 'react-icons/fa';
 import { 
   sendChatGPTPrompt, 
-  createContextualPrompt
+  createContextualPrompt,
+  analyzeMessageIntent,
+  fetchUserData
 } from '../../services/chatbot.service';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -60,9 +62,10 @@ const TrackChatBot: React.FC<TrackChatBotProps> = ({
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const inputBg = useColorModeValue('gray.100', 'gray.700');
-  const userBubbleBg = useColorModeValue('blue.500', 'blue.400');
+  const userBubbleBg = '#2B6CB0'; // Fixed blue color for user bubbles
   const botBubbleBg = useColorModeValue('gray.200', 'gray.600');
   const botTextColor = useColorModeValue('black', 'white');
+  const userTextColor = 'white'; // Always white for user messages
 
   // Process initialQuestion if provided
   useEffect(() => {
@@ -96,8 +99,14 @@ const TrackChatBot: React.FC<TrackChatBotProps> = ({
     setIsLoading(true);
     
     try {
-      // Create context-aware prompt for ChatGPT based on authentication status
-      const prompt = await createContextualPrompt(userMessage, userId);
+      // Extract intent from user message
+      const intent = analyzeMessageIntent(userMessage);
+      
+      // Fetch relevant user data based on intent
+      const userData = await fetchUserData(intent, userId);
+      
+      // Create context-aware prompt for ChatGPT
+      const prompt = createContextualPrompt(userMessage, userData, intent);
       
       // Call ChatGPT API
       const response = await sendChatGPTPrompt(prompt);
@@ -206,12 +215,13 @@ const TrackChatBot: React.FC<TrackChatBotProps> = ({
                     bg={msg.sender === 'user' ? userBubbleBg : botBubbleBg}
                     color={msg.sender === 'user' ? 'white' : botTextColor}
                   >
-                    <Text>{msg.text}</Text>
+                    <Text color={msg.sender === 'user' ? 'white' : 'inherit'}>{msg.text}</Text>
                     <Text
                       fontSize="xs"
                       opacity={0.8}
                       textAlign="right"
                       mt={1}
+                      color={msg.sender === 'user' ? 'white' : 'inherit'}
                     >
                       {msg.timestamp.toLocaleTimeString([], { 
                         hour: '2-digit', 

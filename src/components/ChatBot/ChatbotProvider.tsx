@@ -48,17 +48,21 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
       
       {/* Floating Chat Button */}
       <IconButton
-        icon={<FaComment />}
+        icon={<FaComment size="1.3em" />}
         aria-label="Open Chat"
         position="fixed"
         bottom="20px"
         right="20px"
         size="lg"
-        colorScheme="blue"
+        bg="#FFDD2D"
+        color="black"
+        _hover={{ bg: "#FFE94D" }}
         borderRadius="full"
         boxShadow="lg"
         onClick={() => openChatbot()}
         zIndex={100}
+        h="60px"
+        w="60px"
       />
       
       {/* Chatbot Component */}
