@@ -7,6 +7,7 @@ import { initDebugUtils } from './utils/debugUtils'
 import AppRoutes from './routes/AppRoutes'
 import { Footer } from './components/Footer'
 import { Box, Flex } from '@chakra-ui/react'
+import { ChatbotProvider } from './components/ChatBot/ChatbotProvider'
 
 // Global styles for public/private pages
 import './styles/public.css'
@@ -65,15 +66,17 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <Router>
-        <Flex direction="column" minHeight="100vh">
-          <AuthErrorHandler />
-          <Box flex="1">
-            <AppRoutes />
-          </Box>
-          <Footer />
-        </Flex>
-      </Router>
+      <ChatbotProvider>
+        <Router>
+          <Flex direction="column" minHeight="100vh">
+            <AuthErrorHandler />
+            <Box flex="1">
+              <AppRoutes />
+            </Box>
+            <Footer />
+          </Flex>
+        </Router>
+      </ChatbotProvider>
     </ErrorBoundary>
   )
 }
