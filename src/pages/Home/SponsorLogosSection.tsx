@@ -1,28 +1,32 @@
 import { Box, Flex, Text, Image, useBreakpointValue, useColorMode, useColorModeValue } from '@chakra-ui/react';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 
 // List of sponsor logos with their names and local image paths
 const sponsorLogos = [
-  { name: 'Nike', image: '/images/sponsors/nike.png' },
-  { name: 'Adidas', image: '/images/sponsors/adidas.png' },
-  { name: 'Under Armour', image: '/images/sponsors/under-armour.png' },
-  { name: 'New Balance', image: '/images/sponsors/new-balance.png' },
-  { name: 'Puma', image: '/images/sponsors/puma.png' },
-  { name: 'Asics', image: '/images/sponsors/asics.png' },
-  { name: 'Brooks', image: '/images/sponsors/brooks.png' },
-  { name: 'Reebok', image: '/images/sponsors/reebok.png' },
-  { name: 'Mizuno', image: '/images/sponsors/mizuno.png' },
-  { name: 'Gatorade', image: '/images/sponsors/gatorade.png' },
-  { name: 'Harvard University', image: '/images/sponsors/harvard.png' },
-  { name: 'Stanford University', image: '/images/sponsors/stanford.png' },
-  { name: 'UCLA', image: '/images/sponsors/ucla.png' },
-  { name: 'USA Track & Field', image: '/images/sponsors/usatf.png' },
-  { name: 'NCAA', image: '/images/sponsors/ncaa.png' }
+  { name: 'Nike', image: './images/sponsors/nike.png' },
+  { name: 'Adidas', image: './images/sponsors/adidas.png' },
+  { name: 'Under Armour', image: './images/sponsors/under-armour.png' },
+  { name: 'New Balance', image: './images/sponsors/new-balance.png' },
+  { name: 'Puma', image: './images/sponsors/puma.png' },
+  { name: 'Asics', image: './images/sponsors/asics.png' },
+  { name: 'Brooks', image: './images/sponsors/brooks.png' },
+  { name: 'Reebok', image: './images/sponsors/reebok.png' },
+  { name: 'Mizuno', image: './images/sponsors/mizuno.png' },
+  { name: 'Gatorade', image: './images/sponsors/gatorade.png' },
+  { name: 'Harvard University', image: './images/sponsors/harvard.png' },
+  { name: 'Stanford University', image: './images/sponsors/stanford.png' },
+  { name: 'UCLA', image: './images/sponsors/ucla.png' },
+  { name: 'USA Track & Field', image: './images/sponsors/usatf.png' },
+  { name: 'NCAA', image: './images/sponsors/ncaa.png' }
 ];
+
+// Fallback image path
+const FALLBACK_IMAGE = './images/placeholder-logo.png';
 
 const SponsorLogosSection = () => {
   const { colorMode } = useColorMode();
   const sliderRef = useRef<HTMLDivElement>(null);
+  const [imgLoadErrors, setImgLoadErrors] = useState<Record<string, boolean>>({});
   
   // Calculate how many logos to show based on screen size
   const logosToShow = useBreakpointValue({ base: 3, md: 5, lg: 6 }) || 5;
@@ -44,6 +48,20 @@ const SponsorLogosSection = () => {
       return 'grayscale(90%) brightness(2.2) contrast(0.7) invert(1)';
     }
     return 'grayscale(90%) brightness(0.95) contrast(0.8)';
+  };
+
+  // Handle image load errors
+  const handleImageError = (logoName: string) => {
+    setImgLoadErrors(prev => ({
+      ...prev,
+      [logoName]: true
+    }));
+    console.warn(`Failed to load logo for ${logoName}, using fallback`);
+  };
+
+  // Get image source with fallback
+  const getImageSrc = (logo: { name: string, image: string }) => {
+    return imgLoadErrors[logo.name] ? FALLBACK_IMAGE : logo.image;
   };
 
   return (
@@ -105,12 +123,14 @@ const SponsorLogosSection = () => {
                 p={3}
               >
                 <Image
-                  src={logo.image}
+                  src={getImageSrc(logo)}
                   alt={`${logo.name} logo`}
                   boxSize={logoSize}
                   objectFit="contain"
                   filter={getImageFilter()}
                   opacity={logoOpacity}
+                  onError={() => handleImageError(logo.name)}
+                  fallbackSrc={FALLBACK_IMAGE}
                   _hover={{
                     opacity: hoverOpacity,
                     transform: "scale(1.1)",
@@ -136,12 +156,14 @@ const SponsorLogosSection = () => {
                 p={3}
               >
                 <Image
-                  src={logo.image}
+                  src={getImageSrc(logo)}
                   alt={`${logo.name} logo`}
                   boxSize={logoSize}
                   objectFit="contain"
                   filter={getImageFilter()}
                   opacity={logoOpacity}
+                  onError={() => handleImageError(logo.name)}
+                  fallbackSrc={FALLBACK_IMAGE}
                   _hover={{
                     opacity: hoverOpacity,
                     transform: "scale(1.1)",
