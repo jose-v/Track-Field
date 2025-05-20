@@ -25,10 +25,9 @@ import { useCoachAthletes } from '../../hooks/useCoachAthletes';
 import { useState, useEffect } from 'react';
 import { useProfile } from '../../hooks/useProfile';
 import { useQueryClient } from '@tanstack/react-query';
-import YourTeamCard from '../../components/YourTeamCard';
+import { YourTeamCard, WeatherCard, TrackMeetsCard } from '../../components';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
-import WeatherCard from '../../components/WeatherCard';
 
   
 // Mock data that's still needed for the exercises dropdown
@@ -350,7 +349,7 @@ export function CoachDashboard() {
           Create Workout
         </Button>
         <Button as={RouterLink} to="/coach/athletes" variant="primary" leftIcon={<Icon as={FaUserFriends} />}>Manage Athletes</Button>
-        <Button as={RouterLink} to="/coach/events" variant="primary" leftIcon={<Icon as={FaCalendarAlt} />}>Schedule Event</Button>
+        <Button as={RouterLink} to="/coach/calendar" variant="primary" leftIcon={<Icon as={FaCalendarAlt} />}>Schedule Event</Button>
         <Button as={RouterLink} to="/coach/stats" variant="accent" leftIcon={<Icon as={FaChartLine} />}>View Statistics</Button>
       </Stack>
       
@@ -396,6 +395,38 @@ export function CoachDashboard() {
           </CardBody>
         </Card>
       </SimpleGrid>
+      
+      {/* Track Meets Calendar View */}
+      <Box mb={8}>
+        <Heading size="md" mb={4}>Track Meets Calendar</Heading>
+        {eventsLoading ? (
+          <Flex justify="center" py={4}>
+            <Spinner />
+          </Flex>
+        ) : (
+          <TrackMeetsCard
+            trackMeets={athleteEvents?.flatMap(athlete => 
+              athlete.events.map(event => ({
+                id: event.id,
+                name: event.name,
+                meet_date: event.date,
+                city: event.location.split(', ')[0],
+                state: event.location.split(', ')[1] || '',
+                status: 'Scheduled',
+                assigned_events: [{ id: `${event.id}-${event.eventName}`, event_name: event.eventName }],
+                total_events: 1,
+                assigned_events_count: 1
+              }))
+            ).filter((meet, index, self) => 
+              // Remove duplicates based on ID
+              index === self.findIndex(m => m.id === meet.id)
+            ) || []}
+            coachMeets={[]}
+            isLoading={eventsLoading}
+            viewAllLink="/coach/calendar"
+          />
+        )}
+      </Box>
     </Box>
   );
 }
