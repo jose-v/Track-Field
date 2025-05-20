@@ -20,4 +20,6 @@ export { PrivateRoute } from './PrivateRoute';
 export { StepIndicator } from './StepIndicator';
 export { default as FeedbackModal } from './FeedbackModal';
 export { default as FeedbackProvider, useFeedback } from './FeedbackProvider';
-export { ShareComponent } from './ShareComponent'; 
+export { ShareComponent } from './ShareComponent';
+export { default as YourTeamCard } from './YourTeamCard';
+export { default as AddAthleteModal } from './AddAthleteModal'; 
