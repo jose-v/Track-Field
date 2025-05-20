@@ -1,5 +1,8 @@
 import { VStack, Text, Divider, HStack, Image, useColorModeValue } from '@chakra-ui/react';
 
+// Local fallback image
+const LOCAL_FALLBACK_IMAGE = './images/athlete-avatar.jpg';
+
 const TestimonialCard = ({ 
   name, 
   role, 
@@ -36,12 +39,12 @@ const TestimonialCard = ({
       <Divider />
       <HStack spacing={4}>
         <Image
-          src={image || "https://via.placeholder.com/50"}
+          src={image || LOCAL_FALLBACK_IMAGE}
           alt={name}
           borderRadius="full"
           boxSize="50px"
           objectFit="cover"
-          fallbackSrc="https://via.placeholder.com/50"
+          fallbackSrc={LOCAL_FALLBACK_IMAGE}
         />
         <VStack align="start" spacing={0}>
           <Text fontWeight="bold" color={textColor}>{name}</Text>

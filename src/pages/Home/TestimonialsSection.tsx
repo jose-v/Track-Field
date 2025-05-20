@@ -30,19 +30,19 @@ const TestimonialsSection = () => {
             <TestimonialCard 
               name="Michael Johnson"
               role="Sprinter"
-              image="/images/testimonial1.jpg"
+              image="./images/athlete-avatar.jpg"
               content="The analytics helped me identify weaknesses in my sprint technique. After three months, I improved my 100m time by 0.5 seconds."
             />
             <TestimonialCard 
               name="Sarah Williams"
               role="High Jumper"
-              image="/images/testimonial2.jpg"
+              image="./images/athlete-avatar2.jpg"
               content="The connection with coaches has been invaluable. My technique has completely transformed thanks to the personalized feedback."
             />
             <TestimonialCard 
               name="David Rodriguez"
               role="Distance Runner"
-              image="/images/testimonial3.jpg"
+              image="./images/athlete-avatar3.jpg"
               content="The training plans are excellent. I've been able to train more efficiently and reduce my marathon time by 12 minutes."
             />
           </SimpleGrid>
