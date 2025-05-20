@@ -90,8 +90,8 @@ export function Dashboard() {
   const [teamInfo, setTeamInfo] = useState<any>(null)
   const [isLoadingTeam, setIsLoadingTeam] = useState(false)
   const [trackMeets, setTrackMeets] = useState<any[]>([])
-  const [coachMeets, setCoachMeets] = useState<any[]>([])
   const [isLoadingMeets, setIsLoadingMeets] = useState(false)
+  const [coachMeets, setCoachMeets] = useState<any[]>([])
   // Default weather data as fallback
   const [weather] = useState({
     temp: '72',
@@ -490,91 +490,21 @@ export function Dashboard() {
             </Skeleton>
           </Box>
           {/* Weather Info Inline */}
-          <Box minW="300px" maxW="340px" ml={6}>
-            <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
-              {(() => {
-                // Inline weather state and icon logic
-                const [weather, setWeather] = React.useState({
-                  temp: '72',
-                  condition: 'Loading...',
-                  description: 'Fetching current conditions'
-                });
-                const [isLoading, setIsLoading] = React.useState(profileLoading);
-                const [hasError, setHasError] = React.useState(false);
-                // Helper function for icon
-                function getWeatherIcon(condition: string) {
-                  const c = (condition || '').toLowerCase();
-                  if (c.includes('rain') || c.includes('drizzle')) return FaCloudRain;
-                  if (c.includes('snow')) return FaSnowflake;
-                  if (c.includes('clear')) return FaSun;
-                  if (c.includes('cloud')) return FaCloudSun;
-                  if (c.includes('thunder') || c.includes('storm')) return FaBolt;
-                  return FaCloudMeatball;
-                }
-                React.useEffect(() => {
-                  if (!profile?.city) return;
-                  const fetchWeather = async () => {
-                    setIsLoading(true);
-                    setHasError(false);
-                    try {
-                      // Geocode
-                      let lat = 36.0726, lon = -79.7920;
-                      if (profile.city.toLowerCase() !== 'greensboro' || (profile.state && profile.state.toLowerCase() !== 'north carolina')) {
-                        const geoUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(profile.city)}${profile.state ? `,${profile.state}` : ''},us&limit=1&appid=d52188171339c7c268d503e4e1122c12`;
-                        const geoRes = await fetch(geoUrl);
-                        const geoData = await geoRes.json();
-                        if (geoData && geoData.length > 0) {
-                          lat = geoData[0].lat;
-                          lon = geoData[0].lon;
-                        }
-                      }
-                      const url = `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&appid=d52188171339c7c268d503e4e1122c12&units=imperial`;
-                      const res = await fetch(url);
-                      const data = await res.json();
-                      setWeather({
-                        temp: Math.round(data.current.temp).toString(),
-                        condition: data.current.weather[0].main,
-                        description: data.current.weather[0].description
-                      });
-                    } catch (e) {
-                      setHasError(true);
-                    } finally {
-                      setIsLoading(false);
-                    }
-                  };
-                  fetchWeather();
-                }, [profile?.city, profile?.state]);
-                const WeatherIcon = React.useMemo(() => getWeatherIcon(weather.condition), [weather.condition]);
-                // Date formatting
-                const today = new Date();
-                const dateStr = today.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
-                return (
-                  <Box
-                    borderRadius="2xl"
-                    boxShadow="lg"
-                    px={6}
-                    py={4}
-                    bgGradient="linear(to-r, orange.300, yellow.200)"
-                    display="flex"
-                    alignItems="center"
-                    minH="110px"
-                  >
-                    <Icon as={WeatherIcon} w={14} h={14} color="white" mr={6} />
-                    <Box flex="1">
-                      <Text fontSize="lg" fontWeight="bold" color="gray.800" mb={-1}>{weather.condition}</Text>
-                      <Text fontSize="3xl" fontWeight="extrabold" color="gray.900" lineHeight="1">{weather.temp}°</Text>
-                      <Flex align="center" mt={1} color="gray.600" fontSize="md">
-                        <FaMapMarkerAlt style={{ marginRight: 4 }} />
-                        <span>{profile?.city}{profile?.state ? `, ${getStateAbbr(profile.state)}` : ''}</span>
-                      </Flex>
-                      <Text fontSize="sm" color="gray.700" mt={1}>{dateStr}</Text>
-                      {hasError && <Text fontSize="xs" color="red.400">Weather unavailable</Text>}
-                    </Box>
-                  </Box>
-                );
-              })()}
-            </Skeleton>
+          <Box minW="390px" maxW="442px" ml={6}>
+            <WeatherCard 
+              city={profile?.city || "Greensboro"}
+              state={profile?.state ? getStateAbbr(profile.state) : "NC"}
+              weather={{
+                temp: "71",
+                condition: "Clouds",
+                description: "scattered clouds"
+              }}
+              isLoading={profileLoading}
+              fixedDate="Tuesday, May 20"
+            />
           </Box>
+
+          
         </Box>
 
         {/* Today's Workouts Card */}

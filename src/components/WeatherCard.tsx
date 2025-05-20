@@ -10,7 +10,7 @@ import {
   Skeleton,
   useToast
 } from '@chakra-ui/react'
-import { FaCloudSun, FaCloudRain, FaSnowflake, FaSun, FaCloudMeatball, FaBolt } from 'react-icons/fa'
+import { FaCloudSun, FaCloudRain, FaSnowflake, FaSun, FaCloudMeatball, FaBolt, FaMapMarkerAlt } from 'react-icons/fa'
 import React, { useState, useEffect } from 'react'
 
 // OpenWeather API configuration
@@ -27,6 +27,7 @@ interface WeatherCardProps {
     description: string;
   };
   isLoading: boolean;
+  fixedDate?: string; // For testing or demos
 }
 
 // Cache for coordinates to avoid multiple geocoding requests
@@ -36,7 +37,8 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
   city, 
   state, 
   weather: initialWeather, 
-  isLoading: initialLoading 
+  isLoading: initialLoading,
+  fixedDate
 }) => {
   const [weather, setWeather] = useState(initialWeather)
   const [isLoading, setIsLoading] = useState(initialLoading)
@@ -45,22 +47,14 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
 
   // Helper function to get the appropriate weather icon based on condition code
   const getWeatherIcon = (condition: string) => {
-    const conditionLower = condition.toLowerCase()
-    
-    if (conditionLower.includes('rain') || conditionLower.includes('drizzle')) {
-      return FaCloudRain
-    } else if (conditionLower.includes('snow')) {
-      return FaSnowflake
-    } else if (conditionLower.includes('clear')) {
-      return FaSun
-    } else if (conditionLower.includes('cloud')) {
-      return FaCloudSun
-    } else if (conditionLower.includes('thunder') || conditionLower.includes('storm')) {
-      return FaBolt
-    } else {
-      return FaCloudMeatball // Default for fog, mist, etc.
-    }
-  }
+    const c = (condition || '').toLowerCase();
+    if (c.includes('rain') || c.includes('drizzle')) return FaCloudRain;
+    if (c.includes('snow')) return FaSnowflake;
+    if (c.includes('clear')) return FaSun;
+    if (c.includes('cloud')) return FaCloudSun;
+    if (c.includes('thunder') || c.includes('storm')) return FaBolt;
+    return FaCloudMeatball;
+  };
 
   // Helper function to get coordinates for a city
   const getCoordinates = async (city: string, state?: string) => {
@@ -177,60 +171,52 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
 
   const WeatherIcon = getWeatherIcon(weather.condition)
   
+  // Format the date - use fixedDate if provided (for testing), otherwise use today's date
+  const today = new Date();
+  const dateStr = fixedDate || today.toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    month: 'short', 
+    day: 'numeric' 
+  });
+  
+  const location = state ? `${city}, ${state}` : city;
+
   return (
-    <Card 
-      borderRadius="lg" 
-      overflow="hidden" 
-      boxShadow="md"
-      height="100%"
-    >
-      {/* Weather Card Header */}
-      <Box 
-        h="80px" 
-        bg="linear-gradient(135deg, #DD6B20 0%, #F6AD55 100%)" 
+    <Skeleton isLoaded={!isLoading}>
+      <Box
+        bg="linear-gradient(135deg, #F6AD55 0%, #F6E05E 100%)"
+        borderRadius="lg"
+        p={5}
+        color="black"
         position="relative"
+        overflow="hidden"
         display="flex"
+        justifyContent="center"
         alignItems="center"
-        px={6}
       >
-        <Flex 
-          bg="white" 
-          borderRadius="full" 
-          w="50px" 
-          h="50px" 
-          justifyContent="center" 
-          alignItems="center"
-          boxShadow="none"
-          mr={4}
-        >
-          <Icon as={WeatherIcon} w={6} h={6} color="orange.500" />
+        <Flex width="100%" justifyContent="center" alignItems="center">
+          <Box display="flex" alignItems="center" justifyContent="center" mr={8}>
+            <Icon as={WeatherIcon} color="white" boxSize={90} />
+          </Box>
+          
+          <Box>
+            <Text fontSize="xl" fontWeight="medium" textAlign="center" mb={-1}>{weather.condition}</Text>
+            <Text fontSize="4xl" fontWeight="bold" textAlign="center" lineHeight="1">{weather.temp}°</Text>
+            
+            <Flex direction="column" mt={1} alignItems="center">
+              <Flex alignItems="center" justifyContent="center">
+                <Icon as={FaMapMarkerAlt} color="blackAlpha.800" mr={1} />
+                <Text fontWeight="medium" fontSize="sm">{location}</Text>
+              </Flex>
+              
+              <Text mt={1} color="blackAlpha.800" fontSize="sm" textAlign="center">
+                {dateStr}
+              </Text>
+            </Flex>
+          </Box>
         </Flex>
-        <Tag
-          size="lg"
-          variant="subtle"
-          bg="whiteAlpha.300"
-          color="white"
-          fontWeight="bold"
-          px={4}
-          py={2}
-          borderRadius="md"
-        >
-          WEATHER
-        </Tag>
       </Box>
-      <CardBody>
-        <Skeleton isLoaded={!isLoading} fadeDuration={1}>
-          <VStack spacing={1}>
-            <Text fontSize="lg">{city || 'Location not set'}{state ? `, ${state}` : ''}</Text>
-            <Text fontSize="4xl" fontWeight="bold">{weather.temp}°F</Text>
-            <Text color="gray.600">{weather.condition}</Text>
-            <Text fontSize="sm" color="gray.500">
-              {hasError ? 'Weather data unavailable' : weather.description}
-            </Text>
-          </VStack>
-        </Skeleton>
-      </CardBody>
-    </Card>
+    </Skeleton>
   )
 }
 
