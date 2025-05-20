@@ -19,10 +19,8 @@ import {
 } from '@chakra-ui/react';
 import { FaPaperPlane, FaRobot, FaUser } from 'react-icons/fa';
 import { 
-  fetchUserData, 
   sendChatGPTPrompt, 
-  createContextualPrompt, 
-  analyzeMessageIntent 
+  createContextualPrompt
 } from '../../services/chatbot.service';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -98,14 +96,8 @@ const TrackChatBot: React.FC<TrackChatBotProps> = ({
     setIsLoading(true);
     
     try {
-      // Extract intent from user message
-      const intent = analyzeMessageIntent(userMessage);
-      
-      // Fetch relevant user data based on intent
-      const userData = await fetchUserData(intent, userId);
-      
-      // Create context-aware prompt for ChatGPT
-      const prompt = createContextualPrompt(userMessage, userData, intent);
+      // Create context-aware prompt for ChatGPT based on authentication status
+      const prompt = await createContextualPrompt(userMessage, userId);
       
       // Call ChatGPT API
       const response = await sendChatGPTPrompt(prompt);
