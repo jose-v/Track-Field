@@ -56,7 +56,7 @@ export const useAuth = () => {
   
   // Derived information
   const isLoggedIn = !!currentUser;
-  const userId = currentUser?.userId || 'user123'; // Default for development
+  const userId = currentUser?.userId || null; // Return null when not logged in
   
   return {
     user: currentUser,

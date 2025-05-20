@@ -45,19 +45,13 @@ const TrackChatBot: React.FC<TrackChatBotProps> = ({
   initialQuestion,
   onQuestionProcessed
 }) => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      text: "Hi there! I'm your Track & Field assistant. Ask me about your schedule, performance, or training metrics.",
-      sender: 'bot',
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initialQuestionProcessedRef = useRef(false);
   const toast = useToast();
-  const { userId } = useAuth();
+  const { userId, isLoggedIn } = useAuth();
 
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
@@ -94,32 +88,74 @@ const TrackChatBot: React.FC<TrackChatBotProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Set up welcome message based on authentication status
+  useEffect(() => {
+    // Use different welcome message based on login status
+    const welcomeMessage = isLoggedIn 
+      ? "Hi there! I'm your Track & Field assistant. Ask me about your schedule, performance, or training metrics."
+      : "Hi there! I'm your Track & Field assistant. Please log in to access your personal training data and metrics.";
+      
+    setMessages([
+      {
+        text: welcomeMessage,
+        sender: 'bot',
+        timestamp: new Date(),
+      },
+    ]);
+  }, [isLoggedIn]);
+
   // Process user message and get AI response
   const processMessage = async (userMessage: string) => {
     setIsLoading(true);
     
     try {
-      // Extract intent from user message
-      const intent = analyzeMessageIntent(userMessage);
-      
-      // Fetch relevant user data based on intent
-      const userData = await fetchUserData(intent, userId);
-      
-      // Create context-aware prompt for ChatGPT
-      const prompt = createContextualPrompt(userMessage, userData, intent);
-      
-      // Call ChatGPT API
-      const response = await sendChatGPTPrompt(prompt);
-      
-      // Add bot response to messages
-      setMessages(prev => [
-        ...prev, 
-        { 
-          text: response, 
-          sender: 'bot', 
-          timestamp: new Date() 
-        }
-      ]);
+      // Check if user is authenticated
+      if (!userId) {
+        // For unauthenticated users, create a special prompt
+        const unauthPrompt = `
+          You are a Track & Field assistant chatbot.
+          The user is NOT logged in and should not receive any personal data.
+          USER QUERY: ${userMessage}
+          Respond in a helpful way, but if they are asking about personal data like 
+          sleep records, performance metrics, or their schedule, politely inform them 
+          they need to log in first to access their personal information.
+          Be concise and limit your response to 2-3 sentences.
+        `;
+        
+        const response = await sendChatGPTPrompt(unauthPrompt);
+        
+        setMessages(prev => [
+          ...prev, 
+          { 
+            text: response, 
+            sender: 'bot', 
+            timestamp: new Date() 
+          }
+        ]);
+      } else {
+        // For authenticated users, proceed with normal flow
+        // Extract intent from user message
+        const intent = analyzeMessageIntent(userMessage);
+        
+        // Fetch relevant user data based on intent
+        const userData = await fetchUserData(intent, userId);
+        
+        // Create context-aware prompt for ChatGPT
+        const prompt = createContextualPrompt(userMessage, userData, intent);
+        
+        // Call ChatGPT API
+        const response = await sendChatGPTPrompt(prompt);
+        
+        // Add bot response to messages
+        setMessages(prev => [
+          ...prev, 
+          { 
+            text: response, 
+            sender: 'bot', 
+            timestamp: new Date() 
+          }
+        ]);
+      }
     } catch (error) {
       console.error('Error processing message:', error);
       setMessages(prev => [
