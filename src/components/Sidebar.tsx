@@ -139,9 +139,16 @@ const Sidebar = ({ userType }: SidebarProps) => {
   const userInitials = profile && profile.first_name ? 
     getInitials(`${profile.first_name} ${profile.last_name || ''}`) : 
     user?.email ? getInitials(user.email) : 'U';
-    
-  const teamName = profile?.team_name || "TEAM";
-  const roleName = userType === 'coach' ? "TEAM MANAGER" : "ATHLETE";
+  
+  // Dynamic role label
+  const getRoleLabel = (role?: string) => {
+    if (!role) return '';
+    if (role === 'athlete') return 'Athlete';
+    if (role === 'coach') return 'Coach';
+    if (role === 'team_manager') return 'Team Manager';
+    return role.charAt(0).toUpperCase() + role.slice(1);
+  };
+  const roleName = getRoleLabel(profile?.role);
 
   return (
     <Box
@@ -177,10 +184,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
           />
           
           {!isCollapsed && (
-            <>
-              <Text fontSize="sm" fontWeight="bold" color="gray.600" mt={2}>{teamName}</Text>
-              <Text fontSize="xs" color="gray.500">{roleName}</Text>
-            </>
+            <Text fontSize="sm" fontWeight="bold" color="gray.600" mt={2} textTransform="uppercase">{roleName}</Text>
           )}
         </Flex>
         
