@@ -289,7 +289,7 @@ const YourTeamCard = () => {
         size="lg"
       >
         <AlertDialogOverlay>
-          <AlertDialogContent>
+          <AlertDialogContent minHeight="220px">
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
               Remove Athlete
             </AlertDialogHeader>
