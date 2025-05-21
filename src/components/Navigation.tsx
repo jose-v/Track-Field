@@ -226,7 +226,10 @@ const Navigation = () => {
                   </MenuButton>
                   <MenuList>
                     <MenuItem as={RouterLink} to="/dashboard">Dashboard</MenuItem>
-                    <MenuItem as={RouterLink} to="/profile">Profile</MenuItem>
+                    <MenuItem as={RouterLink} 
+                      to={profile?.role === 'coach' ? '/coach/profile' : profile?.role === 'athlete' ? '/athlete/profile' : '/profile'}>
+                      Profile
+                    </MenuItem>
                     <MenuItem onClick={showFeedbackModal}>Give Feedback</MenuItem>
                     <MenuItem onClick={signOut}>Sign out</MenuItem>
                   </MenuList>
@@ -362,7 +365,10 @@ const Navigation = () => {
                   </MenuButton>
                   <MenuList>
                     <MenuItem as={RouterLink} to="/dashboard">Dashboard</MenuItem>
-                    <MenuItem as={RouterLink} to="/profile">Profile</MenuItem>
+                    <MenuItem as={RouterLink} 
+                      to={profile?.role === 'coach' ? '/coach/profile' : profile?.role === 'athlete' ? '/athlete/profile' : '/profile'}>
+                      Profile
+                    </MenuItem>
                     <MenuItem onClick={showFeedbackModal}>Give Feedback</MenuItem>
                     <MenuItem onClick={signOut}>Sign out</MenuItem>
                   </MenuList>
