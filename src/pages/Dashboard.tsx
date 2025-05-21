@@ -473,10 +473,10 @@ export function Dashboard() {
   }
 
   return (
-    <Box pt={5} pb={10} bg={useColorModeValue('gray.50', 'gray.900')}>
-      <Container maxW="container.xl">
+    <Box pt={0} pb={10} bg={useColorModeValue('gray.50', 'gray.900')}>
+      <Container maxW="container.xl" px={0} pt={0} mt={0}>
         {/* Header with personal greeting */}
-        <Box mb={8} display="flex" alignItems="center" justifyContent="space-between">
+        <Box mb={8} display="flex" alignItems="center" justifyContent="space-between" mt={0} pt={0}>
           <Box>
             <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
               <Heading as="h1" size="xl" mb={1}>
@@ -512,18 +512,27 @@ export function Dashboard() {
           <Skeleton height="200px" mb={10} borderRadius="lg" />
         ) : (
           <Card 
-            borderRadius="lg" 
-            overflow="hidden" 
+            borderRadius="lg"
             boxShadow="md"
             mb={10}
+            mt={0}
+            pt={0}
+            px={0}
           >
+            {/* Updated Header Style */}
             <Box 
               h="80px" 
-              bg="linear-gradient(135deg, #4FD1C5 0%, #68D391 100%)" 
+              bgGradient="linear(to-r, green.400, green.500)"
               position="relative"
               display="flex"
               alignItems="center"
               px={6}
+              margin="0"
+              mt={0}
+              pt={0}
+              width="100%"
+              borderTopLeftRadius="inherit"
+              borderTopRightRadius="inherit"
             >
               <Flex 
                 bg="white" 
@@ -535,7 +544,7 @@ export function Dashboard() {
                 boxShadow="none"
                 mr={4}
               >
-                <Icon as={FaRunning} w={6} h={6} color="green.400" />
+                <Icon as={FaRunning} w={6} h={6} color="green.500" />
               </Flex>
               <Tag
                 size="lg"
@@ -550,7 +559,6 @@ export function Dashboard() {
                 TODAY'S WORKOUTS
               </Tag>
             </Box>
-            
             <CardBody>
               {todayWorkouts.length > 0 ? (
                 <Box>

@@ -155,7 +155,18 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
           {/* Inline user menu for portals */}
           {!isPublicPage && (
             <Menu>
-              <MenuButton as={Button} rounded="full" variant="unstyled" cursor="pointer" minW={0} _focus={{ boxShadow: 'none', outline: 'none' }} _hover={{ boxShadow: 'none', outline: 'none' }}>
+              <MenuButton
+                as={Button}
+                rounded="full"
+                variant="unstyled"
+                cursor="pointer"
+                minW={0}
+                border="none"
+                borderWidth="0px"
+                _focus={{ boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' }}
+                _hover={{ boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' }}
+                _active={{ boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' }}
+              >
                 <HamburgerIcon boxSize={6} color="gray.600" />
               </MenuButton>
               <MenuList>
