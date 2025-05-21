@@ -301,13 +301,24 @@ const YourTeamCard = () => {
                   Are you sure you want to remove <strong>{athleteToRemoveRef.current?.first_name} {athleteToRemoveRef.current?.last_name}</strong> from your team? 
                   This action cannot be undone.
                 </Text>
-                <Box border="2px solid red" width="100%" p={4} textAlign="center">
-                  FOOTER TEST
-                </Box>
+                {deleteError && (
+                  <Text color="red">{deleteError}</Text>
+                )}
               </Stack>
+              {/* Action buttons styled as a footer */}
+              <HStack width="100%" justifyContent="flex-end" pt={4} spacing={4}>
+                <Button ref={cancelRef} onClick={handleCloseRemoveDialog}>
+                  Cancel
+                </Button>
+                <Button 
+                  colorScheme="red" 
+                  onClick={handleRemoveAthlete} 
+                  isLoading={isRemoving}
+                >
+                  Remove
+                </Button>
+              </HStack>
             </AlertDialogBody>
-
-            {/* Footer removed for this debug step */}
           </AlertDialogContent>
         </AlertDialogOverlay>
       </AlertDialog>
