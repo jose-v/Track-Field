@@ -301,15 +301,6 @@ const YourTeamCard = () => {
                   This action cannot be undone.
                 </Text>
                 
-                {relationshipRecords.length > 0 && (
-                  <Box>
-                    <Text fontWeight="bold" mb={2}>Database records to delete:</Text>
-                    <Code p={2} borderRadius="md" fontSize="xs" whiteSpace="pre-wrap" overflowX="auto">
-                      {JSON.stringify(relationshipRecords, null, 2)}
-                    </Code>
-                  </Box>
-                )}
-                
                 {deleteError && (
                   <Box bg="red.50" p={3} borderRadius="md">
                     <HStack color="red.500">
