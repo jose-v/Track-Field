@@ -647,7 +647,7 @@ export function Profile() {
           >
             {/* Hero Image Background */}
             <Box 
-              h="180px" 
+              h="140px" 
               bg="linear-gradient(135deg, #4CAF50 0%, #2196F3 100%)" 
               position="relative"
             >
@@ -657,13 +657,13 @@ export function Profile() {
                 bottom={0} 
                 left={0} 
                 right={0}
-                height="50%" 
+                height="70%" 
                 bgGradient="linear(to-t, rgba(0,0,0,0.3), transparent)"
               />
             </Box>
             
             {/* Profile Content */}
-            <Box px={6} pt={16} pb={6} mt="-80px" position="relative">
+            <Box px={10} pt={8} pb={10} mt="-120px" position="relative">
               {/* Avatar */}
               <Box 
                 position="relative" 
@@ -672,7 +672,7 @@ export function Profile() {
                 mx="auto"
               >
                 <Avatar 
-                  size="2xl" 
+                  boxSize="250px" 
                   name={`${profile.first_name} ${profile.last_name}`} 
                   src={avatarUrl || undefined}
                   cursor="pointer"
