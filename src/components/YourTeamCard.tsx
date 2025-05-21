@@ -199,9 +199,6 @@ const YourTeamCard = () => {
         
         // Close the dialog
         handleCloseRemoveDialog();
-        
-        // Force reload the page
-        window.location.reload();
       }
     } catch (error: any) {
       console.error('Error in handleRemoveAthlete:', error);
