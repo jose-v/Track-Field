@@ -115,14 +115,8 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
       px={6}
     >
       <Flex justify="space-between" align="center">
-        {/* Left side - App title & role badge */}
-        <HStack spacing={2}>
-          <Text fontSize="lg" fontWeight="bold" color="blue.500">Track & Field</Text>
-          <Badge colorScheme={roleBadge.colorScheme} fontSize="0.8em">
-            {roleBadge.text}
-          </Badge>
-        </HStack>
-        
+        {/* Left side - App title & role badge (removed) */}
+        <Box />
         {/* Right side - action icons */}
         <Flex align="center" gap={4}>
           {/* Feedback Button */}
@@ -136,14 +130,12 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
               onClick={showFeedbackModal}
             />
           </Tooltip>
-          
           {/* Share Button */}
           <ShareComponent 
             title={shareTitle} 
             description={shareDescription} 
             iconStyle={iconStyle}
           />
-          
           {/* Notification Bell */}
           <Box position="relative">
             <Tooltip label={`${roleTitle} notifications`} hasArrow>
@@ -156,7 +148,6 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
                 onClick={handleViewNotifications}
               />
             </Tooltip>
-            
             {/* Notification Badge */}
             {notificationCount > 0 && (
               <Badge {...badgeProps}>
@@ -164,7 +155,6 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
               </Badge>
             )}
           </Box>
-          
           {/* User Menu */}
           <Menu>
             <MenuButton as={Button} rounded="full" variant="unstyled" cursor="pointer" minW={0}>

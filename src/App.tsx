@@ -5,7 +5,6 @@ import AuthErrorHandler from './auth/AuthErrorHandler'
 import { supabase } from './lib/supabase'
 import { initDebugUtils } from './utils/debugUtils'
 import AppRoutes from './routes/AppRoutes'
-import { Footer } from './components/Footer'
 import { Box, Flex } from '@chakra-ui/react'
 import { ChatbotProvider } from './components/ChatBot/ChatbotProvider'
 
@@ -73,7 +72,6 @@ function App() {
             <Box flex="1">
               <AppRoutes />
             </Box>
-            <Footer />
           </Flex>
         </Router>
       </ChatbotProvider>

@@ -3,6 +3,7 @@ import Navigation from '../components/Navigation'
 import { PageContainer } from '../components/PageContainer'
 import FeedbackProvider from '../components/FeedbackProvider'
 import usePageClass from '../hooks/usePageClass'
+import { Footer } from '../components/Footer'
 
 const PublicLayout = () => {
   usePageClass('public-page')
@@ -16,6 +17,7 @@ const PublicLayout = () => {
       <PageContainer py={0} fullWidth={fullWidth}>
         <Outlet />
       </PageContainer>
+      <Footer />
     </FeedbackProvider>
   )
 }
