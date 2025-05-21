@@ -16,7 +16,7 @@ import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { FaChevronLeft, FaChevronRight, FaUsers, FaVideo, FaBook, FaCalendarAlt, FaBell, FaUserAlt } from 'react-icons/fa';
 import { BiLineChart } from 'react-icons/bi';
 import { BsCalendarCheck } from 'react-icons/bs';
-import { MdLoop, MdRestaurantMenu, MdOutlineBedtime, MdOutlineReport } from 'react-icons/md';
+import { MdLoop, MdRestaurantMenu, MdOutlineBedtime, MdOutlineReport, MdOutlineForum } from 'react-icons/md';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../hooks/useProfile';
 
@@ -42,7 +42,8 @@ const NavItem = ({ icon, label, to, isActive, isCollapsed, badge }: NavItemProps
         to={to}
         align="center"
         p={3}
-        mx={isCollapsed ? 2 : 4}
+        ml={0}
+        mr={0}
         borderRadius="md"
         role="group"
         cursor="pointer"
@@ -96,7 +97,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
         { icon: BsCalendarCheck, label: 'WORKOUTS', to: '/coach/workouts' },
         { icon: FaCalendarAlt, label: 'CALENDAR', to: '/coach/calendar' },
         { icon: MdOutlineReport, label: 'REPORTS', to: '/coach/stats' },
-        { icon: MdLoop, label: 'LOOP', to: '/coach/loop' },
+        { icon: MdOutlineForum, label: 'LOOP', to: '/coach/loop' },
         { icon: FaBell, label: 'NOTIFICATIONS', to: '/coach/notifications' },
       ]
     : [
@@ -106,7 +107,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
         { icon: FaCalendarAlt, label: 'CALENDAR', to: '/athlete/calendar' },
         { icon: MdRestaurantMenu, label: 'NUTRITION', to: '/athlete/nutrition' },
         { icon: MdOutlineBedtime, label: 'SLEEP', to: '/athlete/sleep' },
-        { icon: MdLoop, label: 'LOOP', to: '/athlete/loop' },
+        { icon: MdOutlineForum, label: 'LOOP', to: '/athlete/loop' },
         { icon: FaBell, label: 'NOTIFICATIONS', to: '/athlete/notifications' },
         { icon: FaUserAlt, label: 'PROFILE', to: '/athlete/profile' },
       ];
