@@ -1,6 +1,29 @@
 import { supabase } from '../lib/supabase';
 import { getFallbackChatResponse } from './chatResponseUtils';
 
+// Test database connection at startup
+(async function testDatabaseConnection() {
+  console.log('Testing database connection...');
+  try {
+    const { data, error } = await supabase.from('sleep_records').select('count').limit(1);
+    if (error) {
+      console.error('Database connection test failed (sleep_records):', error);
+      // Try another table
+      const { data: profilesData, error: profilesError } = await supabase.from('profiles').select('count').limit(1);
+      if (profilesError) {
+        console.error('Database connection test failed (profiles):', profilesError);
+        console.warn('Database connection may not be working properly');
+      } else {
+        console.log('Database connection successful (profiles table)');
+      }
+    } else {
+      console.log('Database connection successful (sleep_records table)');
+    }
+  } catch (error) {
+    console.error('Error testing database connection:', error);
+  }
+})();
+
 // Environment mode check - change to false to always use the real API
 const useMockData = false; // Previously: import.meta.env.MODE === 'development';
 
@@ -40,16 +63,35 @@ type UserData = NextMeetData | SleepData | PerformanceData | AthleteData[] | nul
  * Check if user is authenticated
  */
 export const isUserAuthenticated = (): boolean => {
-  // Simplified check - if we're on the coach dashboard, we're authenticated
+  // Simplified check - if we're on any authenticated route, we're authenticated
   const currentUrl = window.location.href;
-  if (currentUrl.includes('/coach/dashboard') || currentUrl.includes('/athlete/dashboard')) {
-    console.log('User is authenticated based on URL');
+  // Check for any authenticated route patterns
+  if (
+    currentUrl.includes('/coach/') || 
+    currentUrl.includes('/athlete/') ||
+    currentUrl.includes('/dashboard') ||
+    currentUrl.includes('/notifications') ||
+    currentUrl.includes('/workouts') ||
+    currentUrl.includes('/events') ||
+    currentUrl.includes('/calendar') ||
+    currentUrl.includes('/nutrition') ||
+    currentUrl.includes('/sleep')
+  ) {
+    console.log('User is authenticated based on URL pattern');
     return true;
   }
   
   // Fallback to localStorage check
   const hasUserData = !!localStorage.getItem('user');
   console.log('Authentication check from localStorage:', hasUserData);
+  
+  // Check if we have the ATHLETE role in the document body
+  const isAthleteRole = document.body.textContent?.includes('ATHLETE');
+  if (isAthleteRole) {
+    console.log('User is authenticated based on ATHLETE role in page');
+    return true;
+  }
+  
   return hasUserData;
 };
 
@@ -86,6 +128,46 @@ export const getCurrentUserRole = (): string => {
 };
 
 /**
+ * Get current user's ID
+ */
+export const getCurrentUserId = (): string | null => {
+  console.log('Attempting to get current user ID');
+  
+  // Try from localStorage first
+  const userData = localStorage.getItem('user');
+  if (userData) {
+    try {
+      const user = JSON.parse(userData);
+      console.log('User ID from localStorage:', user.id || user.userId || null);
+      return user.id || user.userId || null;
+    } catch (error) {
+      console.error('Error parsing user data from localStorage:', error);
+    }
+  }
+  
+  // Try to get from URL if it contains an ID pattern
+  const currentUrl = window.location.href;
+  const idMatch = currentUrl.match(/\/user\/([a-zA-Z0-9-]+)/);
+  if (idMatch && idMatch[1]) {
+    console.log('User ID from URL:', idMatch[1]);
+    return idMatch[1];
+  }
+  
+  // Try other methods like document data
+  const profileSection = document.querySelector('[data-user-id]');
+  if (profileSection) {
+    const userId = profileSection.getAttribute('data-user-id');
+    if (userId) {
+      console.log('User ID from DOM:', userId);
+      return userId;
+    }
+  }
+  
+  console.log('Could not determine user ID, returning null');
+  return null;
+};
+
+/**
  * Fetch user-specific data from the database
  */
 export const fetchUserData = async (dataType: string, userId: string): Promise<UserData> => {
@@ -96,135 +178,215 @@ export const fetchUserData = async (dataType: string, userId: string): Promise<U
       return null;
     }
     
+    // If userId is empty, try to get it
+    let userIdToUse = userId;
+    if (!userIdToUse || userIdToUse === '') {
+      console.log('No userId provided, attempting to get current user ID');
+      userIdToUse = getCurrentUserId() || '';
+      
+      if (!userIdToUse) {
+        console.warn('Could not determine user ID');
+        return null;
+      }
+    }
+    
+    console.log(`Fetching ${dataType} data for user ID: ${userIdToUse}`);
+    
     // Get the current user's role
     const userRole = getCurrentUserRole();
-    console.log(`Fetching ${dataType} data for role: ${userRole}`);
+    console.log(`User role: ${userRole}`);
     
     // Based on intent type, fetch appropriate data from database
     switch (dataType) {
       case 'nextMeet':
+        console.log('Querying events table for next meet');
         const { data: meetData, error: meetError } = await supabase
-          .from('athlete_meets')
-          .select('date, name, location, start_time')
-          .eq('athlete_id', userId)
+          .from('events')
+          .select('*')
+          .gte('date', new Date().toISOString())
           .order('date', { ascending: true })
           .limit(1)
           .single();
           
         if (meetError) {
           console.error('Error fetching meet data:', meetError);
-          // Fallback to direct data as a temporary measure
+          return null;
+        }
+        
+        if (meetData) {
           return {
-            date: 'December 11, 2025', 
-            name: 'Carter Invitational', 
-            location: 'Greensboro, NC',
-            startTime: '10:00 AM'
+            date: meetData.date,
+            name: meetData.name || meetData.title || 'Upcoming Meet',
+            location: meetData.location || 'TBD',
+            startTime: meetData.start_time || meetData.time || '9:00 AM'
           };
         }
         
-        return meetData ? {
-          date: meetData.date,
-          name: meetData.name,
-          location: meetData.location,
-          startTime: meetData.start_time
-        } : null;
+        return null;
         
       case 'sleepData':
-        const { data: sleepData, error: sleepError } = await supabase
-          .from('athlete_sleep')
-          .select('weekly_total, weekly_average, quality, comparison_note')
-          .eq('athlete_id', userId)
-          .order('recorded_at', { ascending: false })
-          .limit(1)
-          .single();
-          
-        if (sleepError) throw sleepError;
+        console.log(`Attempting to fetch sleep data for user ID: ${userIdToUse}`);
         
-        return sleepData ? {
-          lastWeek: {
-            total: sleepData.weekly_total,
-            average: sleepData.weekly_average,
-            quality: sleepData.quality,
-            comparison: sleepData.comparison_note
+        try {
+          // Query sleep_records table
+          const { data: sleepData, error: sleepError } = await supabase
+            .from('sleep_records')
+            .select('*')
+            .eq('athlete_id', userIdToUse)
+            .order('created_at', { ascending: false })
+            .limit(7);
+            
+          if (sleepError) {
+            console.error('Error fetching sleep data:', sleepError);
+            return null;
           }
-        } : null;
+          
+          // Transform sleep_records data
+          if (sleepData && sleepData.length > 0) {
+            console.log(`Found ${sleepData.length} sleep records`);
+            
+            // Calculate average sleep hours from records
+            let totalHours = 0;
+            let recordsWithHours = 0;
+            
+            sleepData.forEach(record => {
+              let hours = 0;
+              
+              // Different ways sleep duration might be stored
+              if (record.duration) {
+                // Duration in minutes
+                hours = record.duration / 60;
+              } else if (record.hours) {
+                // Direct hours field
+                hours = record.hours;
+              } else if (record.start_time && record.end_time) {
+                // Calculate from start/end times
+                try {
+                  const startTime = new Date(`1970-01-01T${record.start_time}`);
+                  const endTime = new Date(`1970-01-01T${record.end_time}`);
+                  
+                  // Handle sleep across midnight
+                  let duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+                  if (duration < 0) duration += 24;
+                  
+                  hours = duration;
+                } catch (err) {
+                  console.error('Error calculating sleep hours:', err);
+                  return; // Skip this record
+                }
+              }
+              
+              if (hours > 0) {
+                totalHours += hours;
+                recordsWithHours++;
+              }
+            });
+            
+            if (recordsWithHours === 0) {
+              console.log('No valid sleep records with hours found');
+              return null;
+            }
+            
+            const averageHours = totalHours / recordsWithHours;
+            
+            // Determine quality from most recent record
+            const latestRecord = sleepData[0];
+            const quality = latestRecord.quality || 
+                          (latestRecord.rating ? 
+                            (latestRecord.rating > 3 ? 'Good' : 'Fair') : 'Unknown');
+            
+            return {
+              lastWeek: {
+                total: Math.round(averageHours * 7 * 10) / 10, // Weekly total rounded to 1 decimal
+                average: Math.round(averageHours * 10) / 10, // Average rounded to 1 decimal
+                quality: quality,
+                comparison: `Average: ${averageHours.toFixed(1)} hours per night.`
+              }
+            };
+          }
+          
+          console.log('No sleep data found for this user');
+          return null;
+        } catch (error) {
+          console.error('Error in sleep data retrieval:', error);
+          return null;
+        }
         
       case 'recentPerformance':
+        // Get performance data from workouts table
+        console.log('Querying workouts table for performance data');
         const { data: perfData, error: perfError } = await supabase
-          .from('athlete_performances')
-          .select('event, best_time, improvement, notes')
-          .eq('athlete_id', userId)
-          .order('recorded_at', { ascending: false })
+          .from('workouts')
+          .select('*')
+          .eq('athlete_id', userIdToUse)
+          .order('created_at', { ascending: false })
           .limit(1)
           .single();
           
-        if (perfError) throw perfError;
+        if (perfError) {
+          console.error('Error fetching performance data:', perfError);
+          return null;
+        }
         
-        return perfData ? {
-          event: perfData.event,
-          bestTime: perfData.best_time,
-          improvement: perfData.improvement,
-          notes: perfData.notes
-        } : null;
+        if (perfData) {
+          return {
+            event: perfData.event_type || perfData.name || 'Unknown Event',
+            bestTime: perfData.result || perfData.best_time || 'Not recorded',
+            improvement: perfData.improvement || 'Not available',
+            notes: perfData.notes || ''
+          };
+        }
+        
+        return null;
         
       case 'athleteInfo':
         // For coaches querying athlete data
         if (userRole === 'coach') {
-          // Query coach's athletes
-          const { data: athletes, error: athleteError } = await supabase
+          // Query coach's athletes through coach_athletes table
+          console.log('Querying coach_athletes table for coach-athlete relationships');
+          const { data: relationships, error: relationshipError } = await supabase
             .from('coach_athletes')
             .select(`
               athlete_id,
-              athlete_name:athletes(name),
-              meets:athlete_meets(
-                name,
-                date,
-                location,
-                start_time
-              )
+              profiles!athletes(first_name, last_name)
             `)
-            .eq('coach_id', userId)
-            .order('meets.date', { ascending: true });
+            .eq('coach_id', userIdToUse);
             
-          if (athleteError) {
-            console.error('Error fetching coach athletes:', athleteError);
-            // Fallback to hardcoded data for testing only
-            return [{
-              id: 'athlete-1',
-              name: 'Ataja Stephane-Vazquez',
-              nextMeet: {
-                name: 'Carter Invitational',
-                date: 'December 11, 2025',
-                location: 'Greensboro, NC',
-                startTime: '10:00 AM'
-              }
-            }];
+          if (relationshipError) {
+            console.error('Error fetching coach athletes:', relationshipError);
+            return null;
           }
           
-          if (athletes && athletes.length > 0) {
-            return athletes.map(athlete => ({
-              id: athlete.athlete_id,
-              name: athlete.athlete_name.name,
-              nextMeet: athlete.meets.length > 0 ? {
-                name: athlete.meets[0].name,
-                date: athlete.meets[0].date,
-                location: athlete.meets[0].location,
-                startTime: athlete.meets[0].start_time
-              } : undefined
-            }));
+          if (relationships && relationships.length > 0) {
+            // Get upcoming meet for these athletes
+            const { data: meetData } = await supabase
+              .from('events')
+              .select('*')
+              .gte('date', new Date().toISOString())
+              .order('date', { ascending: true })
+              .limit(1)
+              .single();
+              
+            // Map relationship data to athlete data format
+            return relationships.map(rel => {
+              const profile = rel.profiles || {};
+              const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+              
+              return {
+                id: rel.athlete_id,
+                name: fullName || 'Unknown Athlete',
+                nextMeet: meetData ? {
+                  name: meetData.name || meetData.title || 'Upcoming Meet',
+                  date: meetData.date || 'TBD',
+                  location: meetData.location || 'TBD',
+                  startTime: meetData.start_time || meetData.time || 'TBD'
+                } : undefined
+              };
+            });
           }
           
-          // Still fallback if no data found
-          return [{
-            id: 'athlete-1',
-            name: 'Ataja Stephane-Vazquez',
-            nextMeet: {
-              name: 'Carter Invitational',
-              date: 'December 11, 2025',
-              location: 'Greensboro, NC',
-              startTime: '10:00 AM'
-            }
-          }];
+          console.log('No athlete relationships found for this coach');
+          return null;
         }
         return null;
         
@@ -233,19 +395,6 @@ export const fetchUserData = async (dataType: string, userId: string): Promise<U
     }
   } catch (error) {
     console.error(`Error fetching ${dataType} data:`, error);
-    // For critical functions, fall back to hard-coded data for testing
-    if (dataType === 'athleteInfo') {
-      return [{
-        id: 'athlete-1',
-        name: 'Ataja Stephane-Vazquez',
-        nextMeet: {
-          name: 'Carter Invitational',
-          date: 'December 11, 2025',
-          location: 'Greensboro, NC',
-          startTime: '10:00 AM'
-        }
-      }];
-    }
     return null;
   }
 };
@@ -394,6 +543,79 @@ export const analyzeMessageIntent = async (message: string): Promise<string> => 
 };
 
 /**
+ * Get athlete data for a specific athlete by name, verifying coach relationship
+ */
+const getAthleteData = async (athleteName: string): Promise<AthleteData | null> => {
+  try {
+    console.log(`Looking up data for athlete: ${athleteName}`);
+    
+    // First get the current user ID and role
+    const currentUser = localStorage.getItem('user');
+    let userId = null;
+    
+    if (currentUser) {
+      try {
+        const user = JSON.parse(currentUser);
+        userId = user.userId;
+      } catch (error) {
+        console.error('Error parsing user data from localStorage:', error);
+      }
+    }
+    
+    if (!userId) {
+      console.warn('No user ID available to verify coach-athlete relationship');
+      return null;
+    }
+    
+    // Query the database to check if the coach has an approved relationship with this athlete
+    const { data, error } = await supabase
+      .from('coach_athletes')
+      .select(`
+        athlete_id,
+        athlete:athletes(name:profiles(first_name, last_name)),
+        meets:events(
+          name,
+          date,
+          location,
+          start_time
+        )
+      `)
+      .eq('coach_id', userId)
+      .eq('approval_status', 'approved')
+      .filter('athlete.name.first_name', 'ilike', `%${athleteName.split(' ')[0]}%`);
+      
+    if (error) {
+      console.error('Error fetching athlete data:', error);
+      return null;
+    }
+    
+    // Check if the athlete was found under this coach
+    if (data && data.length > 0) {
+      const athlete = data[0];
+      const athleteFullName = `${athlete.athlete.name.first_name || ''} ${athlete.athlete.name.last_name || ''}`.trim();
+      console.log(`Found athlete ${athleteFullName} associated with this coach`);
+      
+      return {
+        id: athlete.athlete_id,
+        name: athleteFullName,
+        nextMeet: athlete.meets && athlete.meets.length > 0 ? {
+          name: athlete.meets[0].name,
+          date: athlete.meets[0].date,
+          location: athlete.meets[0].location,
+          startTime: athlete.meets[0].start_time
+        } : undefined
+      };
+    }
+    
+    console.warn(`No approved athlete found with name "${athleteName}" associated with this coach`);
+    return null;
+  } catch (error) {
+    console.error('Error in getAthleteData:', error);
+    return null;
+  }
+};
+
+/**
  * Create a formatted prompt with user context
  */
 export const createContextualPrompt = async (
@@ -401,30 +623,9 @@ export const createContextualPrompt = async (
   userData: UserData, 
   intent: string
 ): Promise<string> => {
-  const lowerMessage = userMessage.toLowerCase();
   console.log(`Creating contextual prompt for intent: ${intent}`);
   
-  // Direct match for Ataja's next meet question
-  if (intent === 'athleteInfo' && 
-      (lowerMessage.includes('ataja') || 
-       lowerMessage.includes('stephane') || 
-       lowerMessage.includes('vazquez')) && 
-      (lowerMessage.includes('next meet') || 
-       lowerMessage.includes('when is') || 
-       lowerMessage.includes('schedule'))) {
-    
-    console.log('DIRECT RESPONSE: Providing Ataja meet info');
-    
-    return `
-      You are a Track & Field assistant chatbot.
-      ANSWER DIRECTLY WITH THIS EXACT INFORMATION:
-      Ataja Stephane-Vazquez's next meet is the Carter Invitational on December 11, 2025 at Greensboro, NC, starting at 10:00 AM.
-      USER QUERY: ${userMessage}
-      Respond using only the above information, formatted clearly.
-    `;
-  }
-  
-  // Regular handling for other queries
+  // Regular handling for queries
   let contextInfo = '';
   const userRole = getCurrentUserRole();
   const isAuthenticated = isUserAuthenticated();
@@ -442,11 +643,22 @@ export const createContextualPrompt = async (
       
       if (athleteData) {
         // Create context based on verified coach-athlete relationship
-        contextInfo = `You are Coach Vazquez. Your athlete "${athleteData.name}" has their next meet "${athleteData.nextMeet?.name}" on ${athleteData.nextMeet?.date} at ${athleteData.nextMeet?.location}, starting at ${athleteData.nextMeet?.startTime}.`;
+        contextInfo = `You are a coach. Your athlete "${athleteData.name}"`;
+        
+        if (athleteData.nextMeet) {
+          contextInfo += ` has their next meet "${athleteData.nextMeet.name}" on ${athleteData.nextMeet.date} at ${athleteData.nextMeet.location}`;
+          
+          if (athleteData.nextMeet.startTime) {
+            contextInfo += `, starting at ${athleteData.nextMeet.startTime}`;
+          }
+        } else {
+          contextInfo += ` does not have any upcoming meets scheduled`;
+        }
+        
         console.log('Created coach-athlete prompt with verified relationship data');
           
         return `
-          You are a Track & Field assistant chatbot helping Coach Vazquez.
+          You are a Track & Field assistant chatbot helping a coach.
           You should respond in a professional, informative tone.
           USER ROLE: Coach
           ATHLETE CONTEXT: ${contextInfo}
@@ -470,15 +682,18 @@ export const createContextualPrompt = async (
       const perfData = userData as PerformanceData;
       contextInfo = `The user's recent performance in the ${perfData.event} was ${perfData.bestTime}, which is an improvement of ${perfData.improvement}. ${perfData.notes || ''}`;
     }
+  } else {
+    contextInfo = "No data available for this query.";
   }
   
   // Return the full prompt with context
   return `
     You are a Track & Field assistant chatbot helping an ${userRole || 'athlete'} with their training and performance.
-    You should respond in a supportive, motivational but factual tone.
+    You should respond in a supportive, factual tone.
     USER CONTEXT: ${contextInfo}
     USER QUERY: ${userMessage}
     Respond concisely and specifically to the user's query, using the context provided if relevant.
+    If no data is available, explain that you don't have that information yet.
     Limit your response to 2-3 sentences maximum.
   `;
 };
@@ -490,40 +705,65 @@ export const extractAthleteName = async (message: string): Promise<string | null
   const lowerMessage = message.toLowerCase();
   
   try {
-    // Check for common variations of Ataja's name
-    if (lowerMessage.includes('ataja') || 
-        lowerMessage.includes('stephane') || 
-        lowerMessage.includes('vazquez') ||
-        lowerMessage.includes('ataja\'s') || 
-        lowerMessage.includes('stephane\'s') ||
-        lowerMessage.includes('ataja s')) {
-      console.log('Found direct match for Ataja in message');
-      return 'Ataja Stephane-Vazquez';
-    }
-    
-    // If no exact match, query the database for all athlete names
-    const { data: athletes, error } = await supabase
-      .from('athletes')
-      .select('name')
+    // If no exact match, query the database for all athlete names from profiles
+    console.log('Querying profiles table for athlete names');
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('first_name, last_name')
+      .eq('role', 'athlete')  // Only get athlete profiles
       .limit(100);
       
-    if (error) {
-      console.error('Error fetching athlete names:', error);
-      throw error;
-    }
-    
-    // Check if any athlete names are mentioned in the message
-    if (athletes && athletes.length > 0) {
-      for (const athlete of athletes) {
-        const nameParts = athlete.name.toLowerCase().split(' ');
+    if (!profilesError && profiles && profiles.length > 0) {
+      console.log(`Found ${profiles.length} athlete profiles`);
+      
+      // Check if any profile names are mentioned in the message
+      for (const profile of profiles) {
+        // Skip if missing name parts
+        if (!profile.first_name && !profile.last_name) continue;
         
-        // Check if any part of the athlete's name is in the message
+        const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim().toLowerCase();
+        const nameParts = fullName.split(' ');
+        
+        // Check if any part of the profile's name is in the message
         for (const part of nameParts) {
           if (part.length > 3 && lowerMessage.includes(part)) {
-            console.log(`Found athlete name match: ${athlete.name}`);
-            return athlete.name;
+            console.log(`Found athlete name match: ${fullName}`);
+            return `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
           }
         }
+      }
+      
+      console.log('No athlete name matches found in profiles');
+    } else {
+      console.log('Could not query profiles table, trying athletes table');
+      
+      // Try the athletes table as fallback
+      const { data: athletes, error: athletesError } = await supabase
+        .from('athletes')
+        .select('first_name, last_name')
+        .limit(100);
+        
+      if (!athletesError && athletes && athletes.length > 0) {
+        console.log(`Found ${athletes.length} athletes in athletes table`);
+        
+        // Check if any athlete names are mentioned in the message
+        for (const athlete of athletes) {
+          // Skip if missing name parts
+          if (!athlete.first_name && !athlete.last_name) continue;
+          
+          const fullName = `${athlete.first_name || ''} ${athlete.last_name || ''}`.trim().toLowerCase();
+          const nameParts = fullName.split(' ');
+          
+          // Check if any part of the athlete's name is in the message
+          for (const part of nameParts) {
+            if (part.length > 3 && lowerMessage.includes(part)) {
+              console.log(`Found athlete name match: ${fullName}`);
+              return `${athlete.first_name || ''} ${athlete.last_name || ''}`.trim();
+            }
+          }
+        }
+      } else {
+        console.log('Could not query athletes table or it is empty');
       }
     }
     
@@ -532,21 +772,13 @@ export const extractAthleteName = async (message: string): Promise<string | null
          lowerMessage.includes('my team') || 
          lowerMessage.includes('team member')) && 
         getCurrentUserRole() === 'coach') {
-      console.log('Coach asking about their athlete - defaulting to Ataja');
-      return 'Ataja Stephane-Vazquez';
+      console.log('Coach asking about their athlete but no specific name found');
+      return null;
     }
     
     return null;
   } catch (error) {
     console.error('Error in extractAthleteName:', error);
-    
-    // Fallback for development
-    if (lowerMessage.includes('ataja') || 
-        lowerMessage.includes('stephane') || 
-        lowerMessage.includes('vazquez')) {
-      return 'Ataja Stephane-Vazquez';
-    }
-    
     return null;
   }
 };
@@ -565,7 +797,7 @@ const fetchAthleteDataForCoach = async (coachId: string): Promise<AthleteData[] 
           id,
           name:profiles(first_name, last_name)
         ),
-        meets:athlete_meets(
+        meets:events(
           name,
           date,
           location,
@@ -598,140 +830,5 @@ const fetchAthleteDataForCoach = async (coachId: string): Promise<AthleteData[] 
   } catch (error) {
     console.error('Error fetching athlete data for coach:', error);
     return null;
-  }
-};
-
-/**
- * Get athlete data for a specific athlete by name, verifying coach relationship
- */
-const getAthleteData = async (athleteName: string): Promise<AthleteData | null> => {
-  try {
-    console.log(`Looking up data for athlete: ${athleteName}`);
-    
-    // First get the current user ID and role
-    const currentUser = localStorage.getItem('user');
-    let userId = null;
-    
-    if (currentUser) {
-      try {
-        const user = JSON.parse(currentUser);
-        userId = user.userId;
-      } catch (error) {
-        console.error('Error parsing user data from localStorage:', error);
-      }
-    }
-    
-    if (!userId) {
-      console.warn('No user ID available to verify coach-athlete relationship');
-      return null;
-    }
-    
-    // Query the database to check if the coach has an approved relationship with this athlete
-    const { data, error } = await supabase
-      .from('coach_athletes')
-      .select(`
-        athlete_id,
-        athlete:athletes(name:profiles(first_name, last_name)),
-        meets:athlete_meets(
-          name,
-          date,
-          location,
-          start_time
-        )
-      `)
-      .eq('coach_id', userId)
-      .eq('approval_status', 'approved')
-      .filter('athlete.name.first_name', 'ilike', `%${athleteName.split(' ')[0]}%`);
-      
-    if (error) {
-      console.error('Error fetching athlete data:', error);
-      throw error;
-    }
-    
-    // Check if the athlete was found under this coach
-    if (data && data.length > 0) {
-      const athlete = data[0];
-      const athleteFullName = `${athlete.athlete.name.first_name || ''} ${athlete.athlete.name.last_name || ''}`.trim();
-      console.log(`Found athlete ${athleteFullName} associated with this coach`);
-      
-      return {
-        id: athlete.athlete_id,
-        name: athleteFullName,
-        nextMeet: athlete.meets.length > 0 ? {
-          name: athlete.meets[0].name,
-          date: athlete.meets[0].date,
-          location: athlete.meets[0].location,
-          startTime: athlete.meets[0].start_time
-        } : undefined
-      };
-    }
-    
-    console.warn(`No approved athlete found with name "${athleteName}" associated with this coach`);
-    
-    // For development testing only
-    if (athleteName.toLowerCase().includes('ataja')) {
-      console.log('Using fallback data for Ataja during development');
-      return {
-        id: 'athlete-1',
-        name: 'Ataja Stephane-Vazquez',
-        nextMeet: {
-          name: 'Carter Invitational',
-          date: 'December 11, 2025',
-          location: 'Greensboro, NC',
-          startTime: '10:00 AM'
-        }
-      };
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Error in getAthleteData:', error);
-    return null;
-  }
-};
-
-/**
- * Provide fallback data for development purposes
- */
-const getFallbackData = (dataType: string): UserData => {
-  switch (dataType) {
-    case 'nextMeet':
-      return { 
-        date: '2023-11-15', 
-        name: 'Regional Championships', 
-        location: 'Central Stadium',
-        startTime: '9:00 AM'
-      };
-    case 'sleepData':
-      return { 
-        lastWeek: { 
-          total: 49.5, 
-          average: 7.1, 
-          quality: 'Good',
-          comparison: "That's 30 minutes more per night than your monthly average."
-        } 
-      };
-    case 'recentPerformance':
-      return { 
-        event: '100m', 
-        bestTime: '11.3s', 
-        improvement: '0.2s',
-        notes: 'This puts you in the top 10% of your age group.'
-      };
-    case 'athleteInfo':
-      return [
-        {
-          id: 'athlete-1',
-          name: 'Ataja Stephane-Vazquez',
-          nextMeet: {
-            name: 'Carter Invitational',
-            date: 'December 11, 2025',
-            location: 'Greensboro, NC',
-            startTime: '10:00 AM'
-          }
-        }
-      ];
-    default:
-      return null;
   }
 }; 

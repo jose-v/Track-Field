@@ -4,12 +4,14 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 5174",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "migrate:track-meets": "node src/db/run-track-meets-migration.js",
     "check:track-meets": "node src/db/check-track-meets-tables.js",
+    "check:athlete-tables": "node create_athlete_tables.js",
+    "analyze-db": "node analyze_db.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
@@ -23,6 +25,7 @@
     "@supabase/auth-helpers-react": "^0.5.0",
     "@supabase/supabase-js": "^2.49.4",
     "@tanstack/react-query": "^5.75.5",
+    "@types/uuid": "^10.0.0",
     "axios": "^1.9.0",
     "chart.js": "^4.4.9",
     "date-fns": "^4.1.0",
@@ -35,6 +38,7 @@
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.6.0",
     "recharts": "^2.15.3",
+    "uuid": "^11.1.0",
     "zustand": "^5.0.4"
   },
   "devDependencies": {

@@ -90,6 +90,14 @@ const TrackChatBot: React.FC<TrackChatBotProps> = ({
 
   // Set up welcome message based on authentication status
   useEffect(() => {
+    // Add debug log to track authentication status
+    console.log('TrackChatBot - Authentication status:', { 
+      isLoggedIn, 
+      userId,
+      storedUser: localStorage.getItem('user'),
+      urlIndicatesAuth: window.location.href.includes('/athlete/') || window.location.href.includes('/coach/')
+    });
+    
     // Use different welcome message based on login status
     const welcomeMessage = isLoggedIn 
       ? "Hi there! I'm your Track & Field assistant. Ask me about your schedule, performance, or training metrics."
@@ -102,7 +110,7 @@ const TrackChatBot: React.FC<TrackChatBotProps> = ({
         timestamp: new Date(),
       },
     ]);
-  }, [isLoggedIn]);
+  }, [isLoggedIn, userId]);
 
   // Process user message and get AI response
   const processMessage = async (userMessage: string) => {

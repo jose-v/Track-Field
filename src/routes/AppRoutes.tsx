@@ -12,6 +12,8 @@ import { Layout as GeneralLayout } from '../components/Layout';
 import { PrivateRoute } from '../components/PrivateRoute';
 import { NotFound } from '../pages/NotFound';
 import RoleDashboardRouter from '../pages/RoleDashboardRouter';
+import Loop from '../pages/Loop';
+import LoopRouteWrapper from '../pages/LoopRouteWrapper';
 
 // Coach pages
 import { CoachDashboard } from '../pages/coach/Dashboard';
@@ -84,6 +86,7 @@ export default function AppRoutes() {
         <Route path="/coach/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
         <Route path="/coach/calendar" element={<PrivateRoute><CoachCalendar /></PrivateRoute>} />
         <Route path="/coach/notifications" element={<PrivateRoute><NotificationsPage /></PrivateRoute>} />
+        <Route path="/coach/loop" element={<PrivateRoute><Loop /></PrivateRoute>} />
       </Route>
 
       {/* Athlete Routes - With Feedback */}
@@ -98,8 +101,12 @@ export default function AppRoutes() {
         <Route path="/athlete/nutrition" element={<PrivateRoute><Nutrition /></PrivateRoute>} />
         <Route path="/athlete/sleep" element={<PrivateRoute><Sleep /></PrivateRoute>} />
         <Route path="/athlete/notifications" element={<PrivateRoute><NotificationsPage /></PrivateRoute>} />
+        <Route path="/athlete/loop" element={<PrivateRoute><Loop /></PrivateRoute>} />
         <Route path="/gamification" element={<PrivateRoute><GamificationTestPage /></PrivateRoute>} />
       </Route>
+
+      {/* Loop Feature Routes (Accessible to both coaches and athletes) */}
+      <Route path="/loop" element={<PrivateRoute><LoopRouteWrapper /></PrivateRoute>} />
 
       {/* Fallback */}
       <Route path="*" element={<NotFound />} />

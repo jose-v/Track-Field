@@ -96,6 +96,41 @@ const NotificationsTable: React.FC = () => {
     }
   };
 
+  const updateNotificationMessage = async (
+    notificationId: string, 
+    newTitle: string, 
+    newMessage: string
+  ) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ 
+          title: newTitle,
+          message: newMessage,
+          is_read: true 
+        })
+        .eq('id', notificationId);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setNotifications(prev => 
+        prev.map(notification => 
+          notification.id === notificationId 
+            ? { 
+                ...notification, 
+                title: newTitle,
+                message: newMessage,
+                is_read: true 
+              } 
+            : notification
+        )
+      );
+    } catch (error) {
+      console.error('Error updating notification message:', error);
+    }
+  };
+
   const handleCoachRequest = async (notificationId: string, coachId: string, approved: boolean) => {
     if (!user?.id) return;
     
@@ -117,6 +152,17 @@ const NotificationsTable: React.FC = () => {
       }
       
       console.log('Found relationships:', relationships);
+      
+      // Get coach name for the notification message
+      const { data: coachData } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', coachId)
+        .single();
+      
+      const coachName = coachData 
+        ? `Coach ${coachData.first_name || ''} ${coachData.last_name || ''}`.trim()
+        : 'Coach';
       
       if (!relationships || relationships.length === 0) {
         // If no relationship exists, create one
@@ -140,12 +186,19 @@ const NotificationsTable: React.FC = () => {
         
         console.log('Created new relationship:', newRelationship);
         
-        // Mark notification as read
-        await markAsRead(notificationId);
+        // Update notification with new status message
+        const newTitle = approved ? 'Coach Request Accepted' : 'Coach Request Declined';
+        const newMessage = approved 
+          ? `You accepted ${coachName}'s request to join their team` 
+          : `You declined ${coachName}'s request to join their team`;
+        
+        await updateNotificationMessage(notificationId, newTitle, newMessage);
         
         toast({
           title: approved ? 'Request Approved' : 'Request Declined',
-          description: approved ? 'You have approved the coach request' : 'You have declined the coach request',
+          description: approved 
+            ? `You accepted ${coachName}'s request to join their team`
+            : `You declined ${coachName}'s request to join their team`,
           status: approved ? 'success' : 'info',
           duration: 3000,
           isClosable: true,
@@ -177,9 +230,14 @@ const NotificationsTable: React.FC = () => {
           throw updateError;
         }
         
+        // Update notification with new status message
+        const newTitle = 'Coach Request Accepted';
+        const newMessage = `You accepted ${coachName}'s request to join their team`;
+        await updateNotificationMessage(notificationId, newTitle, newMessage);
+        
         toast({
           title: 'Request Approved',
-          description: 'You have approved the coach request',
+          description: `You accepted ${coachName}'s request to join their team`,
           status: 'success',
           duration: 3000,
           isClosable: true,
@@ -196,17 +254,21 @@ const NotificationsTable: React.FC = () => {
           throw updateError;
         }
         
+        // Update notification with new status message
+        const newTitle = 'Coach Request Declined';
+        const newMessage = `You declined ${coachName}'s request to join their team`;
+        await updateNotificationMessage(notificationId, newTitle, newMessage);
+        
         toast({
           title: 'Request Declined',
-          description: 'You have declined the coach request',
+          description: `You declined ${coachName}'s request to join their team`,
           status: 'info',
           duration: 3000,
           isClosable: true,
         });
       }
       
-      // Mark notification as read
-      await markAsRead(notificationId);
+      // No need to call markAsRead since updateNotificationMessage already marks it as read
       
       // Refresh notifications
       fetchNotifications();

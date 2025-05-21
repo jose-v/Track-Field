@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 
 interface AuthUser {
   userId: string;
@@ -47,11 +48,57 @@ export const useAuth = () => {
   
   // Check for existing logged in user on mount
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setCurrentUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    const checkAuth = async () => {
+      setLoading(true);
+      
+      try {
+        // First check Supabase session
+        const { data: sessionData } = await supabase.auth.getSession();
+        const session = sessionData?.session;
+        
+        if (session?.user) {
+          console.log('Found active Supabase session:', session.user.id);
+          
+          // Get user profile data
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+            
+          if (profileData) {
+            const userData: AuthUser = {
+              userId: session.user.id,
+              name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim(),
+              email: session.user.email || '',
+              role: profileData.role || 'athlete'
+            };
+            
+            setCurrentUser(userData);
+            localStorage.setItem('user', JSON.stringify(userData));
+            console.log('Set user from Supabase session:', userData);
+          }
+        } else {
+          // Fallback to localStorage if no active session
+          console.log('No active Supabase session, checking localStorage');
+          const storedUser = localStorage.getItem('user');
+          
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+            setCurrentUser(parsedUser);
+            console.log('Set user from localStorage:', parsedUser);
+          } else {
+            console.log('No authentication data found');
+          }
+        }
+      } catch (error) {
+        console.error('Error checking authentication:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    checkAuth();
   }, []);
   
   // Derived information
