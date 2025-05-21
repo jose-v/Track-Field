@@ -225,7 +225,6 @@ const Navigation = () => {
                     )}
                   </MenuButton>
                   <MenuList>
-                    <MenuItem as={RouterLink} to="/">Home</MenuItem>
                     <MenuItem as={RouterLink} to="/dashboard">Dashboard</MenuItem>
                     <MenuItem as={RouterLink} to="/profile">Profile</MenuItem>
                     <MenuItem onClick={showFeedbackModal}>Give Feedback</MenuItem>
@@ -362,7 +361,6 @@ const Navigation = () => {
                     )}
                   </MenuButton>
                   <MenuList>
-                    <MenuItem as={RouterLink} to="/">Home</MenuItem>
                     <MenuItem as={RouterLink} to="/dashboard">Dashboard</MenuItem>
                     <MenuItem as={RouterLink} to="/profile">Profile</MenuItem>
                     <MenuItem onClick={showFeedbackModal}>Give Feedback</MenuItem>

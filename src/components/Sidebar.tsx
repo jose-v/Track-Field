@@ -13,7 +13,7 @@ import {
   Badge
 } from '@chakra-ui/react';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
-import { FaChevronLeft, FaChevronRight, FaUsers, FaVideo, FaBook, FaCalendarAlt, FaBell, FaUserAlt } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight, FaUsers, FaVideo, FaBook, FaCalendarAlt, FaBell, FaUserAlt, FaHome } from 'react-icons/fa';
 import { BiLineChart } from 'react-icons/bi';
 import { BsCalendarCheck } from 'react-icons/bs';
 import { MdLoop, MdRestaurantMenu, MdOutlineBedtime, MdOutlineReport, MdOutlineForum } from 'react-icons/md';
@@ -53,6 +53,15 @@ const NavItem = ({ icon, label, to, isActive, isCollapsed, badge }: NavItemProps
         transition="all 0.2s"
         _hover={{
           bg: hoverBg,
+          color: activeColor,
+        }}
+        _active={{
+          bg: activeBg,
+          color: activeColor,
+        }}
+        _focus={{
+          boxShadow: 'none',
+          outline: 'none',
         }}
       >
         <Icon
@@ -92,6 +101,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
   // Define navigation items based on user type (coach or athlete)
   const navItems = userType === 'coach' 
     ? [
+        { icon: FaHome, label: 'HOME', to: '/' },
         { icon: BiLineChart, label: 'DASHBOARD', to: '/coach/dashboard' },
         { icon: FaUsers, label: 'ATHLETES', to: '/coach/athletes' },
         { icon: BsCalendarCheck, label: 'WORKOUTS', to: '/coach/workouts' },
@@ -101,6 +111,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
         { icon: FaBell, label: 'NOTIFICATIONS', to: '/coach/notifications' },
       ]
     : [
+        { icon: FaHome, label: 'HOME', to: '/' },
         { icon: BiLineChart, label: 'DASHBOARD', to: '/athlete/dashboard' },
         { icon: BsCalendarCheck, label: 'MY WORKOUTS', to: '/athlete/workouts' },
         { icon: FaCalendarAlt, label: 'EVENTS', to: '/athlete/events' },
@@ -175,17 +186,22 @@ const Sidebar = ({ userType }: SidebarProps) => {
         
         {/* Navigation Items */}
         <VStack spacing={1} align="stretch" py={4} flex="1">
-          {navItems.map((item) => (
-            <NavItem
-              key={item.to}
-              icon={item.icon}
-              label={item.label}
-              to={item.to}
-              isActive={location.pathname === item.to || 
-                (item.to !== '/loop' && location.pathname.startsWith(item.to))}
-              isCollapsed={isCollapsed}
-            />
-          ))}
+          {navItems.map((item) => {
+            const isHome = item.to === '/';
+            const isActive = isHome
+              ? location.pathname === '/'
+              : location.pathname === item.to || (item.to !== '/loop' && location.pathname.startsWith(item.to));
+            return (
+              <NavItem
+                key={item.to}
+                icon={item.icon}
+                label={item.label}
+                to={item.to}
+                isActive={isActive}
+                isCollapsed={isCollapsed}
+              />
+            );
+          })}
         </VStack>
         
         {/* Collapse/Expand Button */}

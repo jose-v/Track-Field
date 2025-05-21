@@ -21,6 +21,7 @@ import { useProfile } from '../hooks/useProfile';
 import { LuBellRing, LuMessageCircleMore } from 'react-icons/lu';
 import { useFeedback } from './FeedbackProvider';
 import { ShareComponent } from './ShareComponent';
+import { HamburgerIcon } from '@chakra-ui/icons';
 
 interface SimplifiedNavProps {
   roleTitle: string;
@@ -32,6 +33,8 @@ interface SimplifiedNavProps {
   storageKey: string;
   shareTitle: string;
   shareDescription: string;
+  isPublicPage: boolean;
+  onOpen: () => void;
 }
 
 const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
@@ -40,7 +43,9 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
   notificationsPath,
   storageKey,
   shareTitle,
-  shareDescription
+  shareDescription,
+  isPublicPage,
+  onOpen
 }) => {
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
@@ -117,7 +122,7 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
       <Flex justify="space-between" align="center">
         {/* Left side - App title & role badge (removed) */}
         <Box />
-        {/* Right side - action icons */}
+        {/* Right side - action icons and user menu (no avatar for portals) */}
         <Flex align="center" gap={4}>
           {/* Feedback Button */}
           <Tooltip label="Give Feedback" hasArrow>
@@ -134,39 +139,33 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
           <ShareComponent 
             title={shareTitle} 
             description={shareDescription} 
-            iconStyle={iconStyle}
+            iconStyle={iconStyle} 
           />
-          {/* Notification Bell */}
-          <Box position="relative">
-            <Tooltip label={`${roleTitle} notifications`} hasArrow>
-              <IconButton
-                icon={<LuBellRing size="20px" />}
-                aria-label="Notifications"
-                variant="ghost"
-                size="sm"
-                sx={iconStyle}
-                onClick={handleViewNotifications}
-              />
-            </Tooltip>
-            {/* Notification Badge */}
-            {notificationCount > 0 && (
-              <Badge {...badgeProps}>
-                {notificationCount}
-              </Badge>
-            )}
-          </Box>
-          {/* User Menu */}
-          <Menu>
-            <MenuButton as={Button} rounded="full" variant="unstyled" cursor="pointer" minW={0}>
-              <Avatar size="sm" name={fullName} src={avatarUrl} />
-            </MenuButton>
-            <MenuList>
-              <MenuItem as={RouterLink} to="/profile">My Profile</MenuItem>
-              <MenuItem as={RouterLink} to="/settings">Settings</MenuItem>
-              <MenuItem onClick={showFeedbackModal}>Give Feedback</MenuItem>
-              <MenuItem onClick={signOut}>Sign out</MenuItem>
-            </MenuList>
-          </Menu>
+          {/* Only show avatar on public pages */}
+          {isPublicPage && (
+            <Avatar
+              size="sm"
+              name={user?.user_metadata?.full_name}
+              src={user?.user_metadata?.avatar_url}
+              ml={2}
+              cursor="pointer"
+              onClick={onOpen}
+            />
+          )}
+          {/* Inline user menu for portals */}
+          {!isPublicPage && (
+            <Menu>
+              <MenuButton as={Button} rounded="full" variant="unstyled" cursor="pointer" minW={0} _focus={{ boxShadow: 'none', outline: 'none' }} _hover={{ boxShadow: 'none', outline: 'none' }}>
+                <HamburgerIcon boxSize={6} color="gray.600" />
+              </MenuButton>
+              <MenuList>
+                <MenuItem as={RouterLink} to="/profile">My Profile</MenuItem>
+                <MenuItem as={RouterLink} to="/settings">Settings</MenuItem>
+                <MenuItem onClick={showFeedbackModal}>Give Feedback</MenuItem>
+                <MenuItem onClick={signOut}>Sign out</MenuItem>
+              </MenuList>
+            </Menu>
+          )}
         </Flex>
       </Flex>
     </Box>
