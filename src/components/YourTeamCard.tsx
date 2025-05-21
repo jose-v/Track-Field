@@ -42,7 +42,8 @@ const YourTeamCard = () => {
   
   // Alert dialog for delete confirmation
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
-  const [athleteToRemove, setAthleteToRemove] = useState<any>(null);
+  const athleteToRemoveRef = useRef<any>(null);
+  const [athleteToRemoveState, setAthleteToRemoveState] = useState<any>(null);
   const [isRemoving, setIsRemoving] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [relationshipRecords, setRelationshipRecords] = useState<any[]>([]);
@@ -63,7 +64,8 @@ const YourTeamCard = () => {
   // Handle opening the delete confirmation dialog
   const handleOpenRemoveDialog = async (athlete: any) => {
     console.log("Opening remove dialog for athlete:", athlete);
-    setAthleteToRemove(athlete);
+    athleteToRemoveRef.current = athlete;
+    setAthleteToRemoveState(athlete);
     setDeleteError(null);
     
     // Fetch ALL relationships for this athlete to understand what's in the database
@@ -112,13 +114,15 @@ const YourTeamCard = () => {
   // Handle closing the delete confirmation dialog
   const handleCloseRemoveDialog = () => {
     setIsDeleteAlertOpen(false);
-    setAthleteToRemove(null);
+    athleteToRemoveRef.current = null;
+    setAthleteToRemoveState(null);
     setDeleteError(null);
     setRelationshipRecords([]);
   };
   
   // Handle removing an athlete from the team
   const handleRemoveAthlete = async () => {
+    const athleteToRemove = athleteToRemoveRef.current;
     if (!athleteToRemove?.id || !user?.id) {
       setDeleteError("Missing athlete or user information");
       return;
@@ -294,7 +298,7 @@ const YourTeamCard = () => {
             <AlertDialogBody>
               <Stack spacing={4}>
                 <Text>
-                  Are you sure you want to remove <strong>{athleteToRemove?.first_name} {athleteToRemove?.last_name}</strong> from your team? 
+                  Are you sure you want to remove <strong>{athleteToRemoveRef.current?.first_name} {athleteToRemoveRef.current?.last_name}</strong> from your team? 
                   This action cannot be undone.
                 </Text>
                 
