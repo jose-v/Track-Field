@@ -62,7 +62,12 @@ export async function signUp(data: SignupData): Promise<{ user: any; error: any 
           await createAthleteProfile(userId);
           break;
         case 'coach':
-          await createCoachProfile(userId, data.selectedAthletes);
+          // Only pass selectedAthletes if explicitly chosen by the coach
+          if (Array.isArray(data.selectedAthletes) && data.selectedAthletes.length > 0) {
+            await createCoachProfile(userId, data.selectedAthletes);
+          } else {
+            await createCoachProfile(userId);
+          }
           break;
         case 'team_manager':
           await createTeamManagerProfile(userId, data.selectedAthletes);

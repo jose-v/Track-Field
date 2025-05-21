@@ -296,36 +296,18 @@ const YourTeamCard = () => {
             </AlertDialogHeader>
 
             <AlertDialogBody>
-              <Stack spacing={4}>
+              <Stack spacing={4} minHeight="100px">
                 <Text>
                   Are you sure you want to remove <strong>{athleteToRemoveRef.current?.first_name} {athleteToRemoveRef.current?.last_name}</strong> from your team? 
                   This action cannot be undone.
                 </Text>
-                
-                {deleteError && (
-                  <Box bg="red.50" p={3} borderRadius="md">
-                    <HStack color="red.500">
-                      <FaExclamationTriangle />
-                      <Text fontWeight="bold">{deleteError}</Text>
-                    </HStack>
-                  </Box>
-                )}
+                <Box border="2px solid red" width="100%" p={4} textAlign="center">
+                  FOOTER TEST
+                </Box>
               </Stack>
             </AlertDialogBody>
 
-            <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={handleCloseRemoveDialog}>
-                Cancel
-              </Button>
-              <Button 
-                colorScheme="red" 
-                onClick={handleRemoveAthlete} 
-                ml={3}
-                isLoading={isRemoving}
-              >
-                Remove
-              </Button>
-            </AlertDialogFooter>
+            {/* Footer removed for this debug step */}
           </AlertDialogContent>
         </AlertDialogOverlay>
       </AlertDialog>
