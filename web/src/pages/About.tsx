@@ -48,7 +48,7 @@ const About = () => {
   return (
     <Box bg={bgColor} minH="100vh">
       {/* Hero Section */}
-      <Box py={{ base: 16, md: 24 }} bg="white">
+      <Box py={{ base: 16, md: 24 }} bg={useColorModeValue('white', 'gray.800')}>
         <Container maxW="container.lg">
           <VStack spacing={6} align="center" textAlign="center">
             <Heading
@@ -109,7 +109,7 @@ const About = () => {
       </Box>
 
       {/* Values Section */}
-      <Box py={20} bg="white">
+      <Box py={20} bg={useColorModeValue('white', 'gray.800')}>
         <Container maxW="container.lg">
           <VStack spacing={12}>
             <Heading 
@@ -211,7 +211,7 @@ const About = () => {
       </Box>
       
       {/* Team Section */}
-      <Box py={20} bg="#F5F8FE">
+      <Box py={20} bg={useColorModeValue('#F5F8FE', 'gray.700')}>
         <VStack spacing={12} maxW="container.lg" mx="auto">
           <VStack spacing={4} textAlign="center">
             <Heading size="xl" color={textColor} fontWeight="bold">
@@ -240,7 +240,7 @@ const About = () => {
                   src={member.image} 
                   mb={2}
                   borderWidth="4px"
-                  borderColor="white"
+                  borderColor={useColorModeValue('white', 'gray.600')}
                   boxShadow="lg"
                 />
                 <VStack spacing={1}>

@@ -42,7 +42,7 @@ function Pricing() {
     <Box bg={bgColor}>
       <Box maxW="1200px" mx="auto" px={{ base: 4, md: 8 }} py={{ base: 10, md: 16 }}>
         {/* Hero Section */}
-        <Box py={{ base: 16, md: 24 }} bg="white">
+        <Box py={{ base: 16, md: 24 }} bg={useColorModeValue('white', 'gray.800')}>
           <Container maxW="container.lg">
             <VStack spacing={6} align="center" textAlign="center">
               <Heading
@@ -379,7 +379,7 @@ function Pricing() {
         </Box>
 
         {/* Features Section */}
-        <Box py={20} bg="white">
+        <Box py={20} bg={useColorModeValue('white', 'gray.800')}>
           <Container maxW="container.lg">
             <VStack spacing={12}>
               <Heading 

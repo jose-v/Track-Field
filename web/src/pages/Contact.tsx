@@ -50,7 +50,7 @@ function Contact() {
         <Container maxW="container.xl">
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={10} alignItems="flex-start">
             {/* Form Card */}
-            <Box bg="white" p={{ base: 6, md: 8 }} borderRadius="lg" shadow="lg" maxW="380px" w="full" mx="auto">
+            <Box bg={cardBg} p={{ base: 6, md: 8 }} borderRadius="lg" shadow="lg" maxW="380px" w="full" mx="auto">
               <VStack as="form" spacing={4} align="stretch">
                 <FormControl isRequired>
                   <FormLabel fontSize="sm" fontWeight="medium">Name</FormLabel>

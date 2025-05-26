@@ -13,6 +13,7 @@ import {
   CardBody,
   Flex,
   Icon,
+  useColorModeValue,
 } from '@chakra-ui/react'
 import { useAuth } from '../contexts/AuthContext'
 import { FaUser, FaEnvelope, FaLock } from 'react-icons/fa'
@@ -24,6 +25,10 @@ export function Login() {
   const { signIn } = useAuth()
   const navigate = useNavigate()
   const toast = useToast()
+  
+  const iconBg = useColorModeValue('white', 'gray.700')
+  const inputBg = useColorModeValue('gray.50', 'gray.600')
+  const iconContainerBg = useColorModeValue('blue.50', 'blue.900')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -68,7 +73,7 @@ export function Login() {
           m={0}
         >
           <Flex 
-            bg="white" 
+            bg={iconBg} 
             borderRadius="full" 
             w="70px" 
             h="70px" 
@@ -94,7 +99,7 @@ export function Login() {
                       justify="center"
                       h="40px"
                       w="40px"
-                      bg="blue.50"
+                      bg={iconContainerBg}
                       borderRadius="md"
                       mr={2}
                     >
@@ -105,7 +110,7 @@ export function Login() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Enter your email"
-                      bg="gray.50"
+                      bg={inputBg}
                       autoComplete="email"
                       aria-label="Email"
                     />
@@ -119,7 +124,7 @@ export function Login() {
                       justify="center"
                       h="40px"
                       w="40px"
-                      bg="blue.50"
+                      bg={iconContainerBg}
                       borderRadius="md"
                       mr={2}
                     >
@@ -130,7 +135,7 @@ export function Login() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Enter your password"
-                      bg="gray.50"
+                      bg={inputBg}
                       autoComplete="current-password"
                       aria-label="Password"
                     />

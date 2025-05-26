@@ -73,7 +73,7 @@ export default function HomeAlt() {
       </Box>
 
       {/* ===== MESSAGE STRIP ===== */}
-      <Box py={{ base: 12, md: 20 }} bg="white">
+      <Box py={{ base: 12, md: 20 }} bg={useColorModeValue('white', 'gray.800')}>
         <Container maxW="container.lg">
           <Heading size="lg" textAlign="center">
             Your whole company must work together to find and implement the best solutions.
@@ -146,7 +146,7 @@ export default function HomeAlt() {
       </Box>
 
       {/* ===== CUSTOMERS LOGOS ===== */}
-      <Box py={{ base: 16 }} bg="white">
+      <Box py={{ base: 16 }} bg={useColorModeValue('white', 'gray.800')}>
         <Container maxW="container.lg">
           <VStack spacing={6}>
             <Heading size="lg">Rewrite Customers</Heading>

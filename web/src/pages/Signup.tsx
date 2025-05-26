@@ -1,4 +1,4 @@
-import { Box, Button, Flex, Heading, useToast, Card, CardBody, Icon } from '@chakra-ui/react';
+import { Box, Button, Flex, Heading, useToast, Card, CardBody, Icon, useColorModeValue } from '@chakra-ui/react';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StepIndicator } from '../components/StepIndicator';
@@ -31,6 +31,8 @@ function SignupContent() {
   const { signUp } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
+  
+  const iconBg = useColorModeValue('white', 'gray.700');
   
   // Get step labels based on total steps
   const stepLabels = getStepLabels(totalSteps);
@@ -138,7 +140,7 @@ function SignupContent() {
           m={0}
         >
           <Flex 
-            bg="white" 
+            bg={iconBg} 
             borderRadius="full" 
             w="70px" 
             h="70px" 

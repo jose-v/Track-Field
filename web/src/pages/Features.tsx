@@ -140,7 +140,7 @@ const Features = () => {
   return (
     <Box bg={bgColor} minH="100vh">
       {/* Hero Section */}
-      <Box py={{ base: 16, md: 24 }} bg="white">
+      <Box py={{ base: 16, md: 24 }} bg={useColorModeValue('white', 'gray.800')}>
         <Container maxW="container.lg">
           <VStack spacing={6} align="center" textAlign="center">
             <Heading
@@ -182,7 +182,7 @@ const Features = () => {
       </Box>
       
       {/* Detailed Features Section */}
-      <Box py={20} bg="white">
+      <Box py={20} bg={useColorModeValue('white', 'gray.800')}>
         <Container maxW="container.lg">
           <VStack spacing={24}>
             <DetailFeature

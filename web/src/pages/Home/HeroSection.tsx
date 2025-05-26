@@ -8,6 +8,7 @@ import {
   Badge,
   chakra,
   Spinner,
+  useColorModeValue,
 } from '@chakra-ui/react';
 import { keyframes } from '@emotion/react';
 import { Link as RouterLink } from 'react-router-dom';
@@ -21,6 +22,12 @@ import { format } from 'date-fns';
 const HeroSection = () => {
   // Use theme accent color
   const accentColor = 'var(--accent)';
+  
+  // Color mode values for buttons
+  const primaryButtonBg = useColorModeValue('#2d3748', '#4A5568');
+  const accentButtonBg = useColorModeValue('#ecc94b', '#D69E2E');
+  const accentButtonColor = useColorModeValue('#2d3748', '#1A202C');
+  
   // List of words for the rotating animation
   const rotatingWords = [
     "Athletic",
@@ -197,8 +204,12 @@ const HeroSection = () => {
             as={RouterLink}
             to="/signup"
             size="lg"
-            variant="solid"
-            colorScheme="primary"
+            bg={primaryButtonBg}
+            color="white"
+            border="1px solid"
+            borderColor={primaryButtonBg}
+            boxShadow="0 4px 12px rgba(0,0,0,0.3)"
+            _hover={{ bg: primaryButtonBg, opacity: 0.85, transform: 'translateY(-2px)' }}
             px={8}
             fontSize="md"
             fontWeight="medium"
@@ -213,7 +224,12 @@ const HeroSection = () => {
             as={RouterLink}
             to="/login"
             size="lg"
-            variant="accent"
+            bg={accentButtonBg}
+            color={accentButtonColor}
+            border="1px solid"
+            borderColor={accentButtonBg}
+            boxShadow="0 4px 12px rgba(0,0,0,0.3)"
+            _hover={{ bg: accentButtonBg, opacity: 0.85, transform: 'translateY(-2px)' }}
             px={8}
             fontSize="md"
             fontWeight="medium"
@@ -235,8 +251,12 @@ const HeroSection = () => {
             as={RouterLink}
             to="/athlete/dashboard"
             size="lg"
-            variant="solid"
-            colorScheme="primary"
+            bg={primaryButtonBg}
+            color="white"
+            border="1px solid"
+            borderColor={primaryButtonBg}
+            boxShadow="0 4px 12px rgba(0,0,0,0.3)"
+            _hover={{ bg: primaryButtonBg, opacity: 0.85, transform: 'translateY(-2px)' }}
             px={8}
             fontSize="md"
             fontWeight="medium"
@@ -251,7 +271,12 @@ const HeroSection = () => {
             as={RouterLink}
             to="/athlete/workouts"
             size="lg"
-            variant="accent"
+            bg={accentButtonBg}
+            color={accentButtonColor}
+            border="1px solid"
+            borderColor={accentButtonBg}
+            boxShadow="0 4px 12px rgba(0,0,0,0.3)"
+            _hover={{ bg: accentButtonBg, opacity: 0.85, transform: 'translateY(-2px)' }}
             px={8}
             fontSize="md"
             fontWeight="medium"
@@ -274,8 +299,12 @@ const HeroSection = () => {
             as={RouterLink}
             to="/coach/dashboard"
             size="lg"
-            variant="solid"
-            colorScheme="primary"
+            bg={primaryButtonBg}
+            color="white"
+            border="1px solid"
+            borderColor={primaryButtonBg}
+            boxShadow="0 4px 12px rgba(0,0,0,0.3)"
+            _hover={{ bg: primaryButtonBg, opacity: 0.85, transform: 'translateY(-2px)' }}
             px={8}
             fontSize="md"
             fontWeight="medium"
@@ -290,7 +319,12 @@ const HeroSection = () => {
             as={RouterLink}
             to="/coach/athletes"
             size="lg"
-            variant="accent"
+            bg={accentButtonBg}
+            color={accentButtonColor}
+            border="1px solid"
+            borderColor={accentButtonBg}
+            boxShadow="0 4px 12px rgba(0,0,0,0.3)"
+            _hover={{ bg: accentButtonBg, opacity: 0.85, transform: 'translateY(-2px)' }}
             px={8}
             fontSize="md"
             fontWeight="medium"
@@ -312,8 +346,12 @@ const HeroSection = () => {
           as={RouterLink}
           to="/dashboard"
           size="lg"
-          variant="solid"
-          colorScheme="primary"
+          bg={primaryButtonBg}
+          color="white"
+          border="1px solid"
+          borderColor={primaryButtonBg}
+          boxShadow="0 4px 12px rgba(0,0,0,0.3)"
+          _hover={{ bg: primaryButtonBg, opacity: 0.85, transform: 'translateY(-2px)' }}
           px={8}
           fontSize="md"
           fontWeight="medium"

@@ -115,7 +115,7 @@ export function ProgressBar({
   const progressColor =
     isComplete || colorScheme === "green"
       ? theme.colors?.green?.[500] || "#38A169"
-      : colorScheme === "blue"
+      : colorScheme === "blue" 
         ? "#3182CE"
         : theme.colors?.primary?.[500] || "#3182CE";
   
