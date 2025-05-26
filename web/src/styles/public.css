@@ -1,0 +1,73 @@
+/* Public (unauthenticated) pages global styles */
+
+/* Brand link colours */
+body.public-page a {
+  color: #2d3748;
+  text-decoration: none;
+}
+
+body.public-page a:hover {
+  color: #2C152D;
+}
+
+/* Fix nested anchor inside Chakra <Button as={Link}> */
+body.public-page .chakra-button a,
+body.public-page .chakra-button .chakra-link {
+  color: inherit !important;
+  text-decoration: none;
+}
+
+/* ------------- Design Tokens derived from brand-guidelines.html ------------- */
+:root {
+  --primary: #c53030;
+  --primary-dark: #664c81;
+  --accent: #FFD204;
+  --background: #F5F4FA;
+  --surface: #FFFFFF;
+  --text-primary: #2D3748;
+  --text-secondary: #555555;
+  --border: #E0E0E0;
+  --success: #22C55E;
+  --error: #EF4444;
+  --info: #c53030;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Dark mode color scheme using Chakra UI's dark mode class */
+.chakra-ui-dark {
+  --primary: #664c81;
+  --primary-dark: #664c81;
+  --accent: #FFD204;
+  --background: #1a202c;
+  --surface: #2d3748;
+  --text-primary: #f7fafc;
+  --text-secondary: #a0aec0;
+  --border: #4a5568;
+}
+
+/* ------------- Base Styles specific to public (unauthenticated) pages ------------- */
+body.public-page {
+  background: var(--surface);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+  line-height: 1.55;
+}
+
+h1, h2, h3 {
+  font-weight: 700;
+  margin: 0 0 0.5em;
+}
+
+h1 { font-size: 3rem; /* 48px */ }
+h2 { font-size: 2.25rem; /* 36px */ }
+h3 { font-size: 1.5rem; /* 24px */ }
+
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 24px;
+} 

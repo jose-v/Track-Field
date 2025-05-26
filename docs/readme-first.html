@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>README FIRST - Track & Field Repository Guidelines</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .danger {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        .emoji {
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <h1><span class="emoji">⚠️</span> README FIRST - Critical Repository Guidelines</h1>
+    
+    <div class="danger">
+        <h2><span class="emoji">🚨</span> CRITICAL: DO NOT DELETE THE WEB/ FOLDER</h2>
+        <p><strong>The web/ folder contains the working application and must NEVER be deleted or moved during git operations.</strong></p>
+    </div>
+
+    <h2><span class="emoji">📁</span> Repository Structure Understanding</h2>
+    
+    <div class="warning">
+        <h3>Dual File Structure Issue</h3>
+        <p>This repository has files in TWO locations due to historical restructuring:</p>
+        <ul>
+            <li><strong>Root directory:</strong> <code>src/</code>, <code>index.html</code>, <code>package.json</code>, etc.</li>
+            <li><strong>Web directory:</strong> <code>web/src/</code>, <code>web/index.html</code>, <code>web/package.json</code>, etc.</li>
+        </ul>
+        <p><strong>The WORKING application is in the web/ directory.</strong></p>
+    </div>
+
+    <h2><span class="emoji">🔒</span> Strict Rules for AI Assistants</h2>
+
+    <div class="danger">
+        <h3>NEVER DO THESE COMMANDS:</h3>
+        <pre><code># These commands can destroy the local web/ folder:
+git checkout &lt;commit&gt; -- src/
+git checkout &lt;commit&gt; -- index.html
+git checkout &lt;commit&gt; -- package.json
+git show &lt;commit&gt;:src/file.tsx &gt; web/src/file.tsx  # Wrong direction!
+
+# Any command that restores files to root instead of web/</code></pre>
+    </div>
+
+    <div class="success">
+        <h3>SAFE OPERATIONS ONLY:</h3>
+        <pre><code># Safe file editing within web/ directory:
+edit_file web/src/components/Component.tsx
+search_replace web/src/theme.ts
+
+# Safe git status checking:
+git status
+git log --oneline
+
+# Safe directory operations:
+list_dir web/src/
+read_file web/src/App.tsx</code></pre>
+    </div>
+
+    <h2><span class="emoji">🛡️</span> Required Protocol</h2>
+
+    <div class="warning">
+        <h3>Before ANY git operation:</h3>
+        <ol>
+            <li><strong>Check current file structure:</strong> <code>list_dir web/</code></li>
+            <li><strong>Understand what git thinks:</strong> <code>git status</code></li>
+            <li><strong>Ask user permission</strong> for any git commands that could affect file locations</li>
+            <li><strong>NEVER assume</strong> file locations - always verify first</li>
+        </ol>
+    </div>
+
+    <h2><span class="emoji">🎯</span> Working Principles</h2>
+
+    <div class="success">
+        <h3>The Golden Rules:</h3>
+        <ul>
+            <li><span class="emoji">✅</span> <strong>ONLY edit existing files</strong> in the web/ directory</li>
+            <li><span class="emoji">✅</span> <strong>NEVER restore files from git</strong> without explicit user permission</li>
+            <li><span class="emoji">✅</span> <strong>ASK FIRST</strong> before any git operations</li>
+            <li><span class="emoji">✅</span> <strong>Focus on code changes</strong>, not file structure changes</li>
+            <li><span class="emoji">✅</span> <strong>Respect the existing web/ folder structure</strong></li>
+        </ul>
+    </div>
+
+    <h2><span class="emoji">🔄</span> Development Workflow</h2>
+
+    <div class="warning">
+        <h3>Proper Development Process:</h3>
+        <ol>
+            <li><strong>Start dev server:</strong> <code>cd web && npm run dev</code></li>
+            <li><strong>Make code changes:</strong> Edit files in <code>web/src/</code></li>
+            <li><strong>Test changes:</strong> Verify at <code>http://localhost:5174</code></li>
+            <li><strong>Commit when ready:</strong> User decides when to commit</li>
+        </ol>
+    </div>
+
+    <h2><span class="emoji">📝</span> Incident History</h2>
+    
+    <div class="danger">
+        <p><strong>Previous Issues:</strong> AI assistant accidentally deleted/moved web/ folder contents 5+ times by using git restore commands that moved files back to root directory instead of preserving the working web/ structure.</p>
+        
+        <p><strong>Lesson Learned:</strong> The web/ folder is the source of truth for the working application. Git may show files as "deleted" when they're actually just moved between root and web/ directories.</p>
+    </div>
+
+    <h2><span class="emoji">🎯</span> Summary</h2>
+    
+    <div class="success">
+        <p><strong>Bottom Line:</strong> Work within the existing web/ directory structure. Make code changes, not structural changes. When in doubt, ask the user first.</p>
+    </div>
+
+    <hr>
+    <p><em>Created: January 2025 | Purpose: Prevent accidental deletion of working web/ folder</em></p>
+</body>
+</html> 

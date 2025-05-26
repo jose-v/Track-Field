@@ -21,13 +21,7 @@ import { format } from 'date-fns';
 
 const HeroSection = () => {
   // Use theme accent color
-  const accentColor = 'var(--accent)';
-  
-  // Color mode values for buttons
-  const primaryButtonBg = useColorModeValue('#2d3748', '#4A5568');
-  const accentButtonBg = useColorModeValue('#ecc94b', '#D69E2E');
-  const accentButtonColor = useColorModeValue('#2d3748', '#1A202C');
-  
+  const accentColor = '#FFD204';
   // List of words for the rotating animation
   const rotatingWords = [
     "Athletic",
@@ -46,6 +40,14 @@ const HeroSection = () => {
   const [athleteCount, setAthleteCount] = useState<number | null>(null);
   const [coachCount, setCoachCount] = useState<number | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+
+  // Add color mode aware styles for hero buttons
+  const coachBtnBg = useColorModeValue('purple.500', 'purple.400');
+  const coachBtnColor = useColorModeValue('white', 'gray.900');
+  const coachBtnHoverBg = useColorModeValue('purple.600', 'purple.300');
+  const manageBtnBg = useColorModeValue('yellow.400', 'yellow.300');
+  const manageBtnColor = useColorModeValue('gray.900', 'gray.900');
+  const manageBtnHoverBg = useColorModeValue('yellow.500', 'yellow.400');
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -200,16 +202,10 @@ const HeroSection = () => {
       return (
         <>
           <Button
-            className="btn-primary"
             as={RouterLink}
             to="/signup"
             size="lg"
-            bg={primaryButtonBg}
-            color="white"
-            border="1px solid"
-            borderColor={primaryButtonBg}
-            boxShadow="0 4px 12px rgba(0,0,0,0.3)"
-            _hover={{ bg: primaryButtonBg, opacity: 0.85, transform: 'translateY(-2px)' }}
+            variant="solid"
             px={8}
             fontSize="md"
             fontWeight="medium"
@@ -220,16 +216,10 @@ const HeroSection = () => {
             Get Started
           </Button>
           <Button
-            className="btn-accent"
             as={RouterLink}
             to="/login"
             size="lg"
-            bg={accentButtonBg}
-            color={accentButtonColor}
-            border="1px solid"
-            borderColor={accentButtonBg}
-            boxShadow="0 4px 12px rgba(0,0,0,0.3)"
-            _hover={{ bg: accentButtonBg, opacity: 0.85, transform: 'translateY(-2px)' }}
+            variant="accent"
             px={8}
             fontSize="md"
             fontWeight="medium"
@@ -247,16 +237,10 @@ const HeroSection = () => {
       return (
         <>
           <Button
-            className="btn-primary"
             as={RouterLink}
             to="/athlete/dashboard"
             size="lg"
-            bg={primaryButtonBg}
-            color="white"
-            border="1px solid"
-            borderColor={primaryButtonBg}
-            boxShadow="0 4px 12px rgba(0,0,0,0.3)"
-            _hover={{ bg: primaryButtonBg, opacity: 0.85, transform: 'translateY(-2px)' }}
+            variant="solid"
             px={8}
             fontSize="md"
             fontWeight="medium"
@@ -267,16 +251,10 @@ const HeroSection = () => {
             Continue Training
           </Button>
           <Button
-            className="btn-accent"
             as={RouterLink}
             to="/athlete/workouts"
             size="lg"
-            bg={accentButtonBg}
-            color={accentButtonColor}
-            border="1px solid"
-            borderColor={accentButtonBg}
-            boxShadow="0 4px 12px rgba(0,0,0,0.3)"
-            _hover={{ bg: accentButtonBg, opacity: 0.85, transform: 'translateY(-2px)' }}
+            variant="accent"
             px={8}
             fontSize="md"
             fontWeight="medium"
@@ -295,42 +273,36 @@ const HeroSection = () => {
       return (
         <>
           <Button
-            className="btn-primary"
             as={RouterLink}
             to="/coach/dashboard"
             size="lg"
-            bg={primaryButtonBg}
-            color="white"
-            border="1px solid"
-            borderColor={primaryButtonBg}
-            boxShadow="0 4px 12px rgba(0,0,0,0.3)"
-            _hover={{ bg: primaryButtonBg, opacity: 0.85, transform: 'translateY(-2px)' }}
             px={8}
             fontSize="md"
             fontWeight="medium"
             borderRadius="md"
             rightIcon={<FaChevronRight />}
             transition="all 0.3s"
+            bg={coachBtnBg}
+            color={coachBtnColor}
+            _hover={{ bg: coachBtnHoverBg }}
+            _focus={{ boxShadow: 'outline' }}
           >
             Coach Dashboard
           </Button>
           <Button
-            className="btn-accent"
             as={RouterLink}
             to="/coach/athletes"
             size="lg"
-            bg={accentButtonBg}
-            color={accentButtonColor}
-            border="1px solid"
-            borderColor={accentButtonBg}
-            boxShadow="0 4px 12px rgba(0,0,0,0.3)"
-            _hover={{ bg: accentButtonBg, opacity: 0.85, transform: 'translateY(-2px)' }}
             px={8}
             fontSize="md"
             fontWeight="medium"
             borderRadius="md"
             rightIcon={<FaUsers />}
             transition="all 0.3s"
+            bg={manageBtnBg}
+            color={manageBtnColor}
+            _hover={{ bg: manageBtnHoverBg }}
+            _focus={{ boxShadow: 'outline' }}
           >
             Manage Athletes
           </Button>
@@ -342,16 +314,10 @@ const HeroSection = () => {
     return (
       <>
         <Button
-          className="btn-primary"
           as={RouterLink}
           to="/dashboard"
           size="lg"
-          bg={primaryButtonBg}
-          color="white"
-          border="1px solid"
-          borderColor={primaryButtonBg}
-          boxShadow="0 4px 12px rgba(0,0,0,0.3)"
-          _hover={{ bg: primaryButtonBg, opacity: 0.85, transform: 'translateY(-2px)' }}
+          variant="solid"
           px={8}
           fontSize="md"
           fontWeight="medium"

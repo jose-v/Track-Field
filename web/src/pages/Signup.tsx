@@ -32,6 +32,7 @@ function SignupContent() {
   const navigate = useNavigate();
   const toast = useToast();
   
+  // Color mode values
   const iconBg = useColorModeValue('white', 'gray.700');
   
   // Get step labels based on total steps
@@ -208,7 +209,7 @@ function SignupContent() {
   );
 }
 
-// Main export with context provider
+// Main component with provider
 export function Signup() {
   return (
     <SignupProvider>

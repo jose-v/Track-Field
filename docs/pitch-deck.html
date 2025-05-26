@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Track & Field - Investor Pitch Deck</title>
+  <style>
+    :root {
+      --primary: #3498db;
+      --primary-dark: #2980b9;
+      --secondary: #4299E1;
+      --accent: #e74c3c;
+      --dark: #2c3e50;
+      --light: #f8f9fa;
+      --text: #333;
+      --border: #ddd;
+      --shadow: rgba(0, 0, 0, 0.1);
+      --success: #2ecc71;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: var(--text);
+      background-color: #f5f7fa;
+      padding-bottom: 60px;
+    }
+    
+    .deck-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .slide {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px var(--shadow);
+      margin-bottom: 30px;
+      overflow: hidden;
+      min-height: 600px;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .slide-header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    
+    .slide-title {
+      font-size: 2.2rem;
+      margin-bottom: 10px;
+    }
+    
+    .slide-subtitle {
+      font-size: 1.3rem;
+      opacity: 0.9;
+    }
+    
+    .slide-content {
+      padding: 30px;
+      flex: 1;
+      overflow: auto;
+    }
+    
+    .slide-footer {
+      padding: 15px 30px;
+      background-color: var(--light);
+      border-top: 1px solid var(--border);
+      text-align: right;
+      font-size: 0.9rem;
+      color: var(--dark);
+    }
+    
+    .two-column {
+      display: flex;
+      gap: 30px;
+    }
+    
+    .column {
+      flex: 1;
+    }
+    
+    .feature-list {
+      list-style: none;
+      margin: 20px 0;
+    }
+    
+    .feature-list li {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+    }
+    
+    .feature-list li i {
+      color: var(--primary);
+      margin-right: 15px;
+      font-size: 1.5rem;
+    }
+    
+    .feature-list li:last-child {
+      border-bottom: none;
+    }
+    
+    .tech-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    .tech-item {
+      background-color: var(--light);
+      border-radius: 8px;
+      padding: 10px 15px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+    }
+    
+    .tech-item i {
+      margin-right: 8px;
+      color: var(--primary);
+    }
+    
+    .testimonial {
+      background-color: var(--light);
+      border-left: 4px solid var(--primary);
+      padding: 20px;
+      margin: 20px 0;
+      font-style: italic;
+    }
+    
+    .testimonial-author {
+      font-weight: bold;
+      font-style: normal;
+      margin-top: 10px;
+    }
+    
+    .screenshot {
+      max-width: 100%;
+      border-radius: 8px;
+      box-shadow: 0 5px 15px var(--shadow);
+      margin: 20px 0;
+    }
+    
+    .metrics-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      margin: 20px 0;
+    }
+    
+    .metric {
+      text-align: center;
+      padding: 15px;
+      background-color: var(--light);
+      border-radius: 8px;
+      flex: 1;
+      margin: 5px;
+      min-width: 180px;
+    }
+    
+    .metric-value {
+      font-size: 2.5rem;
+      color: var(--primary);
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .metric-label {
+      font-size: 1rem;
+      color: var(--dark);
+    }
+    
+    .timeline {
+      margin: 20px 0;
+    }
+    
+    .timeline-item {
+      display: flex;
+      margin-bottom: 15px;
+    }
+    
+    .timeline-dot {
+      min-width: 20px;
+      height: 20px;
+      background-color: var(--primary);
+      border-radius: 50%;
+      margin-right: 15px;
+      margin-top: 5px;
+    }
+    
+    .timeline-content {
+      background-color: var(--light);
+      padding: 15px;
+      border-radius: 8px;
+      flex: 1;
+    }
+    
+    .timeline-date {
+      font-weight: bold;
+      color: var(--primary-dark);
+      margin-bottom: 5px;
+    }
+    
+    .problem-solution {
+      display: flex;
+      margin: 30px 0;
+      gap: 30px;
+    }
+    
+    .problem, .solution {
+      flex: 1;
+      padding: 20px;
+      border-radius: 8px;
+    }
+    
+    .problem {
+      background-color: rgba(231, 76, 60, 0.1);
+      border-left: 4px solid var(--accent);
+    }
+    
+    .solution {
+      background-color: rgba(46, 204, 113, 0.1);
+      border-left: 4px solid var(--success);
+    }
+    
+    .section-title {
+      font-size: 1.8rem;
+      color: var(--primary-dark);
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--primary);
+    }
+    
+    .cover-logo {
+      max-width: 150px;
+      margin-bottom: 20px;
+    }
+    
+    .download-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 50px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      z-index: 1000;
+      transition: all 0.3s ease;
+    }
+    
+    .download-btn i {
+      margin-right: 8px;
+    }
+    
+    .download-btn:hover {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      transform: translateY(-2px);
+    }
+    
+    /* Add loading animation styles */
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    
+    .fa-spinner {
+      animation: spin 1s linear infinite;
+    }
+    
+    /* Print-specific styles */
+    @media print {
+      @page {
+        size: landscape;
+        margin: 0.5cm;
+      }
+      
+      html, body {
+        width: 100%;
+        height: auto;
+        margin: 0;
+        padding: 0;
+        background-color: white;
+      }
+      
+      body {
+        padding-bottom: 0;
+      }
+      
+      .deck-container {
+        max-width: 100%;
+        padding: 0;
+        margin: 0;
+      }
+      
+      .slide {
+        box-shadow: none;
+        margin: 0 0 0.5cm 0;
+        page-break-after: always;
+        page-break-inside: avoid;
+        border-radius: 0;
+        height: auto;
+        min-height: auto;
+        width: 100%;
+        overflow: visible;
+      }
+      
+      .slide-header {
+        padding: 20px 30px;
+      }
+      
+      .slide-content {
+        padding: 20px 30px;
+        height: auto !important;
+        overflow: visible;
+      }
+      
+      .download-btn {
+        display: none;
+      }
+      
+      /* Content scaling adjustments */
+      .two-column {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+      }
+      
+      .column {
+        flex: 1 1 45%;
+        min-width: 45%;
+      }
+      
+      /* Scale down certain elements if needed */
+      .metrics-container {
+        flex-wrap: wrap;
+      }
+      
+      .metric {
+        min-width: 30%;
+        margin: 5px;
+      }
+      
+      /* Timeline adjustments */
+      .timeline-item {
+        page-break-inside: auto;
+        break-inside: auto;
+      }
+      
+      /* Make sure images print properly */
+      img {
+        max-width: 100% !important;
+        max-height: 200px;
+      }
+      
+      /* Reduce font sizes slightly for print */
+      .slide-title {
+        font-size: 2rem;
+      }
+      
+      .slide-subtitle {
+        font-size: 1.2rem;
+      }
+      
+      .section-title {
+        font-size: 1.6rem;
+      }
+      
+      /* Allow breaking of feature lists if needed */
+      .feature-list li {
+        page-break-inside: auto;
+        break-inside: auto;
+      }
+      
+      /* Hide PDF instructions when printing */
+      .pdf-instructions {
+        display: none;
+      }
+    }
+    
+    /* Additional styles to help with PDF export */
+    @media screen {
+      /* These styles only apply on screen, not during PDF export */
+      body.exporting-pdf * {
+        font-stretch: normal !important;
+        letter-spacing: normal !important;
+        text-rendering: geometricPrecision !important;
+        transform: none !important;
+        width: auto !important;
+        word-spacing: normal !important;
+      }
+      
+      body.exporting-pdf .slide {
+        width: 1000px !important;
+        box-sizing: border-box !important;
+        transform: none !important;
+        page-break-inside: avoid !important;
+      }
+      
+      body.exporting-pdf .two-column {
+        width: 100% !important;
+        display: flex !important;
+      }
+      
+      body.exporting-pdf .column {
+        width: calc(50% - 15px) !important;
+        flex: 0 0 calc(50% - 15px) !important;
+      }
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <div class="deck-container" id="pitch-deck">
+    <!-- PDF Instructions Note -->
+    <div class="pdf-instructions" style="background-color: #f0f9ff; border: 1px solid #bde0fe; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+      <h3 style="color: #3498db; margin-bottom: 10px;"><i class="fas fa-info-circle"></i> PDF Export Feature</h3>
+      <p style="margin-bottom: 10px;">Click the "Generate PDF" button at the bottom of the page to generate a high-quality PDF of this pitch deck.</p>
+      <p><strong>Note:</strong> The PDF generation might take a few moments as it processes each slide with high fidelity.</p>
+    </div>
+    
+    <!-- Cover Slide -->
+    <div class="slide">
+      <div class="slide-header" style="padding: 60px 30px;">
+        <img src="https://via.placeholder.com/150" alt="Track & Field Logo" class="cover-logo">
+        <h1 class="slide-title">Track & Field</h1>
+        <p class="slide-subtitle">The Ultimate Training Platform for Athletes and Coaches</p>
+      </div>
+      <div class="slide-content" style="display: flex; align-items: center; justify-content: center; text-align: center; padding: 60px 30px;">
+        <div>
+          <p style="font-size: 1.4rem; margin-bottom: 30px;">Elevating Athletic Performance Through Data-Driven Training</p>
+          <p style="color: var(--primary-dark); font-size: 1.1rem;">Investor Pitch Deck | 2025</p>
+        </div>
+      </div>
+      <div class="slide-footer">
+        Confidential
+      </div>
+    </div>
+    
+    <!-- Problem Slide -->
+    <div class="slide">
+      <div class="slide-header">
+        <h2 class="slide-title">The Problem</h2>
+        <p class="slide-subtitle">Challenges in Track & Field Training</p>
+      </div>
+      <div class="slide-content">
+        <div class="problem-solution">
+          <div class="problem">
+            <h3><i class="fas fa-exclamation-triangle"></i> Fragmented Data</h3>
+            <p>Athletes and coaches struggle with scattered training data across multiple platforms, making it difficult to gain comprehensive performance insights.</p>
+          </div>
+          <div class="problem">
+            <h3><i class="fas fa-chart-line"></i> Limited Analytics</h3>
+            <p>Existing solutions offer basic tracking but lack sophisticated analytics to optimize training and prevent injuries.</p>
+          </div>
+        </div>
+        
+        <div class="problem-solution">
+          <div class="problem">
+            <h3><i class="fas fa-users"></i> Communication Gaps</h3>
+            <p>Inefficient communication between athletes, coaches, and team managers leads to misaligned training objectives.</p>
+          </div>
+          <div class="problem">
+            <h3><i class="fas fa-thumbs-down"></i> Low Engagement</h3>
+            <p>Traditional training apps struggle with user retention and consistent engagement, hindering long-term athletic development.</p>
+          </div>
+        </div>
+        
+        <div class="testimonial">
+          <p>"As a coach, I was spending hours each week compiling data from different sources to get a complete picture of my athletes' performance. It was inefficient and frustrating."</p>
+          <p class="testimonial-author">— High School Track Coach</p>
+        </div>
+      </div>
+      <div class="slide-footer">
+        Track & Field | Pitch Deck 2025
+      </div>
+    </div>
+    
+    <!-- Solution Slide -->
+    <div class="slide">
+      <div class="slide-header">
+        <h2 class="slide-title">Our Solution</h2>
+        <p class="slide-subtitle">Unified Platform for Athletic Excellence</p>
+      </div>
+      <div class="slide-content">
+        <div class="section-title">Track & Field Platform</div>
+        
+        <div class="two-column">
+          <div class="column">
+            <p>We've developed a comprehensive training platform that unifies all aspects of track and field athlete development:</p>
+            
+            <ul class="feature-list">
+              <li><i class="fas fa-database"></i> <strong>Centralized Data Hub</strong>: All athlete data in one secure location</li>
+              <li><i class="fas fa-chart-bar"></i> <strong>Advanced Analytics</strong>: Performance insights and predictive modeling</li>
+              <li><i class="fas fa-robot"></i> <strong>AI Chatbot Assistant</strong>: Instant access to personalized guidance</li>
+              <li><i class="fas fa-trophy"></i> <strong>Gamification</strong>: Engagement features to maintain consistent training</li>
+              <li><i class="fas fa-users"></i> <strong>Team Collaboration</strong>: Seamless communication between stakeholders</li>
+            </ul>
+          </div>
+          
+          <div class="column">
+            <img src="https://via.placeholder.com/400x300" alt="Platform Screenshot" class="screenshot">
+            
+            <div class="testimonial">
+              <p>"The AI assistant is like having a personal coach available 24/7. It analyzes my data and provides actionable advice that's improving my performance."</p>
+              <p class="testimonial-author">— College Athlete</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        Track & Field | Pitch Deck 2025
+      </div>
+    </div>
+    
+    <!-- Key Features Slide -->
+    <div class="slide">
+      <div class="slide-header">
+        <h2 class="slide-title">Key Features</h2>
+        <p class="slide-subtitle">What Sets Us Apart</p>
+      </div>
+      <div class="slide-content">
+        <div class="two-column">
+          <div class="column">
+            <div class="section-title">For Athletes</div>
+            <ul class="feature-list">
+              <li><i class="fas fa-running"></i> <strong>Workout Tracking</strong>: Log and analyze training sessions</li>
+              <li><i class="fas fa-medal"></i> <strong>Performance Metrics</strong>: Track progress against personal goals</li>
+              <li><i class="fas fa-bed"></i> <strong>Health Monitoring</strong>: Sleep, nutrition, and recovery tracking</li>
+              <li><i class="fas fa-calendar"></i> <strong>Meet Management</strong>: Competition scheduling and results</li>
+              <li><i class="fas fa-gamepad"></i> <strong>Gamified Experience</strong>: Badges, points, and leaderboards</li>
+            </ul>
+          </div>
+          
+          <div class="column">
+            <div class="section-title">For Coaches & Teams</div>
+            <ul class="feature-list">
+              <li><i class="fas fa-users-cog"></i> <strong>Team Management</strong>: Organize athletes and training groups</li>
+              <li><i class="fas fa-clipboard-list"></i> <strong>Workout Assignment</strong>: Create and distribute training plans</li>
+              <li><i class="fas fa-chart-pie"></i> <strong>Performance Dashboard</strong>: Visual analytics for the entire team</li>
+              <li><i class="fas fa-comments"></i> <strong>Communication Tools</strong>: Direct messaging and announcements</li>
+              <li><i class="fas fa-file-export"></i> <strong>Data Export</strong>: Comprehensive reporting capabilities</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="section-title" style="margin-top: 30px;">AI-Powered Assistant</div>
+        <p>Our conversational AI chatbot provides personalized guidance, answers questions, and delivers insights based on athlete data. It's like having a knowledgeable coach available 24/7.</p>
+      </div>
+      <div class="slide-footer">
+        Track & Field | Pitch Deck 2025
+      </div>
+    </div>
+    
+    <!-- Technology Slide -->
+    <div class="slide">
+      <div class="slide-header">
+        <h2 class="slide-title">Technology Stack</h2>
+        <p class="slide-subtitle">Built with Modern, Scalable Technologies</p>
+      </div>
+      <div class="slide-content">
+        <div class="two-column">
+          <div class="column">
+            <div class="section-title">Frontend</div>
+            <div class="tech-list">
+              <div class="tech-item"><i class="fab fa-react"></i> React</div>
+              <div class="tech-item"><i class="fab fa-js"></i> TypeScript</div>
+              <div class="tech-item"><i class="fas fa-palette"></i> Chakra UI</div>
+              <div class="tech-item"><i class="fab fa-vuejs"></i> Vite</div>
+            </div>
+            
+            <div class="section-title" style="margin-top: 30px;">Backend</div>
+            <div class="tech-list">
+              <div class="tech-item"><i class="fas fa-server"></i> Supabase</div>
+              <div class="tech-item"><i class="fas fa-database"></i> PostgreSQL</div>
+              <div class="tech-item"><i class="fab fa-node-js"></i> Node.js</div>
+              <div class="tech-item"><i class="fas fa-globe"></i> REST API</div>
+            </div>
+          </div>
+          
+          <div class="column">
+            <div class="section-title">AI & Machine Learning</div>
+            <div class="tech-list">
+              <div class="tech-item"><i class="fas fa-brain"></i> Natural Language Processing</div>
+              <div class="tech-item"><i class="fas fa-chart-line"></i> Predictive Analytics</div>
+              <div class="tech-item"><i class="fas fa-robot"></i> Conversation AI</div>
+            </div>
+            
+            <div class="section-title" style="margin-top: 30px;">Infrastructure</div>
+            <div class="tech-list">
+              <div class="tech-item"><i class="fab fa-aws"></i> Cloud Hosting</div>
+              <div class="tech-item"><i class="fas fa-shield-alt"></i> Enterprise Security</div>
+              <div class="tech-item"><i class="fas fa-mobile-alt"></i> Progressive Web App</div>
+              <div class="tech-item"><i class="fas fa-sync"></i> CI/CD Pipeline</div>
+            </div>
+          </div>
+        </div>
+        
+        <div style="margin-top: 30px;">
+          <p><strong>Data Security:</strong> Our platform implements industry-leading security practices to protect sensitive athlete data, including end-to-end encryption and role-based access controls.</p>
+        </div>
+      </div>
+      <div class="slide-footer">
+        Track & Field | Pitch Deck 2025
+      </div>
+    </div>
+    
+    <!-- Market Opportunity Slide -->
+    <div class="slide">
+      <div class="slide-header">
+        <h2 class="slide-title">Global Market Opportunity</h2>
+        <p class="slide-subtitle">Worldwide Demand for Sports Technology</p>
+      </div>
+      <div class="slide-content">
+        <div class="metrics-container">
+          <div class="metric">
+            <div class="metric-value">$12.8B</div>
+            <div class="metric-label">Global Sports Analytics Market by 2026</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value">14.4%</div>
+            <div class="metric-label">CAGR in Sports Tech Sector</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value">28M+</div>
+            <div class="metric-label">Track & Field Athletes Worldwide</div>
+          </div>
+        </div>
+        
+        <div class="section-title">Global Market Expansion</div>
+        
+        <div class="two-column">
+          <div class="column">
+            <ul class="feature-list">
+              <li><i class="fas fa-globe-americas"></i> <strong>North America</strong>: 35,000+ schools and 10,000+ clubs</li>
+              <li><i class="fas fa-globe-europe"></i> <strong>Europe</strong>: Strong club system with 15,000+ athletics organizations</li>
+              <li><i class="fas fa-globe-asia"></i> <strong>Asia-Pacific</strong>: Rapidly growing market with national development programs</li>
+              <li><i class="fas fa-globe-africa"></i> <strong>Africa</strong>: Emerging talent hub with increasing investment in sports tech</li>
+              <li><i class="fas fa-globe"></i> <strong>Global Federations</strong>: 215 national athletics federations worldwide</li>
+            </ul>
+          </div>
+          
+          <div class="column">
+            <div class="testimonial">
+              <p>"Track and field is truly global, with participation across every continent. Technology solutions that can cross borders and connect the international athletics community have immense potential."</p>
+              <p class="testimonial-author">— International Sports Technology Report, 2025</p>
+            </div>
+            
+            <p style="margin-top: 20px;"><strong>International Advantage:</strong> Our multilingual platform is designed for global scalability with region-specific customizations, international competition standards, and cross-border team collaboration features that set us apart from localized competitors.</p>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        Track & Field | Pitch Deck 2025
+      </div>
+    </div>
+    
+    <!-- Business Model Slide -->
+    <div class="slide">
+      <div class="slide-header">
+        <h2 class="slide-title">Business Model</h2>
+        <p class="slide-subtitle">Monetization Strategy</p>
+      </div>
+      <div class="slide-content">
+        <div class="two-column">
+          <div class="column">
+            <div class="section-title">Revenue Streams</div>
+            
+            <ul class="feature-list">
+              <li><i class="fas fa-user-check"></i> <strong>Freemium Model</strong>: Basic features free, premium features subscription-based</li>
+              <li><i class="fas fa-users"></i> <strong>Team Subscriptions</strong>: Tiered pricing for schools and clubs</li>
+              <li><i class="fas fa-graduation-cap"></i> <strong>Coach Dashboard</strong>: Enhanced analytics for professional coaches</li>
+              <li><i class="fas fa-handshake"></i> <strong>Enterprise Partnerships</strong>: Custom solutions for organizations</li>
+              <li><i class="fas fa-ad"></i> <strong>Sponsored Content</strong>: Relevant athletic equipment and services</li>
+            </ul>
+          </div>
+          
+          <div class="column">
+            <div class="section-title">Pricing Structure</div>
+            
+            <div style="background: var(--light); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+              <h3 style="color: var(--primary-dark);">Athlete Plans</h3>
+              <p><strong>Free:</strong> Basic tracking, limited data storage</p>
+              <p><strong>Premium ($9.99/mo):</strong> Full analytics, AI assistance, unlimited storage</p>
+              <p><strong>Elite ($19.99/mo):</strong> Advanced predictive analytics, priority support</p>
+            </div>
+            
+            <div style="background: var(--light); padding: 15px; border-radius: 8px;">
+              <h3 style="color: var(--primary-dark);">Team Plans</h3>
+              <p><strong>Small Teams ($99/mo):</strong> Up to 25 athletes</p>
+              <p><strong>Medium Teams ($199/mo):</strong> Up to 75 athletes</p>
+              <p><strong>Large Programs ($349/mo):</strong> Up to 200 athletes</p>
+              <p><strong>Enterprise:</strong> Custom pricing for larger organizations</p>
+            </div>
+          </div>
+        </div>
+        
+        <div style="margin-top: 30px;">
+          <div class="section-title">Growth Strategy</div>
+          <p>Our go-to-market strategy focuses on building a strong user base through free accounts, then converting to premium subscriptions. We'll initially target high school and college programs, followed by expansion to individual athletes and elite training groups across international markets.</p>
+        </div>
+      </div>
+      <div class="slide-footer">
+        Track & Field | Pitch Deck 2025
+      </div>
+    </div>
+    
+    <!-- Roadmap Slide -->
+    <div class="slide">
+      <div class="slide-header">
+        <h2 class="slide-title">Roadmap</h2>
+        <p class="slide-subtitle">Development and Growth Milestones</p>
+      </div>
+      <div class="slide-content">
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <div class="timeline-date">Q1 2025 (Completed)</div>
+              <p><strong>MVP Development</strong>: Core platform features, basic athlete profiles, workout tracking</p>
+            </div>
+          </div>
+          
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <div class="timeline-date">Q2 2025 (Completed)</div>
+              <p><strong>Beta Launch</strong>: Limited release to selected high school and college programs</p>
+              <p><strong>AI Integration</strong>: Basic chatbot functionality for workout guidance</p>
+            </div>
+          </div>
+          
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <div class="timeline-date">Q3-Q4 2025 (Current)</div>
+              <p><strong>Full Launch</strong>: Public release with subscription model</p>
+              <p><strong>Gamification System</strong>: Points, badges, and leaderboards</p>
+              <p><strong>Enhanced Analytics</strong>: Advanced performance metrics and reporting</p>
+            </div>
+          </div>
+          
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <div class="timeline-date">Q1-Q2 2026 (Planned)</div>
+              <p><strong>Mobile App Release</strong>: Native iOS and Android applications</p>
+              <p><strong>Advanced AI Features</strong>: Personalized training recommendations</p>
+              <p><strong>Team Expansion</strong>: Growing development and marketing teams</p>
+            </div>
+          </div>
+          
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <div class="timeline-date">Q3-Q4 2026 (Planned)</div>
+              <p><strong>International Expansion</strong>: Localization and global marketing</p>
+              <p><strong>Enterprise Solutions</strong>: Custom features for large organizations</p>
+              <p><strong>Integration Marketplace</strong>: Third-party app ecosystem</p>
+            </div>
+          </div>
+        </div>
+        
+        <div style="margin-top: 20px;">
+          <p><strong>Current Status:</strong> We have a functional web application with core features implemented and are currently enhancing the AI assistant and gamification components.</p>
+        </div>
+      </div>
+      <div class="slide-footer">
+        Track & Field | Pitch Deck 2025
+      </div>
+    </div>
+    
+    <!-- Team Slide (Placeholder) -->
+    <div class="slide">
+      <div class="slide-header">
+        <h2 class="slide-title">Our Team</h2>
+        <p class="slide-subtitle">The Talent Behind Track & Field</p>
+      </div>
+      <div class="slide-content">
+        <div class="section-title">Leadership</div>
+        
+        <p style="text-align: center; color: var(--primary-dark); font-size: 1.2rem; margin: 30px 0;">
+          [Team information to be updated]
+        </p>
+        
+        <div style="background-color: var(--light); padding: 20px; border-radius: 8px; margin-top: 30px;">
+          <h3 style="color: var(--primary-dark); margin-bottom: 15px;">Advisory Board</h3>
+          <p>Our team is supported by advisors with extensive experience in sports technology, athletics coaching, and business development.</p>
+        </div>
+        
+        <div style="margin-top: 30px;">
+          <div class="section-title">Our Values</div>
+          <ul class="feature-list">
+            <li><i class="fas fa-bullseye"></i> <strong>Athlete-Centered</strong>: Everything we build puts the athlete's needs first</li>
+            <li><i class="fas fa-chart-line"></i> <strong>Data-Driven</strong>: We believe in the power of analytics to transform performance</li>
+            <li><i class="fas fa-shield-alt"></i> <strong>Privacy-Focused</strong>: Protecting athlete data is paramount</li>
+            <li><i class="fas fa-users"></i> <strong>Community-Building</strong>: Creating connections within the track and field world</li>
+          </ul>
+        </div>
+      </div>
+      <div class="slide-footer">
+        Track & Field | Pitch Deck 2025
+      </div>
+    </div>
+    
+    <!-- Investment Opportunity Slide -->
+    <div class="slide">
+      <div class="slide-header">
+        <h2 class="slide-title">Investment Opportunity</h2>
+        <p class="slide-subtitle">Join Us in Revolutionizing Athletic Training</p>
+      </div>
+      <div class="slide-content">
+        <div class="section-title">Funding Goals</div>
+        
+        <p style="text-align: center; color: var(--primary-dark); font-size: 1.2rem; margin: 30px 0;">
+          [Funding details to be updated]
+        </p>
+        
+        <div class="section-title">Use of Funds</div>
+        
+        <div class="two-column">
+          <div class="column">
+            <ul class="feature-list">
+              <li><i class="fas fa-code"></i> <strong>Product Development</strong>: Enhance AI capabilities, mobile app development</li>
+              <li><i class="fas fa-user-plus"></i> <strong>Team Expansion</strong>: Key engineering and marketing hires</li>
+              <li><i class="fas fa-globe"></i> <strong>Market Expansion</strong>: Reaching new geographic regions</li>
+              <li><i class="fas fa-server"></i> <strong>Infrastructure</strong>: Scaling cloud resources for growing user base</li>
+            </ul>
+          </div>
+          
+          <div class="column">
+            <div class="testimonial">
+              <p>"The Track & Field platform represents a significant advancement in sports technology, addressing a clear market need with innovative solutions."</p>
+              <p class="testimonial-author">— Technology Advisor</p>
+            </div>
+            
+            <p style="margin-top: 20px;"><strong>Investment Highlights:</strong></p>
+            <ul style="margin-left: 20px;">
+              <li>Addressing a large and growing global market</li>
+              <li>Competitive advantage through specialized focus and AI integration</li>
+              <li>Multiple revenue streams with recurring subscription model</li>
+              <li>Scalable technology platform with proprietary features</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        Track & Field | Pitch Deck 2025
+      </div>
+    </div>
+    
+    <!-- Contact Slide -->
+    <div class="slide">
+      <div class="slide-header">
+        <h2 class="slide-title">Thank You</h2>
+        <p class="slide-subtitle">Let's Elevate Athletic Performance Together</p>
+      </div>
+      <div class="slide-content" style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+        <div style="margin-bottom: 30px;">
+          <p style="font-size: 1.3rem; margin-bottom: 20px;">We welcome the opportunity to discuss our vision with you.</p>
+          <p style="font-size: 1.1rem; color: var(--primary-dark);">For more information or to schedule a demo:</p>
+        </div>
+        
+        <div style="margin-bottom: 30px;">
+          <p style="font-size: 1.2rem;"><i class="fas fa-user"></i> Jose Vazquez</p>
+          <p style="font-size: 1.2rem;"><i class="fas fa-envelope"></i> hello@josev.co</p>
+          <p style="font-size: 1.2rem;"><i class="fas fa-phone"></i> (919) 604-6671</p>
+        </div>
+      </div>
+      <div class="slide-footer">
+        Track & Field | Pitch Deck 2025
+      </div>
+    </div>
+  </div>
+  
+  <button class="download-btn" onclick="printPDF()">
+    <i class="fas fa-file-pdf"></i> Generate PDF
+  </button>
+  
+  <!-- Import required libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  
+  <script>
+    function printPDF() {
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({
+          orientation: 'landscape',
+          unit: 'mm',
+          format: 'a4'
+        });
+        
+        // Show loading indicator
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.style.position = 'fixed';
+        loadingIndicator.style.top = '0';
+        loadingIndicator.style.left = '0';
+        loadingIndicator.style.width = '100%';
+        loadingIndicator.style.height = '100%';
+        loadingIndicator.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+        loadingIndicator.style.display = 'flex';
+        loadingIndicator.style.justifyContent = 'center';
+        loadingIndicator.style.alignItems = 'center';
+        loadingIndicator.style.zIndex = '9999';
+        loadingIndicator.innerHTML = '<div style="text-align: center;"><div style="font-size: 24px; color: #3498db;"><i class="fas fa-spinner fa-spin"></i></div><p style="margin-top: 10px;">Generating PDF, please wait...</p></div>';
+        document.body.appendChild(loadingIndicator);
+        
+        // Hide PDF instructions for the export
+        const pdfInstructions = document.querySelector('.pdf-instructions');
+        if (pdfInstructions) pdfInstructions.style.display = 'none';
+        
+        // Hide download button for the export
+        const downloadBtn = document.querySelector('.download-btn');
+        if (downloadBtn) downloadBtn.style.display = 'none';
+        
+        // Add exporting-pdf class to body to trigger special CSS
+        document.body.classList.add('exporting-pdf');
+        
+        // Get all slides
+        const slides = document.querySelectorAll('.slide');
+        let currentSlide = 0;
+        
+        // Create a recursive function to process slides one by one
+        function processSlide() {
+          if (currentSlide >= slides.length) {
+            // All slides processed, save the PDF
+            doc.save('Track_and_Field_Pitch_Deck.pdf');
+            
+            // Restore elements' visibility
+            if (pdfInstructions) pdfInstructions.style.display = 'block';
+            if (downloadBtn) downloadBtn.style.display = 'flex';
+            
+            // Remove exporting-pdf class
+            document.body.classList.remove('exporting-pdf');
+            
+            // Remove loading indicator
+            document.body.removeChild(loadingIndicator);
+            
+            return;
+          }
+          
+          const slide = slides[currentSlide];
+          
+          // Make sure only the current slide is visible for capture
+          slides.forEach((s, i) => {
+            if (i === currentSlide) {
+              s.style.display = 'flex'; // Ensure current slide is visible
+            } else {
+              s.style.display = 'none'; // Hide other slides
+            }
+          });
+          
+          // Process each slide with html2canvas
+          html2canvas(slide, {
+            scale: 2, // Adjusted scale factor
+            useCORS: true,
+            logging: false,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            imageTimeout: 15000,
+            width: 1000, // Fixed width for consistent rendering
+            height: slide.offsetHeight,
+            windowWidth: 1000, // Set window width for rendering
+            onclone: function(clonedDoc) {
+              // Fix any styling issues in the cloned document if needed
+              const clonedSlide = clonedDoc.querySelectorAll('.slide')[currentSlide];
+              if (clonedSlide) {
+                // Set a fixed width to prevent stretching
+                clonedSlide.style.width = '1000px';
+                clonedSlide.style.maxWidth = '1000px';
+                clonedSlide.style.margin = '0';
+                clonedSlide.style.padding = '0';
+                
+                // Make sure all content is visible
+                const content = clonedSlide.querySelector('.slide-content');
+                if (content) {
+                  content.style.overflow = 'visible';
+                }
+
+                // Fix potential text stretching by setting explicit text styling
+                const allTextElements = clonedSlide.querySelectorAll('p, h1, h2, h3, h4, h5, span, li, div');
+                allTextElements.forEach(el => {
+                  el.style.fontStretch = 'normal';
+                  el.style.letterSpacing = 'normal';
+                  el.style.textRendering = 'geometricPrecision';
+                  el.style.transform = 'none';
+                  el.style.wordSpacing = 'normal';
+                });
+              }
+            }
+          }).then(canvas => {
+            // Restore all slides to visible after capture
+            slides.forEach(s => s.style.display = 'flex');
+            
+            // Add canvas as image to PDF
+            const imgData = canvas.toDataURL('image/jpeg', 1.0);
+            
+            // Add page for all slides except the first one
+            if (currentSlide > 0) {
+              doc.addPage();
+            }
+            
+            // Calculate dimensions to fit on the page while preserving aspect ratio
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            
+            // Calculate dimensions to fit the page properly
+            const canvasRatio = canvas.height / canvas.width;
+            let imgWidth = pageWidth - 20; // 10mm margin on each side
+            let imgHeight = imgWidth * canvasRatio;
+            
+            // If the image is too tall, scale it down to fit the page height
+            if (imgHeight > (pageHeight - 20)) {
+              imgHeight = pageHeight - 20;
+              imgWidth = imgHeight / canvasRatio;
+            }
+            
+            // Center the image on the page
+            const xOffset = (pageWidth - imgWidth) / 2;
+            const yOffset = (pageHeight - imgHeight) / 2;
+            
+            // Add image to PDF with proper positioning
+            doc.addImage(imgData, 'JPEG', xOffset, yOffset, imgWidth, imgHeight);
+            
+            // Move to next slide
+            currentSlide++;
+            processSlide();
+          }).catch(error => {
+            console.error('Error processing slide', currentSlide, error);
+            // Show error in loading indicator
+            loadingIndicator.innerHTML = `<div style="text-align: center; max-width: 80%; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.2);">
+              <div style="font-size: 24px; color: #e74c3c; margin-bottom: 10px;"><i class="fas fa-exclamation-triangle"></i></div>
+              <h3 style="margin-bottom: 10px;">PDF Generation Error</h3>
+              <p>There was an error generating the PDF for slide ${currentSlide + 1}.</p>
+              <p style="margin: 10px 0;">Try again or use your browser's built-in "Print" function (Ctrl+P) and save as PDF.</p>
+              <button onclick="location.reload()" style="background: #3498db; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 10px;">Dismiss</button>
+            </div>`;
+            
+            // Restore elements' visibility after a delay
+            setTimeout(() => {
+              if (pdfInstructions) pdfInstructions.style.display = 'block';
+              if (downloadBtn) downloadBtn.style.display = 'flex';
+              document.body.classList.remove('exporting-pdf');
+              slides.forEach(s => s.style.display = 'flex');
+            }, 5000);
+          });
+        }
+        
+        // Start processing slides
+        processSlide();
+      } catch (error) {
+        console.error('PDF generation error:', error);
+        alert('An error occurred while generating the PDF. Please try again or use your browser\'s built-in print function.');
+        
+        // Restore any hidden elements
+        const pdfInstructions = document.querySelector('.pdf-instructions');
+        if (pdfInstructions) pdfInstructions.style.display = 'block';
+        
+        const downloadBtn = document.querySelector('.download-btn');
+        if (downloadBtn) downloadBtn.style.display = 'flex';
+        
+        // Remove exporting-pdf class
+        document.body.classList.remove('exporting-pdf');
+        
+        // Make all slides visible again
+        document.querySelectorAll('.slide').forEach(s => s.style.display = 'flex');
+        
+        // Remove loading indicator if it exists
+        const loadingIndicator = document.querySelector('div[style*="position: fixed"]');
+        if (loadingIndicator) document.body.removeChild(loadingIndicator);
+      }
+    }
+  </script>
+</body>
+</html> 

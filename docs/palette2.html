@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chakra UI Theme Visual Guide</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body {
+      background: #f5f4fa;
+      font-family: 'Inter', system-ui, sans-serif;
+      color: #2D3748;
+      padding: 24px;
+      max-width: 980px;
+      margin: 0 auto;
+    }
+    h1, h2, h3 {
+      font-weight: 700;
+      margin-top: 36px;
+      margin-bottom: 10px;
+    }
+    h1 { font-size: 2.25rem; }
+    h2 { font-size: 1.5rem; }
+    h3 { font-size: 1.15rem; margin-top: 24px; }
+    table {
+      border-collapse: collapse;
+      margin-bottom: 32px;
+      width: 100%;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px rgba(44,43,94,.06);
+      overflow: hidden;
+    }
+    th, td {
+      text-align: left;
+      padding: 12px 10px;
+      font-size: 1rem;
+      border-bottom: 1px solid #E0E0E0;
+    }
+    th {
+      background: #f7f7fb;
+      font-weight: 600;
+      font-size: 1.08rem;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    .swatch {
+      width: 32px;
+      height: 32px;
+      border-radius: 7px;
+      border: 1.5px solid #E0E0E0;
+      box-shadow: 0 1px 4px rgba(44,43,94,.04);
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .font-sample {
+      padding: 4px 12px;
+      border-radius: 4px;
+      background: #fff6cc;
+      border: 1px solid #ffe366;
+      margin-left: 8px;
+    }
+    .shadow-sample {
+      background: #fff;
+      padding: 10px 18px;
+      border-radius: 7px;
+      margin-bottom: 10px;
+      display: inline-block;
+      min-width: 120px;
+      text-align: center;
+      margin-right: 18px;
+    }
+    .radii-demo {
+      display: inline-block;
+      margin-right: 18px;
+      margin-bottom: 12px;
+      width: 70px;
+      height: 32px;
+      line-height: 32px;
+      background: #cabfd0;
+      color: #2d3748;
+      text-align: center;
+      font-weight: 500;
+      font-size: 0.97rem;
+    }
+    .sm { border-radius: 6px; }
+    .md { border-radius: 8px; }
+    .component-sample {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 18px 24px;
+      margin-bottom: 10px;
+      margin-top: 6px;
+      display: inline-block;
+      min-width: 120px;
+      font-size: 1rem;
+    }
+    .chakra-btn {
+      font-family: inherit;
+      font-weight: 600;
+      border-radius: 6px;
+      padding: 8px 22px;
+      font-size: 1rem;
+      margin-right: 16px;
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+      margin-bottom: 8px;
+      display: inline-block;
+    }
+    .btn-primary { background: #2d3748; color: #fff; }
+    .btn-primary:hover { background: #1a202c; }
+    .btn-primary:active { background: #171923; }
+    .btn-accent { background: #ecc94b; color: #2d3748;}
+    .btn-accent:hover { background: #ffd933;}
+    .btn-accent:active { background: #e6bd00;}
+    .badge-coach {
+      background: #2d3748;
+      color: #fff;
+      border-radius: 6px;
+      font-weight: 600;
+      padding: 4px 12px;
+      margin-right: 12px;
+    }
+    .badge-athlete {
+      background: #ecc94b;
+      color: #2d3748;
+      border-radius: 6px;
+      font-weight: 600;
+      padding: 4px 12px;
+    }
+    @media (max-width: 700px) {
+      table, th, td {
+        font-size: .98rem;
+        padding: 8px 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Chakra UI Brand Theme Guide</h1>
+
+  <h2>Color Palette</h2>
+  <h3>Primary</h3>
+  <table>
+    <tr><th>Shade</th><th>Swatch</th><th>Hex</th><th>Description</th></tr>
+    <tr><td>50</td><td><span class="swatch" style="background:#ebe5ea;"></span></td><td>#ebe5ea</td><td>Very light mauve</td></tr>
+    <tr><td>100</td><td><span class="swatch" style="background:#cabfd0;"></span></td><td>#cabfd0</td><td>Light purple-grey</td></tr>
+    <tr><td>200</td><td><span class="swatch" style="background:#a998b5;"></span></td><td>#a998b5</td><td>Soft lavender-grey</td></tr>
+    <tr><td>300</td><td><span class="swatch" style="background:#88729b;"></span></td><td>#88729b</td><td>Muted purple</td></tr>
+    <tr><td>400</td><td><span class="swatch" style="background:#664c81;"></span></td><td>#664c81</td><td>Deep violet</td></tr>
+    <tr><td>500</td><td><span class="swatch" style="background:#2d3748;"></span></td><td>#2d3748</td><td>Primary base, dark slate (main brand)</td></tr>
+    <tr><td>600</td><td><span class="swatch" style="background:#1a202c;"></span></td><td>#1a202c</td><td>Darker shade (hover)</td></tr>
+    <tr><td>700</td><td><span class="swatch" style="background:#171923;"></span></td><td>#171923</td><td>Even darker (active)</td></tr>
+    <tr><td>800</td><td><span class="swatch" style="background:#1f111b;"></span></td><td>#1f111b</td><td>Nearly black with purple tint</td></tr>
+    <tr><td>900</td><td><span class="swatch" style="background:#140b10;"></span></td><td>#140b10</td><td>Almost pure black</td></tr>
+  </table>
+  <h3>Accent</h3>
+  <table>
+    <tr><th>Shade</th><th>Swatch</th><th>Hex</th><th>Description</th></tr>
+    <tr><td>50</td><td><span class="swatch" style="background:#fff6cc;"></span></td><td>#fff6cc</td><td>Very light yellow</td></tr>
+    <tr><td>100</td><td><span class="swatch" style="background:#ffec99;"></span></td><td>#ffec99</td><td>Light pastel yellow</td></tr>
+    <tr><td>200</td><td><span class="swatch" style="background:#ffe366;"></span></td><td>#ffe366</td><td>Pale yellow</td></tr>
+    <tr><td>300</td><td><span class="swatch" style="background:#ffd933;"></span></td><td>#ffd933</td><td>Bright yellow (hover)</td></tr>
+    <tr><td>400</td><td><span class="swatch" style="background:#ecc94b;"></span></td><td>#ecc94b</td><td>Accent base, golden yellow</td></tr>
+    <tr><td>500</td><td><span class="swatch" style="background:#e6bd00;"></span></td><td>#e6bd00</td><td>Deep gold (active)</td></tr>
+    <tr><td>600</td><td><span class="swatch" style="background:#b39500;"></span></td><td>#b39500</td><td>Muted gold</td></tr>
+    <tr><td>700</td><td><span class="swatch" style="background:#806d00;"></span></td><td>#806d00</td><td>Olive gold</td></tr>
+    <tr><td>800</td><td><span class="swatch" style="background:#4d4400;"></span></td><td>#4d4400</td><td>Deep olive</td></tr>
+    <tr><td>900</td><td><span class="swatch" style="background:#1a1c00;"></span></td><td>#1a1c00</td><td>Nearly black with olive tint</td></tr>
+  </table>
+  <h3>Other Colors</h3>
+  <table>
+    <tr><th>Name</th><th>Swatch</th><th>Hex</th><th>Description</th></tr>
+    <tr><td>Background</td><td><span class="swatch" style="background:#F5F4FA;"></span></td><td>#F5F4FA</td><td>Very pale lavender (background)</td></tr>
+    <tr><td>Surface</td><td><span class="swatch" style="background:#FFFFFF; border: 1.5px solid #d0d0d0;"></span></td><td>#FFFFFF</td><td>White (surface, cards)</td></tr>
+    <tr><td>Text Primary</td><td><span class="swatch" style="background:#2D3748;"></span></td><td>#2D3748</td><td>Main text, dark slate</td></tr>
+    <tr><td>Text Secondary</td><td><span class="swatch" style="background:#555555;"></span></td><td>#555555</td><td>Secondary text, medium grey</td></tr>
+    <tr><td>Border</td><td><span class="swatch" style="background:#E0E0E0;"></span></td><td>#E0E0E0</td><td>Light grey border</td></tr>
+    <tr><td>Success</td><td><span class="swatch" style="background:#22C55E;"></span></td><td>#22C55E</td><td>Bright green (success)</td></tr>
+    <tr><td>Error</td><td><span class="swatch" style="background:#EF4444;"></span></td><td>#EF4444</td><td>Bright red (error)</td></tr>
+    <tr><td>Info</td><td><span class="swatch" style="background:#c53030;"></span></td><td>#c53030</td><td>Strong red (info)</td></tr>
+  </table>
+
+  <h2>Fonts</h2>
+  <table>
+    <tr><th>Type</th><th>CSS Font Stack</th><th>Sample</th></tr>
+    <tr><td>Heading</td><td>Inter, system-ui, sans-serif</td>
+      <td style="font-family: Inter, system-ui, sans-serif; font-weight:700;">Inter Bold Example</td></tr>
+    <tr><td>Body</td><td>Inter, system-ui, sans-serif</td>
+      <td style="font-family: Inter, system-ui, sans-serif;">Inter Regular Example</td></tr>
+  </table>
+
+  <h2>Font Sizes</h2>
+  <table>
+    <tr><th>Name</th><th>Size</th><th>Sample</th></tr>
+    <tr><td>xs</td><td>0.75rem</td><td style="font-size:0.75rem">Text xs</td></tr>
+    <tr><td>sm</td><td>0.875rem</td><td style="font-size:0.875rem">Text sm</td></tr>
+    <tr><td>md</td><td>1rem</td><td style="font-size:1rem">Text md</td></tr>
+    <tr><td>lg</td><td>1.125rem</td><td style="font-size:1.125rem">Text lg</td></tr>
+    <tr><td>xl</td><td>1.25rem</td><td style="font-size:1.25rem">Text xl</td></tr>
+    <tr><td>2xl</td><td>1.5rem</td><td style="font-size:1.5rem">Text 2xl</td></tr>
+    <tr><td>3xl</td><td>1.875rem</td><td style="font-size:1.875rem">Text 3xl</td></tr>
+    <tr><td>4xl</td><td>2.25rem</td><td style="font-size:2.25rem">Text 4xl</td></tr>
+    <tr><td>5xl</td><td>3rem</td><td style="font-size:3rem">Text 5xl</td></tr>
+    <tr><td>6xl</td><td>3.75rem</td><td style="font-size:3.75rem">Text 6xl</td></tr>
+    <tr><td>7xl</td><td>4.5rem</td><td style="font-size:4.5rem">Text 7xl</td></tr>
+    <tr><td>8xl</td><td>6rem</td><td style="font-size:6rem">Text 8xl</td></tr>
+    <tr><td>9xl</td><td>8rem</td><td style="font-size:8rem">Text 9xl</td></tr>
+  </table>
+
+  <h2>Components Styles</h2>
+  <h3>Button Variants</h3>
+  <button class="chakra-btn btn-primary">Primary (Solid)</button>
+  <button class="chakra-btn btn-accent">Accent</button>
+
+  <h3>Badge Variants</h3>
+  <span class="badge-coach">Coach</span>
+  <span class="badge-athlete">Athlete</span>
+
+  <h3>Card Example</h3>
+  <div class="component-sample" style="background:#fff;">
+    This is a Card.<br>
+    <span style="color:#555;">bg: surface (#FFF), border-radius: 8px, shadow</span>
+  </div>
+
+  <h3>Text Variants</h3>
+  <span style="font-size:1rem; color:#2D3748;">Primary text</span><br>
+  <span style="font-size:1rem; color:#555555;">Secondary text</span>
+
+  <h3>Heading Example</h3>
+  <span style="font-size:1.5rem; font-weight:bold; color:#2D3748; font-family:Inter, system-ui, sans-serif;">Heading</span>
+
+  <h2>Shadows</h2>
+  <div class="shadow-sample" style="box-shadow: 0 2px 8px rgba(0,0,0,0.1);">sm<br><span style="font-size:.88em;color:#888;">0 2px 8px</span></div>
+  <div class="shadow-sample" style="box-shadow: 0 4px 16px rgba(0,0,0,0.2);">md<br><span style="font-size:.88em;color:#888;">0 4px 16px</span></div>
+
+  <h2>Border Radii</h2>
+  <div class="radii-demo sm">sm (6px)</div>
+  <div class="radii-demo md">md (8px)</div>
+</body>
+</html>

@@ -97,11 +97,11 @@ function Contact() {
                 <VStack align="start" spacing={4} color="white">
                   <HStack spacing={3}>
                     <Icon as={FaPhone} />
-                    <Text>+1 (555) 123-4567</Text>
+                    <Text color="white">+1 (555) 123-4567</Text>
                   </HStack>
                   <HStack spacing={3}>
                     <Icon as={FaEnvelope} />
-                    <Text>support@trackfieldapp.com</Text>
+                    <Text color="white">support@trackfieldapp.com</Text>
                   </HStack>
                 </VStack>
               </Box>

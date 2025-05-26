@@ -48,7 +48,7 @@ const About = () => {
   return (
     <Box bg={bgColor} minH="100vh">
       {/* Hero Section */}
-      <Box py={{ base: 16, md: 24 }} bg={useColorModeValue('white', 'gray.800')}>
+      <Box py={{ base: 16, md: 24 }} bg={cardBg}>
         <Container maxW="container.lg">
           <VStack spacing={6} align="center" textAlign="center">
             <Heading
@@ -77,13 +77,13 @@ const About = () => {
         <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={12} alignItems="center" maxW="container.lg" mx="auto">
           <GridItem>
             <VStack align="flex-start" spacing={6}>
-              <Heading size="xl" color={textColor} lineHeight="1.2">
+              <Heading size="xl" color="white" lineHeight="1.2">
                 Our Story
               </Heading>
-              <Text color={subtitleColor} fontSize="lg" lineHeight="1.7">
+              <Text color="whiteAlpha.900" fontSize="lg" lineHeight="1.7">
                 Founded by a team of former track & field athletes and coaches, we understand the challenges and opportunities in the sport. Our platform was born from a simple idea: make professional-grade training tools accessible to everyone.
               </Text>
-              <Text color={subtitleColor} fontSize="lg" lineHeight="1.7">
+              <Text color="whiteAlpha.900" fontSize="lg" lineHeight="1.7">
                 Today, we're proud to serve thousands of athletes and coaches worldwide, helping them track progress, analyze performance, and achieve their goals.
               </Text>
             </VStack>
@@ -109,7 +109,7 @@ const About = () => {
       </Box>
 
       {/* Values Section */}
-      <Box py={20} bg={useColorModeValue('white', 'gray.800')}>
+      <Box py={20} bg={cardBg}>
         <Container maxW="container.lg">
           <VStack spacing={12}>
             <Heading 
@@ -211,7 +211,7 @@ const About = () => {
       </Box>
       
       {/* Team Section */}
-      <Box py={20} bg={useColorModeValue('#F5F8FE', 'gray.700')}>
+      <Box py={20} bg={useColorModeValue('#F5F8FE', 'gray.800')}>
         <VStack spacing={12} maxW="container.lg" mx="auto">
           <VStack spacing={4} textAlign="center">
             <Heading size="xl" color={textColor} fontWeight="bold">

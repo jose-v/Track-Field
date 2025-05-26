@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "migrate:track-meets": "node src/db/run-track-meets-migration.js",
     "check:track-meets": "node src/db/check-track-meets-tables.js",
+    "check:athlete-tables": "node create_athlete_tables.js",
+    "analyze-db": "node analyze_db.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"

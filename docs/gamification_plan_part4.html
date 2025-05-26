@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gamification Implementation Plan - Part 4</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3, h4 {
+            color: #2c3e50;
+            margin-top: 1.5em;
+        }
+        h1 {
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            border-bottom: 1px solid #bdc3c7;
+            padding-bottom: 5px;
+        }
+        pre {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            padding: 16px;
+            overflow: auto;
+        }
+        code {
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .language-sql, .language-typescript, .language-tsx, .language-bash {
+            color: #333;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Gamification System Implementation Plan - Part 4</h1>
+    
+    <div class="section">
+        <h2>React Hooks</h2>
+        <p>This section covers the React hooks that will be used to interact with the gamification service. These hooks encapsulate data fetching logic and provide a clean interface for components to use.</p>
+        
+        <h3>Points Hook</h3>
+        <p>The usePoints hook fetches athlete points data and provides functions to refresh:</p>
+        <pre><code class="language-typescript">// src/hooks/gamification.ts
+
+import { useState, useEffect } from 'react';
+import { calculateLevel } from '../config/levels';
+import { 
+  getAthletePoints, 
+  getPointsHistory, 
+  getAthleteBadges, 
+  getAthleteStreak,
+  getLeaderboard,
+  updateStreak
+} from '../services/gamificationService';
+import type { 
+  PointsLedgerEntry, 
+  AthleteBadge, 
+  AthleteStreak,
+  LeaderboardEntry 
+} from '../types/gamification';
+
+/**
+ * Hook to get athlete points information
+ */
+export function usePoints(athleteId: string) {
+  const [totalPoints, setTotalPoints] = useState<number>(0);
+  const [pointsHistory, setPointsHistory] = useState<PointsLedgerEntry[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    const fetchPoints = async () => {
+      try {
+        setIsLoading(true);
+        
+        const [points, history] = await Promise.all([
+          getAthletePoints(athleteId),
+          getPointsHistory(athleteId)
+        ]);
+        
+        if (isMounted) {
+          setTotalPoints(points);
+          setPointsHistory(history);
+          setError(null);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err instanceof Error ? err : new Error(String(err)));
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    fetchPoints();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [athleteId]);
+  
+  const refreshPoints = async () => {
+    try {
+      setIsLoading(true);
+      
+      const [points, history] = await Promise.all([
+        getAthletePoints(athleteId),
+        getPointsHistory(athleteId)
+      ]);
+      
+      setTotalPoints(points);
+      setPointsHistory(history);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    totalPoints,
+    pointsHistory,
+    refreshPoints,
+    isLoading,
+    error
+  };
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h3>Level Hook</h3>
+        <p>The useLevel hook calculates an athlete's level based on their total points:</p>
+        <pre><code class="language-typescript">/**
+ * Hook to get athlete level information
+ */
+export function useLevel(points: number) {
+  return calculateLevel(points);
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h3>Badges Hook</h3>
+        <p>The useBadges hook fetches earned badges for an athlete:</p>
+        <pre><code class="language-typescript">/**
+ * Hook to get athlete badges
+ */
+export function useBadges(athleteId: string) {
+  const [badges, setBadges] = useState<AthleteBadge[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    const fetchBadges = async () => {
+      try {
+        setIsLoading(true);
+        
+        const badgeData = await getAthleteBadges(athleteId);
+        
+        if (isMounted) {
+          setBadges(badgeData);
+          setError(null);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err instanceof Error ? err : new Error(String(err)));
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    fetchBadges();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [athleteId]);
+  
+  const refreshBadges = async () => {
+    try {
+      setIsLoading(true);
+      
+      const badgeData = await getAthleteBadges(athleteId);
+      
+      setBadges(badgeData);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    badges,
+    refreshBadges,
+    isLoading,
+    error
+  };
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h3>Streak Hook</h3>
+        <p>The useStreak hook fetches and updates an athlete's activity streak:</p>
+        <pre><code class="language-typescript">/**
+ * Hook to get athlete streak information
+ */
+export function useStreak(athleteId: string) {
+  const [streak, setStreak] = useState<AthleteStreak | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    const fetchStreak = async () => {
+      try {
+        setIsLoading(true);
+        
+        const streakData = await getAthleteStreak(athleteId);
+        
+        if (isMounted) {
+          setStreak(streakData);
+          setError(null);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err instanceof Error ? err : new Error(String(err)));
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    fetchStreak();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [athleteId]);
+  
+  const refreshStreak = async () => {
+    try {
+      setIsLoading(true);
+      
+      // First update the streak based on recent activity
+      await updateStreak(athleteId);
+      
+      // Then fetch the updated streak data
+      const streakData = await getAthleteStreak(athleteId);
+      
+      setStreak(streakData);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    streak,
+    refreshStreak,
+    isLoading,
+    error
+  };
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h3>Leaderboard Hook</h3>
+        <p>The useLeaderboard hook fetches the point leaderboard, optionally filtered by team:</p>
+        <pre><code class="language-typescript">/**
+ * Hook to get leaderboard
+ */
+export function useLeaderboard(teamId?: string, limit: number = 10) {
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    const fetchLeaderboard = async () => {
+      try {
+        setIsLoading(true);
+        
+        const leaderboardData = await getLeaderboard(teamId, limit);
+        
+        if (isMounted) {
+          setLeaderboard(leaderboardData);
+          setError(null);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err instanceof Error ? err : new Error(String(err)));
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    fetchLeaderboard();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [teamId, limit]);
+  
+  const refreshLeaderboard = async () => {
+    try {
+      setIsLoading(true);
+      
+      const leaderboardData = await getLeaderboard(teamId, limit);
+      
+      setLeaderboard(leaderboardData);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    leaderboard,
+    refreshLeaderboard,
+    isLoading,
+    error
+  };
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h3>Integration Example - Workout Submission</h3>
+        <p>Example of integrating the points system into an existing workout submission component:</p>
+        <pre><code class="language-typescript">// Integration with WorkoutModal or similar component
+
+import { awardPoints } from '../services/gamificationService';
+import { useAuth } from '../contexts/AuthContext';
+
+// In existing workout submission component
+function WorkoutSubmissionForm() {
+  const { user } = useAuth();
+  
+  const handleSubmitWorkout = async (workoutData) => {
+    try {
+      // Existing code to submit workout
+      const { data, error } = await supabase.from('workouts').insert([workoutData]);
+      
+      if (error) throw error;
+      
+      // Award points for completing a workout
+      if (user) {
+        await awardPoints(
+          user.id, 
+          10, 
+          'Completed workout'
+        );
+      }
+      
+      // Rest of existing code...
+    } catch (error) {
+      console.error('Error saving workout:', error);
+    }
+  };
+  
+  // Rest of component code...
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h3>Integration Example - Nutrition Tracking</h3>
+        <p>Example of integrating the points system into a nutrition tracking form:</p>
+        <pre><code class="language-typescript">// Integration with nutrition tracking component
+
+import { awardPoints } from '../services/gamificationService';
+import { useAuth } from '../contexts/AuthContext';
+
+// In nutrition submission component
+function NutritionEntryForm() {
+  const { user } = useAuth();
+  
+  const handleSubmitNutrition = async (nutritionData) => {
+    try {
+      // Existing code to submit nutrition data
+      const { data, error } = await supabase.from('eating_records').insert([nutritionData]);
+      
+      if (error) throw error;
+      
+      // Award points for logging nutrition
+      if (user) {
+        await awardPoints(
+          user.id, 
+          5, 
+          'Logged nutrition'
+        );
+      }
+      
+      // Rest of existing code...
+    } catch (error) {
+      console.error('Error saving nutrition data:', error);
+    }
+  };
+  
+  // Rest of component code...
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h3>Integration Example - Sleep Tracking</h3>
+        <p>Example of integrating the points system into a sleep tracking form:</p>
+        <pre><code class="language-typescript">// Integration with sleep tracking component
+
+import { awardPoints } from '../services/gamificationService';
+import { useAuth } from '../contexts/AuthContext';
+
+// In sleep tracking component
+function SleepEntryForm() {
+  const { user } = useAuth();
+  
+  const handleSubmitSleep = async (sleepData) => {
+    try {
+      // Existing code to submit sleep data
+      const { data, error } = await supabase.from('sleep_records').insert([sleepData]);
+      
+      if (error) throw error;
+      
+      // Award points for logging sleep
+      if (user) {
+        await awardPoints(
+          user.id, 
+          5, 
+          'Logged sleep'
+        );
+      }
+      
+      // Rest of existing code...
+    } catch (error) {
+      console.error('Error saving sleep data:', error);
+    }
+  };
+  
+  // Rest of component code...
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h3>Using Hooks in Components</h3>
+        <p>Example of using the hooks in a component:</p>
+        <pre><code class="language-tsx">// Example component using the hooks
+
+import { Box, Text, Spinner } from '@chakra-ui/react';
+import { usePoints, useLevel, useBadges, useStreak } from '../hooks/gamification';
+import { useAuth } from '../contexts/AuthContext';
+
+function AthleteStatusCard() {
+  const { user } = useAuth();
+  const athleteId = user?.id;
+  
+  const { totalPoints, isLoading: isPointsLoading } = usePoints(athleteId);
+  const { level, title, progress } = useLevel(totalPoints);
+  const { badges, isLoading: isBadgesLoading } = useBadges(athleteId);
+  const { streak, isLoading: isStreakLoading } = useStreak(athleteId);
+  
+  if (!athleteId) {
+    return <Text>Please log in to see your status</Text>;
+  }
+  
+  if (isPointsLoading || isBadgesLoading || isStreakLoading) {
+    return <Spinner />;
+  }
+  
+  return (
+    <Box>
+      <Text>Level {level}: {title}</Text>
+      <Text>Total Points: {totalPoints}</Text>
+      <Text>Current Streak: {streak?.current_streak || 0} days</Text>
+      <Text>Badges Earned: {badges.length}</Text>
+    </Box>
+  );
+}</code></pre>
+    </div>
+</body>
+</html> 

@@ -25,9 +25,10 @@ export function Login() {
   const { signIn } = useAuth()
   const navigate = useNavigate()
   const toast = useToast()
-  
+
+  // Color mode values
   const iconBg = useColorModeValue('white', 'gray.700')
-  const inputBg = useColorModeValue('gray.50', 'gray.600')
+  const inputBg = useColorModeValue('gray.50', 'gray.700')
   const iconContainerBg = useColorModeValue('blue.50', 'blue.900')
 
   const handleSubmit = async (e) => {

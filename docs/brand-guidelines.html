@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UI / Brand Guidelines</title>
+
+  <!-- Inter font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* -------------  Design Tokens ------------- */
+    :root{
+      --primary:#3E213A;
+      --accent:#FFD204;
+      --background:#F5F4FA;
+      --surface:#FFFFFF;
+      --text-primary:#1A1A1A;
+      --text-secondary:#555555;
+      --border:#E0E0E0;
+      --success:#22C55E;
+      --error:#EF4444;
+      --info:#3E213A;
+      --radius-sm:6px;
+      --radius-md:8px;
+      --shadow-sm:0 2px 8px rgba(0,0,0,0.1);
+      --shadow-md:0 4px 16px rgba(0,0,0,0.2);
+    }
+
+    /* -------------  Base Styles ------------- */
+    *{box-sizing:border-box;}
+    body{
+      margin:0;
+      font-family:'Inter',sans-serif;
+      background:#FFFFFF;
+      color:var(--text-primary);
+      line-height:1.55;
+    }
+    h1,h2,h3{
+      margin:0 0 .5em;
+      font-weight:700;
+    }
+    h1{font-size:3rem;}      /* 48 px */
+    h2{font-size:2.25rem;}   /* 36 px */
+    h3{font-size:1.5rem;}    /* 24 px */
+    p,li,table,button,input{font-size:1rem;} /* 16 px */
+    small{font-size:.875rem;} /* 14 px */
+
+    section{
+      padding:60px 5vw;
+    }
+    header,footer{
+      background:var(--primary);
+      color:#fff;
+      text-align:center;
+      padding:24px 5vw;
+    }
+    header h1{font-size:2rem;margin:0;}
+    footer{font-size:.875rem;}
+
+    /* -------------  Tables ------------- */
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:12px;
+    }
+    th,td{
+      padding:12px 10px;
+      border:1px solid var(--border);
+      text-align:left;
+    }
+    th{background:var(--surface);font-weight:600;}
+
+    /* -------------  Swatch Box ------------- */
+    .swatch{
+      width:96px;height:24px;
+      border-radius:var(--radius-sm);
+      border:1px solid rgba(0,0,0,.05);
+      display:inline-block;
+    }
+
+    /* -------------  Component Styles ------------- */
+    .btn{
+      cursor:pointer;
+      border:none;
+      padding:12px 24px;
+      font-weight:600;
+      border-radius:var(--radius-sm);
+      transition:opacity .2s;
+    }
+    .btn:hover{opacity:.85;}
+    .btn-primary{background:var(--primary);color:#fff;}
+    .btn-accent{background:var(--accent);color:var(--primary);}
+
+    .card{
+      background:var(--surface);
+      border-radius:var(--radius-md);
+      box-shadow:var(--shadow-sm);
+      padding:24px;
+      max-width:260px;
+    }
+    .card img{
+      width:100%;border-radius:var(--radius-sm);margin-bottom:12px;
+    }
+    .input-demo{
+      padding:12px;
+      width:260px;
+      border:1px solid var(--border);
+      border-radius:var(--radius-sm);
+    }
+
+    .modal-backdrop{
+      position:fixed;inset:0;
+      background:rgba(0,0,0,.5);
+      display:none;
+      align-items:center;justify-content:center;
+    }
+    .modal{
+      background:var(--surface);
+      border-radius:var(--radius-md);
+      box-shadow:var(--shadow-md);
+      max-width:420px;
+      padding:32px 40px;
+      text-align:center;
+    }
+
+    .toast{
+      position:fixed;right:24px;top:24px;
+      color:#fff;
+      padding:16px 24px;
+      border-radius:var(--radius-sm);
+      min-width:200px;
+      display:none;
+      animation:fadein .3s ease-out;
+    }
+    @keyframes fadein{from{transform:translateY(-10px);opacity:0}to{opacity:1}}
+
+    .layout-demo{
+      border:2px dashed var(--border);
+      height:120px;
+      margin-bottom:24px;
+      display:grid;
+      place-items:center;
+      font-size:.875rem;
+      color:var(--text-secondary);
+    }
+    .pattern-label{
+      margin-top:-100px;
+      background:var(--background);
+      display:inline-block;
+      padding:0 4px;
+    }
+
+    /* -------------  Layout Pattern Examples ------------- */
+    .example-navbar{display:flex;align-items:center;gap:24px;padding:16px 32px;background:rgba(255,255,255,.9);border-radius:var(--radius-sm);margin-bottom:40px;box-shadow:var(--shadow-sm);}
+    .example-navbar .logo{font-weight:700;color:var(--primary);}
+    .example-navbar .nav-links{display:flex;gap:24px;list-style:none;margin:0;padding:0;flex:1;justify-content:center;}
+    .example-navbar .nav-links a{text-decoration:none;color:var(--text-primary);font-weight:600;}
+
+    .example-hero{display:flex;gap:40px;align-items:center;padding:40px;background:var(--surface);border-radius:var(--radius-md);margin-bottom:40px;box-shadow:var(--shadow-sm);}
+    .example-hero img{width:50%;max-width:480px;border-radius:var(--radius-sm);}
+    .example-hero .hero-text{flex:1;}
+    @media(max-width:768px){.example-hero{flex-direction:column;text-align:center;}}
+
+    .example-products-grid{display:grid;gap:24px;margin-bottom:40px;}
+    .example-products-grid .card{width:100%;}
+    @media(min-width:1024px){.example-products-grid{grid-template-columns:repeat(4,1fr);}}
+    @media(min-width:640px) and (max-width:1023px){.example-products-grid{grid-template-columns:repeat(2,1fr);}}
+    @media(max-width:639px){.example-products-grid{grid-template-columns:1fr;}}
+
+    .example-info{display:flex;gap:40px;align-items:center;margin-bottom:40px;}
+    .example-info img{width:50%;max-width:460px;border-radius:var(--radius-sm);}
+    .example-info .info-text{flex:1;}
+    .example-info.reverse{flex-direction:row-reverse;}
+    @media(max-width:768px){.example-info,.example-info.reverse{flex-direction:column;text-align:center;}}
+
+    .example-cta{background:var(--accent);color:var(--primary);padding:40px 24px;border-radius:var(--radius-md);text-align:center;margin-bottom:40px;}
+    .example-cta .btn{margin-top:12px;}
+
+    .example-footer{background:var(--primary);color:#fff;padding:40px 24px;border-radius:var(--radius-md);margin-bottom:40px;}
+    .example-footer h4{margin-top:0;}
+    .example-footer ul{list-style:none;margin:0;padding:0;}
+    .example-footer ul li{margin-bottom:8px;}
+    .example-footer .social{display:flex;gap:12px;margin-top:12px;}
+    .example-footer .social a{color:#fff;font-size:1.25rem;text-decoration:none;}
+    @media(min-width:1024px){.example-footer{display:grid;grid-template-columns:repeat(4,1fr);gap:40px;text-align:left;}}
+  </style>
+</head>
+<body>
+
+<header><h1>UI / Brand Guidelines</h1></header>
+
+<!-- 1. Color Palette -->
+<section id="colors">
+  <h2>1. Color Palette</h2>
+  <table>
+    <thead>
+      <tr><th>Role</th><th>Swatch</th><th>Hex</th><th>Typical Usage</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Primary</td><td><div class="swatch" style="background:var(--primary)"></div></td><td>#3E213A</td><td>Buttons, headers, key CTAs</td></tr>
+      <tr><td>Accent</td><td><div class="swatch" style="background:var(--accent)"></div></td><td>#FFD204</td><td>Highlights, badge backgrounds</td></tr>
+      <tr><td>Background</td><td><div class="swatch" style="background:var(--background)"></div></td><td>#F5F4FA</td><td>Page backgrounds</td></tr>
+      <tr><td>Surface</td><td><div class="swatch" style="background:var(--surface)"></div></td><td>#FFFFFF</td><td>Cards, panels, modals</td></tr>
+      <tr><td>Text Primary</td><td><div class="swatch" style="background:var(--text-primary)"></div></td><td>#1A1A1A</td><td>Main copy</td></tr>
+      <tr><td>Text Secondary</td><td><div class="swatch" style="background:var(--text-secondary)"></div></td><td>#555555</td><td>Sub-copy, captions</td></tr>
+      <tr><td>Border</td><td><div class="swatch" style="background:var(--border)"></div></td><td>#E0E0E0</td><td>Dividers, input outlines</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 2. Typography -->
+<section id="typography">
+  <h2>2. Typography</h2>
+
+  <h1>Heading 1 – 48 px (3 rem)</h1>
+  <h2>Heading 2 – 36 px (2.25 rem)</h2>
+  <h3>Heading 3 – 24 px (1.5 rem)</h3>
+  <p>Body text – 16 px (1 rem). Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus lacinia odio vitae vestibulum vestibulum.</p>
+  <small>Small text – 14 px (.875 rem) for captions or fine print.</small>
+</section>
+
+<!-- 3. Layout Patterns -->
+<section id="layout">
+  <h2>3. Layout Patterns</h2>
+
+  <!-- Navbar -->
+  <nav class="example-navbar">
+    <div class="logo">Brand</div>
+    <ul class="nav-links">
+      <li><a href="#">Home</a></li>
+      <li><a href="#">Shop</a></li>
+      <li><a href="#">About</a></li>
+    </ul>
+    <button class="btn btn-primary">Login</button>
+  </nav>
+
+  <!-- Hero Section -->
+  <div class="example-hero">
+    <div class="hero-text">
+      <h2>Run Faster. Jump Higher.</h2>
+      <p>Discover performance footwear engineered for every athlete.</p>
+      <button class="btn btn-accent">Shop Collection</button>
+      <a href="#" style="margin-left:16px">Learn more ▸</a>
+    </div>
+    <img src="https://placehold.co/500x350" alt="Product hero">
+  </div>
+
+  <!-- Featured Products Grid -->
+  <div class="example-products-grid">
+    <div class="card">
+      <img src="https://placehold.co/260x160" alt="">
+      <h4 style="margin:0 0 4px">Sprint Pro</h4>
+      <small>$99.00</small>
+    </div>
+    <div class="card">
+      <img src="https://placehold.co/260x160" alt="">
+      <h4 style="margin:0 0 4px">Road Runner</h4>
+      <small>$79.00</small>
+    </div>
+    <div class="card">
+      <img src="https://placehold.co/260x160" alt="">
+      <h4 style="margin:0 0 4px">Trail Blazer</h4>
+      <small>$89.00</small>
+    </div>
+    <div class="card">
+      <img src="https://placehold.co/260x160" alt="">
+      <h4 style="margin:0 0 4px">Comfy Cloud</h4>
+      <small>$69.00</small>
+    </div>
+  </div>
+
+  <!-- Two-Column Info Sections -->
+  <div class="example-info">
+    <img src="https://placehold.co/400x250" alt="">
+    <div class="info-text">
+      <h3>Ultra-Light Cushioning</h3>
+      <p>Experience unmatched comfort with our proprietary foam mid-sole.</p>
+    </div>
+  </div>
+  <div class="example-info reverse">
+    <img src="https://placehold.co/400x250" alt="">
+    <div class="info-text">
+      <h3>Breathable Mesh</h3>
+      <p>Stay cool with sweat-wicking, ventilated uppers.</p>
+    </div>
+  </div>
+
+  <!-- Call-to-Action Banner -->
+  <div class="example-cta">
+    <h3>Ready to crush your next workout?</h3>
+    <button class="btn btn-primary">Get Started</button>
+  </div>
+
+  <!-- Footer -->
+  <div class="example-footer">
+    <div>
+      <h4>Company</h4>
+      <ul><li>About</li><li>Careers</li><li>Blog</li></ul>
+    </div>
+    <div>
+      <h4>Help</h4>
+      <ul><li>Contact</li><li>Support</li><li>FAQ</li></ul>
+    </div>
+    <div>
+      <h4>Account</h4>
+      <ul><li>Login</li><li>Register</li><li>Orders</li></ul>
+    </div>
+    <div>
+      <h4>Stay Connected</h4>
+      <div class="social">
+        <a href="#">🔗</a><a href="#">🔗</a><a href="#">🔗</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Core Components -->
+<section id="components">
+  <h2>4. Core Components</h2>
+
+  <!-- Buttons -->
+  <h3>Buttons</h3>
+  <button class="btn btn-primary">Primary Button</button>
+  <button class="btn btn-accent">Accent Button</button>
+  
+  <!-- Button States -->
+  <div style="margin-top:36px">
+    <h4>Button States</h4>
+    <div style="background:#f9f9f9;padding:32px;border-radius:8px;border:1px solid #eee;margin-top:16px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:24px;text-align:center;font-weight:600">
+        <div style="flex:1">Default</div>
+        <div style="flex:1">Hover 0.85</div>
+        <div style="flex:1">Pressed 0.85</div>
+        <div style="flex:1">Disabled</div>
+        <div style="flex:1">Focused</div>
+      </div>
+      
+      <!-- Primary Button States -->
+      <div style="display:flex;justify-content:space-between;margin-bottom:32px">
+        <!-- Default Primary -->
+        <div style="flex:1;padding:0 10px">
+          <button class="btn btn-primary" style="width:100%;height:52px;display:block">Primary</button>
+        </div>
+        
+        <!-- Hover Primary -->
+        <div style="flex:1;padding:0 10px">
+          <button class="btn btn-primary" style="width:100%;height:52px;display:block;opacity:0.85">Primary</button>
+        </div>
+        
+        <!-- Pressed Primary -->
+        <div style="flex:1;padding:0 10px">
+          <button class="btn btn-primary" style="width:100%;height:52px;display:block;opacity:0.85;transform:scale(0.98)">Primary</button>
+        </div>
+        
+        <!-- Disabled Primary -->
+        <div style="flex:1;padding:0 10px">
+          <button class="btn btn-primary" style="width:100%;height:52px;display:block;opacity:0.5;cursor:not-allowed;background:#3E213A;color:white">Primary</button>
+        </div>
+        
+        <!-- Focused Primary -->
+        <div style="flex:1;padding:0 10px">
+          <button class="btn btn-primary" style="width:100%;height:52px;display:block;outline:2px solid #3E213A;outline-offset:2px">Primary</button>
+        </div>
+      </div>
+      
+      <!-- Accent Button States -->
+      <div style="display:flex;justify-content:space-between">
+        <!-- Default Accent -->
+        <div style="flex:1;padding:0 10px">
+          <button class="btn btn-accent" style="width:100%;height:52px;display:block">Accent</button>
+        </div>
+        
+        <!-- Hover Accent -->
+        <div style="flex:1;padding:0 10px">
+          <button class="btn btn-accent" style="width:100%;height:52px;display:block;opacity:0.85">Accent</button>
+        </div>
+        
+        <!-- Pressed Accent -->
+        <div style="flex:1;padding:0 10px">
+          <button class="btn btn-accent" style="width:100%;height:52px;display:block;opacity:0.85;transform:scale(0.98)">Accent</button>
+        </div>
+        
+        <!-- Disabled Accent -->
+        <div style="flex:1;padding:0 10px">
+          <button class="btn btn-accent" style="width:100%;height:52px;display:block;opacity:0.5;cursor:not-allowed;background:#FFD204;color:#3E213A">Accent</button>
+        </div>
+        
+        <!-- Focused Accent -->
+        <div style="flex:1;padding:0 10px">
+          <button class="btn btn-accent" style="width:100%;height:52px;display:block;outline:2px solid #FFD204;outline-offset:2px">Accent</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div style="margin-top:24px;background:#f5f5f5;padding:20px;border-radius:8px;border:1px solid #ddd;">
+    <h4 style="margin-top:0;margin-bottom:16px">Implementation Guidelines</h4>
+    
+    <p><strong>Color Requirements:</strong></p>
+    <ul style="margin-bottom:16px">
+      <li>Primary buttons must have <code>#3E213A</code> background with <strong>white text</strong></li>
+      <li>Accent buttons must have <code>#FFD204</code> background with <code>#3E213A</code> text</li>
+      <li>Hover states should maintain text colors while reducing opacity to 85%</li>
+    </ul>
+    
+    <p><strong>Chakra UI Implementation:</strong></p>
+    <pre style="background:#f0f0f0;padding:12px;border-radius:4px;overflow:auto;font-size:13px;line-height:1.5;">
+// Basic button usage
+&lt;Button variant="primary"&gt;Primary Button&lt;/Button&gt;
+&lt;Button variant="accent"&gt;Accent Button&lt;/Button&gt;
+
+// With icon
+&lt;Button 
+  variant="primary"
+  leftIcon={&lt;Icon /&gt;}
+  size="md"
+&gt;
+  Button with Icon
+&lt;/Button&gt;
+
+// Link button
+&lt;Button 
+  as={RouterLink}
+  to="/some-path"
+  variant="primary"
+&gt;
+  Link Button
+&lt;/Button&gt;
+    </pre>
+    
+    <p><strong>Important Styling Notes:</strong></p>
+    <ul style="margin-bottom:0">
+      <li>Always use the <code>variant</code> prop with either "primary" or "accent" values</li>
+      <li>Never override button text colors with inline styles</li>
+      <li>Do not use the <code>sx</code> prop to modify button styling directly</li>
+      <li>For button customizations, extend the theme definitions in <code>theme.ts</code></li>
+      <li>In Chakra UI, always apply <code>color="white"</code> to primary variant buttons if necessary</li>
+    </ul>
+  </div>
+  
+  <div style="margin-top:16px;background:#f0f0ff;padding:20px;border-radius:8px;border:1px solid #ccd;">
+    <h4 style="margin-top:0;margin-bottom:16px">Recommended Approach</h4>
+    
+    <p>For best results maintaining consistent button styling across the application:</p>
+    
+    <ol style="margin-bottom:16px">
+      <li><strong>Define colors in theme.ts</strong> - Put all brand colors and button styles in the theme file</li>
+      <li><strong>Include high-specificity CSS</strong> - Add CSS with !important flags to a global style sheet</li>
+      <li><strong>Use simple component syntax</strong> - Keep button JSX minimal (<code>&lt;Button variant="primary"&gt;</code>)</li>
+      <li><strong>Consider programmatic enforcement</strong> - Use a component like ButtonStyleFixer to enforce styling at runtime</li>
+    </ol>
+    
+    <div style="background:#e6e6ff;padding:12px;border-radius:4px;margin-top:12px;">
+      <p style="margin:0;"><strong>Final Button Implementation Checklist:</strong></p>
+      <ul style="margin-bottom:0;margin-top:8px;">
+        <li>✅ Primary variant has <code>#3E213A</code> background and <strong>white</strong> text</li>
+        <li>✅ Accent variant has <code>#FFD204</code> background and <code>#3E213A</code> text</li>
+        <li>✅ Hover states maintain text color and reduce opacity to 85%</li>
+        <li>✅ Focus/active states maintain correct text color</li>
+        <li>✅ Button text remains readable in all states</li>
+      </ul>
+    </div>
+  </div>
+  
+  <!-- Button States Implementation -->
+  <div style="margin-top:16px;background:#f5f5f5;padding:20px;border-radius:8px;border:1px solid #ddd;">
+    <h4 style="margin-top:0;margin-bottom:16px">Button States Implementation</h4>
+    
+    <p>When implementing button states in Chakra UI, use the following guidelines:</p>
+    
+    <pre style="background:#f0f0f0;padding:12px;border-radius:4px;overflow:auto;font-size:13px;line-height:1.5;">
+// In theme.ts - Complete implementation for all button states
+components: {
+  Button: {
+    baseStyle: {
+      fontWeight: '600',
+      borderRadius: '6px',
+      transition: 'all 0.2s',
+    },
+    variants: {
+      primary: {
+        bg: 'primary.500',
+        color: 'white !important',
+        _hover: {
+          opacity: 0.85,
+          bg: 'primary.500',
+          color: 'white !important',
+        },
+        _active: {
+          opacity: 0.85,
+          transform: 'scale(0.98)',
+          color: 'white !important',
+        },
+        _disabled: {
+          opacity: 0.5,
+          cursor: 'not-allowed',
+          boxShadow: 'none',
+          color: 'white !important',
+        },
+        _focus: {
+          boxShadow: 'outline',
+          outlineColor: 'primary.500',
+          color: 'white !important',
+        },
+      },
+      accent: {
+        bg: 'accent.400',
+        color: 'primary.500 !important',
+        _hover: {
+          opacity: 0.85,
+          bg: 'accent.400',
+          color: 'primary.500 !important',
+        },
+        _active: {
+          opacity: 0.85,
+          transform: 'scale(0.98)',
+          color: 'primary.500 !important',
+        },
+        _disabled: {
+          opacity: 0.5,
+          cursor: 'not-allowed',
+          boxShadow: 'none',
+          color: 'primary.500 !important',
+        },
+        _focus: {
+          boxShadow: 'outline',
+          outlineColor: 'accent.400',
+          color: 'primary.500 !important',
+        },
+      },
+    }
+  }
+}
+    </pre>
+    
+    <p><strong>Usage examples with various states:</strong></p>
+    
+    <pre style="background:#f0f0f0;padding:12px;border-radius:4px;overflow:auto;font-size:13px;line-height:1.5;">
+// Default button
+&lt;Button variant="primary"&gt;Primary Button&lt;/Button&gt;
+
+// Disabled button
+&lt;Button variant="primary" isDisabled&gt;Disabled Primary&lt;/Button&gt;
+
+// Active state (pressed) - typically handled automatically by Chakra
+&lt;Button variant="accent" _active={{ transform: 'scale(0.98)' }}&gt;Accent Button&lt;/Button&gt;
+
+// Focused state - typically handled automatically by Chakra
+&lt;Button variant="primary" _focus={{ boxShadow: 'outline' }}&gt;Focused Primary&lt;/Button&gt;
+    </pre>
+    
+    <p><strong>CSS implementation for all button states:</strong></p>
+    
+    <pre style="background:#f0f0f0;padding:12px;border-radius:4px;overflow:auto;font-size:13px;line-height:1.5;">
+/* Primary button - all states */
+.chakra-button[data-variant="primary"] {
+  background-color: #3E213A !important;
+  color: white !important;
+}
+
+.chakra-button[data-variant="primary"]:hover {
+  opacity: 0.85;
+  color: white !important;
+}
+
+.chakra-button[data-variant="primary"]:active {
+  opacity: 0.85;
+  transform: scale(0.98);
+  color: white !important;
+}
+
+.chakra-button[data-variant="primary"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  color: white !important;
+}
+
+.chakra-button[data-variant="primary"]:focus-visible {
+  outline: 2px solid #3E213A;
+  outline-offset: 2px;
+  color: white !important;
+}
+
+/* Accent button - all states */
+.chakra-button[data-variant="accent"] {
+  background-color: #FFD204 !important;
+  color: #3E213A !important;
+}
+
+.chakra-button[data-variant="accent"]:hover {
+  opacity: 0.85;
+  color: #3E213A !important;
+}
+
+.chakra-button[data-variant="accent"]:active {
+  opacity: 0.85;
+  transform: scale(0.98);
+  color: #3E213A !important;
+}
+
+.chakra-button[data-variant="accent"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  color: #3E213A !important;
+}
+
+.chakra-button[data-variant="accent"]:focus-visible {
+  outline: 2px solid #FFD204;
+  outline-offset: 2px;
+  color: #3E213A !important;
+}
+    </pre>
+  </div>
+  
+  <div style="margin-top:24px;background:#f5f5f5;padding:20px;border-radius:8px;border:1px solid #ddd;">
+    <h4 style="margin-top:0;margin-bottom:16px">Global CSS Implementation</h4>
+    
+    <p>To enforce consistent button styling across the application, add these CSS rules to a global stylesheet:</p>
+    
+    <pre style="background:#f0f0f0;padding:12px;border-radius:4px;overflow:auto;font-size:13px;line-height:1.5;">
+/* Primary buttons - enforce white text color with high specificity */
+button.chakra-button[data-variant="primary"],
+.chakra-button[data-variant="primary"],
+a.chakra-button[data-variant="primary"],
+button.chakra-button[variant="primary"],
+.chakra-button[variant="primary"],
+a.chakra-button[variant="primary"] {
+  background-color: #3E213A !important;
+  color: white !important;
+}
+
+/* Primary button hover states */
+button.chakra-button[data-variant="primary"]:hover,
+.chakra-button[data-variant="primary"]:hover,
+a.chakra-button[data-variant="primary"]:hover,
+button.chakra-button[variant="primary"]:hover,
+.chakra-button[variant="primary"]:hover,
+a.chakra-button[variant="primary"]:hover {
+  background-color: #3E213A !important;
+  color: white !important;
+  opacity: 0.85;
+}
+    </pre>
+    
+    <p><strong>Theme Configuration (Chakra UI):</strong></p>
+    <pre style="background:#f0f0f0;padding:12px;border-radius:4px;overflow:auto;font-size:13px;line-height:1.5;">
+// In theme.ts
+components: {
+  Button: {
+    variants: {
+      primary: {
+        bg: 'primary.500',
+        color: 'white !important',
+        _hover: {
+          opacity: 0.85,
+          bg: 'primary.500',
+          color: 'white !important',
+        },
+        _focus: {
+          color: 'white !important',
+        }
+      },
+      accent: {
+        bg: 'accent.400',
+        color: 'primary.500 !important',
+        _hover: {
+          opacity: 0.85,
+          bg: 'accent.400',
+          color: 'primary.500 !important',
+        }
+      }
+    }
+  }
+}
+    </pre>
+  </div>
+  
+  <div style="margin-top:16px;background:#f5f5f5;padding:20px;border-radius:8px;border:1px solid #ddd;">
+    <h4 style="margin-top:0;margin-bottom:16px">Troubleshooting Button Styling</h4>
+    
+    <p>If you encounter issues with button styling, particularly with text colors:</p>
+    
+    <ol style="margin-bottom:16px">
+      <li><strong>Remove inline sx props</strong> - Don't use <code>sx=&#123;&#123; color: "white" &#125;&#125;</code> directly on buttons</li>
+      <li><strong>Check component inheritance</strong> - Ensure parent components aren't overriding button styles</li>
+      <li><strong>Use direct styling only as a last resort</strong> - Only if absolutely necessary, apply <code>color="white"</code> directly</li>
+      <li><strong>Review theme configuration</strong> - Ensure theme.ts has proper button variant definitions</li>
+    </ol>
+    
+    <p><strong>Common Issues:</strong></p>
+    <ul style="margin-bottom:0">
+      <li><strong>Blue text on primary buttons</strong> - Usually caused by inline styling conflicts or theme inheritance issues</li>
+      <li><strong>Inconsistent hover states</strong> - Add <code>_hover</code> definitions to the theme with <code>!important</code> flags</li>
+      <li><strong>Focus state styling</strong> - Include <code>_focus</code> and <code>_active</code> states in theme definitions</li>
+      <li><strong>Link buttons styling</strong> - Ensure <code>as={RouterLink}</code> buttons maintain correct styling</li>
+    </ul>
+  </div>
+
+  <!-- Card -->
+  <h3 style="margin-top:48px">Card</h3>
+  <div class="card">
+    <img src="https://placehold.co/260x160" alt="Product"/>
+    <h4 style="margin:0 0 4px">Card Title</h4>
+    <small class="text-secondary">$29.00</small>
+  </div>
+
+  <!-- Input -->
+  <h3 style="margin-top:48px">Input Field</h3>
+  <input class="input-demo" placeholder="Placeholder text">
+
+  <!-- Modal -->
+  <h3 style="margin-top:48px">Modal Dialog</h3>
+  <button class="btn btn-primary" onclick="openModal()">Open Modal</button>
+
+  <div class="modal-backdrop" id="modal">
+    <div class="modal">
+      <h3>Modal Title</h3>
+      <p>This is a modal dialog example following surface styling and deeper shadow.</p>
+      <button class="btn btn-accent" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+
+  <!-- Toasts -->
+  <h3 style="margin-top:48px">Notification Toasts</h3>
+  <button class="btn btn-accent" onclick="showToast('success')">Success</button>
+  <button class="btn btn-primary" onclick="showToast('info')">Info</button>
+  <button class="btn btn-primary" style="background:var(--error)" onclick="showToast('error')">Error</button>
+
+</section>
+
+<footer>© <span id="year"></span> Brand Guidelines Demo</footer>
+
+<!-- -------------  Scripts ------------- -->
+<script>
+  // Footer year
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  /* Modal */
+  const modal = document.getElementById('modal');
+  function openModal(){modal.style.display='flex'}
+  function closeModal(){modal.style.display='none'}
+  window.addEventListener('keydown',e=>{if(e.key==='Escape') closeModal();});
+
+  /* Toasts */
+  function showToast(type){
+    const toast = document.createElement('div');
+    toast.className='toast';
+    toast.style.display='block';
+    toast.textContent= type.charAt(0).toUpperCase()+type.slice(1)+' message';
+    if(type==='success') toast.style.background= 'var(--accent)';
+    if(type==='info')    toast.style.background= 'var(--info)';
+    if(type==='error')   toast.style.background= 'var(--error)';
+    document.body.appendChild(toast);
+    setTimeout(()=>{toast.style.opacity='0';},2500);
+    setTimeout(()=>{toast.remove();},3200);
+  }
+</script>
+</body>
+</html> 

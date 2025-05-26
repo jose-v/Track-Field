@@ -103,6 +103,7 @@ const Features = () => {
   const textColor = useColorModeValue('gray.700', 'gray.300')
   const subtitleColor = useColorModeValue('gray.600', 'gray.400')
   const borderColor = useColorModeValue('gray.100', 'gray.700')
+  const cardBg = useColorModeValue('white', 'gray.800')
   
   const features = [
     {
@@ -140,7 +141,7 @@ const Features = () => {
   return (
     <Box bg={bgColor} minH="100vh">
       {/* Hero Section */}
-      <Box py={{ base: 16, md: 24 }} bg={useColorModeValue('white', 'gray.800')}>
+      <Box py={{ base: 16, md: 24 }} bg={cardBg}>
         <Container maxW="container.lg">
           <VStack spacing={6} align="center" textAlign="center">
             <Heading
@@ -182,7 +183,7 @@ const Features = () => {
       </Box>
       
       {/* Detailed Features Section */}
-      <Box py={20} bg={useColorModeValue('white', 'gray.800')}>
+      <Box py={20} bg={cardBg}>
         <Container maxW="container.lg">
           <VStack spacing={24}>
             <DetailFeature

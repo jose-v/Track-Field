@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gamification Implementation Plan - Part 2</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3, h4 {
+            color: #2c3e50;
+            margin-top: 1.5em;
+        }
+        h1 {
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            border-bottom: 1px solid #bdc3c7;
+            padding-bottom: 5px;
+        }
+        pre {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            padding: 16px;
+            overflow: auto;
+        }
+        code {
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .language-sql, .language-typescript, .language-tsx, .language-bash {
+            color: #333;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Gamification System Implementation Plan - Part 2</h1>
+    
+    <div class="section">
+        <h2>Database Schema</h2>
+        <p>The gamification system requires the following database tables:</p>
+        
+        <h3>Sample Database Schema</h3>
+        <p>Below is the SQL code for creating the necessary tables:</p>
+        <pre><code class="language-sql">-- Points ledger
+CREATE TABLE points_ledger (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  athlete_id  UUID NOT NULL REFERENCES athletes(id),
+  points      INT NOT NULL,
+  reason      TEXT,         -- e.g. "Logged Workout", "7-Day Streak Bonus"
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+
+-- Badges catalog
+CREATE TABLE badges (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code        TEXT UNIQUE,  -- e.g. "first_workout", "streak_7"
+  name        TEXT,
+  description TEXT,
+  icon_url    TEXT,
+  category    TEXT NOT NULL CHECK (category IN ('workout', 'nutrition', 'sleep', 'streak', 'points', 'special'))
+);
+
+-- Athlete badges
+CREATE TABLE athlete_badges (
+  athlete_id  UUID NOT NULL REFERENCES athletes(id),
+  badge_id    UUID NOT NULL REFERENCES badges(id),
+  awarded_at  TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY(athlete_id, badge_id)
+);
+
+-- Streak tracking
+CREATE TABLE athlete_streaks (
+  athlete_id        UUID PRIMARY KEY REFERENCES athletes(id),
+  current_streak    INT NOT NULL DEFAULT 0,
+  longest_streak    INT NOT NULL DEFAULT 0,
+  last_activity_date DATE,
+  updated_at        TIMESTAMPTZ DEFAULT now()
+);</code></pre>
+
+        <h3>Row Level Security (RLS) Policies</h3>
+        <p>To ensure proper data access control, we'll add these RLS policies:</p>
+        <pre><code class="language-sql">-- RLS Policies
+ALTER TABLE points_ledger ENABLE ROW LEVEL SECURITY;
+ALTER TABLE athlete_badges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE athlete_streaks ENABLE ROW LEVEL SECURITY;
+
+-- Points ledger policies
+CREATE POLICY "Athletes can view their own points"
+  ON points_ledger FOR SELECT
+  USING (athlete_id = auth.uid());
+
+CREATE POLICY "Coaches can view their athletes' points"
+  ON points_ledger FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM coach_athletes
+    WHERE coach_id = auth.uid() AND athlete_id = points_ledger.athlete_id
+  ));
+
+-- Similar policies for athlete_badges and athlete_streaks</code></pre>
+    </div>
+
+    <div class="section">
+        <h2>TypeScript Type Definitions</h2>
+        <p>These TypeScript interfaces define the structure of our gamification data:</p>
+        <pre><code class="language-typescript">// src/types/gamification.ts
+
+export interface PointsLedgerEntry {
+  id: string;
+  athlete_id: string;
+  points: number;
+  reason: string;
+  created_at: string;
+}
+
+export interface Badge {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  icon_url: string | null;
+  category: 'workout' | 'nutrition' | 'sleep' | 'streak' | 'points' | 'special';
+}
+
+export interface AthleteBadge {
+  athlete_id: string;
+  badge_id: string;
+  awarded_at: string;
+  badge?: Badge; // Joined from badges table
+}
+
+export interface AthleteStreak {
+  athlete_id: string;
+  current_streak: number;
+  longest_streak: number;
+  last_activity_date: string | null;
+  updated_at: string;
+}
+
+export interface LeaderboardEntry {
+  athlete_id: string;
+  first_name: string;
+  last_name: string;
+  avatar_url: string | null;
+  total_points: number;
+  rank: number;
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h2>Level System Configuration</h2>
+        <p>The level system is defined as follows:</p>
+        <pre><code class="language-typescript">// src/config/levels.ts
+
+export interface Level {
+  level: number;
+  min_points: number;
+  max_points: number;
+  title: string;
+}
+
+export const LEVELS: Level[] = [
+  { level: 1, min_points: 0, max_points: 99, title: "Beginner" },
+  { level: 2, min_points: 100, max_points: 249, title: "Rookie" },
+  { level: 3, min_points: 250, max_points: 499, title: "Competitor" },
+  { level: 4, min_points: 500, max_points: 999, title: "Elite" },
+  { level: 5, min_points: 1000, max_points: 1999, title: "Champion" },
+  { level: 6, min_points: 2000, max_points: 4999, title: "Master" },
+  { level: 7, min_points: 5000, max_points: Infinity, title: "Legend" }
+];
+
+export function calculateLevel(points: number): {
+  level: number;
+  title: string;
+  currentPoints: number;
+  nextLevelPoints: number;
+  progress: number;
+} {
+  const level = LEVELS.find(l => points >= l.min_points && points <= l.max_points) || LEVELS[LEVELS.length - 1];
+  const nextLevel = LEVELS.find(l => l.level === level.level + 1);
+  
+  return {
+    level: level.level,
+    title: level.title,
+    currentPoints: points,
+    nextLevelPoints: nextLevel ? nextLevel.min_points : null,
+    progress: nextLevel ? (points - level.min_points) / (nextLevel.min_points - level.min_points) * 100 : 100
+  };
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h2>Badge Definitions</h2>
+        <p>We'll define a set of predefined badges for the system:</p>
+        <pre><code class="language-typescript">// src/config/badges.ts
+
+export const BADGE_DEFINITIONS = [
+  // Workout badges
+  {
+    code: "first_workout",
+    name: "First Workout",
+    description: "Completed your first workout",
+    category: "workout",
+    icon_url: "/badges/first_workout.svg"
+  },
+  {
+    code: "workout_warrior",
+    name: "Workout Warrior",
+    description: "Completed 10 workouts",
+    category: "workout",
+    icon_url: "/badges/workout_warrior.svg"
+  },
+  {
+    code: "exercise_expert",
+    name: "Exercise Expert",
+    description: "Completed 50 workouts",
+    category: "workout",
+    icon_url: "/badges/exercise_expert.svg"
+  },
+  
+  // Nutrition badges
+  {
+    code: "nutrition_novice",
+    name: "Nutrition Novice",
+    description: "Logged your first nutrition entry",
+    category: "nutrition",
+    icon_url: "/badges/nutrition_novice.svg"
+  },
+  {
+    code: "balanced_diet",
+    name: "Balanced Diet",
+    description: "Logged 10 nutrition entries",
+    category: "nutrition",
+    icon_url: "/badges/balanced_diet.svg"
+  },
+  {
+    code: "nutrition_master",
+    name: "Nutrition Master",
+    description: "Logged 50 nutrition entries",
+    category: "nutrition",
+    icon_url: "/badges/nutrition_master.svg"
+  },
+  
+  // Sleep badges
+  {
+    code: "sleep_tracker",
+    name: "Sleep Tracker",
+    description: "Recorded your first sleep log",
+    category: "sleep",
+    icon_url: "/badges/sleep_tracker.svg"
+  },
+  {
+    code: "well_rested",
+    name: "Well Rested",
+    description: "Recorded 10 sleep logs",
+    category: "sleep",
+    icon_url: "/badges/well_rested.svg"
+  },
+  {
+    code: "sleep_champion",
+    name: "Sleep Champion",
+    description: "Recorded 30 consecutive days of sleep",
+    category: "sleep",
+    icon_url: "/badges/sleep_champion.svg"
+  },
+  
+  // Streak badges
+  {
+    code: "getting_started",
+    name: "Getting Started",
+    description: "3-day activity streak",
+    category: "streak",
+    icon_url: "/badges/getting_started.svg"
+  },
+  {
+    code: "consistency",
+    name: "Consistency",
+    description: "7-day activity streak",
+    category: "streak",
+    icon_url: "/badges/consistency.svg"
+  },
+  {
+    code: "dedication",
+    name: "Dedication",
+    description: "14-day activity streak",
+    category: "streak",
+    icon_url: "/badges/dedication.svg"
+  },
+  {
+    code: "unstoppable",
+    name: "Unstoppable",
+    description: "30-day activity streak",
+    category: "streak",
+    icon_url: "/badges/unstoppable.svg"
+  },
+  
+  // Points milestone badges
+  {
+    code: "bronze_athlete",
+    name: "Bronze Athlete",
+    description: "Earned 100 points",
+    category: "points",
+    icon_url: "/badges/bronze_athlete.svg"
+  },
+  {
+    code: "silver_athlete",
+    name: "Silver Athlete",
+    description: "Earned 250 points",
+    category: "points",
+    icon_url: "/badges/silver_athlete.svg"
+  },
+  {
+    code: "gold_athlete",
+    name: "Gold Athlete",
+    description: "Earned 500 points",
+    category: "points",
+    icon_url: "/badges/gold_athlete.svg"
+  },
+  {
+    code: "platinum_athlete",
+    name: "Platinum Athlete",
+    description: "Earned 1000 points",
+    category: "points",
+    icon_url: "/badges/platinum_athlete.svg"
+  }
+];</code></pre>
+    </div>
+</body>
+</html> 

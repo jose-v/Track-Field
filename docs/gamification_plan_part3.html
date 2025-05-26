@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gamification Implementation Plan - Part 3</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3, h4 {
+            color: #2c3e50;
+            margin-top: 1.5em;
+        }
+        h1 {
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            border-bottom: 1px solid #bdc3c7;
+            padding-bottom: 5px;
+        }
+        pre {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            padding: 16px;
+            overflow: auto;
+        }
+        code {
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .language-sql, .language-typescript, .language-tsx, .language-bash {
+            color: #333;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Gamification System Implementation Plan - Part 3</h1>
+    
+    <div class="section">
+        <h2>Service Layer</h2>
+        <p>The service layer contains the business logic for the gamification system. This includes functions for awarding points, checking and awarding badges, updating streaks, and generating leaderboards.</p>
+        
+        <h3>Gamification Service</h3>
+        <p>Below is the implementation of the core gamification service:</p>
+        <pre><code class="language-typescript">// src/services/gamificationService.ts
+
+import { supabase } from '../lib/supabase';
+import { BADGE_DEFINITIONS } from '../config/badges';
+import type { 
+  PointsLedgerEntry, 
+  Badge, 
+  AthleteBadge, 
+  AthleteStreak,
+  LeaderboardEntry 
+} from '../types/gamification';
+
+/**
+ * Award points to an athlete
+ */
+export async function awardPoints(
+  athleteId: string, 
+  points: number, 
+  reason: string
+): Promise<PointsLedgerEntry | null> {
+  try {
+    const { data, error } = await supabase
+      .from('points_ledger')
+      .insert({ athlete_id: athleteId, points, reason })
+      .select()
+      .single();
+      
+    if (error) throw error;
+    
+    // After awarding points, check for badges
+    await checkAndAwardBadges(athleteId);
+    
+    return data;
+  } catch (error) {
+    console.error('Error awarding points:', error);
+    return null;
+  }
+}
+
+/**
+ * Get total points for an athlete
+ */
+export async function getAthletePoints(athleteId: string): Promise<number> {
+  try {
+    const { data, error } = await supabase
+      .from('points_ledger')
+      .select('points')
+      .eq('athlete_id', athleteId);
+      
+    if (error) throw error;
+    
+    return data.reduce((sum, entry) => sum + entry.points, 0);
+  } catch (error) {
+    console.error('Error getting athlete points:', error);
+    return 0;
+  }
+}
+
+/**
+ * Get points history for an athlete
+ */
+export async function getPointsHistory(athleteId: string): Promise<PointsLedgerEntry[]> {
+  try {
+    const { data, error } = await supabase
+      .from('points_ledger')
+      .select('*')
+      .eq('athlete_id', athleteId)
+      .order('created_at', { ascending: false });
+      
+    if (error) throw error;
+    
+    return data;
+  } catch (error) {
+    console.error('Error getting points history:', error);
+    return [];
+  }
+}
+
+/**
+ * Check and award badges for an athlete
+ */
+export async function checkAndAwardBadges(athleteId: string): Promise<void> {
+  try {
+    await Promise.all([
+      checkWorkoutBadges(athleteId),
+      checkNutritionBadges(athleteId),
+      checkSleepBadges(athleteId),
+      checkStreakBadges(athleteId),
+      checkPointMilestoneBadges(athleteId)
+    ]);
+  } catch (error) {
+    console.error('Error checking badges:', error);
+  }
+}
+
+/**
+ * Award a badge to an athlete if they don't already have it
+ */
+async function awardBadgeIfNotEarned(athleteId: string, badgeCode: string): Promise<void> {
+  try {
+    // Get the badge ID
+    const { data: badge, error: badgeError } = await supabase
+      .from('badges')
+      .select('id')
+      .eq('code', badgeCode)
+      .single();
+      
+    if (badgeError || !badge) {
+      console.error(`Badge with code ${badgeCode} not found`);
+      return;
+    }
+    
+    // Check if athlete already has the badge
+    const { data: existingBadge, error: existingError } = await supabase
+      .from('athlete_badges')
+      .select('*')
+      .eq('athlete_id', athleteId)
+      .eq('badge_id', badge.id)
+      .maybeSingle();
+      
+    if (existingError) {
+      console.error('Error checking existing badge:', existingError);
+      return;
+    }
+    
+    // If athlete doesn't have the badge, award it
+    if (!existingBadge) {
+      const { error: insertError } = await supabase
+        .from('athlete_badges')
+        .insert({ athlete_id: athleteId, badge_id: badge.id });
+        
+      if (insertError) {
+        console.error('Error awarding badge:', insertError);
+        return;
+      }
+      
+      // Award points for earning a badge
+      await awardPoints(athleteId, 5, `Earned badge: ${badgeCode}`);
+    }
+  } catch (error) {
+    console.error('Error in awardBadgeIfNotEarned:', error);
+  }
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h3>Badge Checking Functions</h3>
+        <p>Functions to check different types of badges based on athlete activity:</p>
+        <pre><code class="language-typescript">/**
+ * Check workout badges
+ */
+async function checkWorkoutBadges(athleteId: string): Promise<void> {
+  try {
+    // Count total workouts
+    const { count, error } = await supabase
+      .from('athlete_workouts')
+      .select('*', { count: 'exact', head: true })
+      .eq('athlete_id', athleteId);
+      
+    if (error) throw error;
+    
+    // Award badges based on workout count
+    if (count >= 1) await awardBadgeIfNotEarned(athleteId, 'first_workout');
+    if (count >= 10) await awardBadgeIfNotEarned(athleteId, 'workout_warrior');
+    if (count >= 50) await awardBadgeIfNotEarned(athleteId, 'exercise_expert');
+  } catch (error) {
+    console.error('Error checking workout badges:', error);
+  }
+}
+
+/**
+ * Check nutrition badges
+ */
+async function checkNutritionBadges(athleteId: string): Promise<void> {
+  try {
+    // Count nutrition entries
+    const { count, error } = await supabase
+      .from('eating_records')
+      .select('*', { count: 'exact', head: true })
+      .eq('athlete_id', athleteId);
+      
+    if (error) throw error;
+    
+    // Award badges based on nutrition entry count
+    if (count >= 1) await awardBadgeIfNotEarned(athleteId, 'nutrition_novice');
+    if (count >= 10) await awardBadgeIfNotEarned(athleteId, 'balanced_diet');
+    if (count >= 50) await awardBadgeIfNotEarned(athleteId, 'nutrition_master');
+  } catch (error) {
+    console.error('Error checking nutrition badges:', error);
+  }
+}
+
+/**
+ * Check sleep badges
+ */
+async function checkSleepBadges(athleteId: string): Promise<void> {
+  try {
+    // Count sleep records
+    const { count, error } = await supabase
+      .from('sleep_records')
+      .select('*', { count: 'exact', head: true })
+      .eq('athlete_id', athleteId);
+      
+    if (error) throw error;
+    
+    // Award badges based on sleep record count
+    if (count >= 1) await awardBadgeIfNotEarned(athleteId, 'sleep_tracker');
+    if (count >= 10) await awardBadgeIfNotEarned(athleteId, 'well_rested');
+    
+    // Check for consecutive sleep tracking
+    // This would require more complex logic to check daily records
+  } catch (error) {
+    console.error('Error checking sleep badges:', error);
+  }
+}
+
+/**
+ * Check streak badges
+ */
+async function checkStreakBadges(athleteId: string): Promise<void> {
+  try {
+    // Get current streak
+    const { data: streak, error } = await supabase
+      .from('athlete_streaks')
+      .select('current_streak')
+      .eq('athlete_id', athleteId)
+      .single();
+      
+    if (error) throw error;
+    
+    // Award badges based on streak length
+    if (streak.current_streak >= 3) await awardBadgeIfNotEarned(athleteId, 'getting_started');
+    if (streak.current_streak >= 7) await awardBadgeIfNotEarned(athleteId, 'consistency');
+    if (streak.current_streak >= 14) await awardBadgeIfNotEarned(athleteId, 'dedication');
+    if (streak.current_streak >= 30) await awardBadgeIfNotEarned(athleteId, 'unstoppable');
+  } catch (error) {
+    console.error('Error checking streak badges:', error);
+  }
+}
+
+/**
+ * Check point milestone badges
+ */
+async function checkPointMilestoneBadges(athleteId: string): Promise<void> {
+  try {
+    // Get total points
+    const totalPoints = await getAthletePoints(athleteId);
+    
+    // Award badges based on point milestones
+    if (totalPoints >= 100) await awardBadgeIfNotEarned(athleteId, 'bronze_athlete');
+    if (totalPoints >= 250) await awardBadgeIfNotEarned(athleteId, 'silver_athlete');
+    if (totalPoints >= 500) await awardBadgeIfNotEarned(athleteId, 'gold_athlete');
+    if (totalPoints >= 1000) await awardBadgeIfNotEarned(athleteId, 'platinum_athlete');
+  } catch (error) {
+    console.error('Error checking point milestone badges:', error);
+  }
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h3>Streak Tracking Functions</h3>
+        <p>Functions to manage athlete activity streaks:</p>
+        <pre><code class="language-typescript">/**
+ * Update streak for an athlete
+ */
+export async function updateStreak(athleteId: string): Promise<AthleteStreak | null> {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Check for any activity today
+    const hasWorkoutToday = await checkActivityForDate(athleteId, 'athlete_workouts', today);
+    const hasNutritionToday = await checkActivityForDate(athleteId, 'eating_records', today, 'record_date');
+    const hasSleepToday = await checkActivityForDate(athleteId, 'sleep_records', today, 'sleep_date');
+    
+    const hasActivityToday = hasWorkoutToday || hasNutritionToday || hasSleepToday;
+    
+    // Get current streak data
+    const { data: streakData, error } = await supabase
+      .from('athlete_streaks')
+      .select('*')
+      .eq('athlete_id', athleteId)
+      .maybeSingle();
+      
+    if (error) throw error;
+    
+    let streak = streakData || {
+      athlete_id: athleteId,
+      current_streak: 0,
+      longest_streak: 0,
+      last_activity_date: null
+    };
+    
+    if (hasActivityToday) {
+      const lastDate = streak.last_activity_date ? new Date(streak.last_activity_date) : null;
+      const todayDate = new Date(today);
+      const yesterday = new Date(todayDate);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      // If last activity was yesterday, increment streak
+      if (lastDate && lastDate.toISOString().split('T')[0] === yesterday.toISOString().split('T')[0]) {
+        streak.current_streak += 1;
+      } 
+      // If no activity yet or streak broken, start at 1
+      else if (!lastDate || lastDate.toISOString().split('T')[0] !== today) {
+        streak.current_streak = 1;
+      }
+      
+      // Update last activity date to today
+      streak.last_activity_date = today;
+      
+      // Update longest streak if current is longer
+      if (streak.current_streak > streak.longest_streak) {
+        streak.longest_streak = streak.current_streak;
+      }
+      
+      // Check for streak milestone (7, 14, 21 days, etc.)
+      if (streak.current_streak % 7 === 0) {
+        // Award bonus points for streak milestone
+        await awardPoints(
+          athleteId, 
+          10, 
+          `${streak.current_streak}-day streak bonus!`
+        );
+      }
+    }
+    
+    // Update or insert streak record
+    const { data: updatedStreak, error: updateError } = await supabase
+      .from('athlete_streaks')
+      .upsert(streak)
+      .select()
+      .single();
+      
+    if (updateError) throw updateError;
+    
+    // Check for streak badges
+    if (hasActivityToday) {
+      await checkStreakBadges(athleteId);
+    }
+    
+    return updatedStreak;
+  } catch (error) {
+    console.error('Error updating streak:', error);
+    return null;
+  }
+}
+
+/**
+ * Check if athlete has activity for a specific date
+ */
+async function checkActivityForDate(
+  athleteId: string, 
+  table: string, 
+  date: string,
+  dateField: string = 'created_at'
+): Promise<boolean> {
+  try {
+    let query = supabase
+      .from(table)
+      .select('id', { count: 'exact', head: true })
+      .eq('athlete_id', athleteId);
+    
+    // For timestamp fields like created_at
+    if (dateField === 'created_at') {
+      query = query
+        .gte(dateField, `${date}T00:00:00`)
+        .lt(dateField, `${date}T23:59:59`);
+    } 
+    // For date fields like sleep_date
+    else {
+      query = query.eq(dateField, date);
+    }
+    
+    const { count, error } = await query;
+    
+    if (error) throw error;
+    
+    return count > 0;
+  } catch (error) {
+    console.error(`Error checking activity in ${table}:`, error);
+    return false;
+  }
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h3>Badge and Leaderboard Functions</h3>
+        <p>Functions to fetch athlete badges and generate leaderboards:</p>
+        <pre><code class="language-typescript">/**
+ * Get athlete badges
+ */
+export async function getAthleteBadges(athleteId: string): Promise<AthleteBadge[]> {
+  try {
+    const { data, error } = await supabase
+      .from('athlete_badges')
+      .select(`
+        *,
+        badge:badges(*)
+      `)
+      .eq('athlete_id', athleteId)
+      .order('awarded_at', { ascending: false });
+      
+    if (error) throw error;
+    
+    return data;
+  } catch (error) {
+    console.error('Error getting athlete badges:', error);
+    return [];
+  }
+}
+
+/**
+ * Get athlete streak
+ */
+export async function getAthleteStreak(athleteId: string): Promise<AthleteStreak | null> {
+  try {
+    const { data, error } = await supabase
+      .from('athlete_streaks')
+      .select('*')
+      .eq('athlete_id', athleteId)
+      .maybeSingle();
+      
+    if (error) throw error;
+    
+    return data || {
+      athlete_id: athleteId,
+      current_streak: 0,
+      longest_streak: 0,
+      last_activity_date: null,
+      updated_at: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('Error getting athlete streak:', error);
+    return null;
+  }
+}
+
+/**
+ * Get leaderboard
+ */
+export async function getLeaderboard(teamId?: string, limit: number = 10): Promise<LeaderboardEntry[]> {
+  try {
+    // First get all athletes (optionally filtered by team)
+    let athleteQuery = supabase
+      .from('athletes')
+      .select(`
+        id,
+        profiles(id, first_name, last_name, avatar_url)
+      `);
+      
+    if (teamId) {
+      athleteQuery = athleteQuery.eq('team_id', teamId);
+    }
+    
+    const { data: athletes, error: athleteError } = await athleteQuery;
+    
+    if (athleteError) throw athleteError;
+    
+    // For each athlete, get their total points
+    const leaderboardPromises = athletes.map(async (athlete) => {
+      const totalPoints = await getAthletePoints(athlete.id);
+      
+      return {
+        athlete_id: athlete.id,
+        first_name: athlete.profiles.first_name,
+        last_name: athlete.profiles.last_name,
+        avatar_url: athlete.profiles.avatar_url,
+        total_points: totalPoints,
+        rank: 0 // Will be calculated after sorting
+      };
+    });
+    
+    let leaderboard = await Promise.all(leaderboardPromises);
+    
+    // Sort by points (descending)
+    leaderboard = leaderboard.sort((a, b) => b.total_points - a.total_points);
+    
+    // Assign ranks
+    leaderboard = leaderboard.map((entry, index) => ({
+      ...entry,
+      rank: index + 1
+    }));
+    
+    return leaderboard.slice(0, limit);
+  } catch (error) {
+    console.error('Error getting leaderboard:', error);
+    return [];
+  }
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h3>Helper Function to Populate Badge Definitions</h3>
+        <p>A utility function to populate the predefined badges in the database:</p>
+        <pre><code class="language-typescript">/**
+ * Populate badge definitions in the database
+ * This should be run once during setup
+ */
+export async function populateBadgeDefinitions(): Promise<void> {
+  try {
+    // Check if badges already exist
+    const { count, error: countError } = await supabase
+      .from('badges')
+      .select('*', { count: 'exact', head: true });
+      
+    if (countError) throw countError;
+    
+    // If badges already exist, skip
+    if (count > 0) {
+      console.log(`${count} badges already exist in the database.`);
+      return;
+    }
+    
+    // Insert badge definitions
+    const { error: insertError } = await supabase
+      .from('badges')
+      .insert(BADGE_DEFINITIONS);
+      
+    if (insertError) throw insertError;
+    
+    console.log(`Successfully populated ${BADGE_DEFINITIONS.length} badge definitions.`);
+  } catch (error) {
+    console.error('Error populating badge definitions:', error);
+  }
+}</code></pre>
+    </div>
+</body>
+</html> 
