@@ -1,1 +1,0 @@
-export { TrainingCalendar } from './TrainingCalendar'; 
