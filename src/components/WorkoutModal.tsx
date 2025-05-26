@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter,
-  FormControl, FormLabel, Input, Select, Checkbox, CheckboxGroup, Stack, Button, Textarea, useToast, Text, VStack, HStack, IconButton, Box, Heading
+  FormControl, FormLabel, Input, Select, Checkbox, CheckboxGroup, Stack, Button, Textarea, useToast, Text, VStack, HStack, IconButton, Box, Heading, useColorModeValue
 } from '@chakra-ui/react';
 import type { Workout, Exercise } from '../services/api'; // Import shared types
 import { FaPlus, FaTrash } from 'react-icons/fa';
@@ -72,6 +72,13 @@ export function WorkoutModal({ isOpen, onClose, initialWorkout, athletes, onSave
     name: '', sets: 1, reps: 1, weight: undefined, rest: undefined, distance: undefined, notes: ''
   });
   const [searchExercise, setSearchExercise] = useState<string>('');
+
+  // Theme-aware colors
+  const subtitleColor = useColorModeValue('gray.500', 'gray.300');
+  const exerciseDetailColor = useColorModeValue('gray.600', 'gray.200');
+  const exerciseNoteColor = useColorModeValue('gray.500', 'gray.300');
+  const noExercisesColor = useColorModeValue('gray.500', 'gray.300');
+  const noAthletesColor = useColorModeValue('gray.500', 'gray.300');
 
   // Fetch exercises from database when modal opens
   useEffect(() => {
@@ -251,7 +258,7 @@ export function WorkoutModal({ isOpen, onClose, initialWorkout, athletes, onSave
             <Box borderWidth="1px" borderRadius="md" p={4}>
                 <Heading size="sm" mb={3} display="flex" justifyContent="space-between" alignItems="center">
                   <span>Exercises</span>
-                  <Text fontSize="xs" color="gray.500">Total: {currentExercises.length}</Text>
+                  <Text fontSize="xs" color={subtitleColor}>Total: {currentExercises.length}</Text>
                 </Heading>
                 
                 {/* List of added exercises */}
@@ -271,14 +278,14 @@ export function WorkoutModal({ isOpen, onClose, initialWorkout, athletes, onSave
                         >
                           <Box>
                             <Text fontWeight="bold">{index + 1}. {ex.name}</Text>
-                            <HStack spacing={4} fontSize="sm" color="gray.600">
+                            <HStack spacing={4} fontSize="sm" color={exerciseDetailColor}>
                               <Text>{ex.sets} sets × {ex.reps} reps</Text>
                               {ex.weight && <Text>{ex.weight} kg</Text>}
                               {ex.distance && <Text>{ex.distance} m</Text>}
                               {ex.rest && <Text>Rest: {ex.rest}s</Text>}
                             </HStack>
                             {ex.notes && (
-                              <Text fontSize="xs" color="gray.500" mt={1} fontStyle="italic">
+                              <Text fontSize="xs" color={exerciseNoteColor} mt={1} fontStyle="italic">
                                 Note: {ex.notes}
                               </Text>
                             )}
@@ -306,7 +313,7 @@ export function WorkoutModal({ isOpen, onClose, initialWorkout, athletes, onSave
                     textAlign="center"
                     mb={4}
                   >
-                    <Text color="gray.500" fontSize="sm">
+                    <Text color={noExercisesColor} fontSize="sm">
                       No exercises added yet. Use the form below to add exercises to your workout.
                     </Text>
                   </Box>
@@ -414,7 +421,7 @@ export function WorkoutModal({ isOpen, onClose, initialWorkout, athletes, onSave
                   {(athletes || []).map((a) => (
                     <Checkbox key={a.id} value={a.id}>{a.full_name || a.name}</Checkbox>
                   ))}
-                  {(!athletes || athletes.length === 0) && <Text color="gray.500" fontSize="sm">No athletes available for assignment.</Text>}
+                  {(!athletes || athletes.length === 0) && <Text color={noAthletesColor} fontSize="sm">No athletes available for assignment.</Text>}
                 </Stack>
               </CheckboxGroup>
             </FormControl>

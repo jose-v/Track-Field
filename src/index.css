@@ -105,7 +105,7 @@ header button.chakra-button[variant="ghost"] svg,
 header .chakra-icon,
 nav button.chakra-button[variant="ghost"] svg,
 nav .chakra-icon {
-  color: #4A5568 !important; /* Dark gray (gray.600 in Chakra UI) */
+  color: #898989 !important; /* Updated to lighter gray */
 }
 
 /* Navbar icon hover styling */
@@ -121,7 +121,7 @@ a[href="/"] svg,
 button[aria-label="Home"] svg,
 .chakra-icon-button[aria-label="Home"] svg,
 .chakra-button[aria-label="Home"] svg {
-  color: #4A5568 !important; /* Dark gray (gray.600 in Chakra UI) */
+  color: #898989 !important; /* Updated to lighter gray */
 }
 
 /* Portal icon hover styling */
@@ -140,7 +140,7 @@ button[aria-label="Home"]:hover svg,
 [aria-label="Give Feedback"] svg,
 [aria-label="Share App"] svg,
 [aria-label="Notifications"] svg {
-  color: #4A5568 !important; /* Dark gray (gray.600 in Chakra UI) */
+  color: #898989 !important; /* Updated to lighter gray */
 }
 
 /* Hover state for all portal icons */
@@ -151,7 +151,7 @@ button[aria-label="Home"]:hover svg,
 [aria-label="Give Feedback"]:hover svg,
 [aria-label="Share App"]:hover svg,
 [aria-label="Notifications"]:hover svg {
-  color: black !important; /* Primary color on hover */
+  color: #c53030 !important; /* Primary color on hover */
 }
 
 /* Highest specificity override for home icon in the portal */
@@ -160,7 +160,7 @@ button[aria-label="Home"]:hover svg,
 *[href="/"] svg,
 button.chakra-button[aria-label="Home"] svg,
 .chakra-button[as="RouterLink"][to="/"] svg {
-  color: #4A5568 !important; /* Dark gray (gray.600 in Chakra UI) */
+  color: #898989 !important; /* Updated to lighter gray */
 }
 
 /* Force edit icon buttons to always have white text and white icons */
@@ -184,6 +184,71 @@ button.chakra-icon-button[aria-label*="Edit"] svg,
   color: white !important;
 }
 
+/* Sidebar specific styling - force lighter gray for inactive items */
+.chakra-stack a[role="group"]:not([data-active="true"]) .chakra-icon,
+.chakra-stack a[role="group"]:not([data-active="true"]) .chakra-text,
+.chakra-stack a[role="group"]:not([data-active="true"]) svg {
+  color: #898989 !important;
+}
+
+/* Sidebar role text styling */
+.chakra-stack .chakra-text[data-role="label"] {
+  color: #898989 !important;
+}
+
+/* Theme toggle in sidebar */
+.chakra-stack .chakra-icon-button svg {
+  color: #898989 !important;
+}
+
+/* Workout Creator Progress Bar - Override sidebar styling */
+[data-testid="workout-creator-progress"] .chakra-button[variant="ghost"],
+[data-testid="workout-creator-progress"] .chakra-button[variant="ghost"] .chakra-text,
+[data-testid="workout-creator-progress"] .chakra-button[variant="ghost"] *,
+.chakra-progress + .chakra-box .chakra-button[variant="ghost"],
+.chakra-progress ~ .chakra-box .chakra-button[variant="ghost"],
+[data-testid="progress-bar"] .chakra-button[variant="ghost"],
+.chakra-progress + * .chakra-button[variant="ghost"] {
+  color: inherit !important;
+}
+
+[data-testid="workout-creator-progress"] .chakra-button[variant="ghost"] .chakra-text,
+[data-testid="workout-creator-progress"] .chakra-button[variant="ghost"] span,
+.chakra-progress + .chakra-box .chakra-button[variant="ghost"] .chakra-text,
+.chakra-progress ~ .chakra-box .chakra-button[variant="ghost"] .chakra-text,
+[data-testid="progress-bar"] .chakra-button[variant="ghost"] .chakra-text,
+.chakra-progress + * .chakra-button[variant="ghost"] .chakra-text {
+  color: inherit !important;
+}
+
+/* Workout Creator Progress Bar - Force theme-aware colors with multiple approaches */
+.chakra-ui-light [data-testid="workout-creator-progress"] .chakra-button[variant="ghost"],
+.chakra-ui-light .chakra-progress + .chakra-box .chakra-button[variant="ghost"],
+.chakra-ui-light .chakra-progress ~ .chakra-box .chakra-button[variant="ghost"],
+[data-color-mode="light"] [data-testid="workout-creator-progress"] .chakra-button[variant="ghost"],
+html[data-theme="light"] [data-testid="workout-creator-progress"] .chakra-button[variant="ghost"] {
+  color: #4A5568 !important; /* gray.600 for light mode */
+}
+
+.chakra-ui-dark [data-testid="workout-creator-progress"] .chakra-button[variant="ghost"],
+.chakra-ui-dark .chakra-progress + .chakra-box .chakra-button[variant="ghost"],
+.chakra-ui-dark .chakra-progress ~ .chakra-box .chakra-button[variant="ghost"],
+[data-color-mode="dark"] [data-testid="workout-creator-progress"] .chakra-button[variant="ghost"],
+html[data-theme="dark"] [data-testid="workout-creator-progress"] .chakra-button[variant="ghost"] {
+  color: #CBD5E0 !important; /* gray.300 for dark mode */
+}
+
+/* Fallback using CSS custom properties */
+[data-testid="workout-creator-progress"] .chakra-button[variant="ghost"] {
+  color: var(--chakra-colors-gray-600) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-testid="workout-creator-progress"] .chakra-button[variant="ghost"] {
+    color: var(--chakra-colors-gray-300) !important;
+  }
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
@@ -195,4 +260,119 @@ button.chakra-icon-button[aria-label*="Edit"] svg,
   button {
     background-color: #f9f9f9;
   }
+}
+
+/* Workout Card Text Color Fixes - Override any conflicting rules */
+.chakra-card .chakra-heading,
+.chakra-card .chakra-text,
+.chakra-card h1,
+.chakra-card h2,
+.chakra-card h3,
+.chakra-card h4,
+.chakra-card h5,
+.chakra-card h6,
+.chakra-card p,
+.chakra-card span {
+  color: inherit !important;
+}
+
+/* Light mode workout card text */
+.chakra-ui-light .chakra-card .chakra-text,
+.chakra-ui-light .chakra-card .chakra-heading,
+[data-color-mode="light"] .chakra-card .chakra-text,
+[data-color-mode="light"] .chakra-card .chakra-heading,
+html[data-theme="light"] .chakra-card .chakra-text,
+html[data-theme="light"] .chakra-card .chakra-heading {
+  color: inherit !important;
+}
+
+/* Dark mode workout card text */
+.chakra-ui-dark .chakra-card .chakra-text,
+.chakra-ui-dark .chakra-card .chakra-heading,
+[data-color-mode="dark"] .chakra-card .chakra-text,
+[data-color-mode="dark"] .chakra-card .chakra-heading,
+html[data-theme="dark"] .chakra-card .chakra-text,
+html[data-theme="dark"] .chakra-card .chakra-heading {
+  color: inherit !important;
+}
+
+/* Force workout card content to use theme-aware colors */
+.chakra-card[data-testid*="workout"] .chakra-text,
+.chakra-card[data-testid*="workout"] .chakra-heading,
+[data-testid*="workout-card"] .chakra-text,
+[data-testid*="workout-card"] .chakra-heading,
+.chakra-simple-grid .chakra-card .chakra-text,
+.chakra-simple-grid .chakra-card .chakra-heading {
+  color: inherit !important;
+}
+
+/* Specific overrides for workout card elements */
+.chakra-card .chakra-card-body .chakra-text,
+.chakra-card .chakra-card-body .chakra-heading,
+.chakra-card .chakra-vstack .chakra-text,
+.chakra-card .chakra-vstack .chakra-heading,
+.chakra-card .chakra-hstack .chakra-text,
+.chakra-card .chakra-flex .chakra-text {
+  color: inherit !important;
+}
+
+/* Override any sidebar-specific rules that might affect cards */
+.chakra-simple-grid .chakra-card .chakra-text,
+.chakra-simple-grid .chakra-card .chakra-heading,
+.chakra-container .chakra-card .chakra-text,
+.chakra-container .chakra-card .chakra-heading {
+  color: inherit !important;
+}
+
+/* Very specific workout card text overrides */
+[data-testid="athlete-workouts"] .chakra-card .chakra-text,
+[data-testid="athlete-workouts"] .chakra-card .chakra-heading,
+.chakra-container[maxW="container.xl"] .chakra-card .chakra-text,
+.chakra-container[maxW="container.xl"] .chakra-card .chakra-heading,
+.chakra-simple-grid[columns] .chakra-card .chakra-text,
+.chakra-simple-grid[columns] .chakra-card .chakra-heading {
+  color: inherit !important;
+}
+
+/* Force all text in workout cards to inherit theme colors */
+.chakra-card .chakra-card-body * {
+  color: inherit !important;
+}
+
+/* Ensure workout card titles are visible */
+.chakra-card .chakra-heading[size="lg"],
+.chakra-card .chakra-heading[size="md"],
+.chakra-card .chakra-text[fontSize="md"],
+.chakra-card .chakra-text[fontSize="sm"] {
+  color: inherit !important;
+}
+
+/* Ultra-specific dark mode workout card fixes */
+@media (prefers-color-scheme: dark) {
+  .chakra-card .chakra-heading,
+  .chakra-card .chakra-text,
+  .chakra-card .chakra-card-body .chakra-heading,
+  .chakra-card .chakra-card-body .chakra-text {
+    color: #E2E8F0 !important; /* gray.200 */
+  }
+}
+
+/* Force dark mode colors when dark theme is active */
+[data-theme="dark"] .chakra-card .chakra-heading,
+[data-theme="dark"] .chakra-card .chakra-text,
+.chakra-ui-dark .chakra-card .chakra-heading,
+.chakra-ui-dark .chakra-card .chakra-text,
+[data-color-mode="dark"] .chakra-card .chakra-heading,
+[data-color-mode="dark"] .chakra-card .chakra-text {
+  color: #E2E8F0 !important; /* gray.200 for dark mode */
+}
+
+/* Force light mode colors when light theme is active */
+[data-theme="light"] .chakra-card .chakra-heading,
+[data-theme="light"] .chakra-card .chakra-text,
+.chakra-ui-light .chakra-card .chakra-heading,
+.chakra-ui-light .chakra-card .chakra-text,
+[data-color-mode="light"] .chakra-card .chakra-heading,
+[data-color-mode="light"] .chakra-card .chakra-text {
+  color: #2D3748 !important; /* gray.700 for light mode */
 }

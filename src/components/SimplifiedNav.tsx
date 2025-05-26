@@ -127,19 +127,31 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
           {/* Feedback Button */}
           <Tooltip label="Give Feedback" hasArrow>
             <IconButton
-              icon={<LuMessageCircleMore size="20px" />}
               aria-label="Give Feedback"
               variant="ghost"
               size="sm"
-              sx={iconStyle}
+              sx={{
+                ...iconStyle,
+                _focus: { boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' },
+                _active: { boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' },
+                _hover: { ...iconStyle._hover, boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' },
+              }}
               onClick={showFeedbackModal}
-            />
+              onFocus={e => e.preventDefault()}
+            >
+              <LuMessageCircleMore size="20px" />
+            </IconButton>
           </Tooltip>
           {/* Share Button */}
           <ShareComponent 
             title={shareTitle} 
             description={shareDescription} 
-            iconStyle={iconStyle} 
+            iconStyle={{
+              ...iconStyle,
+              _focus: { boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' },
+              _active: { boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' },
+              _hover: { ...iconStyle._hover, boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' },
+            }} 
           />
           {/* Only show avatar on public pages */}
           {isPublicPage && (
@@ -170,7 +182,10 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
                 <HamburgerIcon boxSize={6} color="gray.600" />
               </MenuButton>
               <MenuList>
-                <MenuItem as={RouterLink} to="/profile">My Profile</MenuItem>
+                <MenuItem as={RouterLink} 
+                  to={profile?.role === 'coach' ? '/coach/profile' : profile?.role === 'athlete' ? '/athlete/profile' : '/profile'}>
+                  My Profile
+                </MenuItem>
                 <MenuItem as={RouterLink} to="/settings">Settings</MenuItem>
                 <MenuItem onClick={showFeedbackModal}>Give Feedback</MenuItem>
                 <MenuItem onClick={signOut}>Sign out</MenuItem>

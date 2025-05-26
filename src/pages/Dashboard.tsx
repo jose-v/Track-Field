@@ -484,7 +484,7 @@ export function Dashboard() {
               </Heading>
             </Skeleton>
             <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
-              <Text color="gray.600">
+              <Text color={useColorModeValue('gray.600', 'gray.200')}>
                 {profile?.role === 'athlete' ? 'Athlete Dashboard' : 'Dashboard'}
               </Text>
             </Skeleton>
@@ -682,7 +682,7 @@ export function Dashboard() {
               <HStack spacing={4} align="center" justify="space-between">
                 <VStack align="start" spacing={1}>
                   <Text fontWeight="bold" fontSize="lg">Track your progress and achievements</Text>
-                  <Text color="gray.600">View your points, badges, streaks, and leaderboard position</Text>
+                  <Text color={useColorModeValue('gray.600', 'gray.200')}>View your points, badges, streaks, and leaderboard position</Text>
                 </VStack>
                 <Button 
                   as={RouterLink} 
@@ -758,16 +758,16 @@ export function Dashboard() {
                     justify="center"
                   >
                     <VStack>
-                      <Text color="gray.500" fontSize="sm">Sets</Text>
+                      <Text color={useColorModeValue('gray.500', 'gray.300')} fontSize="sm">Sets</Text>
                       <Text fontWeight="bold">{execModal.workout.exercises[execModal.exerciseIdx]?.sets}</Text>
                     </VStack>
                     <VStack>
-                      <Text color="gray.500" fontSize="sm">Reps</Text>
+                      <Text color={useColorModeValue('gray.500', 'gray.300')} fontSize="sm">Reps</Text>
                       <Text fontWeight="bold">{execModal.workout.exercises[execModal.exerciseIdx]?.reps}</Text>
                     </VStack>
                     {execModal.workout.exercises[execModal.exerciseIdx]?.weight && (
                       <VStack>
-                        <Text color="gray.500" fontSize="sm">Weight</Text>
+                        <Text color={useColorModeValue('gray.500', 'gray.300')} fontSize="sm">Weight</Text>
                         <Text fontWeight="bold">{execModal.workout.exercises[execModal.exerciseIdx]?.weight} kg</Text>
                       </VStack>
                     )}
@@ -836,7 +836,7 @@ export function Dashboard() {
                     </Button>
                   </HStack>
                   
-                  <Text fontSize="sm" color="gray.500" mt={4} textAlign="center">
+                  <Text fontSize="sm" color={useColorModeValue('gray.500', 'gray.300')} mt={4} textAlign="center">
                     Exercise {execModal.exerciseIdx + 1} of {execModal.workout.exercises.length}
                   </Text>
                 </VStack>

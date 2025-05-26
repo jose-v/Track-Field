@@ -1,5 +1,5 @@
 import {
-  Box, Heading, Text, Spinner, Alert, AlertIcon, Stack, Card, CardBody, Button, Flex, HStack, Progress, Tag, VStack, Divider, Center, Icon, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, IconButton, SimpleGrid, Container, Tooltip, useDisclosure, Tabs, TabList, TabPanels, Tab, TabPanel, useToast
+  Box, Heading, Text, Spinner, Alert, AlertIcon, Stack, Card, CardBody, Button, Flex, HStack, Progress, Tag, VStack, Divider, Center, Icon, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, IconButton, SimpleGrid, Container, Tooltip, useDisclosure, Tabs, TabList, TabPanels, Tab, TabPanel, useToast, useColorModeValue
 } from '@chakra-ui/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link as RouterLink } from 'react-router-dom';
@@ -102,6 +102,11 @@ interface DebugState {
 }
 
 export function AthleteWorkouts() {
+  // Theme-aware colors
+  const noWorkoutsColor = useColorModeValue('gray.500', 'gray.300');
+  const exerciseDetailColor = useColorModeValue('gray.500', 'gray.300');
+  const exerciseCountColor = useColorModeValue('gray.500', 'gray.300');
+  
   const { user } = useAuth();
   const workoutStore = useWorkoutStore();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -345,7 +350,7 @@ export function AthleteWorkouts() {
     if (!workouts || workouts.length === 0) {
       return (
         <Box p={5} borderWidth="1px" borderRadius="lg" shadow="sm" textAlign="center" mt={4}>
-          <Text fontSize="lg" color="gray.500">
+          <Text fontSize="lg" color={noWorkoutsColor}>
             No workouts found.
           </Text>
         </Box>
@@ -750,7 +755,7 @@ export function AthleteWorkouts() {
   };
 
   return (
-    <Container maxW="container.xl" p={4}>
+    <Container maxW="container.xl" p={4} data-testid="athlete-workouts">
       <HStack justify="space-between" mb={6}>
         <Heading size="lg">My Workouts</Heading>
         <IconButton
@@ -808,10 +813,10 @@ export function AthleteWorkouts() {
               <VStack spacing={4} align="center">
                 <Heading size="md">{execModal.workout.exercises[execModal.exerciseIdx].name}</Heading>
                 <HStack spacing={4} p={3} bg="gray.50" w="100%" borderRadius="md" justify="center">
-                  <VStack><Text color="gray.500" fontSize="sm">Sets</Text><Text fontWeight="bold">{execModal.workout.exercises[execModal.exerciseIdx].sets}</Text></VStack>
-                  <VStack><Text color="gray.500" fontSize="sm">Reps</Text><Text fontWeight="bold">{execModal.workout.exercises[execModal.exerciseIdx].reps}</Text></VStack>
+                  <VStack><Text color={exerciseDetailColor} fontSize="sm">Sets</Text><Text fontWeight="bold">{execModal.workout.exercises[execModal.exerciseIdx].sets}</Text></VStack>
+                  <VStack><Text color={exerciseDetailColor} fontSize="sm">Reps</Text><Text fontWeight="bold">{execModal.workout.exercises[execModal.exerciseIdx].reps}</Text></VStack>
                   {execModal.workout.exercises[execModal.exerciseIdx].weight && (
-                    <VStack><Text color="gray.500" fontSize="sm">Weight</Text><Text fontWeight="bold">{execModal.workout.exercises[execModal.exerciseIdx].weight} kg</Text></VStack>
+                    <VStack><Text color={exerciseDetailColor} fontSize="sm">Weight</Text><Text fontWeight="bold">{execModal.workout.exercises[execModal.exerciseIdx].weight} kg</Text></VStack>
                   )}
                 </HStack>
                 <Box bg={execModal.running ? "green.50" : "blue.50"} p={4} borderRadius="full" boxShadow="sm" mb={2}>
@@ -832,7 +837,7 @@ export function AthleteWorkouts() {
                     How to
                   </Button>
                 </HStack>
-                <Text fontSize="sm" color="gray.500" mt={4} textAlign="center">
+                <Text fontSize="sm" color={exerciseCountColor} mt={4} textAlign="center">
                   Exercise {execModal.exerciseIdx + 1} of {execModal.workout.exercises.length}
                 </Text>
               </VStack>

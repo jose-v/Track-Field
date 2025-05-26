@@ -358,6 +358,9 @@ export function CoachDashboard() {
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const athleteItemHoverBg = useColorModeValue('gray.50', 'gray.700');
+  const subtitleColor = useColorModeValue('gray.600', 'gray.200');
+  const eventDateColor = useColorModeValue('gray.500', 'gray.300');
+  const noEventsColor = useColorModeValue('gray.400', 'gray.300');
   const toast = useToast();
   const queryClient = useQueryClient();
   
@@ -419,7 +422,7 @@ export function CoachDashboard() {
       <Flex justify="space-between" align="start" mb={8}>
         <Box>
           <Heading mb={2}>Coach Dashboard</Heading>
-          <Text color="gray.600">
+          <Text color={subtitleColor}>
             Welcome back, Coach {profile?.last_name || ''}!
           </Text>
         </Box>
@@ -531,7 +534,7 @@ export function CoachDashboard() {
                             <Icon as={FaFlagCheckered} color="teal.400" boxSize={3} />
                             <Box>
                               <Text fontSize="sm" fontWeight="medium">{event.name}</Text>
-                              <Text fontSize="xs" color="gray.500">
+                              <Text fontSize="xs" color={eventDateColor}>
                                 {new Date(event.date).toLocaleDateString()} • {event.eventName}
                               </Text>
                             </Box>
@@ -539,7 +542,7 @@ export function CoachDashboard() {
                         ))}
                       </Stack>
                     ) : (
-                      <Text fontSize="sm" color="gray.400" pl={4}>No upcoming events</Text>
+                      <Text fontSize="sm" color={noEventsColor} pl={4}>No upcoming events</Text>
                     )}
                   </Box>
                 ))}

@@ -24,6 +24,7 @@ import {
   Badge,
   Alert,
   AlertIcon,
+  useColorModeValue,
 } from '@chakra-ui/react';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { FaPlus, FaTrash, FaArrowLeft } from 'react-icons/fa';
@@ -91,6 +92,16 @@ export function CreateWorkout() {
     name: '', sets: 1, reps: 1, weight: undefined, rest: undefined, distance: undefined, notes: ''
   });
   const [searchExercise, setSearchExercise] = useState<string>('');
+
+  // Color mode aware styles
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const sectionBg = useColorModeValue('gray.50', 'gray.700');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const dashedBorderColor = useColorModeValue('gray.300', 'gray.600');
+  const mutedText = useColorModeValue('gray.500', 'gray.400');
+  const inputBg = useColorModeValue('white', 'gray.800');
+  const hoverBg = useColorModeValue('blue.50', 'gray.600');
+  const exerciseListText = useColorModeValue('gray.600', 'gray.300');
 
   // Check if we have imported data from the import page
   useEffect(() => {
@@ -309,7 +320,7 @@ export function CreateWorkout() {
         <VStack spacing={8} align="stretch">
           {/* Basic workout details section */}
           <Box
-            bg="white"
+            bg={cardBg}
             p={6}
             borderRadius="lg"
             boxShadow="md"
@@ -382,7 +393,7 @@ export function CreateWorkout() {
 
           {/* Exercises Section */}
           <Box
-            bg="white"
+            bg={cardBg}
             p={6}
             borderRadius="lg"
             boxShadow="md"
@@ -404,6 +415,7 @@ export function CreateWorkout() {
                   borderWidth="1px"
                   borderRadius="md"
                   p={3}
+                  borderColor={borderColor}
                 >
                   {currentExercises.map((ex, index) => (
                     <HStack 
@@ -412,21 +424,22 @@ export function CreateWorkout() {
                       p={3} 
                       borderWidth="1px"
                       borderRadius="md"
-                      _hover={{ bg: "gray.50" }}
+                      borderColor={borderColor}
+                      _hover={{ bg: sectionBg }}
                     >
                       <Box>
                         <HStack mb={1}>
                           <Badge colorScheme="blue">{index + 1}</Badge>
                           <Text fontWeight="bold">{ex.name}</Text>
                         </HStack>
-                        <HStack spacing={4} fontSize="sm" color="gray.600">
+                        <HStack spacing={4} fontSize="sm" color={exerciseListText}>
                           <Text>{ex.sets} sets × {ex.reps} reps</Text>
                           {ex.weight && <Text>{ex.weight} kg</Text>}
                           {ex.distance && <Text>{ex.distance} m</Text>}
                           {ex.rest && <Text>Rest: {ex.rest}s</Text>}
                         </HStack>
                         {ex.notes && (
-                          <Text fontSize="xs" color="gray.500" mt={1} fontStyle="italic">
+                          <Text fontSize="xs" color={mutedText} mt={1} fontStyle="italic">
                             Note: {ex.notes}
                           </Text>
                         )}
@@ -449,12 +462,12 @@ export function CreateWorkout() {
                 borderWidth="1px" 
                 borderRadius="md" 
                 borderStyle="dashed" 
-                borderColor="gray.300" 
-                bg="gray.50" 
+                borderColor={dashedBorderColor} 
+                bg={sectionBg} 
                 textAlign="center"
                 mb={6}
               >
-                <Text color="gray.500">
+                <Text color={mutedText}>
                   No exercises added yet. Use the form below to add exercises to your workout.
                 </Text>
               </Box>
@@ -465,7 +478,8 @@ export function CreateWorkout() {
               borderWidth="1px" 
               borderRadius="md" 
               p={4} 
-              bg="gray.50"
+              bg={sectionBg}
+              borderColor={borderColor}
             >
               <Heading size="sm" mb={4}>Add a New Exercise</Heading>
               
@@ -480,7 +494,7 @@ export function CreateWorkout() {
                       setSearchExercise(value);
                       setCurrentExerciseInput(prev => ({ ...prev, name: value }));
                     }}
-                    bg="white"
+                    bg={inputBg}
                   />
                   {searchExercise && searchExercise.length > 0 && filteredExerciseOptions.length > 0 && (
                     <Box 
@@ -490,13 +504,14 @@ export function CreateWorkout() {
                       maxHeight="200px" 
                       overflowY="auto" 
                       boxShadow="sm"
-                      bg="white"
+                      bg={inputBg}
+                      borderColor={borderColor}
                     >
                       {filteredExerciseOptions.map(opt => (
                         <Box 
                           key={opt} 
                           p={2} 
-                          _hover={{ bg: "blue.50"}} 
+                          _hover={{ bg: hoverBg }} 
                           cursor="pointer" 
                           onClick={() => {
                             setCurrentExerciseInput(prev => ({ ...prev, name: opt }));
@@ -506,7 +521,7 @@ export function CreateWorkout() {
                               setCurrentExerciseInput(prev => ({ ...prev, name: opt }));
                             }, 10);
                           }}
-                          bg={currentExerciseInput.name === opt ? "blue.50" : "white"}
+                          bg={currentExerciseInput.name === opt ? hoverBg : inputBg}
                         >
                           {opt}
                         </Box>
@@ -529,7 +544,7 @@ export function CreateWorkout() {
                         ...prev, 
                         sets: parseInt(e.target.value) || 1 
                       }))}
-                      bg="white"
+                      bg={inputBg}
                     />
                   </FormControl>
                   
@@ -542,7 +557,7 @@ export function CreateWorkout() {
                         ...prev, 
                         reps: parseInt(e.target.value) || 1 
                       }))}
-                      bg="white"
+                      bg={inputBg}
                     />
                   </FormControl>
                 </HStack>
@@ -558,7 +573,7 @@ export function CreateWorkout() {
                         ...prev, 
                         weight: e.target.value ? parseFloat(e.target.value) : undefined 
                       }))}
-                      bg="white"
+                      bg={inputBg}
                     />
                   </FormControl>
                   
@@ -572,7 +587,7 @@ export function CreateWorkout() {
                         ...prev, 
                         rest: e.target.value ? parseInt(e.target.value) : undefined 
                       }))}
-                      bg="white"
+                      bg={inputBg}
                     />
                   </FormControl>
                 </HStack>
@@ -587,7 +602,7 @@ export function CreateWorkout() {
                       ...prev, 
                       distance: e.target.value ? parseFloat(e.target.value) : undefined 
                     }))}
-                    bg="white"
+                    bg={inputBg}
                   />
                 </FormControl>
                 
@@ -601,7 +616,7 @@ export function CreateWorkout() {
                       notes: e.target.value
                     }))}
                     rows={2}
-                    bg="white"
+                    bg={inputBg}
                   />
                 </FormControl>
                 
@@ -622,7 +637,7 @@ export function CreateWorkout() {
 
           {/* Athlete Assignments & Notes Section */}
           <Box
-            bg="white"
+            bg={cardBg}
             p={6}
             borderRadius="lg"
             boxShadow="md"
@@ -650,7 +665,7 @@ export function CreateWorkout() {
                         </Checkbox>
                       ))
                     ) : (
-                      <Text color="gray.500">No athletes available for assignment.</Text>
+                      <Text color={mutedText}>No athletes available for assignment.</Text>
                     )}
                   </Stack>
                 </CheckboxGroup>
@@ -663,6 +678,7 @@ export function CreateWorkout() {
                   onChange={(e) => setNotes(e.target.value)} 
                   placeholder="Overall workout notes, instructions or comments..." 
                   rows={4}
+                  bg={inputBg}
                 />
               </FormControl>
             </VStack>

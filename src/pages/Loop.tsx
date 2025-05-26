@@ -11,20 +11,32 @@ import {
   Avatar,
   AvatarGroup,
   Text,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  useDisclosure,
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import FeedPost from '../components/loop/FeedPost';
 import CreatePostModal from '../components/loop/CreatePostModal';
+import PostModal from '../components/loop/PostModal';
 import { FaPlus, FaImage, FaVideo, FaGlobe } from 'react-icons/fa';
 import '../styles/Loop.css';
 
-// Global style to hide footer - more aggressive approach
+// Global style to hide footer - more specific approach to avoid modal footers
 const hideFooter = () => {
-  const footerElements = document.querySelectorAll('footer, .footer, .chakra-ui .footer, .chakra-ui footer, [class*="footer"]');
+  // Only target page footers, not modal footers
+  const footerElements = document.querySelectorAll('footer:not(.chakra-modal *), .footer:not(.chakra-modal *), .page-footer, [data-testid="page-footer"]');
   footerElements.forEach(el => {
     if (el instanceof HTMLElement) {
-      el.style.display = 'none';
+      // Additional check to make sure we're not hiding modal footers
+      const isInsideModal = el.closest('.chakra-modal, [role="dialog"], .modal');
+      if (!isInsideModal) {
+        el.style.display = 'none';
+      }
     }
   });
 };
@@ -47,6 +59,7 @@ interface Post {
     avatar_url: string;
   };
   post_type: 'text' | 'image' | 'video';
+  previewComments?: any[];
 }
 
 interface TeamMember {
@@ -67,10 +80,19 @@ const Loop: React.FC = () => {
   const toast = useToast();
   const navigate = useNavigate();
   
+  // Add state for pagination
+  const PAGE_SIZE = 10;
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [isPostModalOpen, setIsPostModalOpen] = useState(false);
+  const { isOpen: isTestOpen, onOpen: onTestOpen, onClose: onTestClose } = useDisclosure();
+  
   useEffect(() => {
     // Hide footer when component mounts
     hideFooter();
-    
     const fetchCurrentUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -79,11 +101,8 @@ const Loop: React.FC = () => {
       }
       setUser(user);
     };
-    
     fetchCurrentUser();
-    fetchPosts();
     fetchTeamMembers();
-    
     // Cleanup function to run when component unmounts
     return () => {
       // Restore footer visibility logic would go here if needed
@@ -107,59 +126,69 @@ const Loop: React.FC = () => {
     }
   };
   
-  const fetchPosts = async () => {
-    setIsLoading(true);
+  const fetchPosts = async (pageToFetch = 0, append = false) => {
+    if (isFetchingMore) return;
+    setIsFetchingMore(true);
+    if (!append) setIsLoading(true);
     try {
-      // Step 1: Get posts with filter if needed
+      let from = pageToFetch * PAGE_SIZE;
+      let to = from + PAGE_SIZE - 1;
+      // 1. Fetch posts with author profile in a single query
       let postsQuery = supabase
         .from('loop_posts')
-        .select('id, user_id, content, media_urls, created_at, updated_at, likes, comments_count, post_type')
+        .select(`
+          *,
+          user:profiles!loop_posts_user_id_fkey (id, first_name, last_name, avatar_url)
+        `)
         .order('created_at', { ascending: false })
-        .limit(20);
-      
+        .range(from, to);
       if (activeFilter !== 'all') {
         postsQuery = postsQuery.eq('post_type', activeFilter);
       }
-      
       const { data: postsData, error: postsError } = await postsQuery;
-      
       if (postsError) throw postsError;
-      
       if (!postsData || postsData.length === 0) {
-        setPosts([]);
+        if (append) setHasMore(false);
+        if (!append) setPosts([]);
         setIsLoading(false);
+        setIsFetchingMore(false);
         return;
       }
-      
-      // Step 2: Get user details for each post
-      const userIds = postsData.map(post => post.user_id);
-      const { data: usersData, error: usersError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url')
-        .in('id', userIds)
-        .limit(50);
-      
-      if (usersError) throw usersError;
-      
-      // Step 3: Combine posts with user data
-      const postsWithUsers = postsData.map(post => {
-        const user = usersData?.find(u => u.id === post.user_id) || {
-          first_name: 'Unknown',
-          last_name: 'User',
-          avatar_url: null
-        };
-        
+      // 2. Fetch latest 2 comments for all post IDs in one query (with commenter profile)
+      const postIds = postsData.map(post => post.id);
+      const { data: commentsData, error: commentsError } = await supabase
+        .from('loop_comments')
+        .select(`
+          *,
+          user:profiles!loop_comments_user_id_fkey (id, first_name, last_name, avatar_url)
+        `)
+        .in('post_id', postIds)
+        .order('created_at', { ascending: false });
+      if (commentsError) throw commentsError;
+      // Group and limit comments per post
+      const commentsByPost = {};
+      if (commentsData) {
+        for (const comment of commentsData) {
+          if (!commentsByPost[comment.post_id]) commentsByPost[comment.post_id] = [];
+          if (commentsByPost[comment.post_id].length < 2) {
+            commentsByPost[comment.post_id].push(comment);
+          }
+        }
+      }
+      // Merge comments into posts
+      const postsWithUsersAndComments = postsData.map(post => {
         return {
           ...post,
-          user: {
-            first_name: user.first_name,
-            last_name: user.last_name,
-            avatar_url: user.avatar_url
-          }
+          user: post.user || { first_name: 'Unknown', last_name: 'User', avatar_url: null },
+          previewComments: (commentsByPost[post.id] || []).reverse() // show oldest first
         };
       });
-      
-      setPosts(postsWithUsers);
+      if (append) {
+        setPosts(prev => [...prev, ...postsWithUsersAndComments]);
+      } else {
+        setPosts(postsWithUsersAndComments);
+      }
+      setHasMore(postsData.length === PAGE_SIZE);
     } catch (error) {
       console.error('Error fetching posts:', error);
       toast({
@@ -171,6 +200,7 @@ const Loop: React.FC = () => {
       });
     } finally {
       setIsLoading(false);
+      setIsFetchingMore(false);
     }
   };
   
@@ -208,6 +238,45 @@ const Loop: React.FC = () => {
       });
     }
   };
+
+  // Add this function to update comments_count in local state
+  const handleCommentAdded = (postId: string) => {
+    setPosts((prevPosts) =>
+      prevPosts.map((post) =>
+        post.id === postId
+          ? { ...post, comments_count: (post.comments_count || 0) + 1 }
+          : post
+      )
+    );
+  };
+
+  // Add scroll event listener for infinite scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!hasMore || isLoading || isFetchingMore) return;
+      const scrollY = window.scrollY || window.pageYOffset;
+      const viewportHeight = window.innerHeight;
+      const fullHeight = document.documentElement.scrollHeight;
+      // If user is within 200px of the bottom, load more
+      if (scrollY + viewportHeight >= fullHeight - 200) {
+        setPage(prevPage => {
+          const nextPage = prevPage + 1;
+          fetchPosts(nextPage, true);
+          return nextPage;
+        });
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [hasMore, isLoading, isFetchingMore, activeFilter]);
+
+  // Reset posts and pagination when filter changes
+  useEffect(() => {
+    setPage(0);
+    setHasMore(true);
+    fetchPosts(0, false);
+    // eslint-disable-next-line
+  }, [activeFilter]);
 
   // Render content based on active tab
   const renderTabContent = () => {
@@ -249,7 +318,12 @@ const Loop: React.FC = () => {
               key={post.id} 
               post={post} 
               currentUser={user}
-              onCommentAdded={fetchPosts}
+              onCommentAdded={() => handleCommentAdded(post.id)}
+              previewComments={post.previewComments}
+              onOpenModal={() => {
+                setSelectedPost(post);
+                setIsPostModalOpen(true);
+              }}
             />
           ))}
         </div>
@@ -266,7 +340,12 @@ const Loop: React.FC = () => {
                 key={post.id} 
                 post={post} 
                 currentUser={user}
-                onCommentAdded={fetchPosts}
+                onCommentAdded={() => handleCommentAdded(post.id)}
+                previewComments={post.previewComments}
+                onOpenModal={() => {
+                  setSelectedPost(post);
+                  setIsPostModalOpen(true);
+                }}
               />
             ))}
         </div>
@@ -353,6 +432,8 @@ const Loop: React.FC = () => {
         <div className="loop-tab-content">
           {renderTabContent()}
         </div>
+        {/* Add a button to open the test modal for debugging */}
+        <Button colorScheme="pink" onClick={onTestOpen} mb={4}>Open Test Modal</Button>
       </div>
       <CreatePostModal
         isOpen={isCreatePostOpen}
@@ -360,6 +441,26 @@ const Loop: React.FC = () => {
         onCreatePost={handleCreatePost}
         currentUser={user}
       />
+      {/* Only render PostModal when open and a post is selected */}
+      {isPostModalOpen && selectedPost && (
+        <PostModal
+          isOpen={true}
+          onClose={() => setIsPostModalOpen(false)}
+          post={selectedPost}
+          currentUser={user}
+        />
+      )}
+      {/* Minimal test modal for debugging flicker */}
+      {isTestOpen && (
+        <Modal isOpen={isTestOpen} onClose={onTestClose} isCentered>
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader>Test Modal</ModalHeader>
+            <ModalBody>Test content</ModalBody>
+            <Box p={4}><Button onClick={onTestClose}>Close</Button></Box>
+          </ModalContent>
+        </Modal>
+      )}
     </div>
   );
 };

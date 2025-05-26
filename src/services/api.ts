@@ -479,7 +479,7 @@ export const api = {
                   specialties: [],
                   certifications: [],
                   gender: null,
-                  birth_date: null,
+                  date_of_birth: null,
                   events: []
                 });
                 
@@ -494,20 +494,19 @@ export const api = {
           }
           
           // Prepare coach data with explicit type checking
-          const coachData = {
-            specialties: Array.isArray(roleData.specialties) ? roleData.specialties : [],
-            certifications: Array.isArray(roleData.certifications) ? roleData.certifications : [],
+          const updateData = {
             gender: roleData.gender,
-            birth_date: roleData.birth_date,
-            events: Array.isArray(roleData.events) ? roleData.events : []
+            date_of_birth: roleData.date_of_birth || roleData.dob,
+            events: Array.isArray(roleData.events) ? roleData.events : [],
+            specialties: Array.isArray(roleData.specialties) ? roleData.specialties : [],
+            certifications: Array.isArray(roleData.certifications) ? roleData.certifications : []
           };
-          
-          console.log('Prepared coach data for update:', coachData);
+          console.log('Final coach updateData payload:', updateData);
           
           // Update the coach record
           const { data, error } = await supabase
             .from('coaches')
-            .update(coachData)
+            .update(updateData)
             .eq('id', user.id)
           
           if (error) {
@@ -570,13 +569,12 @@ export const api = {
       // Ensure we have the correct data format
       const updateData = {
         gender: coachData.gender,
-        birth_date: coachData.birth_date || coachData.dob,
+        date_of_birth: coachData.date_of_birth || coachData.dob,
         events: Array.isArray(coachData.events) ? coachData.events : [],
         specialties: Array.isArray(coachData.specialties) ? coachData.specialties : [],
         certifications: Array.isArray(coachData.certifications) ? coachData.certifications : []
       };
-      
-      console.log('Prepared coach data for direct update:', updateData);
+      console.log('Final coach updateData payload:', updateData);
       
       // Maximum retry attempts
       const maxRetries = 3;
@@ -686,7 +684,7 @@ export const api = {
       // Ensure we have the correct data format
       const updateData = {
         gender: athleteData.gender,
-        birth_date: athleteData.birth_date || athleteData.dob,
+        date_of_birth: athleteData.date_of_birth || athleteData.dob,
         events: Array.isArray(athleteData.events) ? athleteData.events : []
       };
       
@@ -960,13 +958,12 @@ export const api = {
       // Ensure we have the correct data format
       const updateData = {
         gender: coachData.gender,
-        birth_date: coachData.birth_date || coachData.dob,
+        date_of_birth: coachData.date_of_birth || coachData.dob,
         events: Array.isArray(coachData.events) ? coachData.events : [],
         specialties: Array.isArray(coachData.specialties) ? coachData.specialties : [],
         certifications: Array.isArray(coachData.certifications) ? coachData.certifications : []
       };
-      
-      console.log('Prepared coach data for direct update:', updateData);
+      console.log('Final coach updateData payload:', updateData);
       
       // Maximum retry attempts
       const maxRetries = 3;

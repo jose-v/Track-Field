@@ -10,15 +10,17 @@ import {
   useColorModeValue,
   Tooltip,
   Avatar,
-  Badge
+  Badge,
+  HStack
 } from '@chakra-ui/react';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
-import { FaChevronLeft, FaChevronRight, FaUsers, FaVideo, FaBook, FaCalendarAlt, FaBell, FaUserAlt, FaHome } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight, FaUsers, FaVideo, FaBook, FaCalendarAlt, FaBell, FaUserAlt, FaHome, FaDumbbell } from 'react-icons/fa';
 import { BiLineChart } from 'react-icons/bi';
 import { BsCalendarCheck } from 'react-icons/bs';
 import { MdLoop, MdRestaurantMenu, MdOutlineBedtime, MdOutlineReport, MdOutlineForum } from 'react-icons/md';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../hooks/useProfile';
+import { ThemeToggle } from './ThemeToggle';
 
 interface NavItemProps {
   icon: React.ElementType;
@@ -33,7 +35,7 @@ const NavItem = ({ icon, label, to, isActive, isCollapsed, badge }: NavItemProps
   const activeBg = useColorModeValue('blue.50', 'blue.900');
   const hoverBg = useColorModeValue('gray.100', 'gray.700');
   const activeColor = useColorModeValue('blue.600', 'blue.200');
-  const color = useColorModeValue('gray.700', 'gray.200');
+  const color = '#898989';
   
   return (
     <Tooltip label={isCollapsed ? label : ''} placement="right" hasArrow isDisabled={!isCollapsed}>
@@ -74,7 +76,7 @@ const NavItem = ({ icon, label, to, isActive, isCollapsed, badge }: NavItemProps
           <Flex justify="space-between" width="100%" align="center">
             <Text fontSize="sm">{label}</Text>
             {badge && (
-              <Badge colorScheme="green" borderRadius="full" px={2} py={0.5} fontSize="xs">
+              <Badge colorScheme="orange" borderRadius="full" px={2} py={0.5} fontSize="xs">
                 {badge}
               </Badge>
             )}
@@ -99,21 +101,29 @@ const Sidebar = ({ userType }: SidebarProps) => {
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   
   // Define navigation items based on user type (coach or athlete)
-  const navItems = userType === 'coach' 
+  const navItems: Array<{
+    icon: React.ElementType;
+    label: string;
+    to: string;
+    badge?: string;
+  }> = userType === 'coach' 
     ? [
         { icon: FaHome, label: 'HOME', to: '/' },
         { icon: BiLineChart, label: 'DASHBOARD', to: '/coach/dashboard' },
         { icon: FaUsers, label: 'ATHLETES', to: '/coach/athletes' },
         { icon: BsCalendarCheck, label: 'WORKOUTS', to: '/coach/workouts' },
+        { icon: FaDumbbell, label: 'WORKOUT CREATOR', to: '/coach/workout-creator-demo', badge: 'BETA' },
         { icon: FaCalendarAlt, label: 'CALENDAR', to: '/coach/calendar' },
         { icon: MdOutlineReport, label: 'REPORTS', to: '/coach/stats' },
         { icon: MdOutlineForum, label: 'LOOP', to: '/coach/loop' },
         { icon: FaBell, label: 'NOTIFICATIONS', to: '/coach/notifications' },
+        { icon: FaUserAlt, label: 'PROFILE', to: '/coach/profile' },
       ]
     : [
         { icon: FaHome, label: 'HOME', to: '/' },
         { icon: BiLineChart, label: 'DASHBOARD', to: '/athlete/dashboard' },
         { icon: BsCalendarCheck, label: 'MY WORKOUTS', to: '/athlete/workouts' },
+        { icon: FaDumbbell, label: 'WORKOUT CREATOR', to: '/athlete/workout-creator-demo', badge: 'BETA' },
         { icon: FaCalendarAlt, label: 'EVENTS', to: '/athlete/events' },
         { icon: FaCalendarAlt, label: 'CALENDAR', to: '/athlete/calendar' },
         { icon: MdRestaurantMenu, label: 'NUTRITION', to: '/athlete/nutrition' },
@@ -184,7 +194,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
           />
           
           {!isCollapsed && (
-            <Text fontSize="sm" fontWeight="bold" color="gray.600" mt={2} textTransform="uppercase">{roleName}</Text>
+            <Text fontSize="sm" fontWeight="bold" color="#898989" mt={2} textTransform="uppercase">{roleName}</Text>
           )}
         </Flex>
         
@@ -203,6 +213,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
                 to={item.to}
                 isActive={isActive}
                 isCollapsed={isCollapsed}
+                badge={item.badge}
               />
             );
           })}
@@ -210,16 +221,21 @@ const Sidebar = ({ userType }: SidebarProps) => {
         
         {/* Collapse/Expand Button */}
         <Box p={4} borderTop="1px" borderColor={borderColor}>
-          <Button 
-            leftIcon={<Icon as={isCollapsed ? FaChevronRight : FaChevronLeft} />}
-            size="sm"
-            variant="ghost"
-            width="100%"
-            justifyContent={isCollapsed ? "center" : "flex-start"}
-            onClick={() => setIsCollapsed(!isCollapsed)}
-          >
-            {!isCollapsed && "HIDE MENU"}
-          </Button>
+          <HStack justify="space-between" w="100%">
+            <Button 
+              leftIcon={<Icon as={isCollapsed ? FaChevronRight : FaChevronLeft} />}
+              size="sm"
+              variant="ghost"
+              flex="1"
+              justifyContent={isCollapsed ? "center" : "flex-start"}
+              onClick={() => setIsCollapsed(!isCollapsed)}
+            >
+              {!isCollapsed && "HIDE MENU"}
+            </Button>
+            
+            {/* Theme Toggle */}
+            <ThemeToggle size="sm" />
+          </HStack>
         </Box>
       </VStack>
     </Box>

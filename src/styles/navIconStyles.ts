@@ -3,9 +3,9 @@
  * These styles are used for icons in the navigation bar to ensure consistent appearance
  */
 
-// Dark gray color for all navigation icons
+// Lighter gray color for all navigation icons
 export const navIconStyle = {
-  color: 'gray.600', // Dark gray color
+  color: '#898989', // Updated to lighter gray
   bg: 'transparent',
   border: 'none',
   outline: 'none',

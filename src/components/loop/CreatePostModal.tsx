@@ -302,7 +302,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({
         </ModalBody>
         
         <Divider borderColor={borderColor} />
-        <ModalFooter>
+        <Box pt={4} mb={2} width="100%" px={4} display="flex" justifyContent="flex-end">
           <Button
             variant="ghost"
             mr={3}
@@ -320,7 +320,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({
           >
             Post
           </Button>
-        </ModalFooter>
+        </Box>
       </ModalContent>
     </Modal>
   );

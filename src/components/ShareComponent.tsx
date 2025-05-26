@@ -171,13 +171,15 @@ export function ShareComponent({
       <Box position="relative">
         <Tooltip label="Share App" hasArrow>
           <IconButton
-            icon={<LuShare size="24px" />}
             aria-label="Share App"
             variant="ghost"
             size="md"
             sx={finalIconStyle}
             onClick={onOpen}
-          />
+            onFocus={e => e.preventDefault()}
+          >
+            <LuShare size="24px" />
+          </IconButton>
         </Tooltip>
       </Box>
 
@@ -317,10 +319,13 @@ export function ShareComponent({
               </Flex>
             </VStack>
           </ModalBody>
-          <ModalFooter>
+          <Box pt={4} mb={6} width="100%" px={4}>
             <Button 
               colorScheme="blue" 
               onClick={handleClose}
+              width="100%"
+              height="40px"
+              borderRadius="md"
               sx={{
                 _focus: {
                   outline: "none",
@@ -330,7 +335,7 @@ export function ShareComponent({
             >
               Close
             </Button>
-          </ModalFooter>
+          </Box>
         </ModalContent>
       </Modal>
     </>

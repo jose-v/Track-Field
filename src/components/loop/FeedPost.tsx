@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Flex,
@@ -47,6 +47,8 @@ interface FeedPostProps {
   post: Post;
   currentUser: any;
   onCommentAdded: () => void;
+  previewComments?: Comment[];
+  onOpenModal?: () => void;
 }
 
 interface Comment {
@@ -58,9 +60,10 @@ interface Comment {
   user: PostUser;
 }
 
-const FeedPost: React.FC<FeedPostProps> = ({ post, currentUser, onCommentAdded }) => {
+const FeedPost: React.FC<FeedPostProps> = ({ post, currentUser, onCommentAdded, previewComments = [], onOpenModal }) => {
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [likesCount, setLikesCount] = useState(post.likes || 0);
   const [comments, setComments] = useState<Comment[]>([]);
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState('');
@@ -74,9 +77,58 @@ const FeedPost: React.FC<FeedPostProps> = ({ post, currentUser, onCommentAdded }
   
   const formattedDate = format(new Date(post.created_at), 'MMM d, yyyy • h:mm a');
   
-  const handleLike = () => {
-    setLiked(!liked);
-    // Would need to update the backend here
+  // Check if the current user has liked this post on mount
+  useEffect(() => {
+    const fetchLikeState = async () => {
+      if (!currentUser) return;
+      const { data, error } = await supabase
+        .from('loop_likes')
+        .select('id')
+        .eq('post_id', post.id)
+        .eq('user_id', currentUser.id)
+        .single();
+      setLiked(!!data);
+    };
+    fetchLikeState();
+  }, [currentUser, post.id]);
+  
+  const handleLike = async () => {
+    if (!currentUser) return;
+    if (!liked) {
+      // Like the post
+      setLiked(true);
+      setLikesCount((c) => c + 1);
+      const { error } = await supabase
+        .from('loop_likes')
+        .insert({ post_id: post.id, user_id: currentUser.id });
+      if (!error) {
+        await supabase
+          .from('loop_posts')
+          .update({ likes: likesCount + 1 })
+          .eq('id', post.id);
+      } else {
+        setLiked(false);
+        setLikesCount((c) => c - 1);
+      }
+    } else {
+      // Unlike the post
+      setLiked(false);
+      setLikesCount((c) => Math.max(0, c - 1));
+      const { error } = await supabase
+        .from('loop_likes')
+        .delete()
+        .eq('post_id', post.id)
+        .eq('user_id', currentUser.id);
+      if (!error) {
+        await supabase
+          .from('loop_posts')
+          .update({ likes: Math.max(0, likesCount - 1) })
+          .eq('id', post.id);
+      } else {
+        setLiked(true);
+        setLikesCount((c) => c + 1);
+      }
+    }
   };
   
   const handleSave = () => {
@@ -288,6 +340,60 @@ const FeedPost: React.FC<FeedPostProps> = ({ post, currentUser, onCommentAdded }
       )}
       
       <Box p={4}>
+        {/* Comment count link under image/content */}
+        <Box mb={2}>
+          {post.comments_count > 0 && (
+            <Text
+              color="gray.500"
+              fontSize="sm"
+              fontWeight="medium"
+              cursor="pointer"
+              mb={1}
+              onClick={onOpenModal}
+              _hover={{ textDecoration: 'underline' }}
+            >
+              {post.comments_count} comment{post.comments_count !== 1 ? 's' : ''}
+            </Text>
+          )}
+        </Box>
+        {/* Preview comments when collapsed */}
+        {!showComments && previewComments && previewComments.length > 0 && (
+          <VStack spacing={2} align="stretch" mb={2}>
+            {previewComments.map((comment) => (
+              <Box key={comment.id} pl={4} borderLeft="2px" borderColor="blue.100">
+                <Flex align="center" mb={1}>
+                  <Avatar 
+                    src={comment.user.avatar_url || 'https://via.placeholder.com/30'} 
+                    name={`${comment.user.first_name} ${comment.user.last_name}`}
+                    size="sm" 
+                    mr={2} 
+                  />
+                  <Box>
+                    <Text fontWeight="bold" fontSize="sm">
+                      {comment.user.first_name} {comment.user.last_name}
+                    </Text>
+                    <Text fontSize="xs" color="gray.500">
+                      {format(new Date(comment.created_at), 'MMM d, yyyy • h:mm a')}
+                    </Text>
+                  </Box>
+                </Flex>
+                <Text pl={10}>{comment.content}</Text>
+              </Box>
+            ))}
+            {post.comments_count > previewComments.length && (
+              <Button
+                variant="link"
+                colorScheme="blue"
+                size="sm"
+                alignSelf="flex-start"
+                onClick={toggleComments}
+                pl={4}
+              >
+                View all {post.comments_count} comments
+              </Button>
+            )}
+          </VStack>
+        )}
         <Flex justify="space-between" mb={4}>
           <Flex align="center">
             <Button 
@@ -298,7 +404,7 @@ const FeedPost: React.FC<FeedPostProps> = ({ post, currentUser, onCommentAdded }
               onClick={handleLike}
               mr={2}
             >
-              {post.likes || 0}
+              {likesCount}
             </Button>
             
             <Button 

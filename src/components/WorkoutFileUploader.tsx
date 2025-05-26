@@ -66,6 +66,8 @@ export function WorkoutFileUploader({ onFileProcessed }: WorkoutFileUploaderProp
   const activeBgColor = useColorModeValue('blue.50', 'blue.900');
   const borderColor = useColorModeValue('gray.300', 'gray.600');
   const activeBorderColor = useColorModeValue('blue.400', 'blue.400');
+  const textColor = useColorModeValue('gray.500', 'gray.300');
+  const iconColor = useColorModeValue('gray.500', 'gray.300');
 
   // Handle drag events
   const handleDrag = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -287,13 +289,13 @@ export function WorkoutFileUploader({ onFileProcessed }: WorkoutFileUploaderProp
               <Text fontWeight="medium">
                 Drag & drop your workout file here, or click to browse
               </Text>
-              <Text fontSize="sm" color="gray.500">
+              <Text fontSize="sm" color={textColor}>
                 Supported formats: PDF, Word (DOC, DOCX), Text
               </Text>
               <HStack spacing={2}>
                 <Icon as={FaFilePdf} color="red.500" />
                 <Icon as={FaFileWord} color="blue.500" />
-                <Icon as={FaFileAlt} color="gray.500" />
+                <Icon as={FaFileAlt} color={iconColor} />
               </HStack>
               
               <Input
@@ -325,7 +327,7 @@ export function WorkoutFileUploader({ onFileProcessed }: WorkoutFileUploaderProp
                     <Text fontWeight="medium" noOfLines={1} maxWidth="200px">
                       {uploadedFile.file.name}
                     </Text>
-                    <Text fontSize="xs" color="gray.500">
+                    <Text fontSize="xs" color={textColor}>
                       {(uploadedFile.file.size / 1024 / 1024).toFixed(2)} MB
                     </Text>
                   </Box>

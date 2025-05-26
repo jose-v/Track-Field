@@ -6,7 +6,7 @@ import {
   Accordion, AccordionItem, AccordionButton, AccordionPanel, AccordionIcon,
   Alert, AlertIcon, AlertTitle, AlertDescription,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton,
-  List, ListItem, Center
+  List, ListItem, Center, useColorModeValue
 } from '@chakra-ui/react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { FaPlus, FaTrash, FaArrowLeft, FaSave, FaSync, FaCheck } from 'react-icons/fa';
@@ -70,6 +70,14 @@ export function EditWorkout() {
   
   // Check if user is accessing from athlete route
   const isAthleteRoute = location.pathname.startsWith('/athlete/');
+  
+  // Add color mode aware styles
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const inputBg = useColorModeValue('white', 'gray.700');
+  const tableHeaderColor = useColorModeValue('gray.600', 'gray.300');
+  const tableBg = useColorModeValue('gray.50', 'gray.700');
+  const alertBg = useColorModeValue('blue.50', 'gray.700');
   
   // Fetch the workout data on component mount
   useEffect(() => {
@@ -528,7 +536,7 @@ export function EditWorkout() {
       
       <VStack spacing={8} align="stretch">
         {/* Basic Workout Information */}
-        <Box p={6} borderWidth="1px" borderRadius="lg" bg="white">
+        <Box p={6} borderWidth="1px" borderRadius="lg" bg={cardBg} borderColor={borderColor}>
           <Heading size="md" mb={4}>Workout Information</Heading>
           <VStack spacing={4}>
             <FormControl isRequired>
@@ -606,7 +614,7 @@ export function EditWorkout() {
         </Box>
         
         {/* Exercises */}
-        <Box p={6} borderWidth="1px" borderRadius="lg" bg="white">
+        <Box p={6} borderWidth="1px" borderRadius="lg" bg={cardBg} borderColor={borderColor}>
           <Flex justify="space-between" align="center" mb={4}>
             <Heading size="md">Exercises</Heading>
             <Button 
@@ -637,15 +645,15 @@ export function EditWorkout() {
             <Table variant="simple">
               <Thead>
                 <Tr>
-                  <Th>Name</Th>
-                  <Th isNumeric>Sets</Th>
-                  <Th isNumeric>Reps</Th>
-                  <Th isNumeric>Weight</Th>
-                  <Th>Notes</Th>
-                  <Th>Actions</Th>
+                  <Th color={tableHeaderColor}>Name</Th>
+                  <Th isNumeric color={tableHeaderColor}>Sets</Th>
+                  <Th isNumeric color={tableHeaderColor}>Reps</Th>
+                  <Th isNumeric color={tableHeaderColor}>Weight</Th>
+                  <Th color={tableHeaderColor}>Notes</Th>
+                  <Th color={tableHeaderColor}>Actions</Th>
                 </Tr>
               </Thead>
-              <Tbody>
+              <Tbody bg={tableBg}>
                 {exercises.map((exercise, index) => (
                   <Tr key={index}>
                     <Td>{exercise.name}</Td>
@@ -678,7 +686,7 @@ export function EditWorkout() {
         </Box>
         
         {/* Assigned Athletes */}
-        <Box p={6} borderWidth="1px" borderRadius="lg" bg="white">
+        <Box p={6} borderWidth="1px" borderRadius="lg" bg={cardBg} borderColor={borderColor}>
           <Heading size="md" mb={4}>Assigned Athletes</Heading>
           
           <Accordion allowMultiple defaultIndex={[0]} mb={4}>
@@ -703,12 +711,12 @@ export function EditWorkout() {
                   <Table variant="simple" size="sm">
                     <Thead>
                       <Tr>
-                        <Th>Athlete</Th>
-                        <Th>Status</Th>
-                        <Th>Progress</Th>
+                        <Th color={tableHeaderColor}>Athlete</Th>
+                        <Th color={tableHeaderColor}>Status</Th>
+                        <Th color={tableHeaderColor}>Progress</Th>
                       </Tr>
                     </Thead>
-                    <Tbody>
+                    <Tbody bg={tableBg}>
                       {assignments.map((assignment, index) => {
                         const totalExercises = workout?.exercises?.length || 0;
                         const completedCount = getEstimatedCompletion(assignment, totalExercises);
@@ -775,7 +783,7 @@ export function EditWorkout() {
       {/* Exercise Modal */}
       <Modal isOpen={showExerciseModal} onClose={() => setShowExerciseModal(false)} size="xl">
         <ModalOverlay />
-        <ModalContent>
+        <ModalContent bg={cardBg}>
           <ModalHeader>{currentExerciseIndex !== null ? 'Edit Exercise' : 'Select Exercise from Database'}</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
@@ -797,7 +805,7 @@ export function EditWorkout() {
                     <Spinner />
                   </Center>
                 ) : dbExercises.length === 0 ? (
-                  <Alert status="info">
+                  <Alert status="info" bg={alertBg}>
                     <AlertIcon />
                     <Text>No exercises found in the database.</Text>
                   </Alert>

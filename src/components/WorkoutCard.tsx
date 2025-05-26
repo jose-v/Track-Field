@@ -85,7 +85,10 @@ export function WorkoutCard({
   const typeColor = `${typeColorBase}.500`; // Use the 500 variant for stronger color
   const typeName = getTypeName(workout.type);
   const cardBg = useColorModeValue('white', 'gray.800');
-  const infoColor = useColorModeValue('gray.600', 'gray.400');
+  const infoColor = useColorModeValue('gray.600', 'gray.200');
+  const loadingTextColor = useColorModeValue('gray.500', 'gray.300');
+  const titleColor = useColorModeValue('gray.800', 'gray.100');
+  const exerciseTextColor = useColorModeValue('gray.700', 'gray.200');
   
   // Get formatted date
   const formattedScheduleDate = formatDate(workout.date);
@@ -199,7 +202,7 @@ export function WorkoutCard({
         <VStack align="start" spacing={4} height="100%" justify="space-between">
           <VStack align="start" spacing={4} width="100%">
             {/* Title */}
-            <Heading size="lg" mt={1} noOfLines={1}>{workout.name}</Heading>
+            <Heading size="lg" mt={1} noOfLines={1} color={titleColor}>{workout.name}</Heading>
             
             {/* Date and time */}
             <HStack spacing={4} fontSize="md" color={infoColor} width="100%">
@@ -235,19 +238,19 @@ export function WorkoutCard({
             <Box width="100%" py={2}>
               <Flex align="center" mb={2}>
                 <Icon as={FaTasks} mr={2} color={typeColor} boxSize={4} />
-                <Text fontSize="md" fontWeight="medium">
+                <Text fontSize="md" fontWeight="medium" color={exerciseTextColor}>
                   Exercises: {workout.exercises?.length || 0}
                 </Text>
               </Flex>
               {workout.exercises && workout.exercises.length > 0 && (
                 <Box maxH="100px" overflowY="auto" fontSize="sm" color={infoColor} pl={6}>
                   {workout.exercises.slice(0, 3).map((ex, idx) => (
-                    <Text key={idx} noOfLines={1} mb={1}>
+                    <Text key={idx} noOfLines={1} mb={1} color={exerciseTextColor}>
                       • {ex.name} ({ex.sets}×{ex.reps})
                     </Text>
                   ))}
                   {workout.exercises.length > 3 && (
-                    <Text fontStyle="italic">+{workout.exercises.length - 3} more...</Text>
+                    <Text fontStyle="italic" color={exerciseTextColor}>+{workout.exercises.length - 3} more...</Text>
                   )}
                 </Box>
               )}
@@ -316,7 +319,7 @@ export function WorkoutCard({
                   />
                   
                   {statsLoading && (
-                    <Text fontSize="xs" color="gray.500" mt={1}>
+                    <Text fontSize="xs" color={loadingTextColor} mt={1}>
                       Updating progress...
                     </Text>
                   )}

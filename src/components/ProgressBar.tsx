@@ -112,13 +112,12 @@ export function ProgressBar({
   const isComplete = completed === total && total > 0;
   
   // We'll use our theme colors directly for styling
-  const progressColor = isComplete 
-    ? theme.colors.success
-    : colorScheme === "green" 
-      ? theme.colors.success 
-      : colorScheme === "blue" 
-        ? "#3182CE" // Standard blue color 
-        : theme.colors.primary[500]; // Default to primary
+  const progressColor =
+    isComplete || colorScheme === "green"
+      ? theme.colors?.green?.[500] || "#38A169"
+      : colorScheme === "blue"
+        ? "#3182CE"
+        : theme.colors?.primary?.[500] || "#3182CE";
   
   // Default text color if not specified
   const defaultTextColor = useColorModeValue("gray.600", "gray.400");

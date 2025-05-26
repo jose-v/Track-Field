@@ -116,11 +116,11 @@ export function ButtonStyleFixer() {
     const observer = setupObserver();
     
     // Also set a periodic check for good measure
-    const interval = setInterval(fixButtonStyles, 1000);
+    // const interval = setInterval(fixButtonStyles, 1000); // TEMPORARILY DISABLED - CAUSES MODAL FOOTER TO DISAPPEAR
     
     // Cleanup
     return () => {
-      clearInterval(interval);
+      // clearInterval(interval); // DISABLED
       if (observer) observer.disconnect();
     };
   }, []);

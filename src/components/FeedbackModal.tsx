@@ -172,17 +172,18 @@ const FeedbackModal = ({
           </Flex>
         </ModalBody>
 
-        <ModalFooter>
+        <Box pt={6} mb={2} width="100%" px={4}>
           <Button 
             colorScheme="blue" 
             width="100%" 
-            borderRadius="full" 
+            borderRadius="md" 
+            height="40px"
             isLoading={isSubmitting}
             onClick={handleSubmit}
           >
             Submit
           </Button>
-        </ModalFooter>
+        </Box>
       </ModalContent>
     </Modal>
   );
