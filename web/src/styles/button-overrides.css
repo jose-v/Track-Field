@@ -1,0 +1,68 @@
+/* Button style overrides - high specificity rules */
+
+/* Primary buttons */
+button.chakra-button[data-variant="primary"],
+.chakra-button[data-variant="primary"],
+a.chakra-button[data-variant="primary"],
+button.chakra-button[variant="primary"],
+.chakra-button[variant="primary"],
+a.chakra-button[variant="primary"] {
+  background-color: #3E213A !important;
+  color: white !important;
+}
+
+/* Primary button hover states */
+button.chakra-button[data-variant="primary"]:hover,
+.chakra-button[data-variant="primary"]:hover,
+a.chakra-button[data-variant="primary"]:hover,
+button.chakra-button[variant="primary"]:hover,
+.chakra-button[variant="primary"]:hover,
+a.chakra-button[variant="primary"]:hover {
+  background-color: #3E213A !important;
+  color: white !important;
+  opacity: 0.85;
+}
+
+/* Primary button focus/active states */
+button.chakra-button[data-variant="primary"]:focus,
+.chakra-button[data-variant="primary"]:focus,
+a.chakra-button[data-variant="primary"]:focus,
+button.chakra-button[data-variant="primary"]:active,
+.chakra-button[data-variant="primary"]:active,
+a.chakra-button[data-variant="primary"]:active {
+  color: white !important;
+}
+
+/* Accent buttons */
+button.chakra-button[data-variant="accent"],
+.chakra-button[data-variant="accent"],
+a.chakra-button[data-variant="accent"],
+button.chakra-button[variant="accent"],
+.chakra-button[variant="accent"],
+a.chakra-button[variant="accent"] {
+  background-color: #FFD204 !important;
+  color: #3E213A !important;
+}
+
+/* Accent button hover states */
+button.chakra-button[data-variant="accent"]:hover,
+.chakra-button[data-variant="accent"]:hover,
+a.chakra-button[data-variant="accent"]:hover,
+button.chakra-button[variant="accent"]:hover,
+.chakra-button[variant="accent"]:hover,
+a.chakra-button[variant="accent"]:hover {
+  background-color: #FFD204 !important;
+  color: #3E213A !important;
+  opacity: 0.85;
+}
+
+/* Legacy solid variant - treat as primary */
+button.chakra-button[data-variant="solid"],
+.chakra-button[data-variant="solid"],
+a.chakra-button[data-variant="solid"],
+button.chakra-button[variant="solid"],
+.chakra-button[variant="solid"],
+a.chakra-button[variant="solid"] {
+  background-color: #3E213A !important;
+  color: white !important;
+} 

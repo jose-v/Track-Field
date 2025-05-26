@@ -1,0 +1,540 @@
+import {
+  Box,
+  Button,
+  Container,
+  Flex,
+  HStack,
+  IconButton,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+  useColorModeValue,
+  useDisclosure,
+  VStack,
+  Avatar,
+  Text,
+  Badge,
+  Tooltip,
+  Spinner,
+} from '@chakra-ui/react'
+import { HamburgerIcon, CloseIcon } from '@chakra-ui/icons'
+import { Link as RouterLink, useLocation } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
+import { useProfile } from '../hooks/useProfile'
+import { FaBell, FaHome, FaCommentDots } from 'react-icons/fa'
+import { useState, useEffect } from 'react'
+import { useFeedback } from './FeedbackProvider'
+import { ShareComponent } from './ShareComponent'
+import { BiLineChart } from 'react-icons/bi'
+
+const Navigation = () => {
+  const { isOpen, onToggle } = useDisclosure()
+  const { user, signOut } = useAuth()
+  const { profile, isLoading: profileLoading } = useProfile()
+  const location = useLocation()
+  const { showFeedbackModal } = useFeedback()
+  
+  // Use more subtle colors for public navigation
+  const isHome = location.pathname === '/'
+  const isPublicPage = !location.pathname.startsWith('/dashboard') && 
+                        !location.pathname.startsWith('/coach') && 
+                        !location.pathname.startsWith('/athlete') &&
+                        !location.pathname.startsWith('/profile') &&
+                        !location.pathname.startsWith('/workouts') &&
+                        !location.pathname.startsWith('/team')
+  
+  // For public pages overlay with translucency and blur
+  const bgColor = isPublicPage ? 'rgba(255,255,255,0.6)' : useColorModeValue('white', 'gray.900')
+  const borderColor = isPublicPage ? 'transparent' : useColorModeValue('gray.100', 'gray.800')
+  
+  // State for notifications
+  const [notificationCount, setNotificationCount] = useState(0)
+  
+  // Simulate getting new notifications (in a real app, this would come from a backend service)
+  useEffect(() => {
+    if (user) {
+      // Only show notifications for logged-in users
+      const storedCount = localStorage.getItem('publicNotificationCount')
+      if (storedCount) {
+        setNotificationCount(parseInt(storedCount, 10))
+      } else {
+        // Default to 2 notifications for demo
+        const defaultCount = 2
+        setNotificationCount(defaultCount)
+        localStorage.setItem('publicNotificationCount', defaultCount.toString())
+      }
+    }
+  }, [user])
+  
+  // Handle viewing notifications
+  const handleViewNotifications = () => {
+    // For public navigation, direct to events page
+    window.location.href = '/events'
+    // Clear notification count when viewed
+    setNotificationCount(0)
+    localStorage.setItem('publicNotificationCount', '0')
+  }
+
+  // Get first name initial and last name initial for avatar
+  const getInitials = (name: string) => {
+    // If it's an email, take first letter of username  
+    if (name.includes('@')) {
+      const [localPart] = name.split('@');
+      return localPart[0]?.toUpperCase() || 'U';
+    }
+    
+    // Otherwise take first letter of each word (up to 2)
+    const parts = name.split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return 'U';
+    if (parts.length === 1) return parts[0][0]?.toUpperCase() || 'U';
+    return `${parts[0][0] || ''}${parts[parts.length-1][0] || ''}`.toUpperCase();
+  };
+  
+  // Get user initials for avatar
+  const userInitials = profile && profile.first_name ? 
+    getInitials(`${profile.first_name} ${profile.last_name || ''}`) : 
+    user?.email ? getInitials(user.email) : 'U';
+
+  // Get full name for avatar or fallback to email if profile not loaded yet
+  const fullName = profile ? 
+    `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 
+    (user?.email?.split('@')[0] || 'User')
+  
+  // Avatar URL from profile
+  const avatarUrl = profile?.avatar_url
+  
+  const navItems = [
+    { label: 'Home', path: '/' },
+    { label: 'Features', path: '/features' },
+    { label: 'Pricing', path: '/pricing' },
+    { label: 'Events', path: '/events' },
+    { label: 'About', path: '/about' },
+    { label: 'Contact', path: '/contact' },
+  ]
+
+  return (
+    <Box
+      bg={bgColor}
+      borderBottom="1px"
+      borderColor={borderColor}
+      position="fixed"
+      top={0}
+      left={0}
+      w="100%"
+      zIndex={1001}
+      boxShadow={isPublicPage ? "sm" : "none"}
+      // Backdrop blur for public pages
+      sx={isPublicPage ? { backdropFilter: 'saturate(180%) blur(10px)' } : {}}
+    >
+      <Container maxW="container.xl">
+        <Flex h={16} alignItems="center" justifyContent="space-between">
+          {/* Logo */}
+          <RouterLink to="/">
+            <Text fontWeight="bold" fontSize="xl" color={isPublicPage ? "gray.800" : "blue.500"}>
+              Track & Field
+            </Text>
+          </RouterLink>
+
+          {/* Desktop Navigation */}
+          <HStack spacing={6} display={{ base: 'none', md: 'flex' }}>
+            {navItems.map((item) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <RouterLink key={item.path} to={item.path}>
+                  <Box
+                    as="button"
+                    fontSize="sm"
+                    fontWeight={isActive ? "semibold" : "medium"}
+                    color={isActive ? "blue.500" : isPublicPage ? "gray.700" : "gray.500"}
+                    position="relative"
+                    px={2}
+                    py={2}
+                    borderWidth="0px !important"
+                    borderRadius="0"
+                    bg="transparent"
+                    _after={isActive ? {
+                      content: '""',
+                      position: "absolute",
+                      bottom: "0",
+                      left: "0",
+                      width: "100%",
+                      height: "2px",
+                      bg: "blue.500",
+                    } : {}}
+                    _hover={{
+                      color: "blue.500",
+                      bg: "transparent",
+                      borderWidth: "0px !important"
+                    }}
+                    _active={{
+                      bg: "transparent",
+                      borderWidth: "0px !important"
+                    }}
+                    _focus={{
+                      boxShadow: "none",
+                      borderWidth: "0px !important",
+                      outline: "none"
+                    }}
+                  >
+                    {item.label}
+                  </Box>
+                </RouterLink>
+              );
+            })}
+          </HStack>
+
+          {/* Auth Buttons */}
+          <HStack spacing={4} display={{ base: 'none', md: 'flex' }}>
+            {isPublicPage ? (
+              user ? (
+                <Menu>
+                  <MenuButton as={Button} rounded="full" variant="link" cursor="pointer" minW={0}>
+                    {profileLoading ? (
+                      <Box p="2px" borderRadius="full" bg="gray.200">
+                        <Spinner size="sm" thickness="2px" color="gray.400" />
+                      </Box>
+                    ) : avatarUrl ? (
+                      <Avatar 
+                        size="sm" 
+                        src={avatarUrl}
+                        bg="gray.200"
+                      />
+                    ) : (
+                      <Flex
+                        align="center"
+                        justify="center"
+                        borderRadius="full"
+                        bg="gray.200"
+                        color="gray.600"
+                        fontWeight="bold"
+                        fontSize="xs"
+                        width="32px"
+                        height="32px"
+                      >
+                        {userInitials}
+                      </Flex>
+                    )}
+                  </MenuButton>
+                  <MenuList>
+                    <MenuItem as={RouterLink} to="/">Home</MenuItem>
+                    <MenuItem as={RouterLink} to="/dashboard">Dashboard</MenuItem>
+                    <MenuItem as={RouterLink} to="/profile">Profile</MenuItem>
+                    <MenuItem onClick={showFeedbackModal}>Give Feedback</MenuItem>
+                    <MenuItem onClick={signOut}>Sign out</MenuItem>
+                  </MenuList>
+                </Menu>
+              ) : (
+                <HStack spacing={4}>
+                  <Button 
+                    as={RouterLink} 
+                    to="/login" 
+                    size="sm" 
+                    colorScheme="blue" 
+                    variant="ghost"
+                    fontSize="sm"
+                    fontWeight="medium"
+                    _focus={{
+                      boxShadow: "none",
+                      outline: "none"
+                    }}
+                  >
+                    Sign In
+                  </Button>
+                  <Button 
+                    as={RouterLink} 
+                    to="/signup" 
+                    size="sm" 
+                    colorScheme="blue" 
+                    variant="solid"
+                    fontSize="sm"
+                    fontWeight="medium"
+                    _focus={{
+                      boxShadow: "none",
+                      outline: "none"
+                    }}
+                  >
+                    Sign Up
+                  </Button>
+                </HStack>
+              )
+            ) : (
+              <HStack spacing={4}>
+                {/* Home Button */}
+                <IconButton
+                  as={RouterLink}
+                  to="/"
+                  icon={<FaHome />}
+                  aria-label="Home"
+                  colorScheme="blue"
+                  variant="ghost"
+                  size="md"
+                  _focus={{
+                    boxShadow: "none",
+                    outline: "none"
+                  }}
+                />
+                
+                {/* Dashboard Button */}
+                <IconButton
+                  as={RouterLink}
+                  to="/dashboard"
+                  icon={<BiLineChart size="24px" />}
+                  aria-label="Dashboard"
+                  colorScheme="blue"
+                  variant="ghost"
+                  size="md"
+                  _focus={{
+                    boxShadow: "none",
+                    outline: "none"
+                  }}
+                />
+                
+                {/* Feedback Button */}
+                <Tooltip label="Give Feedback" hasArrow>
+                  <IconButton
+                    icon={<FaCommentDots />}
+                    aria-label="Give Feedback"
+                    colorScheme="orange"
+                    variant="ghost"
+                    size="md"
+                    onClick={showFeedbackModal}
+                    _focus={{
+                      boxShadow: "none",
+                      outline: "none"
+                    }}
+                  />
+                </Tooltip>
+                
+                {/* Share Button */}
+                <ShareComponent 
+                  title="Track & Field App" 
+                  description="Check out this awesome Track & Field app for coaches and athletes!" 
+                />
+                
+                {/* Notification Bell */}
+                <Box position="relative">
+                  <Tooltip label="Event notifications" hasArrow>
+                    <IconButton
+                      icon={<FaBell />}
+                      aria-label="Notifications"
+                      colorScheme="blue"
+                      variant="ghost"
+                      size="md"
+                      onClick={handleViewNotifications}
+                      _focus={{
+                        boxShadow: "none",
+                        outline: "none"
+                      }}
+                    />
+                  </Tooltip>
+                  
+                  {/* Notification Badge */}
+                  {notificationCount > 0 && (
+                    <Badge 
+                      position="absolute" 
+                      top="-5px" 
+                      right="-5px" 
+                      colorScheme="red" 
+                      borderRadius="full" 
+                      fontSize="0.8em"
+                      minW="1.6em"
+                      textAlign="center"
+                    >
+                      {notificationCount}
+                    </Badge>
+                  )}
+                </Box>
+                
+                {/* Avatar/Account */}
+                <Menu>
+                  <MenuButton as={Button} rounded="full" variant="link" cursor="pointer" minW={0}>
+                    {profileLoading ? (
+                      <Box p="2px" borderRadius="full" bg="gray.200">
+                        <Spinner size="sm" thickness="2px" color="gray.400" />
+                      </Box>
+                    ) : avatarUrl ? (
+                      <Avatar 
+                        size="sm" 
+                        src={avatarUrl}
+                        bg="gray.200"
+                      />
+                    ) : (
+                      <Flex
+                        align="center"
+                        justify="center"
+                        borderRadius="full"
+                        bg="gray.200"
+                        color="gray.600"
+                        fontWeight="bold"
+                        fontSize="xs"
+                        width="32px"
+                        height="32px"
+                      >
+                        {userInitials}
+                      </Flex>
+                    )}
+                  </MenuButton>
+                  <MenuList>
+                    <MenuItem as={RouterLink} to="/">Home</MenuItem>
+                    <MenuItem as={RouterLink} to="/dashboard">Dashboard</MenuItem>
+                    <MenuItem as={RouterLink} to="/profile">Profile</MenuItem>
+                    <MenuItem onClick={showFeedbackModal}>Give Feedback</MenuItem>
+                    <MenuItem onClick={signOut}>Sign out</MenuItem>
+                  </MenuList>
+                </Menu>
+              </HStack>
+            )}
+          </HStack>
+
+          {/* Mobile navigation toggle */}
+          <IconButton
+            aria-label="Open Navigation"
+            icon={<HamburgerIcon />}
+            display={{ base: 'flex', md: 'none' }}
+            variant="ghost"
+            onClick={onToggle}
+            _focus={{
+              boxShadow: "none",
+              outline: "none"
+            }}
+          />
+        </Flex>
+
+        {/* Mobile Navigation */}
+        {isOpen && (
+          <VStack
+            display={{ base: "flex", md: "none" }}
+            py={4}
+            spacing={4}
+            alignItems="flex-start"
+          >
+            {navItems.map((navItem) => (
+              <Button 
+                key={navItem.label} 
+                as={RouterLink} 
+                to={navItem.path}
+                variant="ghost"
+                size="sm"
+                onClick={onToggle}
+                w="100%"
+                justifyContent="flex-start"
+              >
+                {navItem.label}
+              </Button>
+            ))}
+            
+            {isPublicPage ? (
+              user ? (
+                <>
+                  <Button 
+                    variant="ghost"
+                    size="sm"
+                    onClick={onToggle}
+                    as={RouterLink} 
+                    to="/dashboard"
+                    w="100%"
+                    justifyContent="flex-start"
+                    leftIcon={<BiLineChart />}
+                  >
+                    Dashboard
+                  </Button>
+                  <Button 
+                    variant="ghost"
+                    size="sm"
+                    onClick={onToggle}
+                    as={RouterLink} 
+                    to="/profile"
+                    w="100%"
+                    justifyContent="flex-start"
+                  >
+                    Profile
+                  </Button>
+                  <Button 
+                    colorScheme="red"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      signOut();
+                      onToggle();
+                    }}
+                    w="100%"
+                    justifyContent="flex-start"
+                  >
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button 
+                    variant="ghost"
+                    size="sm"
+                    onClick={onToggle}
+                    as={RouterLink} 
+                    to="/login"
+                    w="100%"
+                    justifyContent="flex-start"
+                  >
+                    Sign In
+                  </Button>
+                  <Button 
+                    colorScheme="blue"
+                    size="sm"
+                    onClick={onToggle}
+                    as={RouterLink} 
+                    to="/signup"
+                    w="100%"
+                  >
+                    Join Now
+                  </Button>
+                </>
+              )
+            ) : (
+              <>
+                <Button 
+                  variant="ghost"
+                  size="sm"
+                  onClick={onToggle}
+                  as={RouterLink} 
+                  to="/"
+                  w="100%"
+                  justifyContent="flex-start"
+                  leftIcon={<FaHome />}
+                >
+                  Home
+                </Button>
+                <Button 
+                  variant="ghost"
+                  size="sm"
+                  onClick={onToggle}
+                  as={RouterLink} 
+                  to="/dashboard"
+                  w="100%"
+                  justifyContent="flex-start"
+                  leftIcon={<BiLineChart />}
+                >
+                  Dashboard
+                </Button>
+                <Button 
+                  colorScheme="red"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    signOut();
+                    onToggle();
+                  }}
+                  w="100%"
+                  justifyContent="flex-start"
+                >
+                  Sign Out
+                </Button>
+              </>
+            )}
+          </VStack>
+        )}
+      </Container>
+    </Box>
+  )
+}
+
+export default Navigation 

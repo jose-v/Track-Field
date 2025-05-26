@@ -1,0 +1,143 @@
+TABLE: profiles
+  - id: UUID [PRIMARY KEY]
+  - created_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW(), NOT NULL]
+  - updated_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW(), NOT NULL]
+  - email: TEXT [UNIQUE]
+  - first_name: TEXT
+  - last_name: TEXT
+  - phone: TEXT
+  - role: TEXT [CHECK (role IN ('athlete', 'coach', 'team_manager'))]
+  - avatar_url: TEXT
+  - bio: TEXT
+PRIMARY KEY: id
+RLS POLICIES:
+  - Public profiles are viewable by everyone: SELECT USING (true)
+  - Users can update their own profile: UPDATE USING (auth.uid() = id)
+  - Users can insert their own profile: INSERT WITH CHECK (auth.uid() = id)
+
+TABLE: teams
+  - id: UUID [PRIMARY KEY, DEFAULT uuid_generate_v4()]
+  - name: TEXT [NOT NULL]
+  - description: TEXT
+  - created_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW(), NOT NULL]
+  - updated_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW(), NOT NULL]
+PRIMARY KEY: id
+
+TABLE: athletes
+  - id: UUID [PRIMARY KEY, FOREIGN KEY -> profiles(id) ON DELETE CASCADE]
+  - birth_date: DATE
+  - gender: TEXT [CHECK (gender IN ('male', 'female', 'other'))]
+  - events: TEXT[]
+  - team_id: UUID [FOREIGN KEY -> teams(id) ON DELETE SET NULL]
+PRIMARY KEY: id
+FOREIGN KEYS:
+  - id -> profiles(id) ON DELETE CASCADE
+  - team_id -> teams(id) ON DELETE SET NULL
+RLS POLICIES:
+  - Athletes are viewable by everyone: SELECT USING (true)
+  - Users can update their own athlete profile: UPDATE USING (id IN (SELECT id FROM public.profiles WHERE id = auth.uid() AND role = 'athlete'))
+  - Users can insert their own athlete profile: INSERT WITH CHECK (id IN (SELECT id FROM public.profiles WHERE id = auth.uid() AND role = 'athlete'))
+
+TABLE: coaches
+  - id: UUID [PRIMARY KEY, FOREIGN KEY -> profiles(id) ON DELETE CASCADE]
+  - specialties: TEXT[]
+  - certifications: TEXT[]
+PRIMARY KEY: id
+FOREIGN KEYS:
+  - id -> profiles(id) ON DELETE CASCADE
+RLS POLICIES:
+  - Coaches are viewable by everyone: SELECT USING (true)
+  - Users can update their own coach profile: UPDATE USING (id IN (SELECT id FROM public.profiles WHERE id = auth.uid() AND role = 'coach'))
+
+TABLE: team_managers
+  - id: UUID [PRIMARY KEY, FOREIGN KEY -> profiles(id) ON DELETE CASCADE]
+  - organization: TEXT
+PRIMARY KEY: id
+FOREIGN KEYS:
+  - id -> profiles(id) ON DELETE CASCADE
+
+TABLE: coach_athletes
+  - id: UUID [PRIMARY KEY, DEFAULT uuid_generate_v4()]
+  - coach_id: UUID [FOREIGN KEY -> coaches(id) ON DELETE CASCADE]
+  - athlete_id: UUID [FOREIGN KEY -> athletes(id) ON DELETE CASCADE]
+  - created_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW(), NOT NULL]
+  - approval_status: TEXT [CHECK (approval_status IN ('pending', 'approved', 'declined')), DEFAULT 'pending']
+  - requested_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW(), NOT NULL]
+  - approved_at: TIMESTAMP WITH TIME ZONE
+  - UNIQUE(coach_id, athlete_id)
+PRIMARY KEY: id
+FOREIGN KEYS:
+  - coach_id -> coaches(id) ON DELETE CASCADE
+  - athlete_id -> athletes(id) ON DELETE CASCADE
+
+TABLE: workouts
+  - id: UUID [PRIMARY KEY, DEFAULT uuid_generate_v4()]
+  - name: TEXT [NOT NULL]
+  - description: TEXT
+  - user_id: UUID [FOREIGN KEY -> profiles(id) ON DELETE CASCADE]
+  - type: TEXT [DEFAULT 'Custom']
+  - date: TEXT
+  - duration: TEXT
+  - time: TEXT
+  - notes: TEXT [DEFAULT '']
+  - exercises: JSONB [DEFAULT '[]']
+  - location: TEXT
+  - created_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW(), NOT NULL]
+  - updated_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW(), NOT NULL]
+PRIMARY KEY: id
+FOREIGN KEYS:
+  - user_id -> profiles(id) ON DELETE CASCADE
+RLS POLICIES:
+  - Workouts are viewable by authenticated users: SELECT USING (auth.role() = 'authenticated')
+  - Users can create their own workouts: INSERT WITH CHECK (auth.uid() = user_id OR auth.uid()::text = created_by::text)
+  - Users can update their own workouts: UPDATE USING (auth.uid() = user_id OR auth.uid()::text = created_by::text)
+  - Users can delete their own workouts: DELETE USING (auth.uid() = user_id OR auth.uid()::text = created_by::text)
+
+TABLE: workout_assignments
+  - id: UUID [PRIMARY KEY, DEFAULT uuid_generate_v4()]
+  - workout_id: UUID [FOREIGN KEY -> workouts(id) ON DELETE CASCADE]
+  - athlete_id: UUID [FOREIGN KEY -> athletes(id) ON DELETE CASCADE]
+  - assigned_by: UUID [FOREIGN KEY -> profiles(id) ON DELETE SET NULL]
+  - assigned_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW(), NOT NULL]
+  - due_date: DATE
+  - status: TEXT [CHECK (status IN ('assigned', 'in_progress', 'completed', 'skipped'))]
+  - UNIQUE(workout_id, athlete_id)
+PRIMARY KEY: id
+FOREIGN KEYS:
+  - workout_id -> workouts(id) ON DELETE CASCADE
+  - athlete_id -> athletes(id) ON DELETE CASCADE
+  - assigned_by -> profiles(id) ON DELETE SET NULL
+
+TABLE: events
+  - id: UUID [PRIMARY KEY, DEFAULT uuid_generate_v4()]
+  - name: TEXT [UNIQUE, NOT NULL]
+  - category: TEXT [CHECK (category IN ('sprint', 'middle_distance', 'long_distance', 'hurdles', 'relay', 'jump', 'throw', 'combined'))]
+PRIMARY KEY: id
+
+TABLE: personal_records
+  - id: UUID [PRIMARY KEY, DEFAULT uuid_generate_v4()]
+  - athlete_id: UUID [FOREIGN KEY -> athletes(id) ON DELETE CASCADE]
+  - event_id: UUID [FOREIGN KEY -> events(id) ON DELETE CASCADE]
+  - record_value: NUMERIC [NOT NULL]
+  - record_date: DATE [NOT NULL]
+  - location: TEXT
+  - notes: TEXT
+  - UNIQUE(athlete_id, event_id, record_date)
+PRIMARY KEY: id
+FOREIGN KEYS:
+  - athlete_id -> athletes(id) ON DELETE CASCADE
+  - event_id -> events(id) ON DELETE CASCADE
+
+TABLE: athlete_workouts
+  - id: UUID [PRIMARY KEY, DEFAULT gen_random_uuid()]
+  - athlete_id: UUID [FOREIGN KEY -> athletes(id) ON DELETE CASCADE]
+  - workout_id: UUID [FOREIGN KEY -> workouts(id) ON DELETE CASCADE]
+  - assigned_at: TIMESTAMPTZ [DEFAULT now(), NOT NULL]
+  - status: TEXT [DEFAULT 'assigned']
+  - UNIQUE(athlete_id, workout_id)
+PRIMARY KEY: id
+FOREIGN KEYS:
+  - athlete_id -> athletes(id) ON DELETE CASCADE
+  - workout_id -> workouts(id) ON DELETE CASCADE
+
+-- Add more tables as needed following this format 
