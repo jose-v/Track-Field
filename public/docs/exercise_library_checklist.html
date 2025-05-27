@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Track & Field Exercise Library Checklist</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 2em auto;
+      line-height: 1.5;
+      background: #fff;
+    }
+    h1 {
+      text-align: center;
+      color: #3498db;
+    }
+    h2 {
+      color: #2980b9;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 5px;
+      margin-top: 2em;
+    }
+    .intro, .notes {
+      background: #f8f8f8;
+      border-left: 4px solid #3498db;
+      padding: 1em 1.5em;
+      margin-bottom: 2em;
+    }
+    .checklist-section {
+      margin-bottom: 2em;
+    }
+    .exercise-list {
+      columns: 2 350px;
+      -webkit-columns: 2 350px;
+      -moz-columns: 2 350px;
+      column-gap: 2em;
+      margin: 1em 0 2em 0;
+    }
+    .exercise-list label {
+      display: block;
+      margin-bottom: 0.5em;
+      cursor: pointer;
+      padding-left: 0.2em;
+    }
+    .category {
+      font-weight: bold;
+      color: #3498db;
+      margin-top: 1.5em;
+      margin-bottom: 0.5em;
+      font-size: 1.1em;
+    }
+    .metadata {
+      text-align: right;
+      font-size: 0.8em;
+      color: #777;
+      margin-top: 2em;
+    }
+    .starter-set {
+      background: #eaf6fb;
+      border-left: 4px solid #2980b9;
+      padding: 1em 1.5em;
+      margin-bottom: 2em;
+    }
+    .notes {
+      font-size: 0.98em;
+    }
+    @media (max-width: 700px) {
+      .exercise-list {
+        columns: 1 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Track & Field Exercise Library Checklist</h1>
+
+  <div class="intro">
+    <p><strong>Purpose:</strong> This checklist helps you track progress as you build and test the Exercise Library for your Track & Field app. It includes a phased approach, a recommended starter set, and the full compiled list of exercises. Use the checkboxes to mark which exercises are implemented or tested in your app. Progress is saved in your browser.</p>
+    <ul>
+      <li><strong>Start small:</strong> Use the <em>Starter Set</em> below for initial testing and UI development.</li>
+      <li><strong>Expand gradually:</strong> Once stable, add more exercises from the full list.</li>
+      <li><strong>Routines/programs</strong> (e.g., "DHP A-Switch Warm-Up") should be built as templates composed of individual exercises, not as single exercises in the library.</li>
+    </ul>
+  </div>
+
+  <div class="starter-set">
+    <h2>Recommended Starter Set</h2>
+    <div class="exercise-list" id="starterSet">
+      <!-- Starter set checkboxes will be inserted here by JS -->
+    </div>
+    <div class="notes">
+      <strong>Why start small?</strong> Debug and iterate on the UI, test categories/search, and validate your schema and RLS policies with real data before importing the full list.
+    </div>
+  </div>
+
+  <div class="checklist-section">
+    <h2>Full Exercise Library</h2>
+    <div class="exercise-list" id="fullList">
+      <!-- Full list checkboxes will be inserted here by JS -->
+    </div>
+    <div class="notes">
+      <ul>
+        <li>Group exercises by category for easier navigation.</li>
+        <li>Use this as a master reference for future imports and UI/UX improvements.</li>
+        <li>Progress is saved locally in your browser (localStorage).</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="checklist-section">
+    <h2>Phased Approach & Recommendations</h2>
+    <div class="notes">
+      <ol>
+        <li><strong>Start with the Starter Set:</strong> Build and test the UI for exercise library management and workout template creation.</li>
+        <li><strong>Expand in phases:</strong> Once stable, batch-import the rest, grouping by category if helpful.</li>
+        <li><strong>For routines/programs:</strong> Treat as templates composed of individual exercises, not as single exercises in the library.</li>
+        <li><strong>Seed data:</strong> Manually insert the starter set via Supabase UI or use a script for batch import.</li>
+        <li><strong>Test UI/UX:</strong> Search/filter, add/edit/delete, select for workout templates, and RLS for user-created exercises.</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="metadata">
+    Checklist generated on: <span id="captureDate"></span>
+  </div>
+
+  <script>
+    // --- Data ---
+    const starterSet = [
+      "A Skips / A-Switches",
+      "Back Squats",
+      "Box Jumps",
+      "Butt Kicks",
+      "Plank",
+      "Broad Jump (Standing Long Jump / SLJ)",
+      "Walking Lunges",
+      "Sprint",
+      "Calf Stretch",
+      "Push Ups",
+      "Med-ball Slams",
+      "Ankle Bounce"
+    ];
+
+    // Full list (grouped by first letter for readability)
+    const fullList = [
+      // ... (The full list from your message, as a JS array of strings) ...
+      // For brevity, this will be inserted in the next step
+    ];
+
+    // --- Helper to group by first letter ---
+    function groupByFirstLetter(arr) {
+      const groups = {};
+      arr.forEach(item => {
+        const letter = item[0].toUpperCase();
+        if (!groups[letter]) groups[letter] = [];
+        groups[letter].push(item);
+      });
+      return groups;
+    }
+
+    // --- Checkbox rendering and localStorage ---
+    function renderChecklist(containerId, items, storageKeyPrefix) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      items.forEach((item, idx) => {
+        const id = storageKeyPrefix + '_' + idx;
+        const checked = localStorage.getItem(id) === '1';
+        const label = document.createElement('label');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = checked;
+        checkbox.addEventListener('change', () => {
+          localStorage.setItem(id, checkbox.checked ? '1' : '0');
+        });
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(' ' + item));
+        container.appendChild(label);
+      });
+    }
+
+    // --- Render starter set ---
+    renderChecklist('starterSet', starterSet, 'starterSet');
+
+    // --- Render full list, grouped by first letter ---
+    const fullListData = [
+      // FULL LIST GOES HERE (see next step)
+      "10-5-5 (Drill)",
+      "180 Degree Jumps (180s)",
+      "3 Pt. Stance Acceleration R/L",
+      "3 Pt. Stance",
+      "4 Bounds into strides",
+      "4 way cable (Cable 4-way hips)",
+      "90/90 Hip Switches",
+      "A Skip w-Clap (Backward Alternating)",
+      "A Skips / A-Switches",
+      "Accelerations (General, e.g., 2 pt. Standing, 3 pt. Standing, Kneeling)",
+      "Adductor Stretch",
+      "Alternate Dynamic Walkovers",
+      "Alt Highland Leg Swings",
+      "Ankle Bounce",
+      "Ankle Rotation",
+      "Ankling",
+      "Arm Across Skips",
+      "Arm Circle Skips",
+      "Arm circles (backwards and forward)",
+      "Around the world on tape",
+      "B Skips",
+      "Back Extensions (Hypers)",
+      "Back Pedal",
+      "Back Plank Hip Arch",
+      "Back Plank Leg Lifts",
+      "Back rolls",
+      "Back Squats",
+      "Backward A Switches",
+      "Backward Lunges",
+      "Backward pogos",
+      "Backward Skips",
+      "Backward Squat Walk",
+      "Band internal and external rotation",
+      "Banded squat Jumps",
+      "Barbell Hang Clean",
+      "Barbell Single Leg Clean",
+      "Bear crawl pull throughs",
+      "Bench Press",
+      "Bentover Rows",
+      "Between the Legs forward (throw)",
+      "Bicycle with Rollover",
+      "Bikes (core exercise)",
+      "Bird dog",
+      "Bleachers (running)",
+      "Block Thigh Parallel (part of Frontside Mechanics cue)",
+      "Body rotations",
+      "Bounds for Distance",
+      "Bounds for Height",
+      "Bounds",
+      "Box - Between Legs Forward",
+      "Box - Overhead Back",
+      "Box Jumps",
+      "Bridges to Pike",
+      "Broad Jump (Standing Long Jump / SLJ)",
+      "Bulgarian split squat",
+      "Bunny hops",
+      "Burpee Pull Up",
+      "Burpees",
+      "Butt Kick Jumps",
+      "Butt Kicks",
+      "Butterfly (stretch)",
+      "C Skips",
+      "Calf raises on slant board",
+      "Calf raises with lax ball",
+      "Calf stretch in push up position",
+      "Calf Stretch (Standing R/L)",
+      "Chair drill (for LJ/TJ)",
+      "Chess passes (Medicine Ball)",
+      "Chest Hang (stretch)",
+      "Chest Over Thigh (part of Frontside Mechanics cue)",
+      "Chin ups",
+      "Circle Drill (HJ - pushing off the curve)",
+      "Circuit Paired Run",
+      "Clams / Clamshells",
+      "Clean (floor, knee, thigh)",
+      "Clean & Jerk",
+      "Clean pulls",
+      "Closed Everted Toe Squats",
+      "Cocked Foot (part of Frontside Mechanics cue)",
+      "Combo Bounds",
+      "Continuous 3 steps pop-ups",
+      "Cool-Down Stretches (general category, specific ones listed)",
+      "Core exercises (general)",
+      "Cossack Extensions",
+      "Cossack squat",
+      "Cracks with med-ball",
+      "Crossover hops",
+      "Crossover Runs",
+      "Crossover Step-Ups",
+      "Crunches",
+      "Crunches w/ Twist",
+      "Curtsy lunge",
+      "Curve work (HJ drills)",
+      "DB Calf Raises",
+      "DB RDL",
+      "DB Seated Jumps",
+      "DB Step Ups (keep toe dorsiflex)",
+      "Dead bug",
+      "Dead lift",
+      "Decline push up",
+      "Deep Body Squats",
+      "Deep Squat (stretch)",
+      "Depth Drops / Depth Jumps",
+      "Diagonal hops",
+      "Dips",
+      "DL Lateral Hops",
+      "Donkey kicks",
+      "Double A Switches",
+      "Double Double TJ / Double Double TJ Drill",
+      "Double Knee Tucks",
+      "Double Leg Backward",
+      "Double Leg Bounds",
+      "Double Leg Forward",
+      "Drop Jumps",
+      "Dumbbell Hang Clean",
+      "Dumbbell Snatch",
+      "Dynamic Flexibility (general category of exercises)",
+      "Dynamic Scissors",
+      "Eagles",
+      "Eccentric pistol squats",
+      "Elbow to Knee Lunge",
+      "Eversion with band",
+      "Fast A Switches Rotary (No Bounce / Two Bounces)",
+      "Fast Five A Switches Rotary (Two Bounces)",
+      "Fast leg",
+      "Fast Leg Continuous R/L",
+      "Fast Leg Rotary Cycle R/L Only",
+      "Fast Leg Rotary Double R/L Only",
+      "Figure 4 bridge",
+      "Figure-4 (stretch)",
+      "Fire Hydrant",
+      "Flutter Kicks",
+      "Foam roll",
+      "Foot Drills",
+      "Forward lunge",
+      "Forward Squat Walk",
+      "Front Squat",
+      "Front straddle hops",
+      "Frontal Leg Swings",
+      "Full Squat on Ball of Feet",
+      "Gallops",
+      "Glute bridge",
+      "Glute bridge hip flexion",
+      "Glute Stretch",
+      "Glute wall press iso",
+      "Good morning",
+      "Gorilla curls",
+      "Half Squats",
+      "Hammer Hip (I-R) (throw)",
+      "Hamstring curl (Physio ball leg curls or machine)",
+      "Hamstring Scoops",
+      "Hamstring series (lying on the back exercises and the SL pulls)",
+      "Hamstring Stretch (Single Leg)",
+      "Hanging leg raises",
+      "Heel Sit (stretch)",
+      "Hex bar jump squats",
+      "High Knee Circle Runs",
+      "High Knees",
+      "Highland Leg Swing R/L",
+      "Hill Sprints / Hills",
+      "Hip circles",
+      "Hip Flexor Stretch (A, R/L)",
+      "Hip Stretches A",
+      "HM over under (Med-ball pop ups) and side drill",
+      "Hop-Bound Bound Combo",
+      "Hop-Hop - Between Legs Forward",
+      "Hop-Hop - Overhead Back",
+      "Hurdle drills",
+      "Hurdle Hops",
+      "Hurdler Seat Switch",
+      "Hypers w/ Twist",
+      "Hyper-Ups (Back Extensions)",
+      "Impact jumps",
+      "In Place Pogo Hops",
+      "Inch Worms / Walking Inch Worm",
+      "Incline push up",
+      "Jog",
+      "Jump from easy skip- with landing",
+      "Jump squats",
+      "Jumping Jacks",
+      "Karaoke & Back",
+      "KB tib raises",
+      "Knee Hug (stretch)",
+      "Knee lift Jumps med-ball",
+      "Knee to Chest (Walking)",
+      "Kneeling Accelerations R/L",
+      "Kneeling Pogo Hops",
+      "Kneeling Start R/L",
+      "Kneeling wood chop",
+      "L-overs",
+      "Lane hops",
+      "Lat Pulldowns",
+      "Lateral Crossover Drill",
+      "Lateral hops with step up",
+      "Lateral lunge",
+      "Lateral Squat Stretches",
+      "Lateral Squat walk",
+      "Left Leg Continuous Fast Leg-Walk Back",
+      "Leg add ins",
+      "Leg Curls",
+      "Leg hug glutes stretch",
+      "Leg Swings (Front, Side)",
+      "Leg Whips",
+      "Lift (general category for weightlifting)",
+      "Line hops",
+      "LJ continuous step&jump / Step & Jump",
+      "LJ Pop Up Drill",
+      "Load Ankle (part of Frontside Mechanics cue)",
+      "Long Jump Drill Gallop",
+      "Low knee (drills)",
+      "Low Reach Crunches with Feet Up",
+      "Low Reach Twist Crunches with Feet Up",
+      "Lunge Chest (throw component)",
+      "Lunge jump",
+      "Lunge knees over toes",
+      "Lunge side hip toss",
+      "Lunge wall toss",
+      "Lunges (Walking)",
+      "Maximums (Sprints at various %, e.g., 60%, 70%, 80%, 90%, 100%)",
+      "Med ball high knee march",
+      "Med ball tosses from lunge on wobble board",
+      "Med-ball leg single full leg drops",
+      "Med-ball slams",
+      "Med-ball toss for distance",
+      "Medial Kicks",
+      "Mindful breaths",
+      "Monster walks",
+      "Mountain Climbers",
+      "Neck Rotation",
+      "Overhead Back (throw)",
+      "Overhead Back Throw",
+      "Overhead Medball Lateral Hops (L/R leg)",
+      "Overhead Noodle Drill",
+      "Overhead Step (throw component)",
+      "Overhead Toss to your Partner Step and THROW",
+      "Overhead Walking Lunges",
+      "Overhead wall toss",
+      "Partner lateral squat walks banded",
+      "Partner pass seated med-ball side toss",
+      "Pelvis Up (part of Frontside Mechanics cue)",
+      "Physio ball leg curls",
+      "Pistol squat (Eccentric)",
+      "Plank jacks",
+      "Plank jump ins",
+      "Plank knee in",
+      "Plank leg raise",
+      "Plank roll out",
+      "Plank rotation",
+      "Plank step out",
+      "Plank to a lunge",
+      "Pogo hops",
+      "Pop-ups (LJ)",
+      "Power Bounds",
+      "Pretzel Right/Left (stretch)",
+      "Prisoner Squats",
+      "Prone Overhead Back (throw)",
+      "Pull Ups",
+      "Pull overs",
+      "Push Press Barbell",
+      "Push Press Dumbbell",
+      "Push up crunch",
+      "Push Up Sky Dive",
+      "Push Ups",
+      "Pushup Stance Leg Lifts",
+      "Pushup Walk",
+      "Quad Stretch (Walking, Static)",
+      "Quick Feet",
+      "Reactive Box Jumps",
+      "Rest (as part of interval workouts)",
+      "Reverse crunch",
+      "Reverse lunge",
+      "Reverse Med Ball Toss",
+      "Right Leg Continuous Fast Leg-Walk Back",
+      "Rocket jumps",
+      "Roll on lax ball",
+      "Rotary A-Skips in Place R/L",
+      "Run (Interval, Sprint-Float-Sprint, various distances)",
+      "Run Run Jump Drill (L-R)",
+      "Russian Hamstring",
+      "Russian twist",
+      "Sagittal Leg Swings",
+      "Scissor Jump / Scisscor jumps",
+      "Scorpions",
+      "Seated Arm Pull (stretch)",
+      "Seated figure 4 with rotations",
+      "Seated Hip (throw)",
+      "Self hugs (open and close arms)",
+      "Side A-Skips",
+      "Side Foot Toe Raises",
+      "Side lying hip abduction",
+      "Side planks",
+      "Side plank rotation",
+      "Side plank Bottom Leg Lifts",
+      "Side Plank Hip Thrusts",
+      "Side plank on Hand Bottom Leg Lifts",
+      "Side Plank on Hand Top Leg Lifts",
+      "Side Plank Top Leg Lifts",
+      "Side Shuffle",
+      "Side sled pulls",
+      "Side star planks",
+      "Side step ups",
+      "Side straddle hops",
+      "Side to Side Arm Swings",
+      "Single Leg Bounds",
+      "Single Leg Curls",
+      "Single Leg Hamstring (stretch)",
+      "Single Leg Hops (SL HOPS)",
+      "Single Leg Skipovers",
+      "Single Leg Squats",
+      "Single Leg Static/Dynamic Skipovers",
+      "Single Leg Tuck Jumps (SL Tuck Jumps)",
+      "Single leg wall sit",
+      "Sit ups tossing",
+      "Ski jumps",
+      "Skip Lunges (Forward, Backward)",
+      "Skipovers Left Lead Leg",
+      "Skipovers Right Lead Leg",
+      "Skips for distance",
+      "Skips for height",
+      "SL Butt Kicks",
+      "SL Cycle Hops",
+      "SL Lateral Hops",
+      "SL Pogo Jumps",
+      "Sled push",
+      "Sleds (forward, backward, sideways)",
+      "Snatch (Dumbbell, Barbell, floor, knee, thigh)",
+      "Snatch Pulls",
+      "Spanish squat",
+      "Speed Bounds",
+      "Speed Skaters",
+      "Spinal Roll",
+      "Split Jumps",
+      "Split Snatch",
+      "Split Stretch",
+      "Sprint (Maximums, Full Approaches, etc.)",
+      "Squat Chest (throw)",
+      "Squat Jumps",
+      "Squat pulses",
+      "Squat Toe Raises",
+      "Squats",
+      "Stadium Circuit / Stadium Stairs (Singles, Doubles etc.)",
+      "Standing Accelerations (2 pt., 3 pt.)",
+      "Standing Ankle Dorsi-Flexion",
+      "Standing Calf R/L (stretch)",
+      "Standing Good Mornings",
+      "Standing LJ / Broad Jump",
+      "Standing Overhead Forward (throw)",
+      "Standing Triple Jump",
+      "Star Jumps",
+      "Stationary High knees",
+      "Steering Drill",
+      "Step Over the Opposite Knee (part of Frontside Mechanics cue)",
+      "Step ups",
+      "Straddle jumps",
+      "Straddle Stretch Middle/Right/Left",
+      "Straight Leg Bounds",
+      "Straight Leg Deadlifts",
+      "Straight Leg Shuffle",
+      "Stride",
+      "Suitcase Carry",
+      "Suitcase crunches",
+      "Sumo Squats",
+      "Superman",
+      "Superman w/ Twist",
+      "Swing Arms from the Shoulders (part of Frontside Mechanics cue)",
+      "TJ 6 step Hop and Step",
+      "TIB Raises / Tib raise",
+      "Tight High Knee's Rotary",
+      "Toe Touches",
+      "Toe-Up (part of Frontside Mechanics cue)",
+      "Trail Leg Circles",
+      "Tuck Jumps",
+      "Turnarounds",
+      "Twist Lunges",
+      "Underhand tosses (Medicine Ball)",
+      "Up down planks",
+      "V Ups / v-ups",
+      "V-sit pass the ball",
+      "Vertical Jump",
+      "Walk on heels",
+      "Walk on inside/outside of foot (forward/backward)",
+      "Walk on toes",
+      "Walkovers Left/Right Lead Leg",
+      "Walking Inch Worm (see Inch Worms)",
+      "Walking Knee to Chest",
+      "Walking Overhead Med Hurdles",
+      "Walking opposite elbow to knee",
+      "Walking opposite elbow to knee with lunge",
+      "Walking on heels (sprinting arms)",
+      "Walking on toes (sprinting arms)",
+      "Walking quad stretch",
+      "Walking stretches - quads, hams, glutes",
+      "Wall drill calf raises",
+      "Wall toss",
+      "Water Break / Electrolyte Break (activity, not exercise)",
+      "Weave (running drill)",
+      "Wharton rope stretches",
+      "Wicket Speed Dev (likely a drill series)",
+      "Wideouts",
+      "Windmill",
+      "Ws (drill)"
+    ];
+
+    const grouped = groupByFirstLetter(fullListData);
+    const fullListContainer = document.getElementById('fullList');
+    fullListContainer.innerHTML = '';
+    Object.keys(grouped).sort().forEach(letter => {
+      const cat = document.createElement('div');
+      cat.className = 'category';
+      cat.textContent = letter;
+      fullListContainer.appendChild(cat);
+      grouped[letter].forEach((item, idx) => {
+        const id = 'fullList_' + letter + '_' + idx;
+        const checked = localStorage.getItem(id) === '1';
+        const label = document.createElement('label');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = checked;
+        checkbox.addEventListener('change', () => {
+          localStorage.setItem(id, checkbox.checked ? '1' : '0');
+        });
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(' ' + item));
+        fullListContainer.appendChild(label);
+      });
+    });
+
+    // Set capture date
+    document.getElementById('captureDate').textContent = new Date().toLocaleDateString();
+  </script>
+</body>
+</html> 
