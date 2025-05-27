@@ -3,26 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>README FIRST - Track & Field Repository Guidelines</title>
+    <title>README FIRST - Track & Field Project Guide</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 20px;
             line-height: 1.6;
             color: #333;
         }
-        .warning {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        .danger {
-            background: #f8d7da;
-            border: 1px solid #f5c6cb;
+        .info {
+            background: #e3f2fd;
+            border: 1px solid #90caf9;
             border-radius: 8px;
             padding: 15px;
             margin: 20px 0;
@@ -30,6 +23,13 @@
         .success {
             background: #d4edda;
             border: 1px solid #c3e6cb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
             border-radius: 8px;
             padding: 15px;
             margin: 20px 0;
@@ -52,108 +52,211 @@
         .emoji {
             font-size: 1.2em;
         }
+        .tech-stack {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .tech-item {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
-    <h1><span class="emoji">⚠️</span> README FIRST - Critical Repository Guidelines</h1>
+    <h1><span class="emoji">🏃‍♂️</span> README FIRST - Track & Field Project Guide</h1>
     
-    <div class="danger">
-        <h2><span class="emoji">🚨</span> CRITICAL: DO NOT DELETE THE WEB/ FOLDER</h2>
-        <p><strong>The web/ folder contains the working application and must NEVER be deleted or moved during git operations.</strong></p>
+    <div class="success">
+        <h2><span class="emoji">✅</span> PROJECT STATUS: FULLY OPERATIONAL</h2>
+        <p><strong>The Track & Field application is successfully deployed and working at:</strong></p>
+        <p><strong>🌐 Live Site:</strong> <a href="https://track-field.netlify.app" target="_blank">https://track-field.netlify.app</a></p>
+        <p><strong>📚 Documentation:</strong> <a href="https://track-field.netlify.app/docs/" target="_blank">https://track-field.netlify.app/docs/</a></p>
     </div>
 
-    <h2><span class="emoji">📁</span> Repository Structure Understanding</h2>
+    <h2><span class="emoji">🏗️</span> Project Architecture</h2>
     
-    <div class="warning">
-        <h3>Dual File Structure Issue</h3>
-        <p>This repository has files in TWO locations due to historical restructuring:</p>
-        <ul>
-            <li><strong>Root directory:</strong> <code>src/</code>, <code>index.html</code>, <code>package.json</code>, etc.</li>
-            <li><strong>Web directory:</strong> <code>web/src/</code>, <code>web/index.html</code>, <code>web/package.json</code>, etc.</li>
-        </ul>
-        <p><strong>The WORKING application is in the web/ directory.</strong></p>
+    <div class="info">
+        <h3>Current Structure (Root-Based)</h3>
+        <p>The project has been successfully restructured with all files at the repository root:</p>
+        <pre><code>Track & Field/
+├── src/                    # React application source code
+├── public/                 # Static assets and documentation
+├── dist/                   # Build output (auto-generated)
+├── index.html             # Main HTML entry point
+├── package.json           # Dependencies and scripts
+├── vite.config.ts         # Vite configuration
+├── tsconfig.json          # TypeScript configuration
+└── README.md              # Project overview</code></pre>
     </div>
 
-    <h2><span class="emoji">🔒</span> Strict Rules for AI Assistants</h2>
-
-    <div class="danger">
-        <h3>NEVER DO THESE COMMANDS:</h3>
-        <pre><code># These commands can destroy the local web/ folder:
-git checkout &lt;commit&gt; -- src/
-git checkout &lt;commit&gt; -- index.html
-git checkout &lt;commit&gt; -- package.json
-git show &lt;commit&gt;:src/file.tsx &gt; web/src/file.tsx  # Wrong direction!
-
-# Any command that restores files to root instead of web/</code></pre>
+    <h2><span class="emoji">🛠️</span> Technology Stack</h2>
+    
+    <div class="tech-stack">
+        <div class="tech-item">
+            <strong>Frontend</strong><br>
+            React 18 + TypeScript
+        </div>
+        <div class="tech-item">
+            <strong>UI Framework</strong><br>
+            Chakra UI
+        </div>
+        <div class="tech-item">
+            <strong>Build Tool</strong><br>
+            Vite 6.3.5
+        </div>
+        <div class="tech-item">
+            <strong>Backend</strong><br>
+            Supabase
+        </div>
+        <div class="tech-item">
+            <strong>Deployment</strong><br>
+            Netlify
+        </div>
+        <div class="tech-item">
+            <strong>Routing</strong><br>
+            React Router v7
+        </div>
     </div>
+
+    <h2><span class="emoji">🚀</span> Development Workflow</h2>
 
     <div class="success">
-        <h3>SAFE OPERATIONS ONLY:</h3>
-        <pre><code># Safe file editing within web/ directory:
-edit_file web/src/components/Component.tsx
-search_replace web/src/theme.ts
+        <h3>Getting Started:</h3>
+        <pre><code># 1. Ensure Node.js 20+ is active
+nvm use 20
 
-# Safe git status checking:
-git status
-git log --oneline
+# 2. Install dependencies
+npm install
 
-# Safe directory operations:
-list_dir web/src/
-read_file web/src/App.tsx</code></pre>
+# 3. Start development server
+npm run dev
+
+# 4. Open browser to http://localhost:5173</code></pre>
     </div>
 
-    <h2><span class="emoji">🛡️</span> Required Protocol</h2>
+    <div class="info">
+        <h3>Available Scripts:</h3>
+        <pre><code># Development
+npm run dev          # Start dev server on port 5173
+npm run build        # Build for production
+npm run preview      # Preview production build
 
-    <div class="warning">
-        <h3>Before ANY git operation:</h3>
-        <ol>
-            <li><strong>Check current file structure:</strong> <code>list_dir web/</code></li>
-            <li><strong>Understand what git thinks:</strong> <code>git status</code></li>
-            <li><strong>Ask user permission</strong> for any git commands that could affect file locations</li>
-            <li><strong>NEVER assume</strong> file locations - always verify first</li>
-        </ol>
+# Testing
+npm run test         # Run tests
+npm run test:watch   # Run tests in watch mode
+
+# Database
+npm run migrate:track-meets    # Run track meets migration
+npm run check:track-meets      # Check track meets tables</code></pre>
     </div>
 
-    <h2><span class="emoji">🎯</span> Working Principles</h2>
+    <h2><span class="emoji">🎨</span> Key Features</h2>
 
-    <div class="success">
-        <h3>The Golden Rules:</h3>
+    <div class="info">
         <ul>
-            <li><span class="emoji">✅</span> <strong>ONLY edit existing files</strong> in the web/ directory</li>
-            <li><span class="emoji">✅</span> <strong>NEVER restore files from git</strong> without explicit user permission</li>
-            <li><span class="emoji">✅</span> <strong>ASK FIRST</strong> before any git operations</li>
-            <li><span class="emoji">✅</span> <strong>Focus on code changes</strong>, not file structure changes</li>
-            <li><span class="emoji">✅</span> <strong>Respect the existing web/ folder structure</strong></li>
+            <li><strong>🌓 Dark/Light Mode:</strong> Full theme support across all components</li>
+            <li><strong>📊 Dashboard:</strong> Athlete and coach dashboards with analytics</li>
+            <li><strong>📅 Calendar:</strong> Event scheduling and workout planning</li>
+            <li><strong>🏆 Gamification:</strong> Badges, points, and achievement system</li>
+            <li><strong>📱 Responsive:</strong> Mobile-first design with Chakra UI</li>
+            <li><strong>🔐 Authentication:</strong> Supabase Auth with role-based access</li>
+            <li><strong>📈 Analytics:</strong> Performance tracking and progress visualization</li>
         </ul>
     </div>
 
-    <h2><span class="emoji">🔄</span> Development Workflow</h2>
+    <h2><span class="emoji">🗄️</span> Database & Backend</h2>
 
-    <div class="warning">
-        <h3>Proper Development Process:</h3>
-        <ol>
-            <li><strong>Start dev server:</strong> <code>cd web && npm run dev</code></li>
-            <li><strong>Make code changes:</strong> Edit files in <code>web/src/</code></li>
-            <li><strong>Test changes:</strong> Verify at <code>http://localhost:5174</code></li>
-            <li><strong>Commit when ready:</strong> User decides when to commit</li>
-        </ol>
-    </div>
-
-    <h2><span class="emoji">📝</span> Incident History</h2>
-    
-    <div class="danger">
-        <p><strong>Previous Issues:</strong> AI assistant accidentally deleted/moved web/ folder contents 5+ times by using git restore commands that moved files back to root directory instead of preserving the working web/ structure.</p>
+    <div class="info">
+        <h3>Supabase Configuration:</h3>
+        <ul>
+            <li><strong>Database:</strong> PostgreSQL with real-time subscriptions</li>
+            <li><strong>Authentication:</strong> Email/password with role management</li>
+            <li><strong>Storage:</strong> File uploads for avatars and documents</li>
+            <li><strong>API:</strong> Auto-generated REST API with TypeScript types</li>
+        </ul>
         
-        <p><strong>Lesson Learned:</strong> The web/ folder is the source of truth for the working application. Git may show files as "deleted" when they're actually just moved between root and web/ directories.</p>
+        <p><strong>Environment Variables Required:</strong></p>
+        <pre><code>VITE_SUPABASE_URL=https://vdfqhhfirorqdjldmyzc.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key_here</code></pre>
     </div>
 
-    <h2><span class="emoji">🎯</span> Summary</h2>
+    <h2><span class="emoji">🔧</span> Development Guidelines</h2>
+
+    <div class="warning">
+        <h3>Code Standards:</h3>
+        <ul>
+            <li><strong>TypeScript:</strong> Strict mode enabled, proper typing required</li>
+            <li><strong>Components:</strong> Functional components with hooks</li>
+            <li><strong>Styling:</strong> Chakra UI components with useColorModeValue for themes</li>
+            <li><strong>State:</strong> Zustand for global state, React Query for server state</li>
+            <li><strong>Routing:</strong> React Router with protected routes</li>
+        </ul>
+    </div>
+
+    <h2><span class="emoji">🚢</span> Deployment Process</h2>
+
+    <div class="success">
+        <h3>Netlify Deployment:</h3>
+        <ol>
+            <li><strong>Build Command:</strong> <code>npm run build</code></li>
+            <li><strong>Publish Directory:</strong> <code>dist</code></li>
+            <li><strong>Auto-Deploy:</strong> Triggered on push to main branch</li>
+            <li><strong>Environment:</strong> Production variables configured in Netlify</li>
+        </ol>
+        
+        <p><strong>Manual Deploy:</strong> Push to main branch triggers automatic deployment</p>
+        <pre><code>git add .
+git commit -m "Your changes"
+git push origin main</code></pre>
+    </div>
+
+    <h2><span class="emoji">📋</span> Project Context for AI Assistants</h2>
+
+    <div class="info">
+        <h3>Important Context:</h3>
+        <ul>
+            <li><strong>Structure:</strong> All files are at repository root (no web/ folder)</li>
+            <li><strong>Entry Point:</strong> <code>src/main.tsx</code> renders into <code>index.html</code></li>
+            <li><strong>Routing:</strong> <code>src/routes/AppRoutes.tsx</code> handles all routing</li>
+            <li><strong>Theme:</strong> Dark/light mode implemented with Chakra UI</li>
+            <li><strong>State:</strong> User auth in Zustand, server data with React Query</li>
+            <li><strong>Database:</strong> Supabase with TypeScript types generated</li>
+        </ul>
+    </div>
+
+    <div class="warning">
+        <h3>Common Development Tasks:</h3>
+        <ul>
+            <li><strong>Add Component:</strong> Create in <code>src/components/</code></li>
+            <li><strong>Add Page:</strong> Create in <code>src/pages/</code> and update routes</li>
+            <li><strong>Update Theme:</strong> Use <code>useColorModeValue</code> for dark mode</li>
+            <li><strong>Database Changes:</strong> Update types and run migrations</li>
+            <li><strong>Styling:</strong> Use Chakra UI props and responsive design</li>
+        </ul>
+    </div>
+
+    <h2><span class="emoji">🎯</span> Quick Reference</h2>
     
     <div class="success">
-        <p><strong>Bottom Line:</strong> Work within the existing web/ directory structure. Make code changes, not structural changes. When in doubt, ask the user first.</p>
+        <h3>Essential Commands:</h3>
+        <pre><code># Start development
+npm run dev
+
+# Build and test locally
+npm run build
+npx serve dist
+
+# Deploy
+git push origin main
+
+# Check logs
+netlify logs</code></pre>
     </div>
 
     <hr>
-    <p><em>Created: January 2025 | Purpose: Prevent accidental deletion of working web/ folder</em></p>
+    <p><em>Last Updated: January 2025 | Status: Production Ready | Version: 2.0</em></p>
 </body>
 </html> 
