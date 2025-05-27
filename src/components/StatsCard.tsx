@@ -18,14 +18,12 @@ interface StatsCardProps extends CardProps {
     }[];
   };
   iconBgColor?: string;
-  headerBgGradient?: string;
 }
 
 const StatsCard: React.FC<StatsCardProps> = ({
   title = 'WEEKLY STATS',
   chartData,
   iconBgColor = 'blue.700',
-  headerBgGradient = 'linear-gradient(135deg, #2C5282 0%, #4299E1 100%)',
   ...rest
 }) => {
   const iconBg = useColorModeValue('white', 'gray.800');
@@ -56,6 +54,11 @@ const StatsCard: React.FC<StatsCardProps> = ({
       }
     }
   };
+
+  const headerBgGradient = useColorModeValue(
+    'linear-gradient(135deg, #2C5282 0%, #4299E1 100%)',
+    'linear-gradient(135deg, #1A365D 0%, #2A4365 100%)'
+  );
 
   return (
     <Card 

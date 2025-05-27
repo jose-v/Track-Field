@@ -13,7 +13,8 @@ import {
   StatLabel,
   StatNumber,
   StatHelpText,
-  Spinner
+  Spinner,
+  useColorModeValue
 } from '@chakra-ui/react'
 import { FaBed, FaMoon } from 'react-icons/fa'
 import React, { useEffect } from 'react'
@@ -67,6 +68,15 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
     }
   };
 
+  const headerGradient = useColorModeValue(
+    'linear-gradient(135deg, #5B4B8A 0%, #7C66AA 100%)',
+    'linear-gradient(135deg, #322659 0%, #6B46C1 100%)'
+  );
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const textColor = useColorModeValue('gray.800', 'gray.100');
+  const statLabelColor = useColorModeValue('gray.600', 'gray.300');
+  const statNumberColor = useColorModeValue('gray.900', 'gray.100');
+
   return (
     <Card 
       borderRadius="lg" 
@@ -76,11 +86,12 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
       p="0"
       display="flex"
       flexDirection="column"
+      bg={cardBg}
     >
       {/* Sleep Card Header */}
       <Box 
         h="80px" 
-        bg="linear-gradient(135deg, #5B4B8A 0%, #7C66AA 100%)" 
+        bg={headerGradient}
         position="relative"
         display="flex"
         alignItems="center"
@@ -139,17 +150,17 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
         ) : sleepStats.recentRecord ? (
           <VStack spacing={6} align="stretch" height="100%">
             <Box>
-              <Text fontSize="md" fontWeight="500" color="gray.600">Average Sleep</Text>
-              <Text fontSize="3xl" fontWeight="bold" mt={1} lineHeight="1">
+              <Text fontSize="md" fontWeight="500" color={statLabelColor}>Average Sleep</Text>
+              <Text fontSize="3xl" fontWeight="bold" mt={1} lineHeight="1" color={statNumberColor}>
                 {formatSleepDuration(sleepStats.averageDuration)}
               </Text>
-              <Text color="gray.500" fontSize="sm" mt={1}>Last 7 records</Text>
+              <Text color={statLabelColor} fontSize="sm" mt={1}>Last 7 records</Text>
             </Box>
             
             <Flex width="100%" justifyContent="space-between" mt={2}>
               <Box>
-                <Text fontSize="md" fontWeight="500" color="gray.600">Latest Quality</Text>
-                <Text fontSize="2xl" fontWeight="bold" mt={1}>
+                <Text fontSize="md" fontWeight="500" color={statLabelColor}>Latest Quality</Text>
+                <Text fontSize="2xl" fontWeight="bold" mt={1} color={statNumberColor}>
                   {sleepStats.recentRecord.quality ? 
                     getQualityText(sleepStats.recentRecord.quality).charAt(0).toUpperCase() + 
                     getQualityText(sleepStats.recentRecord.quality).slice(1) : 
@@ -158,8 +169,8 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
               </Box>
               
               <Box textAlign="right">
-                <Text fontSize="md" fontWeight="500" color="gray.600">Last Recorded</Text>
-                <Text fontSize="2xl" fontWeight="bold" mt={1}>
+                <Text fontSize="md" fontWeight="500" color={statLabelColor}>Last Recorded</Text>
+                <Text fontSize="2xl" fontWeight="bold" mt={1} color={statNumberColor}>
                   {formatDate(sleepStats.recentRecord.sleep_date)}
                 </Text>
               </Box>

@@ -20,6 +20,11 @@ const TeamCard: React.FC<TeamCardProps> = ({
   isLoading = false
 }) => {
   const iconBg = useColorModeValue('white', 'gray.800');
+  // Helper function to get header gradient based on color mode
+  const headerGradient = useColorModeValue(
+    'linear-gradient(135deg, #805AD5 0%, #B794F4 100%)',
+    'linear-gradient(135deg, #322659 0%, #6B46C1 100%)'
+  );
   // Helper function to format events array to string
   const getFormattedEvents = () => {
     if (!events || !Array.isArray(events) || events.length === 0) {
@@ -40,7 +45,7 @@ const TeamCard: React.FC<TeamCardProps> = ({
       {/* Header */}
       <Box 
         h="80px" 
-        bg="linear-gradient(135deg, #805AD5 0%, #B794F4 100%)" 
+        bg={headerGradient}
         position="relative"
         display="flex"
         alignItems="center"

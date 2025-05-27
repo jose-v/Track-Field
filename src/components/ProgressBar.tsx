@@ -112,16 +112,13 @@ export function ProgressBar({
   const isComplete = completed === total && total > 0;
   
   // We'll use our theme colors directly for styling
-  const progressColor =
-    isComplete || colorScheme === "green"
-      ? theme.colors?.green?.[500] || "#38A169"
-      : colorScheme === "blue" 
-        ? "#3182CE"
-        : theme.colors?.primary?.[500] || "#3182CE";
+  const barBg = useColorModeValue('gray.200', 'gray.700');
+  const progressColor = useColorModeValue('green.400', 'green.300');
+  const themeTextColor = useColorModeValue('gray.800', 'gray.100');
   
   // Default text color if not specified
   const defaultTextColor = useColorModeValue("gray.600", "gray.400");
-  const finalTextColor = textColor || defaultTextColor;
+  const finalTextColor = textColor || themeTextColor || defaultTextColor;
   
   // Generate text to display
   const displayText = isComplete 
@@ -140,7 +137,7 @@ export function ProgressBar({
           }
         }}
         borderRadius={borderRadius}
-        bg={bg}
+        bg={barBg}
       />
       
       {showText && (

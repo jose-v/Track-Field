@@ -29,6 +29,7 @@ import {
 import { supabase } from '../lib/supabase'
 import { Bar } from 'react-chartjs-2'
 import 'chart.js/auto'
+import TodayWorkoutsCard from '../components/TodayWorkoutsCard'
 
 // Function to format date in "Month Day, Year" format
 function formatDate(dateStr: string): string {
@@ -508,122 +509,15 @@ export function Dashboard() {
         </Box>
 
         {/* Today's Workouts Card */}
-        {(profileLoading || workoutsLoading) ? (
-          <Skeleton height="200px" mb={10} borderRadius="lg" />
-        ) : (
-          <Card 
-            borderRadius="lg"
-            boxShadow="md"
-            mb={10}
-            mt={0}
-            pt={0}
-            px={0}
-          >
-            {/* Updated Header Style */}
-            <Box 
-              h="80px" 
-              bgGradient="linear(to-r, green.400, green.500)"
-              position="relative"
-              display="flex"
-              alignItems="center"
-              px={6}
-              margin="0"
-              mt={0}
-              pt={0}
-              width="100%"
-              borderTopLeftRadius="inherit"
-              borderTopRightRadius="inherit"
-            >
-              <Flex 
-                bg={useColorModeValue('white', 'gray.800')} 
-                borderRadius="full" 
-                w="50px" 
-                h="50px" 
-                justifyContent="center" 
-                alignItems="center"
-                boxShadow="none"
-                mr={4}
-              >
-                <Icon as={FaRunning} w={6} h={6} color="green.500" />
-              </Flex>
-              <Tag
-                size="lg"
-                variant="subtle"
-                bg="whiteAlpha.300"
-                color="white"
-                fontWeight="bold"
-                px={4}
-                py={2}
-                borderRadius="md"
-              >
-                TODAY'S WORKOUTS
-              </Tag>
-            </Box>
-            <CardBody>
-              {todayWorkouts.length > 0 ? (
-                <Box>
-                  <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4} mb={6}>
-                    {todayWorkouts.map((workout, idx) => (
-                      <WorkoutCard
-                        key={workout.id || idx}
-                        workout={workout}
-                        isCoach={profile?.role === 'coach'}
-                        progress={getWorkoutProgressData(workout)}
-                        onStart={() => handleStartWorkout(workout)}
-                      />
-                    ))}
-                  </SimpleGrid>
-                  
-                  {upcomingWorkouts.length > 0 && (
-                    <>
-                      <Heading size="md" mb={4}>Upcoming Workouts</Heading>
-                      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
-                        {upcomingWorkouts.map((workout, idx) => (
-                          <WorkoutCard
-                            key={workout.id || idx}
-                            workout={workout}
-                            isCoach={profile?.role === 'coach'}
-                            progress={getWorkoutProgressData(workout)}
-                            onStart={() => handleStartWorkout(workout)}
-                          />
-                        ))}
-                      </SimpleGrid>
-                    </>
-                  )}
-                </Box>
-              ) : (
-                <VStack spacing={4} py={6} align="center">
-                  <Text>No workouts scheduled for today.</Text>
-                  {upcomingWorkouts.length > 0 ? (
-                    <>
-                      <Heading size="md" mt={2} mb={4}>Upcoming Workouts</Heading>
-                      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4} width="100%">
-                        {upcomingWorkouts.map((workout, idx) => (
-                          <WorkoutCard
-                            key={workout.id || idx}
-                            workout={workout}
-                            isCoach={profile?.role === 'coach'}
-                            progress={getWorkoutProgressData(workout)}
-                            onStart={() => handleStartWorkout(workout)}
-                          />
-                        ))}
-                      </SimpleGrid>
-                    </>
-                  ) : (
-                    <Button 
-                      as={RouterLink}
-                      to={profile?.role === 'coach' ? "/coach/workouts" : "/athlete/workouts"}
-                      variant="solid"
-                      colorScheme="blue"
-                    >
-                      {profile?.role === 'coach' ? "Create Workouts" : "View Available Workouts"}
-                    </Button>
-                  )}
-                </VStack>
-              )}
-            </CardBody>
-          </Card>
-        )}
+        <TodayWorkoutsCard
+          todayWorkouts={todayWorkouts}
+          upcomingWorkouts={upcomingWorkouts}
+          profile={profile}
+          getWorkoutProgressData={getWorkoutProgressData}
+          handleStartWorkout={handleStartWorkout}
+          workoutsLoading={workoutsLoading}
+          profileLoading={profileLoading}
+        />
 
         {/* Stats & Info Cards */}
         <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8} my={10}>

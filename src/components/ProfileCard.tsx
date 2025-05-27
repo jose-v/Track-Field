@@ -33,6 +33,10 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
   editLabel = 'Edit Profile',
   actionLabel = 'View Stats',
 }) => {
+  const bannerGradient = useColorModeValue(
+    'linear-gradient(135deg, #4A90E2 0%, #357ABD 100%)',
+    'linear-gradient(135deg, #1A365D 0%, #2A4365 100%)'
+  );
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('white', 'gray.600');
   const textColor = useColorModeValue('gray.700', 'gray.200');
@@ -58,7 +62,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
         />
       )}
       {/* Banner */}
-      <Box position="relative" h="140px" bg={bannerColor} overflow="visible">
+      <Box w="100%" h="120px" bg={bannerGradient} borderTopLeftRadius="2xl" borderTopRightRadius="2xl" position="relative">
         {/* Overlapping Avatar with camera icon */}
         <Box position="absolute" left="50%" bottom={-12} transform="translateX(-50%)" zIndex={1}>
           <Avatar

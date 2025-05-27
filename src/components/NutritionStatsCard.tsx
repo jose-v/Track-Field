@@ -18,6 +18,7 @@ import { FaUtensils } from 'react-icons/fa'
 import React from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import type { EatingRecord } from '../hooks/useNutritionRecords'
+import { useColorModeValue } from '@chakra-ui/react'
 
 interface NutritionStatsCardProps {
   nutritionStats: {
@@ -38,6 +39,15 @@ export const NutritionStatsCard: React.FC<NutritionStatsCardProps> = ({
   nutritionStats,
   isLoading 
 }) => {
+  const headerGradient = useColorModeValue(
+    'linear-gradient(135deg, #DD6B20 0%, #F6AD55 100%)',
+    'linear-gradient(135deg, #7B341E 0%, #DD6B20 100%)'
+  );
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const textColor = useColorModeValue('gray.800', 'gray.100');
+  const statLabelColor = useColorModeValue('gray.600', 'gray.300');
+  const statNumberColor = useColorModeValue('gray.900', 'gray.100');
+
   // Function to get the most common meal type
   const getMostCommonMeal = () => {
     if (!nutritionStats.recentRecord) return 'None';
@@ -62,11 +72,12 @@ export const NutritionStatsCard: React.FC<NutritionStatsCardProps> = ({
       p="0"
       display="flex"
       flexDirection="column"
+      bg={cardBg}
     >
       {/* Nutrition Card Header */}
       <Box 
         h="80px" 
-        bg="linear-gradient(135deg, #DD6B20 0%, #F6AD55 100%)" 
+        bg={headerGradient}
         position="relative"
         display="flex"
         alignItems="center"
@@ -106,25 +117,25 @@ export const NutritionStatsCard: React.FC<NutritionStatsCardProps> = ({
           <VStack spacing={4} align="stretch" height="100%">
             <Box flex="1">
               <Stat>
-                <StatLabel>Average Daily Calories</StatLabel>
-                <StatNumber>
+                <StatLabel color={statLabelColor}>Average Daily Calories</StatLabel>
+                <StatNumber color={statNumberColor}>
                   {nutritionStats.averageCaloriesPerDay ? 
                     `${Math.round(nutritionStats.averageCaloriesPerDay)}` : 
                     'No data'}
                 </StatNumber>
-                <StatHelpText>Last 7 days</StatHelpText>
+                <StatHelpText color={statLabelColor}>Last 7 days</StatHelpText>
               </Stat>
               
               <HStack width="100%" justifyContent="space-between" mt={4}>
                 <Stat>
-                  <StatLabel>Most Common Meal</StatLabel>
-                  <StatNumber fontSize="xl">
+                  <StatLabel color={statLabelColor}>Most Common Meal</StatLabel>
+                  <StatNumber fontSize="xl" color={statNumberColor}>
                     {getMostCommonMeal()}
                   </StatNumber>
                 </Stat>
                 <Stat textAlign="right">
-                  <StatLabel>Last Recorded</StatLabel>
-                  <StatNumber fontSize="xl">
+                  <StatLabel color={statLabelColor}>Last Recorded</StatLabel>
+                  <StatNumber fontSize="xl" color={statNumberColor}>
                     {new Date(nutritionStats.recentRecord.record_date).toLocaleDateString()}
                   </StatNumber>
                 </Stat>

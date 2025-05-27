@@ -8,7 +8,8 @@ import {
   Text,
   VStack,
   Skeleton,
-  useToast
+  useToast,
+  useColorModeValue
 } from '@chakra-ui/react'
 import { FaCloudSun, FaCloudRain, FaSnowflake, FaSun, FaCloudMeatball, FaBolt, FaMapMarkerAlt } from 'react-icons/fa'
 import React, { useState, useEffect } from 'react'
@@ -44,6 +45,13 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
   const [isLoading, setIsLoading] = useState(initialLoading)
   const [hasError, setHasError] = useState(false)
   const toast = useToast()
+
+  const headerGradient = useColorModeValue(
+    'linear-gradient(135deg, #F6AD55 0%, #FBD38D 100%)',
+    'linear-gradient(135deg, #7B341E 0%, #DD6B20 100%)'
+  );
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const textColor = useColorModeValue('gray.800', 'gray.100');
 
   // Helper function to get the appropriate weather icon based on condition code
   const getWeatherIcon = (condition: string) => {
@@ -183,32 +191,35 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
 
   return (
     <Skeleton isLoaded={!isLoading}>
-      <Box
-        bg="linear-gradient(135deg, #F6AD55 0%, #F6E05E 100%)"
-        borderRadius="lg"
-        p={5}
-        color="black"
-        position="relative"
-        overflow="hidden"
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
+      <Card 
+        borderRadius="lg" 
+        overflow="hidden" 
+        boxShadow="md"
+        bg={cardBg}
+        m={0}
+        p={0}
       >
-        <Flex width="100%" justifyContent="center" alignItems="center">
+        <Box
+          h="120px" 
+          bg={headerGradient}
+          position="relative"
+          overflow="hidden"
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+        >
+          <Flex width="100%" justifyContent="center" alignItems="center" p={0}>
           <Box display="flex" alignItems="center" justifyContent="center" mr={8}>
             <Icon as={WeatherIcon} color="white" boxSize={90} />
           </Box>
-          
-          <Box>
+            <Box p={0} m={0}>
             <Text fontSize="xl" fontWeight="medium" textAlign="center" mb={-1}>{weather.condition}</Text>
             <Text fontSize="4xl" fontWeight="bold" textAlign="center" lineHeight="1">{weather.temp}°</Text>
-            
             <Flex direction="column" mt={1} alignItems="center">
               <Flex alignItems="center" justifyContent="center">
                 <Icon as={FaMapMarkerAlt} color="blackAlpha.800" mr={1} />
                 <Text fontWeight="medium" fontSize="sm">{location}</Text>
               </Flex>
-              
               <Text mt={1} color="blackAlpha.800" fontSize="sm" textAlign="center">
                 {dateStr}
               </Text>
@@ -216,6 +227,7 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
           </Box>
         </Flex>
       </Box>
+      </Card>
     </Skeleton>
   )
 }

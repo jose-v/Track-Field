@@ -85,6 +85,10 @@ export function WorkoutCard({
   const typeColor = `${typeColorBase}.500`; // Use the 500 variant for stronger color
   const typeName = getTypeName(workout.type);
   const cardBg = useColorModeValue('white', 'gray.800');
+  const headerBg = useColorModeValue(
+    `${typeColorBase}.500`,
+    `${typeColorBase}.400`
+  );
   const infoColor = useColorModeValue('gray.600', 'gray.200');
   const loadingTextColor = useColorModeValue('gray.500', 'gray.300');
   const titleColor = useColorModeValue('gray.800', 'gray.100');
@@ -111,7 +115,7 @@ export function WorkoutCard({
     >
       {/* Card header with type info and actions */}
       <Box 
-        bg={typeColor}
+        bg={headerBg}
         px={4} 
         py={4} 
         display="flex" 
