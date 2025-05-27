@@ -227,14 +227,57 @@ git push origin main</code></pre>
         </ul>
     </div>
 
+    <h2><span class="emoji">🛡️</span> Safety Guidelines for AI Assistants</h2>
+
     <div class="warning">
-        <h3>Common Development Tasks:</h3>
+        <h3>⚠️ Critical Safety Rules:</h3>
+        <ul>
+            <li><strong>🚨 NEVER restore files from git</strong> without explicit user permission</li>
+            <li><strong>🚨 NEVER run git checkout commands</strong> that could overwrite local changes</li>
+            <li><strong>🚨 NEVER assume file locations</strong> - always verify with list_dir first</li>
+            <li><strong>🚨 ASK PERMISSION</strong> before any git operations that modify files</li>
+            <li><strong>🚨 PRESERVE existing structure</strong> - don't move files between directories</li>
+        </ul>
+    </div>
+
+    <div class="info">
+        <h3>✅ Safe Operations Protocol:</h3>
+        <ol>
+            <li><strong>Check current state:</strong> Use <code>git status</code> and <code>list_dir</code> first</li>
+            <li><strong>Edit existing files only:</strong> Use <code>edit_file</code> and <code>search_replace</code></li>
+            <li><strong>Verify before git commands:</strong> Ask user permission for any git operations</li>
+            <li><strong>Focus on code changes:</strong> Modify content, not file structure</li>
+            <li><strong>Test locally first:</strong> Always build and test before deploying</li>
+        </ol>
+    </div>
+
+    <div class="warning">
+        <h3>🚫 Commands to AVOID:</h3>
+        <pre><code># These can destroy local work:
+git checkout &lt;commit&gt; -- src/
+git checkout &lt;commit&gt; -- index.html
+git reset --hard &lt;commit&gt;
+git clean -fd
+
+# Always ask permission before:
+git restore &lt;file&gt;
+git checkout &lt;branch&gt;
+mv src/ web/src/
+rm -rf &lt;directory&gt;</code></pre>
+    </div>
+
+    <h2><span class="emoji">💻</span> Common Development Tasks</h2>
+
+    <div class="info">
+        <h3>Typical Development Workflow:</h3>
         <ul>
             <li><strong>Add Component:</strong> Create in <code>src/components/</code></li>
             <li><strong>Add Page:</strong> Create in <code>src/pages/</code> and update routes</li>
             <li><strong>Update Theme:</strong> Use <code>useColorModeValue</code> for dark mode</li>
             <li><strong>Database Changes:</strong> Update types and run migrations</li>
             <li><strong>Styling:</strong> Use Chakra UI props and responsive design</li>
+            <li><strong>State Management:</strong> Use Zustand for global state, React Query for server data</li>
+            <li><strong>Testing:</strong> Run <code>npm run test</code> before committing</li>
         </ul>
     </div>
 
