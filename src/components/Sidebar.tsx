@@ -14,7 +14,7 @@ import {
   HStack
 } from '@chakra-ui/react';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
-import { FaChevronLeft, FaChevronRight, FaUsers, FaVideo, FaBook, FaCalendarAlt, FaBell, FaUserAlt, FaHome, FaDumbbell } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight, FaUsers, FaVideo, FaBook, FaCalendarAlt, FaBell, FaUserAlt, FaHome, FaDumbbell, FaChartBar } from 'react-icons/fa';
 import { BiLineChart } from 'react-icons/bi';
 import { BsCalendarCheck } from 'react-icons/bs';
 import { MdLoop, MdRestaurantMenu, MdOutlineBedtime, MdOutlineReport, MdOutlineForum } from 'react-icons/md';
@@ -114,6 +114,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
         { icon: BsCalendarCheck, label: 'WORKOUTS', to: '/coach/workouts' },
         { icon: FaDumbbell, label: 'WORKOUT CREATOR', to: '/coach/workout-creator-demo', badge: 'BETA' },
         { icon: FaCalendarAlt, label: 'CALENDAR', to: '/coach/calendar' },
+        { icon: FaChartBar, label: 'ANALYTICS', to: '/coach/analytics' },
         { icon: MdOutlineReport, label: 'REPORTS', to: '/coach/stats' },
         { icon: MdOutlineForum, label: 'LOOP', to: '/coach/loop' },
         { icon: FaBell, label: 'NOTIFICATIONS', to: '/coach/notifications' },
@@ -128,6 +129,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
         { icon: FaCalendarAlt, label: 'CALENDAR', to: '/athlete/calendar' },
         { icon: MdRestaurantMenu, label: 'NUTRITION', to: '/athlete/nutrition' },
         { icon: MdOutlineBedtime, label: 'SLEEP', to: '/athlete/sleep' },
+        { icon: FaChartBar, label: 'ANALYTICS', to: '/athlete/analytics' },
         { icon: MdOutlineForum, label: 'LOOP', to: '/athlete/loop' },
         { icon: FaBell, label: 'NOTIFICATIONS', to: '/athlete/notifications' },
         { icon: FaUserAlt, label: 'PROFILE', to: '/athlete/profile' },

@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { Athlete, Profile, AthleteWithProfile } from './dbSchema';
+import { calculateAge } from '../utils/analytics/performance';
 
 export interface AthleteFrontend {
   id: string;
@@ -9,6 +10,23 @@ export interface AthleteFrontend {
   avatar?: string;
   email?: string;
   phone?: string;
+}
+
+export interface AthleteProfile {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  birth_date: string | null;
+  gender: string | null;
+  height: number | null;
+  weight: number | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  medical_conditions: string | null;
+  created_at: string;
+  updated_at: string;
+  age?: number;
 }
 
 /**
@@ -159,21 +177,32 @@ export async function searchAthletes(query: string): Promise<AthleteFrontend[]> 
 }
 
 /**
- * Calculates age from birthdate
+ * Get athlete profile by ID
  */
-function calculateAge(birthDate: string | null): number {
-  if (!birthDate) return 0;
-  
-  const birthDateObj = new Date(birthDate);
-  const today = new Date();
-  let age = today.getFullYear() - birthDateObj.getFullYear();
-  const monthDiff = today.getMonth() - birthDateObj.getMonth();
-  
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDateObj.getDate())) {
-    age--;
+export async function getAthleteProfile(athleteId: string): Promise<AthleteProfile | null> {
+  try {
+    const { data, error } = await supabase
+      .from('athlete_profiles')
+      .select('*')
+      .eq('id', athleteId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching athlete profile:', error);
+      return null;
+    }
+
+    if (data) {
+      // Use centralized age calculation
+      const age = calculateAge(data.birth_date);
+      return { ...data, age };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error in getAthleteProfile:', error);
+    return null;
   }
-  
-  return age;
 }
 
 /**

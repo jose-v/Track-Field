@@ -19,6 +19,17 @@ export interface WellnessMetrics {
   sleepDuration?: number; // hours
 }
 
+export interface PerformanceMetrics {
+  athleteId: string;
+  date: string;
+  event: string;
+  result: number;
+  improvement?: number;
+  personalBest?: boolean;
+  conditions?: string;
+  notes?: string;
+}
+
 export interface RiskAssessment {
   athleteId: string;
   date: string;
@@ -29,17 +40,6 @@ export interface RiskAssessment {
   riskColor: 'green' | 'yellow' | 'orange' | 'red';
   recommendations: string[];
   wellnessScore?: number;
-}
-
-export interface PerformanceMetrics {
-  athleteId: string;
-  date: string;
-  event: string;
-  time?: number; // in seconds for time-based events
-  distance?: number; // in meters for distance-based events
-  height?: number; // in meters for jumping events
-  personalBest: boolean;
-  improvement?: number; // percentage or absolute improvement
 }
 
 export interface RiskZone {
@@ -56,5 +56,5 @@ export interface TrainingLoadTrend {
   atl: number;
   ctl: number;
   acwr: number;
-  riskLevel: string;
+  riskLevel: 'low' | 'moderate' | 'high' | 'very-high';
 } 

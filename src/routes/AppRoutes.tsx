@@ -39,6 +39,7 @@ import { Nutrition } from '../pages/athlete/Nutrition';
 import { Sleep } from '../pages/athlete/Sleep';
 import { Calendar as AthleteCalendar } from '../pages/athlete/Calendar';
 import AthleteProfile from "../pages/athlete/Profile";
+import Analytics from '../pages/Analytics';
 
 // Features
 import { GamificationTestPage } from '../features/gamification';
@@ -97,6 +98,7 @@ export default function AppRoutes() {
         <Route path="/coach/notifications" element={<PrivateRoute><NotificationsPage /></PrivateRoute>} />
         <Route path="/coach/loop" element={<PrivateRoute><Loop /></PrivateRoute>} />
         <Route path="/coach/workout-creator-demo" element={<PrivateRoute><WorkoutCreatorDemo /></PrivateRoute>} />
+        <Route path="/coach/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
       </Route>
 
       {/* Athlete Routes - With Feedback */}
@@ -114,6 +116,7 @@ export default function AppRoutes() {
         <Route path="/athlete/loop" element={<PrivateRoute><Loop /></PrivateRoute>} />
         <Route path="/gamification" element={<PrivateRoute><GamificationTestPage /></PrivateRoute>} />
         <Route path="/athlete/workout-creator-demo" element={<PrivateRoute><WorkoutCreatorDemo /></PrivateRoute>} />
+        <Route path="/athlete/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
       </Route>
 
       {/* Loop Feature Routes (Accessible to both coaches and athletes) */}

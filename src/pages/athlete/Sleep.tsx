@@ -1,16 +1,16 @@
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
-  Heading,
+  VStack,
+  HStack,
   Text,
-  useColorModeValue,
   Button,
   FormControl,
   FormLabel,
   Input,
-  Textarea,
-  VStack,
   Select,
+  Textarea,
   Table,
   Thead,
   Tbody,
@@ -18,32 +18,35 @@ import {
   Th,
   Td,
   IconButton,
-  HStack,
   useToast,
+  useColorModeValue,
+  Heading,
 } from '@chakra-ui/react';
-import { useState, useEffect } from 'react';
-import { FaTrash } from 'react-icons/fa';
+import { FaTrash, FaBed } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { handleSleepLog } from '../../services/integrationService';
+import { handleSleepLog } from '../../services/gamificationIntegration';
+import { 
+  calculateSleepDuration, 
+  getSleepQualityText, 
+  SLEEP_QUALITY_MAPPING,
+  formatSleepDuration,
+  validateSleepRecord
+} from '../../utils/analytics/performance';
 
 interface SleepRecord {
   id: string;
+  athlete_id: string;
   sleep_date: string;
   start_time: string;
   end_time: string;
   quality: number;
-  notes: string;
+  notes?: string;
   created_at: string;
 }
 
-// Quality mapping between display values and stored integer values
-const qualityMapping = {
-  1: 'poor',
-  2: 'fair',
-  3: 'good',
-  4: 'excellent'
-};
+// Re-export for backward compatibility
+const qualityMapping = SLEEP_QUALITY_MAPPING;
 
 export function Sleep() {
   const { user } = useAuth();
@@ -88,6 +91,26 @@ export function Sleep() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate using centralized function
+    const validationErrors = validateSleepRecord({
+      startTime: formData.start_time,
+      endTime: formData.end_time,
+      quality: formData.quality,
+      date: formData.sleep_date
+    });
+
+    if (validationErrors.length > 0) {
+      toast({
+        title: 'Validation Error',
+        description: validationErrors.join(', '),
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -173,42 +196,29 @@ export function Sleep() {
     }
   };
 
-  // Calculate sleep duration
+  // Calculate sleep duration using centralized function
   const calculateDuration = (start: string, end: string): string => {
     if (!start || !end) return 'N/A';
-
-    try {
-      const startTime = new Date(`1970-01-01T${start}`);
-      let endTime = new Date(`1970-01-01T${end}`);
-      
-      // If end time is earlier than start time, assume it's the next day
-      if (endTime < startTime) {
-        endTime = new Date(`1970-01-02T${end}`);
-      }
-      
-      const diffMs = endTime.getTime() - startTime.getTime();
-      const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
-      const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-      
-      return `${diffHrs}h ${diffMins}m`;
-    } catch (error) {
-      return 'Invalid';
-    }
+    
+    const duration = calculateSleepDuration(start, end);
+    return formatSleepDuration(duration.total);
   };
 
-  // Get quality text from quality number
+  // Get quality text using centralized function
   const getQualityText = (qualityValue: number): string => {
-    return qualityMapping[qualityValue as keyof typeof qualityMapping] || 'Unknown';
+    return getSleepQualityText(qualityValue);
   };
 
   return (
-    <Box bg={bgColor} minH="100vh" py={8}>
-      <Container maxW="container.lg">
+    <Box minH="100vh" bg={bgColor}>
+      <Container maxW="6xl" py={8}>
         <VStack spacing={8} align="stretch">
-          <Box>
-            <Heading size="lg" mb={2}>Sleep Tracking</Heading>
-            <Text color="gray.600">Track your sleep patterns and quality</Text>
-          </Box>
+          <HStack spacing={4} align="center">
+            <FaBed size={32} color="#4299E1" />
+            <Heading size="lg" color="blue.500">
+              Sleep Tracking
+            </Heading>
+          </HStack>
 
           {/* Add Record Form */}
           <Box
@@ -219,34 +229,42 @@ export function Sleep() {
             bg={cardBg}
             shadow="sm"
           >
+            <Text fontSize="lg" fontWeight="semibold" mb={4}>
+              Add Sleep Record
+            </Text>
             <form onSubmit={handleSubmit}>
               <VStack spacing={4}>
-                <FormControl isRequired>
-                  <FormLabel>Date</FormLabel>
-                  <Input
-                    type="date"
-                    value={formData.sleep_date}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, sleep_date: e.target.value })}
-                  />
-                </FormControl>
+                <HStack spacing={4} width="full">
+                  <FormControl isRequired>
+                    <FormLabel>Date</FormLabel>
+                    <Input
+                      type="date"
+                      value={formData.sleep_date}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                        setFormData({ ...formData, sleep_date: e.target.value })}
+                    />
+                  </FormControl>
 
-                <FormControl isRequired>
-                  <FormLabel>Bedtime</FormLabel>
-                  <Input
-                    type="time"
-                    value={formData.start_time}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, start_time: e.target.value })}
-                  />
-                </FormControl>
+                  <FormControl isRequired>
+                    <FormLabel>Bedtime</FormLabel>
+                    <Input
+                      type="time"
+                      value={formData.start_time}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                        setFormData({ ...formData, start_time: e.target.value })}
+                    />
+                  </FormControl>
 
-                <FormControl isRequired>
-                  <FormLabel>Wake Time</FormLabel>
-                  <Input
-                    type="time"
-                    value={formData.end_time}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, end_time: e.target.value })}
-                  />
-                </FormControl>
+                  <FormControl isRequired>
+                    <FormLabel>Wake Time</FormLabel>
+                    <Input
+                      type="time"
+                      value={formData.end_time}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                        setFormData({ ...formData, end_time: e.target.value })}
+                    />
+                  </FormControl>
+                </HStack>
 
                 <FormControl isRequired>
                   <FormLabel>Sleep Quality</FormLabel>

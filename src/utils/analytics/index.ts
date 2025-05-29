@@ -1,15 +1,17 @@
-// Analytics utilities - centralized calculations for the Track & Field app
-// This module provides pure calculation functions that can be used across components
+// Central exports for all analytics utilities
+// Import and re-export all analytics functions for easy access
 
+// Injury Risk Analysis
 export * from './injuryRisk';
+
+// Training Analytics
 export * from './training';
+
+// Wellness Analytics
 export * from './wellness';
+
+// Performance Analytics (includes sleep, age, and performance calculations)
 export * from './performance';
 
-// Re-export commonly used types
-export type {
-  TrainingLoadData,
-  WellnessMetrics,
-  RiskAssessment,
-  PerformanceMetrics
-} from './types'; 
+// Type definitions
+export * from './types'; 

@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Analytics Architecture - Technical Documentation</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 1200px;
+      margin: 2em auto;
+      line-height: 1.6;
+      color: #333;
+      padding: 0 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 0.5em;
+      border-bottom: 3px solid #3498db;
+      padding-bottom: 10px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #7f8c8d;
+      font-style: italic;
+      margin-bottom: 2em;
+    }
+    h2 {
+      color: #2980b9;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 5px;
+      margin-top: 2.5em;
+    }
+    h3 {
+      color: #34495e;
+      margin-top: 1.8em;
+      border-left: 4px solid #3498db;
+      padding-left: 15px;
+    }
+    .section {
+      margin-bottom: 30px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      padding: 25px;
+      border-left: 4px solid #4299E1;
+    }
+    .code-block {
+      background-color: #2d3748;
+      color: #e2e8f0;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 15px 0;
+      overflow-x: auto;
+      font-family: 'Fira Code', 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .file-structure {
+      background-color: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 15px 0;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    .highlight-box {
+      background-color: #e8f4fd;
+      border: 1px solid #3498db;
+      border-radius: 5px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+    .warning-box {
+      background-color: #fef9e7;
+      border: 1px solid #f39c12;
+      border-radius: 5px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+    .success-box {
+      background-color: #f0f8f0;
+      border: 1px solid #27ae60;
+      border-radius: 5px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1em 0;
+      background-color: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    th {
+      background-color: #3498db;
+      color: white;
+      padding: 15px 12px;
+      text-align: left;
+      font-weight: bold;
+    }
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+      vertical-align: top;
+    }
+    tr:nth-child(even) {
+      background-color: #f8f8f8;
+    }
+    .function-signature {
+      background-color: #f4f4f4;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px;
+      font-family: monospace;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+    .toc {
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      padding: 25px;
+      margin: 25px 0;
+    }
+    .toc ul {
+      list-style-type: none;
+      padding-left: 0;
+    }
+    .toc li {
+      margin: 10px 0;
+    }
+    .toc a {
+      color: #3498db;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .toc a:hover {
+      text-decoration: underline;
+    }
+    .metadata {
+      text-align: right;
+      font-size: 0.9em;
+      color: #777;
+      margin-top: 3em;
+      border-top: 1px solid #ddd;
+      padding-top: 1em;
+    }
+    .nav-links {
+      text-align: center;
+      margin: 2em 0;
+      padding: 20px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+    }
+    .nav-links a {
+      color: #3498db;
+      text-decoration: none;
+      margin: 0 15px;
+      font-weight: 500;
+    }
+    .nav-links a:hover {
+      text-decoration: underline;
+    }
+    .implementation-status {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+    .status-complete {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .status-partial {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+    .status-planned {
+      background-color: #d1ecf1;
+      color: #0c5460;
+    }
+  </style>
+</head>
+<body>
+  <div class="nav-links">
+    <a href="index.html">← Documentation Hub</a>
+    <a href="analytics-architecture.html">Business Guide</a>
+    <a href="#overview">Technical Overview</a>
+    <a href="#implementation">Implementation</a>
+    <a href="#api">API Reference</a>
+  </div>
+
+  <h1>Analytics Architecture - Technical Documentation</h1>
+  <div class="subtitle">Implementation Details, Code Structure, and Developer Reference</div>
+  
+  <div class="toc">
+    <h3>📋 Table of Contents</h3>
+    <ul>
+      <li><a href="#overview">🔧 Technical Overview</a></li>
+      <li><a href="#file-structure">📁 File Structure & Organization</a></li>
+      <li><a href="#modules">📦 Module Breakdown</a></li>
+      <li><a href="#implementation">⚙️ Implementation Details</a></li>
+      <li><a href="#api">📚 API Reference</a></li>
+      <li><a href="#refactoring">🔄 Refactoring History</a></li>
+      <li><a href="#patterns">🎯 Design Patterns</a></li>
+      <li><a href="#testing">🧪 Testing Strategy</a></li>
+      <li><a href="#future">🚀 Future Development</a></li>
+    </ul>
+  </div>
+
+  <div class="section" id="overview">
+    <h2>🔧 Technical Overview</h2>
+    <p>The analytics architecture is a centralized calculation system built with TypeScript that provides consistent data processing across the Track & Field application. It follows a modular design pattern with clear separation of concerns.</p>
+    
+    <h3>Core Principles</h3>
+    <ul>
+      <li><strong>Single Source of Truth:</strong> All calculations centralized in <code>src/utils/analytics/</code></li>
+      <li><strong>Pure Functions:</strong> Stateless, testable calculation functions</li>
+      <li><strong>Type Safety:</strong> Full TypeScript support with comprehensive interfaces</li>
+      <li><strong>Separation of Concerns:</strong> Utils for calculations, services for data fetching</li>
+      <li><strong>Scalable Architecture:</strong> Easy to extend with new analytics modules</li>
+    </ul>
+
+    <div class="highlight-box">
+      <strong>🎯 Architecture Goal:</strong> Transform scattered inline calculations into a maintainable, scalable, and AI-ready analytics system that enables advanced features like trend detection, risk assessment, and predictive insights.
+    </div>
+  </div>
+
+  <div class="section" id="file-structure">
+    <h2>📁 File Structure & Organization</h2>
+    
+    <div class="file-structure">
+src/
+├── utils/analytics/                 # Pure calculation functions
+│   ├── index.ts                    # Central exports and module aggregation
+│   ├── types.ts                    # TypeScript interfaces and types
+│   ├── injuryRisk.ts              # ACWR calculations and injury risk
+│   ├── training.ts                # Training load utilities
+│   ├── wellness.ts                # Wellness scoring algorithms
+│   └── performance.ts             # Sleep, age, performance metrics (NEW)
+│
+├── services/analytics/             # Data fetching and API services
+│   ├── injuryRiskService.ts       # Injury risk data operations
+│   └── wellnessService.ts         # Wellness data operations
+│
+├── hooks/                         # React hooks using analytics
+│   ├── useSleepRecords.ts         # Sleep data with trend analysis
+│   └── useWellnessData.ts         # Wellness data with analytics
+│
+├── components/                    # UI components using analytics
+│   ├── SleepStatsCard.tsx         # Enhanced sleep statistics
+│   └── WellnessChart.tsx          # Wellness visualization
+│
+└── pages/athlete/                 # Pages using centralized analytics
+    ├── Sleep.tsx                  # Sleep tracking with validation
+    └── Wellness.tsx               # Wellness monitoring
+    </div>
+
+    <h3>Module Responsibilities</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Directory</th>
+          <th>Purpose</th>
+          <th>Dependencies</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>utils/analytics/</code></td>
+          <td>Pure calculation functions, no side effects</td>
+          <td>None (pure functions)</td>
+          <td><span class="implementation-status status-complete">Complete</span></td>
+        </tr>
+        <tr>
+          <td><code>services/analytics/</code></td>
+          <td>Data fetching, API calls, database operations</td>
+          <td>Supabase, utils/analytics</td>
+          <td><span class="implementation-status status-partial">Partial</span></td>
+        </tr>
+        <tr>
+          <td><code>hooks/</code></td>
+          <td>React state management with analytics</td>
+          <td>React, services, utils</td>
+          <td><span class="implementation-status status-complete">Complete</span></td>
+        </tr>
+        <tr>
+          <td><code>components/</code></td>
+          <td>UI components with enhanced analytics</td>
+          <td>React, hooks, utils</td>
+          <td><span class="implementation-status status-complete">Complete</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section" id="modules">
+    <h2>📦 Module Breakdown</h2>
+    
+    <h3>1. Performance Analytics Module (performance.ts)</h3>
+    <div class="success-box">
+      <strong>✅ Recently Implemented:</strong> This module was created during the refactoring to centralize sleep, age, and performance calculations.
+    </div>
+
+    <div class="code-block">
+// Key Functions in performance.ts
+export function calculateSleepDuration(bedTime: string, wakeTime: string): number
+export function getSleepQualityText(quality: number): string
+export function formatSleepDuration(minutes: number): string
+export function analyzeSleepTrends(records: SleepRecord[]): SleepTrendAnalysis
+export function validateSleepRecord(record: Partial&lt;SleepRecord&gt;): ValidationResult
+export function calculateAge(birthDate: string): number
+export function calculatePerformanceImprovement(current: number, previous: number, eventType: string): number
+export function getSleepRecommendations(analysis: SleepTrendAnalysis): string[]
+    </div>
+
+    <h3>2. Injury Risk Analytics (injuryRisk.ts)</h3>
+    <div class="code-block">
+// ACWR (Acute:Chronic Workload Ratio) Calculations
+export function calculateACWR(workloads: number[]): number
+export function categorizeInjuryRisk(acwr: number): 'Low' | 'Moderate' | 'High'
+export function getInjuryRiskRecommendations(risk: string): string[]
+    </div>
+
+    <h3>3. Training Analytics (training.ts)</h3>
+    <div class="code-block">
+// Training Load Calculations
+export function calculateTrainingLoad(rpe: number, duration: number): number
+export function calculateTrainingMonotony(loads: number[]): number
+export function categorizeTrainingLoad(load: number): 'Low' | 'Moderate' | 'High'
+    </div>
+
+    <h3>4. Wellness Analytics (wellness.ts)</h3>
+    <div class="code-block">
+// Wellness Scoring with Weighted Factors
+export function calculateWellnessScore(factors: WellnessFactors): number
+export function analyzeWellnessTrend(scores: number[]): TrendAnalysis
+export function detectWellnessRedFlags(data: WellnessData[]): RedFlag[]
+    </div>
+  </div>
+
+  <div class="section" id="implementation">
+    <h2>⚙️ Implementation Details</h2>
+    
+    <h3>Type Definitions (types.ts)</h3>
+    <div class="code-block">
+// Core interfaces for analytics
+export interface SleepRecord {
+  id: string;
+  athlete_id: string;
+  bed_time: string;
+  wake_time: string;
+  quality: number;
+  notes?: string;
+  created_at: string;
+}
+
+export interface SleepTrendAnalysis {
+  averageDuration: number;
+  qualityTrend: 'improving' | 'declining' | 'stable';
+  consistencyScore: number;
+  recommendations: string[];
+}
+
+export interface PerformanceMetrics {
+  improvement: number;
+  trend: 'improving' | 'declining' | 'stable';
+  percentChange: number;
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+    </div>
+
+    <h3>Central Exports (index.ts)</h3>
+    <div class="code-block">
+// Centralized exports for easy importing
+export * from './types';
+export * from './performance';
+export * from './injuryRisk';
+export * from './training';
+export * from './wellness';
+
+// Convenience re-exports for common functions
+export {
+  calculateSleepDuration,
+  analyzeSleepTrends,
+  calculateAge,
+  calculateACWR,
+  calculateWellnessScore
+} from './performance';
+    </div>
+
+    <h3>Enhanced Hook Implementation</h3>
+    <div class="code-block">
+// useSleepRecords.ts - Enhanced with analytics
+import { analyzeSleepTrends, calculateSleepDuration } from '@/utils/analytics';
+
+export function useSleepRecords(athleteId: string) {
+  const [records, setRecords] = useState&lt;SleepRecord[]&gt;([]);
+  const [trendAnalysis, setTrendAnalysis] = useState&lt;SleepTrendAnalysis | null&gt;(null);
+
+  useEffect(() => {
+    if (records.length > 0) {
+      const analysis = analyzeSleepTrends(records);
+      setTrendAnalysis(analysis);
+    }
+  }, [records]);
+
+  return {
+    records,
+    trendAnalysis,
+    loading,
+    error,
+    refetch
+  };
+}
+    </div>
+  </div>
+
+  <div class="section" id="api">
+    <h2>📚 API Reference</h2>
+    
+    <h3>Sleep Analytics Functions</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Function</th>
+          <th>Parameters</th>
+          <th>Returns</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>calculateSleepDuration</code></td>
+          <td>bedTime: string, wakeTime: string</td>
+          <td>number (minutes)</td>
+          <td>Calculates sleep duration handling midnight crossover</td>
+        </tr>
+        <tr>
+          <td><code>getSleepQualityText</code></td>
+          <td>quality: number (1-5)</td>
+          <td>string</td>
+          <td>Converts numeric quality to descriptive text</td>
+        </tr>
+        <tr>
+          <td><code>analyzeSleepTrends</code></td>
+          <td>records: SleepRecord[]</td>
+          <td>SleepTrendAnalysis</td>
+          <td>Performs trend analysis with linear regression</td>
+        </tr>
+        <tr>
+          <td><code>validateSleepRecord</code></td>
+          <td>record: Partial&lt;SleepRecord&gt;</td>
+          <td>ValidationResult</td>
+          <td>Validates sleep record data with detailed errors</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Performance Analytics Functions</h3>
+    <div class="function-signature">
+calculatePerformanceImprovement(current: number, previous: number, eventType: string): number
+</div>
+    <p><strong>Purpose:</strong> Calculates performance improvement percentage with event-specific logic</p>
+    <p><strong>Event Types:</strong> 'time' (lower is better), 'distance' (higher is better), 'points' (higher is better)</p>
+
+    <div class="function-signature">
+getSleepRecommendations(analysis: SleepTrendAnalysis): string[]
+</div>
+    <p><strong>Purpose:</strong> Generates personalized sleep recommendations based on trend analysis</p>
+    <p><strong>Returns:</strong> Array of actionable recommendation strings</p>
+  </div>
+
+  <div class="section" id="refactoring">
+    <h2>🔄 Refactoring History</h2>
+    
+    <h3>Before Refactoring: Scattered Calculations</h3>
+    <div class="warning-box">
+      <strong>⚠️ Problems Identified:</strong>
+      <ul>
+        <li><code>calculateSleepDuration()</code> duplicated in 4 files</li>
+        <li><code>getQualityText()</code> with different mappings</li>
+        <li><code>calculateAge()</code> in athleteService.ts</li>
+        <li>Inconsistent sleep statistics across components</li>
+        <li>No trend analysis or advanced features</li>
+      </ul>
+    </div>
+
+    <h3>Refactoring Process</h3>
+    <ol>
+      <li><strong>Analysis Phase:</strong> Semantic search to identify all inline calculations</li>
+      <li><strong>Centralization:</strong> Created <code>performance.ts</code> module</li>
+      <li><strong>Enhancement:</strong> Added trend analysis, validation, recommendations</li>
+      <li><strong>Migration:</strong> Updated all consuming files to use centralized functions</li>
+      <li><strong>Testing:</strong> Verified consistency across all components</li>
+    </ol>
+
+    <h3>Files Modified During Refactoring</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>File</th>
+          <th>Changes Made</th>
+          <th>Benefits Gained</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>useSleepRecords.ts</code></td>
+          <td>Added trend analysis, consistency scoring</td>
+          <td>Advanced analytics, better UX</td>
+        </tr>
+        <tr>
+          <td><code>Sleep.tsx</code></td>
+          <td>Centralized validation, error handling</td>
+          <td>Consistent validation, better errors</td>
+        </tr>
+        <tr>
+          <td><code>SleepStatsCard.tsx</code></td>
+          <td>Trend indicators, quality distribution</td>
+          <td>Rich visualizations, insights</td>
+        </tr>
+        <tr>
+          <td><code>athleteService.ts</code></td>
+          <td>Imports calculateAge from analytics</td>
+          <td>DRY principle, consistency</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section" id="patterns">
+    <h2>🎯 Design Patterns</h2>
+    
+    <h3>1. Module Pattern</h3>
+    <p>Each analytics domain (sleep, training, wellness) is encapsulated in its own module with clear interfaces.</p>
+
+    <h3>2. Pure Function Pattern</h3>
+    <div class="code-block">
+// All analytics functions are pure - no side effects
+export function calculateSleepDuration(bedTime: string, wakeTime: string): number {
+  // Pure calculation logic
+  // Same inputs always produce same outputs
+  // No external dependencies or mutations
+}
+    </div>
+
+    <h3>3. Factory Pattern for Recommendations</h3>
+    <div class="code-block">
+// Dynamic recommendation generation based on analysis
+export function getSleepRecommendations(analysis: SleepTrendAnalysis): string[] {
+  const recommendations: string[] = [];
+  
+  if (analysis.averageDuration < 420) { // Less than 7 hours
+    recommendations.push("Aim for 7-9 hours of sleep per night");
+  }
+  
+  if (analysis.consistencyScore < 70) {
+    recommendations.push("Try to maintain consistent sleep and wake times");
+  }
+  
+  return recommendations;
+}
+    </div>
+
+    <h3>4. Strategy Pattern for Event Types</h3>
+    <div class="code-block">
+// Different calculation strategies based on event type
+export function calculatePerformanceImprovement(
+  current: number, 
+  previous: number, 
+  eventType: string
+): number {
+  switch (eventType) {
+    case 'time':
+      return ((previous - current) / previous) * 100; // Lower is better
+    case 'distance':
+    case 'points':
+      return ((current - previous) / previous) * 100; // Higher is better
+    default:
+      return 0;
+  }
+}
+    </div>
+  </div>
+
+  <div class="section" id="testing">
+    <h2>🧪 Testing Strategy</h2>
+    
+    <h3>Unit Testing Approach</h3>
+    <div class="code-block">
+// Example test structure for analytics functions
+describe('Sleep Analytics', () => {
+  describe('calculateSleepDuration', () => {
+    it('should handle same-day sleep correctly', () => {
+      expect(calculateSleepDuration('22:00', '06:00')).toBe(480); // 8 hours
+    });
+    
+    it('should handle midnight crossover', () => {
+      expect(calculateSleepDuration('23:30', '07:15')).toBe(465); // 7h 45m
+    });
+    
+    it('should handle edge cases', () => {
+      expect(calculateSleepDuration('00:00', '00:00')).toBe(0);
+    });
+  });
+});
+    </div>
+
+    <h3>Integration Testing</h3>
+    <ul>
+      <li><strong>Hook Testing:</strong> Verify analytics integration in React hooks</li>
+      <li><strong>Component Testing:</strong> Ensure UI components display analytics correctly</li>
+      <li><strong>End-to-End:</strong> Test complete data flow from input to analytics display</li>
+    </ul>
+
+    <h3>Test Data Requirements</h3>
+    <div class="highlight-box">
+      <strong>📊 Test Datasets Needed:</strong>
+      <ul>
+        <li>Sleep records with various patterns (consistent, inconsistent, improving, declining)</li>
+        <li>Training loads with different ACWR scenarios</li>
+        <li>Wellness data with trend variations</li>
+        <li>Edge cases (missing data, invalid inputs, extreme values)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section" id="future">
+    <h2>🚀 Future Development</h2>
+    
+    <h3>Planned Enhancements</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Priority</th>
+          <th>Implementation</th>
+          <th>Dependencies</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Machine Learning Integration</td>
+          <td>High</td>
+          <td>TensorFlow.js models for prediction</td>
+          <td>Historical data, model training</td>
+        </tr>
+        <tr>
+          <td>Real-time Analytics</td>
+          <td>Medium</td>
+          <td>WebSocket updates, live calculations</td>
+          <td>Real-time data pipeline</td>
+        </tr>
+        <tr>
+          <td>Comparative Analytics</td>
+          <td>Medium</td>
+          <td>Peer comparison, benchmarking</td>
+          <td>Anonymized aggregate data</td>
+        </tr>
+        <tr>
+          <td>Advanced Visualizations</td>
+          <td>Low</td>
+          <td>D3.js charts, interactive dashboards</td>
+          <td>Chart library integration</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>AI Integration Roadmap</h3>
+    <div class="success-box">
+      <strong>✅ AI-Ready Architecture:</strong> The current analytics system is designed to easily integrate with AI/ML models:
+      <ul>
+        <li><strong>Standardized Data Format:</strong> Consistent interfaces for model training</li>
+        <li><strong>Feature Engineering:</strong> Analytics functions can serve as feature extractors</li>
+        <li><strong>Prediction Pipeline:</strong> Easy to add predictive models alongside existing calculations</li>
+        <li><strong>Feedback Loop:</strong> Analytics results can be used to improve model accuracy</li>
+      </ul>
+    </div>
+
+    <h3>Performance Optimization Plans</h3>
+    <ul>
+      <li><strong>Caching Layer:</strong> Redis cache for frequently accessed calculations</li>
+      <li><strong>Background Processing:</strong> Move heavy calculations to background jobs</li>
+      <li><strong>Incremental Updates:</strong> Only recalculate when data changes</li>
+      <li><strong>Lazy Loading:</strong> Load analytics on-demand for better performance</li>
+    </ul>
+
+    <h3>Monitoring & Observability</h3>
+    <div class="code-block">
+// Future monitoring implementation
+export function trackAnalyticsPerformance(functionName: string, duration: number) {
+  // Performance monitoring
+  // Error tracking
+  // Usage analytics
+}
+
+export function validateAnalyticsResults(result: any, expected: any) {
+  // Result validation
+  // Anomaly detection
+  // Quality assurance
+}
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>🎯 Key Takeaways for Developers</h2>
+    
+    <div class="highlight-box">
+      <strong>🔧 Development Guidelines:</strong>
+      <ul>
+        <li><strong>Always use centralized functions:</strong> Import from <code>@/utils/analytics</code></li>
+        <li><strong>Add new calculations to appropriate modules:</strong> Don't create inline calculations</li>
+        <li><strong>Follow pure function principles:</strong> No side effects in analytics functions</li>
+        <li><strong>Use TypeScript interfaces:</strong> Ensure type safety across the system</li>
+        <li><strong>Test thoroughly:</strong> Analytics accuracy is critical for user trust</li>
+      </ul>
+    </div>
+
+    <div class="warning-box">
+      <strong>⚠️ Common Pitfalls to Avoid:</strong>
+      <ul>
+        <li>Creating duplicate calculation logic in components</li>
+        <li>Modifying analytics functions without updating all consumers</li>
+        <li>Ignoring edge cases in calculations (midnight crossover, missing data)</li>
+        <li>Not validating inputs before processing</li>
+        <li>Forgetting to update type definitions when adding new features</li>
+      </ul>
+    </div>
+
+    <div class="success-box">
+      <strong>✅ Success Metrics:</strong>
+      <ul>
+        <li><strong>Consistency:</strong> Same calculations across all components</li>
+        <li><strong>Maintainability:</strong> Single place to update calculation logic</li>
+        <li><strong>Extensibility:</strong> Easy to add new analytics features</li>
+        <li><strong>Performance:</strong> Optimized calculations with caching</li>
+        <li><strong>Reliability:</strong> Comprehensive error handling and validation</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="nav-links">
+    <a href="index.html">← Documentation Hub</a>
+    <a href="analytics-architecture.html">Business Guide</a>
+    <a href="#top">↑ Back to Top</a>
+  </div>
+
+  <div class="metadata">
+    <strong>Document Version:</strong> 1.0<br>
+    <strong>Last Updated:</strong> <span id="updateDate"></span><br>
+    <strong>Target Audience:</strong> Developers, AI assistants, technical team members<br>
+    <strong>Related Documents:</strong> <a href="analytics-architecture.html">Business Guide</a>, <a href="database_schema.html">Database Schema</a>
+  </div>
+
+  <script>
+    // Set current date
+    document.getElementById('updateDate').textContent = new Date().toLocaleDateString();
+  </script>
+</body>
+</html> 

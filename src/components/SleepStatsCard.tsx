@@ -1,26 +1,23 @@
+import React, { useEffect } from 'react';
 import {
   Box,
-  Card,
-  CardBody,
-  Flex,
-  Icon,
-  Tag,
   Text,
   VStack,
   HStack,
-  Button,
   Stat,
   StatLabel,
   StatNumber,
   StatHelpText,
-  Spinner,
-  useColorModeValue
-} from '@chakra-ui/react'
-import { FaBed, FaMoon } from 'react-icons/fa'
-import React, { useEffect } from 'react'
-import { Link as RouterLink } from 'react-router-dom'
-import { getQualityText, useSleepStats } from '../hooks/useSleepRecords'
-import type { SleepRecord } from '../hooks/useSleepRecords'
+  Button,
+  useColorModeValue,
+  Flex,
+  Badge,
+  Icon,
+} from '@chakra-ui/react';
+import { FaBed, FaArrowRight, FaArrowUp, FaArrowDown, FaMinus } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
+import { useSleepStats } from '../hooks/useSleepRecords';
+import { formatSleepDuration, getSleepQualityText } from '../utils/analytics/performance';
 
 interface SleepStatsCardProps {
   viewAllLink?: string;
@@ -39,19 +36,11 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
       console.log("Average duration:", sleepStats.averageDuration);
       if (sleepStats.recentRecord) {
         console.log("Latest quality:", sleepStats.recentRecord.quality, 
-          "which maps to:", getQualityText(sleepStats.recentRecord.quality));
+          "which maps to:", getSleepQualityText(sleepStats.recentRecord.quality));
         console.log("Last recorded date:", sleepStats.recentRecord.sleep_date);
       }
     }
   }, [sleepStats, isLoading, error]);
-
-  // Format average sleep duration as "Xh Ym"
-  const formatSleepDuration = (duration: number) => {
-    if (!duration) return "0h 0m";
-    const hours = Math.floor(duration);
-    const minutes = Math.round((duration % 1) * 60);
-    return `${hours}h ${minutes}m`;
-  };
   
   // Format date as MM/DD/YYYY
   const formatDate = (dateString: string) => {
@@ -68,6 +57,18 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
     }
   };
 
+  // Get trend icon and color
+  const getTrendDisplay = (trend: string) => {
+    switch (trend) {
+      case 'improving':
+        return { icon: FaArrowUp, color: 'green.500', text: 'Improving' };
+      case 'declining':
+        return { icon: FaArrowDown, color: 'red.500', text: 'Declining' };
+      default:
+        return { icon: FaMinus, color: 'gray.500', text: 'Stable' };
+    }
+  };
+
   const headerGradient = useColorModeValue(
     'linear-gradient(135deg, #5B4B8A 0%, #7C66AA 100%)',
     'linear-gradient(135deg, #322659 0%, #6B46C1 100%)'
@@ -77,138 +78,193 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
   const statLabelColor = useColorModeValue('gray.600', 'gray.300');
   const statNumberColor = useColorModeValue('gray.900', 'gray.100');
 
-  return (
-    <Card 
-      borderRadius="lg" 
-      overflow="hidden" 
-      boxShadow="md"
-      height="100%"
-      p="0"
-      display="flex"
-      flexDirection="column"
-      bg={cardBg}
-    >
-      {/* Sleep Card Header */}
-      <Box 
-        h="80px" 
-        bg={headerGradient}
-        position="relative"
-        display="flex"
-        alignItems="center"
-        px={6}
-        margin="0"
-        width="100%"
-        borderTopLeftRadius="inherit"
-        borderTopRightRadius="inherit"
+  if (isLoading) {
+    return (
+      <Box
+        bg={cardBg}
+        borderRadius="xl"
+        overflow="hidden"
+        boxShadow="lg"
+        border="1px solid"
+        borderColor={useColorModeValue('gray.200', 'gray.700')}
+        h="330px"
       >
-        <Flex 
-          bg="white" 
-          borderRadius="full" 
-          w="50px" 
-          h="50px" 
-          justifyContent="center" 
-          alignItems="center"
-          boxShadow="none"
-          mr={4}
-        >
-          <Icon as={FaBed} w={6} h={6} color="purple.500" />
-        </Flex>
-        <Tag
-          size="lg"
-          variant="subtle"
-          bg="whiteAlpha.300"
+        <Box
+          bgGradient={headerGradient}
+          p={4}
           color="white"
-          fontWeight="bold"
-          px={4}
-          py={2}
-          borderRadius="md"
         >
-          SLEEP STATS
-        </Tag>
+          <HStack spacing={3}>
+            <FaBed size={20} />
+            <Text fontSize="lg" fontWeight="bold">Sleep Analytics</Text>
+          </HStack>
+        </Box>
+        <VStack p={6} spacing={4} justify="center" h="calc(100% - 72px)">
+          <Text color={statLabelColor}>Loading sleep data...</Text>
+        </VStack>
       </Box>
-      <CardBody px={6} py={5} display="flex" flexDirection="column" flex="1">
-        {isLoading ? (
-          <Flex justify="center" align="center" flex="1">
-            <Spinner size="xl" color="purple.500" />
-          </Flex>
-        ) : error ? (
-          <VStack spacing={4} py={4} flex="1" justifyContent="center">
-            <Text color="red.500">Error loading sleep data</Text>
-            <Box mt="auto" width="100%">
-              <Button 
-                as={RouterLink}
-                to={viewAllLink}
-                variant="primary"
-                size="md"
-                width="full"
-                leftIcon={<FaMoon />}
+    );
+  }
+
+  if (error) {
+    return (
+      <Box
+        bg={cardBg}
+        borderRadius="xl"
+        overflow="hidden"
+        boxShadow="lg"
+        border="1px solid"
+        borderColor={useColorModeValue('gray.200', 'gray.700')}
+        h="330px"
+      >
+        <Box
+          bgGradient={headerGradient}
+          p={4}
+          color="white"
+        >
+          <HStack spacing={3}>
+            <FaBed size={20} />
+            <Text fontSize="lg" fontWeight="bold">Sleep Analytics</Text>
+          </HStack>
+        </Box>
+        <VStack p={6} spacing={4} justify="center" h="calc(100% - 72px)">
+          <Text color="red.500">Error loading sleep data</Text>
+        </VStack>
+      </Box>
+    );
+  }
+
+  const trendDisplay = getTrendDisplay(sleepStats.trend);
+
+  return (
+    <Box
+      bg={cardBg}
+      borderRadius="xl"
+      overflow="hidden"
+      boxShadow="lg"
+      border="1px solid"
+      borderColor={useColorModeValue('gray.200', 'gray.700')}
+      h="330px"
+    >
+      {/* Header */}
+      <Box
+        bgGradient={headerGradient}
+        p={4}
+        color="white"
+      >
+        <HStack spacing={3} justify="space-between">
+          <HStack spacing={3}>
+            <FaBed size={20} />
+            <Text fontSize="lg" fontWeight="bold">Sleep Analytics</Text>
+          </HStack>
+          <Badge colorScheme="purple" variant="solid" fontSize="xs">
+            Last 7 Days
+          </Badge>
+        </HStack>
+      </Box>
+
+      {/* Content */}
+      <VStack p={6} spacing={4} align="stretch" h="calc(100% - 72px)">
+        {/* Main Stats */}
+        <HStack spacing={6} justify="space-between">
+          <Stat flex="1">
+            <StatLabel fontSize="sm" color={statLabelColor}>Average Sleep</StatLabel>
+            <StatNumber fontSize="xl" color={statNumberColor} fontWeight="bold">
+              {formatSleepDuration(sleepStats.averageDuration)}
+            </StatNumber>
+            <StatHelpText fontSize="xs" mb={0}>
+              <HStack spacing={1} align="center">
+                <Icon as={trendDisplay.icon} color={trendDisplay.color} />
+                <Text color={trendDisplay.color}>{trendDisplay.text}</Text>
+              </HStack>
+            </StatHelpText>
+          </Stat>
+
+          <Stat flex="1">
+            <StatLabel fontSize="sm" color={statLabelColor}>Latest Quality</StatLabel>
+            <StatNumber fontSize="xl" color={statNumberColor} fontWeight="bold">
+              {sleepStats.recentRecord ? 
+                getSleepQualityText(sleepStats.recentRecord.quality).charAt(0).toUpperCase() + 
+                getSleepQualityText(sleepStats.recentRecord.quality).slice(1) : 
+                'No data'
+              }
+            </StatNumber>
+            <StatHelpText fontSize="xs" mb={0}>
+              {sleepStats.recentRecord ? 
+                formatDate(sleepStats.recentRecord.sleep_date) : 
+                'No records yet'
+              }
+            </StatHelpText>
+          </Stat>
+        </HStack>
+
+        {/* Quality Distribution */}
+        <Box>
+          <Text fontSize="sm" color={statLabelColor} mb={2}>Sleep Quality Distribution</Text>
+          <HStack spacing={2} flexWrap="wrap">
+            {Object.entries(sleepStats.countByQuality).map(([quality, count]) => (
+              <Badge
+                key={quality}
+                colorScheme={
+                  quality === 'excellent' ? 'green' :
+                  quality === 'good' ? 'blue' :
+                  quality === 'fair' ? 'yellow' : 'red'
+                }
+                variant="subtle"
+                fontSize="xs"
+                px={2}
+                py={1}
               >
-                Try Again
-              </Button>
-            </Box>
-          </VStack>
-        ) : sleepStats.recentRecord ? (
-          <VStack spacing={6} align="stretch" height="100%">
-            <Box>
-              <Text fontSize="md" fontWeight="500" color={statLabelColor}>Average Sleep</Text>
-              <Text fontSize="3xl" fontWeight="bold" mt={1} lineHeight="1" color={statNumberColor}>
-                {formatSleepDuration(sleepStats.averageDuration)}
+                {quality}: {count}
+              </Badge>
+            ))}
+          </HStack>
+        </Box>
+
+        {/* Consistency Score */}
+        {sleepStats.consistencyScore > 0 && (
+          <Box>
+            <Text fontSize="sm" color={statLabelColor} mb={1}>Consistency Score</Text>
+            <HStack spacing={2}>
+              <Box
+                bg={useColorModeValue('gray.200', 'gray.600')}
+                borderRadius="full"
+                h="6px"
+                flex="1"
+                overflow="hidden"
+              >
+                <Box
+                  bg={sleepStats.consistencyScore > 70 ? 'green.400' : 
+                      sleepStats.consistencyScore > 50 ? 'yellow.400' : 'red.400'}
+                  h="100%"
+                  w={`${sleepStats.consistencyScore}%`}
+                  borderRadius="full"
+                />
+              </Box>
+              <Text fontSize="xs" color={statLabelColor} minW="fit-content">
+                {sleepStats.consistencyScore}%
               </Text>
-              <Text color={statLabelColor} fontSize="sm" mt={1}>Last 7 records</Text>
-            </Box>
-            
-            <Flex width="100%" justifyContent="space-between" mt={2}>
-              <Box>
-                <Text fontSize="md" fontWeight="500" color={statLabelColor}>Latest Quality</Text>
-                <Text fontSize="2xl" fontWeight="bold" mt={1} color={statNumberColor}>
-                  {sleepStats.recentRecord.quality ? 
-                    getQualityText(sleepStats.recentRecord.quality).charAt(0).toUpperCase() + 
-                    getQualityText(sleepStats.recentRecord.quality).slice(1) : 
-                    'N/A'}
-                </Text>
-              </Box>
-              
-              <Box textAlign="right">
-                <Text fontSize="md" fontWeight="500" color={statLabelColor}>Last Recorded</Text>
-                <Text fontSize="2xl" fontWeight="bold" mt={1} color={statNumberColor}>
-                  {formatDate(sleepStats.recentRecord.sleep_date)}
-                </Text>
-              </Box>
-            </Flex>
-            
-            <Box mt="auto" width="100%">
-              <Button 
-                as={RouterLink}
-                to={viewAllLink}
-                variant="primary"
-                size="md"
-                width="full"
-                leftIcon={<FaMoon />}
-              >
-                View Sleep Records
-              </Button>
-            </Box>
-          </VStack>
-        ) : (
-          <VStack spacing={4} py={4} flex="1" justifyContent="center">
-            <Text>No sleep records found.</Text>
-            <Box mt="auto" width="100%">
-              <Button 
-                as={RouterLink}
-                to={viewAllLink}
-                variant="primary"
-                size="md"
-                width="full"
-                leftIcon={<FaMoon />}
-              >
-                Add Sleep Record
-              </Button>
-            </Box>
-          </VStack>
+            </HStack>
+          </Box>
         )}
-      </CardBody>
-    </Card>
-  )
-}
+
+        {/* View All Button */}
+        <Flex justify="center" mt="auto">
+          <Button
+            as={Link}
+            to={viewAllLink}
+            size="sm"
+            colorScheme="purple"
+            variant="ghost"
+            rightIcon={<FaArrowRight />}
+            _hover={{ bg: useColorModeValue('purple.50', 'purple.900') }}
+          >
+            View All Records
+          </Button>
+        </Flex>
+      </VStack>
+    </Box>
+  );
+};
 
 export default SleepStatsCard 

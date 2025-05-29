@@ -1,6 +1,12 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { 
+  calculateSleepDuration, 
+  getSleepQualityText, 
+  SLEEP_QUALITY_MAPPING,
+  analyzeSleepTrends 
+} from '../utils/analytics/performance';
 
 export interface SleepRecord {
   id: string;
@@ -13,75 +19,59 @@ export interface SleepRecord {
   created_at: string;
 }
 
-// Quality mapping between display values and stored integer values
-export const qualityMapping = {
-  1: 'poor',
-  2: 'fair',
-  3: 'good',
-  4: 'excellent'
-};
+// Re-export quality mapping for backward compatibility
+export const qualityMapping = SLEEP_QUALITY_MAPPING;
 
-// Helper to get quality text from quality number
-export function getQualityText(qualityValue: number): string {
-  console.log("Getting quality text for value:", qualityValue);
-  return qualityMapping[qualityValue as keyof typeof qualityMapping] || 'Unknown';
-}
+// Re-export quality text function for backward compatibility  
+export const getQualityText = getSleepQualityText;
 
-export function useSleepRecords(limit = 5) {
+export function useSleepRecords(limit?: number) {
   const { user } = useAuth();
+  const [data, setData] = useState<SleepRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  return useQuery({
-    queryKey: ['sleepRecords', user?.id, limit],
-    queryFn: async () => {
-      if (!user) return [];
-
-      console.log(`Fetching sleep records for user ${user.id}, limit: ${limit}`);
-      const { data, error } = await supabase
-        .from('sleep_records')
-        .select('*')
-        .eq('athlete_id', user.id)
-        .order('sleep_date', { ascending: false })
-        .limit(limit);
-
-      if (error) {
-        console.error('Error fetching sleep records:', error);
-        throw error;
+  useEffect(() => {
+    async function fetchSleepRecords() {
+      if (!user?.id) {
+        setIsLoading(false);
+        return;
       }
 
-      console.log(`Fetched ${data?.length || 0} sleep records:`, data);
-      return data as SleepRecord[];
-    },
-    enabled: !!user,
-  });
-}
+      try {
+        setIsLoading(true);
+        let query = supabase
+          .from('sleep_records')
+          .select('*')
+          .eq('athlete_id', user.id)
+          .order('sleep_date', { ascending: false });
 
-// Helper to calculate sleep duration in hours and minutes
-export function calculateSleepDuration(start: string, end: string): { hours: number; minutes: number; total: number } {
-  if (!start || !end) return { hours: 0, minutes: 0, total: 0 };
+        if (limit) {
+          query = query.limit(limit);
+        }
 
-  try {
-    const startTime = new Date(`1970-01-01T${start}`);
-    let endTime = new Date(`1970-01-01T${end}`);
-    
-    // If end time is earlier than start time, assume it's the next day
-    if (endTime < startTime) {
-      endTime = new Date(`1970-01-02T${end}`);
+        const { data: records, error } = await query;
+
+        if (error) throw error;
+
+        setData(records || []);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching sleep records:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch sleep records');
+        setData([]);
+      } finally {
+        setIsLoading(false);
+      }
     }
-    
-    const diffMs = endTime.getTime() - startTime.getTime();
-    const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    const totalHours = diffMs / (1000 * 60 * 60);
-    
-    console.log(`Sleep duration calculation: ${start} to ${end} = ${totalHours} hours (${diffHrs}h ${diffMins}m)`);
-    return { hours: diffHrs, minutes: diffMins, total: totalHours };
-  } catch (error) {
-    console.error("Error calculating sleep duration:", error);
-    return { hours: 0, minutes: 0, total: 0 };
-  }
+
+    fetchSleepRecords();
+  }, [user?.id, limit]);
+
+  return { data, isLoading, error };
 }
 
-// Get sleep stats
+// Get sleep stats using centralized analytics
 export function useSleepStats() {
   const { data: records, isLoading, error } = useSleepRecords(7); // Last 7 records
   
@@ -95,35 +85,40 @@ export function useSleepStats() {
       good: 0,
       excellent: 0
     },
-    recentRecord: null as SleepRecord | null
+    recentRecord: null as SleepRecord | null,
+    trend: 'stable' as 'improving' | 'stable' | 'declining',
+    consistencyScore: 0
   };
 
   if (records && records.length > 0) {
     console.log("Processing sleep records for stats:", records);
     
-    // Calculate total duration and average
-    let totalDuration = 0;
-    let validRecords = 0;
+    // Prepare data for analytics
+    const sleepData = records.map(record => {
+      const duration = calculateSleepDuration(record.start_time, record.end_time);
+      return {
+        date: record.sleep_date,
+        duration: duration.total,
+        quality: record.quality
+      };
+    });
 
+    // Use centralized analytics
+    const analysis = analyzeSleepTrends(sleepData);
+    stats.averageDuration = analysis.averageDuration;
+    stats.trend = analysis.trend;
+    stats.consistencyScore = analysis.consistencyScore;
+
+    // Count by quality using centralized function
     records.forEach(record => {
-      if (record.start_time && record.end_time) {
-        const duration = calculateSleepDuration(record.start_time, record.end_time);
-        totalDuration += duration.total;
-        validRecords++;
-      }
-
-      // Count quality - convert numeric quality to string for counting
       if (record.quality) {
-        const qualityText = getQualityText(record.quality);
+        const qualityText = getSleepQualityText(record.quality);
         console.log(`Record quality: ${record.quality} maps to: ${qualityText}`);
         if (qualityText in stats.countByQuality) {
           stats.countByQuality[qualityText as keyof typeof stats.countByQuality]++;
         }
       }
     });
-
-    stats.averageDuration = validRecords > 0 ? totalDuration / validRecords : 0;
-    console.log(`Average sleep duration: ${stats.averageDuration} hours`);
     
     // Get most recent record
     stats.recentRecord = records[0];
@@ -140,8 +135,6 @@ export function useSleepStats() {
     stats.bestQuality = bestQuality;
     console.log(`Best sleep quality: ${stats.bestQuality}`);
     console.log("Sleep quality counts:", stats.countByQuality);
-  } else {
-    console.log("No sleep records found or still loading");
   }
 
   return { stats, isLoading, error };
