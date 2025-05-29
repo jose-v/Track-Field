@@ -38,14 +38,15 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
     'linear-gradient(135deg, #1A365D 0%, #2A4365 100%)'
   );
   const cardBg = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('white', 'gray.600');
-  const textColor = useColorModeValue('gray.700', 'gray.200');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const textColor = useColorModeValue('gray.700', 'gray.100');
   const subtitleColor = useColorModeValue('gray.500', 'gray.400');
   const avatarBorderColor = useColorModeValue('white', 'gray.800');
   const cameraBg = useColorModeValue('white', 'gray.800');
+  const cardShadow = useColorModeValue('none', 'lg');
   
   return (
-    <Card boxShadow="lg" borderRadius="2xl" overflow="visible" p={0} position="relative" mb={12} minH="520px" bg={cardBg}>
+    <Card boxShadow={cardShadow} borderRadius="2xl" overflow="visible" p={0} position="relative" mb={12} minH="520px" bg={cardBg}>
       {/* Edit Icon Button (top right) */}
       {onEdit && (
         <IconButton

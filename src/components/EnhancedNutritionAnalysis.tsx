@@ -78,8 +78,10 @@ export const EnhancedNutritionAnalysis: React.FC<EnhancedNutritionAnalysisProps>
   // Color mode values
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
-  const statLabelColor = useColorModeValue('gray.600', 'gray.300');
+  const textColor = useColorModeValue('gray.700', 'gray.200');
   const statNumberColor = useColorModeValue('gray.900', 'gray.100');
+  const statLabelColor = useColorModeValue('gray.600', 'gray.300');
+  const cardShadow = useColorModeValue('none', 'lg');
 
   useEffect(() => {
     async function fetchData() {
@@ -204,7 +206,7 @@ export const EnhancedNutritionAnalysis: React.FC<EnhancedNutritionAnalysisProps>
       p={6}
       border="1px solid"
       borderColor={borderColor}
-      boxShadow="lg"
+      boxShadow={cardShadow}
     >
       <VStack spacing={6} align="stretch">
         {/* Header */}

@@ -93,6 +93,7 @@ export function WorkoutCard({
   const loadingTextColor = useColorModeValue('gray.500', 'gray.300');
   const titleColor = useColorModeValue('gray.800', 'gray.100');
   const exerciseTextColor = useColorModeValue('gray.700', 'gray.200');
+  const cardShadow = useColorModeValue('none', 'lg');
   
   // Get formatted date
   const formattedScheduleDate = formatDate(workout.date);
@@ -104,7 +105,7 @@ export function WorkoutCard({
     <Card 
       borderRadius="xl" 
       overflow="hidden" 
-      boxShadow="lg" 
+      boxShadow={cardShadow}
       borderWidth="1px" 
       borderColor={borderColor}
       bg={cardBg}

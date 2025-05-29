@@ -65,7 +65,7 @@ function getMealTypeText(mealType: string): string {
 
 // Create a skeleton card component for loading states
 const SkeletonCard = ({ height = "330px" }: { height?: string }) => (
-  <Card borderRadius="lg" overflow="hidden" boxShadow="md" h={height}>
+  <Card borderRadius="lg" overflow="hidden" boxShadow={useColorModeValue('none', 'md')} h={height}>
     <Skeleton height="80px" />
     <CardBody pt={6}>
       <SkeletonText mt="2" noOfLines={1} spacing="2" skeletonHeight="3" width="40%" mx="auto" />
@@ -327,11 +327,12 @@ export function Dashboard() {
     // For now, just a placeholder for future data refresh functionality
   };
 
-  // Color mode values for consistent styling
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.700');
-  const statLabelColor = useColorModeValue('gray.600', 'gray.300');
-  const statNumberColor = useColorModeValue('gray.900', 'gray.100');
+  // Colors
+  const cardBg = useColorModeValue('white', 'gray.800')
+  const borderColor = useColorModeValue('gray.200', 'gray.700')
+  const cardShadow = useColorModeValue('none', 'md')
+  const cardShadowLg = useColorModeValue('none', 'lg')
+  const cardShadowSm = useColorModeValue('none', 'sm')
 
   return (
     <Box pt={0} pb={10} bg={useColorModeValue('gray.50', 'gray.900')}>
@@ -411,7 +412,7 @@ export function Dashboard() {
             p={6}
             border="1px solid"
             borderColor={borderColor}
-            boxShadow="lg"
+            boxShadow={cardShadowLg}
             mb={8}
           >
             <VStack spacing={5} align="stretch">
@@ -420,10 +421,10 @@ export function Dashboard() {
                 <HStack spacing={3}>
                   <Icon as={FaMedal} boxSize={6} color="purple.500" />
                   <VStack align="start" spacing={0}>
-                    <Text fontSize="lg" fontWeight="bold" color={statNumberColor}>
+                    <Text fontSize="lg" fontWeight="bold" color={useColorModeValue('gray.900', 'gray.100')}>
                       Gamification Preview
                     </Text>
-                    <Text fontSize="sm" color={statLabelColor}>
+                    <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>
                       Track your progress and achievements
                     </Text>
                   </VStack>
@@ -440,7 +441,7 @@ export function Dashboard() {
               </HStack>
 
               {/* Content */}
-              <Text fontSize="sm" color={statLabelColor}>
+              <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>
                 View your points, badges, streaks, and leaderboard position
               </Text>
 
@@ -485,7 +486,7 @@ export function Dashboard() {
                 h="50px" 
                 justifyContent="center" 
                 alignItems="center"
-                boxShadow="md"
+                boxShadow={cardShadow}
               >
                 <Icon as={execModal.running ? FaRunning : FaRegClock} w={6} h={6} color={execModal.running ? "green.500" : "blue.500"} />
               </Flex>
@@ -540,7 +541,7 @@ export function Dashboard() {
                     bg={execModal.running ? "green.50" : "blue.50"} 
                     p={4} 
                     borderRadius="full" 
-                    boxShadow="sm" 
+                    boxShadow={cardShadowSm} 
                     mb={2}
                   >
                     <Text fontSize="2xl" fontWeight="bold" color={execModal.running ? "green.500" : "blue.500"}>

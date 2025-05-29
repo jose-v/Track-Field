@@ -37,10 +37,11 @@ export const NutritionStatsCard: React.FC<NutritionStatsCardProps> = ({
   isLoading 
 }) => {
   // Color mode values matching quick-log cards
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.700');
-  const statLabelColor = useColorModeValue('gray.600', 'gray.300');
-  const statNumberColor = useColorModeValue('gray.900', 'gray.100');
+  const cardBg = useColorModeValue('white', 'gray.800')
+  const borderColor = useColorModeValue('gray.200', 'gray.700')
+  const statLabelColor = useColorModeValue('gray.600', 'gray.300')
+  const statNumberColor = useColorModeValue('gray.900', 'gray.100')
+  const cardShadow = useColorModeValue('none', 'lg')
 
   // Function to get the most common meal type
   const getMostCommonMeal = () => {
@@ -69,7 +70,7 @@ export const NutritionStatsCard: React.FC<NutritionStatsCardProps> = ({
         p={6}
         border="1px solid"
         borderColor={borderColor}
-        boxShadow="lg"
+        boxShadow={cardShadow}
         minH="320px"
         display="flex"
         alignItems="center"
@@ -87,7 +88,7 @@ export const NutritionStatsCard: React.FC<NutritionStatsCardProps> = ({
       p={6}
       border="1px solid"
       borderColor={borderColor}
-      boxShadow="lg"
+      boxShadow={cardShadow}
       minH="320px"
       display="flex"
       flexDirection="column"

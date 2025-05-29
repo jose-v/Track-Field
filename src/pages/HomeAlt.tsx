@@ -90,7 +90,7 @@ export default function HomeAlt() {
               { icon: FaUsers, title: 'Expert Coaching', text: 'Connect directly with professional coaches who provide personalized feedback and customized training programs.' },
               { icon: FaTrophy, title: 'Competition Ready', text: 'Prepare for competitions with specialized training plans and performance tracking tools designed for peak performance.' },
             ].map((f) => (
-              <VStack key={f.title} p={8} bg={cardBg} borderRadius="lg" shadow="sm" spacing={4} align="start">
+              <VStack key={f.title} p={8} bg={cardBg} borderRadius="lg" spacing={4} align="start">
                 <Flex w={12} h={12} align="center" justify="center" bg="accent.50" color="primary.500" rounded="md">
                   <Icon as={f.icon} boxSize={6} />
                 </Flex>
@@ -126,7 +126,7 @@ export default function HomeAlt() {
                 image: '/images/testimonial3.jpg',
                 quote: 'The training plans are excellent. I\'ve been able to train more efficiently and reduce my marathon time by 12 minutes.'
               }].map((t) => (
-                <VStack key={t.name} p={8} bg={cardBg} borderRadius="lg" shadow="md" spacing={6} align="start">
+                <VStack key={t.name} p={8} bg={cardBg} borderRadius="lg" spacing={6} align="start">
                   <Icon as={FaQuoteLeft} boxSize={6} color={yellow} />
                   <Text fontSize="lg" lineHeight="1.7">
                     "{t.quote}"
@@ -172,7 +172,7 @@ export default function HomeAlt() {
                 { tier: 'Enterprise', price: 'Volume Pricing', features: ['Discounts 50+ users'], cta: 'Contact Us' },
                 { tier: 'Bespoke', price: 'Custom', features: ['Tailored training', 'Align with strategy'], cta: 'Contact Us' },
               ].map((plan) => (
-                <VStack key={plan.tier} p={8} bg={cardBg} borderRadius="lg" shadow="sm" spacing={6} align="stretch">
+                <VStack key={plan.tier} p={8} bg={cardBg} borderRadius="lg" spacing={6} align="stretch">
                   <Heading size="md" textAlign="center">
                     {plan.tier}
                   </Heading>

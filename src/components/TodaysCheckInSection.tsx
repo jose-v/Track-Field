@@ -21,6 +21,9 @@ export const TodaysCheckInSection: React.FC<TodaysCheckInSectionProps> = ({ onDa
   const [refreshKey, setRefreshKey] = useState(0);
   const statLabelColor = useColorModeValue('gray.600', 'gray.300');
   const statNumberColor = useColorModeValue('gray.900', 'gray.100');
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const cardShadow = useColorModeValue('none', 'lg');
 
   const handleLogComplete = () => {
     // Trigger refresh of components

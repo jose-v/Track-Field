@@ -73,8 +73,9 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
   // Color mode values matching quick-log cards
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
-  const statLabelColor = useColorModeValue('gray.600', 'gray.300');
-  const statNumberColor = useColorModeValue('gray.900', 'gray.100');
+  const textColor = useColorModeValue('gray.800', 'gray.100');
+  const subtitleColor = useColorModeValue('gray.600', 'gray.300');
+  const cardShadow = useColorModeValue('none', 'lg');
 
   // Fetch track meets data
   useEffect(() => {
@@ -184,14 +185,14 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
         p={6}
         border="1px solid"
         borderColor={borderColor}
-        boxShadow="lg"
+        boxShadow={cardShadow}
         minH="320px"
         display="flex"
         alignItems="center"
         justifyContent="center"
         {...rest}
       >
-        <Text color={statLabelColor}>Loading track meets...</Text>
+        <Text color={subtitleColor}>Loading track meets...</Text>
       </Box>
     );
   }
@@ -203,7 +204,7 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
       p={6}
       border="1px solid"
       borderColor={borderColor}
-      boxShadow="lg"
+      boxShadow={cardShadow}
       minH="320px"
       display="flex"
       flexDirection="column"
@@ -215,10 +216,10 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
           <HStack spacing={3}>
             <Icon as={FaMapMarkerAlt} boxSize={6} color="blue.500" />
             <VStack align="start" spacing={0}>
-              <Text fontSize="lg" fontWeight="bold" color={statNumberColor}>
+              <Text fontSize="lg" fontWeight="bold" color={textColor}>
                 Track Meets
               </Text>
-              <Text fontSize="sm" color={statLabelColor}>
+              <Text fontSize="sm" color={subtitleColor}>
                 {getTotalMeets() > 0 
                   ? `${getUpcomingMeets()} upcoming meets`
                   : 'No meets scheduled'
@@ -263,11 +264,11 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
             justifyContent="center"
           >
             <VStack spacing={3}>
-              <Icon as={FaCalendarAlt} boxSize={8} color={statLabelColor} />
-              <Text fontSize="lg" fontWeight="medium" color={statNumberColor}>
+              <Icon as={FaCalendarAlt} boxSize={8} color={subtitleColor} />
+              <Text fontSize="lg" fontWeight="medium" color={textColor}>
                 No track meets found
               </Text>
-              <Text fontSize="sm" color={statLabelColor}>
+              <Text fontSize="sm" color={subtitleColor}>
                 Check back later for upcoming meets
               </Text>
             </VStack>
@@ -279,7 +280,7 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
               <Box>
                 <HStack spacing={2} mb={3}>
                   <Icon as={FaMapMarkerAlt} color="blue.500" fontSize="sm" />
-                  <Text fontSize="sm" fontWeight="bold" color={statNumberColor}>
+                  <Text fontSize="sm" fontWeight="bold" color={textColor}>
                     My Track Meets
                   </Text>
                   <Badge colorScheme="blue" variant="outline" fontSize="xs">
@@ -300,14 +301,14 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
                     >
                       <HStack justify="space-between" align="start" mb={2}>
                         <VStack align="start" spacing={0} flex="1">
-                          <Text fontSize="sm" fontWeight="bold" color={statNumberColor} noOfLines={1}>
+                          <Text fontSize="sm" fontWeight="bold" color={textColor} noOfLines={1}>
                             {meet.name}
                           </Text>
-                          <Text fontSize="xs" color={statLabelColor}>
+                          <Text fontSize="xs" color={subtitleColor}>
                             {formatDate(meet.meet_date)}
                           </Text>
                           {meet.city && meet.state && (
-                            <Text fontSize="xs" color={statLabelColor}>
+                            <Text fontSize="xs" color={subtitleColor}>
                               {meet.city}, {meet.state}
                             </Text>
                           )}
@@ -355,7 +356,7 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
               <Box>
                 <HStack spacing={2} mb={3}>
                   <Icon as={FaCalendarAlt} color="purple.500" fontSize="sm" />
-                  <Text fontSize="sm" fontWeight="bold" color={statNumberColor}>
+                  <Text fontSize="sm" fontWeight="bold" color={textColor}>
                     Coach's Meets
                   </Text>
                   <Badge colorScheme="purple" variant="outline" fontSize="xs">
@@ -376,14 +377,14 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
                     >
                       <HStack justify="space-between" align="start" mb={2}>
                         <VStack align="start" spacing={0} flex="1">
-                          <Text fontSize="sm" fontWeight="bold" color={statNumberColor} noOfLines={1}>
+                          <Text fontSize="sm" fontWeight="bold" color={textColor} noOfLines={1}>
                             {meet.name}
                           </Text>
-                          <Text fontSize="xs" color={statLabelColor}>
+                          <Text fontSize="xs" color={subtitleColor}>
                             {formatDate(meet.meet_date)}
                           </Text>
                           {meet.city && meet.state && (
-                            <Text fontSize="xs" color={statLabelColor}>
+                            <Text fontSize="xs" color={subtitleColor}>
                               {meet.city}, {meet.state}
                             </Text>
                           )}

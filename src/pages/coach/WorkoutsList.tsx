@@ -1,4 +1,4 @@
-import { Box, Heading, Text, Spinner, Alert, AlertIcon, Stack, Card, CardBody, Link, Button, Flex, HStack } from '@chakra-ui/react';
+import { Box, Heading, Text, Spinner, Alert, AlertIcon, Stack, Card, CardBody, Link, Button, Flex, HStack, useColorModeValue } from '@chakra-ui/react';
 import { useQuery } from '@tanstack/react-query';
 import { Link as RouterLink } from 'react-router-dom';
 import { api } from '../../services/api';
@@ -30,6 +30,10 @@ export function CoachWorkoutsList() {
     },
     enabled: !!user?.id, 
   });
+
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const textColor = useColorModeValue('gray.700', 'gray.100');
+  const cardShadow = useColorModeValue('none', 'sm');
 
   return (
     <Box>
@@ -73,12 +77,12 @@ export function CoachWorkoutsList() {
       {!isLoading && !isError && workouts && workouts.length > 0 && (
         <Stack spacing={4}>
           {workouts.map((workout: Workout) => ( // Explicitly type workout here
-            <Card key={workout.id} shadow="sm" borderWidth="1px">
+            <Card key={workout.id} shadow={cardShadow} borderWidth="1px" bg={cardBg}>
               <CardBody>
                 <Flex justify="space-between" align="center">
                   <Box>
                     <Heading size="md">{workout.name}</Heading>
-                    <Text fontSize="sm" color="gray.500">
+                    <Text fontSize="sm" color={textColor}>
                       Created: {new Date(workout.created_at).toLocaleDateString()}
                       {workout.type && ` - Type: ${workout.type}`}
                       {/* {workout.exercises && ` - ${workout.exercises.length} exercises`} */}

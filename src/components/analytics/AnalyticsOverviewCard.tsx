@@ -29,6 +29,8 @@ export const AnalyticsOverviewCard: React.FC = () => {
   
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const textColor = useColorModeValue('gray.700', 'gray.200');
+  const cardShadow = useColorModeValue('none', 'lg');
   const statLabelColor = useColorModeValue('gray.600', 'gray.300');
   const statNumberColor = useColorModeValue('gray.900', 'gray.100');
 
@@ -67,13 +69,13 @@ export const AnalyticsOverviewCard: React.FC = () => {
       p={6}
       border="1px solid"
       borderColor={borderColor}
-      boxShadow="lg"
+      boxShadow={cardShadow}
     >
       <VStack spacing={6} align="stretch">
         {/* Header */}
         <HStack justify="space-between" align="center">
           <VStack align="start" spacing={1}>
-            <Text fontSize="xl" fontWeight="bold" color={statNumberColor}>
+            <Text fontSize="xl" fontWeight="bold" color={textColor}>
               Analytics Overview
             </Text>
             <Text fontSize="sm" color={statLabelColor}>
@@ -103,7 +105,7 @@ export const AnalyticsOverviewCard: React.FC = () => {
                 <Text>Sleep Score</Text>
               </HStack>
             </StatLabel>
-            <StatNumber fontSize="2xl" color={statNumberColor}>
+            <StatNumber fontSize="2xl" color={textColor}>
               {overviewData.sleepScore}%
             </StatNumber>
             <StatHelpText fontSize="xs">
@@ -121,7 +123,7 @@ export const AnalyticsOverviewCard: React.FC = () => {
                 <Text>Injury Risk</Text>
               </HStack>
             </StatLabel>
-            <StatNumber fontSize="2xl" color={statNumberColor}>
+            <StatNumber fontSize="2xl" color={textColor}>
               {overviewData.injuryRisk}
             </StatNumber>
             <StatHelpText fontSize="xs">
@@ -143,7 +145,7 @@ export const AnalyticsOverviewCard: React.FC = () => {
                 <Text>Training Load</Text>
               </HStack>
             </StatLabel>
-            <StatNumber fontSize="2xl" color={statNumberColor}>
+            <StatNumber fontSize="2xl" color={textColor}>
               {overviewData.trainingLoad}
             </StatNumber>
             <StatHelpText fontSize="xs">
@@ -165,7 +167,7 @@ export const AnalyticsOverviewCard: React.FC = () => {
                 <Text>Wellness</Text>
               </HStack>
             </StatLabel>
-            <StatNumber fontSize="2xl" color={statNumberColor}>
+            <StatNumber fontSize="2xl" color={textColor}>
               {overviewData.wellnessScore}%
             </StatNumber>
             <StatHelpText fontSize="xs">
@@ -182,7 +184,7 @@ export const AnalyticsOverviewCard: React.FC = () => {
             <Text fontSize="sm" color={statLabelColor}>
               Data Completeness
             </Text>
-            <Text fontSize="sm" color={statNumberColor} fontWeight="medium">
+            <Text fontSize="sm" color={textColor} fontWeight="medium">
               {overviewData.dataCompleteness}%
             </Text>
           </HStack>

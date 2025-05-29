@@ -51,7 +51,10 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
     'linear-gradient(135deg, #7B341E 0%, #DD6B20 100%)'
   );
   const cardBg = useColorModeValue('white', 'gray.800');
-  const textColor = useColorModeValue('gray.800', 'gray.100');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const textColor = useColorModeValue('gray.700', 'gray.200');
+  const subtitleColor = useColorModeValue('gray.500', 'gray.400');
+  const cardShadow = useColorModeValue('none', 'md');
 
   // Helper function to get the appropriate weather icon based on condition code
   const getWeatherIcon = (condition: string) => {
@@ -194,8 +197,9 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
       <Card 
         borderRadius="lg" 
         overflow="hidden" 
-        boxShadow="md"
+        boxShadow={cardShadow}
         bg={cardBg}
+        borderColor={borderColor}
         m={0}
         p={0}
       >

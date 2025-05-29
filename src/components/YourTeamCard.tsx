@@ -21,7 +21,12 @@ import {
   AlertDialogContent,
   AlertDialogOverlay,
   Code,
-  Box
+  Box,
+  CardHeader,
+  VStack,
+  SimpleGrid,
+  Skeleton,
+  AvatarGroup
 } from '@chakra-ui/react';
 import { FaUserPlus, FaTrash, FaExclamationTriangle } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
@@ -35,11 +40,12 @@ const YourTeamCard = () => {
   const { data: athletes = [], isLoading: athletesLoading, refetch } = useCoachAthletes();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const cardBg = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
   const athleteItemHoverBg = useColorModeValue('gray.50', 'gray.700');
   const textColor = useColorModeValue('gray.700', 'gray.200');
   const toast = useToast();
   const queryClient = useQueryClient();
+  const cardShadow = useColorModeValue('none', 'md');
   
   // Alert dialog for delete confirmation
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
@@ -222,7 +228,7 @@ const YourTeamCard = () => {
 
   return (
     <>
-      <Card bg={cardBg} borderColor={borderColor} borderWidth="1px" shadow="md" borderRadius="xl">
+      <Card bg={cardBg} borderColor={borderColor} borderWidth="1px" shadow={cardShadow} borderRadius="xl">
         <CardBody>
           <Heading size="md" mb={4}>Your Team</Heading>
           {athletesLoading ? (

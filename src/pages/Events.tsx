@@ -235,48 +235,32 @@ export function Events() {
     <Box bg={bgColor} minH="100vh">
       {/* Hero Section */}
       <Box 
-        bg={lightBg} 
-        pt={{ base: 28, md: 32 }}
-        pb={{ base: 8, md: 12 }}
-        position="relative"
-        overflow="hidden"
+        py={{ base: 16, md: 24 }}
+        bg={cardBg}
       >
-        {/* Subtle background pattern */}
-        <Box
-          position="absolute"
-          top={0}
-          left={0}
-          right={0}
-          bottom={0}
-          bgImage="url('https://www.transparenttextures.com/patterns/track.png')"
-          opacity={0.03}
-          zIndex={0}
-        />
-        
-        <Container maxW="container.xl" position="relative" zIndex={1}>
-          <VStack spacing={{ base: 6, md: 10 }} mb={{ base: 6, md: 10 }} align="stretch">
-            <VStack spacing={3} align="center" textAlign="center">
-              <Heading 
-                as="h1"
-                size="2xl" 
-                color={headingColor}
-                letterSpacing="tight"
-                fontWeight="bold"
-                lineHeight="1.2"
-              >
-                Track & Field Events
-              </Heading>
-              <Text 
-                fontSize={{ base: "lg", md: "xl" }}
-                color={subtitleColor} 
-                maxW="2xl"
-                lineHeight="1.6"
-              >
-                Discover upcoming track and field events across the United States
-              </Text>
-            </VStack>
-            
-            {featuredEvents.length > 0 && (
+        <Container maxW="container.lg" position="relative" zIndex={1}>
+          <VStack spacing={6} align="center" textAlign="center">
+            <Heading 
+              as="h1"
+              size="2xl" 
+              color={headingColor}
+              fontWeight="bold"
+              lineHeight="1.2"
+            >
+              Track & Field Events
+            </Heading>
+            <Text 
+              fontSize="xl"
+              color={subtitleColor} 
+              maxW="2xl"
+              lineHeight="1.6"
+            >
+              Discover upcoming track and field events across the United States
+            </Text>
+          </VStack>
+          
+          {featuredEvents.length > 0 && (
+            <Box mt={{ base: 12, md: 16 }}>
               <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={8}>
                 {featuredEvents.slice(0, 2).map((event) => (
                   <Card 
@@ -284,13 +268,13 @@ export function Events() {
                     direction={{ base: 'column', md: 'row' }}
                     overflow='hidden'
                     borderRadius="xl"
-                    boxShadow="lg"
                     bg={cardBg}
+                    border="1px solid"
+                    borderColor={borderColor}
                     h="100%"
                     transition="all 0.3s ease"
                     _hover={{
-                      transform: 'translateY(-5px)',
-                      boxShadow: 'xl',
+                      transform: 'translateY(-5px)'
                     }}
                   >
                     <Box w={{ base: '100%', md: heroWidth }} h={{ base: heroHeight, md: 'auto' }} position="relative">
@@ -320,7 +304,6 @@ export function Events() {
                         fontSize="xs"
                         textTransform="uppercase"
                         fontWeight="bold"
-                        boxShadow="0 2px 4px rgba(0,0,0,0.15)"
                       >
                         {event.type}
                       </Badge>
@@ -369,8 +352,8 @@ export function Events() {
                   </Card>
                 ))}
               </SimpleGrid>
-            )}
-          </VStack>
+            </Box>
+          )}
         </Container>
       </Box>
       
@@ -458,14 +441,12 @@ export function Events() {
                 key={event.id} 
                 borderRadius="xl" 
                 overflow="hidden" 
-                boxShadow="md"
                 border="1px solid"
                 borderColor={borderColor}
                 bg={cardBg}
                 transition="all 0.2s ease"
                 _hover={{ 
-                  transform: 'translateY(-4px)', 
-                  boxShadow: 'lg',
+                  transform: 'translateY(-4px)'
                 }}
                 h="100%"
               >
@@ -487,7 +468,6 @@ export function Events() {
                     px={3}
                     align="center"
                     borderRadius="full"
-                    boxShadow="0 2px 5px rgba(0,0,0,0.2)"
                   >
                     <Icon as={getEventIcon(event.type)} mr={1} boxSize={3.5} />
                     <Text fontSize="xs" fontWeight="bold">{event.type}</Text>

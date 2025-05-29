@@ -358,6 +358,8 @@ export function CoachDashboard() {
   const { profile, isLoading: profileLoading } = useProfile(); // Get the profile
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const cardShadow = useColorModeValue('none', 'base');
+  const cardShadowMd = useColorModeValue('none', 'md');
   const athleteItemHoverBg = useColorModeValue('gray.50', 'gray.700');
   const subtitleColor = useColorModeValue('gray.600', 'gray.200');
   const eventDateColor = useColorModeValue('gray.500', 'gray.200');
@@ -477,7 +479,7 @@ export function CoachDashboard() {
 
       {/* Dashboard Stats - At-a-Glance Metrics */}
       <SimpleGrid columns={{ base: 1, md: 4 }} spacing={6} mb={8}>
-        <Stat px={4} py={5} bg={cardBg} shadow="base" rounded="lg" borderWidth="1px" borderColor={borderColor}>
+        <Stat px={4} py={5} bg={cardBg} shadow={cardShadow} rounded="lg" borderWidth="1px" borderColor={borderColor}>
           <Flex justifyContent="space-between">
             <Box pl={2}>
               <StatLabel fontWeight="medium" color={statLabelColor}>Total Athletes</StatLabel>
@@ -487,7 +489,7 @@ export function CoachDashboard() {
             <Box my="auto" color="blue.500" alignContent="center"><Icon as={FaUserFriends} w={8} h={8} /></Box>
           </Flex>
         </Stat>
-        <Stat px={4} py={5} bg={cardBg} shadow="base" rounded="lg" borderWidth="1px" borderColor={borderColor}>
+        <Stat px={4} py={5} bg={cardBg} shadow={cardShadow} rounded="lg" borderWidth="1px" borderColor={borderColor}>
           <Flex justifyContent="space-between">
             <Box pl={2}>
               <StatLabel fontWeight="medium" color={statLabelColor}>Team Workouts</StatLabel>
@@ -497,7 +499,7 @@ export function CoachDashboard() {
             <Box my="auto" color="purple.500" alignContent="center"><Icon as={FaRunning} w={8} h={8} /></Box>
           </Flex>
         </Stat>
-        <Stat px={4} py={5} bg={cardBg} shadow="base" rounded="lg" borderWidth="1px" borderColor={borderColor}>
+        <Stat px={4} py={5} bg={cardBg} shadow={cardShadow} rounded="lg" borderWidth="1px" borderColor={borderColor}>
           <Flex justifyContent="space-between">
             <Box pl={2}>
               <StatLabel fontWeight="medium" color={statLabelColor}>Completion Rate</StatLabel>
@@ -509,7 +511,7 @@ export function CoachDashboard() {
             <Box my="auto" color="green.500" alignContent="center"><Icon as={FaClipboardCheck} w={8} h={8} /></Box>
           </Flex>
         </Stat>
-        <Stat px={4} py={5} bg={cardBg} shadow="base" rounded="lg" borderWidth="1px" borderColor={borderColor}>
+        <Stat px={4} py={5} bg={cardBg} shadow={cardShadow} rounded="lg" borderWidth="1px" borderColor={borderColor}>
           <Flex justifyContent="space-between">
             <Box pl={2}>
               <StatLabel fontWeight="medium" color={statLabelColor}>Upcoming Events</StatLabel>
@@ -522,7 +524,7 @@ export function CoachDashboard() {
       </SimpleGrid>
       
       {/* Quick Actions - Prominent Action Buttons */}
-      <Stack direction={{ base: 'column', md: 'row' }} spacing={4} mb={8} bg={cardBg} p={5} rounded="lg" shadow="base" borderWidth="1px" borderColor={borderColor}>
+      <Stack direction={{ base: 'column', md: 'row' }} spacing={4} mb={8} bg={cardBg} p={5} rounded="lg" shadow={cardShadow} borderWidth="1px" borderColor={borderColor}>
         <Heading size="md" mb={{ base: 2, md: 0 }}>Quick Actions:</Heading>
         <Button 
           as={RouterLink} 
@@ -566,7 +568,7 @@ export function CoachDashboard() {
         {/* Your Team Card */}
         <YourTeamCard />
 
-        <Card bg={cardBg} borderColor={borderColor} borderWidth="1px" shadow="md" borderRadius="xl" data-testid="upcoming-events-card">
+        <Card bg={cardBg} borderColor={borderColor} borderWidth="1px" shadow={cardShadow} borderRadius="xl" data-testid="upcoming-events-card">
           <CardBody>
             <Heading size="md" mb={4}>Upcoming Events</Heading>
             {eventsLoading ? (

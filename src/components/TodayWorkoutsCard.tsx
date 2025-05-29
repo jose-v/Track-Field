@@ -38,6 +38,9 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
   // Color mode values matching quick-log cards
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const textColor = useColorModeValue('gray.800', 'gray.100');
+  const subtitleColor = useColorModeValue('gray.600', 'gray.300');
+  const cardShadow = useColorModeValue('none', 'lg');
   const statLabelColor = useColorModeValue('gray.600', 'gray.300');
   const statNumberColor = useColorModeValue('gray.900', 'gray.100');
 
@@ -49,7 +52,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
         p={6}
         border="1px solid"
         borderColor={borderColor}
-        boxShadow="lg"
+        boxShadow={cardShadow}
         mb={10}
         minH="300px"
         display="flex"
@@ -76,7 +79,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
       p={6}
       border="1px solid"
       borderColor={borderColor}
-      boxShadow="lg"
+      boxShadow={cardShadow}
       mb={10}
     >
       <VStack spacing={6} align="stretch">
@@ -85,10 +88,10 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
           <HStack spacing={3}>
             <Icon as={FaRunning} boxSize={6} color="green.500" />
             <VStack align="start" spacing={0}>
-              <Text fontSize="xl" fontWeight="bold" color={statNumberColor}>
+              <Text fontSize="xl" fontWeight="bold" color={textColor}>
                 Today's Workouts
               </Text>
-              <Text fontSize="sm" color={statLabelColor}>
+              <Text fontSize="sm" color={subtitleColor}>
                 {todayWorkouts.length > 0 
                   ? `${getCompletedToday()} of ${todayWorkouts.length} completed today`
                   : 'Plan your training session'
@@ -143,11 +146,11 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
             textAlign="center"
           >
             <VStack spacing={3}>
-              <Icon as={FaCalendarAlt} boxSize={8} color={statLabelColor} />
-              <Text fontSize="lg" fontWeight="medium" color={statNumberColor}>
+              <Icon as={FaCalendarAlt} boxSize={8} color={subtitleColor} />
+              <Text fontSize="lg" fontWeight="medium" color={textColor}>
                 No workouts scheduled for today
               </Text>
-              <Text fontSize="sm" color={statLabelColor}>
+              <Text fontSize="sm" color={subtitleColor}>
                 {upcomingWorkouts.length > 0 
                   ? 'Check your upcoming workouts below'
                   : 'Create or browse available workouts to get started'
@@ -163,7 +166,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
             <HStack justify="space-between" align="center" mb={4}>
               <HStack spacing={2}>
                 <Icon as={FaCalendarAlt} color="blue.500" fontSize="lg" />
-                <Text fontSize="lg" fontWeight="bold" color={statNumberColor}>
+                <Text fontSize="lg" fontWeight="bold" color={textColor}>
                   Upcoming Workouts
                 </Text>
               </HStack>

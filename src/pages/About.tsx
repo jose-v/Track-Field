@@ -73,17 +73,17 @@ const About = () => {
       </Box>
 
       {/* Story Section */}
-      <Box py={20} bgGradient="linear(to-r, #FF6C8C, #FFA94D)">
+      <Box py={20} bg="#ecc94b">
         <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={12} alignItems="center" maxW="container.lg" mx="auto">
           <GridItem>
             <VStack align="flex-start" spacing={6}>
-              <Heading size="xl" color="white" lineHeight="1.2">
+              <Heading size="xl" color="gray.800" lineHeight="1.2">
                 Our Story
               </Heading>
-              <Text color="whiteAlpha.900" fontSize="lg" lineHeight="1.7">
+              <Text color="gray.700" fontSize="lg" lineHeight="1.7">
                 Founded by a team of former track & field athletes and coaches, we understand the challenges and opportunities in the sport. Our platform was born from a simple idea: make professional-grade training tools accessible to everyone.
               </Text>
-              <Text color="whiteAlpha.900" fontSize="lg" lineHeight="1.7">
+              <Text color="gray.700" fontSize="lg" lineHeight="1.7">
                 Today, we're proud to serve thousands of athletes and coaches worldwide, helping them track progress, analyze performance, and achieve their goals.
               </Text>
             </VStack>
@@ -92,7 +92,6 @@ const About = () => {
             <Box
               borderRadius="xl"
               overflow="hidden"
-              boxShadow="xl"
               height={{ base: '300px', md: '400px' }}
             >
               <Image
@@ -131,7 +130,7 @@ const About = () => {
                 borderRadius="lg"
                 bg={cardBg}
                 transition="all 0.3s"
-                _hover={{ transform: 'translateY(-5px)', boxShadow: 'md' }}
+                _hover={{ transform: 'translateY(-5px)' }}
               >
                 <Flex
                   w={12}
@@ -159,7 +158,7 @@ const About = () => {
                 borderRadius="lg"
                 bg={cardBg}
                 transition="all 0.3s"
-                _hover={{ transform: 'translateY(-5px)', boxShadow: 'md' }}
+                _hover={{ transform: 'translateY(-5px)' }}
               >
                 <Flex
                   w={12}
@@ -187,7 +186,7 @@ const About = () => {
                 borderRadius="lg"
                 bg={cardBg}
                 transition="all 0.3s"
-                _hover={{ transform: 'translateY(-5px)', boxShadow: 'md' }}
+                _hover={{ transform: 'translateY(-5px)' }}
               >
                 <Flex
                   w={12}
@@ -241,7 +240,6 @@ const About = () => {
                   mb={2}
                   borderWidth="4px"
                   borderColor={useColorModeValue('white', 'gray.600')}
-                  boxShadow="lg"
                 />
                 <VStack spacing={1}>
                   <Heading size="md" color={textColor}>

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Box,
   Button,
@@ -14,26 +14,34 @@ import {
   Flex,
   Icon,
   useColorModeValue,
+  Alert,
+  AlertIcon,
+  AlertDescription,
+  InputGroup,
+  InputRightElement,
+  IconButton
 } from '@chakra-ui/react'
 import { useAuth } from '../contexts/AuthContext'
-import { FaUser, FaEnvelope, FaLock } from 'react-icons/fa'
+import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa'
 
 export function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const { signIn } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const toast = useToast()
 
-  // Color mode values
+  const cardBg = useColorModeValue('white', 'gray.800')
   const iconBg = useColorModeValue('white', 'gray.700')
-  const inputBg = useColorModeValue('gray.50', 'gray.700')
-  const iconContainerBg = useColorModeValue('blue.50', 'blue.900')
+  const borderColor = useColorModeValue('gray.200', 'gray.600')
+  const textColor = useColorModeValue('gray.700', 'gray.100')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setIsLoading(true)
+    setLoading(true)
 
     try {
       await signIn(email, password)
@@ -47,7 +55,7 @@ export function Login() {
         isClosable: true,
       })
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
@@ -60,12 +68,12 @@ export function Login() {
       marginTop="-80px"
       px={4}
     >
-      <Card maxW="md" w="100%" borderRadius="lg" boxShadow="xl" overflow="hidden" p={0}>
+      <Card maxW="md" w="100%" borderRadius="lg" overflow="hidden" p={0}>
         {/* Full-width Hero Header */}
         <Box 
           w="full"
           h="150px" 
-          bg="linear-gradient(135deg, #4299E1 0%, #90CDF4 100%)" 
+          bg="#ecc94b" 
           display="flex"
           flexDirection="column"
           alignItems="center"
@@ -73,19 +81,7 @@ export function Login() {
           p={0}
           m={0}
         >
-          <Flex 
-            bg={iconBg} 
-            borderRadius="full" 
-            w="70px" 
-            h="70px" 
-            justify="center" 
-            align="center"
-            boxShadow="md"
-            mb={2}
-          >
-            <Icon as={FaUser} w={8} h={8} color="blue.500" />
-          </Flex>
-          <Heading size="md" color="white" fontWeight="bold" letterSpacing="wide" textAlign="center" mt={1} textTransform="uppercase">
+          <Heading size="md" color="gray.800" fontWeight="bold" letterSpacing="wide" textAlign="center" textTransform="uppercase">
             Sign In
           </Heading>
         </Box>
@@ -100,7 +96,7 @@ export function Login() {
                       justify="center"
                       h="40px"
                       w="40px"
-                      bg={iconContainerBg}
+                      bg={iconBg}
                       borderRadius="md"
                       mr={2}
                     >
@@ -111,7 +107,7 @@ export function Login() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Enter your email"
-                      bg={inputBg}
+                      bg={cardBg}
                       autoComplete="email"
                       aria-label="Email"
                     />
@@ -125,21 +121,33 @@ export function Login() {
                       justify="center"
                       h="40px"
                       w="40px"
-                      bg={iconContainerBg}
+                      bg={iconBg}
                       borderRadius="md"
                       mr={2}
                     >
                       <Icon as={FaLock} color="blue.500" />
                     </Flex>
-                    <Input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter your password"
-                      bg={inputBg}
-                      autoComplete="current-password"
-                      aria-label="Password"
-                    />
+                    <InputGroup>
+                      <Input
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter your password"
+                        bg={cardBg}
+                        autoComplete="current-password"
+                        aria-label="Password"
+                      />
+                      <InputRightElement width="4.5rem">
+                        <IconButton
+                          h="1.75rem"
+                          size="sm"
+                          onClick={() => setShowPassword(!showPassword)}
+                          icon={<Icon as={showPassword ? FaEyeSlash : FaEye} />}
+                          variant="ghost"
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        />
+                      </InputRightElement>
+                    </InputGroup>
                   </Flex>
                 </FormControl>
 
@@ -147,7 +155,7 @@ export function Login() {
                   type="submit"
                   colorScheme="blue"
                   width="full"
-                  isLoading={isLoading}
+                  isLoading={loading}
                   mt={2}
                   size="lg"
                 >

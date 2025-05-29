@@ -50,6 +50,9 @@ const TodaysFocusCard: React.FC<TodaysFocusCardProps> = ({ onTaskClick }) => {
   // Color mode values
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const textColor = useColorModeValue('gray.800', 'gray.100');
+  const subtitleColor = useColorModeValue('gray.600', 'gray.300');
+  const cardShadow = useColorModeValue('none', 'lg');
   const statLabelColor = useColorModeValue('gray.600', 'gray.300');
   const statNumberColor = useColorModeValue('gray.900', 'gray.100');
   const taskBg = useColorModeValue('gray.50', 'gray.700');
@@ -358,15 +361,15 @@ const TodaysFocusCard: React.FC<TodaysFocusCardProps> = ({ onTaskClick }) => {
         p={6}
         border="1px solid"
         borderColor={borderColor}
-        boxShadow="lg"
+        boxShadow={cardShadow}
       >
         <HStack spacing={3} mb={4}>
           <Icon as={FaCalendarDay} boxSize={6} color="purple.500" />
           <VStack align="start" spacing={0}>
-            <Text fontSize="lg" fontWeight="bold" color={statNumberColor}>
+            <Text fontSize="lg" fontWeight="bold" color={textColor}>
               Today's Focus
             </Text>
-            <Text fontSize="sm" color={statLabelColor}>
+            <Text fontSize="sm" color={subtitleColor}>
               Your schedule and priorities
             </Text>
           </VStack>
@@ -387,16 +390,16 @@ const TodaysFocusCard: React.FC<TodaysFocusCardProps> = ({ onTaskClick }) => {
       p={6}
       border="1px solid"
       borderColor={borderColor}
-      boxShadow="lg"
+      boxShadow={cardShadow}
     >
       <HStack spacing={3} mb={4} justify="space-between">
         <HStack spacing={3}>
           <Icon as={FaCalendarDay} boxSize={6} color="purple.500" />
           <VStack align="start" spacing={0}>
-            <Text fontSize="lg" fontWeight="bold" color={statNumberColor}>
+            <Text fontSize="lg" fontWeight="bold" color={textColor}>
               Today's Focus
             </Text>
-            <Text fontSize="sm" color={statLabelColor}>
+            <Text fontSize="sm" color={subtitleColor}>
               Your schedule and priorities
             </Text>
           </VStack>

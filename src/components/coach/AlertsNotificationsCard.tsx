@@ -46,6 +46,9 @@ const AlertsNotificationsCard: React.FC<AlertsNotificationsCardProps> = ({ onAle
   // Color mode values
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const textColor = useColorModeValue('gray.800', 'gray.100');
+  const subtitleColor = useColorModeValue('gray.600', 'gray.300');
+  const cardShadow = useColorModeValue('none', 'lg');
   const statLabelColor = useColorModeValue('gray.600', 'gray.300');
   const statNumberColor = useColorModeValue('gray.900', 'gray.100');
 
@@ -254,7 +257,7 @@ const AlertsNotificationsCard: React.FC<AlertsNotificationsCardProps> = ({ onAle
         p={6}
         border="1px solid"
         borderColor={borderColor}
-        boxShadow="lg"
+        boxShadow={cardShadow}
       >
         <HStack spacing={3} mb={4}>
           <Icon as={FaExclamationTriangle} boxSize={6} color="red.500" />
@@ -283,7 +286,7 @@ const AlertsNotificationsCard: React.FC<AlertsNotificationsCardProps> = ({ onAle
       p={6}
       border="1px solid"
       borderColor={borderColor}
-      boxShadow="lg"
+      boxShadow={cardShadow}
     >
       <HStack spacing={3} mb={4} justify="space-between">
         <HStack spacing={3}>

@@ -37,6 +37,8 @@ export const PerformanceMetricsCard: React.FC = () => {
 
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const textColor = useColorModeValue('gray.700', 'gray.200');
+  const cardShadow = useColorModeValue('none', 'lg');
   const statLabelColor = useColorModeValue('gray.600', 'gray.300');
   const statNumberColor = useColorModeValue('gray.900', 'gray.100');
 
@@ -158,7 +160,7 @@ export const PerformanceMetricsCard: React.FC = () => {
         p={6}
         border="1px solid"
         borderColor={borderColor}
-        boxShadow="lg"
+        boxShadow={cardShadow}
       >
         <Text color={statLabelColor}>Loading performance data...</Text>
       </Box>
@@ -185,7 +187,7 @@ export const PerformanceMetricsCard: React.FC = () => {
       p={6}
       border="1px solid"
       borderColor={borderColor}
-      boxShadow="lg"
+      boxShadow={cardShadow}
     >
       <VStack spacing={6} align="stretch">
         {/* Header */}

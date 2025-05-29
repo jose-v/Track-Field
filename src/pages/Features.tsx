@@ -26,17 +26,15 @@ const Feature = ({ title, text, icon }: { title: string; text: string; icon: any
   const subtitleColor = useColorModeValue('gray.600', 'gray.400')
   
   return (
-    <Stack
-      bg={cardBg}
-      p={8}
-      rounded="lg"
-      shadow="sm"
+    <VStack 
+      bg={cardBg} 
+      p={8} 
+      borderRadius="xl" 
+      spacing={6} 
       borderWidth="1px"
       borderColor={borderColor}
-      spacing={5}
-      transition="all 0.3s ease"
-      _hover={{ transform: 'translateY(-5px)', boxShadow: 'md' }}
-      h="full"
+      _hover={{ transform: 'translateY(-5px)' }}
+      transition="all 0.2s"
     >
       <Flex
         w={12}
@@ -55,7 +53,7 @@ const Feature = ({ title, text, icon }: { title: string; text: string; icon: any
       <Text color={subtitleColor} fontSize="sm">
         {text}
       </Text>
-    </Stack>
+    </VStack>
   )
 }
 
@@ -83,7 +81,6 @@ const DetailFeature = ({ title, text, image, reverse = false }: { title: string;
         <Box
           borderRadius="lg"
           overflow="hidden"
-          boxShadow="lg"
         >
           <Image
             src={image}
@@ -167,7 +164,7 @@ const Features = () => {
       </Box>
 
       {/* Features Grid Section */}
-      <Box py={20} bg={bgColor}>
+      <Box py={20} bg="#ecc94b">
         <Container maxW="container.lg">
           <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8}>
             {features.map((feature, index) => (
@@ -213,13 +210,13 @@ const Features = () => {
       </Box>
       
       {/* CTA Section */}
-      <Box py={20} bg={bgColor}>
+      <Box py={20} bg="#ecc94b">
         <Container maxW="container.md">
           <VStack spacing={8} textAlign="center">
-            <Heading size="xl" color={textColor}>
+            <Heading size="xl" color="gray.800">
               Ready to Transform Your Training?
             </Heading>
-            <Text fontSize="lg" color={subtitleColor} maxW="2xl">
+            <Text fontSize="lg" color="gray.700" maxW="2xl">
               Join thousands of athletes who are already achieving their goals with our platform.
             </Text>
             <Button

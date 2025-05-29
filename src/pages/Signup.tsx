@@ -120,18 +120,17 @@ function SignupContent() {
       px={4}
     >
       <Card 
-        maxW={{ base: "100%", md: "4xl" }}
+        maxW="850px"
         w="100%"
         borderRadius="lg" 
         overflow="hidden" 
-        boxShadow="xl"
         p={0}
       >
         {/* Full-width Hero Header */}
         <Box 
           w="full"
           h="150px" 
-          bg="linear-gradient(135deg, #805AD5 0%, #B794F4 100%)" 
+          bg="#ecc94b" 
           position="relative"
           display="flex"
           flexDirection="column"
@@ -140,19 +139,7 @@ function SignupContent() {
           p={0}
           m={0}
         >
-          <Flex 
-            bg={iconBg} 
-            borderRadius="full" 
-            w="70px" 
-            h="70px" 
-            justify="center" 
-            align="center"
-            boxShadow="md"
-            mb={2}
-          >
-            <Icon as={FaUserPlus} w={8} h={8} color="purple.500" />
-          </Flex>
-          <Heading size="md" color="white" fontWeight="bold" letterSpacing="wide" textAlign="center" mt={1} textTransform="uppercase">
+          <Heading size="md" color="gray.800" fontWeight="bold" letterSpacing="wide" textAlign="center" textTransform="uppercase">
             Sign Up
           </Heading>
         </Box>

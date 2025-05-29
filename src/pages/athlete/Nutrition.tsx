@@ -57,6 +57,7 @@ export function Nutrition() {
   const bgColor = useColorModeValue('white', 'gray.900');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const cardBg = useColorModeValue('white', 'gray.800');
+  const cardShadow = useColorModeValue('none', 'sm');
 
   useEffect(() => {
     fetchRecords();
@@ -181,7 +182,7 @@ export function Nutrition() {
             borderRadius="lg"
             borderColor={borderColor}
             bg={cardBg}
-            shadow="sm"
+            shadow={cardShadow}
           >
             <form onSubmit={handleSubmit}>
               <VStack spacing={4}>
@@ -251,7 +252,7 @@ export function Nutrition() {
             borderRadius="lg"
             borderColor={borderColor}
             bg={cardBg}
-            shadow="sm"
+            shadow={cardShadow}
             overflowX="auto"
           >
             <Table variant="simple">

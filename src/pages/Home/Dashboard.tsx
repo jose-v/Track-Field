@@ -30,11 +30,11 @@ const Dashboard = () => {
       
       {/* AI Assistant Section */}
       <Box 
-        borderWidth="1px" 
-        borderRadius="lg" 
-        p={6} 
+        w="100%" 
         bg="white" 
-        boxShadow="sm"
+        borderRadius="xl" 
+        overflow="hidden"
+        borderWidth="1px"
       >
         <VStack align="start" spacing={4}>
           <HStack>

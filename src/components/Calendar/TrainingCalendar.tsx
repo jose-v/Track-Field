@@ -64,8 +64,9 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
   const location = useLocation();
   
   // Colors (move all useColorModeValue calls here)
-  const bgColor = useColorModeValue('white', 'gray.800');
+  const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const cardShadow = useColorModeValue('none', 'md');
   const monthBgColor = useColorModeValue('gray.50', 'gray.700');
   const headerBgColor = useColorModeValue('gray.100', 'gray.600');
   const workoutBgColor = useColorModeValue('blue.100', 'blue.700');
@@ -786,9 +787,9 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
         
         <Box 
           className="calendar-content" 
-          bg={bgColor} 
+          bg={cardBg} 
           borderRadius="md" 
-          boxShadow="sm" 
+          boxShadow={cardShadow} 
           p={4}
           borderWidth="1px"
           borderColor={borderColor}
@@ -885,7 +886,7 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
                   paddingBottom="100%" /* This creates a square aspect ratio */
                   borderWidth="1px"
                   borderColor={borderColor}
-                  bg={dateObj.isCurrentMonth ? bgColor : 'gray.50'}
+                  bg={dateObj.isCurrentMonth ? cardBg : 'gray.50'}
                   opacity={dateObj.isCurrentMonth ? 1 : 0.5}
                   position="relative"
                   overflow="hidden"
@@ -982,9 +983,9 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
       
       <Box 
         className="calendar-content" 
-        bg={bgColor} 
+        bg={cardBg} 
         borderRadius="md" 
-        boxShadow="sm" 
+        boxShadow={cardShadow} 
         p={4}
         borderWidth="1px"
         borderColor={borderColor}

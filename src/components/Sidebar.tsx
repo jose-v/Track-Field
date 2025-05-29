@@ -104,6 +104,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
   
   const bgColor = useColorModeValue('white', 'gray.900');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const sidebarShadow = useColorModeValue('none', 'sm');
   
   useEffect(() => {
     // Save to localStorage whenever it changes
@@ -186,7 +187,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
       borderColor={borderColor}
       transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
       zIndex={1000}
-      boxShadow="sm"
+      boxShadow={sidebarShadow}
       overflow="hidden"
     >
       <VStack spacing={0} align="stretch" h="100%">

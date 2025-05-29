@@ -74,6 +74,8 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const statLabelColor = useColorModeValue('gray.600', 'gray.300');
   const statNumberColor = useColorModeValue('gray.900', 'gray.100');
+  const textColor = useColorModeValue('gray.700', 'gray.100');
+  const cardShadow = useColorModeValue('none', 'lg');
 
   if (isLoading) {
     return (
@@ -83,7 +85,7 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
         p={6}
         border="1px solid"
         borderColor={borderColor}
-        boxShadow="lg"
+        boxShadow={cardShadow}
         minH="320px"
         display="flex"
         alignItems="center"
@@ -102,7 +104,7 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
         p={6}
         border="1px solid"
         borderColor={borderColor}
-        boxShadow="lg"
+        boxShadow={cardShadow}
         minH="320px"
         display="flex"
         alignItems="center"
@@ -122,7 +124,7 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
       p={6}
       border="1px solid"
       borderColor={borderColor}
-      boxShadow="lg"
+      boxShadow={cardShadow}
       minH="320px"
       display="flex"
       flexDirection="column"
