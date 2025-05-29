@@ -50,6 +50,7 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
   const { showFeedbackModal } = useFeedback();
+  const [sidebarWidth, setSidebarWidth] = useState(200);
   
   // Background colors
   const bgColor = useColorModeValue('white', 'gray.800');
@@ -57,6 +58,19 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
   
   // State for notifications
   const [notificationCount, setNotificationCount] = useState(0);
+  
+  // Listen for sidebar toggle events
+  useEffect(() => {
+    const handleSidebarToggle = (event: CustomEvent) => {
+      setSidebarWidth(event.detail.width);
+    };
+    
+    window.addEventListener('sidebarToggle', handleSidebarToggle as EventListener);
+    
+    return () => {
+      window.removeEventListener('sidebarToggle', handleSidebarToggle as EventListener);
+    };
+  }, []);
   
   // Icon styles
   const iconStyle = {
@@ -112,12 +126,13 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
       borderBottom="1px"
       borderColor={borderColor}
       position="fixed"
-      w="calc(100% - 200px)"
+      w={`calc(100% - ${sidebarWidth}px)`}
       right="0"
       top="0"
       zIndex={10}
       py={3}
       px={6}
+      transition="width 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
     >
       <Flex justify="space-between" align="center">
         {/* Left side - App title & role badge (removed) */}

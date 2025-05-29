@@ -1,10 +1,5 @@
 import {
   Box,
-  Card,
-  CardBody,
-  Flex,
-  Icon,
-  Tag,
   Text,
   VStack,
   HStack,
@@ -12,9 +7,11 @@ import {
   Stat,
   StatLabel,
   StatNumber,
-  StatHelpText
+  StatHelpText,
+  Icon,
+  Badge,
 } from '@chakra-ui/react'
-import { FaUtensils } from 'react-icons/fa'
+import { FaUtensils, FaArrowRight } from 'react-icons/fa'
 import React from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import type { EatingRecord } from '../hooks/useNutritionRecords'
@@ -39,12 +36,9 @@ export const NutritionStatsCard: React.FC<NutritionStatsCardProps> = ({
   nutritionStats,
   isLoading 
 }) => {
-  const headerGradient = useColorModeValue(
-    'linear-gradient(135deg, #DD6B20 0%, #F6AD55 100%)',
-    'linear-gradient(135deg, #7B341E 0%, #DD6B20 100%)'
-  );
+  // Color mode values matching quick-log cards
   const cardBg = useColorModeValue('white', 'gray.800');
-  const textColor = useColorModeValue('gray.800', 'gray.100');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
   const statLabelColor = useColorModeValue('gray.600', 'gray.300');
   const statNumberColor = useColorModeValue('gray.900', 'gray.100');
 
@@ -63,117 +57,183 @@ export const NutritionStatsCard: React.FC<NutritionStatsCardProps> = ({
     return mealType.charAt(0).toUpperCase() + mealType.slice(1);
   };
 
-  return (
-    <Card 
-      borderRadius="lg" 
-      overflow="hidden" 
-      boxShadow="md"
-      height="100%"
-      p="0"
-      display="flex"
-      flexDirection="column"
-      bg={cardBg}
-    >
-      {/* Nutrition Card Header */}
-      <Box 
-        h="80px" 
-        bg={headerGradient}
-        position="relative"
+  const getTotalMeals = () => {
+    return Object.values(nutritionStats.mealTypeDistribution).reduce((sum, count) => sum + count, 0);
+  };
+
+  if (isLoading) {
+    return (
+      <Box
+        bg={cardBg}
+        borderRadius="xl"
+        p={6}
+        border="1px solid"
+        borderColor={borderColor}
+        boxShadow="lg"
+        minH="320px"
         display="flex"
         alignItems="center"
-        px={6}
-        margin="0"
-        width="100%"
-        borderTopLeftRadius="inherit"
-        borderTopRightRadius="inherit"
+        justifyContent="center"
       >
-        <Flex 
-          bg="white" 
-          borderRadius="full" 
-          w="50px" 
-          h="50px" 
-          justifyContent="center" 
-          alignItems="center"
-          boxShadow="none"
-          mr={4}
-        >
-          <Icon as={FaUtensils} w={6} h={6} color="orange.500" />
-        </Flex>
-        <Tag
-          size="lg"
-          variant="subtle"
-          bg="whiteAlpha.300"
-          color="white"
-          fontWeight="bold"
-          px={4}
-          py={2}
-          borderRadius="md"
-        >
-          NUTRITION STATS
-        </Tag>
+        <Text color={statLabelColor}>Loading nutrition data...</Text>
       </Box>
-      <CardBody px={4} py={4} display="flex" flexDirection="column" flex="1">
+    );
+  }
+
+  return (
+    <Box
+      bg={cardBg}
+      borderRadius="xl"
+      p={6}
+      border="1px solid"
+      borderColor={borderColor}
+      boxShadow="lg"
+      minH="320px"
+      display="flex"
+      flexDirection="column"
+    >
+      <VStack spacing={5} align="stretch" flex="1">
+        {/* Header */}
+        <HStack justify="space-between" align="center">
+          <HStack spacing={3}>
+            <Icon as={FaUtensils} boxSize={6} color="orange.500" />
+            <VStack align="start" spacing={0}>
+              <Text fontSize="lg" fontWeight="bold" color={statNumberColor}>
+                Nutrition Stats
+              </Text>
+              <Text fontSize="sm" color={statLabelColor}>
+                {nutritionStats.recentRecord 
+                  ? `${getTotalMeals()} meals tracked`
+                  : 'Track your nutrition'
+                }
+              </Text>
+            </VStack>
+          </HStack>
+          <Badge 
+            colorScheme="orange" 
+            variant="solid" 
+            fontSize="xs"
+            px={2}
+            py={1}
+          >
+            Last 7 Days
+          </Badge>
+        </HStack>
+
         {nutritionStats.recentRecord ? (
-          <VStack spacing={4} align="stretch" height="100%">
-            <Box flex="1">
-              <Stat>
-                <StatLabel color={statLabelColor}>Average Daily Calories</StatLabel>
-                <StatNumber color={statNumberColor}>
+          <>
+            {/* Main Stats */}
+            <HStack spacing={6} justify="space-between">
+              <Stat flex="1">
+                <StatLabel fontSize="sm" color={statLabelColor}>Average Daily Calories</StatLabel>
+                <StatNumber fontSize="2xl" color={statNumberColor} fontWeight="bold">
                   {nutritionStats.averageCaloriesPerDay ? 
-                    `${Math.round(nutritionStats.averageCaloriesPerDay)}` : 
-                    'No data'}
+                    Math.round(nutritionStats.averageCaloriesPerDay) : 
+                    'N/A'}
                 </StatNumber>
-                <StatHelpText color={statLabelColor}>Last 7 days</StatHelpText>
+                <StatHelpText fontSize="xs" color={statLabelColor}>
+                  Last 7 days
+                </StatHelpText>
               </Stat>
-              
-              <HStack width="100%" justifyContent="space-between" mt={4}>
-                <Stat>
-                  <StatLabel color={statLabelColor}>Most Common Meal</StatLabel>
-                  <StatNumber fontSize="xl" color={statNumberColor}>
-                    {getMostCommonMeal()}
-                  </StatNumber>
-                </Stat>
-                <Stat textAlign="right">
-                  <StatLabel color={statLabelColor}>Last Recorded</StatLabel>
-                  <StatNumber fontSize="xl" color={statNumberColor}>
-                    {new Date(nutritionStats.recentRecord.record_date).toLocaleDateString()}
-                  </StatNumber>
-                </Stat>
-              </HStack>
+            </HStack>
+
+            {/* Secondary Stats */}
+            <HStack spacing={6} justify="space-between">
+              <Stat flex="1">
+                <StatLabel fontSize="sm" color={statLabelColor}>Most Common Meal</StatLabel>
+                <StatNumber fontSize="xl" color={statNumberColor} fontWeight="bold">
+                  {getMostCommonMeal()}
+                </StatNumber>
+              </Stat>
+              <Stat flex="1" textAlign="right">
+                <StatLabel fontSize="sm" color={statLabelColor}>Last Recorded</StatLabel>
+                <StatNumber fontSize="xl" color={statNumberColor} fontWeight="bold">
+                  {new Date(nutritionStats.recentRecord.record_date).toLocaleDateString('en-US', {
+                    month: 'numeric',
+                    day: 'numeric',
+                    year: 'numeric'
+                  })}
+                </StatNumber>
+              </Stat>
+            </HStack>
+
+            {/* Meal Distribution */}
+            <Box>
+              <Text fontSize="sm" fontWeight="medium" color={statNumberColor} mb={3}>
+                Meal Distribution
+              </Text>
+              <VStack spacing={2}>
+                {Object.entries(nutritionStats.mealTypeDistribution).map(([meal, count]) => (
+                  <HStack key={meal} justify="space-between" w="100%">
+                    <HStack spacing={2}>
+                      <Box
+                        w={3}
+                        h={3}
+                        borderRadius="full"
+                        bg={
+                          meal === 'breakfast' ? 'yellow.400' :
+                          meal === 'lunch' ? 'green.400' :
+                          meal === 'dinner' ? 'blue.400' : 'purple.400'
+                        }
+                      />
+                      <Text fontSize="sm" color={statLabelColor} textTransform="capitalize">
+                        {meal}
+                      </Text>
+                    </HStack>
+                    <Badge
+                      colorScheme={
+                        meal === 'breakfast' ? 'yellow' :
+                        meal === 'lunch' ? 'green' :
+                        meal === 'dinner' ? 'blue' : 'purple'
+                      }
+                      variant="subtle"
+                      fontSize="xs"
+                    >
+                      {count}
+                    </Badge>
+                  </HStack>
+                ))}
+              </VStack>
             </Box>
-            
-            <Box mt="auto" width="100%">
-              <Button 
-                as={RouterLink}
-                to="/athlete/nutrition"
-                variant="primary"
-                size="md"
-                width="full"
-                leftIcon={<FaUtensils />}
-              >
-                View Nutrition Records
-              </Button>
-            </Box>
-          </VStack>
+          </>
         ) : (
-          <VStack spacing={4} py={4} flex="1" justifyContent="center">
-            <Text>No nutrition records found.</Text>
-            <Box mt="auto" width="100%">
-              <Button 
-                as={RouterLink}
-                to="/athlete/nutrition"
-                variant="primary"
-                size="md"
-                width="full"
-                leftIcon={<FaUtensils />}
-              >
-                Add Nutrition Record
-              </Button>
-            </Box>
-          </VStack>
+          <Box
+            bg={useColorModeValue('gray.50', 'gray.700')}
+            p={6}
+            borderRadius="lg"
+            textAlign="center"
+            flex="1"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+          >
+            <VStack spacing={3}>
+              <Icon as={FaUtensils} boxSize={8} color={statLabelColor} />
+              <Text fontSize="lg" fontWeight="medium" color={statNumberColor}>
+                No nutrition records
+              </Text>
+              <Text fontSize="sm" color={statLabelColor}>
+                Start tracking your meals and nutrition
+              </Text>
+            </VStack>
+          </Box>
         )}
-      </CardBody>
-    </Card>
+
+        {/* Action Button */}
+        <Button
+          as={RouterLink}
+          to="/athlete/nutrition"
+          colorScheme="orange"
+          variant="outline"
+          size="sm"
+          leftIcon={<Icon as={FaUtensils} />}
+          rightIcon={<Icon as={FaArrowRight} />}
+          mt="auto"
+        >
+          {nutritionStats.recentRecord ? 'View Nutrition Records' : 'Add Nutrition Record'}
+        </Button>
+      </VStack>
+    </Box>
   )
 }
 

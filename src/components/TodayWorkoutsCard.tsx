@@ -1,8 +1,18 @@
 import React from 'react';
 import {
-  Box, Card, CardBody, Flex, Tag, Icon, Heading, Text, VStack, Button, SimpleGrid, Skeleton, useColorModeValue
+  Box,
+  Text,
+  VStack,
+  HStack,
+  Icon,
+  Badge,
+  Button,
+  SimpleGrid,
+  Skeleton,
+  useColorModeValue,
+  Heading,
 } from '@chakra-ui/react';
-import { FaRunning } from 'react-icons/fa';
+import { FaRunning, FaCalendarAlt, FaArrowRight } from 'react-icons/fa';
 import { Link as RouterLink } from 'react-router-dom';
 import { WorkoutCard } from './WorkoutCard';
 
@@ -25,61 +35,95 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
   workoutsLoading,
   profileLoading
 }) => {
-  const headerGradient = useColorModeValue(
-    'linear-gradient(90deg, #38A169 0%, #48BB78 100%)',
-    'linear-gradient(90deg, #22543D 0%, #276749 100%)'
-  );
-  const cardBg = useColorModeValue('white', 'gray.900');
-  const tagBg = useColorModeValue('whiteAlpha.300', 'whiteAlpha.300');
-  const tagColor = useColorModeValue('white', 'white');
+  // Color mode values matching quick-log cards
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const statLabelColor = useColorModeValue('gray.600', 'gray.300');
+  const statNumberColor = useColorModeValue('gray.900', 'gray.100');
 
   if (profileLoading || workoutsLoading) {
-    return <Skeleton height="200px" mb={10} borderRadius="lg" />;
-  }
-
-  return (
-    <Card borderRadius="lg" boxShadow="md" mb={10} bg={cardBg}>
-      {/* Header */}
+    return (
       <Box
-        h="80px"
-        bg={headerGradient}
-        position="relative"
+        bg={cardBg}
+        borderRadius="xl"
+        p={6}
+        border="1px solid"
+        borderColor={borderColor}
+        boxShadow="lg"
+        mb={10}
+        minH="300px"
         display="flex"
         alignItems="center"
-        px={6}
-        width="100%"
-        borderTopLeftRadius="inherit"
-        borderTopRightRadius="inherit"
+        justifyContent="center"
       >
-        <Flex
-          bg={useColorModeValue('white', 'gray.800')}
-          borderRadius="full"
-          w="50px"
-          h="50px"
-          justifyContent="center"
-          alignItems="center"
-          boxShadow="none"
-          mr={4}
-        >
-          <Icon as={FaRunning} w={6} h={6} color="green.500" />
-        </Flex>
-        <Tag
-          size="lg"
-          variant="subtle"
-          bg={tagBg}
-          color={tagColor}
-          fontWeight="bold"
-          px={4}
-          py={2}
-          borderRadius="md"
-        >
-          TODAY'S WORKOUTS
-        </Tag>
+        <Text color={statLabelColor}>Loading workouts...</Text>
       </Box>
-      <CardBody>
+    );
+  }
+
+  const getTotalWorkouts = () => todayWorkouts.length + upcomingWorkouts.length;
+  const getCompletedToday = () => {
+    return todayWorkouts.filter(workout => {
+      const progress = getWorkoutProgressData(workout);
+      return progress.percentage === 100;
+    }).length;
+  };
+
+  return (
+    <Box
+      bg={cardBg}
+      borderRadius="xl"
+      p={6}
+      border="1px solid"
+      borderColor={borderColor}
+      boxShadow="lg"
+      mb={10}
+    >
+      <VStack spacing={6} align="stretch">
+        {/* Header */}
+        <HStack justify="space-between" align="center">
+          <HStack spacing={3}>
+            <Icon as={FaRunning} boxSize={6} color="green.500" />
+            <VStack align="start" spacing={0}>
+              <Text fontSize="xl" fontWeight="bold" color={statNumberColor}>
+                Today's Workouts
+              </Text>
+              <Text fontSize="sm" color={statLabelColor}>
+                {todayWorkouts.length > 0 
+                  ? `${getCompletedToday()} of ${todayWorkouts.length} completed today`
+                  : 'Plan your training session'
+                }
+              </Text>
+            </VStack>
+          </HStack>
+          <VStack spacing={1} align="end">
+            <Badge 
+              colorScheme="green" 
+              variant="solid" 
+              fontSize="xs"
+              px={2}
+              py={1}
+            >
+              {getTotalWorkouts()} Total
+            </Badge>
+            {todayWorkouts.length > 0 && (
+              <Badge 
+                colorScheme={getCompletedToday() === todayWorkouts.length ? "green" : "orange"} 
+                variant="outline" 
+                fontSize="xs"
+                px={2}
+                py={1}
+              >
+                {getCompletedToday()}/{todayWorkouts.length} Done
+              </Badge>
+            )}
+          </VStack>
+        </HStack>
+
+        {/* Today's Workouts */}
         {todayWorkouts.length > 0 ? (
           <Box>
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4} mb={6}>
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
               {todayWorkouts.map((workout, idx) => (
                 <WorkoutCard
                   key={workout.id || idx}
@@ -90,55 +134,107 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                 />
               ))}
             </SimpleGrid>
-            {upcomingWorkouts.length > 0 && (
-              <>
-                <Heading size="md" mb={4}>Upcoming Workouts</Heading>
-                <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
-                  {upcomingWorkouts.map((workout, idx) => (
-                    <WorkoutCard
-                      key={workout.id || idx}
-                      workout={workout}
-                      isCoach={profile?.role === 'coach'}
-                      progress={getWorkoutProgressData(workout)}
-                      onStart={() => handleStartWorkout(workout)}
-                    />
-                  ))}
-                </SimpleGrid>
-              </>
-            )}
           </Box>
         ) : (
-          <VStack spacing={4} py={6} align="center">
-            <Text>No workouts scheduled for today.</Text>
-            {upcomingWorkouts.length > 0 ? (
-              <>
-                <Heading size="md" mt={2} mb={4}>Upcoming Workouts</Heading>
-                <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4} width="100%">
-                  {upcomingWorkouts.map((workout, idx) => (
-                    <WorkoutCard
-                      key={workout.id || idx}
-                      workout={workout}
-                      isCoach={profile?.role === 'coach'}
-                      progress={getWorkoutProgressData(workout)}
-                      onStart={() => handleStartWorkout(workout)}
-                    />
-                  ))}
-                </SimpleGrid>
-              </>
-            ) : (
+          <Box
+            bg={useColorModeValue('gray.50', 'gray.700')}
+            p={6}
+            borderRadius="lg"
+            textAlign="center"
+          >
+            <VStack spacing={3}>
+              <Icon as={FaCalendarAlt} boxSize={8} color={statLabelColor} />
+              <Text fontSize="lg" fontWeight="medium" color={statNumberColor}>
+                No workouts scheduled for today
+              </Text>
+              <Text fontSize="sm" color={statLabelColor}>
+                {upcomingWorkouts.length > 0 
+                  ? 'Check your upcoming workouts below'
+                  : 'Create or browse available workouts to get started'
+                }
+              </Text>
+            </VStack>
+          </Box>
+        )}
+
+        {/* Upcoming Workouts */}
+        {upcomingWorkouts.length > 0 && (
+          <Box>
+            <HStack justify="space-between" align="center" mb={4}>
+              <HStack spacing={2}>
+                <Icon as={FaCalendarAlt} color="blue.500" fontSize="lg" />
+                <Text fontSize="lg" fontWeight="bold" color={statNumberColor}>
+                  Upcoming Workouts
+                </Text>
+              </HStack>
+              <Badge 
+                colorScheme="blue" 
+                variant="outline" 
+                fontSize="xs"
+                px={2}
+                py={1}
+              >
+                Next {Math.min(upcomingWorkouts.length, 3)}
+              </Badge>
+            </HStack>
+            
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+              {upcomingWorkouts.slice(0, 3).map((workout, idx) => (
+                <WorkoutCard
+                  key={workout.id || idx}
+                  workout={workout}
+                  isCoach={profile?.role === 'coach'}
+                  progress={getWorkoutProgressData(workout)}
+                  onStart={() => handleStartWorkout(workout)}
+                />
+              ))}
+            </SimpleGrid>
+          </Box>
+        )}
+
+        {/* Action Button */}
+        {(todayWorkouts.length === 0 && upcomingWorkouts.length === 0) && (
+          <Button
+            as={RouterLink}
+            to={profile?.role === 'coach' ? "/coach/workouts" : "/athlete/workouts"}
+            colorScheme="green"
+            size="lg"
+            leftIcon={<Icon as={FaRunning} />}
+            rightIcon={<Icon as={FaArrowRight} />}
+          >
+            {profile?.role === 'coach' ? "Create Workouts" : "View Available Workouts"}
+          </Button>
+        )}
+
+        {/* Quick Actions for when there are workouts */}
+        {(todayWorkouts.length > 0 || upcomingWorkouts.length > 0) && (
+          <HStack spacing={3} justify="center">
+            <Button
+              as={RouterLink}
+              to={profile?.role === 'coach' ? "/coach/workouts" : "/athlete/workouts"}
+              variant="outline"
+              colorScheme="green"
+              size="sm"
+              leftIcon={<Icon as={FaCalendarAlt} />}
+            >
+              View All Workouts
+            </Button>
+            {profile?.role === 'coach' && (
               <Button
                 as={RouterLink}
-                to={profile?.role === 'coach' ? "/coach/workouts" : "/athlete/workouts"}
-                variant="solid"
+                to="/coach/workouts"
+                variant="outline"
                 colorScheme="blue"
+                size="sm"
+                leftIcon={<Icon as={FaRunning} />}
               >
-                {profile?.role === 'coach' ? "Create Workouts" : "View Available Workouts"}
+                Create New Workout
               </Button>
             )}
-          </VStack>
+          </HStack>
         )}
-      </CardBody>
-    </Card>
+      </VStack>
+    </Box>
   );
 };
 

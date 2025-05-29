@@ -1,55 +1,10 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  Box,
-  Button,
-  Input,
-  InputGroup,
-  InputLeftElement,
-  VStack,
-  HStack,
-  Text,
-  Checkbox,
-  Tabs,
-  TabList,
-  Tab,
-  Tag,
-  IconButton,
-  Spinner,
-  Divider,
-  Badge,
-  Heading,
-  FormControl,
-  FormLabel,
-  useToast,
-  SimpleGrid,
-  Card,
-  CardBody,
-  CardHeader,
-  Flex,
-  Spacer,
-  Select,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  useDisclosure,
-  Avatar,
-  AvatarGroup,
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  Progress,
-  Alert,
-  AlertIcon,
-  AlertTitle,
-  AlertDescription,
-  TagCloseButton,
+  Box, Container, VStack, HStack, Heading, Text, Button, Card, CardBody, CardHeader, Badge, SimpleGrid, Progress, Flex, Spacer, FormControl, FormLabel, Input, Textarea, Select, Stack, useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, IconButton, Alert, AlertIcon, AlertTitle, AlertDescription, AvatarGroup, Avatar, useToast, Divider, Skeleton, SkeletonText, List, ListItem, Checkbox, RadioGroup, Radio, Tooltip, Tag, Grid, GridItem, Icon, InputGroup, InputLeftElement, TagCloseButton, useColorModeValue
 } from '@chakra-ui/react';
-import { Search, X, PlusCircle, GripVertical, Eye, Edit, Trash2, ArrowLeft, Users, ChevronLeft, ChevronRight, Save, Calendar, FileText, Dumbbell, Zap, Heart, User, Target, Clock } from 'lucide-react';
+import { Search, X, PlusCircle, GripVertical, Eye, Edit, Trash2, ArrowLeft, Users, ChevronLeft, ChevronRight, Save, Calendar, FileText, Dumbbell, Zap, Heart, User, Target, Clock, Copy, BarChart3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { FaRegClock } from 'react-icons/fa';
 
 // --- 1. Define Types and Dummy Data ---
 
@@ -177,6 +132,10 @@ interface SelectedExercise extends Exercise {
   sets?: string;
   reps?: string;
   notes?: string;
+  weight?: string;
+  distance?: string;
+  rest?: string;
+  rpe?: string;
 }
 
 interface DayWorkout {
@@ -246,6 +205,22 @@ const WorkoutCreatorPOC: React.FC = () => {
   
   const [exerciseLibrary] = useState<Exercise[]>(DUMMY_EXERCISES);
   const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
+
+  // Sidebar state
+  const [sidebarWidth, setSidebarWidth] = useState(200);
+  
+  // Listen for sidebar toggle events
+  useEffect(() => {
+    const handleSidebarToggle = (event: CustomEvent) => {
+      setSidebarWidth(event.detail.width);
+    };
+    
+    window.addEventListener('sidebarToggle', handleSidebarToggle as EventListener);
+    
+    return () => {
+      window.removeEventListener('sidebarToggle', handleSidebarToggle as EventListener);
+    };
+  }, []);
 
   useEffect(() => {
     setIsLoadingLibrary(true);
@@ -1088,6 +1063,45 @@ const WorkoutCreatorPOC: React.FC = () => {
                                     placeholder="e.g., 10"
                                   />
                                 </FormControl>
+                                <FormControl flex="1">
+                                  <FormLabel fontSize="xs" fontWeight="bold" color="gray.600">Weight (kg)</FormLabel>
+                                  <Input 
+                                    size="sm" 
+                                    value={exercise.weight || ''}
+                                    onChange={(e) => handleExerciseDetailChange(exercise.instanceId, 'weight', e.target.value)}
+                                    placeholder="e.g., 70"
+                                  />
+                                </FormControl>
+                              </HStack>
+                              
+                              <HStack spacing={3}>
+                                <FormControl flex="1">
+                                  <FormLabel fontSize="xs" fontWeight="bold" color="gray.600">Distance (m)</FormLabel>
+                                  <Input 
+                                    size="sm" 
+                                    value={exercise.distance || ''}
+                                    onChange={(e) => handleExerciseDetailChange(exercise.instanceId, 'distance', e.target.value)}
+                                    placeholder="e.g., 100"
+                                  />
+                                </FormControl>
+                                <FormControl flex="1">
+                                  <FormLabel fontSize="xs" fontWeight="bold" color="gray.600">Rest (seconds)</FormLabel>
+                                  <Input 
+                                    size="sm" 
+                                    value={exercise.rest || ''}
+                                    onChange={(e) => handleExerciseDetailChange(exercise.instanceId, 'rest', e.target.value)}
+                                    placeholder="e.g., 60"
+                                  />
+                                </FormControl>
+                                <FormControl flex="1">
+                                  <FormLabel fontSize="xs" fontWeight="bold" color="gray.600">RPE (1-10)</FormLabel>
+                                  <Input 
+                                    size="sm" 
+                                    value={exercise.rpe || ''}
+                                    onChange={(e) => handleExerciseDetailChange(exercise.instanceId, 'rpe', e.target.value)}
+                                    placeholder="e.g., 8"
+                                  />
+                                </FormControl>
                               </HStack>
                               
                               <FormControl>
@@ -1159,6 +1173,45 @@ const WorkoutCreatorPOC: React.FC = () => {
                                     value={exercise.reps || ''}
                                     onChange={(e) => handleExerciseDetailChange(exercise.instanceId, 'reps', e.target.value)}
                                     placeholder="e.g., 10"
+                                  />
+                                </FormControl>
+                                <FormControl flex="1">
+                                  <FormLabel fontSize="xs" fontWeight="bold" color="gray.600">Weight (kg)</FormLabel>
+                                  <Input 
+                                    size="sm" 
+                                    value={exercise.weight || ''}
+                                    onChange={(e) => handleExerciseDetailChange(exercise.instanceId, 'weight', e.target.value)}
+                                    placeholder="e.g., 70"
+                                  />
+                                </FormControl>
+                              </HStack>
+                              
+                              <HStack spacing={3}>
+                                <FormControl flex="1">
+                                  <FormLabel fontSize="xs" fontWeight="bold" color="gray.600">Distance (m)</FormLabel>
+                                  <Input 
+                                    size="sm" 
+                                    value={exercise.distance || ''}
+                                    onChange={(e) => handleExerciseDetailChange(exercise.instanceId, 'distance', e.target.value)}
+                                    placeholder="e.g., 100"
+                                  />
+                                </FormControl>
+                                <FormControl flex="1">
+                                  <FormLabel fontSize="xs" fontWeight="bold" color="gray.600">Rest (seconds)</FormLabel>
+                                  <Input 
+                                    size="sm" 
+                                    value={exercise.rest || ''}
+                                    onChange={(e) => handleExerciseDetailChange(exercise.instanceId, 'rest', e.target.value)}
+                                    placeholder="e.g., 60"
+                                  />
+                                </FormControl>
+                                <FormControl flex="1">
+                                  <FormLabel fontSize="xs" fontWeight="bold" color="gray.600">RPE (1-10)</FormLabel>
+                                  <Input 
+                                    size="sm" 
+                                    value={exercise.rpe || ''}
+                                    onChange={(e) => handleExerciseDetailChange(exercise.instanceId, 'rpe', e.target.value)}
+                                    placeholder="e.g., 8"
                                   />
                                 </FormControl>
                               </HStack>
@@ -1538,51 +1591,618 @@ const WorkoutCreatorPOC: React.FC = () => {
         {/* Exercise Preview */}
         <Box p={8} borderWidth="1px" borderRadius="lg" shadow="sm" bg="white" w="100%">
           <Heading as="h3" size="lg" mb={6}>Exercise Preview</Heading>
+          {/* Debug info */}
+          <Box p={3} bg="red.100" borderRadius="md" mb={4}>
+            <Text fontSize="md" color="red.800" fontWeight="bold">
+              🔍 DEBUG: Template = {templateType} | Weekly plan length = {weeklyPlan.length} | Total exercises = {weeklyPlan.reduce((sum, day) => sum + day.exercises.length, 0)}
+            </Text>
+          </Box>
           {templateType === 'single' ? (
             selectedExercises.length === 0 ? (
               <Text color="gray.500" fontStyle="italic" fontSize="lg">No exercises added</Text>
             ) : (
-              <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
-                {selectedExercises.slice(0, 12).map((exercise, index) => (
-                  <Box key={exercise.instanceId} p={4} bg="gray.50" borderRadius="lg">
-                    <HStack justify="space-between" mb={2}>
-                      <Text fontSize="md" fontWeight="medium">{index + 1}. {exercise.name}</Text>
+              <VStack spacing={4} align="stretch">
+                {selectedExercises.map((exercise, index) => (
+                  <Card key={exercise.instanceId} variant="outline" p={4} bg="gray.50" borderRadius="lg">
+                    <VStack spacing={4} align="stretch">
+                      {/* Header with exercise name and category */}
+                      <HStack justify="space-between" align="start">
+                        <VStack align="start" spacing={1} flex="1">
+                          <HStack>
+                            <Badge colorScheme="blue" variant="solid" fontSize="xs" px={2}>
+                              {index + 1}
+                            </Badge>
+                            <Text fontSize="lg" fontWeight="bold" color="gray.800">
+                              {exercise.name}
+                            </Text>
+                            <Badge colorScheme="teal" variant="subtle" fontSize="xs">
+                              {exercise.category}
+                            </Badge>
                     </HStack>
-                    <HStack spacing={4}>
-                      {exercise.sets && <Text fontSize="sm" color="gray.600" fontWeight="medium">{exercise.sets} sets</Text>}
-                      {exercise.reps && <Text fontSize="sm" color="gray.600" fontWeight="medium">{exercise.reps} reps</Text>}
+                          <Text fontSize="sm" color="gray.600" lineHeight="short">
+                            {exercise.description}
+                          </Text>
+                        </VStack>
                     </HStack>
-                  </Box>
-                ))}
-                {selectedExercises.length > 12 && (
-                  <Box p={4} bg="gray.100" borderRadius="lg" textAlign="center">
-                    <Text fontSize="md" color="gray.500" fontStyle="italic">
-                      +{selectedExercises.length - 12} more exercises
+
+                      {/* Exercise parameters grid */}
+                      <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
+                        {/* Sets and Reps - always shown */}
+                        <VStack spacing={1} align="center" p={3} bg="white" borderRadius="md" border="1px solid" borderColor="gray.200">
+                          <Text fontSize="xs" fontWeight="bold" color="blue.600" textTransform="uppercase">
+                            Sets
                     </Text>
-                  </Box>
+                          <Text fontSize="xl" fontWeight="bold" color="gray.800">
+                            {exercise.sets || '-'}
+                          </Text>
+                        </VStack>
+                        
+                        <VStack spacing={1} align="center" p={3} bg="white" borderRadius="md" border="1px solid" borderColor="gray.200">
+                          <Text fontSize="xs" fontWeight="bold" color="green.600" textTransform="uppercase">
+                            Reps
+                          </Text>
+                          <Text fontSize="xl" fontWeight="bold" color="gray.800">
+                            {exercise.reps || '-'}
+                          </Text>
+                        </VStack>
+
+                        {/* Weight - only if specified */}
+                        {exercise.weight && (
+                          <VStack spacing={1} align="center" p={3} bg="white" borderRadius="md" border="1px solid" borderColor="gray.200">
+                            <Text fontSize="xs" fontWeight="bold" color="purple.600" textTransform="uppercase">
+                              Weight
+                            </Text>
+                            <Text fontSize="xl" fontWeight="bold" color="gray.800">
+                              {exercise.weight} kg
+                            </Text>
+                          </VStack>
+                        )}
+
+                        {/* Distance - only if specified */}
+                        {exercise.distance && (
+                          <VStack spacing={1} align="center" p={3} bg="white" borderRadius="md" border="1px solid" borderColor="gray.200">
+                            <Text fontSize="xs" fontWeight="bold" color="orange.600" textTransform="uppercase">
+                              Distance
+                            </Text>
+                            <Text fontSize="xl" fontWeight="bold" color="gray.800">
+                              {exercise.distance} m
+                            </Text>
+                          </VStack>
+                        )}
+
+                        {/* Rest period - only if specified */}
+                        {exercise.rest && (
+                          <VStack spacing={1} align="center" p={3} bg="white" borderRadius="md" border="1px solid" borderColor="gray.200">
+                            <Text fontSize="xs" fontWeight="bold" color="red.600" textTransform="uppercase">
+                              Rest
+                            </Text>
+                            <Text fontSize="xl" fontWeight="bold" color="gray.800">
+                              {exercise.rest}s
+                            </Text>
+                          </VStack>
+                        )}
+                        
+                        {/* RPE - only if specified */}
+                        {exercise.rpe && (
+                          <VStack spacing={1} align="center" p={3} bg="white" borderRadius="md" border="1px solid" borderColor="gray.200">
+                            <Text fontSize="xs" fontWeight="bold" color="pink.600" textTransform="uppercase">
+                              RPE
+                            </Text>
+                            <Text fontSize="xl" fontWeight="bold" color="gray.800">
+                              {exercise.rpe}/10
+                            </Text>
+                          </VStack>
                 )}
               </SimpleGrid>
+
+                      {/* Additional workout details */}
+                      <HStack spacing={6} p={3} bg="blue.50" borderRadius="md">
+                        <VStack spacing={0} align="center">
+                          <Text fontSize="sm" fontWeight="bold" color="blue.700">
+                            Estimated Volume
+                          </Text>
+                          <Text fontSize="sm" color="blue.600">
+                            {(parseInt(exercise.sets || '0') * parseInt(exercise.reps || '0')) || 0} total reps
+                          </Text>
+                        </VStack>
+                        
+                        {exercise.weight && (
+                          <VStack spacing={0} align="center">
+                            <Text fontSize="sm" fontWeight="bold" color="blue.700">
+                              Total Load
+                            </Text>
+                            <Text fontSize="sm" color="blue.600">
+                              {((parseInt(exercise.sets || '0') * parseInt(exercise.reps || '0') * parseFloat(exercise.weight || '0')) || 0).toFixed(0)} kg
+                            </Text>
+                          </VStack>
+                        )}
+                        
+                        {exercise.rest && (
+                          <VStack spacing={0} align="center">
+                            <Text fontSize="sm" fontWeight="bold" color="blue.700">
+                              Rest Time
+                            </Text>
+                            <Text fontSize="sm" color="blue.600">
+                              {Math.floor(parseInt(exercise.rest || '0') / 60) > 0 ? `${Math.floor(parseInt(exercise.rest || '0') / 60)}m ${parseInt(exercise.rest || '0') % 60}s` : `${exercise.rest}s`}
+                            </Text>
+                          </VStack>
+                        )}
+                        
+                        <VStack spacing={0} align="center">
+                          <Text fontSize="sm" fontWeight="bold" color="blue.700">
+                            Est. Time
+                          </Text>
+                          <Text fontSize="sm" color="blue.600">
+                            {Math.ceil((parseInt(exercise.sets || '0') * 2) + ((parseInt(exercise.rest || '60') * (parseInt(exercise.sets || '0') - 1)) / 60))} min
+                          </Text>
+                        </VStack>
+                        
+                        {exercise.rpe && (
+                          <VStack spacing={0} align="center">
+                            <Text fontSize="sm" fontWeight="bold" color="blue.700">
+                              Target RPE
+                            </Text>
+                            <Text fontSize="sm" color="blue.600">
+                              {exercise.rpe}/10 intensity
+                            </Text>
+                          </VStack>
+                        )}
+                      </HStack>
+                      
+                      {/* Exercise completeness indicator */}
+                      <HStack justify="space-between" p={3} bg="gray.100" borderRadius="md">
+                        <VStack align="start" spacing={1}>
+                          <Text fontSize="sm" fontWeight="bold" color="gray.700">
+                            Exercise Specifications
+                          </Text>
+                          <HStack spacing={3}>
+                            <HStack spacing={1}>
+                              <Box w={2} h={2} borderRadius="full" bg={exercise.sets && exercise.reps ? "green.400" : "gray.300"} />
+                              <Text fontSize="xs" color="gray.600">Sets & Reps</Text>
+                            </HStack>
+                            <HStack spacing={1}>
+                              <Box w={2} h={2} borderRadius="full" bg={exercise.weight ? "green.400" : "gray.300"} />
+                              <Text fontSize="xs" color="gray.600">Weight</Text>
+                            </HStack>
+                            <HStack spacing={1}>
+                              <Box w={2} h={2} borderRadius="full" bg={exercise.distance ? "green.400" : "gray.300"} />
+                              <Text fontSize="xs" color="gray.600">Distance</Text>
+                            </HStack>
+                            <HStack spacing={1}>
+                              <Box w={2} h={2} borderRadius="full" bg={exercise.rest ? "green.400" : "gray.300"} />
+                              <Text fontSize="xs" color="gray.600">Rest</Text>
+                            </HStack>
+                            <HStack spacing={1}>
+                              <Box w={2} h={2} borderRadius="full" bg={exercise.rpe ? "green.400" : "gray.300"} />
+                              <Text fontSize="xs" color="gray.600">RPE</Text>
+                            </HStack>
+                          </HStack>
+                        </VStack>
+                        
+                        <VStack align="end" spacing={0}>
+                          <Text fontSize="sm" fontWeight="bold" color="gray.700">
+                            Completion
+                          </Text>
+                          <Text fontSize="sm" color={
+                            [exercise.sets, exercise.reps, exercise.weight, exercise.distance, exercise.rest, exercise.rpe].filter(Boolean).length >= 3 
+                              ? "green.600" 
+                              : "orange.600"
+                          }>
+                            {[exercise.sets, exercise.reps, exercise.weight, exercise.distance, exercise.rest, exercise.rpe].filter(Boolean).length}/6 fields
+                          </Text>
+                        </VStack>
+                      </HStack>
+                    </VStack>
+                  </Card>
+                ))}
+                
+                {/* Workout summary footer */}
+                <Card variant="outline" p={4} bg="gray.100" borderColor="gray.300">
+                  <HStack justify="space-between" align="center">
+                    <VStack align="start" spacing={0}>
+                      <Text fontSize="lg" fontWeight="bold" color="gray.800">
+                        Workout Summary
+                      </Text>
+                      <Text fontSize="sm" color="gray.600">
+                        Complete overview for athlete reference
+                      </Text>
+                    </VStack>
+                    
+                    <HStack spacing={8}>
+                      <VStack spacing={0} align="center">
+                        <Text fontSize="xl" fontWeight="bold" color="blue.600">
+                          {selectedExercises.length}
+                        </Text>
+                        <Text fontSize="xs" color="gray.600" textTransform="uppercase">
+                          Exercises
+                        </Text>
+                      </VStack>
+                      
+                      <VStack spacing={0} align="center">
+                        <Text fontSize="xl" fontWeight="bold" color="green.600">
+                          {selectedExercises.reduce((sum, ex) => sum + (parseInt(ex.sets || '0') || 0), 0)}
+                        </Text>
+                        <Text fontSize="xs" color="gray.600" textTransform="uppercase">
+                          Total Sets
+                        </Text>
+                      </VStack>
+                      
+                      <VStack spacing={0} align="center">
+                        <Text fontSize="xl" fontWeight="bold" color="purple.600">
+                          {selectedExercises.reduce((sum, ex) => sum + ((parseInt(ex.sets || '0') * parseInt(ex.reps || '0')) || 0), 0)}
+                        </Text>
+                        <Text fontSize="xs" color="gray.600" textTransform="uppercase">
+                          Total Reps
+                        </Text>
+                      </VStack>
+                      
+                      <VStack spacing={0} align="center">
+                        <Text fontSize="xl" fontWeight="bold" color="orange.600">
+                          ~{selectedExercises.reduce((sum, ex) => {
+                            const sets = parseInt(ex.sets || '0') || 0;
+                            const rest = parseInt(ex.rest || '60') || 60;
+                            return sum + Math.ceil((sets * 2) + ((rest * (sets - 1)) / 60));
+                          }, 0)}
+                        </Text>
+                        <Text fontSize="xs" color="gray.600" textTransform="uppercase">
+                          Minutes
+                        </Text>
+                      </VStack>
+                    </HStack>
+                  </HStack>
+                </Card>
+              </VStack>
             )
           ) : (
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={4}>
+            <VStack spacing={6} align="stretch">
               {DAYS_OF_WEEK.map((day) => {
                 const dayWorkout = weeklyPlan.find(d => d.day === day.value);
-                if (!dayWorkout) return null;
+                if (!dayWorkout || (dayWorkout.isRestDay && dayWorkout.exercises.length === 0)) {
+                  return (
+                    <Card key={day.value} variant="outline" p={6} bg="gray.50" borderRadius="lg">
+                      <HStack justify="space-between" align="center">
+                        <Text fontWeight="bold" fontSize="lg" color="gray.700">{day.label}</Text>
+                        <Badge colorScheme="gray" variant="solid" size="lg">Rest Day</Badge>
+                      </HStack>
+                      <Text fontSize="sm" color="gray.500" fontStyle="italic" mt={2}>
+                        Scheduled rest day - recovery and regeneration
+                      </Text>
+                    </Card>
+                  );
+                }
+                
+                if (dayWorkout.exercises.length === 0) {
+                return (
+                    <Card key={day.value} variant="outline" p={6} bg="gray.50" borderRadius="lg">
+                      <HStack justify="space-between" align="center">
+                        <Text fontWeight="bold" fontSize="lg" color="gray.700">{day.label}</Text>
+                        <Badge colorScheme="orange" variant="subtle" size="lg">No Exercises</Badge>
+                      </HStack>
+                      <Text fontSize="sm" color="gray.500" fontStyle="italic" mt={2}>
+                        No exercises planned for this day
+                      </Text>
+                    </Card>
+                  );
+                }
                 
                 return (
-                  <HStack key={day.value} justify="space-between" p={4} bg="gray.50" borderRadius="lg">
-                    <Text fontWeight="semibold" fontSize="md">{day.label}</Text>
-                    {dayWorkout.isRestDay ? (
-                      <Badge colorScheme="gray" variant="solid" size="md">Rest Day</Badge>
-                    ) : (
-                      <Badge colorScheme="blue" variant="subtle" size="md">
-                        {dayWorkout.exercises.length} exercises
+                  <Card key={day.value} variant="outline" p={6} bg="white" borderRadius="lg" shadow="sm">
+                    <VStack spacing={4} align="stretch">
+                      {/* Day Header */}
+                      <HStack justify="space-between" align="center" pb={2} borderBottom="2px solid" borderBottomColor="blue.100">
+                        <HStack spacing={3}>
+                          <Text fontWeight="bold" fontSize="xl" color="blue.700">{day.label}</Text>
+                          <Badge colorScheme="blue" variant="solid" size="lg">
+                            {dayWorkout.exercises.length} exercise{dayWorkout.exercises.length !== 1 ? 's' : ''}
                       </Badge>
+                        </HStack>
+                        
+                        {/* Day summary stats */}
+                        <HStack spacing={6} p={3} bg="blue.50" borderRadius="md">
+                          <VStack spacing={0} align="center">
+                            <Text fontSize="lg" fontWeight="bold" color="blue.600">
+                              {dayWorkout.exercises.reduce((sum, ex) => sum + (parseInt(ex.sets || '0') || 0), 0)}
+                            </Text>
+                            <Text fontSize="xs" color="gray.600" textTransform="uppercase">
+                              Total Sets
+                            </Text>
+                          </VStack>
+                          
+                          <VStack spacing={0} align="center">
+                            <Text fontSize="lg" fontWeight="bold" color="green.600">
+                              {dayWorkout.exercises.reduce((sum, ex) => sum + ((parseInt(ex.sets || '0') * parseInt(ex.reps || '0')) || 0), 0)}
+                            </Text>
+                            <Text fontSize="xs" color="gray.600" textTransform="uppercase">
+                              Total Reps
+                            </Text>
+                          </VStack>
+                          
+                          <VStack spacing={0} align="center">
+                            <Text fontSize="lg" fontWeight="bold" color="orange.600">
+                              ~{dayWorkout.exercises.reduce((sum, ex) => {
+                                const sets = parseInt(ex.sets || '0') || 0;
+                                const rest = parseInt(ex.rest || '60') || 60;
+                                return sum + Math.ceil((sets * 2) + ((rest * (sets - 1)) / 60));
+                              }, 0)}
+                            </Text>
+                            <Text fontSize="xs" color="gray.600" textTransform="uppercase">
+                              Minutes
+                            </Text>
+                          </VStack>
+                        </HStack>
+                      </HStack>
+                      
+                      {/* Detailed Exercise Cards */}
+                      <VStack spacing={4} align="stretch">
+                        {dayWorkout.exercises.map((exercise, index) => (
+                          <Card key={exercise.instanceId} variant="outline" p={4} bg="gray.50" borderRadius="lg">
+                            <VStack spacing={4} align="stretch">
+                              {/* Header with exercise name and category */}
+                              <HStack justify="space-between" align="start">
+                                <VStack align="start" spacing={1} flex="1">
+                                  <HStack>
+                                    <Badge colorScheme="blue" variant="solid" fontSize="xs" px={2}>
+                                      {index + 1}
+                                    </Badge>
+                                    <Text fontSize="lg" fontWeight="bold" color="gray.800">
+                                      {exercise.name}
+                                    </Text>
+                                    <Badge colorScheme="teal" variant="subtle" fontSize="xs">
+                                      {exercise.category}
+                                    </Badge>
+                                  </HStack>
+                                  <Text fontSize="sm" color="gray.600" lineHeight="short">
+                                    {exercise.description}
+                                  </Text>
+                                </VStack>
+                              </HStack>
+
+                              {/* Exercise parameters grid */}
+                              <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
+                                {/* Sets and Reps - always shown */}
+                                <VStack spacing={1} align="center" p={3} bg="white" borderRadius="md" border="1px solid" borderColor="gray.200">
+                                  <Text fontSize="xs" fontWeight="bold" color="blue.600" textTransform="uppercase">
+                                    Sets
+                                  </Text>
+                                  <Text fontSize="xl" fontWeight="bold" color="gray.800">
+                                    {exercise.sets || '-'}
+                                  </Text>
+                                </VStack>
+                                
+                                <VStack spacing={1} align="center" p={3} bg="white" borderRadius="md" border="1px solid" borderColor="gray.200">
+                                  <Text fontSize="xs" fontWeight="bold" color="green.600" textTransform="uppercase">
+                                    Reps
+                                  </Text>
+                                  <Text fontSize="xl" fontWeight="bold" color="gray.800">
+                                    {exercise.reps || '-'}
+                                  </Text>
+                                </VStack>
+
+                                {/* Weight - only if specified */}
+                                {exercise.weight && (
+                                  <VStack spacing={1} align="center" p={3} bg="white" borderRadius="md" border="1px solid" borderColor="gray.200">
+                                    <Text fontSize="xs" fontWeight="bold" color="purple.600" textTransform="uppercase">
+                                      Weight
+                                    </Text>
+                                    <Text fontSize="xl" fontWeight="bold" color="gray.800">
+                                      {exercise.weight} kg
+                                    </Text>
+                                  </VStack>
+                                )}
+
+                                {/* Distance - only if specified */}
+                                {exercise.distance && (
+                                  <VStack spacing={1} align="center" p={3} bg="white" borderRadius="md" border="1px solid" borderColor="gray.200">
+                                    <Text fontSize="xs" fontWeight="bold" color="orange.600" textTransform="uppercase">
+                                      Distance
+                                    </Text>
+                                    <Text fontSize="xl" fontWeight="bold" color="gray.800">
+                                      {exercise.distance} m
+                                    </Text>
+                                  </VStack>
+                                )}
+
+                                {/* Rest period - only if specified */}
+                                {exercise.rest && (
+                                  <VStack spacing={1} align="center" p={3} bg="white" borderRadius="md" border="1px solid" borderColor="gray.200">
+                                    <Text fontSize="xs" fontWeight="bold" color="red.600" textTransform="uppercase">
+                                      Rest
+                                    </Text>
+                                    <Text fontSize="xl" fontWeight="bold" color="gray.800">
+                                      {exercise.rest}s
+                                    </Text>
+                                  </VStack>
+                                )}
+                                
+                                {/* RPE - only if specified */}
+                                {exercise.rpe && (
+                                  <VStack spacing={1} align="center" p={3} bg="white" borderRadius="md" border="1px solid" borderColor="gray.200">
+                                    <Text fontSize="xs" fontWeight="bold" color="pink.600" textTransform="uppercase">
+                                      RPE
+                                    </Text>
+                                    <Text fontSize="xl" fontWeight="bold" color="gray.800">
+                                      {exercise.rpe}/10
+                                    </Text>
+                                  </VStack>
+                                )}
+                              </SimpleGrid>
+
+                              {/* Additional workout details */}
+                              <HStack spacing={6} p={3} bg="blue.50" borderRadius="md">
+                                <VStack spacing={0} align="center">
+                                  <Text fontSize="sm" fontWeight="bold" color="blue.700">
+                                    Estimated Volume
+                                  </Text>
+                                  <Text fontSize="sm" color="blue.600">
+                                    {(parseInt(exercise.sets || '0') * parseInt(exercise.reps || '0')) || 0} total reps
+                                  </Text>
+                                </VStack>
+                                
+                                {exercise.weight && (
+                                  <VStack spacing={0} align="center">
+                                    <Text fontSize="sm" fontWeight="bold" color="blue.700">
+                                      Total Load
+                                    </Text>
+                                    <Text fontSize="sm" color="blue.600">
+                                      {((parseInt(exercise.sets || '0') * parseInt(exercise.reps || '0') * parseFloat(exercise.weight || '0')) || 0).toFixed(0)} kg
+                                    </Text>
+                                  </VStack>
+                                )}
+                                
+                                {exercise.rest && (
+                                  <VStack spacing={0} align="center">
+                                    <Text fontSize="sm" fontWeight="bold" color="blue.700">
+                                      Rest Time
+                                    </Text>
+                                    <Text fontSize="sm" color="blue.600">
+                                      {Math.floor(parseInt(exercise.rest || '0') / 60) > 0 ? `${Math.floor(parseInt(exercise.rest || '0') / 60)}m ${parseInt(exercise.rest || '0') % 60}s` : `${exercise.rest}s`}
+                                    </Text>
+                                  </VStack>
+                                )}
+                                
+                                <VStack spacing={0} align="center">
+                                  <Text fontSize="sm" fontWeight="bold" color="blue.700">
+                                    Est. Time
+                                  </Text>
+                                  <Text fontSize="sm" color="blue.600">
+                                    {Math.ceil((parseInt(exercise.sets || '0') * 2) + ((parseInt(exercise.rest || '60') * (parseInt(exercise.sets || '0') - 1)) / 60))} min
+                                  </Text>
+                                </VStack>
+                                
+                                {exercise.rpe && (
+                                  <VStack spacing={0} align="center">
+                                    <Text fontSize="sm" fontWeight="bold" color="blue.700">
+                                      Target RPE
+                                    </Text>
+                                    <Text fontSize="sm" color="blue.600">
+                                      {exercise.rpe}/10 intensity
+                                    </Text>
+                                  </VStack>
                     )}
                   </HStack>
+                              
+                              {/* Exercise completeness indicator */}
+                              <HStack justify="space-between" p={3} bg="gray.100" borderRadius="md">
+                                <VStack align="start" spacing={1}>
+                                  <Text fontSize="sm" fontWeight="bold" color="gray.700">
+                                    Exercise Specifications
+                                  </Text>
+                                  <HStack spacing={3}>
+                                    <HStack spacing={1}>
+                                      <Box w={2} h={2} borderRadius="full" bg={exercise.sets && exercise.reps ? "green.400" : "gray.300"} />
+                                      <Text fontSize="xs" color="gray.600">Sets & Reps</Text>
+                                    </HStack>
+                                    <HStack spacing={1}>
+                                      <Box w={2} h={2} borderRadius="full" bg={exercise.weight ? "green.400" : "gray.300"} />
+                                      <Text fontSize="xs" color="gray.600">Weight</Text>
+                                    </HStack>
+                                    <HStack spacing={1}>
+                                      <Box w={2} h={2} borderRadius="full" bg={exercise.distance ? "green.400" : "gray.300"} />
+                                      <Text fontSize="xs" color="gray.600">Distance</Text>
+                                    </HStack>
+                                    <HStack spacing={1}>
+                                      <Box w={2} h={2} borderRadius="full" bg={exercise.rest ? "green.400" : "gray.300"} />
+                                      <Text fontSize="xs" color="gray.600">Rest</Text>
+                                    </HStack>
+                                    <HStack spacing={1}>
+                                      <Box w={2} h={2} borderRadius="full" bg={exercise.rpe ? "green.400" : "gray.300"} />
+                                      <Text fontSize="xs" color="gray.600">RPE</Text>
+                                    </HStack>
+                                  </HStack>
+                                </VStack>
+                                
+                                <VStack align="end" spacing={0}>
+                                  <Text fontSize="sm" fontWeight="bold" color="gray.700">
+                                    Completion
+                                  </Text>
+                                  <Text fontSize="sm" color="green.600">
+                                    {[exercise.sets, exercise.reps, exercise.weight, exercise.distance, exercise.rest, exercise.rpe].filter(Boolean).length}/6 fields
+                                  </Text>
+                                </VStack>
+                              </HStack>
+                              
+                              {/* Notes section - only if specified */}
+                              {exercise.notes && (
+                                <Box p={3} bg="yellow.50" borderRadius="md" border="1px solid" borderColor="yellow.200">
+                                  <HStack spacing={2} mb={1}>
+                                    <Icon as={FaRegClock} color="yellow.600" boxSize={3} />
+                                    <Text fontSize="sm" fontWeight="bold" color="yellow.700">
+                                      Coach Notes
+                                    </Text>
+                                  </HStack>
+                                  <Text fontSize="sm" color="yellow.800" fontStyle="italic">
+                                    {exercise.notes}
+                                  </Text>
+                                </Box>
+                              )}
+                            </VStack>
+                          </Card>
+                        ))}
+                      </VStack>
+                    </VStack>
+                  </Card>
                 );
               })}
-            </SimpleGrid>
+              
+              {/* Weekly summary footer */}
+              <Card variant="outline" p={4} bg="gray.100" borderColor="gray.300">
+                <HStack justify="space-between" align="center">
+                  <VStack align="start" spacing={0}>
+                    <Text fontSize="lg" fontWeight="bold" color="gray.800">
+                      Weekly Training Summary
+                    </Text>
+                    <Text fontSize="sm" color="gray.600">
+                      Complete overview for athlete reference
+                    </Text>
+                  </VStack>
+                  
+                  <HStack spacing={8}>
+                    <VStack spacing={0} align="center">
+                      <Text fontSize="xl" fontWeight="bold" color="blue.600">
+                        {weeklyPlan.filter(d => !d.isRestDay).length}
+                      </Text>
+                      <Text fontSize="xs" color="gray.600" textTransform="uppercase">
+                        Training Days
+                      </Text>
+                    </VStack>
+                    
+                    <VStack spacing={0} align="center">
+                      <Text fontSize="xl" fontWeight="bold" color="green.600">
+                        {weeklyPlan.reduce((sum, day) => sum + day.exercises.length, 0)}
+                      </Text>
+                      <Text fontSize="xs" color="gray.600" textTransform="uppercase">
+                        Total Exercises
+                      </Text>
+                    </VStack>
+                    
+                    <VStack spacing={0} align="center">
+                      <Text fontSize="xl" fontWeight="bold" color="purple.600">
+                        {weeklyPlan.reduce((sum, day) => 
+                          sum + day.exercises.reduce((daySum, ex) => 
+                            daySum + (parseInt(ex.sets || '0') || 0), 0), 0)}
+                      </Text>
+                      <Text fontSize="xs" color="gray.600" textTransform="uppercase">
+                        Total Sets
+                      </Text>
+                    </VStack>
+                    
+                    <VStack spacing={0} align="center">
+                      <Text fontSize="xl" fontWeight="bold" color="orange.600">
+                        ~{weeklyPlan.reduce((sum, day) => 
+                          sum + day.exercises.reduce((daySum, ex) => {
+                            const sets = parseInt(ex.sets || '0') || 0;
+                            const rest = parseInt(ex.rest || '60') || 60;
+                            return daySum + Math.ceil((sets * 2) + ((rest * (sets - 1)) / 60));
+                          }, 0), 0)}
+                      </Text>
+                      <Text fontSize="xs" color="gray.600" textTransform="uppercase">
+                        Total Minutes
+                      </Text>
+                    </VStack>
+                  </HStack>
+                </HStack>
+              </Card>
+            </VStack>
           )}
         </Box>
 
@@ -2022,12 +2642,13 @@ const WorkoutCreatorPOC: React.FC = () => {
         <Box 
           position="fixed"
           top="85px"
-          left="0"
+          left={`${sidebarWidth}px`}
           right="0"
           zIndex="999"
           bg="white"
           borderBottom="1px solid"
           borderBottomColor="gray.200"
+          transition="left 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
         >
           <Progress 
             value={progressPercentage} 
@@ -2277,7 +2898,7 @@ const WorkoutCreatorPOC: React.FC = () => {
       <Box 
         position="fixed" 
         bottom="0" 
-        left="0"
+        left={`${sidebarWidth}px`}
         right="0"
         bg="white" 
         borderTop="2px solid" 
@@ -2285,6 +2906,7 @@ const WorkoutCreatorPOC: React.FC = () => {
         p={6} 
         shadow="2xl"
         zIndex="1000"
+        transition="left 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
       >
         <HStack justify="space-between" align="center" maxW="100%" mx="auto">
           <Button

@@ -22,4 +22,13 @@ export { default as FeedbackModal } from './FeedbackModal';
 export { default as FeedbackProvider, useFeedback } from './FeedbackProvider';
 export { ShareComponent } from './ShareComponent';
 export { default as YourTeamCard } from './YourTeamCard';
-export { default as AddAthleteModal } from './AddAthleteModal'; 
+export { default as AddAthleteModal } from './AddAthleteModal';
+
+// Quick Log Components
+export { default as SleepQuickLogCard } from './SleepQuickLogCard';
+export { default as WellnessQuickLogCard } from './WellnessQuickLogCard';
+export { default as RPEPromptCard } from './RPEPromptCard';
+export { default as TodaysCheckInSection } from './TodaysCheckInSection';
+
+// Coach components
+export { AlertsNotificationsCard, AthleteRosterCard, TodaysFocusCard } from './coach'; 

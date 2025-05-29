@@ -34,12 +34,12 @@ import {
   } from '@chakra-ui/react';
   import { useAuth } from '../../contexts/AuthContext';
 import { FaUserFriends, FaRunning, FaClipboardCheck, FaCalendarAlt, FaChartLine, FaClipboardList, FaFlagCheckered, FaCloudSun, FaMapMarkerAlt } from 'react-icons/fa';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useCoachAthletes } from '../../hooks/useCoachAthletes';
 import { useState, useEffect } from 'react';
 import { useProfile } from '../../hooks/useProfile';
 import { useQueryClient } from '@tanstack/react-query';
-import { YourTeamCard, WeatherCard, TrackMeetsCard } from '../../components';
+import { YourTeamCard, WeatherCard, TrackMeetsCard, AlertsNotificationsCard, AthleteRosterCard, TodaysFocusCard } from '../../components';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useForm } from 'react-hook-form';
@@ -354,6 +354,7 @@ function ScheduleEventModal({ isOpen, onClose }) {
 
 export function CoachDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { profile, isLoading: profileLoading } = useProfile(); // Get the profile
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
@@ -419,13 +420,31 @@ export function CoachDashboard() {
   // Get the disclosure hooks for the schedule event modal
   const { isOpen: isScheduleModalOpen, onOpen: onScheduleModalOpen, onClose: onScheduleModalClose } = useDisclosure();
 
+  // Handler functions for component interactions
+  const handleAlertClick = (alert: any) => {
+    if (alert.actionLink) {
+      navigate(alert.actionLink);
+    }
+  };
+
+  const handleAthleteClick = (athleteId: string) => {
+    navigate(`/coach/athletes/${athleteId}`);
+  };
+
+  const handleTaskClick = (task: any) => {
+    if (task.actionLink) {
+      navigate(task.actionLink);
+    }
+  };
+
   return (
     <Box py={8}>
+      {/* Header Section */}
       <Flex justify="space-between" align="start" mb={8}>
         <Box>
           <Heading mb={2}>Coach Dashboard</Heading>
           <Text color={subtitleColor}>
-            Welcome back, Coach {profile?.last_name || ''}!
+            Welcome back, Coach {profile?.last_name || ''}! Here's your mission control.
           </Text>
         </Box>
         
@@ -444,7 +463,19 @@ export function CoachDashboard() {
           />
         </Box>
       </Flex>
-      
+
+      {/* Priority Section 1: Alerts & Notifications (High Priority) */}
+      <Box mb={8}>
+        <AlertsNotificationsCard onAlertClick={handleAlertClick} />
+      </Box>
+
+      {/* Priority Section 2: Today's Focus & Critical Tasks */}
+      <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={8} mb={8}>
+        <TodaysFocusCard onTaskClick={handleTaskClick} />
+        <AthleteRosterCard onAthleteClick={handleAthleteClick} />
+      </SimpleGrid>
+
+      {/* Dashboard Stats - At-a-Glance Metrics */}
       <SimpleGrid columns={{ base: 1, md: 4 }} spacing={6} mb={8}>
         <Stat px={4} py={5} bg={cardBg} shadow="base" rounded="lg" borderWidth="1px" borderColor={borderColor}>
           <Flex justifyContent="space-between">
@@ -470,7 +501,7 @@ export function CoachDashboard() {
           <Flex justifyContent="space-between">
             <Box pl={2}>
               <StatLabel fontWeight="medium" color={statLabelColor}>Completion Rate</StatLabel>
-              <StatNumber fontSize="3xl">
+              <StatNumber fontSize="3xl" color={`${getCompletionColor(averageCompletionRate)}.500`}>
                 {athletesLoading ? '...' : `${averageCompletionRate}%`}
               </StatNumber>
               <StatHelpText color={statHelpTextColor}>Average across team</StatHelpText>
@@ -490,6 +521,7 @@ export function CoachDashboard() {
         </Stat>
       </SimpleGrid>
       
+      {/* Quick Actions - Prominent Action Buttons */}
       <Stack direction={{ base: 'column', md: 'row' }} spacing={4} mb={8} bg={cardBg} p={5} rounded="lg" shadow="base" borderWidth="1px" borderColor={borderColor}>
         <Heading size="md" mb={{ base: 2, md: 0 }}>Quick Actions:</Heading>
         <Button 
@@ -525,10 +557,11 @@ export function CoachDashboard() {
           colorScheme="teal"
           leftIcon={<Icon as={FaChartLine} />}
         >
-          View Statistics
+          View Analytics
         </Button>
       </Stack>
       
+      {/* Secondary Information - Team Details and Events */}
       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8} mb={8}>
         {/* Your Team Card */}
         <YourTeamCard />
@@ -575,33 +608,7 @@ export function CoachDashboard() {
       {/* Track Meets Calendar View */}
       <Box mb={8}>
         <Heading size="md" mb={4}>Track Meets Calendar</Heading>
-        {eventsLoading ? (
-          <Flex justify="center" py={4}>
-            <Spinner />
-          </Flex>
-        ) : (
-          <TrackMeetsCard
-            trackMeets={athleteEvents?.flatMap(athlete => 
-              athlete.events.map(event => ({
-                id: event.id,
-                name: event.name,
-                meet_date: event.date,
-                city: event.location.split(', ')[0],
-                state: event.location.split(', ')[1] || '',
-                status: 'Scheduled',
-                assigned_events: [{ id: `${event.id}-${event.eventName}`, event_name: event.eventName }],
-                total_events: 1,
-                assigned_events_count: 1
-              }))
-            ).filter((meet, index, self) => 
-              // Remove duplicates based on ID
-              index === self.findIndex(m => m.id === meet.id)
-            ) || []}
-            coachMeets={[]}
-            isLoading={eventsLoading}
-            viewAllLink="/coach/calendar"
-          />
-        )}
+        <TrackMeetsCard viewAllLink="/coach/events" />
       </Box>
       
       {/* Schedule Event Modal */}

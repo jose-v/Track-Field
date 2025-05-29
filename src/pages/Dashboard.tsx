@@ -23,12 +23,10 @@ import {
   WorkoutCard, 
   TeamCard,
   ProgressBar,
-  StatsCard,
-  TrackMeetsCard
+  TrackMeetsCard,
+  TodaysCheckInSection
 } from '../components'
 import { supabase } from '../lib/supabase'
-import { Bar } from 'react-chartjs-2'
-import 'chart.js/auto'
 import TodayWorkoutsCard from '../components/TodayWorkoutsCard'
 
 // Function to format date in "Month Day, Year" format
@@ -90,9 +88,6 @@ export function Dashboard() {
   const { stats: nutritionStats, isLoading: nutritionLoading } = useNutritionStats()
   const [teamInfo, setTeamInfo] = useState<any>(null)
   const [isLoadingTeam, setIsLoadingTeam] = useState(false)
-  const [trackMeets, setTrackMeets] = useState<any[]>([])
-  const [isLoadingMeets, setIsLoadingMeets] = useState(false)
-  const [coachMeets, setCoachMeets] = useState<any[]>([])
   // Default weather data as fallback
   const [weather] = useState({
     temp: '72',
@@ -190,246 +185,100 @@ export function Dashboard() {
     return 'https://www.youtube.com/embed/dQw4w9WgXcQ'; // General workout video
   }
 
-  // Fetch track meets created by this athlete and their coach
-  useEffect(() => {
-    if (!user) return;
-    
-    const fetchTrackMeets = async () => {
-      try {
-        setIsLoadingMeets(true);
-        
-        // Fetch meets created by this athlete
-        const { data: athleteMeets, error: athleteError } = await supabase
-          .from('track_meets')
-          .select('*')
-          .eq('athlete_id', user?.id)
-          .order('meet_date', { ascending: true });
-        
-        if (athleteError) throw athleteError;
-        
-        // Get all meet events assigned to this athlete
-        const { data: assignedMeetEvents, error: assignedEventsError } = await supabase
-          .from('athlete_meet_events')
-          .select('meet_event_id')
-          .eq('athlete_id', user?.id);
-          
-        if (assignedEventsError) throw assignedEventsError;
-        
-        // Get the event details for these assignments
-        let assignedEventIds: string[] = [];
-        let relatedMeetIds: string[] = [];
-        
-        if (assignedMeetEvents && assignedMeetEvents.length > 0) {
-          assignedEventIds = assignedMeetEvents.map(a => a.meet_event_id);
-          
-          // Get the meet events to find their meet IDs
-          const { data: meetEvents, error: meetEventsError } = await supabase
-            .from('meet_events')
-            .select('id, meet_id, event_name')
-            .in('id', assignedEventIds);
-            
-          if (meetEventsError) throw meetEventsError;
-          
-          if (meetEvents && meetEvents.length > 0) {
-            // Get the unique meet IDs from assigned events
-            relatedMeetIds = [...new Set(meetEvents.map(e => e.meet_id))] as string[];
-            
-            // Create map of events by meet ID for later use
-            const meetEventMap: Record<string, any[]> = {};
-            meetEvents.forEach(event => {
-              if (!meetEventMap[event.meet_id]) {
-                meetEventMap[event.meet_id] = [];
-              }
-              meetEventMap[event.meet_id].push(event);
-            });
-            
-            // Fetch all assigned meets
-            const { data: assignedMeets, error: meetsError } = await supabase
-              .from('track_meets')
-              .select('*')
-              .in('id', relatedMeetIds)
-              .order('meet_date', { ascending: true });
-              
-            if (meetsError) throw meetsError;
-            
-            if (assignedMeets && assignedMeets.length > 0) {
-              // Process meets to include assigned events
-              const processedAssignedMeets = assignedMeets.map(meet => {
-                const meetEvents = meetEventMap[meet.id] || [];
-                const assignedEvents = meetEvents.filter(event => 
-                  assignedEventIds.includes(event.id)
-                );
-                
-                return {
-                  ...meet,
-                  assigned_events: assignedEvents,
-                  total_events: meetEvents.length,
-                  assigned_events_count: assignedEvents.length
-                };
-              });
-              
-              // Sort meets by date
-              processedAssignedMeets.sort((a, b) => {
-                if (!a.meet_date) return 1;
-                if (!b.meet_date) return -1;
-                return new Date(a.meet_date).getTime() - new Date(b.meet_date).getTime();
-              });
-              
-              // Separate athlete-created meets and coach meets
-              const coachMeets = processedAssignedMeets.filter(meet => 
-                meet.coach_id && !meet.athlete_id
-              );
-              
-              // For athlete meets, merge any assigned meets that were created by the athlete
-              const athleteMeetsWithAssignments = (athleteMeets || []).map(meet => {
-                const assignedMeet = processedAssignedMeets.find(m => m.id === meet.id);
-                if (assignedMeet) {
-                  return assignedMeet; // Use the version with assignment data
-                }
-                return {
-                  ...meet,
-                  assigned_events: [],
-                  total_events: 0,
-                  assigned_events_count: 0
-                };
-              });
-              
-              setTrackMeets(athleteMeetsWithAssignments);
-              setCoachMeets(coachMeets);
-            } else {
-              // No assigned meets found, just show athlete's own meets
-              setTrackMeets(athleteMeets || []);
-              setCoachMeets([]);
-            }
-          } else {
-            // No meet events found for assignments
-            setTrackMeets(athleteMeets || []);
-            setCoachMeets([]);
-          }
-        } else {
-          // No assignments found, just show athlete's own meets
-          setTrackMeets(athleteMeets || []);
-          setCoachMeets([]);
-        }
-      } catch (error) {
-        console.error('Error fetching track meets:', error);
-        setTrackMeets([]);
-        setCoachMeets([]);
-      } finally {
-        setIsLoadingMeets(false);
-      }
-    };
-    
-    fetchTrackMeets();
-  }, [user]);
+  // Fetch today's and upcoming workouts
+  const todayWorkouts = workouts?.filter((workout) => {
+    const today = dateUtils.localDateString(new Date());
+    const workoutDate = formatDateForComparison(workout.date);
+    return workoutDate === today;
+  }) || [];
 
-  // Get all events as a formatted string
-  const getFormattedEvents = () => {
-    if (!profile?.roleData?.events || !Array.isArray(profile.roleData.events)) {
-      return 'Not set';
-    }
-    
-    return profile.roleData.events.join(', ') || 'None';
-  };
+  const upcomingWorkouts = workouts?.filter((workout) => {
+    const today = dateUtils.localDateString(new Date());
+    const workoutDate = formatDateForComparison(workout.date);
+    return workoutDate > today;
+  }).slice(0, 3) || [];
 
-  // Fetch team info if we have a team
+  // Fetch team information for the athlete
   useEffect(() => {
     const fetchTeamInfo = async () => {
-      if (!profile || !profile.team) return;
+      if (!user || !profile) return;
       
       setIsLoadingTeam(true);
       try {
-        // This is a placeholder - implement actual team data fetching
-        // For example: const teamData = await api.teams.getByName(profile.team);
+        let teamData = null;
         
-        // For now, simulate some team data
-        const teamData = {
-          name: profile.team,
-          accomplishments: [
-            `${profile.team} placed 2nd in regional championship`,
-            `3 ${profile.team} athletes qualified for state finals`,
-            `New team record in 4x100m relay`
-          ]
-        };
+        if (profile.role === 'athlete' && profile.coach_id) {
+          // For athletes, get their coach's team info
+          const { data: coachProfile } = await supabase
+            .from('profiles')
+            .select('team_name, school_name, city, state')
+            .eq('id', profile.coach_id)
+            .single();
+          
+          if (coachProfile) {
+            teamData = {
+              name: coachProfile.team_name,
+              school: coachProfile.school_name,
+              location: `${coachProfile.city}, ${coachProfile.state}`,
+              athleteCount: 0,
+              recentActivity: 'View team dashboard for updates'
+            };
+            
+            // Get athlete count for the team
+            const { count } = await supabase
+              .from('profiles')
+              .select('*', { count: 'exact', head: true })
+              .eq('coach_id', profile.coach_id)
+              .eq('role', 'athlete');
+            
+            teamData.athleteCount = count || 0;
+          }
+        } else if (profile.role === 'coach') {
+          // For coaches, get their own team info
+          teamData = {
+            name: profile.team_name,
+            school: profile.school_name,
+            location: `${profile.city}, ${profile.state}`,
+            athleteCount: 0,
+            recentActivity: 'Manage your team and workouts'
+          };
+          
+          // Get athlete count for the coach
+          const { count } = await supabase
+            .from('profiles')
+            .select('*', { count: 'exact', head: true })
+            .eq('coach_id', user.id)
+            .eq('role', 'athlete');
+          
+          teamData.athleteCount = count || 0;
+        }
         
         setTeamInfo(teamData);
       } catch (error) {
         console.error('Error fetching team info:', error);
+        setTeamInfo(null);
       } finally {
         setIsLoadingTeam(false);
       }
     };
-    
-    fetchTeamInfo();
-  }, [profile]);
 
-  // Find ONLY today's workout - no next workout
-  const todayStr = dateUtils.localDateString(new Date());
-  
-  // Get all workouts for today and future dates
-  const currentAndFutureWorkouts = workouts?.filter(workout => {
-    if (!workout.date) return false;
-    
-    const workoutDate = dateUtils.parseLocalDate(workout.date);
-    const today = dateUtils.parseLocalDate(todayStr);
-    
-    // Return workouts for today and future dates
-    return workoutDate >= today;
-  }) || [];
-  
-  // Sort workouts by date (earliest first)
-  currentAndFutureWorkouts.sort((a, b) => {
-    const dateA = a.date ? dateUtils.parseLocalDate(a.date).getTime() : 0;
-    const dateB = b.date ? dateUtils.parseLocalDate(b.date).getTime() : 0;
-    return dateA - dateB;
-  });
-  
-  // Separate today's workouts specifically
-  const todayWorkouts = currentAndFutureWorkouts.filter(workout => {
-    return formatDateForComparison(workout.date) === todayStr;
-  });
-  
-  // Get the upcoming workouts (not today, but future)
-  const upcomingWorkouts = currentAndFutureWorkouts.filter(workout => {
-    return formatDateForComparison(workout.date) !== todayStr;
-  }).slice(0, 3); // Limit to 3 upcoming workouts
-  
-  // Use our centralized workout store for progress tracking
+    fetchTeamInfo();
+  }, [user, profile]);
+
   const workoutStore = useWorkoutStore();
-  
+
   // Function to get completion count for a workout
   const getCompletionCount = (workoutId: string): number => {
     const progress = workoutStore.getProgress(workoutId);
-    return progress?.completedExercises?.length || 0;
-  };
-  
-  // Function to get completion percentage for a workout
-  const getCompletionPercentage = (workout: any): number => {
-    if (!workout || !workout.id) return 0;
-    
-    const progress = workoutStore.getProgress(workout.id);
-    if (!progress) return 0;
-    
-    // Calculate based on number of exercises
-    const totalExercises = progress.totalExercises || 
-      (workout.exercises && Array.isArray(workout.exercises) ? workout.exercises.length : 0);
-    
-    if (totalExercises === 0) return 0;
-    
-    return (progress.completedExercises.length / totalExercises) * 100;
+    return progress ? progress.completedExercises.length : 0;
   };
 
-  // Mock stats for graph
-  const statsData = {
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    datasets: [
-      {
-        label: 'Workouts',
-        data: [1, 2, 1, 0, 2, 1, 0],
-        backgroundColor: 'rgba(66, 153, 225, 0.6)',
-      },
-    ],
-  }
+  // Function to get completion percentage for a workout
+  const getCompletionPercentage = (workout: any): number => {
+    if (!workout || !workout.exercises || workout.exercises.length === 0) return 0;
+    const completed = getCompletionCount(workout.id);
+    return Math.round((completed / workout.exercises.length) * 100);
+  };
 
   // Function to handle starting a workout
   const handleStartWorkout = (workout: any) => {
@@ -473,6 +322,17 @@ export function Dashboard() {
     return STATE_ABBR[key] || state.slice(0,2).toUpperCase();
   }
 
+  const handleDataUpdate = () => {
+    // This could trigger refetch of sleep/nutrition stats if needed
+    // For now, just a placeholder for future data refresh functionality
+  };
+
+  // Color mode values for consistent styling
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const statLabelColor = useColorModeValue('gray.600', 'gray.300');
+  const statNumberColor = useColorModeValue('gray.900', 'gray.100');
+
   return (
     <Box pt={0} pb={10} bg={useColorModeValue('gray.50', 'gray.900')}>
       <Container maxW="container.xl" px={0} pt={0} mt={0}>
@@ -504,8 +364,6 @@ export function Dashboard() {
               fixedDate="Tuesday, May 20"
             />
           </Box>
-
-          
         </Box>
 
         {/* Today's Workouts Card */}
@@ -519,19 +377,13 @@ export function Dashboard() {
           profileLoading={profileLoading}
         />
 
-        {/* Stats & Info Cards */}
+        {/* Today's Check-in Section */}
+        <TodaysCheckInSection onDataUpdate={handleDataUpdate} />
+
+        {/* Analytics & Info Cards */}
         <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8} my={10}>
           {/* Track Meets Card */}
-          {profileLoading || isLoadingMeets ? (
-            <SkeletonCard height="320px" />
-          ) : (
-            <TrackMeetsCard
-              trackMeets={trackMeets}
-              coachMeets={coachMeets}
-              isLoading={isLoadingMeets}
-              viewAllLink="/athlete/events"
-            />
-          )}
+          <TrackMeetsCard viewAllLink="/athlete/events" />
 
           {/* Sleep Card */}
           {profileLoading ? (
@@ -551,45 +403,61 @@ export function Dashboard() {
           )}
         </SimpleGrid>
 
-        {/* Weekly Stats Chart */}
-        <Box my={10}>
-          <StatsCard 
-            title="WEEKLY STATS"
-            chartData={statsData}
-          />
-        </Box>
-
         {/* Gamification Test Page Link - Development Only */}
         {process.env.NODE_ENV !== 'production' && (
-          <Card 
-            mb={8} 
-            borderRadius="lg" 
-            overflow="hidden" 
-            boxShadow="md"
-            borderWidth="1px"
-            borderColor="blue.100"
-            bgGradient="linear(to-r, blue.50, purple.50)"
+          <Box 
+            bg={cardBg}
+            borderRadius="xl"
+            p={6}
+            border="1px solid"
+            borderColor={borderColor}
+            boxShadow="lg"
+            mb={8}
           >
-            <CardHeader bg="blue.500" py={3}>
-              <Heading size="md" color="white">Gamification Preview</Heading>
-            </CardHeader>
-            <CardBody>
-              <HStack spacing={4} align="center" justify="space-between">
-                <VStack align="start" spacing={1}>
-                  <Text fontWeight="bold" fontSize="lg">Track your progress and achievements</Text>
-                  <Text color={useColorModeValue('gray.600', 'gray.200')}>View your points, badges, streaks, and leaderboard position</Text>
-                </VStack>
-                <Button 
-                  as={RouterLink} 
-                  to="/gamification" 
-                  variant="primary"
-                  rightIcon={<Icon as={MdKeyboardArrowRight} />}
+            <VStack spacing={5} align="stretch">
+              {/* Header */}
+              <HStack justify="space-between" align="center">
+                <HStack spacing={3}>
+                  <Icon as={FaMedal} boxSize={6} color="purple.500" />
+                  <VStack align="start" spacing={0}>
+                    <Text fontSize="lg" fontWeight="bold" color={statNumberColor}>
+                      Gamification Preview
+                    </Text>
+                    <Text fontSize="sm" color={statLabelColor}>
+                      Track your progress and achievements
+                    </Text>
+                  </VStack>
+                </HStack>
+                <Badge 
+                  colorScheme="purple" 
+                  variant="solid" 
+                  fontSize="xs"
+                  px={2}
+                  py={1}
                 >
-                  View Gamification
-                </Button>
+                  Preview
+                </Badge>
               </HStack>
-            </CardBody>
-          </Card>
+
+              {/* Content */}
+              <Text fontSize="sm" color={statLabelColor}>
+                View your points, badges, streaks, and leaderboard position
+              </Text>
+
+              {/* Action Button */}
+              <Button 
+                as={RouterLink} 
+                to="/gamification" 
+                colorScheme="purple"
+                variant="outline"
+                size="sm"
+                leftIcon={<Icon as={FaMedal} />}
+                rightIcon={<Icon as={MdKeyboardArrowRight} />}
+              >
+                View Gamification
+              </Button>
+            </VStack>
+          </Box>
         )}
 
         {/* Exercise Execution Modal */}

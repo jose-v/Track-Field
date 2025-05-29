@@ -1,10 +1,37 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Box, Heading, Stat, StatLabel, StatNumber, StatHelpText, VStack, HStack, Tag, Text, Spinner, Divider, SimpleGrid, Card, CardBody, Flex
+  Box,
+  Heading,
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatHelpText,
+  VStack,
+  HStack,
+  Text,
+  Spinner,
+  Divider,
+  SimpleGrid,
+  useColorModeValue,
+  Icon,
+  Badge,
+  Progress,
+  CircularProgress,
+  CircularProgressLabel,
+  Flex,
 } from '@chakra-ui/react';
 import { supabase } from '../lib/supabase';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import { FaCoffee, FaUtensils, FaAppleAlt, FaCookieBite, FaChartPie } from 'react-icons/fa';
+import { 
+  FaCoffee, 
+  FaUtensils, 
+  FaAppleAlt, 
+  FaCookieBite, 
+  FaChartPie, 
+  FaFire,
+  FaBullseye,
+  FaCheckCircle
+} from 'react-icons/fa';
 import MacroProgressCard from './MacroProgressCard';
 import type { MacroProgressCardProps } from './MacroProgressCard';
 
@@ -47,6 +74,12 @@ export const EnhancedNutritionAnalysis: React.FC<EnhancedNutritionAnalysisProps>
   const [supplements, setSupplements] = useState<Supplement[]>([]);
   const [micronutrientRecords, setMicronutrientRecords] = useState<MicronutrientRecord[]>([]);
   const [supplementRecords, setSupplementRecords] = useState<SupplementRecord[]>([]);
+
+  // Color mode values
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const statLabelColor = useColorModeValue('gray.600', 'gray.300');
+  const statNumberColor = useColorModeValue('gray.900', 'gray.100');
 
   useEffect(() => {
     async function fetchData() {
@@ -108,23 +141,6 @@ export const EnhancedNutritionAnalysis: React.FC<EnhancedNutritionAnalysisProps>
     supplementTotals[sr.supplement_id] = (supplementTotals[sr.supplement_id] || 0) + 1;
   });
 
-  // Fallback examples if no data
-  const hasMicronutrientData = micronutrients.length > 0 && micronutrientRecords.length > 0;
-  const hasSupplementData = supplements.length > 0 && supplementRecords.length > 0;
-
-  // Prepare data for pie chart
-  const mealTypePieData = Object.entries(mealTypeDist).map(([type, count]) => ({ name: type, value: count }));
-  const pieColors = ['#FFB347', '#FF6961', '#77DD77', '#AEC6CF'];
-  const mealTypeIcons: Record<string, React.ReactNode> = {
-    breakfast: <FaCoffee color="#FFB347" />,
-    lunch: <FaUtensils color="#FF6961" />,
-    dinner: <FaAppleAlt color="#77DD77" />,
-    snack: <FaCookieBite color="#AEC6CF" />,
-  };
-
-  // Calculate total for percentage
-  const totalMeals = mealTypePieData.reduce((sum, d) => sum + d.value, 0);
-
   // Example macro data and goals (replace with real aggregation later)
   const macroData: MacroProgressCardProps[] = [
     {
@@ -132,74 +148,104 @@ export const EnhancedNutritionAnalysis: React.FC<EnhancedNutritionAnalysisProps>
       value: totalCalories,
       goal: 2000,
       unit: 'kcal',
-      color: '#FFB347',
+      color: '#3182CE',
       status: (totalCalories < 2000 ? 'under' : totalCalories > 2000 ? 'over' : 'on target'),
     },
     {
       label: 'Protein',
-      value: 89, // Example value
+      value: 89,
       goal: 98,
       unit: 'g',
-      color: '#7C3AED',
+      color: '#805AD5',
       status: (89 < 98 ? 'under' : 89 > 98 ? 'over' : 'on target'),
     },
     {
-      label: 'Net Carbs',
-      value: 121, // Example value
+      label: 'Carbs',
+      value: 121,
       goal: 100,
       unit: 'g',
-      color: '#38BDF8',
+      color: '#38B2AC',
       status: (121 < 100 ? 'under' : 121 > 100 ? 'over' : 'on target'),
     },
     {
       label: 'Fat',
-      value: 60, // Example value
+      value: 60,
       goal: 70,
       unit: 'g',
-      color: '#F59E42',
+      color: '#DD6B20',
       status: (60 < 70 ? 'under' : 60 > 70 ? 'over' : 'on target'),
     },
     {
       label: 'Fiber',
-      value: 21, // Example value
+      value: 21,
       goal: 25,
       unit: 'g',
-      color: '#10B981',
+      color: '#38A169',
       status: (21 < 25 ? 'under' : 21 > 25 ? 'over' : 'on target'),
     },
   ];
 
-  return (
-    <Card
-      borderRadius="lg"
-      overflow="hidden"
-      boxShadow="md"
-      w="100%"
-      p="0"
-    >
-      {/* Card header with gradient background */}
-      <Box 
-        bg="linear-gradient(135deg, #2B6CB0 0%, #4299E1 100%)" 
-        py={4} 
-        px={5}
-        margin="0"
-        width="100%"
-        borderTopLeftRadius="inherit"
-        borderTopRightRadius="inherit"
-      >
-        <Heading size="md" color="white">Enhanced Nutrition Analysis</Heading>
-      </Box>
+  // Prepare data for pie chart with updated colors
+  const mealTypePieData = Object.entries(mealTypeDist).map(([type, count]) => ({ name: type, value: count }));
+  const pieColors = ['#3182CE', '#805AD5', '#38A169', '#DD6B20'];
+  const mealTypeIcons: Record<string, React.ReactNode> = {
+    breakfast: <FaCoffee />,
+    lunch: <FaUtensils />,
+    dinner: <FaAppleAlt />,
+    snack: <FaCookieBite />,
+  };
 
-      <CardBody px={5} py={5}>
+  const totalMeals = mealTypePieData.reduce((sum, d) => sum + d.value, 0);
+
+  return (
+    <Box
+      bg={cardBg}
+      borderRadius="xl"
+      p={6}
+      border="1px solid"
+      borderColor={borderColor}
+      boxShadow="lg"
+    >
+      <VStack spacing={6} align="stretch">
+        {/* Header */}
+        <HStack justify="space-between" align="center">
+          <HStack spacing={3}>
+            <Icon as={FaFire} boxSize={6} color="blue.500" />
+            <VStack align="start" spacing={0}>
+              <Text fontSize="lg" fontWeight="bold" color={statNumberColor}>
+                Nutrition Analysis
+              </Text>
+              <Text fontSize="sm" color={statLabelColor}>
+                Track your daily nutrition intake
+              </Text>
+            </VStack>
+          </HStack>
+          <Badge 
+            colorScheme="blue" 
+            variant="solid" 
+            fontSize="sm"
+            px={3}
+            py={1}
+          >
+            Enhanced Analytics
+          </Badge>
+        </HStack>
+
         {isLoading ? (
-          <Flex justify="center" align="center" h="200px">
-            <Spinner size="xl" />
+          <Flex justify="center" align="center" h="300px">
+            <VStack spacing={4}>
+              <Spinner size="xl" color="blue.500" />
+              <Text color={statLabelColor}>Loading nutrition data...</Text>
+            </VStack>
           </Flex>
         ) : (
-          <VStack align="stretch" spacing={8}>
-            {/* Top Section: Macro Nutrient Cards */}
+          <VStack align="stretch" spacing={6}>
+            {/* Macro Nutrient Cards */}
             <Box>
-              <SimpleGrid columns={[1, 2, 5]} spacing={4}>
+              <Text fontSize="md" fontWeight="medium" color={statNumberColor} mb={4}>
+                Daily Macronutrients
+              </Text>
+              <SimpleGrid columns={{ base: 2, md: 3, lg: 5 }} spacing={4}>
                 {macroData.map((macro) => (
                   <MacroProgressCard key={macro.label} {...macro} />
                 ))}
@@ -208,43 +254,58 @@ export const EnhancedNutritionAnalysis: React.FC<EnhancedNutritionAnalysisProps>
 
             <Divider />
 
-            {/* Middle Section: Key Stats */}
-            <SimpleGrid columns={[1, 3]} spacing={8}>
-              <Stat>
-                <StatLabel fontSize="md" fontWeight="medium" color="gray.600">Total Calories</StatLabel>
-                <StatNumber fontSize="3xl" fontWeight="bold">{totalCalories}</StatNumber>
-                <StatHelpText fontSize="sm">All time</StatHelpText>
+            {/* Summary Stats */}
+            <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
+              <Stat textAlign="center">
+                <StatLabel fontSize="sm" color={statLabelColor}>
+                  Total Calories
+                </StatLabel>
+                <StatNumber fontSize="2xl" color={statNumberColor}>
+                  {totalCalories}
+                </StatNumber>
+                <StatHelpText fontSize="xs">
+                  All time tracked
+                </StatHelpText>
               </Stat>
               
-              <Stat>
-                <StatLabel fontSize="md" fontWeight="medium" color="gray.600">Meal Count</StatLabel>
-                <StatNumber fontSize="3xl" fontWeight="bold">{eatingRecords.length}</StatNumber>
-                <StatHelpText fontSize="sm">Total meals tracked</StatHelpText>
+              <Stat textAlign="center">
+                <StatLabel fontSize="sm" color={statLabelColor}>
+                  Meals Logged
+                </StatLabel>
+                <StatNumber fontSize="2xl" color={statNumberColor}>
+                  {eatingRecords.length}
+                </StatNumber>
+                <StatHelpText fontSize="xs">
+                  Total meals
+                </StatHelpText>
               </Stat>
               
-              <Box>
-                <Text fontSize="md" fontWeight="medium" color="gray.600" mb={2}>Meal Distribution</Text>
-                <HStack flexWrap="wrap" spacing={2}>
-                  {Object.entries(mealTypeDist).map(([type, count]) => (
-                    <Tag key={type} colorScheme="blue" mr={1} fontSize="sm" borderRadius="full" px={3} py={1}>
-                      {mealTypeIcons[type] || null} {type.charAt(0).toUpperCase() + type.slice(1)}: {count}
-                    </Tag>
-                  ))}
-                </HStack>
-              </Box>
+              <Stat textAlign="center">
+                <StatLabel fontSize="sm" color={statLabelColor}>
+                  Avg per Meal
+                </StatLabel>
+                <StatNumber fontSize="2xl" color={statNumberColor}>
+                  {eatingRecords.length > 0 ? Math.round(totalCalories / eatingRecords.length) : 0}
+                </StatNumber>
+                <StatHelpText fontSize="xs">
+                  Calories per meal
+                </StatHelpText>
+              </Stat>
             </SimpleGrid>
 
-            {/* Distribution Chart Section */}
-            <Box>
-              <Flex align="center" mb={3}>
-                <FaChartPie color="#4299E1" />
-                <Text ml={2} fontSize="md" fontWeight="medium" color="gray.700">Meal Type Distribution</Text>
-              </Flex>
-              
-              <Flex direction={["column", "row"]} justify="space-between" align="center">
-                {/* Donut Chart */}
-                <Box w={["100%", "50%"]} h="250px">
-                  {mealTypePieData.length > 0 ? (
+            {/* Meal Distribution */}
+            {mealTypePieData.length > 0 && (
+              <Box>
+                <HStack spacing={2} mb={4}>
+                  <Icon as={FaChartPie} color="blue.500" />
+                  <Text fontSize="md" fontWeight="medium" color={statNumberColor}>
+                    Meal Type Distribution
+                  </Text>
+                </HStack>
+                
+                <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
+                  {/* Chart */}
+                  <Box h="250px">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -255,103 +316,123 @@ export const EnhancedNutritionAnalysis: React.FC<EnhancedNutritionAnalysisProps>
                           cy="50%"
                           innerRadius={60}
                           outerRadius={90}
-                          label={({ name, percent }) => `${Math.round(percent * 100)}%`}
-                          isAnimationActive
+                          paddingAngle={2}
                         >
                           {mealTypePieData.map((entry, idx) => (
                             <Cell key={`cell-${idx}`} fill={pieColors[idx % pieColors.length]} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(value: number) => [`${value} meals (${Math.round((value/totalMeals) * 100)}%)`]} />
+                        <Tooltip formatter={(value: number) => [`${value} meals`]} />
                       </PieChart>
                     </ResponsiveContainer>
-                  ) : (
-                    <Flex h="100%" justify="center" align="center">
-                      <Text color="gray.500">No meal data to display</Text>
-                    </Flex>
-                  )}
-                </Box>
-                
-                {/* Legend */}
-                <VStack align="start" spacing={4} ml={[0, 8]} mt={[4, 0]} w={["100%", "50%"]}>
-                  {mealTypePieData.map((entry, idx) => (
-                    <Flex key={entry.name} align="center" width="100%" minH="48px">
-                      {/* Colored Dot */}
-                      <Box
-                        boxSize="28px"
-                        borderRadius="full"
-                        bg={pieColors[idx % pieColors.length]}
-                        mr={3}
-                        flexShrink={0}
-                      />
-                      {/* Meal Icon */}
-                      <Box fontSize="2xl" color={pieColors[idx % pieColors.length]} mr={3} aria-label={entry.name + ' icon'}>
-                        {mealTypeIcons[entry.name]}
-                      </Box>
-                      {/* Meal Name */}
-                      <Text fontWeight="bold" fontSize="lg" flex="1" minW="120px">
-                        {entry.name.charAt(0).toUpperCase() + entry.name.slice(1)}
-                      </Text>
-                      {/* Meal Count */}
-                      <Text fontWeight="extrabold" fontSize="lg" color="gray.800" minW="70px" textAlign="right">
-                        {entry.value} meals
-                      </Text>
-                      {/* Percentage */}
-                      <Text color="gray.400" fontSize="lg" minW="60px" textAlign="right">
-                        ({Math.round((entry.value/totalMeals) * 100)}%)
-                      </Text>
-                    </Flex>
-                  ))}
-                </VStack>
-              </Flex>
-            </Box>
+                  </Box>
+                  
+                  {/* Legend */}
+                  <VStack align="stretch" spacing={3} justify="center">
+                    {mealTypePieData.map((entry, idx) => (
+                      <HStack key={entry.name} justify="space-between" p={3} bg={useColorModeValue('gray.50', 'gray.700')} borderRadius="md">
+                        <HStack spacing={3}>
+                          <Box
+                            w="12px"
+                            h="12px"
+                            borderRadius="full"
+                            bg={pieColors[idx % pieColors.length]}
+                          />
+                          <Icon 
+                            as={mealTypeIcons[entry.name] ? FaCoffee : FaUtensils} 
+                            color={pieColors[idx % pieColors.length]}
+                          />
+                          <Text fontSize="sm" fontWeight="medium" color={statNumberColor}>
+                            {entry.name.charAt(0).toUpperCase() + entry.name.slice(1)}
+                          </Text>
+                        </HStack>
+                        <VStack align="end" spacing={0}>
+                          <Text fontSize="sm" fontWeight="bold" color={statNumberColor}>
+                            {entry.value}
+                          </Text>
+                          <Text fontSize="xs" color={statLabelColor}>
+                            {Math.round((entry.value/totalMeals) * 100)}%
+                          </Text>
+                        </VStack>
+                      </HStack>
+                    ))}
+                  </VStack>
+                </SimpleGrid>
+              </Box>
+            )}
 
             <Divider />
 
-            {/* Bottom Section: Additional Nutrition Data */}
-            <SimpleGrid columns={[1, 2]} spacing={8}>
+            {/* Additional Nutrition Data */}
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
               <Box>
-                <Heading size="sm" mb={3} color="gray.700">Micronutrients Consumed</Heading>
-                {hasMicronutrientData ? (
-                  <VStack align="start" spacing={2}>
-                    {Object.entries(micronutrientTotals).map(([micId, total]) => {
-                      const micronutrient = micronutrients.find(m => m.id === micId);
-                      return (
-                        <HStack key={micId} justify="space-between" w="100%">
-                          <Text fontWeight="medium">{micronutrient?.name || 'Unknown'}</Text>
-                          <Text>{total} {micronutrient?.unit || ''}</Text>
-                        </HStack>
-                      );
-                    })}
-                  </VStack>
-                ) : (
-                  <Text color="gray.500" fontSize="sm">No micronutrient data. Example: Iron: 12mg, Calcium: 800mg</Text>
-                )}
+                <HStack spacing={2} mb={3}>
+                  <Icon as={FaBullseye} color="green.500" fontSize="sm" />
+                  <Text fontSize="sm" fontWeight="medium" color={statNumberColor}>
+                    Micronutrients
+                  </Text>
+                </HStack>
+                <Box bg={useColorModeValue('gray.50', 'gray.700')} p={4} borderRadius="md">
+                  {Object.keys(micronutrientTotals).length > 0 ? (
+                    <VStack align="stretch" spacing={2}>
+                      {Object.entries(micronutrientTotals).slice(0, 5).map(([micId, total]) => {
+                        const micronutrient = micronutrients.find(m => m.id === micId);
+                        return (
+                          <HStack key={micId} justify="space-between">
+                            <Text fontSize="sm" color={statNumberColor}>
+                              {micronutrient?.name || 'Unknown'}
+                            </Text>
+                            <Text fontSize="sm" fontWeight="medium" color={statNumberColor}>
+                              {total} {micronutrient?.unit || ''}
+                            </Text>
+                          </HStack>
+                        );
+                      })}
+                    </VStack>
+                  ) : (
+                    <Text color={statLabelColor} fontSize="sm">
+                      No micronutrient data available
+                    </Text>
+                  )}
+                </Box>
               </Box>
 
               <Box>
-                <Heading size="sm" mb={3} color="gray.700">Supplements Taken</Heading>
-                {hasSupplementData ? (
-                  <VStack align="start" spacing={2}>
-                    {Object.entries(supplementTotals).map(([supId, total]) => {
-                      const supplement = supplements.find(s => s.id === supId);
-                      return (
-                        <HStack key={supId} justify="space-between" w="100%">
-                          <Text fontWeight="medium">{supplement?.name || 'Unknown'}</Text>
-                          <Text>{total} times</Text>
-                        </HStack>
-                      );
-                    })}
-                  </VStack>
-                ) : (
-                  <Text color="gray.500" fontSize="sm">No supplement data. Example: Protein Shake: 3 times, Electrolytes: 2 times</Text>
-                )}
+                <HStack spacing={2} mb={3}>
+                  <Icon as={FaCheckCircle} color="purple.500" fontSize="sm" />
+                  <Text fontSize="sm" fontWeight="medium" color={statNumberColor}>
+                    Supplements
+                  </Text>
+                </HStack>
+                <Box bg={useColorModeValue('gray.50', 'gray.700')} p={4} borderRadius="md">
+                  {Object.keys(supplementTotals).length > 0 ? (
+                    <VStack align="stretch" spacing={2}>
+                      {Object.entries(supplementTotals).slice(0, 5).map(([supId, total]) => {
+                        const supplement = supplements.find(s => s.id === supId);
+                        return (
+                          <HStack key={supId} justify="space-between">
+                            <Text fontSize="sm" color={statNumberColor}>
+                              {supplement?.name || 'Unknown'}
+                            </Text>
+                            <Text fontSize="sm" fontWeight="medium" color={statNumberColor}>
+                              {total} times
+                            </Text>
+                          </HStack>
+                        );
+                      })}
+                    </VStack>
+                  ) : (
+                    <Text color={statLabelColor} fontSize="sm">
+                      No supplement data available
+                    </Text>
+                  )}
+                </Box>
               </Box>
             </SimpleGrid>
           </VStack>
         )}
-      </CardBody>
-    </Card>
+      </VStack>
+    </Box>
   );
 };
 

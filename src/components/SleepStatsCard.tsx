@@ -69,12 +69,9 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
     }
   };
 
-  const headerGradient = useColorModeValue(
-    'linear-gradient(135deg, #5B4B8A 0%, #7C66AA 100%)',
-    'linear-gradient(135deg, #322659 0%, #6B46C1 100%)'
-  );
+  // Color mode values matching quick-log cards
   const cardBg = useColorModeValue('white', 'gray.800');
-  const textColor = useColorModeValue('gray.800', 'gray.100');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
   const statLabelColor = useColorModeValue('gray.600', 'gray.300');
   const statNumberColor = useColorModeValue('gray.900', 'gray.100');
 
@@ -83,25 +80,16 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
       <Box
         bg={cardBg}
         borderRadius="xl"
-        overflow="hidden"
-        boxShadow="lg"
+        p={6}
         border="1px solid"
-        borderColor={useColorModeValue('gray.200', 'gray.700')}
-        h="330px"
+        borderColor={borderColor}
+        boxShadow="lg"
+        minH="320px"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
       >
-        <Box
-          bgGradient={headerGradient}
-          p={4}
-          color="white"
-        >
-          <HStack spacing={3}>
-            <FaBed size={20} />
-            <Text fontSize="lg" fontWeight="bold">Sleep Analytics</Text>
-          </HStack>
-        </Box>
-        <VStack p={6} spacing={4} justify="center" h="calc(100% - 72px)">
-          <Text color={statLabelColor}>Loading sleep data...</Text>
-        </VStack>
+        <Text color={statLabelColor}>Loading sleep data...</Text>
       </Box>
     );
   }
@@ -111,25 +99,16 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
       <Box
         bg={cardBg}
         borderRadius="xl"
-        overflow="hidden"
-        boxShadow="lg"
+        p={6}
         border="1px solid"
-        borderColor={useColorModeValue('gray.200', 'gray.700')}
-        h="330px"
+        borderColor={borderColor}
+        boxShadow="lg"
+        minH="320px"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
       >
-        <Box
-          bgGradient={headerGradient}
-          p={4}
-          color="white"
-        >
-          <HStack spacing={3}>
-            <FaBed size={20} />
-            <Text fontSize="lg" fontWeight="bold">Sleep Analytics</Text>
-          </HStack>
-        </Box>
-        <VStack p={6} spacing={4} justify="center" h="calc(100% - 72px)">
-          <Text color="red.500">Error loading sleep data</Text>
-        </VStack>
+        <Text color="red.500">Error loading sleep data</Text>
       </Box>
     );
   }
@@ -140,36 +119,44 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
     <Box
       bg={cardBg}
       borderRadius="xl"
-      overflow="hidden"
-      boxShadow="lg"
+      p={6}
       border="1px solid"
-      borderColor={useColorModeValue('gray.200', 'gray.700')}
-      h="330px"
+      borderColor={borderColor}
+      boxShadow="lg"
+      minH="320px"
+      display="flex"
+      flexDirection="column"
     >
-      {/* Header */}
-      <Box
-        bgGradient={headerGradient}
-        p={4}
-        color="white"
-      >
-        <HStack spacing={3} justify="space-between">
+      <VStack spacing={5} align="stretch" flex="1">
+        {/* Header */}
+        <HStack justify="space-between" align="center">
           <HStack spacing={3}>
-            <FaBed size={20} />
-            <Text fontSize="lg" fontWeight="bold">Sleep Analytics</Text>
+            <Icon as={FaBed} boxSize={6} color="purple.500" />
+            <VStack align="start" spacing={0}>
+              <Text fontSize="lg" fontWeight="bold" color={statNumberColor}>
+                Sleep Analytics
+              </Text>
+              <Text fontSize="sm" color={statLabelColor}>
+                Your sleep patterns & quality
+              </Text>
+            </VStack>
           </HStack>
-          <Badge colorScheme="purple" variant="solid" fontSize="xs">
+          <Badge 
+            colorScheme="purple" 
+            variant="solid" 
+            fontSize="xs"
+            px={2}
+            py={1}
+          >
             Last 7 Days
           </Badge>
         </HStack>
-      </Box>
 
-      {/* Content */}
-      <VStack p={6} spacing={4} align="stretch" h="calc(100% - 72px)">
         {/* Main Stats */}
         <HStack spacing={6} justify="space-between">
           <Stat flex="1">
             <StatLabel fontSize="sm" color={statLabelColor}>Average Sleep</StatLabel>
-            <StatNumber fontSize="xl" color={statNumberColor} fontWeight="bold">
+            <StatNumber fontSize="2xl" color={statNumberColor} fontWeight="bold">
               {formatSleepDuration(sleepStats.averageDuration)}
             </StatNumber>
             <StatHelpText fontSize="xs" mb={0}>
@@ -182,14 +169,14 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
 
           <Stat flex="1">
             <StatLabel fontSize="sm" color={statLabelColor}>Latest Quality</StatLabel>
-            <StatNumber fontSize="xl" color={statNumberColor} fontWeight="bold">
+            <StatNumber fontSize="2xl" color={statNumberColor} fontWeight="bold">
               {sleepStats.recentRecord ? 
                 getSleepQualityText(sleepStats.recentRecord.quality).charAt(0).toUpperCase() + 
                 getSleepQualityText(sleepStats.recentRecord.quality).slice(1) : 
                 'No data'
               }
             </StatNumber>
-            <StatHelpText fontSize="xs" mb={0}>
+            <StatHelpText fontSize="xs" mb={0} color={statLabelColor}>
               {sleepStats.recentRecord ? 
                 formatDate(sleepStats.recentRecord.sleep_date) : 
                 'No records yet'
@@ -200,68 +187,70 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
 
         {/* Quality Distribution */}
         <Box>
-          <Text fontSize="sm" color={statLabelColor} mb={2}>Sleep Quality Distribution</Text>
+          <Text fontSize="sm" fontWeight="medium" color={statNumberColor} mb={3}>
+            Sleep Quality Distribution
+          </Text>
           <HStack spacing={2} flexWrap="wrap">
-            {Object.entries(sleepStats.countByQuality).map(([quality, count]) => (
-              <Badge
-                key={quality}
-                colorScheme={
-                  quality === 'excellent' ? 'green' :
-                  quality === 'good' ? 'blue' :
-                  quality === 'fair' ? 'yellow' : 'red'
-                }
-                variant="subtle"
-                fontSize="xs"
-                px={2}
-                py={1}
-              >
-                {quality}: {count}
-              </Badge>
-            ))}
+            <Badge colorScheme="red" variant="subtle" fontSize="xs" px={2} py={1}>
+              POOR: {sleepStats.countByQuality.poor || 0}
+            </Badge>
+            <Badge colorScheme="yellow" variant="subtle" fontSize="xs" px={2} py={1}>
+              FAIR: {sleepStats.countByQuality.fair || 0}
+            </Badge>
+            <Badge colorScheme="blue" variant="subtle" fontSize="xs" px={2} py={1}>
+              GOOD: {sleepStats.countByQuality.good || 0}
+            </Badge>
+            <Badge colorScheme="green" variant="subtle" fontSize="xs" px={2} py={1}>
+              EXCELLENT: {sleepStats.countByQuality.excellent || 0}
+            </Badge>
           </HStack>
         </Box>
 
         {/* Consistency Score */}
         {sleepStats.consistencyScore > 0 && (
           <Box>
-            <Text fontSize="sm" color={statLabelColor} mb={1}>Consistency Score</Text>
-            <HStack spacing={2}>
-              <Box
-                bg={useColorModeValue('gray.200', 'gray.600')}
-                borderRadius="full"
-                h="6px"
-                flex="1"
-                overflow="hidden"
-              >
-                <Box
-                  bg={sleepStats.consistencyScore > 70 ? 'green.400' : 
-                      sleepStats.consistencyScore > 50 ? 'yellow.400' : 'red.400'}
-                  h="100%"
-                  w={`${sleepStats.consistencyScore}%`}
-                  borderRadius="full"
-                />
-              </Box>
-              <Text fontSize="xs" color={statLabelColor} minW="fit-content">
-                {sleepStats.consistencyScore}%
+            <HStack justify="space-between" mb={2}>
+              <Text fontSize="sm" fontWeight="medium" color={statNumberColor}>
+                Consistency Score
+              </Text>
+              <Text fontSize="sm" fontWeight="bold" color={
+                sleepStats.consistencyScore > 70 ? 'green.500' : 
+                sleepStats.consistencyScore > 50 ? 'yellow.500' : 'red.500'
+              }>
+                {sleepStats.consistencyScore.toFixed(1)}%
               </Text>
             </HStack>
+            <Box
+              bg={useColorModeValue('gray.200', 'gray.600')}
+              borderRadius="full"
+              h="8px"
+              overflow="hidden"
+            >
+              <Box
+                bg={sleepStats.consistencyScore > 70 ? 'green.400' : 
+                    sleepStats.consistencyScore > 50 ? 'yellow.400' : 'red.400'}
+                h="100%"
+                w={`${sleepStats.consistencyScore}%`}
+                borderRadius="full"
+                transition="width 0.3s ease"
+              />
+            </Box>
           </Box>
         )}
 
         {/* View All Button */}
-        <Flex justify="center" mt="auto">
-          <Button
-            as={Link}
-            to={viewAllLink}
-            size="sm"
-            colorScheme="purple"
-            variant="ghost"
-            rightIcon={<FaArrowRight />}
-            _hover={{ bg: useColorModeValue('purple.50', 'purple.900') }}
-          >
-            View All Records
-          </Button>
-        </Flex>
+        <Button
+          as={Link}
+          to={viewAllLink}
+          colorScheme="purple"
+          variant="outline"
+          size="sm"
+          leftIcon={<Icon as={FaBed} />}
+          rightIcon={<Icon as={FaArrowRight} />}
+          mt="auto"
+        >
+          View All Records
+        </Button>
       </VStack>
     </Box>
   );

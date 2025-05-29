@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   VStack,
@@ -104,6 +104,39 @@ const WorkoutCreatorWireframe: React.FC = () => {
   const progressStepCompletedColor = useColorModeValue('green.600', 'green.300');
   const progressStepInactiveColor = useColorModeValue('gray.500', 'gray.300');
   const progressStepArrowColor = useColorModeValue('gray.400', 'gray.400');
+
+  // Sidebar state
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    // Check if sidebar is currently collapsed by looking at the DOM element
+    const sidebarElement = document.querySelector('[style*="width: 70px"]') || 
+                           document.querySelector('aside') || 
+                           document.querySelector('[role="navigation"]');
+    
+    if (sidebarElement) {
+      const computedStyle = window.getComputedStyle(sidebarElement);
+      const currentWidth = parseInt(computedStyle.width);
+      return currentWidth <= 70 ? 70 : 200;
+    }
+    
+    // Fallback: check localStorage for sidebar state
+    const savedSidebarState = localStorage.getItem('sidebarCollapsed');
+    return savedSidebarState === 'true' ? 70 : 200;
+  });
+  
+  // Listen for sidebar toggle events
+  useEffect(() => {
+    const handleSidebarToggle = (event: CustomEvent) => {
+      setSidebarWidth(event.detail.width);
+      // Also save to localStorage for persistence
+      localStorage.setItem('sidebarCollapsed', event.detail.isCollapsed.toString());
+    };
+    
+    window.addEventListener('sidebarToggle', handleSidebarToggle as EventListener);
+    
+    return () => {
+      window.removeEventListener('sidebarToggle', handleSidebarToggle as EventListener);
+    };
+  }, []);
 
   // Step navigation
   const [currentStep, setCurrentStep] = useState(1);
@@ -248,13 +281,14 @@ const WorkoutCreatorWireframe: React.FC = () => {
       <Box 
         position="fixed"
         top="65px"
-        left="200px"
+        left={`${sidebarWidth}px`}
         right="0"
         zIndex="998"
         bg={progressBg}
         borderBottom="1px solid"
         borderBottomColor={borderColor}
         data-testid="workout-creator-progress"
+        transition="left 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
       >
         <Progress 
           value={progressPercentage} 
@@ -285,28 +319,14 @@ const WorkoutCreatorWireframe: React.FC = () => {
                   cursor={isAccessible ? 'pointer' : 'default'}
                   flex="1"
                   minW="0"
-                  style={{
-                    color: isCurrent ? (useColorModeValue('#2B6CB0', '#90CDF4')) : 
-                           isCompleted ? (useColorModeValue('#38A169', '#68D391')) : 
-                           (useColorModeValue('#4A5568', '#CBD5E0'))
-                  }}
                 >
                   <HStack spacing={1} minW="0">
-                    <Text 
-                      fontSize="xs"
-                      color={isCurrent ? progressStepCurrentColor : isCompleted ? progressStepCompletedColor : progressStepInactiveColor}
-                    >
-                      {step.id}
-                    </Text>
-                    <Text 
-                      fontSize="xs" 
-                      isTruncated
-                      color={isCurrent ? progressStepCurrentColor : isCompleted ? progressStepCompletedColor : progressStepInactiveColor}
-                    >
-                      {step.shortTitle}
-                    </Text>
-                    {isCompleted && <Text fontSize="xs" color="green.500">✓</Text>}
-                    {index < WORKOUT_CREATION_STEPS.length - 1 && <Text fontSize="xs" color={progressStepArrowColor}>→</Text>}
+                    <Text fontSize="xs">{step.id}</Text>
+                    <Text fontSize="xs" isTruncated>{step.shortTitle}</Text>
+                    {isCompleted && <Text fontSize="xs" color={progressStepCompletedColor}>✓</Text>}
+                    {index < WORKOUT_CREATION_STEPS.length - 1 && (
+                      <Text fontSize="xs" color={progressStepArrowColor}>→</Text>
+                    )}
                   </HStack>
                 </Button>
               );
@@ -340,95 +360,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
               </HStack>
               
               {/* Center spacer to maintain layout consistency */}
-              <Box flex="1">
-                {/* Days of the Week Selector for Weekly Plans */}
-                {templateType === 'weekly' && currentStep === 2 && (
-                  <VStack spacing={3} align="center">
-                    <HStack spacing={2} flexWrap="wrap" justify="center">
-                      {[
-                        { value: 'monday', label: 'Mon' },
-                        { value: 'tuesday', label: 'Tue' },
-                        { value: 'wednesday', label: 'Wed' },
-                        { value: 'thursday', label: 'Thu' },
-                        { value: 'friday', label: 'Fri' },
-                        { value: 'saturday', label: 'Sat' },
-                        { value: 'sunday', label: 'Sun' }
-                      ].map((day) => (
-                        <Button
-                          key={day.value}
-                          size="sm"
-                          variant={currentDay === day.value ? 'solid' : 'outline'}
-                          colorScheme={currentDay === day.value ? 'blue' : 'gray'}
-                          minW="45px"
-                          fontSize="xs"
-                          onClick={() => setCurrentDay(day.value)}
-                          _hover={{ bg: currentDay === day.value ? "blue.600" : dayButtonHoverBg }}
-                        >
-                          {day.label}
-                        </Button>
-                      ))}
-                    </HStack>
-                    
-                    {/* Rest Day and Copy Controls */}
-                    <HStack spacing={4} justify="center" align="center">
-                      <Checkbox
-                        isChecked={restDays[currentDay]}
-                        onChange={(e) => setRestDays({ ...restDays, [currentDay]: e.target.checked })}
-                        colorScheme="blue"
-                        size="sm"
-                      >
-                        <Text fontSize="xs" color={subtitleColor}>Rest Day</Text>
-                      </Checkbox>
-                      
-                      <HStack spacing={2} align="center">
-                        <Text fontSize="xs" color={subtitleColor}>Copy from:</Text>
-                        <Select
-                          value={copyFromDay}
-                          onChange={(e) => setCopyFromDay(e.target.value)}
-                          size="sm"
-                          fontSize="xs"
-                          w="70px"
-                          placeholder="Day"
-                          bg={cardBg}
-                          borderColor={borderColor}
-                          color={textColor}
-                        >
-                          {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
-                            .filter(day => day !== currentDay)
-                            .map((day) => (
-                              <option key={day} value={day}>
-                                {day.charAt(0).toUpperCase() + day.slice(1, 3)}
-                              </option>
-                            ))}
-                        </Select>
-                      </HStack>
-                      
-                      <HStack spacing={2} align="center">
-                        <Text fontSize="xs" color={subtitleColor}>Copy to:</Text>
-                        <Select
-                          value={copyToDay}
-                          onChange={(e) => setCopyToDay(e.target.value)}
-                          size="sm"
-                          fontSize="xs"
-                          w="70px"
-                          placeholder="Day"
-                          bg={cardBg}
-                          borderColor={borderColor}
-                          color={textColor}
-                        >
-                          {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
-                            .filter(day => day !== currentDay)
-                            .map((day) => (
-                              <option key={day} value={day}>
-                                {day.charAt(0).toUpperCase() + day.slice(1, 3)}
-                              </option>
-                            ))}
-                        </Select>
-                      </HStack>
-                    </HStack>
-                  </VStack>
-                )}
-              </Box>
+              <Box flex="1" />
               
               {/* Workout Stats */}
               <HStack spacing={8} justify="center" p={4} bg={statsBg} borderRadius="md">
@@ -468,13 +400,14 @@ const WorkoutCreatorWireframe: React.FC = () => {
     <Box 
       position="fixed" 
       bottom="0" 
-      left="200px"
+      left={`${sidebarWidth}px`}
       right="0"
       bg={bgColor} 
       borderTop="2px solid" 
       borderTopColor={borderColor} 
       p={6} 
       zIndex="999"
+      transition="left 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
     >
       <HStack justify="space-between" align="center" maxW="100%" mx="auto">
         <Button

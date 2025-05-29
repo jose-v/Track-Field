@@ -1,6 +1,13 @@
 import React from 'react';
-import { Box, Text, VStack, Badge } from '@chakra-ui/react';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import {
+  Box,
+  Text,
+  VStack,
+  Badge,
+  CircularProgress,
+  CircularProgressLabel,
+  useColorModeValue,
+} from '@chakra-ui/react';
 
 export interface MacroProgressCardProps {
   label: string;
@@ -11,67 +18,80 @@ export interface MacroProgressCardProps {
   status: 'under' | 'over' | 'on target';
 }
 
-const statusColors = {
-  under: 'green.400',
-  over: 'red.400',
-  'on target': 'blue.400',
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'on target': return 'green';
+    case 'under': return 'blue';
+    case 'over': return 'orange';
+    default: return 'gray';
+  }
 };
 
-export const MacroProgressCard: React.FC<MacroProgressCardProps> = ({ label, value, goal, unit, color, status }) => {
-  const percent = Math.min((value / goal) * 100, 100);
-  const chartData = [
-    { name: 'progress', value: percent },
-    { name: 'remaining', value: 100 - percent },
-  ];
+export const MacroProgressCard: React.FC<MacroProgressCardProps> = ({ 
+  label, 
+  value, 
+  goal, 
+  unit, 
+  color, 
+  status 
+}) => {
+  const percentage = Math.min((value / goal) * 100, 100);
+  
+  // Color mode values
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const statLabelColor = useColorModeValue('gray.600', 'gray.300');
+  const statNumberColor = useColorModeValue('gray.900', 'gray.100');
 
   return (
     <Box
-      p={3}
-      minW="140px"
-      minH="170px"
-      display="flex"
-      flexDirection="column"
-      alignItems="center"
-      justifyContent="center"
+      bg={cardBg}
+      p={5}
+      borderRadius="lg"
+      border="1px solid"
+      borderColor={borderColor}
+      boxShadow="md"
+      textAlign="center"
+      position="relative"
     >
-      <Box w="100px" h="100px" position="relative">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={chartData}
-              dataKey="value"
-              startAngle={90}
-              endAngle={-270}
-              innerRadius={35}
-              outerRadius={48}
-              isAnimationActive
-              stroke="none"
-            >
-              <Cell key="progress" fill={color} />
-              <Cell key="remaining" fill="#F3F4F6" />
-            </Pie>
-          </PieChart>
-        </ResponsiveContainer>
-        <VStack
-          spacing={0}
-          position="absolute"
-          top="50%"
-          left="50%"
-          transform="translate(-50%, -50%)"
-          w="100%"
+      <VStack spacing={4}>
+        <CircularProgress 
+          value={percentage} 
+          size="80px" 
+          color={color}
+          thickness="8px"
         >
-          <Text fontSize="xs" color="gray.500" fontWeight="semibold" letterSpacing="wide" mb={-1}>
-            {label.toUpperCase()}
+          <CircularProgressLabel>
+            <VStack spacing={0}>
+              <Text fontSize="lg" fontWeight="bold" color={statNumberColor}>
+                {value}
+              </Text>
+              <Text fontSize="xs" color={statLabelColor}>
+                {unit}
+              </Text>
+            </VStack>
+          </CircularProgressLabel>
+        </CircularProgress>
+        
+        <VStack spacing={1}>
+          <Text fontSize="sm" fontWeight="medium" color={statNumberColor}>
+            {label}
           </Text>
-          <Text fontSize="xl" fontWeight="bold" color="gray.700" lineHeight={1}>{value}
-            <Text as="span" fontSize="sm" color="gray.500" ml={1}>{unit}</Text>
+          <Badge 
+            colorScheme={getStatusColor(status)} 
+            variant="solid" 
+            fontSize="xs"
+            px={2}
+            py={1}
+            borderRadius="full"
+          >
+            {status}
+          </Badge>
+          <Text fontSize="xs" color={statLabelColor}>
+            Goal: {goal}{unit}
           </Text>
         </VStack>
-      </Box>
-      <Badge colorScheme={status === 'under' ? 'green' : status === 'over' ? 'red' : 'blue'} fontSize="0.7em" mt={2} borderRadius="full" textAlign="center">
-        {status.toUpperCase()}
-      </Badge>
-      <Text fontSize="sm" color="gray.500" mt={1}>{value} of {goal}{unit}</Text>
+      </VStack>
     </Box>
   );
 };

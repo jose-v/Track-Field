@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Box, 
   VStack, 
@@ -14,7 +14,7 @@ import {
   HStack
 } from '@chakra-ui/react';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
-import { FaChevronLeft, FaChevronRight, FaUsers, FaVideo, FaBook, FaCalendarAlt, FaBell, FaUserAlt, FaHome, FaDumbbell, FaChartBar } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight, FaUsers, FaVideo, FaBook, FaCalendarAlt, FaBell, FaUserAlt, FaHome, FaDumbbell, FaChartBar, FaRunning } from 'react-icons/fa';
 import { BiLineChart } from 'react-icons/bi';
 import { BsCalendarCheck } from 'react-icons/bs';
 import { MdLoop, MdRestaurantMenu, MdOutlineBedtime, MdOutlineReport, MdOutlineForum } from 'react-icons/md';
@@ -46,13 +46,14 @@ const NavItem = ({ icon, label, to, isActive, isCollapsed, badge }: NavItemProps
         p={3}
         ml={0}
         mr={0}
-        borderRadius="md"
+        borderRadius={0}
         role="group"
         cursor="pointer"
         bg={isActive ? activeBg : 'transparent'}
         color={isActive ? activeColor : color}
         fontWeight={isActive ? 'bold' : 'normal'}
         transition="all 0.2s"
+        justify={isCollapsed ? "center" : "flex-start"}
         _hover={{
           bg: hoverBg,
           color: activeColor,
@@ -92,7 +93,11 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ userType }: SidebarProps) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    // Initialize from localStorage
+    const saved = localStorage.getItem('sidebarCollapsed');
+    return saved === 'true';
+  });
   const location = useLocation();
   const { user } = useAuth();
   const { profile } = useProfile();
@@ -100,7 +105,16 @@ const Sidebar = ({ userType }: SidebarProps) => {
   const bgColor = useColorModeValue('white', 'gray.900');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   
-  // Define navigation items based on user type (coach or athlete)
+  useEffect(() => {
+    // Save to localStorage whenever it changes
+    localStorage.setItem('sidebarCollapsed', isCollapsed.toString());
+    
+    // Dispatch event with both width and isCollapsed
+    window.dispatchEvent(new CustomEvent('sidebarToggle', { 
+      detail: { isCollapsed, width: isCollapsed ? 70 : 200 } 
+    }));
+  }, [isCollapsed]);
+  
   const navItems: Array<{
     icon: React.ElementType;
     label: string;
@@ -125,7 +139,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
         { icon: BiLineChart, label: 'DASHBOARD', to: '/athlete/dashboard' },
         { icon: BsCalendarCheck, label: 'MY WORKOUTS', to: '/athlete/workouts' },
         { icon: FaDumbbell, label: 'WORKOUT CREATOR', to: '/athlete/workout-creator-demo', badge: 'BETA' },
-        { icon: FaCalendarAlt, label: 'EVENTS', to: '/athlete/events' },
+        { icon: FaRunning, label: 'EVENTS', to: '/athlete/events' },
         { icon: FaCalendarAlt, label: 'CALENDAR', to: '/athlete/calendar' },
         { icon: MdRestaurantMenu, label: 'NUTRITION', to: '/athlete/nutrition' },
         { icon: MdOutlineBedtime, label: 'SLEEP', to: '/athlete/sleep' },
@@ -135,7 +149,6 @@ const Sidebar = ({ userType }: SidebarProps) => {
         { icon: FaUserAlt, label: 'PROFILE', to: '/athlete/profile' },
       ];
 
-  // Get user initials for avatar
   const getInitials = (name: string) => {
     if (name.includes('@')) {
       const [localPart] = name.split('@');
@@ -152,7 +165,6 @@ const Sidebar = ({ userType }: SidebarProps) => {
     getInitials(`${profile.first_name} ${profile.last_name || ''}`) : 
     user?.email ? getInitials(user.email) : 'U';
   
-  // Dynamic role label
   const getRoleLabel = (role?: string) => {
     if (!role) return '';
     if (role === 'athlete') return 'Athlete';
@@ -172,12 +184,12 @@ const Sidebar = ({ userType }: SidebarProps) => {
       bg={bgColor}
       borderRight="1px"
       borderColor={borderColor}
-      transition="width 0.2s ease"
+      transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
       zIndex={1000}
       boxShadow="sm"
+      overflow="hidden"
     >
       <VStack spacing={0} align="stretch" h="100%">
-        {/* User Info Section */}
         <Flex 
           direction="column" 
           align="center" 
@@ -200,7 +212,6 @@ const Sidebar = ({ userType }: SidebarProps) => {
           )}
         </Flex>
         
-        {/* Navigation Items */}
         <VStack spacing={1} align="stretch" py={4} flex="1">
           {navItems.map((item) => {
             const isHome = item.to === '/';
@@ -221,23 +232,42 @@ const Sidebar = ({ userType }: SidebarProps) => {
           })}
         </VStack>
         
-        {/* Collapse/Expand Button */}
         <Box p={4} borderTop="1px" borderColor={borderColor}>
-          <HStack justify="space-between" w="100%">
-            <Button 
-              leftIcon={<Icon as={isCollapsed ? FaChevronRight : FaChevronLeft} />}
-              size="sm"
-              variant="ghost"
-              flex="1"
-              justifyContent={isCollapsed ? "center" : "flex-start"}
-              onClick={() => setIsCollapsed(!isCollapsed)}
-            >
-              {!isCollapsed && "HIDE MENU"}
-            </Button>
-            
-            {/* Theme Toggle */}
-            <ThemeToggle size="sm" />
-          </HStack>
+          {isCollapsed ? (
+            // Collapsed layout: Theme toggle above arrow
+            <VStack spacing={3} w="100%" align="center">
+              <Flex justify="center" align="center" w="100%">
+                <ThemeToggle size="md" />
+              </Flex>
+              <Flex justify="center" align="center" w="100%">
+                <Button 
+                  size="sm"
+                  variant="ghost"
+                  minW="auto"
+                  px={2}
+                  justifyContent="center"
+                  onClick={() => setIsCollapsed(!isCollapsed)}
+                >
+                  <Icon as={FaChevronRight} />
+                </Button>
+              </Flex>
+            </VStack>
+          ) : (
+            // Expanded layout: Theme toggle next to hide menu button
+            <HStack justify="space-between" w="100%">
+              <Button 
+                leftIcon={<Icon as={FaChevronLeft} />}
+                size="sm"
+                variant="ghost"
+                flex="1"
+                justifyContent="flex-start"
+                onClick={() => setIsCollapsed(!isCollapsed)}
+              >
+                HIDE MENU
+              </Button>
+              <ThemeToggle size="sm" />
+            </HStack>
+          )}
         </Box>
       </VStack>
     </Box>
