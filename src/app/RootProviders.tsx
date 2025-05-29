@@ -3,6 +3,7 @@ import { ChakraProvider } from '@chakra-ui/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '../contexts/AuthContext'
 import { GamificationProvider } from '../contexts/GamificationContext'
+import { ChatbotProvider } from '../components/ChatBot/ChatbotProvider'
 import { theme } from '../theme'
 import GlobalStylePatch from './GlobalStylePatch'
 import ButtonStyleFixer from './ButtonStyleFixer'
@@ -27,7 +28,11 @@ export const RootProviders = ({ children }: { children: ReactNode }) => (
       <GlobalStylePatch />
       <ButtonStyleFixer />
       <AuthProvider>
-        <GamificationProvider>{children}</GamificationProvider>
+        <GamificationProvider>
+          <ChatbotProvider>
+            {children}
+          </ChatbotProvider>
+        </GamificationProvider>
       </AuthProvider>
     </ChakraProvider>
   </QueryClientProvider>
