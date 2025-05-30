@@ -41,6 +41,10 @@ interface SelectedExercise extends Exercise {
   instanceId: string;
   sets?: string;
   reps?: string;
+  weight?: string;
+  distance?: string;
+  rest?: string;
+  rpe?: string;
   notes?: string;
 }
 
@@ -434,6 +438,66 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
                                 value={exercise.reps || ''}
                                 onChange={(e) => onUpdateExercise(exercise.instanceId, 'reps', e.target.value)}
                                 placeholder="e.g., 10"
+                                bg={cardBg}
+                                borderColor={borderColor}
+                                color={textColor}
+                              />
+                            </FormControl>
+                          </HStack>
+                          
+                          <HStack spacing={3}>
+                            <FormControl flex="1">
+                              <FormLabel fontSize="xs" fontWeight="bold" color={formLabelColor}>Weight (kg)</FormLabel>
+                              <Input 
+                                size="sm" 
+                                type="number"
+                                value={exercise.weight || ''} 
+                                onChange={(e) => onUpdateExercise(exercise.instanceId, 'weight', e.target.value)}
+                                placeholder="e.g., 70"
+                                bg={cardBg}
+                                borderColor={borderColor}
+                                color={textColor}
+                              />
+                            </FormControl>
+                            <FormControl flex="1">
+                              <FormLabel fontSize="xs" fontWeight="bold" color={formLabelColor}>Distance (m)</FormLabel>
+                              <Input 
+                                size="sm" 
+                                type="number"
+                                value={exercise.distance || ''}
+                                onChange={(e) => onUpdateExercise(exercise.instanceId, 'distance', e.target.value)}
+                                placeholder="e.g., 100"
+                                bg={cardBg}
+                                borderColor={borderColor}
+                                color={textColor}
+                              />
+                            </FormControl>
+                          </HStack>
+                          
+                          <HStack spacing={3}>
+                            <FormControl flex="1">
+                              <FormLabel fontSize="xs" fontWeight="bold" color={formLabelColor}>Rest (sec)</FormLabel>
+                              <Input 
+                                size="sm" 
+                                type="number"
+                                value={exercise.rest || ''} 
+                                onChange={(e) => onUpdateExercise(exercise.instanceId, 'rest', e.target.value)}
+                                placeholder="e.g., 60"
+                                bg={cardBg}
+                                borderColor={borderColor}
+                                color={textColor}
+                              />
+                            </FormControl>
+                            <FormControl flex="1">
+                              <FormLabel fontSize="xs" fontWeight="bold" color={formLabelColor}>RPE (1-10)</FormLabel>
+                              <Input 
+                                size="sm" 
+                                type="number"
+                                min="1"
+                                max="10"
+                                value={exercise.rpe || ''}
+                                onChange={(e) => onUpdateExercise(exercise.instanceId, 'rpe', e.target.value)}
+                                placeholder="e.g., 8"
                                 bg={cardBg}
                                 borderColor={borderColor}
                                 color={textColor}

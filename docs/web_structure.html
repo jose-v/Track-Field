@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Track & Field Web Project Structure</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 2em auto;
+      line-height: 1.5;
+    }
+    h1 {
+      text-align: center;
+      color: #3498db;
+    }
+    h2 {
+      color: #2980b9;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 5px;
+    }
+    .section {
+      margin-bottom: 30px;
+      background-color: #f8f9fa;
+      border-radius: 5px;
+      padding: 15px;
+      border-left: 4px solid #4299E1;
+    }
+    .folder {
+      margin-bottom: 10px;
+    }
+    .folder-name {
+      font-weight: bold;
+      color: #2c5282;
+    }
+    .folder-description {
+      margin-left: 20px;
+      color: #444;
+    }
+    .file {
+      margin: 5px 0 5px 20px;
+    }
+    .file-name {
+      font-family: monospace;
+      color: #333;
+    }
+    .file-description {
+      margin-left: 20px;
+      font-size: 0.9em;
+      color: #555;
+    }
+    .search-container {
+      margin: 1em 0;
+    }
+    #searchInput {
+      padding: 8px;
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 16px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .metadata {
+      text-align: right;
+      font-size: 0.8em;
+      color: #777;
+      margin-top: 2em;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1em 0;
+    }
+    th {
+      background-color: #3498db;
+      color: white;
+      padding: 8px;
+      text-align: left;
+    }
+    td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #ddd;
+    }
+    tr:nth-child(even) {
+      background-color: #f8f8f8;
+    }
+  </style>
+</head>
+<body>
+  <h1>Track & Field Web Project Structure</h1>
+  
+  <div class="search-container">
+    <input type="text" id="searchInput" placeholder="Search for folders or files...">
+  </div>
+  
+  <div class="section">
+    <h2>Core Application</h2>
+    <div class="folder">
+      <div class="folder-name">src/</div>
+      <div class="folder-description">Main source code directory containing all application code</div>
+      
+      <div class="file">
+        <span class="file-name">App.tsx</span>
+        <span class="file-description">Main application component and routing setup</span>
+      </div>
+      <div class="file">
+        <span class="file-name">main.tsx</span>
+        <span class="file-description">Entry point for the application</span>
+      </div>
+      <div class="file">
+        <span class="file-name">index.css</span>
+        <span class="file-description">Global styles for the application</span>
+      </div>
+      <div class="file">
+        <span class="file-name">theme.ts</span>
+        <span class="file-description">Chakra UI theme customization</span>
+      </div>
+      <div class="file">
+        <span class="file-name">vite-env.d.ts</span>
+        <span class="file-description">TypeScript declarations for Vite environment</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2>Components & UI</h2>
+    <div class="folder">
+      <div class="folder-name">src/components/</div>
+      <div class="folder-description">Reusable UI components</div>
+      
+      <div class="folder">
+        <div class="folder-name">src/components/ChatBot/</div>
+        <div class="folder-description">AI assistant chatbot components</div>
+        
+        <div class="file">
+          <span class="file-name">TrackChatBot.tsx</span>
+          <span class="file-description">Main chatbot component implementation</span>
+        </div>
+        <div class="file">
+          <span class="file-name">ChatbotProvider.tsx</span>
+          <span class="file-description">Context provider for chatbot state</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="folder">
+      <div class="folder-name">src/layouts/</div>
+      <div class="folder-description">Page layout components and templates</div>
+    </div>
+    
+    <div class="folder">
+      <div class="folder-name">src/pages/</div>
+      <div class="folder-description">Page-level components for different routes</div>
+    </div>
+    
+    <div class="folder">
+      <div class="folder-name">src/styles/</div>
+      <div class="folder-description">CSS and styling utilities</div>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2>Data & Logic</h2>
+    <div class="folder">
+      <div class="folder-name">src/services/</div>
+      <div class="folder-description">Service layer with API calls and business logic</div>
+      
+      <div class="file">
+        <span class="file-name">api.ts</span>
+        <span class="file-description">Central API service with database operations</span>
+      </div>
+      <div class="file">
+        <span class="file-name">authService.ts</span>
+        <span class="file-description">Authentication and user management</span>
+      </div>
+      <div class="file">
+        <span class="file-name">athleteService.ts</span>
+        <span class="file-description">Athlete data management services</span>
+      </div>
+      <div class="file">
+        <span class="file-name">chatbot.service.ts</span>
+        <span class="file-description">AI chatbot service layer</span>
+      </div>
+      <div class="file">
+        <span class="file-name">chatResponseUtils.ts</span>
+        <span class="file-description">Helper utilities for chatbot responses</span>
+      </div>
+      <div class="file">
+        <span class="file-name">gamificationService.ts</span>
+        <span class="file-description">Gamification features service layer</span>
+      </div>
+      <div class="file">
+        <span class="file-name">integrationService.ts</span>
+        <span class="file-description">External integrations handler</span>
+      </div>
+      <div class="file">
+        <span class="file-name">dbSchema.ts</span>
+        <span class="file-description">Database schema TypeScript definitions</span>
+      </div>
+    </div>
+    
+    <div class="folder">
+      <div class="folder-name">src/hooks/</div>
+      <div class="folder-description">Custom React hooks</div>
+      
+      <div class="file">
+        <span class="file-name">useAuth.ts</span>
+        <span class="file-description">Authentication hook</span>
+      </div>
+    </div>
+    
+    <div class="folder">
+      <div class="folder-name">src/lib/</div>
+      <div class="folder-description">Utility libraries and third-party integrations</div>
+      
+      <div class="file">
+        <span class="file-name">supabase.ts</span>
+        <span class="file-description">Supabase client configuration</span>
+      </div>
+    </div>
+    
+    <div class="folder">
+      <div class="folder-name">src/contexts/</div>
+      <div class="folder-description">React context providers</div>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2>Features</h2>
+    <div class="folder">
+      <div class="folder-name">src/features/</div>
+      <div class="folder-description">Feature-based modules</div>
+      
+      <div class="folder">
+        <div class="folder-name">src/features/gamification/</div>
+        <div class="folder-description">Gamification feature implementation</div>
+        
+        <div class="file">
+          <span class="file-name">PointsDisplay.tsx</span>
+          <span class="file-description">Points display component</span>
+        </div>
+        <div class="file">
+          <span class="file-name">BadgeList.tsx</span>
+          <span class="file-description">Badges list component</span>
+        </div>
+        <div class="file">
+          <span class="file-name">BadgeDetailModal.tsx</span>
+          <span class="file-description">Badge details modal component</span>
+        </div>
+        <div class="file">
+          <span class="file-name">StreakTracker.tsx</span>
+          <span class="file-description">Activity streak tracking component</span>
+        </div>
+        <div class="file">
+          <span class="file-name">Leaderboard.tsx</span>
+          <span class="file-description">Points leaderboard component</span>
+        </div>
+        <div class="file">
+          <span class="file-name">index.ts</span>
+          <span class="file-description">Feature exports</span>
+        </div>
+        <div class="file">
+          <span class="file-name">README.md</span>
+          <span class="file-description">Gamification feature documentation</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2>Database & Data Models</h2>
+    <div class="folder">
+      <div class="folder-name">src/db/</div>
+      <div class="folder-description">Database migrations and schema definitions</div>
+      
+      <div class="file">
+        <span class="file-name">migrations.sql</span>
+        <span class="file-description">Core database schema migrations</span>
+      </div>
+      <div class="file">
+        <span class="file-name">views.sql</span>
+        <span class="file-description">Database view definitions</span>
+      </div>
+      <div class="file">
+        <span class="file-name">seed-data.sql</span>
+        <span class="file-description">Initial data for development</span>
+      </div>
+      <div class="file">
+        <span class="file-name">create_athlete_sleep_table.sql</span>
+        <span class="file-description">Sleep tracking table schema</span>
+      </div>
+      <div class="file">
+        <span class="file-name">create_athlete_meets_table.sql</span>
+        <span class="file-description">Meet tracking table schema</span>
+      </div>
+      <div class="file">
+        <span class="file-name">create_athlete_performances_table.sql</span>
+        <span class="file-description">Performance metrics table schema</span>
+      </div>
+      <div class="file">
+        <span class="file-name">run-migrations.js</span>
+        <span class="file-description">Database migration runner script</span>
+      </div>
+      <div class="file">
+        <span class="file-name">migration-helpers.js</span>
+        <span class="file-description">Helper utilities for database migrations</span>
+      </div>
+    </div>
+    
+    <div class="folder">
+      <div class="folder-name">src/types/</div>
+      <div class="folder-description">TypeScript type definitions</div>
+      
+      <div class="file">
+        <span class="file-name">gamification.ts</span>
+        <span class="file-description">Gamification feature type definitions</span>
+      </div>
+      <div class="file">
+        <span class="file-name">supabase.ts</span>
+        <span class="file-description">Supabase client type definitions</span>
+      </div>
+      <div class="file">
+        <span class="file-name">trackMeets.ts</span>
+        <span class="file-description">Track meet type definitions</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2>Configuration & Utilities</h2>
+    <div class="folder">
+      <div class="folder-name">src/config/</div>
+      <div class="folder-description">Application configuration files</div>
+      
+      <div class="file">
+        <span class="file-name">badges.ts</span>
+        <span class="file-description">Badge definitions for gamification</span>
+      </div>
+      <div class="file">
+        <span class="file-name">levels.ts</span>
+        <span class="file-description">Level progression configuration</span>
+      </div>
+    </div>
+    
+    <div class="folder">
+      <div class="folder-name">src/utils/</div>
+      <div class="folder-description">Utility functions and helpers</div>
+    </div>
+    
+    <div class="folder">
+      <div class="folder-name">src/scripts/</div>
+      <div class="folder-description">Utility scripts for development and maintenance</div>
+      
+      <div class="file">
+        <span class="file-name">run-populate-badges.sh</span>
+        <span class="file-description">Script to populate badge definitions</span>
+      </div>
+      <div class="file">
+        <span class="file-name">populateBadges.ts</span>
+        <span class="file-description">TypeScript implementation for badge population</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2>Testing</h2>
+    <div class="folder">
+      <div class="folder-name">src/tests/</div>
+      <div class="folder-description">Test files and testing utilities</div>
+      
+      <div class="file">
+        <span class="file-name">setup.ts</span>
+        <span class="file-description">Test setup configuration</span>
+      </div>
+      <div class="file">
+        <span class="file-name">TESTING_GUIDE.md</span>
+        <span class="file-description">Testing guidelines and documentation</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2>Project Configuration</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>File</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>package.json</td>
+          <td>NPM dependencies and scripts</td>
+        </tr>
+        <tr>
+          <td>package-lock.json</td>
+          <td>Dependency lock file</td>
+        </tr>
+        <tr>
+          <td>tsconfig.json</td>
+          <td>TypeScript configuration root</td>
+        </tr>
+        <tr>
+          <td>tsconfig.app.json</td>
+          <td>TypeScript configuration for application</td>
+        </tr>
+        <tr>
+          <td>tsconfig.node.json</td>
+          <td>TypeScript configuration for Node.js</td>
+        </tr>
+        <tr>
+          <td>vite.config.ts</td>
+          <td>Vite bundler configuration</td>
+        </tr>
+        <tr>
+          <td>vitest.config.ts</td>
+          <td>Vitest testing configuration</td>
+        </tr>
+        <tr>
+          <td>eslint.config.js</td>
+          <td>ESLint linter configuration</td>
+        </tr>
+        <tr>
+          <td>.gitignore</td>
+          <td>Git ignore patterns</td>
+        </tr>
+        <tr>
+          <td>netlify.toml</td>
+          <td>Netlify deployment configuration</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="metadata">
+    Structure documented on: <span id="captureDate"></span>
+  </div>
+
+  <script>
+    // Set capture date
+    document.getElementById('captureDate').textContent = new Date().toLocaleDateString();
+    
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+      const input = this.value.toLowerCase();
+      const folders = document.querySelectorAll('.folder');
+      const files = document.querySelectorAll('.file');
+      const tableRows = document.querySelectorAll('tbody tr');
+      
+      // Search folders
+      folders.forEach(folder => {
+        const folderName = folder.querySelector('.folder-name').textContent.toLowerCase();
+        const folderDesc = folder.querySelector('.folder-description').textContent.toLowerCase();
+        
+        if (folderName.includes(input) || folderDesc.includes(input)) {
+          folder.style.display = '';
+        } else {
+          // Check if any child files match before hiding
+          const matchingChildren = Array.from(folder.querySelectorAll('.file')).some(file => {
+            const fileName = file.querySelector('.file-name').textContent.toLowerCase();
+            const fileDesc = file.querySelector('.file-description').textContent.toLowerCase();
+            return fileName.includes(input) || fileDesc.includes(input);
+          });
+          
+          folder.style.display = matchingChildren ? '' : 'none';
+        }
+      });
+      
+      // Search files
+      files.forEach(file => {
+        const fileName = file.querySelector('.file-name').textContent.toLowerCase();
+        const fileDesc = file.querySelector('.file-description').textContent.toLowerCase();
+        
+        if (fileName.includes(input) || fileDesc.includes(input)) {
+          file.style.display = '';
+          // Make sure parent folder is visible
+          let parent = file.parentElement;
+          while (parent && parent.classList.contains('folder')) {
+            parent.style.display = '';
+            parent = parent.parentElement;
+          }
+        } else {
+          file.style.display = 'none';
+        }
+      });
+      
+      // Search table rows
+      tableRows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(input) ? '' : 'none';
+      });
+    });
+  </script>
+</body>
+</html> 

@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track & Field Platform - Pricing Structure Proposal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #3182ce, #2c5aa0);
+            color: white;
+            text-align: center;
+            padding: 3rem 1rem;
+            margin-bottom: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .principles {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .principle-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #3182ce;
+        }
+        
+        .principle-card h3 {
+            color: #3182ce;
+            margin-bottom: 0.5rem;
+        }
+        
+        .tier {
+            background: white;
+            margin: 2rem 0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tier-header {
+            padding: 1.5rem;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .tier-1 .tier-header {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+        }
+        
+        .tier-2 .tier-header {
+            background: linear-gradient(135deg, #3182ce, #2c5aa0);
+        }
+        
+        .tier-3 .tier-header {
+            background: linear-gradient(135deg, #805ad5, #6b46c1);
+        }
+        
+        .tier-content {
+            padding: 1.5rem;
+        }
+        
+        .tier-title {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .tier-target {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
+        .value-prop {
+            background: #f7fafc;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            border-left: 4px solid #3182ce;
+        }
+        
+        .pricing-box {
+            background: #edf2f7;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            font-weight: bold;
+        }
+        
+        .features {
+            margin: 1rem 0;
+        }
+        
+        .features ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .features li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .features li:before {
+            content: "✓ ";
+            color: #48bb78;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+        
+        .sub-tiers {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .sub-tier {
+            background: #f7fafc;
+            padding: 1rem;
+            border-radius: 6px;
+            text-align: center;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .sub-tier strong {
+            color: #3182ce;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        
+        .implementation {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            margin: 2rem 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .nav-toc {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .nav-toc h3 {
+            color: #3182ce;
+            margin-bottom: 1rem;
+        }
+        
+        .nav-toc ul {
+            list-style: none;
+        }
+        
+        .nav-toc a {
+            color: #3182ce;
+            text-decoration: none;
+            padding: 0.25rem 0;
+            display: block;
+        }
+        
+        .nav-toc a:hover {
+            text-decoration: underline;
+        }
+        
+        .highlight {
+            background: #fef5e7;
+            padding: 1rem;
+            border-radius: 6px;
+            border-left: 4px solid #ecc94b;
+            margin: 1rem 0;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .principles {
+                grid-template-columns: 1fr;
+            }
+            
+            .sub-tiers {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Refined Pricing Structure Concept</h1>
+            <p class="subtitle">Track & Field Platform Business Strategy</p>
+        </header>
+
+        <nav class="nav-toc">
+            <h3>Table of Contents</h3>
+            <ul>
+                <li><a href="#principles">Core Principles</a></li>
+                <li><a href="#tier1">Tier 1: Athlete (Unattached)</a></li>
+                <li><a href="#tier2">Tier 2: Coach</a></li>
+                <li><a href="#tier3">Tier 3: Team</a></li>
+                <li><a href="#considerations">General Considerations</a></li>
+                <li><a href="#implementation">Stripe Implementation</a></li>
+            </ul>
+        </nav>
+
+        <section id="principles">
+            <h2>Core Principles</h2>
+            <div class="principles">
+                <div class="principle-card">
+                    <h3>Simplicity & Transparency</h3>
+                    <p>Easy-to-understand tiers with clear value. No hidden fees or complex credit systems for AI usage.</p>
+                </div>
+                <div class="principle-card">
+                    <h3>Value-Based</h3>
+                    <p>Pricing reflects the features and benefits provided, especially the integrated AI assistance.</p>
+                </div>
+                <div class="principle-card">
+                    <h3>Scalability</h3>
+                    <p>Tiers cater to individuals, growing coaches, and larger teams/organizations.</p>
+                </div>
+                <div class="principle-card">
+                    <h3>AI as an Integrated Benefit</h3>
+                    <p>AI features are part of the value proposition of each tier, with more advanced capabilities unlocked at higher tiers.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="tier1" class="tier tier-1">
+            <div class="tier-header">
+                <div class="tier-title">Tier 1: Athlete (Unattached)</div>
+                <div class="tier-target">Individual athletes training independently</div>
+            </div>
+            <div class="tier-content">
+                <div class="value-prop">
+                    <strong>Core Value Proposition:</strong> Access to a smart training log, personal performance analytics, and AI-driven insights to optimize their individual training and recovery.
+                </div>
+
+                <h4>Pricing Logic</h4>
+                <div class="pricing-box">
+                    Monthly: $7 - $15<br>
+                    Annually: $70 - $150<br>
+                    <small>Student Discount: 25-40% off for verified students</small>
+                </div>
+
+                <div class="features">
+                    <h4>Key Features</h4>
+                    <ul>
+                        <li>Full access to personal workout logging</li>
+                        <li>Personal performance tracking and analytics dashboards</li>
+                        <li>Personalized AI assistant for training insights</li>
+                        <li>Full gamification features (points, badges, streaks)</li>
+                        <li>Ability to be "invited" by a coach</li>
+                    </ul>
+                </div>
+
+                <div class="highlight">
+                    <strong>AI Value Proposition:</strong> AI acts as a personal performance and wellness advisor.
+                </div>
+            </div>
+        </section>
+
+        <section id="tier2" class="tier tier-2">
+            <div class="tier-header">
+                <div class="tier-title">Tier 2: Coach</div>
+                <div class="tier-target">Individual coaches managing one or more athletes</div>
+            </div>
+            <div class="tier-content">
+                <div class="value-prop">
+                    <strong>Core Value Proposition:</strong> Powerful tools to create training plans, manage athletes efficiently, analyze performance, monitor injury risk, and leverage AI to enhance coaching effectiveness.
+                </div>
+
+                <h4>Pricing Logic</h4>
+                <div class="pricing-box">
+                    Base Monthly: $29 - $49 (includes 1 athlete slot)<br>
+                    Per Additional Athlete: $5/month<br>
+                    <small>Scales with the coach's business growth</small>
+                </div>
+
+                <div class="features">
+                    <h4>Key Features</h4>
+                    <ul>
+                        <li>All Athlete tier features for coach's own use</li>
+                        <li>Workout Template Creation & Management</li>
+                        <li>Athlete Roster Management</li>
+                        <li>Training Plan Assignment</li>
+                        <li>Comprehensive Athlete Analytics</li>
+                        <li>Coach-Focused AI Assistant</li>
+                        <li>Communication tools for athletes</li>
+                    </ul>
+                </div>
+
+                <div class="highlight">
+                    <strong>AI Value Proposition:</strong> AI acts as a coaching assistant, providing deeper insights across their roster and saving time on analysis and planning.
+                </div>
+            </div>
+        </section>
+
+        <section id="tier3" class="tier tier-3">
+            <div class="tier-header">
+                <div class="tier-title">Tier 3: Team</div>
+                <div class="tier-target">Schools, Universities, Clubs</div>
+            </div>
+            <div class="tier-content">
+                <div class="value-prop">
+                    <strong>Core Value Proposition:</strong> A centralized platform for managing the entire track and field program, enabling consistent training methodologies, team-wide oversight, and advanced analytics.
+                </div>
+
+                <h4>Sub-Tiers</h4>
+                <div class="sub-tiers">
+                    <div class="sub-tier">
+                        <strong>Team Starter</strong>
+                        Up to 3 Coaches, 30 Athletes<br>
+                        $79 - $129/month
+                    </div>
+                    <div class="sub-tier">
+                        <strong>Team Growth</strong>
+                        Up to 7 Coaches, 75 Athletes<br>
+                        $149 - $249/month
+                    </div>
+                    <div class="sub-tier">
+                        <strong>Team Pro</strong>
+                        Up to 15 Coaches, 200 Athletes<br>
+                        $299 - $499/month
+                    </div>
+                    <div class="sub-tier">
+                        <strong>Enterprise</strong>
+                        Custom pricing for<br>
+                        larger institutions
+                    </div>
+                </div>
+
+                <div class="features">
+                    <h4>Key Features</h4>
+                    <ul>
+                        <li>All Coach tier features for each coach seat</li>
+                        <li>Administrative Dashboard</li>
+                        <li>Team-Wide Analytics & Reporting</li>
+                        <li>Centralized Communication Tools</li>
+                        <li>Shared asset libraries</li>
+                        <li>Custom branding options</li>
+                    </ul>
+                </div>
+
+                <div class="highlight">
+                    <strong>AI Value Proposition:</strong> AI provides insights at an organizational level, helps identify team-wide trends, and supports program-wide consistency.
+                </div>
+            </div>
+        </section>
+
+        <section id="considerations" class="implementation">
+            <h2>General Considerations for All Tiers</h2>
+            
+            <div class="principles">
+                <div class="principle-card">
+                    <h3>Free Trial</h3>
+                    <p>14-day or 30-day free trial for "Coach" and "Team Starter" tiers to experience full value, especially AI features.</p>
+                </div>
+                <div class="principle-card">
+                    <h3>Annual Discount</h3>
+                    <p>10-20% discount (effectively 1-2 months free) for users who subscribe annually.</p>
+                </div>
+                <div class="principle-card">
+                    <h3>AI Usage Clarity</h3>
+                    <p>Clear marketing that AI is integral to each tier's value. Monitor API costs to ensure pricing sustainability.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="implementation" class="implementation">
+            <h2>Stripe Implementation Strategy</h2>
+            
+            <h3>Athlete & Coach Base</h3>
+            <p>Standard subscriptions with quantity-based pricing for Coach tier's per-athlete add-ons using Stripe's metered billing capabilities.</p>
+            
+            <h3>Team Tiers</h3>
+            <p>Separate subscription products in Stripe, each with defined pricing and included coach/athlete limits.</p>
+            
+            <h3>Technical Requirements</h3>
+            <ul class="features">
+                <li>Robust subscription status checking logic</li>
+                <li>Row Level Security (RLS) in Supabase</li>
+                <li>Frontend entitlement verification</li>
+                <li>Usage tracking for AI features</li>
+                <li>Billing administration tools</li>
+            </ul>
+        </section>
+
+        <footer style="text-align: center; padding: 2rem; color: #666; margin-top: 3rem;">
+            <p><strong>Track & Field Platform Pricing Strategy</strong></p>
+            <p>Last updated: January 2024</p>
+        </footer>
+    </div>
+</body>
+</html> 

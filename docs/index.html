@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Track & Field Documentation</title>
+  <style>
+    :root {
+      --primary: #3498db;
+      --primary-dark: #2980b9;
+      --secondary: #4299E1;
+      --light: #f8f9fa;
+      --dark: #2c3e50;
+      --accent: #e74c3c;
+      --text: #333;
+      --text-light: #777;
+      --border: #ddd;
+      --shadow: rgba(0, 0, 0, 0.1);
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: var(--text);
+      background-color: #f5f7fa;
+    }
+    
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+    
+    header {
+      background-color: var(--primary);
+      color: white;
+      padding: 1rem 0;
+      box-shadow: 0 2px 10px var(--shadow);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .logo h1 {
+      font-size: 1.8rem;
+      margin: 0;
+    }
+    
+    nav ul {
+      display: flex;
+      list-style: none;
+    }
+    
+    nav ul li {
+      margin-left: 1.5rem;
+    }
+    
+    nav ul li a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      transition: opacity 0.3s;
+    }
+    
+    nav ul li a:hover {
+      opacity: 0.8;
+    }
+    
+    .hero {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      padding: 4rem 0;
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    
+    .hero h2 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .hero p {
+      font-size: 1.2rem;
+      max-width: 700px;
+      margin: 0 auto 1.5rem;
+      opacity: 0.9;
+    }
+    
+    .search-container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    
+    #searchInput {
+      width: 100%;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 50px;
+      font-size: 1rem;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .section-title {
+      margin-bottom: 2rem;
+      text-align: center;
+      color: var(--dark);
+      position: relative;
+      padding-bottom: 0.5rem;
+    }
+    
+    .section-title::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 3px;
+      background-color: var(--primary);
+    }
+    
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 30px;
+      margin-bottom: 3rem;
+    }
+    
+    .card {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px var(--shadow);
+      overflow: hidden;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px var(--shadow);
+    }
+    
+    .card-header {
+      background-color: var(--primary);
+      color: white;
+      padding: 1.2rem;
+    }
+    
+    .card-header h3 {
+      margin: 0;
+      font-size: 1.4rem;
+    }
+    
+    .card-body {
+      padding: 1.5rem;
+    }
+    
+    .card-body p {
+      margin-bottom: 1.2rem;
+    }
+    
+    .card-links {
+      border-top: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+    }
+    
+    .card-links ul {
+      list-style: none;
+    }
+    
+    .card-links ul li {
+      margin-bottom: 0.5rem;
+    }
+    
+    .card-links ul li a {
+      color: var(--primary);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      transition: color 0.3s;
+    }
+    
+    .card-links ul li a:hover {
+      color: var(--primary-dark);
+    }
+    
+    .card-links ul li a span {
+      margin-left: 0.5rem;
+    }
+    
+    .table-container {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px var(--shadow);
+      padding: 1.5rem;
+      margin-bottom: 3rem;
+      overflow-x: auto;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    th {
+      background-color: var(--primary);
+      color: white;
+      padding: 12px 15px;
+      text-align: left;
+    }
+    
+    td {
+      padding: 12px 15px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    tr:nth-child(even) {
+      background-color: var(--light);
+    }
+    
+    tr:hover {
+      background-color: rgba(66, 153, 225, 0.1);
+    }
+    
+    .quick-links {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .quick-links::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    .quick-links::-webkit-scrollbar-thumb {
+      background-color: var(--primary);
+      border-radius: 4px;
+    }
+    
+    .tag {
+      display: inline-block;
+      background-color: var(--secondary);
+      color: white;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    footer {
+      background-color: var(--dark);
+      color: white;
+      padding: 2rem 0;
+      text-align: center;
+    }
+    
+    .document-icon {
+      margin-right: 8px;
+      color: var(--primary);
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    @media screen and (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      nav ul {
+        margin-top: 1rem;
+      }
+      
+      nav ul li {
+        margin: 0 10px;
+      }
+      
+      .hero {
+        padding: 2rem 0;
+      }
+      
+      .hero h2 {
+        font-size: 2rem;
+      }
+      
+      .cards {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <header>
+    <div class="container header-content">
+      <div class="logo">
+        <h1>Track & Field Docs</h1>
+      </div>
+      <nav>
+        <ul>
+          <li><a href="#overview">Overview</a></li>
+          <li><a href="#business">Business</a></li>
+          <li><a href="#database">Database</a></li>
+          <li><a href="#structure">Structure</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#milestones">Milestones</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+  
+  <section class="hero">
+    <div class="container">
+      <h2>Track & Field Project Documentation</h2>
+      <p>A comprehensive resource for understanding the project architecture, database schema, and implementation details.</p>
+      <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Search documentation...">
+      </div>
+    </div>
+  </section>
+  
+  <main class="container">
+    <section id="overview">
+      <h2 class="section-title">Project Overview</h2>
+      <div class="cards">
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-chart-line"></i> Investor Pitch Deck</h3>
+          </div>
+          <div class="card-body">
+            <p>A comprehensive presentation of the Track & Field platform for potential investors and collaborators.</p>
+            <p><span class="tag">Investor</span> <span class="tag">Business</span> <span class="tag">Presentation</span></p>
+          </div>
+          <div class="card-links">
+            <ul>
+              <li><a href="pitch-deck.html"><i class="fas fa-file-powerpoint document-icon"></i> View Pitch Deck</a></li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-sitemap"></i> Project Structure</h3>
+          </div>
+          <div class="card-body">
+            <p>Explore the overall architecture and organization of the Track & Field web application.</p>
+            <p><span class="tag">Web App</span> <span class="tag">Organization</span></p>
+          </div>
+          <div class="card-links">
+            <ul>
+              <li><a href="web_structure.html"><i class="fas fa-file-code document-icon"></i> Web Structure Documentation</a></li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-database"></i> Database Schema</h3>
+          </div>
+          <div class="card-body">
+            <p>Understand the database design, tables, relationships, and data model.</p>
+            <p><span class="tag">Database</span> <span class="tag">Schema</span></p>
+          </div>
+          <div class="card-links">
+            <ul>
+              <li><a href="database_schema.html"><i class="fas fa-table document-icon"></i> Database Schema Documentation</a></li>
+              <li><a href="README-DB-MIGRATION.md"><i class="fas fa-exchange-alt document-icon"></i> Database Migration Guide</a></li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-robot"></i> Chatbot Integration</h3>
+          </div>
+          <div class="card-body">
+            <p>Learn about the AI chatbot assistant and how it integrates with athlete data.</p>
+            <p><span class="tag">AI</span> <span class="tag">Chatbot</span></p>
+          </div>
+          <div class="card-links">
+            <ul>
+              <li><a href="bot-context.md"><i class="fas fa-file-alt document-icon"></i> Bot Context Documentation</a></li>
+              <li><a href="bot-milestones.html"><i class="fas fa-tasks document-icon"></i> Bot Milestones</a></li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-rocket"></i> Getting Started</h3>
+          </div>
+          <div class="card-body">
+            <p>Essential documentation to get started with the Track & Field project.</p>
+            <p><span class="tag">Setup</span> <span class="tag">Guide</span> <span class="tag">Overview</span></p>
+          </div>
+          <div class="card-links">
+            <ul>
+              <li><a href="readme-first.html"><i class="fas fa-play-circle document-icon"></i> Read Me First</a></li>
+              <li><a href="Repository Structure Summary.gdoc"><i class="fas fa-folder-tree document-icon"></i> Repository Structure Summary</a></li>
+              <li><a href="DEVELOPMENT.md"><i class="fas fa-code document-icon"></i> Development Guide</a></li>
+              <li><a href="DATABASE.md"><i class="fas fa-database document-icon"></i> Database Setup</a></li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-info-circle"></i> Project Context</h3>
+          </div>
+          <div class="card-body">
+            <p>Comprehensive project context and background information for developers and AI assistants.</p>
+            <p><span class="tag">Context</span> <span class="tag">Background</span> <span class="tag">AI</span></p>
+          </div>
+          <div class="card-links">
+            <ul>
+              <li><a href="track_field_context.md"><i class="fas fa-file-alt document-icon"></i> Track & Field Context</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <section id="business">
+      <h2 class="section-title">Business Strategy & Pricing</h2>
+      <div class="cards">
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-dollar-sign"></i> Pricing Structure</h3>
+          </div>
+          <div class="card-body">
+            <p>Comprehensive 3-tier pricing strategy with AI integration considerations for athletes, coaches, and teams.</p>
+            <p><span class="tag">Pricing</span> <span class="tag">Business Strategy</span> <span class="tag">Revenue Model</span></p>
+          </div>
+          <div class="card-links">
+            <ul>
+              <li><a href="pricing-structure-proposal.html"><i class="fas fa-chart-line document-icon"></i> Interactive Pricing Structure (HTML)</a></li>
+              <li><a href="pricing-structure-proposal.md"><i class="fas fa-file-alt document-icon"></i> Pricing Structure (Markdown)</a></li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-handshake"></i> Revenue Model Overview</h3>
+          </div>
+          <div class="card-body">
+            <p>Quick overview of the three-tier subscription model with clear value propositions for each market segment.</p>
+            <div style="margin-top: 1rem;">
+              <div style="margin-bottom: 0.5rem;"><strong>Tier 1:</strong> Athletes ($7-15/month) - Personal AI coach</div>
+              <div style="margin-bottom: 0.5rem;"><strong>Tier 2:</strong> Coaches ($29-49/month + $5/athlete) - Team management</div>
+              <div style="margin-bottom: 0.5rem;"><strong>Tier 3:</strong> Teams ($79-499/month) - Institution-wide platform</div>
+            </div>
+          </div>
+          <div class="card-links">
+            <ul>
+              <li><a href="pitch-deck.html"><i class="fas fa-presentation document-icon"></i> See Full Business Presentation</a></li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-credit-card"></i> Payment Integration</h3>
+          </div>
+          <div class="card-body">
+            <p>Stripe-based payment processing with subscription management, billing automation, and usage tracking.</p>
+            <p><span class="tag">Stripe</span> <span class="tag">Subscriptions</span> <span class="tag">Billing</span></p>
+          </div>
+          <div class="card-links">
+            <ul>
+              <li><a href="pricing-structure-proposal.html#implementation"><i class="fas fa-cog document-icon"></i> Implementation Strategy</a></li>
+              <li><a href="pricing-structure-proposal.html#considerations"><i class="fas fa-lightbulb document-icon"></i> Business Considerations</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <section id="database">
+      <h2 class="section-title">Database Documentation</h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Module</th>
+              <th>Description</th>
+              <th>Documentation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Core Schema</td>
+              <td>Main database tables and relationships</td>
+              <td><a href="database_schema.html">Database Schema</a></td>
+            </tr>
+            <tr>
+              <td>Migration</td>
+              <td>Database migration procedures</td>
+              <td><a href="README-DB-MIGRATION.md">Migration Guide</a></td>
+            </tr>
+            <tr>
+              <td>AI Schema</td>
+              <td>AI-friendly database schema reference</td>
+              <td><a href="db_schema_ai_friendly.txt">AI Schema Reference</a></td>
+            </tr>
+            <tr>
+              <td>Database Updates</td>
+              <td>Recent database changes and update history</td>
+              <td><a href="data_base_updates.md">Database Updates</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    
+    <section id="structure">
+      <h2 class="section-title">Project Structure</h2>
+      <div class="cards">
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-sitemap"></i> Web Structure</h3>
+          </div>
+          <div class="card-body">
+            <p>Detailed documentation of the web project organization, directories, and file purposes.</p>
+          </div>
+          <div class="card-links">
+            <ul>
+              <li><a href="web_structure.html"><i class="fas fa-file-code document-icon"></i> Web Structure Documentation</a></li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-brain"></i> Analytics Architecture</h3>
+          </div>
+          <div class="card-body">
+            <p>Business-friendly guide to our smart analytics system that powers sleep tracking, injury risk assessment, and performance insights.</p>
+            <p><span class="tag">Analytics</span> <span class="tag">Architecture</span> <span class="tag">Business Guide</span></p>
+          </div>
+          <div class="card-links">
+            <ul>
+              <li><a href="analytics-architecture.html"><i class="fas fa-chart-line document-icon"></i> Analytics Architecture Guide</a></li>
+              <li><a href="analytics-architecture-technical.html"><i class="fas fa-code document-icon"></i> Technical Implementation Details</a></li>
+              <li><a href="analytics-insights-guide.html"><i class="fas fa-lightbulb document-icon"></i> Analytics Insights Guide</a></li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-palette"></i> Brand Guidelines</h3>
+          </div>
+          <div class="card-body">
+            <p>Design system, color palette, typography, and UI component guidelines.</p>
+          </div>
+          <div class="card-links">
+            <ul>
+              <li><a href="brand-guidelines.html"><i class="fas fa-paint-brush document-icon"></i> Brand Guidelines</a></li>
+              <li><a href="palette.html"><i class="fas fa-palette document-icon"></i> Color Palette (Primary)</a></li>
+              <li><a href="palette2.html"><i class="fas fa-swatchbook document-icon"></i> Color Palette (Extended)</a></li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-calendar-alt"></i> Calendar Components</h3>
+          </div>
+          <div class="card-body">
+            <p>Documentation for calendar-related UI components.</p>
+          </div>
+          <div class="card-links">
+            <ul>
+              <li><a href="calendar-element.html"><i class="fas fa-th document-icon"></i> Calendar Element</a></li>
+              <li><a href="calendar-month-view.html"><i class="fas fa-calendar document-icon"></i> Calendar Month View</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <section id="features">
+      <h2 class="section-title">Feature Documentation</h2>
+      <div class="cards">
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-trophy"></i> Gamification</h3>
+          </div>
+          <div class="card-body">
+            <p>Comprehensive documentation of the gamification system including badges, points, and rewards.</p>
+          </div>
+          <div class="card-links quick-links">
+            <ul>
+              <li><a href="gamification_plan_part1.html"><i class="fas fa-file-alt document-icon"></i> Gamification Plan (Part 1)</a></li>
+              <li><a href="gamification_plan_part2.html"><i class="fas fa-file-alt document-icon"></i> Gamification Plan (Part 2)</a></li>
+              <li><a href="gamification_plan_part3.html"><i class="fas fa-file-alt document-icon"></i> Gamification Plan (Part 3)</a></li>
+              <li><a href="gamification_plan_part4.html"><i class="fas fa-file-alt document-icon"></i> Gamification Plan (Part 4)</a></li>
+              <li><a href="gamification_plan_part5.html"><i class="fas fa-file-alt document-icon"></i> Gamification Plan (Part 5)</a></li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-dumbbell"></i> Workout & Exercise Management</h3>
+          </div>
+          <div class="card-body">
+            <p>Documentation for workout templates, exercise library, and training management features.</p>
+          </div>
+          <div class="card-links">
+            <ul>
+              <li><a href="workout_template_ui_plan.html"><i class="fas fa-clipboard-list document-icon"></i> Workout Template UI Plan</a></li>
+              <li><a href="exercise_library_checklist.html"><i class="fas fa-list-check document-icon"></i> Exercise Library Checklist</a></li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-shield-alt"></i> Injury Risk Analysis</h3>
+          </div>
+          <div class="card-body">
+            <p>Comprehensive development plan for AI-driven injury risk monitoring system with fatigue-to-fitness ratio tracking, wellness surveys, and predictive analytics.</p>
+            <p><span class="tag">AI</span> <span class="tag">Health</span> <span class="tag">Analytics</span> <span class="tag">Development Plan</span></p>
+          </div>
+          <div class="card-links">
+            <ul>
+              <li><a href="component-injury-risk.html"><i class="fas fa-heartbeat document-icon"></i> Injury Risk Component Plan</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <section id="milestones">
+      <h2 class="section-title">Project Milestones</h2>
+      <div class="cards">
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-tasks"></i> Development Milestones</h3>
+          </div>
+          <div class="card-body">
+            <p>Track the development progress, completed features, and upcoming tasks.</p>
+          </div>
+          <div class="card-links">
+            <ul>
+              <li><a href="milestones.html"><i class="fas fa-list-check document-icon"></i> Project Milestones</a></li>
+              <li><a href="bot-milestones.html"><i class="fas fa-robot document-icon"></i> Bot Milestones</a></li>
+              <li><a href="development-priorities.html"><i class="fas fa-sort-amount-down document-icon"></i> Development Priorities Guide</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  
+  <footer>
+    <div class="container">
+      <p>&copy; 2023 Track & Field Project. Documentation last updated on <span id="lastUpdated"></span></p>
+    </div>
+  </footer>
+  
+  <script>
+    // Set last updated date
+    document.getElementById('lastUpdated').textContent = new Date().toLocaleDateString();
+    
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+      const input = this.value.toLowerCase();
+      const cards = document.querySelectorAll('.card');
+      const tableRows = document.querySelectorAll('tbody tr');
+      
+      // Search cards
+      cards.forEach(card => {
+        const cardTitle = card.querySelector('.card-header h3').textContent.toLowerCase();
+        const cardBody = card.querySelector('.card-body').textContent.toLowerCase();
+        const cardLinks = card.querySelector('.card-links').textContent.toLowerCase();
+        
+        if (cardTitle.includes(input) || cardBody.includes(input) || cardLinks.includes(input)) {
+          card.style.display = '';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+      
+      // Search table rows
+      tableRows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(input) ? '' : 'none';
+      });
+    });
+  </script>
+</body>
+</html> 

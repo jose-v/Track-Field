@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cocolene Theme Visual Reference</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body {
+      background: #f5f4fa;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      color: #2D3748;
+      padding: 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    h1, h2, h3 {
+      text-align: left;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    table {
+      border-collapse: collapse;
+      margin-bottom: 40px;
+      width: 100%;
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 2px 16px rgba(44,43,94,.06);
+      overflow: hidden;
+    }
+    th, td {
+      text-align: left;
+      padding: 12px 10px;
+      font-size: 1rem;
+      border-bottom: 1px solid #E0E0E0;
+    }
+    th {
+      background: #f7f7fb;
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    .swatch {
+      width: 32px;
+      height: 32px;
+      border-radius: 7px;
+      border: 1.5px solid #E0E0E0;
+      box-shadow: 0 1px 4px rgba(44,43,94,.04);
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .font-sample {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 6px;
+      background: #f7f7fb;
+      font-size: 1.1rem;
+      margin-right: 10px;
+      margin-bottom: 4px;
+    }
+    .shadow-sample {
+      display: inline-block;
+      width: 120px;
+      height: 32px;
+      border-radius: 8px;
+      background: #fff;
+      margin-right: 16px;
+      margin-bottom: 8px;
+      vertical-align: middle;
+    }
+    .radius-sample {
+      display: inline-block;
+      width: 60px;
+      height: 32px;
+      background: #fff;
+      border: 1.5px solid #E0E0E0;
+      margin-right: 16px;
+      margin-bottom: 8px;
+      vertical-align: middle;
+    }
+    @media (max-width: 650px) {
+      table, th, td {
+        font-size: .98rem;
+        padding: 8px 4px;
+      }
+      .shadow-sample, .radius-sample { width: 80px; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Cocolene Theme Visual Reference</h1>
+
+  <h2>Color Palette</h2>
+  <h3>Primary Palette</h3>
+  <table>
+    <tr><th>Shade</th><th>Swatch</th><th>Hex Code</th><th>Description</th></tr>
+    <tr><td>50</td><td><span class="swatch" style="background:#ebe5ea;"></span></td><td>#ebe5ea</td><td>Very light mauve</td></tr>
+    <tr><td>100</td><td><span class="swatch" style="background:#cabfd0;"></span></td><td>#cabfd0</td><td>Light purple-grey</td></tr>
+    <tr><td>200</td><td><span class="swatch" style="background:#a998b5;"></span></td><td>#a998b5</td><td>Soft lavender-grey</td></tr>
+    <tr><td>300</td><td><span class="swatch" style="background:#88729b;"></span></td><td>#88729b</td><td>Muted purple</td></tr>
+    <tr><td>400</td><td><span class="swatch" style="background:#664c81;"></span></td><td>#664c81</td><td>Deep violet</td></tr>
+    <tr><td>500</td><td><span class="swatch" style="background:#2d3748;"></span></td><td>#2d3748</td><td>Primary base, dark slate (main brand)</td></tr>
+    <tr><td>600</td><td><span class="swatch" style="background:#1a202c;"></span></td><td>#1a202c</td><td>Darker shade (hover)</td></tr>
+    <tr><td>700</td><td><span class="swatch" style="background:#171923;"></span></td><td>#171923</td><td>Even darker (active)</td></tr>
+    <tr><td>800</td><td><span class="swatch" style="background:#1f111b;"></span></td><td>#1f111b</td><td>Nearly black with purple tint</td></tr>
+    <tr><td>900</td><td><span class="swatch" style="background:#140b10;"></span></td><td>#140b10</td><td>Almost pure black</td></tr>
+  </table>
+  <h3>Accent Palette</h3>
+  <table>
+    <tr><th>Shade</th><th>Swatch</th><th>Hex Code</th><th>Description</th></tr>
+    <tr><td>50</td><td><span class="swatch" style="background:#fff6cc;"></span></td><td>#fff6cc</td><td>Very light yellow</td></tr>
+    <tr><td>100</td><td><span class="swatch" style="background:#ffec99;"></span></td><td>#ffec99</td><td>Light pastel yellow</td></tr>
+    <tr><td>200</td><td><span class="swatch" style="background:#ffe366;"></span></td><td>#ffe366</td><td>Pale yellow</td></tr>
+    <tr><td>300</td><td><span class="swatch" style="background:#ffd933;"></span></td><td>#ffd933</td><td>Bright yellow (hover)</td></tr>
+    <tr><td>400</td><td><span class="swatch" style="background:#ecc94b;"></span></td><td>#ecc94b</td><td>Accent base, golden yellow</td></tr>
+    <tr><td>500</td><td><span class="swatch" style="background:#e6bd00;"></span></td><td>#e6bd00</td><td>Deep gold (active)</td></tr>
+    <tr><td>600</td><td><span class="swatch" style="background:#b39500;"></span></td><td>#b39500</td><td>Muted gold</td></tr>
+    <tr><td>700</td><td><span class="swatch" style="background:#806d00;"></span></td><td>#806d00</td><td>Olive gold</td></tr>
+    <tr><td>800</td><td><span class="swatch" style="background:#4d4400;"></span></td><td>#4d4400</td><td>Deep olive</td></tr>
+    <tr><td>900</td><td><span class="swatch" style="background:#1a1c00;"></span></td><td>#1a1c00</td><td>Nearly black with olive tint</td></tr>
+  </table>
+  <h3>Other Brand Colors</h3>
+  <table>
+    <tr><th>Name</th><th>Swatch</th><th>Hex Code</th><th>Description</th></tr>
+    <tr><td>Background</td><td><span class="swatch" style="background:#F5F4FA;"></span></td><td>#F5F4FA</td><td>Very pale lavender (background)</td></tr>
+    <tr><td>Surface</td><td><span class="swatch" style="background:#FFFFFF; border: 1.5px solid #d0d0d0;"></span></td><td>#FFFFFF</td><td>White (surface, cards)</td></tr>
+    <tr><td>Text Primary</td><td><span class="swatch" style="background:#2D3748;"></span></td><td>#2D3748</td><td>Main text, dark slate</td></tr>
+    <tr><td>Text Secondary</td><td><span class="swatch" style="background:#555555;"></span></td><td>#555555</td><td>Secondary text, medium grey</td></tr>
+    <tr><td>Border</td><td><span class="swatch" style="background:#E0E0E0;"></span></td><td>#E0E0E0</td><td>Light grey border</td></tr>
+    <tr><td>Success</td><td><span class="swatch" style="background:#22C55E;"></span></td><td>#22C55E</td><td>Bright green (success)</td></tr>
+    <tr><td>Error</td><td><span class="swatch" style="background:#EF4444;"></span></td><td>#EF4444</td><td>Bright red (error)</td></tr>
+    <tr><td>Info</td><td><span class="swatch" style="background:#c53030;"></span></td><td>#c53030</td><td>Strong red (info)</td></tr>
+  </table>
+
+  <h2>Fonts</h2>
+  <table>
+    <tr><th>Type</th><th>Font Family</th></tr>
+    <tr><td>Heading</td><td><span class="font-sample" style="font-family:Inter,system-ui,sans-serif;">Inter, system-ui, sans-serif</span></td></tr>
+    <tr><td>Body</td><td><span class="font-sample" style="font-family:Inter,system-ui,sans-serif;">Inter, system-ui, sans-serif</span></td></tr>
+  </table>
+
+  <h2>Font Sizes</h2>
+  <table>
+    <tr><th>Token</th><th>Size</th></tr>
+    <tr><td>xs</td><td>0.75rem</td></tr>
+    <tr><td>sm</td><td>0.875rem</td></tr>
+    <tr><td>md</td><td>1rem</td></tr>
+    <tr><td>lg</td><td>1.125rem</td></tr>
+    <tr><td>xl</td><td>1.25rem</td></tr>
+    <tr><td>2xl</td><td>1.5rem</td></tr>
+    <tr><td>3xl</td><td>1.875rem</td></tr>
+    <tr><td>4xl</td><td>2.25rem</td></tr>
+    <tr><td>5xl</td><td>3rem</td></tr>
+    <tr><td>6xl</td><td>3.75rem</td></tr>
+    <tr><td>7xl</td><td>4.5rem</td></tr>
+    <tr><td>8xl</td><td>6rem</td></tr>
+    <tr><td>9xl</td><td>8rem</td></tr>
+  </table>
+
+  <h2>Border Radii</h2>
+  <table>
+    <tr><th>Token</th><th>Radius</th><th>Sample</th></tr>
+    <tr><td>sm</td><td>6px</td><td><span class="radius-sample" style="border-radius:6px;"></span></td></tr>
+    <tr><td>md</td><td>8px</td><td><span class="radius-sample" style="border-radius:8px;"></span></td></tr>
+  </table>
+
+  <h2>Shadows</h2>
+  <table>
+    <tr><th>Token</th><th>Shadow</th><th>Sample</th></tr>
+    <tr><td>sm</td><td>0 2px 8px rgba(0,0,0,0.1)</td><td><span class="shadow-sample" style="box-shadow:0 2px 8px rgba(0,0,0,0.1);"></span></td></tr>
+    <tr><td>md</td><td>0 4px 16px rgba(0,0,0,0.2)</td><td><span class="shadow-sample" style="box-shadow:0 4px 16px rgba(0,0,0,0.2);"></span></td></tr>
+  </table>
+
+  <h2>Component Styles</h2>
+  <h3>Button</h3>
+  <ul>
+    <li><b>Base Style:</b> fontWeight: 600, borderRadius: 6px, transition: all 0.2s</li>
+    <li><b>Solid Variant:</b> bg: #2d3748 (light) / #664c81 (dark), color: white, hover: #1a202c (light) / #88729b (dark), active: #171923 (light) / #2d3748 (dark)</li>
+    <li><b>Accent Variant:</b> bg: #ecc94b, color: #2d3748, hover: #ffd933, active: #e6bd00</li>
+    <li><b>Primary Variant:</b> same as solid</li>
+    <li><b>Default:</b> variant: solid, colorScheme: primary</li>
+  </ul>
+  <h3>Badge</h3>
+  <ul>
+    <li><b>Base Style:</b> borderRadius: 6px, fontWeight: 600</li>
+    <li><b>Coach Variant:</b> bg: primary.500, color: white</li>
+    <li><b>Athlete Variant:</b> bg: accent.400, color: primary.500</li>
+  </ul>
+  <h3>Card</h3>
+  <ul>
+    <li><b>Base Style:</b> bg: surface, borderRadius: 8px, boxShadow: 0 2px 8px rgba(0,0,0,0.1), padding: 24px</li>
+  </ul>
+  <h3>Text</h3>
+  <ul>
+    <li><b>Base Style:</b> fontSize: md, color: text.primary</li>
+    <li><b>Secondary Variant:</b> color: text.secondary</li>
+  </ul>
+  <h3>Heading</h3>
+  <ul>
+    <li><b>Base Style:</b> fontWeight: bold, color: text.primary</li>
+  </ul>
+
+  <h2>Global Styles</h2>
+  <ul>
+    <li><b>Body:</b> bg: background, color: text.primary, fontFamily: Inter, system-ui, sans-serif, lineHeight: 1.55</li>
+  </ul>
+</body>
+</html> 

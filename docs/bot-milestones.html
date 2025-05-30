@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track & Field Chatbot Data Access Implementation</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #2B6CB0;
+            border-bottom: 2px solid #2B6CB0;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #2C5282;
+            margin-top: 30px;
+            border-left: 4px solid #2B6CB0;
+            padding-left: 10px;
+        }
+        h3 {
+            color: #3182CE;
+            margin-top: 20px;
+        }
+        .milestone-group {
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4299E1;
+        }
+        .milestone {
+            margin-bottom: 10px;
+        }
+        .milestone input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+        .milestone-label {
+            font-weight: 500;
+        }
+        .milestone-description {
+            font-size: 0.9rem;
+            margin-left: 30px;
+            color: #555;
+        }
+        .progress-bar-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .progress-bar {
+            height: 20px;
+            background-color: #4299E1;
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .progress-label {
+            text-align: center;
+            font-weight: bold;
+        }
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #666;
+        }
+        .status {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .not-started {
+            background-color: #CBD5E0;
+            color: #4A5568;
+        }
+        .in-progress {
+            background-color: #BEE3F8;
+            color: #2C5282;
+        }
+        .completed {
+            background-color: #C6F6D5;
+            color: #276749;
+        }
+    </style>
+</head>
+<body>
+    <h1>Universal Athlete Data Access System - Implementation Tracker</h1>
+    
+    <div class="progress-bar-container">
+        <div class="progress-bar" id="progress-bar"></div>
+    </div>
+    <p class="progress-label">Overall Progress: <span id="progress-percentage">0%</span></p>
+    
+    <h2>Phase 1: Architecture & Design (Days 1-2)</h2>
+    <div class="milestone-group">
+        <div class="milestone">
+            <input type="checkbox" id="milestone-1-1" class="milestone-checkbox">
+            <label for="milestone-1-1" class="milestone-label">Create the architecture document</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Define the overall architecture, components, interfaces, and data flow of the system</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-1-2" class="milestone-checkbox">
+            <label for="milestone-1-2" class="milestone-label">Map existing database schema</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Document all existing tables, relationships, and data structures that will be part of the system</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-1-3" class="milestone-checkbox">
+            <label for="milestone-1-3" class="milestone-label">Define interfaces and type definitions</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Create TypeScript interfaces for all data entities and service components</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-1-4" class="milestone-checkbox">
+            <label for="milestone-1-4" class="milestone-label">Design schema discovery mechanism</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Define how the system will dynamically discover and adapt to schema changes</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-1-5" class="milestone-checkbox">
+            <label for="milestone-1-5" class="milestone-label">Define extension points</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Specify how new data types and tables can be integrated into the system</p>
+        </div>
+    </div>
+    
+    <h2>Phase 2: Core Implementation (Days 3-5)</h2>
+    <div class="milestone-group">
+        <div class="milestone">
+            <input type="checkbox" id="milestone-2-1" class="milestone-checkbox">
+            <label for="milestone-2-1" class="milestone-label">Implement AthleteDataService base class</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Create the core service that will provide a unified interface to all athlete data</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-2-2" class="milestone-checkbox">
+            <label for="milestone-2-2" class="milestone-label">Develop SchemaDiscovery module</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Build the system to detect and map database tables and relationships</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-2-3" class="milestone-checkbox">
+            <label for="milestone-2-3" class="milestone-label">Build QueryBuilder component</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Implement the flexible query construction system that supports various data types</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-2-4" class="milestone-checkbox">
+            <label for="milestone-2-4" class="milestone-label">Create EntityAdapter interface</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Define and implement the adapter pattern for different data entities</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-2-5" class="milestone-checkbox">
+            <label for="milestone-2-5" class="milestone-label">Implement caching layer</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Add caching mechanisms to improve performance for frequently accessed data</p>
+        </div>
+    </div>
+    
+    <h2>Phase 3: Entity Adapters (Days 6-8)</h2>
+    <div class="milestone-group">
+        <div class="milestone">
+            <input type="checkbox" id="milestone-3-1" class="milestone-checkbox">
+            <label for="milestone-3-1" class="milestone-label">Implement ProfileAdapter</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Adapter for core profile and athlete data</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-3-2" class="milestone-checkbox">
+            <label for="milestone-3-2" class="milestone-label">Implement SleepAdapter</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Adapter for sleep tracking data</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-3-3" class="milestone-checkbox">
+            <label for="milestone-3-3" class="milestone-label">Implement PerformanceAdapter</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Adapter for athlete performance data and metrics</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-3-4" class="milestone-checkbox">
+            <label for="milestone-3-4" class="milestone-label">Implement NutritionAdapter</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Adapter for nutrition and calorie tracking</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-3-5" class="milestone-checkbox">
+            <label for="milestone-3-5" class="milestone-label">Implement WorkoutAdapter</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Adapter for workout and training data</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-3-6" class="milestone-checkbox">
+            <label for="milestone-3-6" class="milestone-label">Implement DynamicAdapter factory</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">System to dynamically create adapters for new data types</p>
+        </div>
+    </div>
+    
+    <h2>Phase 4: ChatBot Integration (Days 9-10)</h2>
+    <div class="milestone-group">
+        <div class="milestone">
+            <input type="checkbox" id="milestone-4-1" class="milestone-checkbox">
+            <label for="milestone-4-1" class="milestone-label">Create AthleteDataProvider</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Unified access point for chatbot to retrieve athlete data</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-4-2" class="milestone-checkbox">
+            <label for="milestone-4-2" class="milestone-label">Implement natural language query parser</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Convert chatbot queries into data access operations</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-4-3" class="milestone-checkbox">
+            <label for="milestone-4-3" class="milestone-label">Update TrackChatBot component</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Modify existing chatbot to use the new data access system</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-4-4" class="milestone-checkbox">
+            <label for="milestone-4-4" class="milestone-label">Refactor contextual prompt creation</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Update the prompt creation to utilize comprehensive athlete data</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-4-5" class="milestone-checkbox">
+            <label for="milestone-4-5" class="milestone-label">Add entity type detection</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Enhance chatbot to recognize different data entity types in user queries</p>
+        </div>
+    </div>
+    
+    <h2>Phase 5: Testing and Optimization (Days 11-12)</h2>
+    <div class="milestone-group">
+        <div class="milestone">
+            <input type="checkbox" id="milestone-5-1" class="milestone-checkbox">
+            <label for="milestone-5-1" class="milestone-label">Create comprehensive test suite</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Unit and integration tests for all components</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-5-2" class="milestone-checkbox">
+            <label for="milestone-5-2" class="milestone-label">Perform query optimization</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Improve query performance and efficiency</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-5-3" class="milestone-checkbox">
+            <label for="milestone-5-3" class="milestone-label">Implement error handling and resilience</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Add robust error handling and recovery mechanisms</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-5-4" class="milestone-checkbox">
+            <label for="milestone-5-4" class="milestone-label">Create documentation</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Document the system architecture, usage, and extension points</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-5-5" class="milestone-checkbox">
+            <label for="milestone-5-5" class="milestone-label">Perform security review</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Review and address potential security issues</p>
+        </div>
+    </div>
+    
+    <h2>Phase 6: Deployment and Monitoring (Day 13-14)</h2>
+    <div class="milestone-group">
+        <div class="milestone">
+            <input type="checkbox" id="milestone-6-1" class="milestone-checkbox">
+            <label for="milestone-6-1" class="milestone-label">Prepare deployment package</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Prepare the system for production deployment</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-6-2" class="milestone-checkbox">
+            <label for="milestone-6-2" class="milestone-label">Set up monitoring</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Implement logging and monitoring for the data access system</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-6-3" class="milestone-checkbox">
+            <label for="milestone-6-3" class="milestone-label">Create automated schema migration test</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Test the system's ability to adapt to schema changes</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-6-4" class="milestone-checkbox">
+            <label for="milestone-6-4" class="milestone-label">Perform final integration testing</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Test the entire system with all components integrated</p>
+        </div>
+        
+        <div class="milestone">
+            <input type="checkbox" id="milestone-6-5" class="milestone-checkbox">
+            <label for="milestone-6-5" class="milestone-label">Conduct user testing with coaches and athletes</label>
+            <span class="status not-started">Not Started</span>
+            <p class="milestone-description">Get feedback from end users on the chatbot's data access capabilities</p>
+        </div>
+    </div>
+    
+    <h2>Required Files to Implement</h2>
+    <div class="milestone-group">
+        <h3>Core Infrastructure</h3>
+        <ul>
+            <li><code>src/services/data/AthleteDataService.ts</code> - Main data service interface</li>
+            <li><code>src/services/data/SchemaDiscovery.ts</code> - Schema detection and mapping</li>
+            <li><code>src/services/data/QueryBuilder.ts</code> - Dynamic query construction</li>
+            <li><code>src/services/data/EntityRegistry.ts</code> - Registry of available data entities</li>
+        </ul>
+        
+        <h3>Entity Adapters</h3>
+        <ul>
+            <li><code>src/services/data/adapters/BaseEntityAdapter.ts</code> - Base adapter interface</li>
+            <li><code>src/services/data/adapters/ProfileAdapter.ts</code> - Profile data adapter</li>
+            <li><code>src/services/data/adapters/SleepAdapter.ts</code> - Sleep data adapter</li>
+            <li><code>src/services/data/adapters/PerformanceAdapter.ts</code> - Performance data adapter</li>
+            <li><code>src/services/data/adapters/WorkoutAdapter.ts</code> - Workout data adapter</li>
+            <li><code>src/services/data/adapters/NutritionAdapter.ts</code> - Nutrition data adapter</li>
+        </ul>
+        
+        <h3>ChatBot Integration</h3>
+        <ul>
+            <li><code>src/services/data/AthleteDataProvider.ts</code> - Data provider for ChatBot</li>
+            <li><code>src/services/data/NaturalLanguageQueryParser.ts</code> - Query parsing from natural language</li>
+        </ul>
+        
+        <h3>Testing and Documentation</h3>
+        <ul>
+            <li><code>src/services/data/tests/AthleteDataService.test.ts</code> - Test suite</li>
+            <li><code>docs/data-access-system.md</code> - System documentation</li>
+        </ul>
+    </div>
+    
+    <footer>
+        <p>Track & Field Assistant - Universal Data Access System - Implementation Plan</p>
+    </footer>
+
+    <script>
+        // Update progress bar based on checked milestones
+        function updateProgress() {
+            const checkboxes = document.querySelectorAll('.milestone-checkbox');
+            const totalMilestones = checkboxes.length;
+            let completedMilestones = 0;
+            
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    completedMilestones++;
+                    
+                    // Update status label
+                    const statusLabel = checkbox.parentElement.querySelector('.status');
+                    statusLabel.textContent = 'Completed';
+                    statusLabel.className = 'status completed';
+                } else {
+                    // Check if it's in progress
+                    const statusLabel = checkbox.parentElement.querySelector('.status');
+                    if (statusLabel.textContent === 'In Progress') {
+                        // Keep it as in progress
+                    } else {
+                        statusLabel.textContent = 'Not Started';
+                        statusLabel.className = 'status not-started';
+                    }
+                }
+            });
+            
+            const progressPercentage = totalMilestones > 0 ? Math.round((completedMilestones / totalMilestones) * 100) : 0;
+            document.getElementById('progress-percentage').textContent = `${progressPercentage}%`;
+            document.getElementById('progress-bar').style.width = `${progressPercentage}%`;
+        }
+        
+        // Mark a milestone as in progress
+        function markInProgress(id) {
+            const milestone = document.getElementById(id);
+            if (!milestone.checked) {
+                const statusLabel = milestone.parentElement.querySelector('.status');
+                statusLabel.textContent = 'In Progress';
+                statusLabel.className = 'status in-progress';
+            }
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add event listeners to all checkboxes
+            const checkboxes = document.querySelectorAll('.milestone-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', updateProgress);
+            });
+            
+            // Initial progress calculation
+            updateProgress();
+            
+            // Context menu for right-click to mark as in progress
+            document.querySelectorAll('.milestone').forEach(milestone => {
+                milestone.addEventListener('contextmenu', function(event) {
+                    event.preventDefault();
+                    const checkbox = this.querySelector('.milestone-checkbox');
+                    if (!checkbox.checked) {
+                        const statusLabel = this.querySelector('.status');
+                        if (statusLabel.textContent === 'In Progress') {
+                            statusLabel.textContent = 'Not Started';
+                            statusLabel.className = 'status not-started';
+                        } else {
+                            statusLabel.textContent = 'In Progress';
+                            statusLabel.className = 'status in-progress';
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html> 

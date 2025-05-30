@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gamification Implementation Plan - Part 5</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3, h4 {
+            color: #2c3e50;
+            margin-top: 1.5em;
+        }
+        h1 {
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            border-bottom: 1px solid #bdc3c7;
+            padding-bottom: 5px;
+        }
+        pre {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            padding: 16px;
+            overflow: auto;
+        }
+        code {
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .language-sql, .language-typescript, .language-tsx, .language-bash {
+            color: #333;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Gamification System Implementation Plan - Part 5</h1>
+    
+    <div class="section">
+        <h2>UI Components</h2>
+        <p>This section covers the implementation of the UI components for the gamification system. These components use the React hooks we defined earlier to fetch and display data.</p>
+        
+        <h3>PointsDisplay Component</h3>
+        <p>The PointsDisplay component shows an athlete's current points, level, and progress:</p>
+        <pre><code class="language-tsx">// src/features/gamification/PointsDisplay.tsx
+
+import { useEffect } from 'react';
+import { 
+  Box, 
+  Text, 
+  Flex, 
+  Progress, 
+  Stat, 
+  StatLabel, 
+  StatNumber, 
+  StatHelpText,
+  Badge,
+  useColorModeValue,
+  Tooltip
+} from '@chakra-ui/react';
+import { usePoints, useLevel } from '../../hooks/gamification';
+
+interface PointsDisplayProps {
+  athleteId: string;
+}
+
+export function PointsDisplay({ athleteId }: PointsDisplayProps) {
+  const { totalPoints, isLoading: isPointsLoading } = usePoints(athleteId);
+  const { level, title, progress, nextLevelPoints } = useLevel(totalPoints);
+
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  
+  return (
+    <Box 
+      p={4} 
+      borderRadius="md" 
+      bg={bgColor} 
+      boxShadow="sm"
+      borderWidth="1px"
+      borderColor={borderColor}
+    >
+      <Flex justify="space-between" align="center" mb={3}>
+        <Text fontWeight="bold" fontSize="lg">Points & Level</Text>
+        <Badge colorScheme="purple" fontSize="md" px={2} py={1}>{`Level ${level}`}</Badge>
+      </Flex>
+      
+      <Stat mb={3}>
+        <StatLabel>Current Points</StatLabel>
+        <StatNumber>{isPointsLoading ? '...' : totalPoints}</StatNumber>
+        <StatHelpText>{title}</StatHelpText>
+      </Stat>
+      
+      {nextLevelPoints && (
+        <Box mb={1}>
+          <Flex justify="space-between">
+            <Text fontSize="sm">Progress to Level {level + 1}</Text>
+            <Text fontSize="sm">{`${Math.round(progress)}%`}</Text>
+          </Flex>
+          <Tooltip label={`${totalPoints} / ${nextLevelPoints} points to next level`}>
+            <Progress 
+              value={progress} 
+              colorScheme="purple" 
+              size="sm" 
+              borderRadius="full"
+            />
+          </Tooltip>
+        </Box>
+      )}
+    </Box>
+  );
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h3>BadgeList Component</h3>
+        <p>The BadgeList component shows an athlete's earned badges:</p>
+        <pre><code class="language-tsx">// src/features/gamification/BadgeList.tsx
+
+import { useState } from 'react';
+import { 
+  Box, 
+  SimpleGrid, 
+  Text, 
+  Image, 
+  Flex, 
+  Badge as ChakraBadge,
+  Center,
+  useColorModeValue,
+  Spinner,
+  Button,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalCloseButton,
+  Tabs,
+  TabList,
+  Tab,
+  TabPanels,
+  TabPanel
+} from '@chakra-ui/react';
+import { useBadges } from '../../hooks/gamification';
+import type { AthleteBadge } from '../../types/gamification';
+import { format } from 'date-fns';
+
+interface BadgeCardProps {
+  badge: AthleteBadge;
+  onClick: (badge: AthleteBadge) => void;
+}
+
+function BadgeCard({ badge, onClick }: BadgeCardProps) {
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  
+  return (
+    <Box
+      borderWidth="1px"
+      borderRadius="lg"
+      borderColor={borderColor}
+      bg={bgColor}
+      p={3}
+      cursor="pointer"
+      transition="all 0.2s"
+      _hover={{ transform: 'scale(1.05)', boxShadow: 'md' }}
+      onClick={() => onClick(badge)}
+    >
+      <Center mb={2}>
+        <Image 
+          src={badge.badge?.icon_url || '/badges/default-badge.svg'} 
+          alt={badge.badge?.name || 'Badge'} 
+          boxSize="60px" 
+          fallbackSrc="https://via.placeholder.com/60?text=Badge"
+        />
+      </Center>
+      <Text fontSize="sm" fontWeight="semibold" textAlign="center" noOfLines={1}>
+        {badge.badge?.name || 'Badge'}
+      </Text>
+      <Text fontSize="xs" color="gray.500" textAlign="center" mt={1}>
+        {format(new Date(badge.awarded_at), 'MMM d, yyyy')}
+      </Text>
+    </Box>
+  );
+}
+
+interface BadgeListProps {
+  athleteId: string;
+}
+
+export function BadgeList({ athleteId }: BadgeListProps) {
+  const { badges, isLoading } = useBadges(athleteId);
+  const [selectedBadge, setSelectedBadge] = useState<AthleteBadge | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  
+  const handleBadgeClick = (badge: AthleteBadge) => {
+    setSelectedBadge(badge);
+  };
+  
+  const handleCloseModal = () => {
+    setSelectedBadge(null);
+  };
+  
+  const filterBadgesByCategory = (category: string | null) => {
+    if (!category) return badges;
+    return badges.filter(badge => badge.badge?.category === category);
+  };
+  
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  
+  return (
+    <Box
+      p={4}
+      borderRadius="md"
+      bg={bgColor}
+      boxShadow="sm"
+      borderWidth="1px"
+      borderColor={borderColor}
+    >
+      <Text fontWeight="bold" fontSize="lg" mb={4}>Earned Badges</Text>
+      
+      {isLoading ? (
+        <Center py={8}>
+          <Spinner />
+        </Center>
+      ) : badges.length === 0 ? (
+        <Center py={8}>
+          <Text color="gray.500">No badges earned yet. Keep up the good work!</Text>
+        </Center>
+      ) : (
+        <>
+          <Tabs variant="soft-rounded" colorScheme="purple" size="sm" mb={4}>
+            <TabList>
+              <Tab onClick={() => setCategoryFilter(null)}>All</Tab>
+              <Tab onClick={() => setCategoryFilter('workout')}>Workout</Tab>
+              <Tab onClick={() => setCategoryFilter('nutrition')}>Nutrition</Tab>
+              <Tab onClick={() => setCategoryFilter('sleep')}>Sleep</Tab>
+              <Tab onClick={() => setCategoryFilter('streak')}>Streaks</Tab>
+            </TabList>
+          </Tabs>
+
+          <SimpleGrid columns={[2, 3, 4]} spacing={3}>
+            {filterBadgesByCategory(categoryFilter).map((badge) => (
+              <BadgeCard
+                key={badge.badge_id}
+                badge={badge}
+                onClick={handleBadgeClick}
+              />
+            ))}
+          </SimpleGrid>
+        </>
+      )}
+      
+      {selectedBadge && (
+        <Modal isOpen={true} onClose={handleCloseModal}>
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader>{selectedBadge.badge?.name}</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody pb={6}>
+              <Center mb={4}>
+                <Image 
+                  src={selectedBadge.badge?.icon_url || '/badges/default-badge.svg'} 
+                  alt={selectedBadge.badge?.name || 'Badge'} 
+                  boxSize="120px" 
+                  fallbackSrc="https://via.placeholder.com/120?text=Badge"
+                />
+              </Center>
+              <Text mb={3}>{selectedBadge.badge?.description}</Text>
+              <Text fontSize="sm" color="gray.500">
+                Earned on {format(new Date(selectedBadge.awarded_at), 'MMMM d, yyyy')}
+              </Text>
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      )}
+    </Box>
+  );
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h3>StreakTracker Component</h3>
+        <p>The StreakTracker component displays an athlete's activity streak:</p>
+        <pre><code class="language-tsx">// src/features/gamification/StreakTracker.tsx
+
+import { 
+  Box, 
+  Text, 
+  Flex, 
+  CircularProgress, 
+  CircularProgressLabel,
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatHelpText,
+  useColorModeValue
+} from '@chakra-ui/react';
+import { FaFire } from 'react-icons/fa';
+import { useStreak } from '../../hooks/gamification';
+import { format, isToday } from 'date-fns';
+
+interface StreakTrackerProps {
+  athleteId: string;
+}
+
+export function StreakTracker({ athleteId }: StreakTrackerProps) {
+  const { streak, isLoading } = useStreak(athleteId);
+  
+  const currentStreak = streak?.current_streak || 0;
+  const longestStreak = streak?.longest_streak || 0;
+  const lastActivityDate = streak?.last_activity_date ? new Date(streak.last_activity_date) : null;
+  
+  const isActiveToday = lastActivityDate && isToday(lastActivityDate);
+  
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const fireColor = isActiveToday ? 'orange.500' : 'gray.400';
+  
+  const streakPercentage = Math.min(
+    Math.round((currentStreak / (longestStreak > 0 ? longestStreak : 7)) * 100),
+    100
+  );
+  
+  return (
+    <Box
+      p={4}
+      borderRadius="md"
+      bg={bgColor}
+      boxShadow="sm"
+      borderWidth="1px"
+      borderColor={borderColor}
+    >
+      <Text fontWeight="bold" fontSize="lg" mb={4}>Activity Streak</Text>
+      
+      <Flex justify="space-between">
+        <Box flex="1">
+          <Stat>
+            <StatLabel>Current Streak</StatLabel>
+            <StatNumber>
+              <Flex align="center">
+                {isLoading ? '...' : currentStreak}
+                <Box color={fireColor} ml={2}>
+                  <FaFire size={isActiveToday ? 24 : 20} />
+                </Box>
+              </Flex>
+            </StatNumber>
+            <StatHelpText>
+              {isActiveToday ? 'Active today!' : lastActivityDate 
+                ? `Last active ${format(lastActivityDate, 'MMM d')}` 
+                : 'No activity yet'}
+            </StatHelpText>
+          </Stat>
+        </Box>
+        
+        <Box flex="1">
+          <Flex justify="center" align="center" h="100%">
+            <CircularProgress 
+              value={streakPercentage} 
+              color="purple.400" 
+              size="100px"
+            >
+              <CircularProgressLabel>{longestStreak}</CircularProgressLabel>
+            </CircularProgress>
+          </Flex>
+          <Text textAlign="center" fontSize="sm" mt={2}>Best Streak</Text>
+        </Box>
+      </Flex>
+    </Box>
+  );
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h3>Leaderboard Component</h3>
+        <p>The Leaderboard component shows top athletes ranked by points:</p>
+        <pre><code class="language-tsx">// src/features/gamification/Leaderboard.tsx
+
+import { 
+  Box, 
+  Text, 
+  Flex, 
+  Avatar, 
+  List,
+  ListItem,
+  Badge,
+  useColorModeValue,
+  Spinner,
+  Center
+} from '@chakra-ui/react';
+import { useLeaderboard } from '../../hooks/gamification';
+
+interface LeaderboardProps {
+  teamId?: string;
+  limit?: number;
+}
+
+export function Leaderboard({ teamId, limit = 5 }: LeaderboardProps) {
+  const { leaderboard, isLoading } = useLeaderboard(teamId, limit);
+  
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const highlightColor = useColorModeValue('purple.50', 'purple.900');
+  
+  return (
+    <Box
+      p={4}
+      borderRadius="md"
+      bg={bgColor}
+      boxShadow="sm"
+      borderWidth="1px"
+      borderColor={borderColor}
+    >
+      <Text fontWeight="bold" fontSize="lg" mb={4}>
+        {teamId ? 'Team Leaderboard' : 'Overall Leaderboard'}
+      </Text>
+      
+      {isLoading ? (
+        <Center py={6}>
+          <Spinner />
+        </Center>
+      ) : leaderboard.length === 0 ? (
+        <Center py={6}>
+          <Text color="gray.500">No data available</Text>
+        </Center>
+      ) : (
+        <List spacing={2}>
+          {leaderboard.map((entry) => (
+            <ListItem 
+              key={entry.athlete_id}
+              p={2}
+              borderRadius="md"
+              bg={entry.rank === 1 ? highlightColor : 'transparent'}
+              borderWidth={entry.rank === 1 ? '1px' : '0'}
+              borderColor={borderColor}
+            >
+              <Flex align="center">
+                <Badge 
+                  borderRadius="full"
+                  px={2}
+                  mr={3}
+                  colorScheme={entry.rank === 1 ? 'yellow' : entry.rank <= 3 ? 'purple' : 'gray'}
+                >
+                  {entry.rank}
+                </Badge>
+                
+                <Avatar 
+                  size="sm" 
+                  name={`${entry.first_name} ${entry.last_name}`} 
+                  src={entry.avatar_url || undefined}
+                  mr={3}
+                />
+                
+                <Text flex="1">
+                  {entry.first_name} {entry.last_name}
+                </Text>
+                
+                <Text fontWeight="bold">{entry.total_points}</Text>
+              </Flex>
+            </ListItem>
+          ))}
+        </List>
+      )}
+    </Box>
+  );
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h3>Integration in Dashboard</h3>
+        <p>Example of integrating the gamification components into the athlete dashboard:</p>
+        <pre><code class="language-tsx">// Example integration in athlete dashboard
+
+import { Box, SimpleGrid, Heading } from '@chakra-ui/react';
+import { 
+  PointsDisplay, 
+  BadgeList, 
+  StreakTracker, 
+  Leaderboard 
+} from '../features/gamification';
+import { useAuth } from '../contexts/AuthContext';
+import type { AthleteWithProfile } from '../services/dbSchema';
+
+interface AthleteDashboardProps {
+  athleteProfile?: AthleteWithProfile;
+}
+
+export function AthleteDashboard({ athleteProfile }: AthleteDashboardProps) {
+  const { user } = useAuth();
+  const athleteId = user?.id;
+  
+  if (!athleteId) {
+    return <Box>Please log in to see your dashboard</Box>;
+  }
+  
+  return (
+    <Box>
+      {/* Existing dashboard components */}
+      <Heading size="lg" mb={6}>Your Dashboard</Heading>
+      
+      {/* Workout, nutrition, sleep stats components */}
+      {/* ... */}
+      
+      {/* Gamification section */}
+      <Heading size="md" mt={8} mb={4}>Progress & Achievements</Heading>
+      
+      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={6}>
+        <PointsDisplay athleteId={athleteId} />
+        <StreakTracker athleteId={athleteId} />
+      </SimpleGrid>
+      
+      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+        <Leaderboard teamId={athleteProfile?.team_id} />
+        <BadgeList athleteId={athleteId} />
+      </SimpleGrid>
+    </Box>
+  );
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h3>Final Implementation Steps</h3>
+        <p>After implementing all the components above, follow these final steps to complete the gamification system:</p>
+        
+        <h4>1. Create database migration</h4>
+        <pre><code class="language-bash"># Create the migration file
+touch web/src/db/gamification_tables.sql
+
+# Add the SQL schema and run the migration
+node web/src/db/run-migrations.js web/src/db/gamification_tables.sql</code></pre>
+
+        <h4>2. Populate badge definitions</h4>
+        <pre><code class="language-typescript">// In your app initialization code or admin section
+import { populateBadgeDefinitions } from '../services/gamificationService';
+
+// Initialize badges
+populateBadgeDefinitions();</code></pre>
+
+        <h4>3. Export the components</h4>
+        <pre><code class="language-typescript">// src/features/gamification/index.ts
+
+export { PointsDisplay } from './PointsDisplay';
+export { BadgeList } from './BadgeList';
+export { StreakTracker } from './StreakTracker';
+export { Leaderboard } from './Leaderboard';</code></pre>
+
+        <h4>4. Integrate with existing forms</h4>
+        <p>Add point-awarding calls to workout, nutrition, and sleep tracking forms as shown in the integration examples.</p>
+
+        <h4>5. Add to dashboard</h4>
+        <p>Integrate the gamification components into the athlete dashboard for visibility.</p>
+    </div>
+
+    <div class="section">
+        <h3>Conclusion</h3>
+        <p>This implementation of a gamification system for your Track & Field app includes:</p>
+        <ul>
+            <li>Points system for tracking athlete engagement</li>
+            <li>Badges for rewarding achievements</li>
+            <li>Streak tracking to encourage consistent activity</li>
+            <li>Leaderboards to foster healthy competition</li>
+            <li>A flexible, modular design that integrates with existing features</li>
+            <li>Proper security with Row Level Security (RLS) policies</li>
+        </ul>
+        <p>The system is designed to be engaging without over-engineering, providing just enough gamification elements to motivate athletes while keeping the focus on their training progress.</p>
+    </div>
+</body>
+</html> 

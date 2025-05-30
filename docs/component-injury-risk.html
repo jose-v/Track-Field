@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Injury Risk Analysis Component - Development Plan</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            line-height: 1.6; 
+            margin: 0 auto; 
+            max-width: 900px; 
+            padding: 20px; 
+            color: #333; 
+        }
+        h1, h2, h3, h4 { 
+            color: #2c3e50; 
+            margin-top: 1.5em; 
+        }
+        h1 { 
+            border-bottom: 2px solid #3498db; 
+            padding-bottom: 10px; 
+            text-align: center; 
+        }
+        h2 { 
+            border-bottom: 1px solid #bdc3c7; 
+            padding-bottom: 5px; 
+        }
+        h3 { 
+            color: #2980b9; 
+        }
+        ul, ol { 
+            margin-bottom: 1em; 
+            padding-left: 20px; 
+        }
+        li { 
+            margin-bottom: 0.5em; 
+        }
+        strong { 
+            color: #34495e; 
+        }
+        code { 
+            background-color: #f0f0f0; 
+            padding: 2px 4px; 
+            border-radius: 3px; 
+            font-family: 'Courier New', Courier, monospace; 
+        }
+        .note { 
+            background-color: #eaf6fb; 
+            border-left: 4px solid #3498db; 
+            padding: 10px 15px; 
+            margin: 15px 0; 
+        }
+        .warning { 
+            background-color: #fffbe6; 
+            border-left: 4px solid #f1c40f; 
+            padding: 10px 15px; 
+            margin: 15px 0; 
+        }
+        .highlight { 
+            color: #e74c3c; 
+            font-weight: bold; 
+        }
+        .section-intro { 
+            font-style: italic; 
+            color: #555; 
+            margin-bottom: 1em;
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-bottom: 1em; 
+        }
+        th, td { 
+            border: 1px solid #ddd; 
+            padding: 8px; 
+            text-align: left; 
+        }
+        th { 
+            background-color: #f2f2f2; 
+        }
+        .progress-section {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .progress-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+        .checkbox {
+            width: 18px;
+            height: 18px;
+            margin-right: 10px;
+            accent-color: #3498db;
+        }
+        .progress-item label {
+            cursor: pointer;
+            flex: 1;
+        }
+        .completed {
+            text-decoration: line-through;
+            color: #6c757d;
+        }
+        .summary-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .summary-box h3 {
+            color: white;
+            margin-top: 0;
+        }
+        .phase-header {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin: 20px 0 10px 0;
+        }
+        .visual-reference {
+            margin-bottom: 20px;
+        }
+        .image-container {
+            margin-bottom: 10px;
+        }
+        .image-container img {
+            width: 100%;
+            max-width: 800px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .image-caption {
+            font-size: 0.8em;
+            color: #666;
+        }
+  </style>
+</head>
+<body>
+
+    <h1>Injury Risk Analysis Component - Development Plan</h1>
+
+    <div class="visual-reference">
+        <h3>🎯 Visual Reference - Target Design</h3>
+        <div class="image-container">
+            <img src="images/injury-risk-dashboard-reference.png" alt="Injury Risk Dashboard Reference Design" style="width: 100%; max-width: 800px; border: 2px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+            <p class="image-caption">Reference design showing the injury risk dashboard with fatigue-to-fitness ratio tracking, color-coded risk indicators, and trend visualization that we aim to implement.</p>
+        </div>
+    </div>
+
+    <div class="summary-box">
+        <h3>📊 Executive Summary</h3>
+        <p><strong>Purpose:</strong> This document outlines the comprehensive development plan for implementing an AI-driven Injury Risk Analysis system within the Track & Field application. The system will monitor athlete wellness, training load, and recovery metrics to provide actionable insights for injury prevention.</p>
+        
+        <p><strong>Key Features:</strong></p>
+        <ul>
+            <li>Real-time fatigue-to-fitness ratio monitoring</li>
+            <li>Daily wellness surveys and RPE tracking</li>
+            <li>AI-powered risk assessment and recommendations</li>
+            <li>Visual dashboard with color-coded risk indicators</li>
+            <li>Integration with existing workout and sleep tracking</li>
+        </ul>
+        
+        <p><strong>Target Users:</strong> Coaches and athletes seeking data-driven injury prevention and training optimization.</p>
+    </div>
+
+    <div class="note">
+        <p><strong>How to Use:</strong> This document serves as a step-by-step development guide. Check off completed items as you progress through implementation. Each phase builds upon the previous one, ensuring a systematic approach to building this complex feature.</p>
+    </div>
+
+    <h2>🎯 Core Project Vision & Context</h2>
+    <p class="section-intro">Building upon the existing Track & Field platform to add advanced injury prevention capabilities.</p>
+    
+    <ul>
+        <li><strong>Mission:</strong> Create an AI-powered injury risk monitoring system that helps coaches and athletes make data-driven training decisions to prevent injuries and optimize performance.</li>
+        <li><strong>Integration Approach:</strong> Seamlessly integrate with existing workout logging, sleep tracking, and athlete management systems.</li>
+        <li><strong>AI Enhancement:</strong> Leverage the Universal Athlete Data Access System for comprehensive risk analysis and personalized recommendations.</li>
+    </ul>
+
+    <h2>📋 Development Phases & Progress Tracking</h2>
+
+    <div class="phase-header">
+        <h3>Phase 1: Data Foundation & Schema Implementation</h3>
+    </div>
+    
+    <div class="progress-section">
+        <h4>Database Schema Setup</h4>
+        <div class="progress-item">
+            <input type="checkbox" id="wellness-table" class="checkbox">
+            <label for="wellness-table">Create <code>athlete_wellness_surveys</code> table with fatigue, soreness, stress, motivation, and overall feeling metrics (1-10 scale)</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="training-load-table" class="checkbox">
+            <label for="training-load-table">Create <code>training_load_entries</code> table for RPE tracking and load calculations</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="heart-rate-schema" class="checkbox">
+            <label for="heart-rate-schema">Plan <code>heart_rate_data</code> table schema for future wearable integration</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="rls-policies" class="checkbox">
+            <label for="rls-policies">Implement Row Level Security (RLS) policies for sensitive wellness data</label>
+        </div>
+    </div>
+
+    <div class="progress-section">
+        <h4>RPE Integration</h4>
+        <div class="progress-item">
+            <input type="checkbox" id="rpe-workout-logging" class="checkbox">
+            <label for="rpe-workout-logging">Add RPE (Rate of Perceived Exertion) input to existing workout logging flow</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="rpe-validation" class="checkbox">
+            <label for="rpe-validation">Implement RPE validation and user guidance (1-10 scale with descriptions)</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="rpe-storage" class="checkbox">
+            <label for="rpe-storage">Connect RPE data to training load calculations</label>
+        </div>
+    </div>
+
+    <div class="phase-header">
+        <h3>Phase 2: User Interface Development</h3>
+    </div>
+
+    <div class="progress-section">
+        <h4>Daily Wellness Survey UI</h4>
+        <div class="progress-item">
+            <input type="checkbox" id="wellness-form" class="checkbox">
+            <label for="wellness-form">Create intuitive daily wellness survey form component</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="wellness-validation" class="checkbox">
+            <label for="wellness-validation">Implement form validation and user-friendly input methods (sliders, quick buttons)</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="wellness-reminders" class="checkbox">
+            <label for="wellness-reminders">Add daily reminder system and gamification integration</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="wellness-history" class="checkbox">
+            <label for="wellness-history">Create wellness history view for athletes to track trends</label>
+        </div>
+    </div>
+
+    <div class="progress-section">
+        <h4>Injury Risk Dashboard</h4>
+        <div class="progress-item">
+            <input type="checkbox" id="risk-matrix" class="checkbox">
+            <label for="risk-matrix">Build color-coded risk matrix display (Green: 0.8-1.3, Yellow: 1.3-1.5, Red: >1.5, Gray: <0.8)</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="trend-charts" class="checkbox">
+            <label for="trend-charts">Implement trend visualization for ATL, CTL, and ACWR over time</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="risk-insights" class="checkbox">
+            <label for="risk-insights">Create actionable insights panel with specific recommendations</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="drill-down" class="checkbox">
+            <label for="drill-down">Add drill-down capability to explore contributing factors</label>
+        </div>
+    </div>
+
+    <div class="phase-header">
+        <h3>Phase 3: Calculation Engine & Backend Logic</h3>
+    </div>
+
+    <div class="progress-section">
+        <h4>Training Load Calculations</h4>
+        <div class="progress-item">
+            <input type="checkbox" id="daily-load" class="checkbox">
+            <label for="daily-load">Implement daily training load calculation (sRPE = RPE × duration)</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="atl-calculation" class="checkbox">
+            <label for="atl-calculation">Build Acute Training Load (ATL) calculation - 7-day rolling average</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="ctl-calculation" class="checkbox">
+            <label for="ctl-calculation">Build Chronic Training Load (CTL) calculation - 28-day rolling average</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="acwr-calculation" class="checkbox">
+            <label for="acwr-calculation">Implement ACWR (Acute:Chronic Workload Ratio) calculation - ATL/CTL</label>
+        </div>
+    </div>
+
+    <div class="progress-section">
+        <h4>Backend Processing</h4>
+        <div class="progress-item">
+            <input type="checkbox" id="edge-function" class="checkbox">
+            <label for="edge-function">Create Supabase Edge Function for risk calculations</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="scheduled-jobs" class="checkbox">
+            <label for="scheduled-jobs">Implement scheduled jobs for daily risk assessment updates</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="data-validation" class="checkbox">
+            <label for="data-validation">Add data validation and error handling for calculation accuracy</label>
+        </div>
+    </div>
+
+    <div class="phase-header">
+        <h3>Phase 4: AI Integration & Advanced Features</h3>
+    </div>
+
+    <div class="progress-section">
+        <h4>AI-Powered Analysis</h4>
+        <div class="progress-item">
+            <input type="checkbox" id="pattern-detection" class="checkbox">
+            <label for="pattern-detection">Integrate AI for pattern recognition in wellness and load data</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="anomaly-detection" class="checkbox">
+            <label for="anomaly-detection">Implement anomaly detection for sudden wellness changes</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="personalized-recommendations" class="checkbox">
+            <label for="personalized-recommendations">Create AI-generated personalized recovery and training recommendations</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="natural-language" class="checkbox">
+            <label for="natural-language">Add natural language explanations for risk factors via AI assistant</label>
+        </div>
+    </div>
+
+    <div class="progress-section">
+        <h4>Advanced Dashboard Features</h4>
+        <div class="progress-item">
+            <input type="checkbox" id="contextual-insights" class="checkbox">
+            <label for="contextual-insights">Implement contextual risk explanations (e.g., "Risk elevated due to training spike + poor sleep")</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="coach-alerts" class="checkbox">
+            <label for="coach-alerts">Create automated alerts for coaches when athletes enter high-risk zones</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="team-overview" class="checkbox">
+            <label for="team-overview">Build team-wide risk overview for coaches managing multiple athletes</label>
+        </div>
+    </div>
+
+    <div class="phase-header">
+        <h3>Phase 5: Testing, Compliance & Deployment</h3>
+    </div>
+
+    <div class="progress-section">
+        <h4>Quality Assurance</h4>
+        <div class="progress-item">
+            <input type="checkbox" id="calculation-testing" class="checkbox">
+            <label for="calculation-testing">Comprehensive testing of all calculation algorithms</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="ui-testing" class="checkbox">
+            <label for="ui-testing">User interface testing across different devices and scenarios</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="data-accuracy" class="checkbox">
+            <label for="data-accuracy">Validate data accuracy and calculation precision</label>
+        </div>
+    </div>
+
+    <div class="progress-section">
+        <h4>Compliance & Ethics</h4>
+        <div class="progress-item">
+            <input type="checkbox" id="disclaimers" class="checkbox">
+            <label for="disclaimers">Add prominent disclaimers that this is an indicator tool, not medical diagnosis</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="privacy-compliance" class="checkbox">
+            <label for="privacy-compliance">Ensure GDPR/CCPA compliance for sensitive health data</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="user-consent" class="checkbox">
+            <label for="user-consent">Implement clear consent mechanisms for data collection and processing</label>
+        </div>
+        <div class="progress-item">
+            <input type="checkbox" id="educational-materials" class="checkbox">
+            <label for="educational-materials">Create educational materials for responsible interpretation of metrics</label>
+        </div>
+    </div>
+
+    <h2>🔧 Technical Implementation Details</h2>
+
+    <h3>Database Schema Specifications</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Table</th>
+                <th>Key Columns</th>
+                <th>Purpose</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>athlete_wellness_surveys</code></td>
+                <td>athlete_id, survey_date, fatigue_level, muscle_soreness, stress_level, motivation_level, overall_feeling</td>
+                <td>Daily wellness tracking (all levels 1-10 scale)</td>
+            </tr>
+            <tr>
+                <td><code>training_load_entries</code></td>
+                <td>athlete_id, workout_id, date, duration_minutes, rpe, training_load</td>
+                <td>Training load calculation and RPE tracking</td>
+            </tr>
+            <tr>
+                <td><code>heart_rate_data</code></td>
+                <td>athlete_id, measurement_date, resting_hr, hrv_score</td>
+                <td>Future wearable integration</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Risk Calculation Formulas</h3>
+    <ul>
+        <li><strong>Daily Training Load:</strong> sRPE = RPE × Duration (minutes)</li>
+        <li><strong>Acute Training Load (ATL):</strong> 7-day rolling average of daily training load</li>
+        <li><strong>Chronic Training Load (CTL):</strong> 28-day rolling average of daily training load</li>
+        <li><strong>ACWR (Fatigue:Fitness Ratio):</strong> ATL ÷ CTL</li>
+    </ul>
+
+    <h3>Risk Zone Classifications</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>ACWR Range</th>
+                <th>Risk Level</th>
+                <th>Color Code</th>
+                <th>Recommendation</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>&lt; 0.8</td>
+                <td>Undertraining</td>
+                <td>Gray</td>
+                <td>Consider increasing training load</td>
+            </tr>
+            <tr>
+                <td>0.8 - 1.3</td>
+                <td>Optimal</td>
+                <td>Green</td>
+                <td>Maintain current training approach</td>
+            </tr>
+            <tr>
+                <td>1.3 - 1.5</td>
+                <td>Overtraining Risk</td>
+                <td>Yellow</td>
+                <td>Monitor closely, consider recovery</td>
+            </tr>
+            <tr>
+                <td>&gt; 1.5</td>
+                <td>High Injury Risk</td>
+                <td>Red</td>
+                <td>Reduce training load, prioritize recovery</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="warning">
+        <p><strong>⚠️ Critical Considerations:</strong></p>
+        <ul>
+            <li><strong>Medical Disclaimer:</strong> This system provides risk indicators only and does not replace professional medical advice</li>
+            <li><strong>Data Privacy:</strong> Implement robust security for sensitive wellness and health data</li>
+            <li><strong>User Education:</strong> Provide clear guidance on interpreting and acting on risk assessments</li>
+            <li><strong>Gradual Rollout:</strong> Consider beta testing with select coaches and athletes before full deployment</li>
+        </ul>
+    </div>
+
+    <div class="note">
+        <p><strong>Next Steps:</strong> Begin with Phase 1 database schema implementation. Each phase should be thoroughly tested before proceeding to the next. Regular consultation with sports science professionals is recommended to validate the approach and calculations.</p>
+    </div>
+
+    <script>
+        // Save checkbox states to localStorage
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkboxes = document.querySelectorAll('.checkbox');
+            
+            // Load saved states
+            checkboxes.forEach(checkbox => {
+                const saved = localStorage.getItem('injury-risk-' + checkbox.id);
+                if (saved === 'true') {
+                    checkbox.checked = true;
+                    checkbox.parentElement.classList.add('completed');
+                }
+            });
+            
+            // Save states on change
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    localStorage.setItem('injury-risk-' + this.id, this.checked);
+                    if (this.checked) {
+                        this.parentElement.classList.add('completed');
+                    } else {
+                        this.parentElement.classList.remove('completed');
+                    }
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>

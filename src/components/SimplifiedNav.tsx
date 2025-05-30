@@ -56,6 +56,11 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   
+  // Menu styling to match public pages
+  const menuTextColor = useColorModeValue('gray.700', 'gray.100');
+  const menuItemHoverBg = useColorModeValue('blue.50', 'blue.700');
+  const menuItemHoverColor = useColorModeValue('blue.500', 'blue.300');
+  
   // State for notifications
   const [notificationCount, setNotificationCount] = useState(0);
   
@@ -129,7 +134,7 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
       w={`calc(100% - ${sidebarWidth}px)`}
       right="0"
       top="0"
-      zIndex={10}
+      zIndex={1001}
       py={3}
       px={6}
       transition="width 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
@@ -196,14 +201,43 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
               >
                 <HamburgerIcon boxSize={6} color="gray.600" />
               </MenuButton>
-              <MenuList>
+              <MenuList zIndex={9999}>
                 <MenuItem as={RouterLink} 
-                  to={profile?.role === 'coach' ? '/coach/profile' : profile?.role === 'athlete' ? '/athlete/profile' : '/profile'}>
+                  to={profile?.role === 'coach' ? '/coach/profile' : profile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
+                  color={menuTextColor}
+                  _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
+                  _focus={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
+                >
                   My Profile
                 </MenuItem>
-                <MenuItem as={RouterLink} to="/settings">Settings</MenuItem>
-                <MenuItem onClick={showFeedbackModal}>Give Feedback</MenuItem>
-                <MenuItem onClick={signOut}>Sign out</MenuItem>
+                <MenuItem as={RouterLink} to="/account"
+                  color={menuTextColor}
+                  _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
+                  _focus={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
+                >
+                  Account & Billing
+                </MenuItem>
+                <MenuItem as={RouterLink} to="/settings"
+                  color={menuTextColor}
+                  _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
+                  _focus={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
+                >
+                  Settings
+                </MenuItem>
+                <MenuItem onClick={showFeedbackModal}
+                  color={menuTextColor}
+                  _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
+                  _focus={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
+                >
+                  Give Feedback
+                </MenuItem>
+                <MenuItem onClick={signOut}
+                  color={menuTextColor}
+                  _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
+                  _focus={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
+                >
+                  Sign out
+                </MenuItem>
               </MenuList>
             </Menu>
           )}

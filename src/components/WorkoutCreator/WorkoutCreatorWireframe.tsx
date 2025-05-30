@@ -78,6 +78,10 @@ interface SelectedExercise extends Exercise {
   instanceId: string;
   sets?: string;
   reps?: string;
+  weight?: string;
+  distance?: string;
+  rest?: string;
+  rpe?: string;
   notes?: string;
 }
 
@@ -207,6 +211,10 @@ const WorkoutCreatorWireframe: React.FC = () => {
       instanceId: `${exercise.id}-${Date.now()}-${Math.random()}`,
       sets: '3',
       reps: '10',
+      weight: '',
+      distance: '',
+      rest: '',
+      rpe: '',
       notes: '',
     };
     setSelectedExercises(prev => ({
@@ -336,7 +344,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
       </Box>
 
       {/* Step Header Card - with top margin to account for fixed progress bar */}
-      <Card variant="outline" shadow="none" mb={2} mt="80px" mx={8} mr={12} bg={cardBg} borderColor={borderColor}>
+      <Card variant="outline" shadow="none" mb={2} mt="80px" mx={6} bg={cardBg} borderColor={borderColor}>
         <CardBody p={4}>
           <VStack spacing={4} align="stretch" w="100%">
             <HStack justify="space-between" align="center" w="100%">
@@ -406,6 +414,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
       borderTop="2px solid" 
       borderTopColor={borderColor} 
       p={6} 
+      px={6}
       zIndex="999"
       transition="left 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
     >
@@ -599,7 +608,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
       {renderStepHeader()}
       
       {/* Step Content - with bottom padding to account for fixed bottom nav */}
-      <Box position="relative" w="100%" pb="220px" pl={8} pr={12} bg={bgColor} height={`calc(100vh - 290px)`} overflow="hidden">
+      <Box position="relative" w="100%" pb="220px" px={6} bg={bgColor} height={`calc(100vh - 290px)`} overflow="hidden">
         {renderCurrentStep()}
       </Box>
 

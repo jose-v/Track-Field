@@ -15,6 +15,7 @@ import RoleDashboardRouter from '../pages/RoleDashboardRouter';
 import Loop from '../pages/Loop';
 import LoopRouteWrapper from '../pages/LoopRouteWrapper';
 import WorkoutCreatorDemo from '../pages/WorkoutCreatorDemo';
+import Account from '../pages/Account';
 
 // Coach pages
 import { CoachDashboard } from '../pages/coach/Dashboard';
@@ -99,6 +100,7 @@ export default function AppRoutes() {
         <Route path="/coach/loop" element={<PrivateRoute><Loop /></PrivateRoute>} />
         <Route path="/coach/workout-creator-demo" element={<PrivateRoute><WorkoutCreatorDemo /></PrivateRoute>} />
         <Route path="/coach/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
+        <Route path="/account" element={<PrivateRoute><Account /></PrivateRoute>} />
       </Route>
 
       {/* Athlete Routes - With Feedback */}
@@ -117,6 +119,7 @@ export default function AppRoutes() {
         <Route path="/gamification" element={<PrivateRoute><GamificationTestPage /></PrivateRoute>} />
         <Route path="/athlete/workout-creator-demo" element={<PrivateRoute><WorkoutCreatorDemo /></PrivateRoute>} />
         <Route path="/athlete/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
+        <Route path="/account" element={<PrivateRoute><Account /></PrivateRoute>} />
       </Route>
 
       {/* Loop Feature Routes (Accessible to both coaches and athletes) */}

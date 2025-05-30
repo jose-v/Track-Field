@@ -17,6 +17,10 @@ export interface SelectedExercise extends Exercise {
   instanceId: string;
   sets?: string;
   reps?: string;
+  weight?: string;
+  distance?: string;
+  rest?: string;
+  rpe?: string;
   notes?: string;
 }
 

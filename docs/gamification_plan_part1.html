@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gamification Implementation Plan - Part 1</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3, h4 {
+            color: #2c3e50;
+            margin-top: 1.5em;
+        }
+        h1 {
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            border-bottom: 1px solid #bdc3c7;
+            padding-bottom: 5px;
+        }
+        pre {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            padding: 16px;
+            overflow: auto;
+        }
+        code {
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .language-sql, .language-typescript, .language-tsx, .language-bash {
+            color: #333;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Gamification System Implementation Plan</h1>
+    
+    <div class="section">
+        <h2>Introduction</h2>
+        <p>This document outlines the implementation of a gamification system for our Track & Field app. The goal is to introduce a Points & Badges system with social visibility to drive engagement without over-engineering.</p>
+    </div>
+
+    <div class="section">
+        <h2>Requirements</h2>
+        <p>The original requirements from the user were:</p>
+        <blockquote>
+            <p>We will be creating a new component for Gamification of our app:
+            Introduce a Points & Badges system with social visibility—this drives engagement without over-engineering.</p>
+        </blockquote>
+    </div>
+
+    <div class="section">
+        <h2>Core Concepts</h2>
+        
+        <h3>Points</h3>
+        <ul>
+            <li>Award for every workout session logged, eating entry, or sleep record</li>
+            <li>Bonus for streaks (e.g. +10 points after 7 consecutive days)</li>
+        </ul>
+
+        <h3>Badges & Levels</h3>
+        <ul>
+            <li>Predefined badges (e.g. "First 5 Workouts", "7-Day Streak", "1000 Calories Tracked")</li>
+            <li>Levels that unlock based on total points</li>
+        </ul>
+
+        <h3>Streak Counter</h3>
+        <ul>
+            <li>Tracks consecutive days with at least one entry in each category (workout, nutrition, sleep)</li>
+        </ul>
+
+        <h3>Leaderboard</h3>
+        <ul>
+            <li>Overall and team leaderboards showing top point-earners</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Component Structure</h2>
+        <p>The gamification system will consist of the following components:</p>
+        <ul>
+            <li><strong>&lt;PointsDisplay athleteId /&gt;</strong> - Shows current points, level, and progress bar to next level</li>
+            <li><strong>&lt;BadgeList athleteId /&gt;</strong> - Renders earned badges with icons and dates awarded</li>
+            <li><strong>&lt;StreakTracker athleteId /&gt;</strong> - Displays current streak count and best-ever streak</li>
+            <li><strong>&lt;Leaderboard teamId /&gt;</strong> - Shows top 5 athletes by points</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Implementation Steps Overview</h2>
+        <h3>Points Logic</h3>
+        <ul>
+            <li>On each CRUD action (workout/sleep/eating), call a service to add points</li>
+            <li>After insertion, check for streaks or milestone badges</li>
+        </ul>
+
+        <h3>Badge Assignment</h3>
+        <ul>
+            <li>Maintain a rules engine (e.g. simple functions) that, given an athlete's history, returns new badges to award</li>
+        </ul>
+
+        <h3>Components & Hooks</h3>
+        <ul>
+            <li>usePoints(athleteId) returns total points and a function to fetch history</li>
+            <li>useBadges(athleteId) returns earned badges</li>
+            <li>useStreak(athleteId) computes current streak</li>
+        </ul>
+
+        <h3>UI</h3>
+        <ul>
+            <li>Create the four components (PointsDisplay, BadgeList, StreakTracker, Leaderboard) in a new folder src/features/gamification</li>
+        </ul>
+    </div>
+</body>
+</html> 

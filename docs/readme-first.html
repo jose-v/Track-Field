@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>README FIRST - Track & Field Project Guide</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        .info {
+            background: #e3f2fd;
+            border: 1px solid #90caf9;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        .emoji {
+            font-size: 1.2em;
+        }
+        .tech-stack {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .tech-item {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1><span class="emoji">🏃‍♂️</span> README FIRST - Track & Field Project Guide</h1>
+    
+    <div class="success">
+        <h2><span class="emoji">✅</span> PROJECT STATUS: FULLY OPERATIONAL</h2>
+        <p><strong>The Track & Field application is successfully deployed and working at:</strong></p>
+        <p><strong>🌐 Live Site:</strong> <a href="https://track-field.netlify.app" target="_blank">https://track-field.netlify.app</a></p>
+        <p><strong>📚 Documentation:</strong> <a href="https://track-field.netlify.app/docs/" target="_blank">https://track-field.netlify.app/docs/</a></p>
+    </div>
+
+    <h2><span class="emoji">🏗️</span> Project Architecture</h2>
+    
+    <div class="info">
+        <h3>Current Structure (Root-Based)</h3>
+        <p>The project has been successfully restructured with all files at the repository root:</p>
+        <pre><code>Track & Field/
+├── src/                    # React application source code
+├── public/                 # Static assets and documentation
+├── dist/                   # Build output (auto-generated)
+├── index.html             # Main HTML entry point
+├── package.json           # Dependencies and scripts
+├── vite.config.ts         # Vite configuration
+├── tsconfig.json          # TypeScript configuration
+└── README.md              # Project overview</code></pre>
+    </div>
+
+    <h2><span class="emoji">🛠️</span> Technology Stack</h2>
+    
+    <div class="tech-stack">
+        <div class="tech-item">
+            <strong>Frontend</strong><br>
+            React 18 + TypeScript
+        </div>
+        <div class="tech-item">
+            <strong>UI Framework</strong><br>
+            Chakra UI
+        </div>
+        <div class="tech-item">
+            <strong>Build Tool</strong><br>
+            Vite 6.3.5
+        </div>
+        <div class="tech-item">
+            <strong>Backend</strong><br>
+            Supabase
+        </div>
+        <div class="tech-item">
+            <strong>Deployment</strong><br>
+            Netlify
+        </div>
+        <div class="tech-item">
+            <strong>Routing</strong><br>
+            React Router v7
+        </div>
+    </div>
+
+    <h2><span class="emoji">🚀</span> Development Workflow</h2>
+
+    <div class="success">
+        <h3>Getting Started:</h3>
+        <pre><code># 1. Ensure Node.js 20+ is active
+nvm use 20
+
+# 2. Install dependencies
+npm install
+
+# 3. Start development server
+npm run dev
+
+# 4. Open browser to http://localhost:5173</code></pre>
+    </div>
+
+    <div class="info">
+        <h3>Available Scripts:</h3>
+        <pre><code># Development
+npm run dev          # Start dev server on port 5173
+npm run build        # Build for production
+npm run preview      # Preview production build
+
+# Testing
+npm run test         # Run tests
+npm run test:watch   # Run tests in watch mode
+
+# Database
+npm run migrate:track-meets    # Run track meets migration
+npm run check:track-meets      # Check track meets tables</code></pre>
+    </div>
+
+    <h2><span class="emoji">🎨</span> Key Features</h2>
+
+    <div class="info">
+        <ul>
+            <li><strong>🌓 Dark/Light Mode:</strong> Full theme support across all components</li>
+            <li><strong>📊 Dashboard:</strong> Athlete and coach dashboards with analytics</li>
+            <li><strong>📅 Calendar:</strong> Event scheduling and workout planning</li>
+            <li><strong>🏆 Gamification:</strong> Badges, points, and achievement system</li>
+            <li><strong>📱 Responsive:</strong> Mobile-first design with Chakra UI</li>
+            <li><strong>🔐 Authentication:</strong> Supabase Auth with role-based access</li>
+            <li><strong>📈 Analytics:</strong> Performance tracking and progress visualization</li>
+        </ul>
+    </div>
+
+    <h2><span class="emoji">🗄️</span> Database & Backend</h2>
+
+    <div class="info">
+        <h3>Supabase Configuration:</h3>
+        <ul>
+            <li><strong>Database:</strong> PostgreSQL with real-time subscriptions</li>
+            <li><strong>Authentication:</strong> Email/password with role management</li>
+            <li><strong>Storage:</strong> File uploads for avatars and documents</li>
+            <li><strong>API:</strong> Auto-generated REST API with TypeScript types</li>
+        </ul>
+        
+        <p><strong>Environment Variables Required:</strong></p>
+        <pre><code>VITE_SUPABASE_URL=https://vdfqhhfirorqdjldmyzc.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key_here</code></pre>
+    </div>
+
+    <h2><span class="emoji">🔧</span> Development Guidelines</h2>
+
+    <div class="warning">
+        <h3>Code Standards:</h3>
+        <ul>
+            <li><strong>TypeScript:</strong> Strict mode enabled, proper typing required</li>
+            <li><strong>Components:</strong> Functional components with hooks</li>
+            <li><strong>Styling:</strong> Chakra UI components with useColorModeValue for themes</li>
+            <li><strong>State:</strong> Zustand for global state, React Query for server state</li>
+            <li><strong>Routing:</strong> React Router with protected routes</li>
+        </ul>
+    </div>
+
+    <h2><span class="emoji">🚢</span> Deployment Process</h2>
+
+    <div class="success">
+        <h3>Netlify Deployment:</h3>
+        <ol>
+            <li><strong>Build Command:</strong> <code>npm run build</code></li>
+            <li><strong>Publish Directory:</strong> <code>dist</code></li>
+            <li><strong>Auto-Deploy:</strong> Triggered on push to main branch</li>
+            <li><strong>Environment:</strong> Production variables configured in Netlify</li>
+        </ol>
+        
+        <p><strong>Manual Deploy:</strong> Push to main branch triggers automatic deployment</p>
+        <pre><code>git add .
+git commit -m "Your changes"
+git push origin main</code></pre>
+    </div>
+
+    <h2><span class="emoji">📋</span> Project Context for AI Assistants</h2>
+
+    <div class="info">
+        <h3>Important Context:</h3>
+        <ul>
+            <li><strong>Structure:</strong> All files are at repository root (no web/ folder)</li>
+            <li><strong>Entry Point:</strong> <code>src/main.tsx</code> renders into <code>index.html</code></li>
+            <li><strong>Routing:</strong> <code>src/routes/AppRoutes.tsx</code> handles all routing</li>
+            <li><strong>Theme:</strong> Dark/light mode implemented with Chakra UI</li>
+            <li><strong>State:</strong> User auth in Zustand, server data with React Query</li>
+            <li><strong>Database:</strong> Supabase with TypeScript types generated</li>
+        </ul>
+    </div>
+
+    <h2><span class="emoji">🛡️</span> Safety Guidelines for AI Assistants</h2>
+
+    <div class="warning">
+        <h3>⚠️ Critical Safety Rules:</h3>
+        <ul>
+            <li><strong>🚨 NEVER restore files from git</strong> without explicit user permission</li>
+            <li><strong>🚨 NEVER run git checkout commands</strong> that could overwrite local changes</li>
+            <li><strong>🚨 NEVER assume file locations</strong> - always verify with list_dir first</li>
+            <li><strong>🚨 ASK PERMISSION</strong> before any git operations that modify files</li>
+            <li><strong>🚨 PRESERVE existing structure</strong> - don't move files between directories</li>
+        </ul>
+    </div>
+
+    <div class="info">
+        <h3>✅ Safe Operations Protocol:</h3>
+        <ol>
+            <li><strong>Check current state:</strong> Use <code>git status</code> and <code>list_dir</code> first</li>
+            <li><strong>Edit existing files only:</strong> Use <code>edit_file</code> and <code>search_replace</code></li>
+            <li><strong>Verify before git commands:</strong> Ask user permission for any git operations</li>
+            <li><strong>Focus on code changes:</strong> Modify content, not file structure</li>
+            <li><strong>Test locally first:</strong> Always build and test before deploying</li>
+        </ol>
+    </div>
+
+    <div class="warning">
+        <h3>🚫 Commands to AVOID:</h3>
+        <pre><code># These can destroy local work:
+git checkout &lt;commit&gt; -- src/
+git checkout &lt;commit&gt; -- index.html
+git reset --hard &lt;commit&gt;
+git clean -fd
+
+# Always ask permission before:
+git restore &lt;file&gt;
+git checkout &lt;branch&gt;
+mv src/ web/src/
+rm -rf &lt;directory&gt;</code></pre>
+    </div>
+
+    <h2><span class="emoji">💻</span> Common Development Tasks</h2>
+
+    <div class="info">
+        <h3>Typical Development Workflow:</h3>
+        <ul>
+            <li><strong>Add Component:</strong> Create in <code>src/components/</code></li>
+            <li><strong>Add Page:</strong> Create in <code>src/pages/</code> and update routes</li>
+            <li><strong>Update Theme:</strong> Use <code>useColorModeValue</code> for dark mode</li>
+            <li><strong>Database Changes:</strong> Update types and run migrations</li>
+            <li><strong>Styling:</strong> Use Chakra UI props and responsive design</li>
+            <li><strong>State Management:</strong> Use Zustand for global state, React Query for server data</li>
+            <li><strong>Testing:</strong> Run <code>npm run test</code> before committing</li>
+        </ul>
+    </div>
+
+    <h2><span class="emoji">🎯</span> Quick Reference</h2>
+    
+    <div class="success">
+        <h3>Essential Commands:</h3>
+        <pre><code># Start development
+npm run dev
+
+# Build and test locally
+npm run build
+npx serve dist
+
+# Deploy
+git push origin main
+
+# Check logs
+netlify logs</code></pre>
+    </div>
+
+    <hr>
+    <p><em>Last Updated: January 2025 | Status: Production Ready | Version: 2.0</em></p>
+</body>
+</html> 

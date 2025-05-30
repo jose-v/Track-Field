@@ -1,13 +1,13 @@
-import { ReactNode } from 'react'
+import { ReactNode, useState, useEffect } from 'react'
 import { ChakraProvider, useColorMode } from '@chakra-ui/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth } from '../contexts/AuthContext'
 import { GamificationProvider } from '../contexts/GamificationContext'
 import { ChatbotProvider } from '../components/ChatBot/ChatbotProvider'
+import { StripeProvider } from '../contexts/StripeContext'
 import { theme } from '../theme'
 import GlobalStylePatch from './GlobalStylePatch'
 import ButtonStyleFixer from './ButtonStyleFixer'
-import { useEffect } from 'react'
 
 // Shared query client for the whole app
 const queryClient = new QueryClient({
@@ -27,17 +27,22 @@ const queryClient = new QueryClient({
 const ColorModeManager = ({ children }: { children: ReactNode }) => {
   const { user, loading } = useAuth()
   const { colorMode, setColorMode } = useColorMode()
+  const [hasInitialized, setHasInitialized] = useState(false)
 
   useEffect(() => {
-    if (!loading) {
-      const targetMode = user ? 'dark' : 'light'
+    if (!loading && !hasInitialized) {
+      const userColorModePreference = localStorage.getItem('chakra-ui-color-mode')
+      const isAuthenticated = !!user
       
-      // Only change if we need to, to avoid unnecessary re-renders
-      if (colorMode !== targetMode) {
+      // Only auto-set color mode if user hasn't set a manual preference
+      if (!userColorModePreference) {
+        const targetMode = isAuthenticated ? 'dark' : 'light'
         setColorMode(targetMode)
       }
+      
+      setHasInitialized(true)
     }
-  }, [user, loading, colorMode, setColorMode])
+  }, [user, loading, setColorMode, hasInitialized])
 
   // Don't render children until auth state is determined to avoid flicker
   if (loading) {
@@ -56,7 +61,9 @@ export const RootProviders = ({ children }: { children: ReactNode }) => (
         <ColorModeManager>
           <GamificationProvider>
             <ChatbotProvider>
-              {children}
+              <StripeProvider>
+                {children}
+              </StripeProvider>
             </ChatbotProvider>
           </GamificationProvider>
         </ColorModeManager>

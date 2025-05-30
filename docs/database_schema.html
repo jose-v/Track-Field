@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Track & Field Database Schema</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 2em auto;
+      line-height: 1.5;
+    }
+    h1 {
+      text-align: center;
+      color: #3498db;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 2em 0;
+    }
+    th {
+      background-color: #3498db;
+      color: white;
+      padding: 10px;
+      text-align: left;
+    }
+    td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #ddd;
+    }
+    tr:nth-child(even) {
+      background-color: #f8f8f8;
+    }
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+    .table-container {
+      overflow-x: auto;
+    }
+    .search-container {
+      margin: 1em 0;
+    }
+    #searchInput {
+      padding: 8px;
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 16px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .metadata {
+      text-align: right;
+      font-size: 0.8em;
+      color: #777;
+      margin-top: 2em;
+    }
+    .table-category {
+      margin-top: 30px;
+      color: #2980b9;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Track & Field Database Schema</h1>
+  
+  <div class="search-container">
+    <input type="text" id="searchInput" placeholder="Search for tables or columns...">
+  </div>
+  
+  <div class="table-container">
+    <h2 class="table-category">Core User Tables</h2>
+    <table id="coreTable">
+      <thead>
+        <tr>
+          <th>Table Name</th>
+          <th>Column Name</th>
+          <th>Data Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>profiles</td><td>id</td><td>uuid</td><td>Primary key, references auth.users</td></tr>
+        <tr><td>profiles</td><td>created_at</td><td>timestamp with time zone</td><td>Creation timestamp</td></tr>
+        <tr><td>profiles</td><td>updated_at</td><td>timestamp with time zone</td><td>Last update timestamp</td></tr>
+        <tr><td>profiles</td><td>email</td><td>text</td><td>User email (unique)</td></tr>
+        <tr><td>profiles</td><td>first_name</td><td>text</td><td>User's first name</td></tr>
+        <tr><td>profiles</td><td>last_name</td><td>text</td><td>User's last name</td></tr>
+        <tr><td>profiles</td><td>phone</td><td>text</td><td>Contact phone number</td></tr>
+        <tr><td>profiles</td><td>role</td><td>text</td><td>User role (athlete, coach, team_manager)</td></tr>
+        <tr><td>profiles</td><td>avatar_url</td><td>text</td><td>Profile picture URL</td></tr>
+        <tr><td>profiles</td><td>bio</td><td>text</td><td>User biography</td></tr>
+        
+        <tr><td>athletes</td><td>id</td><td>uuid</td><td>Primary key, references profiles</td></tr>
+        <tr><td>athletes</td><td>birth_date</td><td>date</td><td>Athlete's date of birth</td></tr>
+        <tr><td>athletes</td><td>gender</td><td>text</td><td>Athlete's gender</td></tr>
+        <tr><td>athletes</td><td>events</td><td>text[]</td><td>Array of event specialties</td></tr>
+        <tr><td>athletes</td><td>team_id</td><td>uuid</td><td>References teams table</td></tr>
+        <tr><td>athletes</td><td>weight_kg</td><td>numeric</td><td>Athlete's weight in kg</td></tr>
+        <tr><td>athletes</td><td>created_at</td><td>timestamp with time zone</td><td>Creation timestamp</td></tr>
+        <tr><td>athletes</td><td>updated_at</td><td>timestamp with time zone</td><td>Last update timestamp</td></tr>
+        
+        <tr><td>coaches</td><td>id</td><td>uuid</td><td>Primary key, references profiles</td></tr>
+        <tr><td>coaches</td><td>specialties</td><td>text[]</td><td>Coach specialization areas</td></tr>
+        <tr><td>coaches</td><td>certifications</td><td>text[]</td><td>Coach certifications</td></tr>
+        
+        <tr><td>team_managers</td><td>id</td><td>uuid</td><td>Primary key, references profiles</td></tr>
+        <tr><td>team_managers</td><td>organization</td><td>text</td><td>Organization name</td></tr>
+        
+        <tr><td>teams</td><td>id</td><td>uuid</td><td>Primary key</td></tr>
+        <tr><td>teams</td><td>name</td><td>text</td><td>Team name</td></tr>
+        <tr><td>teams</td><td>description</td><td>text</td><td>Team description</td></tr>
+        <tr><td>teams</td><td>created_at</td><td>timestamp with time zone</td><td>Creation timestamp</td></tr>
+        <tr><td>teams</td><td>updated_at</td><td>timestamp with time zone</td><td>Last update timestamp</td></tr>
+        
+        <tr><td>coach_athletes</td><td>id</td><td>uuid</td><td>Primary key</td></tr>
+        <tr><td>coach_athletes</td><td>coach_id</td><td>uuid</td><td>References coaches</td></tr>
+        <tr><td>coach_athletes</td><td>athlete_id</td><td>uuid</td><td>References athletes</td></tr>
+        <tr><td>coach_athletes</td><td>created_at</td><td>timestamp with time zone</td><td>Creation timestamp</td></tr>
+        <tr><td>coach_athletes</td><td>approval_status</td><td>text</td><td>Status of coach-athlete relationship</td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="table-category">Training & Performance Tables</h2>
+    <table id="trainingTable">
+      <thead>
+        <tr>
+          <th>Table Name</th>
+          <th>Column Name</th>
+          <th>Data Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>workouts</td><td>id</td><td>uuid</td><td>Primary key</td></tr>
+        <tr><td>workouts</td><td>user_id</td><td>uuid</td><td>Creator of the workout</td></tr>
+        
+        <tr><td>athlete_workouts</td><td>athlete_id</td><td>uuid</td><td>References athletes</td></tr>
+        <tr><td>athlete_workouts</td><td>workout_id</td><td>uuid</td><td>References workouts</td></tr>
+        <tr><td>athlete_workouts</td><td>assigned_at</td><td>timestamp with time zone</td><td>Assignment timestamp</td></tr>
+        <tr><td>athlete_workouts</td><td>completed_exercises</td><td>ARRAY</td><td>List of completed exercises</td></tr>
+        <tr><td>athlete_workouts</td><td>updated_at</td><td>timestamp with time zone</td><td>Last update timestamp</td></tr>
+
+        <tr><td>workout_sessions</td><td>id</td><td>uuid</td><td>Primary key</td></tr>
+        <tr><td>workout_sessions</td><td>athlete_id</td><td>uuid</td><td>References athletes</td></tr>
+        <tr><td>workout_sessions</td><td>session_date</td><td>date</td><td>Date of workout session</td></tr>
+        <tr><td>workout_sessions</td><td>coach_id</td><td>uuid</td><td>References coaches</td></tr>
+        <tr><td>workout_sessions</td><td>created_at</td><td>timestamp with time zone</td><td>Creation timestamp</td></tr>
+        <tr><td>workout_sessions</td><td>updated_at</td><td>timestamp with time zone</td><td>Last update timestamp</td></tr>
+        
+        <tr><td>workout_entries</td><td>id</td><td>uuid</td><td>Primary key</td></tr>
+        <tr><td>workout_entries</td><td>session_id</td><td>uuid</td><td>References workout_sessions</td></tr>
+        <tr><td>workout_entries</td><td>exercise_id</td><td>uuid</td><td>References exercises</td></tr>
+        <tr><td>workout_entries</td><td>sequence_order</td><td>integer</td><td>Order within workout</td></tr>
+        <tr><td>workout_entries</td><td>sets</td><td>integer</td><td>Number of sets</td></tr>
+        <tr><td>workout_entries</td><td>reps</td><td>integer</td><td>Number of repetitions</td></tr>
+        <tr><td>workout_entries</td><td>duration_seconds</td><td>integer</td><td>Duration in seconds</td></tr>
+        <tr><td>workout_entries</td><td>distance_meters</td><td>integer</td><td>Distance in meters</td></tr>
+        <tr><td>workout_entries</td><td>load_kg</td><td>numeric</td><td>Weight load in kg</td></tr>
+        <tr><td>workout_entries</td><td>rpe</td><td>numeric</td><td>Rate of perceived exertion</td></tr>
+        <tr><td>workout_entries</td><td>created_at</td><td>timestamp with time zone</td><td>Creation timestamp</td></tr>
+        <tr><td>workout_entries</td><td>updated_at</td><td>timestamp with time zone</td><td>Last update timestamp</td></tr>
+        
+        <tr><td>exercises</td><td>id</td><td>uuid</td><td>Primary key</td></tr>
+        <tr><td>exercises</td><td>bilateral</td><td>boolean</td><td>If exercise works both sides</td></tr>
+        <tr><td>exercises</td><td>created_at</td><td>timestamp with time zone</td><td>Creation timestamp</td></tr>
+        <tr><td>exercises</td><td>updated_at</td><td>timestamp with time zone</td><td>Last update timestamp</td></tr>
+        
+        <tr><td>athlete_workout_progress</td><td>id</td><td>uuid</td><td>Primary key</td></tr>
+        <tr><td>athlete_workout_progress</td><td>workout_id</td><td>uuid</td><td>References workouts</td></tr>
+        <tr><td>athlete_workout_progress</td><td>athlete_id</td><td>uuid</td><td>References athletes</td></tr>
+        <tr><td>athlete_workout_progress</td><td>completed_exercises</td><td>jsonb</td><td>Exercise completion data</td></tr>
+        <tr><td>athlete_workout_progress</td><td>created_at</td><td>timestamp with time zone</td><td>Creation timestamp</td></tr>
+        <tr><td>athlete_workout_progress</td><td>updated_at</td><td>timestamp with time zone</td><td>Last update timestamp</td></tr>
+        
+        <tr><td>athlete_performances</td><td>id</td><td>uuid</td><td>Primary key</td></tr>
+        <tr><td>athlete_performances</td><td>athlete_id</td><td>uuid</td><td>References athletes</td></tr>
+        <tr><td>athlete_performances</td><td>event</td><td>text</td><td>Event name</td></tr>
+        <tr><td>athlete_performances</td><td>best_time</td><td>text</td><td>Best performance time</td></tr>
+        <tr><td>athlete_performances</td><td>improvement</td><td>text</td><td>Improvement over previous</td></tr>
+        <tr><td>athlete_performances</td><td>notes</td><td>text</td><td>Additional notes</td></tr>
+        <tr><td>athlete_performances</td><td>recorded_at</td><td>timestamp with time zone</td><td>When performance was recorded</td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="table-category">Health & Wellness Tables</h2>
+    <table id="healthTable">
+      <thead>
+        <tr>
+          <th>Table Name</th>
+          <th>Column Name</th>
+          <th>Data Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>sleep_records</td><td>id</td><td>uuid</td><td>Primary key</td></tr>
+        <tr><td>sleep_records</td><td>athlete_id</td><td>uuid</td><td>References athletes</td></tr>
+        <tr><td>sleep_records</td><td>sleep_date</td><td>date</td><td>Date of sleep</td></tr>
+        <tr><td>sleep_records</td><td>start_time</td><td>time without time zone</td><td>Sleep start time</td></tr>
+        <tr><td>sleep_records</td><td>end_time</td><td>time without time zone</td><td>Sleep end time</td></tr>
+        <tr><td>sleep_records</td><td>quality</td><td>integer</td><td>Sleep quality rating</td></tr>
+        <tr><td>sleep_records</td><td>created_at</td><td>timestamp with time zone</td><td>Creation timestamp</td></tr>
+        <tr><td>sleep_records</td><td>updated_at</td><td>timestamp with time zone</td><td>Last update timestamp</td></tr>
+        
+        <tr><td>athlete_sleep</td><td>id</td><td>uuid</td><td>Primary key</td></tr>
+        <tr><td>athlete_sleep</td><td>athlete_id</td><td>uuid</td><td>References profiles</td></tr>
+        <tr><td>athlete_sleep</td><td>recorded_at</td><td>timestamp with time zone</td><td>Recording timestamp</td></tr>
+        <tr><td>athlete_sleep</td><td>weekly_total</td><td>decimal(5,2)</td><td>Total weekly sleep hours</td></tr>
+        <tr><td>athlete_sleep</td><td>weekly_average</td><td>decimal(4,2)</td><td>Average nightly sleep</td></tr>
+        <tr><td>athlete_sleep</td><td>quality</td><td>text</td><td>Sleep quality description</td></tr>
+        <tr><td>athlete_sleep</td><td>comparison_note</td><td>text</td><td>Comparison to previous</td></tr>
+        <tr><td>athlete_sleep</td><td>created_at</td><td>timestamp with time zone</td><td>Creation timestamp</td></tr>
+        
+        <tr><td>eating_records</td><td>id</td><td>uuid</td><td>Primary key</td></tr>
+        <tr><td>eating_records</td><td>athlete_id</td><td>uuid</td><td>References athletes</td></tr>
+        <tr><td>eating_records</td><td>record_date</td><td>date</td><td>Date of nutrition record</td></tr>
+        <tr><td>eating_records</td><td>calories</td><td>integer</td><td>Calorie intake</td></tr>
+        <tr><td>eating_records</td><td>protein_g</td><td>numeric</td><td>Protein intake in grams</td></tr>
+        <tr><td>eating_records</td><td>carbohydrates_g</td><td>numeric</td><td>Carbohydrate intake in grams</td></tr>
+        <tr><td>eating_records</td><td>created_at</td><td>timestamp with time zone</td><td>Creation timestamp</td></tr>
+        <tr><td>eating_records</td><td>updated_at</td><td>timestamp with time zone</td><td>Last update timestamp</td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="table-category">Competition Tables</h2>
+    <table id="competitionTable">
+      <thead>
+        <tr>
+          <th>Table Name</th>
+          <th>Column Name</th>
+          <th>Data Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>track_meets</td><td>id</td><td>uuid</td><td>Primary key</td></tr>
+        <tr><td>track_meets</td><td>coach_id</td><td>uuid</td><td>Coach who created meet</td></tr>
+        <tr><td>track_meets</td><td>athlete_id</td><td>uuid</td><td>For single athlete meets</td></tr>
+        <tr><td>track_meets</td><td>registration_deadline</td><td>date</td><td>Registration deadline</td></tr>
+        <tr><td>track_meets</td><td>entry_fee</td><td>numeric</td><td>Cost to participate</td></tr>
+        <tr><td>track_meets</td><td>meet_date</td><td>date</td><td>Date of meet</td></tr>
+        <tr><td>track_meets</td><td>arrival_date</td><td>date</td><td>When to arrive</td></tr>
+        <tr><td>track_meets</td><td>departure_date</td><td>date</td><td>When to depart</td></tr>
+        <tr><td>track_meets</td><td>created_at</td><td>timestamp with time zone</td><td>Creation timestamp</td></tr>
+        <tr><td>track_meets</td><td>updated_at</td><td>timestamp with time zone</td><td>Last update timestamp</td></tr>
+        
+        <tr><td>meet_events</td><td>id</td><td>uuid</td><td>Primary key</td></tr>
+        <tr><td>meet_events</td><td>meet_id</td><td>uuid</td><td>References track_meets</td></tr>
+        <tr><td>meet_events</td><td>event_id</td><td>uuid</td><td>Type of event</td></tr>
+        <tr><td>meet_events</td><td>event_day</td><td>integer</td><td>Day of event in multi-day meet</td></tr>
+        <tr><td>meet_events</td><td>start_time</td><td>time without time zone</td><td>Event start time</td></tr>
+        <tr><td>meet_events</td><td>created_at</td><td>timestamp with time zone</td><td>Creation timestamp</td></tr>
+        <tr><td>meet_events</td><td>updated_at</td><td>timestamp with time zone</td><td>Last update timestamp</td></tr>
+        
+        <tr><td>athlete_meet_events</td><td>id</td><td>uuid</td><td>Primary key</td></tr>
+        <tr><td>athlete_meet_events</td><td>athlete_id</td><td>uuid</td><td>References athletes</td></tr>
+        <tr><td>athlete_meet_events</td><td>meet_event_id</td><td>uuid</td><td>References meet_events</td></tr>
+        <tr><td>athlete_meet_events</td><td>assigned_by</td><td>uuid</td><td>Who assigned athlete to event</td></tr>
+        <tr><td>athlete_meet_events</td><td>created_at</td><td>timestamp with time zone</td><td>Creation timestamp</td></tr>
+        <tr><td>athlete_meet_events</td><td>updated_at</td><td>timestamp with time zone</td><td>Last update timestamp</td></tr>
+        
+        <tr><td>athlete_meets</td><td>id</td><td>uuid</td><td>Primary key</td></tr>
+        <tr><td>athlete_meets</td><td>athlete_id</td><td>uuid</td><td>References profiles</td></tr>
+        <tr><td>athlete_meets</td><td>meet_date</td><td>date</td><td>Date of meet</td></tr>
+        <tr><td>athlete_meets</td><td>meet_name</td><td>text</td><td>Name of competition</td></tr>
+        <tr><td>athlete_meets</td><td>location</td><td>text</td><td>Where meet is held</td></tr>
+        <tr><td>athlete_meets</td><td>start_time</td><td>time without time zone</td><td>Meet start time</td></tr>
+        <tr><td>athlete_meets</td><td>end_time</td><td>time without time zone</td><td>Meet end time</td></tr>
+        <tr><td>athlete_meets</td><td>events</td><td>text[]</td><td>Events athlete is participating in</td></tr>
+        <tr><td>athlete_meets</td><td>notes</td><td>text</td><td>Additional notes</td></tr>
+        <tr><td>athlete_meets</td><td>created_at</td><td>timestamp with time zone</td><td>Creation timestamp</td></tr>
+      </tbody>
+    </table>
+    
+    <h2 class="table-category">Views</h2>
+    <table id="viewsTable">
+      <thead>
+        <tr>
+          <th>View Name</th>
+          <th>Column Name</th>
+          <th>Data Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>coach_athletes_view</td><td>coach_id</td><td>uuid</td><td>Coach identifier</td></tr>
+        <tr><td>coach_athletes_view</td><td>athlete_id</td><td>uuid</td><td>Athlete identifier</td></tr>
+        
+        <tr><td>athlete_records_view</td><td>athlete_id</td><td>uuid</td><td>Athlete identifier</td></tr>
+        <tr><td>athlete_records_view</td><td>session_count</td><td>bigint</td><td>Total sessions completed</td></tr>
+        
+        <tr><td>athletes_view</td><td>id</td><td>uuid</td><td>Athlete identifier</td></tr>
+        <tr><td>athletes_view</td><td>date_of_birth</td><td>date</td><td>Birth date</td></tr>
+        <tr><td>athletes_view</td><td>team_id</td><td>uuid</td><td>Team identifier</td></tr>
+        <tr><td>athletes_view</td><td>created_at</td><td>timestamp with time zone</td><td>Creation timestamp</td></tr>
+        <tr><td>athletes_view</td><td>updated_at</td><td>timestamp with time zone</td><td>Last update timestamp</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="metadata">
+    Schema captured on: <span id="captureDate"></span>
+  </div>
+
+  <script>
+    // Set capture date
+    document.getElementById('captureDate').textContent = new Date().toLocaleDateString();
+    
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+      const input = this.value.toLowerCase();
+      const tables = document.querySelectorAll('table');
+      
+      tables.forEach(table => {
+        const rows = table.querySelectorAll('tbody tr');
+        
+        rows.forEach(row => {
+          const tableName = row.cells[0].textContent.toLowerCase();
+          const columnName = row.cells[1].textContent.toLowerCase();
+          const dataType = row.cells[2].textContent.toLowerCase();
+          const description = row.cells[3] ? row.cells[3].textContent.toLowerCase() : '';
+          
+          if (tableName.includes(input) || columnName.includes(input) || 
+              dataType.includes(input) || description.includes(input)) {
+            row.style.display = '';
+          } else {
+            row.style.display = 'none';
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html> 

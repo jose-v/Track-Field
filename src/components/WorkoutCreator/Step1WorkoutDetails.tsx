@@ -105,7 +105,7 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
         <Box>
           <FormControl isRequired>
             <FormLabel fontSize="lg" fontWeight="semibold" color={labelColor}>
-              Workout Name <Text as="span" color="red.500">*</Text>
+              Workout Name
             </FormLabel>
             <Input 
               value={workoutName} 
@@ -143,7 +143,7 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
                   </Text>
                 </VStack>
                 
-                <VStack spacing={4} flex="1">
+                <VStack spacing={4}>
                   {TEMPLATE_TYPES.map((type) => (
                     <Card
                       key={type.value}
@@ -255,7 +255,7 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
                   </VStack>
                 )}
                 
-                {/* Date Selection and Location - Show only for Weekly Plan */}
+                {/* Training Period for Weekly Plan */}
                 {templateType === 'weekly' && (
                   <VStack spacing={4} w="100%" pt={4} borderTop="1px solid" borderColor={borderColor}>
                     <VStack spacing={3} w="100%">
