@@ -1,0 +1,6 @@
+[build]
+  command = "npm run build && cp -r docs dist/"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "18" 
