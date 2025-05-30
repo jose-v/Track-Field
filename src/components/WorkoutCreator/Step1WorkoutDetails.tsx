@@ -25,10 +25,12 @@ interface Step1WorkoutDetailsProps {
   setTemplateType: (type: 'single' | 'weekly') => void;
   workoutType: string;
   setWorkoutType: (type: string) => void;
-  startDate: string;
-  setStartDate: (date: string) => void;
-  endDate: string;
-  setEndDate: (date: string) => void;
+  date: string;
+  setDate: (date: string) => void;
+  time: string;
+  setTime: (time: string) => void;
+  duration: string;
+  setDuration: (duration: string) => void;
   location: string;
   setLocation: (location: string) => void;
 }
@@ -53,10 +55,12 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
   setTemplateType,
   workoutType,
   setWorkoutType,
-  startDate,
-  setStartDate,
-  endDate,
-  setEndDate,
+  date,
+  setDate,
+  time,
+  setTime,
+  duration,
+  setDuration,
   location,
   setLocation
 }) => {
@@ -65,32 +69,32 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
   const [endTime, setEndTime] = React.useState<string>('');
 
   // Convert single date to array for DateTimePicker
-  const selectedDates = startDate ? [startDate] : [];
+  const selectedDates = date ? [date] : [];
   
   // Convert date range to array for weekly workouts
-  const selectedDateRange = templateType === 'weekly' && startDate && endDate 
-    ? [startDate, endDate] 
-    : startDate ? [startDate] : [];
+  const selectedDateRange = templateType === 'weekly' && date && duration 
+    ? [date, duration] 
+    : date ? [date] : [];
 
   const handleSingleDateSelect = (dates: string[]) => {
     if (dates.length > 0) {
-      setStartDate(dates[0]);
+      setDate(dates[0]);
     } else {
-      setStartDate('');
+      setDate('');
     }
   };
 
   const handleWeeklyDateSelect = (dates: string[]) => {
     if (dates.length >= 2) {
       const sortedDates = dates.sort();
-      setStartDate(sortedDates[0]);
-      setEndDate(sortedDates[sortedDates.length - 1]);
+      setDate(sortedDates[0]);
+      setDuration(sortedDates[sortedDates.length - 1]);
     } else if (dates.length === 1) {
-      setStartDate(dates[0]);
-      setEndDate('');
+      setDate(dates[0]);
+      setDuration('');
     } else {
-      setStartDate('');
-      setEndDate('');
+      setDate('');
+      setDuration('');
     }
   };
 

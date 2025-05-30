@@ -196,7 +196,8 @@ ADD COLUMN IF NOT EXISTS duration TEXT,
 ADD COLUMN IF NOT EXISTS time TEXT,
 ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '',
 ADD COLUMN IF NOT EXISTS exercises JSONB DEFAULT '[]'::jsonb,
-ADD COLUMN IF NOT EXISTS location TEXT;
+ADD COLUMN IF NOT EXISTS location TEXT,
+ADD COLUMN IF NOT EXISTS template_type TEXT CHECK (template_type IN ('single', 'weekly')) DEFAULT 'single';
 
 -- Rename created_by to match the expected field in the API
 DO $$

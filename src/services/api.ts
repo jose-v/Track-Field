@@ -2,13 +2,18 @@ import { supabase } from '../lib/supabase'
 import type { Athlete, Coach, TeamManager, Profile, Team } from './dbSchema'
 
 export interface Exercise {
+  id?: string
   name: string
-  sets: number
-  reps: number
-  weight?: number
-  rest?: number
-  distance?: number
+  sets?: string | number
+  reps?: string | number
+  weight?: number | string
+  rest?: number | string
+  distance?: number | string
   notes?: string
+  category?: string
+  description?: string
+  instanceId?: string
+  rpe?: string
 }
 
 export interface Workout {
@@ -26,6 +31,7 @@ export interface Workout {
   updated_at?: string
   exercises?: Exercise[]
   location?: string
+  template_type?: 'single' | 'weekly'
 }
 
 interface TeamPost {
@@ -33,6 +39,23 @@ interface TeamPost {
   user_id: string
   content: string
   created_at: string
+}
+
+export interface EnhancedWorkoutData {
+  name: string
+  description?: string
+  type: string
+  template_type?: 'single' | 'weekly'
+  location?: string
+  date: string
+  time?: string
+  duration?: string
+  exercises?: Exercise[]
+  weekly_plan?: {
+    day: string
+    exercises: Exercise[]
+    isRestDay: boolean
+  }[]
 }
 
 export const api = {
@@ -75,6 +98,7 @@ export const api = {
           duration?: string;
           time?: string;
           location?: string;
+          template_type?: string;
         } = {
           name: workout.name,
           description: workout.notes || workout.description || '',
@@ -89,6 +113,7 @@ export const api = {
         if (workout.duration) workoutData.duration = workout.duration;
         if (workout.time) workoutData.time = workout.time;
         if (workout.location) workoutData.location = workout.location;
+        if (workout.template_type) workoutData.template_type = workout.template_type;
         
         console.log('Creating workout with data:', workoutData);
         
@@ -251,6 +276,78 @@ export const api = {
       } catch (error) {
         console.error('Error in getAssignedToAthlete:', error);
         throw error;
+      }
+    },
+
+    // New method for enhanced workout creation
+    async createEnhanced(workoutData: EnhancedWorkoutData): Promise<Workout> {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('No user found')
+      
+      try {
+        console.log('Creating enhanced workout with data:', workoutData);
+        
+        // Create the main workout record
+        const mainWorkoutData = {
+          name: workoutData.name,
+          description: workoutData.description || '',
+          user_id: user.id,
+          created_by: user.id,
+          type: workoutData.type,
+          template_type: workoutData.template_type,
+          location: workoutData.location,
+          date: workoutData.date,
+          time: workoutData.time,
+          duration: workoutData.duration,
+          exercises: workoutData.template_type === 'single' ? (workoutData.exercises || []) : []
+        };
+        
+        const { data: createdWorkout, error: workoutError } = await supabase
+          .from('workouts')
+          .insert([mainWorkoutData])
+          .select()
+          .single();
+
+        if (workoutError) {
+          console.error('Error creating enhanced workout:', workoutError);
+          throw workoutError;
+        }
+        
+        // If it's a weekly plan, create the weekly workout plan entries
+        if (workoutData.template_type === 'weekly' && workoutData.weekly_plan) {
+          const weeklyPlanData = workoutData.weekly_plan.map(dayPlan => ({
+            workout_id: createdWorkout.id,
+            day_of_week: dayPlan.day,
+            exercises: dayPlan.exercises,
+            is_rest_day: dayPlan.isRestDay
+          }));
+          
+          // Note: This will fail until we create the weekly_workout_plans table
+          // For now, we'll store weekly plans in the main workout exercises field as a fallback
+          console.warn('Weekly workout plans table not yet created, storing in main exercises field');
+          
+          const { error: weeklyError } = await supabase
+            .from('workouts')
+            .update({ 
+              exercises: workoutData.weekly_plan,
+              description: `${workoutData.description || ''}\n\n[WEEKLY_PLAN_DATA]` 
+            })
+            .eq('id', createdWorkout.id);
+            
+          if (weeklyError) {
+            console.error('Error storing weekly plan data:', weeklyError);
+            // Don't throw - workout was created successfully
+          }
+        }
+        
+        return {
+          ...createdWorkout,
+          notes: createdWorkout.description || '',
+          exercises: createdWorkout.exercises || []
+        };
+      } catch (err) {
+        console.error('Error in createEnhanced workout:', err);
+        throw err;
       }
     },
   },

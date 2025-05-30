@@ -16,8 +16,11 @@ import {
   useColorModeValue,
   Spinner,
   Center,
+  useToast,
 } from '@chakra-ui/react';
 import { ArrowLeft, ChevronLeft, ChevronRight, Save, Target } from 'lucide-react';
+import { api, type EnhancedWorkoutData } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Lazy load step components to improve initial load time
 const Step1WorkoutDetails = lazy(() => import('./Step1WorkoutDetails').then(module => ({ default: module.default })));
@@ -95,6 +98,9 @@ interface Athlete {
 }
 
 const WorkoutCreatorWireframe: React.FC = () => {
+  const toast = useToast();
+  const { user } = useAuth();
+
   // Theme-aware colors - moved to useMemo for performance
   const themeColors = React.useMemo(() => ({
     bgColor: useColorModeValue('white', 'gray.800'),
@@ -143,12 +149,13 @@ const WorkoutCreatorWireframe: React.FC = () => {
   // Step navigation
   const [currentStep, setCurrentStep] = useState(1);
   
-  // Step 1 state
+  // Step 1 state - aligned with database schema
   const [workoutName, setWorkoutName] = useState('');
   const [templateType, setTemplateType] = useState<'single' | 'weekly'>('weekly');
   const [workoutType, setWorkoutType] = useState('Strength');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [date, setDate] = useState(''); // Use single date field as per schema
+  const [time, setTime] = useState(''); // Use single time field as per schema  
+  const [duration, setDuration] = useState(''); // Add duration field
   const [location, setLocation] = useState('');
   
   // Lazy initialize complex state objects
@@ -323,6 +330,104 @@ const WorkoutCreatorWireframe: React.FC = () => {
 
   const currentStepInfo = WORKOUT_CREATION_STEPS[currentStep - 1];
   const progressPercentage = (currentStep / WORKOUT_CREATION_STEPS.length) * 100;
+
+  // Handle saving workout to database
+  const handleSaveWorkout = async () => {
+    if (!user) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please log in to save workouts.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (!workoutName.trim()) {
+      toast({
+        title: 'Workout Name Required',
+        description: 'Please enter a name for your workout.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (!date) {
+      toast({
+        title: 'Date Required',
+        description: 'Please select a date for your workout.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      const workoutData: EnhancedWorkoutData = {
+        name: workoutName,
+        type: workoutType,
+        template_type: templateType,
+        date: date,
+        time: time,
+        duration: duration,
+        location: location,
+        description: `${templateType === 'weekly' ? 'Weekly training plan' : 'Single day workout'} created with Workout Creator`,
+        exercises: templateType === 'single' ? (selectedExercises.monday || []) : [],
+        weekly_plan: templateType === 'weekly' ? Object.keys(selectedExercises).map(day => ({
+          day,
+          exercises: selectedExercises[day] || [],
+          isRestDay: restDays[day] || false
+        })) : undefined
+      };
+
+      console.log('Saving workout:', workoutData);
+      
+      const savedWorkout = await api.workouts.createEnhanced(workoutData);
+      
+      // Assign to selected athletes if any
+      const athleteIds = Object.keys(selectedAthletes);
+      if (athleteIds.length > 0 && savedWorkout.id) {
+        await api.athleteWorkouts.assign(savedWorkout.id, athleteIds);
+      }
+
+      toast({
+        title: 'Workout Saved Successfully!',
+        description: `"${workoutName}" has been created and ${athleteIds.length > 0 ? `assigned to ${athleteIds.length} athlete(s)` : 'is ready to be assigned'}.`,
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      });
+
+      // Reset form for new workout
+      setWorkoutName('');
+      setDate('');
+      setTime('');
+      setDuration('');
+      setLocation('');
+      setSelectedExercises({
+        monday: [], tuesday: [], wednesday: [], thursday: [], friday: [], saturday: [], sunday: []
+      });
+      setSelectedAthletes({});
+      setRestDays({
+        monday: false, tuesday: false, wednesday: false, thursday: false, friday: false, saturday: false, sunday: false
+      });
+      setCurrentStep(1);
+
+    } catch (error) {
+      console.error('Error saving workout:', error);
+      toast({
+        title: 'Save Failed',
+        description: error instanceof Error ? error.message : 'Failed to save workout. Please try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
 
   const renderStepHeader = () => (
     <VStack spacing={0} align="stretch" mb={3}>
@@ -553,7 +658,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
             rightIcon={<Save size={20} />}
             colorScheme="green"
             size="lg"
-            onClick={() => alert('Workout saved!')}
+            onClick={handleSaveWorkout}
             borderWidth="2px"
             _hover={{ 
               transform: "scale(1.05)"
@@ -590,10 +695,12 @@ const WorkoutCreatorWireframe: React.FC = () => {
               setTemplateType={setTemplateType}
               workoutType={workoutType}
               setWorkoutType={setWorkoutType}
-              startDate={startDate}
-              setStartDate={setStartDate}
-              endDate={endDate}
-              setEndDate={setEndDate}
+              date={date}
+              setDate={setDate}
+              time={time}
+              setTime={setTime}
+              duration={duration}
+              setDuration={setDuration}
               location={location}
               setLocation={setLocation}
             />

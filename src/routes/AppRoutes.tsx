@@ -98,7 +98,7 @@ export default function AppRoutes() {
         <Route path="/coach/calendar" element={<PrivateRoute><CoachCalendar /></PrivateRoute>} />
         <Route path="/coach/notifications" element={<PrivateRoute><NotificationsPage /></PrivateRoute>} />
         <Route path="/coach/loop" element={<PrivateRoute><Loop /></PrivateRoute>} />
-        <Route path="/coach/workout-creator-demo" element={<PrivateRoute><WorkoutCreatorDemo /></PrivateRoute>} />
+        <Route path="/coach/workout-creator" element={<PrivateRoute><WorkoutCreatorDemo /></PrivateRoute>} />
         <Route path="/coach/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
         <Route path="/account" element={<PrivateRoute><Account /></PrivateRoute>} />
       </Route>
@@ -117,7 +117,7 @@ export default function AppRoutes() {
         <Route path="/athlete/notifications" element={<PrivateRoute><NotificationsPage /></PrivateRoute>} />
         <Route path="/athlete/loop" element={<PrivateRoute><Loop /></PrivateRoute>} />
         <Route path="/gamification" element={<PrivateRoute><GamificationTestPage /></PrivateRoute>} />
-        <Route path="/athlete/workout-creator-demo" element={<PrivateRoute><WorkoutCreatorDemo /></PrivateRoute>} />
+        <Route path="/athlete/workout-creator" element={<PrivateRoute><WorkoutCreatorDemo /></PrivateRoute>} />
         <Route path="/athlete/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
         <Route path="/account" element={<PrivateRoute><Account /></PrivateRoute>} />
       </Route>
