@@ -207,7 +207,11 @@ const WorkoutCreatorPOC: React.FC = () => {
   const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
 
   // Sidebar state
-  const [sidebarWidth, setSidebarWidth] = useState(200);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    // Check localStorage for the saved sidebar state
+    const savedSidebarState = localStorage.getItem('sidebarCollapsed');
+    return savedSidebarState === 'true' ? 70 : 200;
+  });
   
   // Listen for sidebar toggle events
   useEffect(() => {

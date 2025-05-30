@@ -31,4 +31,6 @@ export { default as RPEPromptCard } from './RPEPromptCard';
 export { default as TodaysCheckInSection } from './TodaysCheckInSection';
 
 // Coach components
-export { AlertsNotificationsCard, AthleteRosterCard, TodaysFocusCard } from './coach'; 
+export { AlertsNotificationsCard, AthleteRosterCard, TodaysFocusCard } from './coach';
+
+export { DateTimePicker } from './DateTimePicker' 

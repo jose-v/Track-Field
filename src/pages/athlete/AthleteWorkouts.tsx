@@ -79,28 +79,6 @@ function getCurrentDate(): string {
   return dateUtils.localDateString(new Date());
 }
 
-// Define types for debugging information
-interface Assignment {
-  workout_id: string;
-  athlete_id: string;
-  status: string;
-  assigned_at?: string;
-  [key: string]: any; // Allow other fields
-}
-
-interface RawWorkout {
-  id: string;
-  name: string;
-  date: string;
-  type: string;
-  [key: string]: any;
-}
-
-interface DebugState {
-  assignments: Assignment[];
-  rawWorkouts: RawWorkout[];
-}
-
 export function AthleteWorkouts() {
   // Theme-aware colors
   const noWorkoutsColor = useColorModeValue('gray.500', 'gray.300');
@@ -364,32 +342,15 @@ export function AthleteWorkouts() {
           const completedCount = getCompletionCount(workout.id);
           const totalExercises = workout.exercises?.length || 0;
           
-          // Check if this workout is marked as completed in debug info
-          const isCompletedInDb = debugInfo.assignments.some(
-            a => a.workout_id === workout.id && a.status === 'completed'
-          );
-          
-          // If workout is marked completed in DB but store doesn't match,
-          // use the total exercise count as completed count
-          const actualCompletedCount = isCompletedInDb && completedCount < totalExercises 
-            ? totalExercises 
-            : completedCount;
-            
           const progressPercent = totalExercises > 0 
-            ? (actualCompletedCount / totalExercises) * 100 
+            ? (completedCount / totalExercises) * 100 
             : 0;
           
           const progress = {
-            completed: actualCompletedCount,
+            completed: completedCount,
             total: totalExercises,
             percentage: progressPercent
           };
-
-          console.log(`Workout ${workout.id} (${workout.name}): DB Status = ${
-            isCompletedInDb ? 'completed' : 'in progress'
-          }, Store completed = ${completedCount}/${totalExercises}, Using: ${
-            actualCompletedCount
-          }/${totalExercises}`);
 
           return (
             <WorkoutCard
@@ -397,167 +358,13 @@ export function AthleteWorkouts() {
               workout={workout}
               isCoach={false}
               progress={progress}
-              onStart={() => handleGo(workout, isCompletedInDb ? 0 : actualCompletedCount === totalExercises ? 0 : actualCompletedCount)}
+              onStart={() => handleGo(workout, completedCount === totalExercises ? 0 : completedCount)}
               onRefresh={() => forceRefreshWorkoutProgress(workout.id)}
               showRefresh={true}
             />
           );
         })}
       </SimpleGrid>
-    );
-  };
-
-  // Add this right after the useEffect for refetching workouts
-  // Add debug function to directly check database
-  const [debugInfo, setDebugInfo] = useState<DebugState>({ 
-    assignments: [], 
-    rawWorkouts: [] 
-  });
-
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    const checkAssignments = async () => {
-      if (!user?.id) return;
-      
-      try {
-        console.log('DEBUG: Checking athlete assignments directly');
-        
-        // 1. Check raw assignments in the database
-        const { data: assignmentData, error: assignmentError } = await supabase
-          .from('athlete_workouts')
-          .select('*')
-          .eq('athlete_id', user.id);
-          
-        if (assignmentError) {
-          console.error('DEBUG: Error fetching assignments:', assignmentError);
-        } else {
-          console.log('DEBUG: Raw assignments found:', assignmentData);
-          setDebugInfo(prev => ({ 
-            ...prev, 
-            assignments: assignmentData as Assignment[] || [] 
-          }));
-          
-          // 2. If assignments exist, check the raw workouts
-          if (assignmentData && assignmentData.length > 0) {
-            const workoutIds = assignmentData.map(a => a.workout_id);
-            
-            const { data: workoutData, error: workoutError } = await supabase
-              .from('workouts')
-              .select('*')
-              .in('id', workoutIds);
-              
-            if (workoutError) {
-              console.error('DEBUG: Error fetching raw workouts:', workoutError);
-            } else {
-              console.log('DEBUG: Raw workouts found:', workoutData);
-              setDebugInfo(prev => ({ 
-                ...prev, 
-                rawWorkouts: workoutData as RawWorkout[] || [] 
-              }));
-            }
-          }
-        }
-      } catch (err) {
-        console.error('DEBUG: Error in diagnostics:', err);
-      }
-    };
-    
-    checkAssignments();
-  }, [user?.id]);
-
-  // Debug info display
-  const DebugInfo = () => {
-    if (process.env.NODE_ENV === 'production') return null;
-    
-    const handleForceRefresh = async () => {
-      console.log('Force refreshing athlete workouts');
-      try {
-        // Clear the cache for athlete workouts
-        await queryClient.invalidateQueries({ queryKey: ['athleteAssignedWorkouts'] });
-        // Refetch
-        await refetch();
-        // Re-run direct database checks
-        const checkAssignments = async () => {
-          if (!user?.id) return;
-          
-          // Query athlete_workouts directly
-          const { data: assignmentData } = await supabase
-            .from('athlete_workouts')
-            .select('*')
-            .eq('athlete_id', user.id);
-            
-          if (assignmentData) {
-            setDebugInfo(prev => ({ 
-              ...prev, 
-              assignments: assignmentData as Assignment[] || [] 
-            }));
-            
-            // If assignments exist, check the workouts
-            if (assignmentData.length > 0) {
-              const workoutIds = assignmentData.map(a => a.workout_id);
-              
-              const { data: workoutData } = await supabase
-                .from('workouts')
-                .select('*')
-                .in('id', workoutIds);
-                
-              if (workoutData) {
-                setDebugInfo(prev => ({ 
-                  ...prev, 
-                  rawWorkouts: workoutData as RawWorkout[] || [] 
-                }));
-              }
-            }
-          }
-        };
-        
-        await checkAssignments();
-      } catch (err) {
-        console.error('Error during force refresh:', err);
-      }
-    };
-    
-    return (
-      <Box mt={8} p={4} border="1px dashed" borderColor="red.300" borderRadius="md">
-        <Flex justify="space-between" align="center" mb={2}>
-          <Heading size="md" color="red.500">Debug Information</Heading>
-          <Button 
-            onClick={handleForceRefresh}
-            colorScheme="red"
-            size="sm"
-            leftIcon={<Icon as={FaRedo} />}
-          >
-            Force Refresh
-          </Button>
-        </Flex>
-        <Text fontWeight="bold">User ID: {user?.id || 'Not logged in'}</Text>
-        <Text>Raw Assignments: {debugInfo.assignments.length}</Text>
-        <Text>Raw Workouts: {debugInfo.rawWorkouts.length}</Text>
-        <Text>Query Results: {assignedWorkouts?.length || 0}</Text>
-        
-        {debugInfo.assignments.length > 0 && (
-          <Box mt={2}>
-            <Text fontWeight="bold">Assignments:</Text>
-            {debugInfo.assignments.map((a, i) => (
-              <Text key={i} fontSize="sm">
-                Workout ID: {a.workout_id}, Status: {a.status}
-              </Text>
-            ))}
-          </Box>
-        )}
-        
-        {debugInfo.rawWorkouts.length > 0 && (
-          <Box mt={2}>
-            <Text fontWeight="bold">Raw Workouts:</Text>
-            {debugInfo.rawWorkouts.map((w, i) => (
-              <Text key={i} fontSize="sm">
-                {w.id}: {w.name} (Date: {w.date})
-              </Text>
-            ))}
-          </Box>
-        )}
-      </Box>
     );
   };
 
@@ -864,8 +671,6 @@ export function AthleteWorkouts() {
           </ModalBody>
         </ModalContent>
       </Modal>
-
-      <DebugInfo />
     </Container>
   );
 } 

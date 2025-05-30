@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import {
   Box,
   VStack,
@@ -14,14 +14,16 @@ import {
   Checkbox,
   Select,
   useColorModeValue,
+  Spinner,
+  Center,
 } from '@chakra-ui/react';
 import { ArrowLeft, ChevronLeft, ChevronRight, Save, Target } from 'lucide-react';
 
-// Import step components
-import Step1WorkoutDetails from './Step1WorkoutDetails';
-import Step2ExercisePlanning from './Step2ExercisePlanning';
-import Step3AthleteAssignment from './Step3AthleteAssignment';
-import Step4ReviewSave from './Step4ReviewSave';
+// Lazy load step components to improve initial load time
+const Step1WorkoutDetails = lazy(() => import('./Step1WorkoutDetails').then(module => ({ default: module.default })));
+const Step2ExercisePlanning = lazy(() => import('./Step2ExercisePlanning').then(module => ({ default: module.default })));
+const Step3AthleteAssignment = lazy(() => import('./Step3AthleteAssignment').then(module => ({ default: module.default })));
+const Step4ReviewSave = lazy(() => import('./Step4ReviewSave').then(module => ({ default: module.default })));
 
 // Mock data
 const MOCK_EXERCISES = [
@@ -93,36 +95,34 @@ interface Athlete {
 }
 
 const WorkoutCreatorWireframe: React.FC = () => {
-  // Theme-aware colors
-  const bgColor = useColorModeValue('white', 'gray.800');
-  const cardBg = useColorModeValue('white', 'gray.700');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
-  const textColor = useColorModeValue('gray.700', 'gray.100');
-  const subtitleColor = useColorModeValue('gray.600', 'gray.300');
-  const statsBg = useColorModeValue('gray.50', 'gray.700');
-  const progressBg = useColorModeValue('white', 'gray.800');
-  const stepHeaderTitleColor = useColorModeValue('blue.700', 'blue.300');
-  const stepHeaderDescColor = useColorModeValue('blue.600', 'blue.400');
-  const dayButtonHoverBg = useColorModeValue('blue.50', 'blue.900');
-  const progressStepCurrentColor = useColorModeValue('blue.600', 'blue.300');
-  const progressStepCompletedColor = useColorModeValue('green.600', 'green.300');
-  const progressStepInactiveColor = useColorModeValue('gray.500', 'gray.300');
-  const progressStepArrowColor = useColorModeValue('gray.400', 'gray.400');
+  // Theme-aware colors - moved to useMemo for performance
+  const themeColors = React.useMemo(() => ({
+    bgColor: useColorModeValue('white', 'gray.800'),
+    cardBg: useColorModeValue('white', 'gray.700'),
+    borderColor: useColorModeValue('gray.200', 'gray.600'),
+    textColor: useColorModeValue('gray.700', 'gray.100'),
+    subtitleColor: useColorModeValue('gray.600', 'gray.300'),
+    statsBg: useColorModeValue('gray.50', 'gray.700'),
+    progressBg: useColorModeValue('white', 'gray.800'),
+    stepHeaderTitleColor: useColorModeValue('blue.700', 'blue.300'),
+    stepHeaderDescColor: useColorModeValue('blue.600', 'blue.400'),
+    dayButtonHoverBg: useColorModeValue('blue.50', 'blue.900'),
+    progressStepCurrentColor: useColorModeValue('blue.600', 'blue.300'),
+    progressStepCompletedColor: useColorModeValue('green.600', 'green.300'),
+    progressStepInactiveColor: useColorModeValue('gray.500', 'gray.300'),
+    progressStepArrowColor: useColorModeValue('gray.400', 'gray.400'),
+  }), []);
+
+  const {
+    bgColor, cardBg, borderColor, textColor, subtitleColor, statsBg, progressBg,
+    stepHeaderTitleColor, stepHeaderDescColor, dayButtonHoverBg,
+    progressStepCurrentColor, progressStepCompletedColor, progressStepInactiveColor,
+    progressStepArrowColor
+  } = themeColors;
 
   // Sidebar state
   const [sidebarWidth, setSidebarWidth] = useState(() => {
-    // Check if sidebar is currently collapsed by looking at the DOM element
-    const sidebarElement = document.querySelector('[style*="width: 70px"]') || 
-                           document.querySelector('aside') || 
-                           document.querySelector('[role="navigation"]');
-    
-    if (sidebarElement) {
-      const computedStyle = window.getComputedStyle(sidebarElement);
-      const currentWidth = parseInt(computedStyle.width);
-      return currentWidth <= 70 ? 70 : 200;
-    }
-    
-    // Fallback: check localStorage for sidebar state
+    // Always check localStorage first for the saved state
     const savedSidebarState = localStorage.getItem('sidebarCollapsed');
     return savedSidebarState === 'true' ? 70 : 200;
   });
@@ -131,8 +131,6 @@ const WorkoutCreatorWireframe: React.FC = () => {
   useEffect(() => {
     const handleSidebarToggle = (event: CustomEvent) => {
       setSidebarWidth(event.detail.width);
-      // Also save to localStorage for persistence
-      localStorage.setItem('sidebarCollapsed', event.detail.isCollapsed.toString());
     };
     
     window.addEventListener('sidebarToggle', handleSidebarToggle as EventListener);
@@ -146,15 +144,15 @@ const WorkoutCreatorWireframe: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
   
   // Step 1 state
-  const [workoutName, setWorkoutName] = useState('My New Workout');
+  const [workoutName, setWorkoutName] = useState('');
   const [templateType, setTemplateType] = useState<'single' | 'weekly'>('weekly');
   const [workoutType, setWorkoutType] = useState('Strength');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [location, setLocation] = useState('');
   
-  // Step 2 state
-  const [selectedExercises, setSelectedExercises] = useState<Record<string, SelectedExercise[]>>({
+  // Lazy initialize complex state objects
+  const [selectedExercises, setSelectedExercises] = useState<Record<string, SelectedExercise[]>>(() => ({
     monday: [],
     tuesday: [],
     wednesday: [],
@@ -162,11 +160,14 @@ const WorkoutCreatorWireframe: React.FC = () => {
     friday: [],
     saturday: [],
     sunday: []
-  });
+  }));
+  
+  // Step 2 state
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [currentDay, setCurrentDay] = useState('monday');
-  const [restDays, setRestDays] = useState<Record<string, boolean>>({
+  
+  const [restDays, setRestDays] = useState<Record<string, boolean>>(() => ({
     monday: false,
     tuesday: false,
     wednesday: false,
@@ -174,7 +175,8 @@ const WorkoutCreatorWireframe: React.FC = () => {
     friday: false,
     saturday: false,
     sunday: false
-  });
+  }));
+  
   const [copyFromDay, setCopyFromDay] = useState('');
   const [copyToDay, setCopyToDay] = useState('');
   
@@ -568,80 +570,91 @@ const WorkoutCreatorWireframe: React.FC = () => {
   );
 
   const renderCurrentStep = () => {
+    const LoadingFallback = () => (
+      <Center h="400px">
+        <VStack spacing={4}>
+          <Spinner size="xl" color="blue.500" thickness="4px" />
+          <Text color={textColor}>Loading step content...</Text>
+        </VStack>
+      </Center>
+    );
+
     switch (currentStep) {
       case 1:
         return (
-          <Step1WorkoutDetails
-            workoutName={workoutName}
-            setWorkoutName={setWorkoutName}
-            templateType={templateType}
-            setTemplateType={setTemplateType}
-            workoutType={workoutType}
-            setWorkoutType={setWorkoutType}
-            startDate={startDate}
-            setStartDate={setStartDate}
-            endDate={endDate}
-            setEndDate={setEndDate}
-            location={location}
-            setLocation={setLocation}
-          />
+          <Suspense fallback={<LoadingFallback />}>
+            <Step1WorkoutDetails
+              workoutName={workoutName}
+              setWorkoutName={setWorkoutName}
+              templateType={templateType}
+              setTemplateType={setTemplateType}
+              workoutType={workoutType}
+              setWorkoutType={setWorkoutType}
+              startDate={startDate}
+              setStartDate={setStartDate}
+              endDate={endDate}
+              setEndDate={setEndDate}
+              location={location}
+              setLocation={setLocation}
+            />
+          </Suspense>
         );
       case 2:
         return (
-          <Step2ExercisePlanning
-            exercises={MOCK_EXERCISES}
-            selectedExercises={selectedExercises[currentDay] || []}
-            onAddExercise={handleAddExercise}
-            onRemoveExercise={handleRemoveExercise}
-            onUpdateExercise={handleUpdateExercise}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            selectedCategory={selectedCategory}
-            setSelectedCategory={setSelectedCategory}
-            currentDay={currentDay}
-            setCurrentDay={setCurrentDay}
-            templateType={templateType}
-            isRestDay={restDays[currentDay]}
-            customExercises={customExercises}
-            onAddCustomExercise={handleAddCustomExercise}
-            onToggleRestDay={handleToggleRestDay}
-            onCopyExercises={handleCopyExercises}
-          />
+          <Suspense fallback={<LoadingFallback />}>
+            <Step2ExercisePlanning
+              exercises={MOCK_EXERCISES}
+              selectedExercises={selectedExercises[currentDay] || []}
+              onAddExercise={handleAddExercise}
+              onRemoveExercise={handleRemoveExercise}
+              onUpdateExercise={handleUpdateExercise}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              currentDay={currentDay}
+              setCurrentDay={setCurrentDay}
+              templateType={templateType}
+              isRestDay={restDays[currentDay]}
+              customExercises={customExercises}
+              onAddCustomExercise={handleAddCustomExercise}
+              onToggleRestDay={handleToggleRestDay}
+              onCopyExercises={handleCopyExercises}
+            />
+          </Suspense>
         );
       case 3:
         return (
-          <Step3AthleteAssignment
-            athletes={MOCK_ATHLETES}
-            selectedAthletes={selectedAthletes}
-            onAthleteSelection={handleAthleteSelection}
-            onClearAllAthletes={handleClearAllAthletes}
-            searchTerm={athleteSearchTerm}
-            setSearchTerm={setAthleteSearchTerm}
-          />
+          <Suspense fallback={<LoadingFallback />}>
+            <Step3AthleteAssignment
+              athletes={MOCK_ATHLETES}
+              selectedAthletes={selectedAthletes}
+              onAthleteSelection={handleAthleteSelection}
+              onClearAllAthletes={handleClearAllAthletes}
+              searchTerm={athleteSearchTerm}
+              setSearchTerm={setAthleteSearchTerm}
+            />
+          </Suspense>
         );
       case 4:
         return (
-          <Step4ReviewSave
-            workoutName={workoutName}
-            workoutType={workoutType}
-            templateType={templateType}
-            selectedExercises={templateType === 'single' ? selectedExercises['monday'] || [] : undefined}
-            weeklyPlan={templateType === 'weekly' ? Object.entries(selectedExercises).map(([day, exercises]) => ({
-              day,
-              exercises,
-              isRestDay: restDays[day] || false
-            })) : undefined}
-            selectedAthletes={selectedAthletes}
-            warnings={getWarnings()}
-            onGoToStep={goToStep}
-            onUpdateWeeklyPlan={templateType === 'weekly' ? handleUpdateWeeklyPlan : undefined}
-            startDate={startDate}
-            endDate={endDate}
-            location={location}
-          />
+          <Suspense fallback={<LoadingFallback />}>
+            <Step4ReviewSave
+              workoutName={workoutName}
+              templateType={templateType}
+              workoutType={workoutType}
+              selectedExercises={selectedExercises}
+              selectedAthletes={selectedAthletes}
+              customExercises={customExercises}
+              restDays={restDays}
+              warnings={getWarnings()}
+              onGoToStep={(step: number) => goToStep(step)}
+              location={location}
+            />
+          </Suspense>
         );
       default:
-        return null;
+        return <Box>Unknown step</Box>;
     }
   };
 

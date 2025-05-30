@@ -50,7 +50,11 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
   const { showFeedbackModal } = useFeedback();
-  const [sidebarWidth, setSidebarWidth] = useState(200);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    // Check localStorage for the saved sidebar state
+    const savedSidebarState = localStorage.getItem('sidebarCollapsed');
+    return savedSidebarState === 'true' ? 70 : 200;
+  });
   
   // Background colors
   const bgColor = useColorModeValue('white', 'gray.800');

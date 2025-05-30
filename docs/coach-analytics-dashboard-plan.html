@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coach Analytics Dashboard - Strategic Plan</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2D3748 0%, #4A5568 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .content {
+            padding: 2rem;
+        }
+
+        .section {
+            margin-bottom: 3rem;
+        }
+
+        .section h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2D3748;
+            margin-bottom: 1rem;
+            border-left: 4px solid #4299E1;
+            padding-left: 1rem;
+        }
+
+        .section h3 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #4A5568;
+            margin: 1.5rem 0 1rem 0;
+        }
+
+        .problem-box {
+            background: #FED7D7;
+            border: 1px solid #FC8181;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .problem-box h3 {
+            color: #C53030;
+            margin-top: 0;
+        }
+
+        .problem-box ul {
+            margin-left: 1.5rem;
+            color: #742A2A;
+        }
+
+        .solution-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .solution-card {
+            background: linear-gradient(135deg, #E6FFFA 0%, #B2F5EA 100%);
+            border: 1px solid #4FD1C7;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .solution-card h4 {
+            color: #047857;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .code-block {
+            background: #1A202C;
+            color: #E2E8F0;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.9rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .comparison-table th {
+            background: #4299E1;
+            color: white;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .comparison-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #E2E8F0;
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background: #F7FAFC;
+        }
+
+        .layout-section {
+            background: #F7FAFC;
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+
+        .layout-box {
+            background: white;
+            border: 2px dashed #4299E1;
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: monospace;
+            text-align: center;
+        }
+
+        .phase-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .phase-card {
+            background: linear-gradient(135deg, #FFF5F5 0%, #FED7D7 100%);
+            border: 1px solid #FC8181;
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .phase-card h4 {
+            color: #C53030;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .phase-card ol {
+            margin-left: 1.2rem;
+            color: #742A2A;
+        }
+
+        .highlight {
+            background: #FFFBEB;
+            border: 1px solid #F6E05E;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .highlight strong {
+            color: #B7791F;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .metric-box {
+            background: #EBF8FF;
+            border: 1px solid #63B3ED;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .metric-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2B6CB0;
+        }
+
+        .metric-label {
+            color: #4A5568;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        ul, ol {
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Coach Analytics Dashboard</h1>
+            <p>Strategic Plan for Team-Focused Analytics & Performance Management</p>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <div class="problem-box">
+                    <h3>🔄 Current Problem</h3>
+                    <ul>
+                        <li>Coach dashboard = Copy of athlete dashboard</li>
+                        <li>Focuses on individual metrics instead of team management</li>
+                        <li>Missing coaching-specific insights</li>
+                        <li>No comparative analysis across athletes</li>
+                        <li>Lacks team performance trends and management tools</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>📊 Coach Analytics Should Focus On</h2>
+                
+                <div class="solution-grid">
+                    <div class="solution-card">
+                        <h4>1. TEAM OVERVIEW METRICS</h4>
+                        <div class="code-block">// Top-level KPIs with Injury Risk Integration
+- Total Athletes Under Management
+- Team Training Adherence Rate (%)
+- Average Team Performance Improvement
+- Injury Risk Status (🟢 Green/🟡 Yellow/🔴 Red athletes)
+- ACWR Team Average (Acute:Chronic Workload Ratio)
+- Upcoming Meet Participation Count
+- Wellness Alerts Count (High Fatigue/Stress)</div>
+                    </div>
+
+                    <div class="solution-card">
+                        <h4>2. ATHLETE COMPARISON GRID</h4>
+                        <div class="code-block">// Comparative view with Risk Status
+Athlete | Training | Performance | Risk Status | Wellness | Last Activity | AI Focus
+Sarah J | 4/5      | ↗️ +12%      | 🟢 Low      | Good     | Yesterday     | ⭐ Peak Form
+Mike C  | 2/5      | ↘️ -3%       | 🟡 Medium   | Tired    | 3 days ago    | 🔍 Check-in
+Emma D  | 5/5      | ↗️ +8%       | 🔴 High     | Sore     | Today         | 🚨 Rest Rec.</div>
+                    </div>
+
+                    <div class="solution-card">
+                        <h4>3. TRAINING LOAD MANAGEMENT</h4>
+                        <div class="code-block">// Prevent overtraining with ACWR monitoring
+- Weekly Training Load Distribution (ATL/CTL chart)
+- ACWR Risk Zones (Sweet Spot: 0.8-1.3)
+- Athletes at Risk of Overtraining (ACWR > 1.5)
+- Athletes Need More Volume (ACWR < 0.7)
+- Recovery Status by Athlete (Wellness Surveys)
+- AI Suggestions for Load Adjustments</div>
+                    </div>
+
+                    <div class="solution-card">
+                        <h4>4. PERFORMANCE ANALYTICS</h4>
+                        <div class="code-block">// Team performance insights with AI
+- Team PR Achievements This Month
+- Event-Specific Performance Trends (Sprint/Distance/Jump/Throw)
+- Performance vs Training Load Correlation
+- Goal Achievement Rates (Individual & Team)
+- AI-Identified Performance Patterns
+- Predictive Meet Performance Indicators</div>
+                    </div>
+
+                    <div class="solution-card">
+                        <h4>5. WORKOUT EFFECTIVENESS</h4>
+                        <div class="code-block">// Evidence-based coaching insights
+Effectiveness Measured By:
+- RPE vs Expected Difficulty Correlation
+- Completion Rate by Workout Type
+- Performance Improvement Post-Workout
+- Athlete Engagement (RPE, Notes, Consistency)
+- AI Analysis: Workout → Outcome Patterns
+- Most/Least Effective Exercise Combinations</div>
+                    </div>
+
+                    <div class="solution-card">
+                        <h4>6. MEET PREPARATION STATUS</h4>
+                        <div class="code-block">// Competition readiness with AI predictions
+- Athletes Registered for Upcoming Meets
+- Event Readiness Score (Training + Performance + Risk)
+- Training Peak Analysis (Periodization Status)
+- AI Performance Predictions for Each Event
+- Tapering Recommendations
+- Last-Minute Risk Assessments</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🤖 AI Integration & Proactive Insights</h2>
+                
+                <div class="solution-grid">
+                    <div class="solution-card">
+                        <h4>🎯 Team KPIs AI Insights</h4>
+                        <div class="code-block">// Smart notifications in KPI cards
+"Team adherence is down 5% this week, primarily in distance group. Check recent workout difficulty."
+
+"3 athletes showing fatigue patterns. Consider team recovery session."
+
+"Performance trending up 12% - great work! Maintain current intensity."</div>
+                    </div>
+
+                    <div class="solution-card">
+                        <h4>⚡ Contextual Quick Actions</h4>
+                        <div class="code-block">// Dynamic actions based on athlete status
+High-Risk Athlete:
+→ "Suggest Recovery Session"
+→ "Modify Training Plan"
+→ "Schedule Check-in"
+
+Low Activity Athlete:
+→ "Send Motivation Message"
+→ "Assign Catch-up Workout"
+
+Peak Form Athlete:
+→ "Plan Competition Strategy"
+→ "Maintain Current Program"</div>
+                    </div>
+
+                    <div class="solution-card">
+                        <h4>📈 Training Load AI Suggestions</h4>
+                        <div class="code-block">// Proactive load management
+"Team's average ATL trending high. Consider de-load day next week."
+
+"Sarah's ACWR at 1.6 - recommend 20% volume reduction."
+
+"Sprint group ready for intensity increase - CTL building well."</div>
+                    </div>
+
+                    <div class="solution-card">
+                        <h4>🎪 Performance Pattern Detection</h4>
+                        <div class="code-block">// AI-spotted trends
+"Mike shows 15% better performance on Tuesdays - optimize key sessions."
+
+"Distance group responds well to tempo runs before intervals."
+
+"Team performance peaks 3 days after recovery - adjust timing."</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>📊 Specific Visualization Requirements</h2>
+                
+                <div class="layout-section">
+                    <h3>Training Load Chart Specifications</h3>
+                    <div class="code-block">// Chart.js/Plotly.js Implementation
+Chart Type: Multi-line with Risk Zones
+Lines: ATL (blue), CTL (green), ACWR (red)
+Risk Zones: 
+  - Green Zone: ACWR 0.8-1.3 (background)
+  - Yellow Zone: ACWR 0.7-0.8 & 1.3-1.5
+  - Red Zone: ACWR < 0.7 or > 1.5
+Hover Data: Specific values + risk assessment
+Time Range: Last 8 weeks with projection</div>
+
+                    <h3>Performance by Event Type Chart</h3>
+                    <div class="code-block">// Grouped Bar Chart
+Groups: Sprint, Distance, Jumps, Throws
+Metrics: Recent Test Scores, PBs This Month, Goal Progress %
+Color Coding: Performance trend (green up, red down)
+Drill-down: Click → Event-specific athlete list
+AI Overlay: Performance insights per event group</div>
+
+                    <h3>Goal Progress Visualization</h3>
+                    <div class="code-block">// Progress Dashboard
+Format: Individual progress bars per athlete
+Data: Current Performance / Goal Performance
+Colors: Green (on track), Yellow (behind), Red (off track)
+Tooltip: Expected completion date, required improvement rate
+Sorting: By progress percentage, deadline proximity</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🔗 Drill-Down Navigation Structure</h2>
+                
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Dashboard Element</th>
+                            <th>Click Action</th>
+                            <th>Destination View</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Athlete Name (Grid)</td>
+                            <td>Single Click</td>
+                            <td>Individual Athlete Dashboard</td>
+                        </tr>
+                        <tr>
+                            <td>Team Performance Metric</td>
+                            <td>Click</td>
+                            <td>Detailed Performance Analytics Page</td>
+                        </tr>
+                        <tr>
+                            <td>Risk Status Indicator</td>
+                            <td>Click</td>
+                            <td>Injury Risk Analysis & Recommendations</td>
+                        </tr>
+                        <tr>
+                            <td>Training Load Chart</td>
+                            <td>Click Point</td>
+                            <td>Weekly Training Details</td>
+                        </tr>
+                        <tr>
+                            <td>AI Insight Card</td>
+                            <td>Click</td>
+                            <td>Detailed Analysis & Action Items</td>
+                        </tr>
+                        <tr>
+                            <td>Event Group (Chart)</td>
+                            <td>Click</td>
+                            <td>Event-Specific Athlete Performance List</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section">
+                <h2>🏗️ Proposed Dashboard Layout</h2>
+                
+                <div class="layout-section">
+                    <h3>TOP SECTION: Team KPIs</h3>
+                    <div class="layout-box">
+┌─────────────┬─────────────┬─────────────┬─────────────┐
+│   Total     │   Active    │   Team      │  Upcoming   │
+│  Athletes   │ This Week   │Performance  │   Meets     │
+│     24      │    18/24    │   ↗️ +15%   │      3      │
+└─────────────┴─────────────┴─────────────┴─────────────┘
+                    </div>
+
+                    <h3>MIDDLE SECTION: Athlete Grid + Quick Actions</h3>
+                    <div class="layout-box">
+┌─────────────────────────────────────────┬─────────────────┐
+│          ATHLETE PERFORMANCE            │  QUICK ACTIONS  │
+│                                         │                 │
+│  [Sortable table with all athletes]     │ ⚡ Create Workout│
+│  - Training adherence                   │ 📅 Schedule Meet │
+│  - Performance trends                   │ 📊 Team Report  │
+│  - Last activity                        │ 🚨 Check Alerts │
+│  - Status indicators                    │                 │
+└─────────────────────────────────────────┴─────────────────┘
+                    </div>
+
+                    <h3>BOTTOM SECTION: Analytics Charts</h3>
+                    <div class="layout-box">
+┌──────────────────────┬──────────────────────┬────────────────────┐
+│   TRAINING TRENDS    │   PERFORMANCE BY     │    GOAL PROGRESS   │
+│                      │      EVENT TYPE      │                    │
+│ [Weekly load chart]  │ [Sprint/Distance/etc]│ [Achievement %, ETA]│
+└──────────────────────┴──────────────────────┴────────────────────┘
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🎯 Key Differences Summary</h2>
+                
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Athlete View</th>
+                            <th>Coach View</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>"My performance"</td>
+                            <td>"Team performance"</td>
+                        </tr>
+                        <tr>
+                            <td>Personal goals</td>
+                            <td>Team goals + individual goals</td>
+                        </tr>
+                        <tr>
+                            <td>Individual trends</td>
+                            <td>Comparative trends</td>
+                        </tr>
+                        <tr>
+                            <td>My workouts</td>
+                            <td>All athlete workouts</td>
+                        </tr>
+                        <tr>
+                            <td>My meets</td>
+                            <td>Team meet preparation</td>
+                        </tr>
+                        <tr>
+                            <td>Personal records</td>
+                            <td>Team records + comparisons</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section">
+                <h2>🛠️ Implementation Plan</h2>
+                
+                <div class="phase-grid">
+                    <div class="phase-card">
+                        <h4>Phase 1: Data Architecture</h4>
+                        <ol>
+                            <li>Create coach-specific data queries</li>
+                            <li>Aggregate athlete data for team views</li>
+                            <li>Build comparative analytics functions</li>
+                            <li>Design team performance metrics</li>
+                        </ol>
+                    </div>
+
+                    <div class="phase-card">
+                        <h4>Phase 2: Component Development</h4>
+                        <ol>
+                            <li><strong>TeamOverviewCards</strong> - KPI summaries</li>
+                            <li><strong>AthleteComparisonTable</strong> - Sortable athlete grid</li>
+                            <li><strong>TrainingLoadChart</strong> - Prevent over/under training</li>
+                            <li><strong>PerformanceTrendsChart</strong> - Team performance over time</li>
+                        </ol>
+                    </div>
+
+                    <div class="phase-card">
+                        <h4>Phase 3: Advanced Features</h4>
+                        <ol>
+                            <li><strong>Alert system</strong> for at-risk athletes</li>
+                            <li><strong>Predictive analytics</strong> for meet performance</li>
+                            <li><strong>Automated insights</strong> and recommendations</li>
+                            <li><strong>Export capabilities</strong> for reports</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>📈 Expected Metrics & KPIs</h2>
+                
+                <div class="metrics-grid">
+                    <div class="metric-box">
+                        <div class="metric-number">24</div>
+                        <div class="metric-label">Total Athletes</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-number">85%</div>
+                        <div class="metric-label">Training Adherence</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-number">+12%</div>
+                        <div class="metric-label">Avg Performance</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-number">3</div>
+                        <div class="metric-label">Upcoming Meets</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🚀 Technical Requirements</h2>
+                
+                <h3>Data Queries Needed:</h3>
+                <ul>
+                    <li>Aggregate athlete training data by coach</li>
+                    <li>Performance trends across multiple athletes</li>
+                    <li>Training load calculations and comparisons</li>
+                    <li>Meet registration and readiness status</li>
+                    <li>Goal achievement tracking per athlete</li>
+                </ul>
+
+                <h3>New Components to Build:</h3>
+                <ul>
+                    <li><code>TeamOverviewDashboard.tsx</code> - Main dashboard wrapper</li>
+                    <li><code>AthleteComparisonTable.tsx</code> - Sortable athlete grid</li>
+                    <li><code>TeamKPICards.tsx</code> - Top-level metrics</li>
+                    <li><code>TrainingLoadChart.tsx</code> - Weekly load visualization</li>
+                    <li><code>PerformanceTrendsChart.tsx</code> - Team performance over time</li>
+                    <li><code>AthleteAlerts.tsx</code> - Risk indicators and notifications</li>
+                </ul>
+
+                <h3>Database Schema Updates:</h3>
+                <ul>
+                    <li>Coach-athlete relationship optimization</li>
+                    <li>Training load calculation views</li>
+                    <li>Performance comparison indexes</li>
+                    <li>Alert triggers and thresholds</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2>🗄️ Database Schema Alignment</h2>
+                
+                <div class="solution-grid">
+                    <div class="solution-card">
+                        <h4>📊 Training Load Calculations</h4>
+                        <div class="code-block">// PostgreSQL Views & Tables
+Views Needed:
+- athlete_training_load_summary
+- coach_team_acwr_status  
+- weekly_load_aggregates
+
+Key Tables:
+- training_load_entries (ATL/CTL calculations)
+- athlete_wellness_surveys (fatigue, soreness, stress)
+- workout_completions (RPE, completion status)
+
+Calculations:
+- ATL = 7-day exponentially weighted moving average
+- CTL = 42-day exponentially weighted moving average  
+- ACWR = ATL / CTL (injury risk indicator)</div>
+                    </div>
+
+                    <div class="solution-card">
+                        <h4>🏃‍♂️ Coach-Athlete Relationships</h4>
+                        <div class="code-block">// Optimized Queries
+Enhanced Tables:
+- coach_athletes (with role, start_date, status)
+- athlete_performance_history
+- team_groupings (sprint, distance, jumps, throws)
+
+Indexes for Fast Queries:
+- (coach_id, athlete_id, created_at)
+- (athlete_id, workout_date)
+- (coach_id, risk_status, last_activity)
+
+Permissions:
+- Coaches see only their assigned athletes
+- Data aggregation respects privacy boundaries</div>
+                    </div>
+
+                    <div class="solution-card">
+                        <h4>🚨 Alert System Backend</h4>
+                        <div class="code-block">// Automated Risk Detection
+Alert Triggers:
+- ACWR > 1.5 (overtraining risk)
+- ACWR < 0.7 (detraining risk)  
+- High fatigue + high load combination
+- 3+ days without activity
+- Performance decline with normal/high load
+
+Alert Table:
+- coach_alerts (athlete_id, alert_type, severity, created_at)
+- alert_thresholds (coach_id, metric, threshold_value)
+
+Background Jobs:
+- Daily ACWR calculation
+- Wellness survey analysis
+- Performance trend detection</div>
+                    </div>
+
+                    <div class="solution-card">
+                        <h4>📈 Performance Analytics Tables</h4>
+                        <div class="code-block">// Evidence-Based Coaching Data
+Performance Tracking:
+- athlete_performance_tests (times, distances, heights)
+- workout_effectiveness_scores
+- goal_progress_tracking
+
+AI Analysis Tables:
+- workout_outcome_patterns
+- athlete_response_profiles  
+- performance_prediction_models
+
+Metrics Calculation:
+- Workout effectiveness = (Performance improvement / Expected)
+- Goal progress = (Current - Baseline) / (Goal - Baseline)
+- Risk score = f(ACWR, wellness, performance_trend)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🔧 Integration with Existing Codebase</h2>
+                
+                <h3>📁 File Structure Updates</h3>
+                <div class="code-block">src/pages/coach/Dashboard.tsx (Refactored)
+├── components/
+│   ├── TeamOverviewDashboard.tsx
+│   ├── AthleteComparisonTable.tsx  
+│   ├── TeamKPICards.tsx
+│   ├── TrainingLoadChart.tsx
+│   ├── PerformanceTrendsChart.tsx
+│   ├── AthleteAlerts.tsx
+│   └── AIInsightCards.tsx
+├── hooks/
+│   ├── useTeamAnalytics.ts
+│   ├── useAthleteComparison.ts
+│   ├── useTrainingLoadData.ts
+│   └── useRiskAssessment.ts
+└── utils/
+    ├── acwrCalculations.ts
+    ├── riskAssessment.ts
+    └── performanceMetrics.ts</div>
+
+                <h3>🎣 Custom Hooks Integration</h3>
+                <div class="code-block">// Enhanced Data Fetching
+useTeamAnalytics(coachId) {
+  - Aggregates all team metrics
+  - Calculates team-wide ACWR
+  - Identifies at-risk athletes
+  - Returns KPI data for cards
+}
+
+useAthleteComparison(coachId) {
+  - Fetches all coach's athletes
+  - Includes risk status, wellness, performance
+  - Provides sorting/filtering capabilities
+  - Real-time activity status
+}
+
+useTrainingLoadData(coachId, timeRange) {
+  - ATL/CTL/ACWR time series
+  - Risk zone calculations
+  - Team load distribution
+  - Predictive modeling data
+}</div>
+
+                <h3>🤖 AI Service Integration</h3>
+                <div class="code-block">// AI Insights Service
+src/services/aiInsights.ts
+├── generateTeamInsights(teamData)
+├── identifyAtRiskAthletes(athleteData)  
+├── suggestTrainingAdjustments(loadData)
+├── predictMeetPerformance(athleteId, eventId)
+└── detectPerformancePatterns(historicalData)
+
+Integration Points:
+- Real-time insight generation
+- Cached insights for performance
+- User feedback learning system
+- Insight effectiveness tracking</div>
+            </div>
+
+            <div class="section">
+                <h2>🎯 Enhanced Success Metrics & KPIs</h2>
+                
+                <div class="highlight">
+                    <strong>🏆 Primary Success Metrics:</strong>
+                    <ul>
+                        <li><strong>Speed:</strong> Coaches can identify at-risk athletes within 10 seconds</li>
+                        <li><strong>Accuracy:</strong> 90%+ accuracy in injury risk prediction (validated against outcomes)</li>
+                        <li><strong>Adoption:</strong> 80%+ of coaches use dashboard daily for training decisions</li>
+                        <li><strong>Prevention:</strong> 25% reduction in overtraining incidents</li>
+                        <li><strong>Performance:</strong> 15% improvement in team goal achievement rates</li>
+                        <li><strong>Efficiency:</strong> 50% reduction in time spent on manual athlete monitoring</li>
+                    </ul>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-box">
+                        <div class="metric-number">10s</div>
+                        <div class="metric-label">Risk Identification Time</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-number">90%</div>
+                        <div class="metric-label">Injury Prediction Accuracy</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-number">80%</div>
+                        <div class="metric-label">Daily Coach Adoption</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-number">-25%</div>
+                        <div class="metric-label">Overtraining Incidents</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🚀 Implementation Roadmap (Prioritized)</h2>
+                
+                <div class="phase-grid">
+                    <div class="phase-card">
+                        <h4>🥇 Phase 1: Foundation (Weeks 1-2)</h4>
+                        <ol>
+                            <li><strong>Database schema updates</strong> - ACWR calculations, wellness integration</li>
+                            <li><strong>Basic athlete comparison table</strong> - with risk status column</li>
+                            <li><strong>Team KPI cards</strong> - focusing on injury risk metrics</li>
+                            <li><strong>Simple training load chart</strong> - ATL/CTL/ACWR visualization</li>
+                        </ol>
+                    </div>
+
+                    <div class="phase-card">
+                        <h4>🥈 Phase 2: Intelligence (Weeks 3-4)</h4>
+                        <ol>
+                            <li><strong>AI insight generation</strong> - basic pattern detection</li>
+                            <li><strong>Enhanced quick actions</strong> - contextual to athlete status</li>
+                            <li><strong>Performance analytics</strong> - event-specific trends</li>
+                            <li><strong>Alert system</strong> - automated risk notifications</li>
+                        </ol>
+                    </div>
+
+                    <div class="phase-card">
+                        <h4>🥉 Phase 3: Advanced Features (Weeks 5-6)</h4>
+                        <ol>
+                            <li><strong>Predictive analytics</strong> - meet performance predictions</li>
+                            <li><strong>Workout effectiveness analysis</strong> - outcome correlation</li>
+                            <li><strong>Advanced visualizations</strong> - interactive drill-downs</li>
+                            <li><strong>Export capabilities</strong> - team reports and insights</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>📝 Next Steps</h2>
+                <ol>
+                    <li><strong>Audit current coach dashboard components</strong></li>
+                    <li><strong>Create team-focused data queries</strong></li>
+                    <li><strong>Build the athlete comparison table</strong></li>
+                    <li><strong>Implement team KPI cards</strong></li>
+                    <li><strong>Add training load management charts</strong></li>
+                    <li><strong>Integrate alert system for at-risk athletes</strong></li>
+                    <li><strong>Test with real coach workflows</strong></li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

@@ -40,7 +40,7 @@ import { useProfile } from '../hooks/useProfile';
 // Import existing analytics components
 import { SleepStatsCard } from '../components/SleepStatsCard';
 
-// Import new analytics components we'll create
+// Import analytics components
 import { InjuryRiskCard } from '../components/analytics/InjuryRiskCard';
 import { TrainingLoadCard } from '../components/analytics/TrainingLoadCard';
 import { WellnessCard } from '../components/analytics/WellnessCard';
@@ -49,6 +49,9 @@ import { AnalyticsOverviewCard } from '../components/analytics/AnalyticsOverview
 import { WorkoutComplianceCard } from '../components/analytics/WorkoutComplianceCard';
 import { PersonalRecordsCard } from '../components/analytics/PersonalRecordsCard';
 import { TeamOverviewCard } from '../components/analytics/TeamOverviewCard';
+
+// Import new comprehensive coach dashboard
+import { CoachAnalyticsDashboard } from '../components/analytics/CoachAnalyticsDashboard';
 
 export function Analytics() {
   const { user } = useAuth();
@@ -62,6 +65,12 @@ export function Analytics() {
   const isCoach = profile?.role === 'coach';
   const isAthlete = profile?.role === 'athlete';
 
+  // If user is a coach, show the comprehensive coach analytics dashboard
+  if (isCoach) {
+    return <CoachAnalyticsDashboard />;
+  }
+
+  // For athletes, show the existing tabbed analytics interface
   return (
     <Box bg={bgColor} minH="100vh">
       <Container maxW="7xl" py={8}>
@@ -77,24 +86,21 @@ export function Analytics() {
                   </Heading>
                 </HStack>
                 <Text color={useColorModeValue('gray.600', 'gray.400')} fontSize="lg">
-                  {isCoach 
-                    ? 'Monitor your athletes\' performance, wellness, and injury risk'
-                    : 'Track your performance, recovery, and training insights'
-                  }
+                  Track your performance, recovery, and training insights
                 </Text>
               </VStack>
               <VStack align="end" spacing={2}>
                 <Badge 
-                  colorScheme={isCoach ? 'purple' : 'green'} 
+                  colorScheme="green" 
                   variant="solid" 
                   fontSize="sm"
                   px={3}
                   py={1}
                 >
-                  {isCoach ? 'COACH VIEW' : 'ATHLETE VIEW'}
+                  ATHLETE VIEW
                 </Badge>
                 <Text fontSize="sm" color={useColorModeValue('gray.500', 'gray.400')}>
-                  Real-time analytics powered by AI
+                  Personal analytics powered by AI
                 </Text>
               </VStack>
             </HStack>
@@ -159,14 +165,6 @@ export function Analytics() {
                   <Text>Performance</Text>
                 </HStack>
               </Tab>
-              {isCoach && (
-                <Tab>
-                  <HStack spacing={2}>
-                    <Icon as={FaUsers} />
-                    <Text>Team Overview</Text>
-                  </HStack>
-                </Tab>
-              )}
             </TabList>
 
             <TabPanels>
@@ -261,26 +259,6 @@ export function Analytics() {
                   </Box>
                 </VStack>
               </TabPanel>
-
-              {/* Team Overview Tab (Coach only) */}
-              {isCoach && (
-                <TabPanel px={0}>
-                  <VStack spacing={6} align="stretch">
-                    <Box>
-                      <Heading size="md" mb={4} color={useColorModeValue('gray.700', 'gray.300')}>
-                        Team Analytics Overview
-                      </Heading>
-                      <Text color={useColorModeValue('gray.600', 'gray.400')} mb={6}>
-                        Monitor all athletes' key metrics and identify those needing attention
-                      </Text>
-                      <SimpleGrid columns={{ base: 1, xl: 2 }} spacing={6}>
-                        <TeamOverviewCard />
-                        {/* Additional team analytics components can go here */}
-                      </SimpleGrid>
-                    </Box>
-                  </VStack>
-                </TabPanel>
-              )}
             </TabPanels>
           </Tabs>
 

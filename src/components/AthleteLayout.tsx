@@ -8,7 +8,11 @@ export function AthleteLayout({ children }: { children: React.ReactNode }) {
   // Get athlete navigation configuration
   const athleteNav = useAthleteNavigation();
   const bgColor = useColorModeValue('gray.50', 'gray.900');
-  const [sidebarWidth, setSidebarWidth] = useState(200);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    // Check localStorage for the saved sidebar state
+    const savedSidebarState = localStorage.getItem('sidebarCollapsed');
+    return savedSidebarState === 'true' ? 70 : 200;
+  });
   const { onOpen } = useDisclosure();
   
   // Listen for sidebar toggle events
