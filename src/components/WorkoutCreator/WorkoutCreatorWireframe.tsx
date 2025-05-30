@@ -239,6 +239,45 @@ const WorkoutCreatorWireframe: React.FC = () => {
     }));
   };
 
+  // Handle weekly plan updates for drag and drop
+  const handleUpdateWeeklyPlan = (newWeeklyPlan: Array<{day: string, exercises: SelectedExercise[], isRestDay: boolean}>) => {
+    const updatedExercises: Record<string, SelectedExercise[]> = {};
+    
+    newWeeklyPlan.forEach(dayData => {
+      updatedExercises[dayData.day] = dayData.exercises;
+    });
+    
+    setSelectedExercises(prev => ({
+      ...prev,
+      ...updatedExercises
+    }));
+  };
+
+  // Handle rest day toggle
+  const handleToggleRestDay = (day: string, isRest: boolean) => {
+    setRestDays(prev => ({
+      ...prev,
+      [day]: isRest
+    }));
+  };
+
+  // Handle copy exercises from one day to another
+  const handleCopyExercises = (fromDay: string, toDay: string) => {
+    const exercisesToCopy = selectedExercises[fromDay] || [];
+    if (exercisesToCopy.length === 0) return;
+
+    // Create copies with new instance IDs
+    const copiedExercises = exercisesToCopy.map(exercise => ({
+      ...exercise,
+      instanceId: `${exercise.id}-${Date.now()}-${Math.random()}`
+    }));
+
+    setSelectedExercises(prev => ({
+      ...prev,
+      [toDay]: [...(prev[toDay] || []), ...copiedExercises]
+    }));
+  };
+
   // Athlete functions
   const handleAthleteSelection = (athlete: Athlete) => {
     setSelectedAthletes(prev => {
@@ -565,6 +604,8 @@ const WorkoutCreatorWireframe: React.FC = () => {
             isRestDay={restDays[currentDay]}
             customExercises={customExercises}
             onAddCustomExercise={handleAddCustomExercise}
+            onToggleRestDay={handleToggleRestDay}
+            onCopyExercises={handleCopyExercises}
           />
         );
       case 3:
@@ -588,11 +629,12 @@ const WorkoutCreatorWireframe: React.FC = () => {
             weeklyPlan={templateType === 'weekly' ? Object.entries(selectedExercises).map(([day, exercises]) => ({
               day,
               exercises,
-              isRestDay: false // TODO: Connect this to actual rest day state per day
+              isRestDay: restDays[day] || false
             })) : undefined}
             selectedAthletes={selectedAthletes}
             warnings={getWarnings()}
             onGoToStep={goToStep}
+            onUpdateWeeklyPlan={templateType === 'weekly' ? handleUpdateWeeklyPlan : undefined}
             startDate={startDate}
             endDate={endDate}
             location={location}

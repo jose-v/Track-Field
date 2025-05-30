@@ -27,8 +27,14 @@ import {
   useDisclosure,
   Textarea,
   useColorModeValue,
+  Checkbox,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  ButtonGroup,
 } from '@chakra-ui/react';
-import { Search, PlusCircle, X, Library, FileText, Moon, Plus } from 'lucide-react';
+import { Search, PlusCircle, X, Library, FileText, Moon, Plus, Copy, ChevronDown } from 'lucide-react';
 
 interface Exercise {
   id: string;
@@ -62,6 +68,8 @@ interface Step2ExercisePlanningProps {
   setCurrentDay: (day: string) => void;
   templateType: 'single' | 'weekly';
   isRestDay: boolean;
+  onToggleRestDay?: (day: string, isRest: boolean) => void;
+  onCopyExercises?: (fromDay: string, toDay: string) => void;
   customExercises: Exercise[];
   onAddCustomExercise: (exercise: Omit<Exercise, 'id'>) => void;
 }
@@ -92,6 +100,8 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
   setCurrentDay,
   templateType,
   isRestDay,
+  onToggleRestDay,
+  onCopyExercises,
   customExercises,
   onAddCustomExercise,
 }) => {
@@ -319,6 +329,66 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
                   {isRestDay ? "REST DAY" : `${selectedExercises.length} EXERCISES`}
                 </Badge>
               </HStack>
+
+              {/* Day Selector and Controls - Only show for weekly templates */}
+              {templateType === 'weekly' && (
+                <VStack spacing={3} align="stretch">
+                  {/* Day Selector Buttons */}
+                  <VStack spacing={2} align="stretch">
+                    <Text fontSize="sm" fontWeight="bold" color={textColor}>
+                      Select Day to Plan:
+                    </Text>
+                    <ButtonGroup size="sm" isAttached variant="outline" spacing={0}>
+                      {DAYS_OF_WEEK.map((day) => (
+                        <Button
+                          key={day.value}
+                          onClick={() => setCurrentDay(day.value)}
+                          variant={currentDay === day.value ? "solid" : "outline"}
+                          colorScheme={currentDay === day.value ? "blue" : "gray"}
+                          size="sm"
+                          flex="1"
+                          fontWeight={currentDay === day.value ? "bold" : "normal"}
+                          fontSize="xs"
+                        >
+                          {day.label.slice(0, 3)}
+                        </Button>
+                      ))}
+                    </ButtonGroup>
+                  </VStack>
+
+                  {/* Rest Day Toggle and Copy Options */}
+                  <HStack spacing={4} justify="space-between">
+                    {/* Rest Day Toggle */}
+                    <Checkbox
+                      isChecked={isRestDay}
+                      onChange={(e) => onToggleRestDay?.(currentDay, e.target.checked)}
+                      colorScheme="orange"
+                    >
+                      <Text fontSize="sm" color={textColor}>Rest Day</Text>
+                    </Checkbox>
+
+                    {/* Copy Options */}
+                    {selectedExercises.length > 0 && !isRestDay && (
+                      <Menu>
+                        <MenuButton as={Button} size="sm" variant="outline" leftIcon={<Copy size={14} />} rightIcon={<ChevronDown size={14} />}>
+                          Copy to...
+                        </MenuButton>
+                        <MenuList>
+                          {DAYS_OF_WEEK.filter(day => day.value !== currentDay).map((day) => (
+                            <MenuItem 
+                              key={day.value}
+                              onClick={() => onCopyExercises?.(currentDay, day.value)}
+                              fontSize="sm"
+                            >
+                              Copy to {day.label}
+                            </MenuItem>
+                          ))}
+                        </MenuList>
+                      </Menu>
+                    )}
+                  </HStack>
+                </VStack>
+              )}
             </VStack>
           </CardHeader>
           
