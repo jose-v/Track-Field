@@ -37,14 +37,6 @@ const MOCK_EXERCISES = [
   { id: 'ex5', name: 'Box Jumps', category: 'Plyometric', description: 'Explosive jump onto a raised platform.' },
 ];
 
-const MOCK_ATHLETES = [
-  { id: 'ath1', name: 'Sarah Johnson', event: 'Sprint', avatar: 'https://bit.ly/sage-adebayo' },
-  { id: 'ath2', name: 'Mike Chen', event: 'Distance', avatar: 'https://bit.ly/kent-c-dodds' },
-  { id: 'ath3', name: 'Emma Davis', event: 'Hurdles', avatar: 'https://bit.ly/ryan-florence' },
-  { id: 'ath4', name: 'James Wilson', event: 'Jumps', avatar: 'https://bit.ly/prosper-baba' },
-  { id: 'ath5', name: 'Lisa Brown', event: 'Throws', avatar: 'https://bit.ly/code-beast' },
-];
-
 const WORKOUT_CREATION_STEPS = [
   { 
     id: 1, 
@@ -194,6 +186,11 @@ const WorkoutCreatorWireframe: React.FC = () => {
   // Custom exercises state
   const [customExercises, setCustomExercises] = useState<Exercise[]>([]);
   
+  // Add loading states
+  const [isLoadingAthletes, setIsLoadingAthletes] = useState(false);
+  const [athletes, setAthletes] = useState<Athlete[]>([]);
+  const [userProfile, setUserProfile] = useState<any>(null);
+
   // Navigation functions
   const goToStep = (step: number) => {
     if (step >= 1 && step <= WORKOUT_CREATION_STEPS.length) {
@@ -426,6 +423,99 @@ const WorkoutCreatorWireframe: React.FC = () => {
         duration: 5000,
         isClosable: true,
       });
+    }
+  };
+
+  // Load user profile and athletes on component mount
+  useEffect(() => {
+    const loadUserDataAndAthletes = async () => {
+      if (!user) return;
+      
+      try {
+        // Get user profile to determine role
+        const profile = await api.profile.get();
+        setUserProfile(profile);
+        
+        if (profile.role === 'coach') {
+          // Load athletes assigned to this coach
+          await loadCoachAthletes(user.id);
+        } else if (profile.role === 'team_manager') {
+          // Load all athletes for team managers
+          await loadAllAthletes();
+        }
+        // For athletes, they typically can't assign workouts to others
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+        toast({
+          title: 'Loading Error',
+          description: 'Failed to load athlete data. Some features may be limited.',
+          status: 'warning',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    };
+
+    loadUserDataAndAthletes();
+  }, [user, toast]);
+
+  const loadCoachAthletes = async (coachId: string) => {
+    setIsLoadingAthletes(true);
+    try {
+      const athleteData = await api.athletes.getByCoach(coachId);
+      
+      // Transform API data to match component interface
+      const transformedAthletes: Athlete[] = athleteData.map(athlete => ({
+        id: athlete.id,
+        name: athlete.full_name || `${athlete.first_name || ''} ${athlete.last_name || ''}`.trim() || 'Unknown Athlete',
+        event: athlete.events && athlete.events.length > 0 ? athlete.events.join(', ') : 'No events',
+        avatar: athlete.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${athlete.id}`
+      }));
+      
+      setAthletes(transformedAthletes);
+      console.log(`Loaded ${transformedAthletes.length} athletes for coach`);
+    } catch (error) {
+      console.error('Error loading coach athletes:', error);
+      toast({
+        title: 'Failed to Load Athletes',
+        description: 'Could not load your assigned athletes. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      setAthletes([]);
+    } finally {
+      setIsLoadingAthletes(false);
+    }
+  };
+
+  const loadAllAthletes = async () => {
+    setIsLoadingAthletes(true);
+    try {
+      const athleteData = await api.athletes.getAll();
+      
+      // Transform API data to match component interface
+      const transformedAthletes: Athlete[] = athleteData.map(athlete => ({
+        id: athlete.id,
+        name: athlete.full_name || `${athlete.first_name || ''} ${athlete.last_name || ''}`.trim() || 'Unknown Athlete',
+        event: athlete.events && athlete.events.length > 0 ? athlete.events.join(', ') : 'No events',
+        avatar: athlete.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${athlete.id}`
+      }));
+      
+      setAthletes(transformedAthletes);
+      console.log(`Loaded ${transformedAthletes.length} total athletes`);
+    } catch (error) {
+      console.error('Error loading all athletes:', error);
+      toast({
+        title: 'Failed to Load Athletes',
+        description: 'Could not load athlete data. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      setAthletes([]);
+    } finally {
+      setIsLoadingAthletes(false);
     }
   };
 
@@ -733,14 +823,37 @@ const WorkoutCreatorWireframe: React.FC = () => {
       case 3:
         return (
           <Suspense fallback={<LoadingFallback />}>
-            <Step3AthleteAssignment
-              athletes={MOCK_ATHLETES}
-              selectedAthletes={selectedAthletes}
-              onAthleteSelection={handleAthleteSelection}
-              onClearAllAthletes={handleClearAllAthletes}
-              searchTerm={athleteSearchTerm}
-              setSearchTerm={setAthleteSearchTerm}
-            />
+            {isLoadingAthletes ? (
+              <Center h="400px">
+                <VStack spacing={4}>
+                  <Spinner size="xl" color="blue.500" thickness="4px" />
+                  <Text color={textColor}>Loading athletes...</Text>
+                </VStack>
+              </Center>
+            ) : athletes.length === 0 ? (
+              <Center h="400px">
+                <VStack spacing={4}>
+                  <Text color={textColor} fontSize="lg" fontWeight="semibold">No Athletes Available</Text>
+                  <Text color={subtitleColor} textAlign="center" maxW="400px">
+                    {userProfile?.role === 'coach' 
+                      ? 'You don\'t have any athletes assigned to you yet. Contact your team manager to get athletes assigned.'
+                      : userProfile?.role === 'athlete'
+                      ? 'Athletes cannot assign workouts to others. This workout will be saved for your own use.'
+                      : 'No athletes found in the system. You can still create and save this workout.'
+                    }
+                  </Text>
+                </VStack>
+              </Center>
+            ) : (
+              <Step3AthleteAssignment
+                athletes={athletes}
+                selectedAthletes={selectedAthletes}
+                onAthleteSelection={handleAthleteSelection}
+                onClearAllAthletes={handleClearAllAthletes}
+                searchTerm={athleteSearchTerm}
+                setSearchTerm={setAthleteSearchTerm}
+              />
+            )}
           </Suspense>
         );
       case 4:
