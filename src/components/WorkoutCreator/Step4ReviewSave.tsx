@@ -527,6 +527,44 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
 
   const stats = getWorkoutStats();
 
+  // Helper function to format dates with ordinals
+  const formatDateWithOrdinal = (dateString: string) => {
+    if (!dateString) return '';
+    
+    try {
+      const date = new Date(dateString);
+      const day = date.getDate();
+      const month = date.toLocaleDateString('en-US', { month: 'long' });
+      const year = date.getFullYear();
+      
+      // Get ordinal suffix
+      const getOrdinalSuffix = (day: number) => {
+        if (day > 3 && day < 21) return 'th';
+        switch (day % 10) {
+          case 1: return 'st';
+          case 2: return 'nd';
+          case 3: return 'rd';
+          default: return 'th';
+        }
+      };
+      
+      return `${month} ${day}${getOrdinalSuffix(day)}, ${year}`;
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Helper function to format date range
+  const formatDateRange = (startDate: string, endDate: string) => {
+    const formattedStart = formatDateWithOrdinal(startDate);
+    const formattedEnd = formatDateWithOrdinal(endDate);
+    
+    if (!startDate) return '';
+    if (!endDate || endDate === startDate) return formattedStart;
+    
+    return `From ${formattedStart} to ${formattedEnd}`;
+  };
+
   const handleDragStart = (event: DragStartEvent) => {
     const draggedId = event.active.id as string;
     setActiveId(draggedId);
@@ -657,7 +695,7 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <VStack spacing={6} align="stretch" w="100%" bg={cardBg} p={6} borderRadius="md" maxH="calc(100vh - 200px)" overflowY="auto">
+      <VStack spacing={6} align="stretch" w="100%" bg={cardBg} p={6} borderRadius="md">
         {/* Warnings Section */}
         {warnings.length > 0 && (
           <Alert status="warning" borderRadius="md" bg={warningBg}>
@@ -684,100 +722,139 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
           borderColor={borderColor}
           boxShadow="lg"
         >
-          <VStack spacing={6} align="stretch">
-            {/* Header */}
+          <VStack spacing={5} align="stretch">
+            {/* Header Section */}
             <HStack justify="space-between" align="center">
-              <VStack align="start" spacing={1}>
-                <Text fontSize="xl" fontWeight="bold" color={textColor}>
-                  Workout Summary
-                </Text>
-                <Text fontSize="sm" color={subtitleColor}>
-                  {templateType === 'weekly' ? 'Drag exercises between days to reorganize' : 'Review and finalize workout details'}
-                </Text>
-              </VStack>
-              <VStack align="end" spacing={1}>
-                <Badge 
-                  colorScheme={templateType === 'single' ? 'blue' : 'purple'} 
-                  variant="solid" 
-                  fontSize="sm"
-                  px={3}
-                  py={1}
-                >
-                  {templateType === 'single' ? 'SINGLE DAY' : 'WEEKLY PLAN'}
-                </Badge>
-                <Text fontSize="xs" color={subtitleColor}>
-                  Ready to assign
-                </Text>
-              </VStack>
+              <Text fontSize="xl" fontWeight="bold" color={textColor}>
+                Workout Summary
+              </Text>
+              <Badge 
+                colorScheme={templateType === 'single' ? 'blue' : 'purple'} 
+                variant="solid" 
+                fontSize="sm"
+                px={3}
+                py={1}
+                borderRadius="md"
+              >
+                {templateType === 'single' ? 'Single Day' : 'Weekly Plan'}
+              </Badge>
             </HStack>
 
-            {/* Key Metrics Grid */}
-            <SimpleGrid columns={{ base: 2, md: 4 }} spacing={6}>
-              <Stat textAlign="center">
-                <StatLabel fontSize="sm" color={subtitleColor}>
-                  Workout Name
-                </StatLabel>
-                <StatNumber fontSize="lg" color={textColor} noOfLines={1}>
-                  {workoutName}
-                </StatNumber>
-                <StatHelpText fontSize="xs">
-                  <Badge colorScheme="gray" variant="subtle" size="sm">
-                    {workoutType}
-                  </Badge>
-                </StatHelpText>
-              </Stat>
+            {/* Workout Name */}
+            <Box>
+              <Text fontSize="lg" fontWeight="medium" color={textColor}>
+                {workoutName}
+              </Text>
+              <Text fontSize="sm" color={subtitleColor}>
+                {workoutType} Training
+              </Text>
+            </Box>
 
-              <Stat textAlign="center">
-                <StatLabel fontSize="sm" color={subtitleColor}>
-                  {templateType === 'single' ? 'Total Exercises' : 'Training Days'}
-                </StatLabel>
-                <StatNumber fontSize="lg" color={textColor}>
-                  {templateType === 'single' ? stats.totalExercises : stats.trainingDays}
-                </StatNumber>
-                <StatHelpText fontSize="xs" color={estimatedTimeSubtextColor}>
-                  {templateType === 'single' ? 'exercises planned' : 'days scheduled'}
-                </StatHelpText>
-              </Stat>
+            {/* Athletes and Stats Section */}
+            {Object.keys(selectedAthletes).length > 0 && (
+              <HStack spacing={8} align="start">
+                {/* Athletes Section */}
+                <Box>
+                  <Text fontSize="sm" fontWeight="medium" color={textColor} mb={3}>
+                    Assigned Athletes ({Object.keys(selectedAthletes).length})
+                  </Text>
+                  <SimpleGrid columns={3} spacing={4} maxW="300px">
+                    {Object.values(selectedAthletes).slice(0, 5).map((athlete) => (
+                      <VStack key={athlete.id} spacing={2} align="center">
+                        <Avatar
+                          name={athlete.name}
+                          src={athlete.avatar}
+                          size="md"
+                          bg="gray.300"
+                        />
+                        <Text fontSize="xs" color={textColor} textAlign="center">
+                          {athlete.name.split(' ')[0]}
+                        </Text>
+                      </VStack>
+                    ))}
+                    {Object.values(selectedAthletes).length > 5 && (
+                      <VStack spacing={2} align="center">
+                        <Box
+                          w="48px"
+                          h="48px"
+                          borderRadius="full"
+                          bg={useColorModeValue('gray.100', 'gray.600')}
+                          display="flex"
+                          alignItems="center"
+                          justifyContent="center"
+                          cursor="pointer"
+                          _hover={{ bg: useColorModeValue('gray.200', 'gray.500') }}
+                        >
+                          <Text fontSize="xs" color={textColor} fontWeight="medium">
+                            View All
+                          </Text>
+                        </Box>
+                        <Text fontSize="xs" color={textColor}>
+                          +{Object.values(selectedAthletes).length - 5}
+                        </Text>
+                      </VStack>
+                    )}
+                  </SimpleGrid>
+                </Box>
 
-              <Stat textAlign="center">
-                <StatLabel fontSize="sm" color={subtitleColor}>
-                  Total {templateType === 'single' ? 'Sets' : 'Exercises'}
-                </StatLabel>
-                <StatNumber fontSize="lg" color={textColor}>
-                  {templateType === 'single' ? stats.totalSets : stats.totalExercises}
-                </StatNumber>
-                <StatHelpText fontSize="xs" color={estimatedTimeSubtextColor}>
-                  across {templateType === 'single' ? 'all exercises' : 'all days'}
-                </StatHelpText>
-              </Stat>
+                {/* Key Metrics Row */}
+                <HStack spacing={8} flex={1} justify="space-around">
+                  <VStack spacing={1} align="center">
+                    <Text fontSize="2xl" fontWeight="bold" color={textColor}>
+                      {templateType === 'single' ? stats.totalExercises : stats.trainingDays}
+                    </Text>
+                    <Text fontSize="sm" color={subtitleColor}>
+                      {templateType === 'single' ? 'Exercises' : 'Training Days'}
+                    </Text>
+                  </VStack>
 
-              <Stat textAlign="center">
-                <StatLabel fontSize="sm" color={subtitleColor}>
-                  Est. Duration
-                </StatLabel>
-                <StatNumber fontSize="lg" color={textColor}>
-                  ~{stats.estimatedTime} min
-                </StatNumber>
-                <StatHelpText fontSize="xs" color={estimatedTimeSubtextColor}>
-                  {templateType === 'single' ? 'total time' : 'total weekly time'}
-                </StatHelpText>
-              </Stat>
-            </SimpleGrid>
+                  <VStack spacing={1} align="center">
+                    <Text fontSize="2xl" fontWeight="bold" color={textColor}>
+                      {templateType === 'single' ? stats.totalSets : stats.totalExercises}
+                    </Text>
+                    <Text fontSize="sm" color={subtitleColor}>
+                      {templateType === 'single' ? 'Sets' : 'Exercises'}
+                    </Text>
+                  </VStack>
+
+                  <VStack spacing={1} align="center">
+                    <Text fontSize="2xl" fontWeight="bold" color={textColor}>
+                      ~{stats.estimatedTime} min
+                    </Text>
+                    <Text fontSize="sm" color={subtitleColor}>
+                      Duration
+                    </Text>
+                  </VStack>
+
+                  <VStack spacing={1} align="center">
+                    <Text fontSize="2xl" fontWeight="bold" color={textColor}>
+                      {Object.keys(selectedAthletes).length}
+                    </Text>
+                    <Text fontSize="sm" color={subtitleColor}>
+                      Athletes
+                    </Text>
+                  </VStack>
+                </HStack>
+              </HStack>
+            )}
 
             {/* Metadata */}
             {(location || startDate || endDate) && (
-              <HStack spacing={6} pt={4} borderTop="1px solid" borderColor={borderColor}>
+              <HStack spacing={0} pt={4} borderTop="1px solid" borderColor={borderColor} align="start" justify="start">
                 {location && (
                   <HStack spacing={2}>
-                    <MapPin size={16} color={subtitleColor} />
-                    <Text fontSize="sm" color={textColor}>{location}</Text>
+                    <MapPin size={18} color={subtitleColor} />
+                    <Text fontSize="lg" color={textColor} fontWeight="medium">{location}</Text>
                   </HStack>
                 )}
-                {startDate && (
+                {location && (startDate || endDate) && (
+                  <Text fontSize="lg" color={subtitleColor} fontWeight="bold" mx={4}>•</Text>
+                )}
+                {(startDate || endDate) && (
                   <HStack spacing={2}>
-                    <Calendar size={16} color={subtitleColor} />
-                    <Text fontSize="sm" color={textColor}>
-                      {startDate} {endDate && endDate !== startDate ? `- ${endDate}` : ''}
+                    <Calendar size={18} color={subtitleColor} />
+                    <Text fontSize="lg" color={textColor} fontWeight="medium">
+                      {formatDateRange(startDate, endDate)}
                     </Text>
                   </HStack>
                 )}
@@ -792,14 +869,6 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
             <Heading size="lg" color={headingColor}>
               {templateType === 'single' ? 'Exercise Details' : 'Weekly Training Plan'}
             </Heading>
-            {templateType === 'weekly' && (
-              <HStack spacing={2} color={subtitleColor} fontSize="sm">
-                <GripVertical size={16} />
-                <Text>Drag to reorder</Text>
-                <Copy size={16} />
-                <Text>Click to copy</Text>
-              </HStack>
-            )}
           </HStack>
 
           {templateType === 'single' ? (
@@ -943,28 +1012,6 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
                   </Card>
                 );
               })}
-              
-              {/* Workout Summary Footer */}
-              <Card variant="outline" bg={statsBg} borderColor={borderColor}>
-                <CardBody>
-                  <HStack justify="space-around" spacing={8}>
-                    <VStack spacing={1}>
-                      <Text fontSize="lg" fontWeight="bold" color={textColor}>{selectedExercises.length}</Text>
-                      <Text fontSize="sm" color={subtitleColor}>Total Exercises</Text>
-                    </VStack>
-                    <VStack spacing={1}>
-                      <Text fontSize="lg" fontWeight="bold" color={textColor}>
-                        {selectedExercises.reduce((sum, ex) => sum + (parseInt(ex.sets || '0') || 0), 0)}
-                      </Text>
-                      <Text fontSize="sm" color={subtitleColor}>Total Sets</Text>
-                    </VStack>
-                    <VStack spacing={1}>
-                      <Text fontSize="lg" fontWeight="bold" color={textColor}>~{stats.estimatedTime} min</Text>
-                      <Text fontSize="sm" color={subtitleColor}>Est. Duration</Text>
-                    </VStack>
-                  </HStack>
-                </CardBody>
-              </Card>
             </VStack>
           ) : (
             // Weekly Plan Display with Drag and Drop
@@ -1057,70 +1104,9 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
                   </DroppableDayCard>
                 );
               })}
-              
-              {/* Weekly Summary Footer */}
-              <Card variant="outline" bg={statsBg} borderColor={borderColor}>
-                <CardBody>
-                  <VStack spacing={3}>
-                    <Text fontSize="lg" fontWeight="bold" color={textColor}>Weekly Training Summary</Text>
-                    <SimpleGrid columns={{ base: 2, md: 4 }} spacing={6} w="100%">
-                      <VStack spacing={1}>
-                        <Text fontSize="lg" fontWeight="bold" color={textColor}>
-                          {weeklyPlan.filter(d => !d.isRestDay && d.exercises.length > 0).length}
-                        </Text>
-                        <Text fontSize="sm" color={subtitleColor}>Training Days</Text>
-                      </VStack>
-                      <VStack spacing={1}>
-                        <Text fontSize="lg" fontWeight="bold" color={textColor}>
-                          {weeklyPlan.reduce((sum, day) => sum + day.exercises.length, 0)}
-                        </Text>
-                        <Text fontSize="sm" color={subtitleColor}>Total Exercises</Text>
-                      </VStack>
-                      <VStack spacing={1}>
-                        <Text fontSize="lg" fontWeight="bold" color={textColor}>
-                          {weeklyPlan.reduce((sum, day) => sum + day.exercises.reduce((daySum, ex) => daySum + (parseInt(ex.sets || '0') || 0), 0), 0)}
-                        </Text>
-                        <Text fontSize="sm" color={subtitleColor}>Total Sets</Text>
-                      </VStack>
-                      <VStack spacing={1}>
-                        <Text fontSize="lg" fontWeight="bold" color={textColor}>~{stats.estimatedTime} min</Text>
-                        <Text fontSize="sm" color={subtitleColor}>Est. Total Time</Text>
-                      </VStack>
-                    </SimpleGrid>
-                  </VStack>
-                </CardBody>
-              </Card>
             </VStack>
           )}
         </VStack>
-
-        {/* Athlete Assignment Preview */}
-        {Object.keys(selectedAthletes).length > 0 && (
-          <Card variant="outline" shadow="none" bg={cardBg} borderColor={borderColor}>
-            <CardHeader pb={3}>
-              <Heading size="lg" color={headingColor}>Assigned Athletes</Heading>
-            </CardHeader>
-            <CardBody pt={0}>
-              <VStack spacing={4} align="stretch">
-                <AvatarGroup size="lg" max={20} spacing="-0.5rem">
-                  {Object.values(selectedAthletes).map((athlete) => (
-                    <Avatar
-                      key={athlete.id}
-                      name={athlete.name}
-                      src={athlete.avatar}
-                      title={`${athlete.name} - ${athlete.event}`}
-                      borderWidth="2px"
-                      borderColor={useColorModeValue("white", "gray.800")}
-                    />
-                  ))}
-                </AvatarGroup>
-                <Text fontSize="md" color={athleteTextColor} textAlign="center">
-                  This workout will be assigned to {Object.keys(selectedAthletes).length} athlete{Object.keys(selectedAthletes).length !== 1 ? 's' : ''}
-                </Text>
-              </VStack>
-            </CardBody>
-          </Card>
-        )}
       </VStack>
 
       {/* Drag Overlay */}

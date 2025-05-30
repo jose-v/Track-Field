@@ -650,7 +650,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
       {renderStepHeader()}
       
       {/* Step Content - with bottom padding to account for fixed bottom nav */}
-      <Box position="relative" w="100%" pb="220px" px={6} bg={bgColor} height={`calc(100vh - 290px)`} overflow="hidden">
+      <Box position="relative" w="100%" pb="220px" px={6} bg={bgColor} overflow="auto">
         {renderCurrentStep()}
       </Box>
 
