@@ -1,15 +1,15 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
+import React from 'react'
+import ReactDOM from 'react-dom/client'
 import './index.css'
 import { RootProviders } from './app/RootProviders'
-import App from './App.tsx'
+import App from './App'
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
     <RootProviders>
       <App />
     </RootProviders>
-  </StrictMode>,
+  </React.StrictMode>,
 )
 
 // Register service worker for PWA functionality
@@ -36,10 +36,11 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
           }
         });
         
-        // Also check for updates every 5 minutes
+        // Check for updates every 2 minutes (more frequent than before)
         setInterval(() => {
+          console.log('Checking for PWA updates...');
           registration.update();
-        }, 5 * 60 * 1000);
+        }, 2 * 60 * 1000);
       })
       .catch((registrationError) => {
         console.log('SW registration failed: ', registrationError);
