@@ -406,15 +406,15 @@ export function Dashboard() {
           <Box
             display={{ base: "block", lg: "none" }}
             position="fixed"
-            top="16px"
-            right="16px" // Position on the right side of screen
+            top="26px"
+            right="16px"
             zIndex={1001}
             bg="transparent"
           >
             <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
               <Heading 
                 as="h1" 
-                size="sm"
+                size="md"
                 mb={0}
                 color={useColorModeValue('gray.800', 'white')}
                 lineHeight="1.2"
@@ -427,7 +427,7 @@ export function Dashboard() {
             <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
               <Text 
                 color={useColorModeValue('gray.600', 'gray.200')}
-                fontSize="xs"
+                fontSize="sm"
                 mt={0}
                 textAlign="right"
               >
@@ -492,7 +492,7 @@ export function Dashboard() {
           <Box 
             display={{ base: "block", lg: "none" }}
             w="100%"
-            mt={2}
+            mt={{ base: "70px", lg: 2 }}
           >
             <WeatherCard 
               city={profile?.city || "Greensboro"}

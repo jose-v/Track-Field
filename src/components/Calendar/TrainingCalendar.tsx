@@ -717,7 +717,40 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
   if (selectedMonth !== null) {
     return (
       <Box className="page container">
-        <Heading as="h1" mb={6}>Training Calendar</Heading>
+        {/* Mobile Header - Fixed positioned */}
+        <Box
+          display={{ base: "block", lg: "none" }}
+          position="fixed"
+          top="26px"
+          right="16px"
+          zIndex={1001}
+          bg="transparent"
+        >
+          <Heading 
+            size="md"
+            color={useColorModeValue('gray.800', 'white')}
+            textAlign="right"
+            fontWeight="semibold"
+          >
+            Training Calendar
+          </Heading>
+          <Text 
+            color={useColorModeValue('gray.600', 'gray.200')}
+            fontSize="sm"
+            textAlign="right"
+          >
+            {months[selectedMonth]} {currentYear}
+          </Text>
+        </Box>
+
+        {/* Desktop Header */}
+        <Heading 
+          as="h1" 
+          mb={6} 
+          display={{ base: "none", lg: "block" }}
+        >
+          Training Calendar
+        </Heading>
         
         <Box 
           className="calendar-content" 
@@ -727,6 +760,7 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
           p={4}
           borderWidth="1px"
           borderColor={borderColor}
+          mt={{ base: "80px", lg: 0 }}
         >
           {/* Month Detail Header */}
           <Flex justify="space-between" align="center" mb={4}>
@@ -925,7 +959,40 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
   // Default: Year view
   return (
     <Box className="page container">
-      <Heading as="h1" mb={6}>Training Calendar</Heading>
+      {/* Mobile Header - Fixed positioned */}
+      <Box
+        display={{ base: "block", lg: "none" }}
+        position="fixed"
+        top="26px"
+        right="16px"
+        zIndex={1001}
+        bg="transparent"
+      >
+        <Heading 
+          size="md"
+          color={useColorModeValue('gray.800', 'white')}
+          textAlign="right"
+          fontWeight="semibold"
+        >
+          Training Calendar
+        </Heading>
+        <Text 
+          color={useColorModeValue('gray.600', 'gray.200')}
+          fontSize="sm"
+          textAlign="right"
+        >
+          {currentYear}
+        </Text>
+      </Box>
+
+      {/* Desktop Header */}
+      <Heading 
+        as="h1" 
+        mb={6} 
+        display={{ base: "none", lg: "block" }}
+      >
+        Training Calendar
+      </Heading>
       
       <Box 
         className="calendar-content" 
@@ -935,6 +1002,7 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
         p={4}
         borderWidth="1px"
         borderColor={borderColor}
+        mt={{ base: "80px", lg: 0 }}
       >
         {/* Calendar Header & Navigation */}
         <Flex className="calendar-header" justify="space-between" align="center" mb={4}>
