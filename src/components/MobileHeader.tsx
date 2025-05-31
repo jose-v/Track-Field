@@ -32,7 +32,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
       <Box
         display={{ base: "block", lg: "none" }}
         position="fixed"
-        top={isHeaderVisible ? "26px" : "-60px"}
+        top={isHeaderVisible ? "0px" : "-60px"}
         right="16px"
         zIndex={1001}
         bg="transparent"
