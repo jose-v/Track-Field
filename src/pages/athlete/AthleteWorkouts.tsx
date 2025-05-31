@@ -81,10 +81,24 @@ function getCurrentDate(): string {
 }
 
 export function AthleteWorkouts() {
-  // Theme-aware colors
+  // Theme-aware colors - ALL useColorModeValue calls MUST be at the top level
   const noWorkoutsColor = useColorModeValue('gray.500', 'gray.300');
   const exerciseDetailColor = useColorModeValue('gray.500', 'gray.300');
   const exerciseCountColor = useColorModeValue('gray.500', 'gray.300');
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const cardBorderColor = useColorModeValue('gray.200', 'gray.700');
+  const textColor = useColorModeValue('gray.600', 'gray.300');
+  const errorTextColor = useColorModeValue('red.600', 'red.300');
+  const headingColor = useColorModeValue('gray.700', 'gray.200');
+  const modalHeaderBg = useColorModeValue('gray.50', 'gray.700');
+  const modalHeaderBorderColor = useColorModeValue('gray.200', 'gray.600');
+  const modalTextColor = useColorModeValue('gray.500', 'gray.400');
+  const modalHeadingColor = useColorModeValue('gray.800', 'white');
+  const modalSpanColor = useColorModeValue('gray.500', 'gray.400');
+  const modalProgressBg = useColorModeValue('gray.100', 'gray.700');
+  const modalProgressBorderColor = useColorModeValue('gray.200', 'gray.600');
+  const modalProgressTextColor = useColorModeValue('gray.600', 'gray.300');
+  const modalIconBg = useColorModeValue('white', 'gray.800');
   
   const { user } = useAuth();
   const workoutStore = useWorkoutStore();
@@ -335,8 +349,8 @@ export function AthleteWorkouts() {
           shadow="sm" 
           textAlign="center" 
           mt={{ base: 3, md: 4 }}
-          bg={useColorModeValue('white', 'gray.800')}
-          borderColor={useColorModeValue('gray.200', 'gray.700')}
+          bg={cardBg}
+          borderColor={cardBorderColor}
         >
           <Text 
             fontSize={{ base: 'md', md: 'lg' }} 
@@ -592,7 +606,7 @@ export function AthleteWorkouts() {
         <Heading size="lg" mb={2}>
           Workouts
         </Heading>
-        <Text color={useColorModeValue('gray.600', 'gray.300')}>
+        <Text color={textColor}>
           Your Training Schedule
         </Text>
       </Box>
@@ -616,7 +630,7 @@ export function AthleteWorkouts() {
             <AlertIcon />
             <Box>
               <Text fontWeight="medium">Error fetching assigned workouts</Text>
-              <Text fontSize="sm" color={useColorModeValue('red.600', 'red.300')}>
+              <Text fontSize="sm" color={errorTextColor}>
                 {error?.message}
               </Text>
             </Box>
@@ -628,7 +642,7 @@ export function AthleteWorkouts() {
             <Heading 
               size={{ base: 'sm', md: 'md' }} 
               mb={{ base: 3, md: 4 }}
-              color={useColorModeValue('gray.700', 'gray.200')}
+              color={headingColor}
             >
               All Workouts ({assignedWorkouts?.length || 0})
             </Heading>
@@ -643,7 +657,7 @@ export function AthleteWorkouts() {
             borderRadius="2xl" 
             overflow="hidden" 
             boxShadow="2xl"
-            bg={useColorModeValue('white', 'gray.800')}
+            bg={cardBg}
             mx={4}
           >
             {/* Hero Header with Gradient */}
@@ -674,7 +688,7 @@ export function AthleteWorkouts() {
                 top="50%" 
                 left="50%" 
                 transform="translate(-50%, -50%)"
-                bg={useColorModeValue('white', 'gray.800')} 
+                bg={modalIconBg} 
                 borderRadius="full" 
                 w="70px" 
                 h="70px" 
@@ -730,7 +744,7 @@ export function AthleteWorkouts() {
                     <Text 
                       fontSize="sm" 
                       fontWeight="medium" 
-                      color={useColorModeValue('gray.500', 'gray.400')}
+                      color={modalTextColor}
                       textTransform="uppercase"
                       letterSpacing="wider"
                     >
@@ -739,7 +753,7 @@ export function AthleteWorkouts() {
                     <Heading 
                       size="lg" 
                       textAlign="center"
-                      color={useColorModeValue('gray.800', 'white')}
+                      color={modalHeadingColor}
                       lineHeight="shorter"
                     >
                       {execModal.workout.exercises[execModal.exerciseIdx].name}
@@ -748,17 +762,17 @@ export function AthleteWorkouts() {
 
                   {/* Exercise Details Card */}
                   <Box 
-                    bg={useColorModeValue('gray.50', 'gray.700')} 
+                    bg={modalHeaderBg} 
                     borderRadius="xl" 
                     p={6} 
                     w="100%"
                     border="1px solid"
-                    borderColor={useColorModeValue('gray.200', 'gray.600')}
+                    borderColor={modalHeaderBorderColor}
                   >
                     <HStack spacing={6} justify="center">
                       <VStack spacing={1}>
                         <Text 
-                          color={useColorModeValue('gray.500', 'gray.400')} 
+                          color={modalTextColor} 
                           fontSize="sm"
                           fontWeight="medium"
                           textTransform="uppercase"
@@ -769,7 +783,7 @@ export function AthleteWorkouts() {
                         <Text 
                           fontWeight="bold" 
                           fontSize="2xl"
-                          color={useColorModeValue('gray.800', 'white')}
+                          color={modalHeadingColor}
                         >
                           {execModal.workout.exercises[execModal.exerciseIdx].sets}
                         </Text>
@@ -779,7 +793,7 @@ export function AthleteWorkouts() {
                       
                       <VStack spacing={1}>
                         <Text 
-                          color={useColorModeValue('gray.500', 'gray.400')} 
+                          color={modalTextColor} 
                           fontSize="sm"
                           fontWeight="medium"
                           textTransform="uppercase"
@@ -790,7 +804,7 @@ export function AthleteWorkouts() {
                         <Text 
                           fontWeight="bold" 
                           fontSize="2xl"
-                          color={useColorModeValue('gray.800', 'white')}
+                          color={modalHeadingColor}
                         >
                           {execModal.workout.exercises[execModal.exerciseIdx].reps}
                         </Text>
@@ -801,7 +815,7 @@ export function AthleteWorkouts() {
                           <Divider orientation="vertical" h="50px" />
                           <VStack spacing={1}>
                             <Text 
-                              color={useColorModeValue('gray.500', 'gray.400')} 
+                              color={modalTextColor} 
                               fontSize="sm"
                               fontWeight="medium"
                               textTransform="uppercase"
@@ -812,10 +826,10 @@ export function AthleteWorkouts() {
                             <Text 
                               fontWeight="bold" 
                               fontSize="2xl"
-                              color={useColorModeValue('gray.800', 'white')}
+                              color={modalHeadingColor}
                             >
                               {execModal.workout.exercises[execModal.exerciseIdx].weight}
-                              <Text as="span" fontSize="lg" color={useColorModeValue('gray.500', 'gray.400')}>
+                              <Text as="span" fontSize="lg" color={modalSpanColor}>
                                 kg
                               </Text>
                             </Text>
@@ -943,16 +957,16 @@ export function AthleteWorkouts() {
 
                   {/* Progress Indicator */}
                   <Box 
-                    bg={useColorModeValue('gray.100', 'gray.700')} 
+                    bg={modalProgressBg} 
                     borderRadius="lg" 
                     px={4} 
                     py={2}
                     border="1px solid"
-                    borderColor={useColorModeValue('gray.200', 'gray.600')}
+                    borderColor={modalProgressBorderColor}
                   >
                     <Text 
                       fontSize="sm" 
-                      color={useColorModeValue('gray.600', 'gray.300')} 
+                      color={modalProgressTextColor} 
                       textAlign="center"
                       fontWeight="medium"
                     >
@@ -972,7 +986,7 @@ export function AthleteWorkouts() {
           <ModalOverlay />
           <ModalContent borderRadius="lg" overflow="hidden">
             <Box h="80px" bg="linear-gradient(135deg, #DD6B20 0%, #F6AD55 100%)" position="relative">
-              <Flex position="absolute" top="50%" left="50%" transform="translate(-50%, -50%)" bg={useColorModeValue('white', 'gray.800')} borderRadius="full" w="50px" h="50px" justifyContent="center" alignItems="center" boxShadow="md">
+              <Flex position="absolute" top="50%" left="50%" transform="translate(-50%, -50%)" bg={modalIconBg} borderRadius="full" w="50px" h="50px" justifyContent="center" alignItems="center" boxShadow="md">
                 <Icon as={FaPlayCircle} w={6} h={6} color="orange.500" />
               </Flex>
             </Box>
