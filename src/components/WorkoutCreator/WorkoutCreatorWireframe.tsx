@@ -863,13 +863,19 @@ const WorkoutCreatorWireframe: React.FC = () => {
               workoutName={workoutName}
               templateType={templateType}
               workoutType={workoutType}
-              selectedExercises={selectedExercises}
+              selectedExercises={templateType === 'single' ? (selectedExercises.monday || []) : []}
+              weeklyPlan={templateType === 'weekly' ? Object.keys(selectedExercises).map(day => ({
+                day,
+                exercises: selectedExercises[day] || [],
+                isRestDay: restDays[day] || false
+              })) : []}
               selectedAthletes={selectedAthletes}
-              customExercises={customExercises}
-              restDays={restDays}
               warnings={getWarnings()}
               onGoToStep={(step: number) => goToStep(step)}
               location={location}
+              startDate={date}
+              endDate={duration}
+              onUpdateWeeklyPlan={handleUpdateWeeklyPlan}
             />
           </Suspense>
         );
