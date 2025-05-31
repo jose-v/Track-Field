@@ -117,7 +117,7 @@ const TodaysFocusCard: React.FC<TodaysFocusCardProps> = ({ onTaskClick }) => {
           priority: 'high',
           dueTime: 'Today',
           athleteCount: group.athletes.length,
-          actionLink: '/coach/workouts',
+          actionLink: '/coach/workout-creator',
           status: 'pending'
         });
       }
@@ -406,7 +406,7 @@ const TodaysFocusCard: React.FC<TodaysFocusCardProps> = ({ onTaskClick }) => {
         </HStack>
         <Button
           as={RouterLink}
-          to="/coach/workouts/new"
+          to="/coach/workout-creator"
           size="sm"
           colorScheme="purple"
           leftIcon={<Icon as={FaPlus} />}

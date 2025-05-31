@@ -528,7 +528,7 @@ export function CoachDashboard() {
         <Heading size="md" mb={{ base: 2, md: 0 }}>Quick Actions:</Heading>
         <Button 
           as={RouterLink} 
-          to="/coach/workouts/new" 
+          to="/coach/workout-creator" 
           variant="solid" 
           colorScheme="blue"
           leftIcon={<Icon as={FaClipboardList} />}

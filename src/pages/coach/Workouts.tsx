@@ -457,7 +457,7 @@ export function CoachWorkouts() {
           variant="solid"
           colorScheme="blue" 
           leftIcon={<AddIcon />} 
-          onClick={() => navigate('/coach/workouts/new')}
+          onClick={() => navigate('/coach/workout-creator')}
           size="md"
         >
           Create New Workout
