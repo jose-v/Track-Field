@@ -2,7 +2,7 @@
   "name": "Track & Field Training App",
   "short_name": "Track & Field",
   "description": "Professional track and field training management app for coaches and athletes",
-  "start_url": "/",
+  "start_url": "/dashboard",
   "display": "standalone",
   "orientation": "portrait-primary",
   "theme_color": "#4299E1",
