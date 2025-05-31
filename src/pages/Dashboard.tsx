@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import {
   Box, Container, Flex, Heading, Text, VStack, Grid, GridItem, Icon, Badge, Card, CardHeader, CardBody, Image, Tag,
   Button, SimpleGrid, Progress, HStack, Stack, Spinner, Divider, Stat, StatLabel, StatNumber, StatHelpText, useToast,
-  useColorModeValue, Skeleton, SkeletonText, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody
+  useColorModeValue, Skeleton, SkeletonText, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, IconButton
 } from '@chakra-ui/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { dateUtils } from '../utils/date'
@@ -461,20 +461,39 @@ export function Dashboard() {
           </Box>
         )}
 
-        {/* Exercise Execution Modal */}
-        <Modal isOpen={execModal.isOpen} onClose={() => setExecModal({ ...execModal, isOpen: false })} isCentered>
-          <ModalOverlay />
-          <ModalContent borderRadius="lg" overflow="hidden" p="0">
-            {/* Hero Background */}
+        {/* Exercise Execution Modal - Redesigned with modern styling */}
+        <Modal isOpen={execModal.isOpen} onClose={() => setExecModal({ ...execModal, isOpen: false })} isCentered size="md">
+          <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(10px)" />
+          <ModalContent 
+            borderRadius="2xl" 
+            overflow="hidden" 
+            boxShadow="2xl"
+            bg={useColorModeValue('white', 'gray.800')}
+            mx={4}
+          >
+            {/* Hero Header with Gradient */}
             <Box 
-              h="80px" 
-              bg={execModal.running ? "linear-gradient(135deg, #38A169 0%, #68D391 100%)" : "linear-gradient(135deg, #4299E1 0%, #90CDF4 100%)"} 
+              h="120px" 
+              bg={execModal.running 
+                ? "linear-gradient(135deg, #38A169 0%, #68D391 50%, #4FD1C7 100%)" 
+                : "linear-gradient(135deg, #4299E1 0%, #90CDF4 50%, #A78BFA 100%)"
+              } 
               position="relative"
-              margin="0"
-              width="100%"
-              borderTopLeftRadius="inherit"
-              borderTopRightRadius="inherit"
+              overflow="hidden"
             >
+              {/* Animated background pattern */}
+              <Box
+                position="absolute"
+                top="0"
+                left="0"
+                right="0"
+                bottom="0"
+                opacity="0.1"
+                bgImage="radial-gradient(circle at 2px 2px, white 1px, transparent 0)"
+                bgSize="20px 20px"
+              />
+              
+              {/* Central Icon */}
               <Flex 
                 position="absolute" 
                 top="50%" 
@@ -482,127 +501,291 @@ export function Dashboard() {
                 transform="translate(-50%, -50%)"
                 bg={useColorModeValue('white', 'gray.800')} 
                 borderRadius="full" 
-                w="50px" 
-                h="50px" 
+                w="70px" 
+                h="70px" 
                 justifyContent="center" 
                 alignItems="center"
-                boxShadow={cardShadow}
+                boxShadow="xl"
+                border="4px solid"
+                borderColor="white"
               >
-                <Icon as={execModal.running ? FaRunning : FaRegClock} w={6} h={6} color={execModal.running ? "green.500" : "blue.500"} />
+                <Icon 
+                  as={execModal.running ? FaRunning : FaRegClock} 
+                  w={8} 
+                  h={8} 
+                  color={execModal.running ? "green.500" : "blue.500"} 
+                />
               </Flex>
               
-              {/* Progress indicator */}
-              {execModal.workout && (
+              {/* Progress Bar */}
+              {execModal.workout && execModal.workout.exercises && (
                 <Box position="absolute" bottom="0" left="0" right="0">
                   <Progress 
                     value={((execModal.exerciseIdx + 1) / execModal.workout.exercises.length) * 100} 
-                    size="xs" 
+                    size="sm" 
+                    height="8px"
                     colorScheme={execModal.running ? "green" : "blue"} 
-                    backgroundColor="rgba(255,255,255,0.3)"
+                    backgroundColor="rgba(255,255,255,0.2)"
+                    borderRadius="0"
                   />
                 </Box>
               )}
+              
+              {/* Close Button */}
+              <IconButton
+                aria-label="Close"
+                icon={<Box as="span" fontSize="24px" color="white">×</Box>}
+                position="absolute"
+                top={4}
+                right={4}
+                variant="ghost"
+                colorScheme="whiteAlpha"
+                size="lg"
+                onClick={() => setExecModal({ ...execModal, isOpen: false })}
+                _hover={{ bg: 'whiteAlpha.200' }}
+              />
             </Box>
-            
-            <ModalHeader textAlign="center" pt={8}>Exercise Execution</ModalHeader>
-            <ModalCloseButton top="85px" onClick={() => setExecModal({ ...execModal, isOpen: false })} />
-            <ModalBody pb={6}>
-              {execModal.workout && (
-                <VStack spacing={4} align="center">
-                  <Heading size="md">
-                    {execModal.workout.exercises[execModal.exerciseIdx]?.name}
-                  </Heading>
-                  
-                  <HStack 
-                    spacing={4} 
-                    p={3} 
-                    bg="gray.50" 
-                    w="100%" 
-                    borderRadius="md" 
-                    justify="center"
-                  >
-                    <VStack>
-                      <Text color={useColorModeValue('gray.500', 'gray.300')} fontSize="sm">Sets</Text>
-                      <Text fontWeight="bold">{execModal.workout.exercises[execModal.exerciseIdx]?.sets}</Text>
-                    </VStack>
-                    <VStack>
-                      <Text color={useColorModeValue('gray.500', 'gray.300')} fontSize="sm">Reps</Text>
-                      <Text fontWeight="bold">{execModal.workout.exercises[execModal.exerciseIdx]?.reps}</Text>
-                    </VStack>
-                    {execModal.workout.exercises[execModal.exerciseIdx]?.weight && (
-                      <VStack>
-                        <Text color={useColorModeValue('gray.500', 'gray.300')} fontSize="sm">Weight</Text>
-                        <Text fontWeight="bold">{execModal.workout.exercises[execModal.exerciseIdx]?.weight} kg</Text>
-                      </VStack>
-                    )}
-                  </HStack>
-                  
+
+            {/* Modal Body */}
+            <ModalBody p={8}>
+              {execModal.workout && execModal.workout.exercises && execModal.workout.exercises[execModal.exerciseIdx] && (
+                <VStack spacing={6} align="center">
+                  {/* Exercise Title */}
+                  <VStack spacing={2}>
+                    <Text 
+                      fontSize="sm" 
+                      fontWeight="medium" 
+                      color={useColorModeValue('gray.500', 'gray.400')}
+                      textTransform="uppercase"
+                      letterSpacing="wider"
+                    >
+                      Exercise Execution
+                    </Text>
+                    <Heading 
+                      size="lg" 
+                      textAlign="center"
+                      color={useColorModeValue('gray.800', 'white')}
+                      lineHeight="shorter"
+                    >
+                      {execModal.workout.exercises[execModal.exerciseIdx].name}
+                    </Heading>
+                  </VStack>
+
+                  {/* Exercise Details Card */}
                   <Box 
-                    bg={execModal.running ? "green.50" : "blue.50"} 
-                    p={4} 
-                    borderRadius="full" 
-                    boxShadow={cardShadowSm} 
-                    mb={2}
+                    bg={useColorModeValue('gray.50', 'gray.700')} 
+                    borderRadius="xl" 
+                    p={6} 
+                    w="100%"
+                    border="1px solid"
+                    borderColor={useColorModeValue('gray.200', 'gray.600')}
                   >
-                    <Text fontSize="2xl" fontWeight="bold" color={execModal.running ? "green.500" : "blue.500"}>
-                      {Math.floor(execModal.timer / 60)
-                        .toString()
-                        .padStart(2, '0')}
-                      :
+                    <HStack spacing={6} justify="center">
+                      <VStack spacing={1}>
+                        <Text 
+                          color={useColorModeValue('gray.500', 'gray.400')} 
+                          fontSize="sm"
+                          fontWeight="medium"
+                          textTransform="uppercase"
+                          letterSpacing="wider"
+                        >
+                          Sets
+                        </Text>
+                        <Text 
+                          fontWeight="bold" 
+                          fontSize="2xl"
+                          color={useColorModeValue('gray.800', 'white')}
+                        >
+                          {execModal.workout.exercises[execModal.exerciseIdx].sets}
+                        </Text>
+                      </VStack>
+                      
+                      <Divider orientation="vertical" h="50px" />
+                      
+                      <VStack spacing={1}>
+                        <Text 
+                          color={useColorModeValue('gray.500', 'gray.400')} 
+                          fontSize="sm"
+                          fontWeight="medium"
+                          textTransform="uppercase"
+                          letterSpacing="wider"
+                        >
+                          Reps
+                        </Text>
+                        <Text 
+                          fontWeight="bold" 
+                          fontSize="2xl"
+                          color={useColorModeValue('gray.800', 'white')}
+                        >
+                          {execModal.workout.exercises[execModal.exerciseIdx].reps}
+                        </Text>
+                      </VStack>
+                      
+                      {execModal.workout.exercises[execModal.exerciseIdx].weight && (
+                        <>
+                          <Divider orientation="vertical" h="50px" />
+                          <VStack spacing={1}>
+                            <Text 
+                              color={useColorModeValue('gray.500', 'gray.400')} 
+                              fontSize="sm"
+                              fontWeight="medium"
+                              textTransform="uppercase"
+                              letterSpacing="wider"
+                            >
+                              Weight
+                            </Text>
+                            <Text 
+                              fontWeight="bold" 
+                              fontSize="2xl"
+                              color={useColorModeValue('gray.800', 'white')}
+                            >
+                              {execModal.workout.exercises[execModal.exerciseIdx].weight}
+                              <Text as="span" fontSize="lg" color={useColorModeValue('gray.500', 'gray.400')}>
+                                kg
+                              </Text>
+                            </Text>
+                          </VStack>
+                        </>
+                      )}
+                    </HStack>
+                  </Box>
+
+                  {/* Timer Display */}
+                  <Box 
+                    bg={execModal.running 
+                      ? "linear-gradient(135deg, #F0FFF4, #C6F6D5)" 
+                      : "linear-gradient(135deg, #EBF8FF, #BEE3F8)"
+                    } 
+                    borderRadius="2xl" 
+                    p={6}
+                    border="2px solid"
+                    borderColor={execModal.running ? "green.200" : "blue.200"}
+                    boxShadow="lg"
+                    position="relative"
+                    overflow="hidden"
+                  >
+                    {/* Timer glow effect */}
+                    <Box
+                      position="absolute"
+                      top="50%"
+                      left="50%"
+                      transform="translate(-50%, -50%)"
+                      w="120px"
+                      h="120px"
+                      borderRadius="full"
+                      bg={execModal.running ? "green.100" : "blue.100"}
+                      opacity="0.3"
+                      filter="blur(20px)"
+                    />
+                    
+                    <Text 
+                      fontSize="4xl" 
+                      fontWeight="bold" 
+                      color={execModal.running ? "green.600" : "blue.600"}
+                      textAlign="center"
+                      fontFamily="mono"
+                      position="relative"
+                      zIndex="1"
+                    >
+                      {Math.floor(execModal.timer / 60).toString().padStart(2, '0')}:
                       {(execModal.timer % 60).toString().padStart(2, '0')}
                     </Text>
                   </Box>
-                  
-                  {/* Exercise control buttons */}
-                  <HStack spacing={3} width="100%" justifyContent="center">
-                    {execModal.running ? (
+
+                  {/* Action Buttons */}
+                  <VStack spacing={4} width="100%">
+                    <HStack spacing={3} width="100%" justify="center">
+                      {execModal.running ? (
+                        <Button 
+                          colorScheme="yellow" 
+                          size="lg"
+                          leftIcon={<Icon as={FaRegClock} />} 
+                          onClick={() => setExecModal({ ...execModal, running: false })}
+                          borderRadius="xl"
+                          px={8}
+                          py={6}
+                          fontWeight="semibold"
+                          boxShadow="lg"
+                          _hover={{ transform: 'translateY(-2px)', boxShadow: 'xl' }}
+                          transition="all 0.2s"
+                        >
+                          Pause
+                        </Button>
+                      ) : (
+                        <Button 
+                          colorScheme="blue" 
+                          size="lg"
+                          leftIcon={<Icon as={FaRunning} />} 
+                          onClick={() => setExecModal({ ...execModal, running: true })}
+                          borderRadius="xl"
+                          px={8}
+                          py={6}
+                          fontWeight="semibold"
+                          boxShadow="lg"
+                          _hover={{ transform: 'translateY(-2px)', boxShadow: 'xl' }}
+                          transition="all 0.2s"
+                        >
+                          Start
+                        </Button>
+                      )}
+                      
                       <Button 
-                        colorScheme="yellow" 
-                        flex="1" 
-                        maxW="120px"
-                        leftIcon={<Icon as={FaRegClock} />}
-                        onClick={() => setExecModal({ ...execModal, running: false })}
+                        colorScheme="green" 
+                        size="lg"
+                        leftIcon={<Icon as={CheckIcon} />} 
+                        onClick={handleDone}
+                        borderRadius="xl"
+                        px={8}
+                        py={6}
+                        fontWeight="semibold"
+                        boxShadow="lg"
+                        _hover={{ transform: 'translateY(-2px)', boxShadow: 'xl' }}
+                        transition="all 0.2s"
                       >
-                        Stop
+                        {execModal.workout.exercises.length > 0 && execModal.exerciseIdx + 1 < execModal.workout.exercises.length ? 'Next' : 'Finish'}
                       </Button>
-                    ) : (
-                      <Button 
-                        colorScheme="blue" 
-                        flex="1" 
-                        maxW="120px"
-                        leftIcon={<Icon as={FaRunning} />}
-                        onClick={() => setExecModal({ ...execModal, running: true })}
-                      >
-                        Start
-                      </Button>
-                    )}
+                    </HStack>
+                    
                     <Button 
-                      colorScheme="green" 
-                      flex="1" 
-                      maxW="120px"
-                      leftIcon={<Icon as={CheckIcon} />}
-                      onClick={handleDone}
-                    >
-                      {execModal.exerciseIdx + 1 < execModal.workout.exercises.length ? 'Next' : 'Finish'}
-                    </Button>
-                    <Button
-                      colorScheme="purple"
-                      flex="1"
-                      maxW="120px"
-                      leftIcon={<Icon as={FaPlayCircle} />}
+                      colorScheme="purple" 
+                      variant="outline"
+                      size="md"
+                      leftIcon={<Icon as={FaPlayCircle} />} 
                       onClick={() => setVideoModal({
                         isOpen: true,
-                        videoUrl: getVideoUrl(execModal.workout.exercises[execModal.exerciseIdx]?.name),
-                        exerciseName: execModal.workout.exercises[execModal.exerciseIdx]?.name || '',
+                        videoUrl: getVideoUrl(execModal.workout.exercises[execModal.exerciseIdx].name),
+                        exerciseName: execModal.workout.exercises[execModal.exerciseIdx].name || ""
                       })}
+                      borderRadius="xl"
+                      px={6}
+                      fontWeight="medium"
+                      _hover={{ bg: "purple.50", transform: "translateY(-1px)" }}
+                      transition="all 0.2s"
                     >
-                      How to
+                      Watch Tutorial
                     </Button>
-                  </HStack>
-                  
-                  <Text fontSize="sm" color={useColorModeValue('gray.500', 'gray.300')} mt={4} textAlign="center">
-                    Exercise {execModal.exerciseIdx + 1} of {execModal.workout.exercises.length}
-                  </Text>
+                  </VStack>
+
+                  {/* Progress Indicator */}
+                  <Box 
+                    bg={useColorModeValue('gray.100', 'gray.700')} 
+                    borderRadius="lg" 
+                    px={4} 
+                    py={2}
+                    border="1px solid"
+                    borderColor={useColorModeValue('gray.200', 'gray.600')}
+                  >
+                    <Text 
+                      fontSize="sm" 
+                      color={useColorModeValue('gray.600', 'gray.300')} 
+                      textAlign="center"
+                      fontWeight="medium"
+                    >
+                      Exercise <Text as="span" fontWeight="bold" color={execModal.running ? "green.500" : "blue.500"}>
+                        {execModal.exerciseIdx + 1}
+                      </Text> of {execModal.workout.exercises.length}
+                    </Text>
+                  </Box>
                 </VStack>
               )}
             </ModalBody>
