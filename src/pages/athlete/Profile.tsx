@@ -4,6 +4,7 @@ import {
 } from '@chakra-ui/react';
 import { useProfile } from '../../hooks/useProfile';
 import ProfileCard from '../../components/ProfileCard';
+import { MobileHeader } from '../../components';
 
 const genderOptions = ['male', 'female', 'other'];
 
@@ -112,35 +113,31 @@ const AthleteProfile = () => {
   ];
 
   return (
-    <Box>
-      {/* Mobile Header - Fixed positioned */}
-      <Box
-        display={{ base: "block", lg: "none" }}
-        position="fixed"
-        top="26px"
-        right="16px"
-        zIndex={1001}
-        bg="transparent"
-      >
-        <Heading 
-          size="md"
-          color={headerTextColor}
-          textAlign="right"
-          fontWeight="semibold"
-        >
-          My Profile
-        </Heading>
-      </Box>
+    <Box 
+      pt={0} 
+      pb={10} 
+      bg={useColorModeValue('gray.50', 'gray.900')} 
+      minH="100vh"
+      w="100%"
+      maxW="100%"
+      overflowX="hidden"
+    >
+      {/* Mobile Header - Now using reusable component */}
+      <MobileHeader
+        title="My Profile"
+        subtitle="Personal Information"
+        isLoading={isLoading}
+      />
 
       {/* Desktop Header */}
-      <Heading 
-        size="lg" 
-        mb={6}
-        display={{ base: "none", lg: "block" }}
-        color={headerTextColor}
-      >
-        My Profile
-      </Heading>
+      <Box display={{ base: "none", lg: "block" }} px={{ base: 4, md: 6 }} pt={6}>
+        <Heading size="lg" mb={2}>
+          My Profile
+        </Heading>
+        <Text color={useColorModeValue('gray.600', 'gray.300')}>
+          Personal Information
+        </Text>
+      </Box>
 
       <Box maxW="lg" mx="auto" mt={{ base: "20px", lg: 8 }}>
         {!editMode ? (

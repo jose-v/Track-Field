@@ -12,8 +12,9 @@ import { useNutritionStats } from '../hooks/useNutritionRecords'
 import { useAuth } from '../contexts/AuthContext'
 import { useProfile } from '../hooks/useProfile'
 import { useWorkouts } from '../hooks/useWorkouts'
+import { useScrollDirection } from '../hooks/useScrollDirection'
 import { MdPerson, MdOutlineWbSunny, MdKeyboardArrowRight } from 'react-icons/md'
-import { FaCalendarAlt, FaRunning, FaBolt, FaMedal, FaListAlt, FaUsers, FaMapMarkerAlt, FaChartLine, FaCloudRain, FaSnowflake, FaSun, FaCloudSun, FaCloudMeatball, FaRegClock, FaPlayCircle } from 'react-icons/fa'
+import { FaCalendarAlt, FaRunning, FaBolt, FaMedal, FaListAlt, FaUsers, FaMapMarkerAlt, FaChartLine, FaCloudRain, FaSnowflake, FaSun, FaCloudSun, FaCloudMeatball, FaRegClock, FaPlayCircle, FaRobot } from 'react-icons/fa'
 import { CheckIcon } from '@chakra-ui/icons'
 import { useWorkoutStore } from '../lib/workoutStore'
 import { 
@@ -24,7 +25,10 @@ import {
   TeamCard,
   ProgressBar,
   TrackMeetsCard,
-  TodaysCheckInSection
+  TodaysCheckInSection,
+  AIModal,
+  SparkleIcon,
+  MobileHeader
 } from '../components'
 import { supabase } from '../lib/supabase'
 import TodayWorkoutsCard from '../components/TodayWorkoutsCard'
@@ -134,8 +138,10 @@ export function Dashboard() {
   const { workouts, isLoading: workoutsLoading } = useWorkouts()
   const { stats: sleepStats, isLoading: sleepLoading } = useSleepStats()
   const { stats: nutritionStats, isLoading: nutritionLoading } = useNutritionStats()
+  const { isHeaderVisible } = useScrollDirection(15)
   const [teamInfo, setTeamInfo] = useState<any>(null)
   const [isLoadingTeam, setIsLoadingTeam] = useState(false)
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false)
   // Default weather data as fallback
   const [weather] = useState({
     temp: '72',
@@ -403,39 +409,12 @@ export function Dashboard() {
       >
         {/* Header with personal greeting */}
         <Box w="100%" mb={8} pt={{ base: 4, md: 0 }}>
-          {/* Mobile Header Row - Fixed positioned next to hamburger */}
-          <Box
-            display={{ base: "block", lg: "none" }}
-            position="fixed"
-            top="26px"
-            right="16px"
-            zIndex={1001}
-            bg="transparent"
-          >
-            <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
-              <Heading 
-                as="h1" 
-                size="md"
-                mb={0}
-                color={useColorModeValue('gray.800', 'white')}
-                lineHeight="1.2"
-                fontWeight="semibold"
-                textAlign="right"
-              >
-                Welcome back, {profile?.first_name || user?.email?.split('@')[0] || 'Athlete'}
-              </Heading>
-            </Skeleton>
-            <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
-              <Text 
-                color={useColorModeValue('gray.600', 'gray.200')}
-                fontSize="sm"
-                mt={0}
-                textAlign="right"
-              >
-                {profile?.role === 'athlete' ? 'Athlete Dashboard' : 'Dashboard'}
-              </Text>
-            </Skeleton>
-          </Box>
+          {/* Mobile Header using reusable component */}
+          <MobileHeader
+            title={`Welcome back, ${profile?.first_name || user?.email?.split('@')[0] || 'Athlete'}`}
+            subtitle={profile?.role === 'athlete' ? 'Athlete Dashboard' : 'Dashboard'}
+            isLoading={profileLoading}
+          />
 
           {/* Desktop Header Row */}
           <Flex 
@@ -447,24 +426,50 @@ export function Dashboard() {
             w="100%"
           >
             <Box flex="1">
-              <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
-                <Heading 
-                  as="h1" 
-                  size="xl"
-                  mb={1}
-                  color={useColorModeValue('gray.800', 'white')}
-                >
-                  Welcome back, {profile?.first_name || user?.email?.split('@')[0] || 'Athlete'}
-                </Heading>
-              </Skeleton>
-              <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
-                <Text 
-                  color={useColorModeValue('gray.600', 'gray.200')}
-                  fontSize="md"
-                >
-                  {profile?.role === 'athlete' ? 'Athlete Dashboard' : 'Dashboard'}
-                </Text>
-              </Skeleton>
+              <HStack spacing={4} align="center">
+                <VStack spacing={1} align="start" flex="1">
+                  <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
+                    <Heading 
+                      as="h1" 
+                      size="xl"
+                      mb={1}
+                      color={useColorModeValue('gray.800', 'white')}
+                    >
+                      Welcome back, {profile?.first_name || user?.email?.split('@')[0] || 'Athlete'}
+                    </Heading>
+                  </Skeleton>
+                  <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
+                    <Text 
+                      color={useColorModeValue('gray.600', 'gray.200')}
+                      fontSize="md"
+                    >
+                      {profile?.role === 'athlete' ? 'Athlete Dashboard' : 'Dashboard'}
+                    </Text>
+                  </Skeleton>
+                </VStack>
+                
+                {/* Desktop AI Assistant Button */}
+                <IconButton
+                  aria-label="AI Assistant"
+                  icon={<SparkleIcon boxSize={6} />}
+                  size="lg"
+                  colorScheme="purple"
+                  variant="solid"
+                  borderRadius="full"
+                  onClick={() => setIsAIModalOpen(true)}
+                  boxShadow="lg"
+                  _hover={{ 
+                    transform: 'scale(1.05)',
+                    boxShadow: 'xl'
+                  }}
+                  transition="all 0.2s"
+                  bg="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+                  color="white"
+                  _active={{
+                    transform: 'scale(0.95)'
+                  }}
+                />
+              </HStack>
             </Box>
             
             {/* Weather Info - Desktop only initially, mobile below */}
@@ -968,6 +973,14 @@ export function Dashboard() {
 
         {/* PWA Install Prompt */}
         <PWAInstallPrompt />
+
+        {/* Desktop AI Modal - Mobile handled by MobileHeader */}
+        <Box display={{ base: "none", lg: "block" }}>
+          <AIModal 
+            isOpen={isAIModalOpen} 
+            onClose={() => setIsAIModalOpen(false)} 
+          />
+        </Box>
 
       </Box>
     </Box>

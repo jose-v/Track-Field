@@ -17,6 +17,7 @@ import { dateUtils } from '../../utils/date';
 import { useWorkoutsRealtime } from '../../hooks/useWorkoutsRealtime';
 import { handleWorkoutCompletion } from '../../services/integrationService';
 import { useFeedback } from '../../components/FeedbackProvider'; // Import the feedback hook
+import { MobileHeader } from '../../components';
 
 // Consistent Exercise type
 interface Exercise {
@@ -579,66 +580,21 @@ export function AthleteWorkouts() {
 
   return (
     <Container maxW="container.xl" px={{ base: 4, md: 6 }} py={{ base: 6, md: 4 }} data-testid="athlete-workouts">
-      {/* Mobile Header - Fixed positioned */}
-      <Box
-        display={{ base: "block", lg: "none" }}
-        position="fixed"
-        top="26px"
-        right="16px"
-        zIndex={1001}
-        bg="transparent"
-      >
-        <Heading 
-          size="md"
-          color={useColorModeValue('gray.800', 'white')}
-          textAlign="right"
-          fontWeight="semibold"
-        >
-          My Workouts
-        </Heading>
-      </Box>
+      {/* Mobile Header - Now using reusable component */}
+      <MobileHeader
+        title="Workouts"
+        subtitle="Your Training Schedule"
+        isLoading={isLoading}
+      />
 
-      {/* Desktop Header */}
-      <Flex 
-        display={{ base: "none", lg: "flex" }}
-        justify="space-between" 
-        align="center"
-        mb={{ base: 4, md: 6 }}
-        direction="row"
-        gap={0}
-      >
-        <Heading 
-          size="lg"
-          color={useColorModeValue('gray.800', 'white')}
-        >
-          My Workouts
+      {/* Desktop Header - keep existing */}
+      <Box display={{ base: "none", lg: "block" }} mb={6}>
+        <Heading size="lg" mb={2}>
+          Workouts
         </Heading>
-        <IconButton
-          aria-label="Refresh workouts"
-          icon={<RepeatIcon />}
-          onClick={handleRefresh}
-          colorScheme="blue"
-          variant="outline"
-          size="md"
-        />
-      </Flex>
-
-      {/* Mobile Refresh Button */}
-      <Box 
-        display={{ base: "block", lg: "none" }}
-        position="fixed"
-        top="60px"
-        right="16px"
-        zIndex={1001}
-      >
-        <IconButton
-          aria-label="Refresh workouts"
-          icon={<RepeatIcon />}
-          onClick={handleRefresh}
-          colorScheme="blue"
-          variant="outline"
-          size="sm"
-        />
+        <Text color={useColorModeValue('gray.600', 'gray.300')}>
+          Your Training Schedule
+        </Text>
       </Box>
 
       {/* Content with mobile spacing */}

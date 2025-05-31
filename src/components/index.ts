@@ -23,6 +23,9 @@ export { default as FeedbackProvider, useFeedback } from './FeedbackProvider';
 export { ShareComponent } from './ShareComponent';
 export { default as YourTeamCard } from './YourTeamCard';
 export { default as AddAthleteModal } from './AddAthleteModal';
+export { default as AIModal } from './AIModal';
+export { default as SparkleIcon } from './SparkleIcon';
+export { default as MobileHeader } from './MobileHeader';
 
 // Quick Log Components
 export { default as SleepQuickLogCard } from './SleepQuickLogCard';
