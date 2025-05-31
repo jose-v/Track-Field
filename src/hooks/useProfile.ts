@@ -3,12 +3,14 @@ import { api } from '../services/api'
 import { useToast } from '@chakra-ui/react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { useEffect, useState } from 'react'
 import type { Profile } from '../services/dbSchema'
 
 export function useProfile() {
   const queryClient = useQueryClient()
   const toast = useToast()
   const auth = useAuth()
+  const [loadingTimeout, setLoadingTimeout] = useState(false)
 
   const profileQuery = useQuery({
     queryKey: ['profile', auth.user?.id],
@@ -37,7 +39,31 @@ export function useProfile() {
       }
     },
     enabled: !!auth.user && !auth.loading,
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   })
+
+  // Add timeout for loading states to prevent infinite loading
+  useEffect(() => {
+    if (auth.loading || (!!auth.user && profileQuery.isLoading)) {
+      console.log('Profile loading state:', { 
+        authLoading: auth.loading, 
+        hasUser: !!auth.user, 
+        profileQueryLoading: profileQuery.isLoading 
+      });
+      
+      const timer = setTimeout(() => {
+        console.warn('Profile loading taking too long, this may indicate an issue');
+        setLoadingTimeout(true)
+      }, 10000); // 10 second timeout
+      
+      return () => clearTimeout(timer);
+    } else {
+      setLoadingTimeout(false)
+    }
+  }, [auth.loading, auth.user, profileQuery.isLoading]);
 
   // Define the expected type for the variables passed to updateProfile.mutate
   interface UpdateProfileVariables {
@@ -138,7 +164,9 @@ export function useProfile() {
 
   return {
     profile: profileQuery.data,
-    isLoading: auth.loading || (!!auth.user && profileQuery.isLoading),
+    // Simplified loading logic to prevent infinite loading states
+    // Only show loading if auth is loading OR if we have a user and profile query is actively loading
+    isLoading: !loadingTimeout && (auth.loading || (!!auth.user && profileQuery.isLoading)),
     isError: profileQuery.isError,
     error: profileQuery.error,
     updateProfile: updateProfile.mutate,
