@@ -760,7 +760,7 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
           p={4}
           borderWidth="1px"
           borderColor={borderColor}
-          mt={{ base: "80px", lg: 0 }}
+          mt={{ base: "20px", lg: 0 }}
         >
           {/* Month Detail Header */}
           <Flex justify="space-between" align="center" mb={4}>
@@ -1002,7 +1002,7 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
         p={4}
         borderWidth="1px"
         borderColor={borderColor}
-        mt={{ base: "80px", lg: 0 }}
+        mt={{ base: "20px", lg: 0 }}
       >
         {/* Calendar Header & Navigation */}
         <Flex className="calendar-header" justify="space-between" align="center" mb={4}>

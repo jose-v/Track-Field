@@ -232,7 +232,7 @@ export function Sleep() {
           </Heading>
         </Box>
 
-        <VStack spacing={8} align="stretch" mt={{ base: "80px", lg: 0 }}>
+        <VStack spacing={8} align="stretch" mt={{ base: "20px", lg: 0 }}>
           {/* Desktop Header */}
           <HStack 
             spacing={4} 

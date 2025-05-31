@@ -185,7 +185,7 @@ export function Nutrition() {
           </Heading>
         </Box>
 
-        <VStack spacing={8} align="stretch" mt={{ base: "80px", lg: 0 }}>
+        <VStack spacing={8} align="stretch" mt={{ base: "20px", lg: 0 }}>
           {/* Desktop Header */}
           <Box display={{ base: "none", lg: "block" }}>
             <Heading size="lg" mb={2}>Nutrition Tracking</Heading>

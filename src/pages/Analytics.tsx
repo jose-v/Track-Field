@@ -94,7 +94,7 @@ export function Analytics() {
         </Box>
 
         {/* Header */}
-        <VStack spacing={6} align="stretch" mt={{ base: "80px", lg: 0 }}>
+        <VStack spacing={6} align="stretch" mt={{ base: "20px", lg: 0 }}>
           {/* Desktop Header */}
           <Box display={{ base: "none", lg: "block" }}>
             <HStack justify="space-between" align="center" mb={4}>

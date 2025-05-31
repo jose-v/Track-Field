@@ -492,7 +492,7 @@ export function Dashboard() {
           <Box 
             display={{ base: "block", lg: "none" }}
             w="100%"
-            mt={{ base: "70px", lg: 2 }}
+            mt={{ base: "20px", lg: 2 }}
           >
             <WeatherCard 
               city={profile?.city || "Greensboro"}

@@ -642,7 +642,7 @@ export function AthleteWorkouts() {
       </Box>
 
       {/* Content with mobile spacing */}
-      <Box mt={{ base: "100px", lg: 0 }}>
+      <Box mt={{ base: "20px", lg: 0 }}>
         {isLoading && (
           <Center py={{ base: 8, md: 10 }}>
             <Spinner 

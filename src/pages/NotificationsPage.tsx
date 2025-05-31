@@ -43,7 +43,7 @@ const NotificationsPage: React.FC = () => {
           </Heading>
         </Box>
 
-        <VStack spacing={4} align="stretch" mt={{ base: "80px", lg: 0 }}>
+        <VStack spacing={4} align="stretch" mt={{ base: "20px", lg: 0 }}>
           <Box p={6} borderWidth="1px" borderRadius="lg" bg={bgColor} borderColor={borderColor}>
             <Heading size="md" mb={4}>Notifications</Heading>
             <Text>Please log in to view your notifications.</Text>
@@ -75,7 +75,7 @@ const NotificationsPage: React.FC = () => {
           </Heading>
         </Box>
 
-        <Center mt={{ base: "80px", lg: 0 }}>
+        <Center mt={{ base: "20px", lg: 0 }}>
           <Spinner size="xl" />
         </Center>
       </Container>
@@ -106,7 +106,7 @@ const NotificationsPage: React.FC = () => {
         </Heading>
       </Box>
 
-      <VStack spacing={4} align="stretch" mt={{ base: "80px", lg: 0 }}>
+      <VStack spacing={4} align="stretch" mt={{ base: "20px", lg: 0 }}>
         {/* Desktop Header */}
         <Heading 
           size="lg" 

@@ -142,7 +142,7 @@ const AthleteProfile = () => {
         My Profile
       </Heading>
 
-      <Box maxW="lg" mx="auto" mt={{ base: "80px", lg: 8 }}>
+      <Box maxW="lg" mx="auto" mt={{ base: "20px", lg: 8 }}>
         {!editMode ? (
           <ProfileCard
             avatarUrl={avatarPreview || undefined}
