@@ -402,20 +402,24 @@ export function Dashboard() {
       >
         {/* Header with personal greeting */}
         <Box w="100%" mb={8} pt={{ base: 4, md: 0 }}>
-          {/* Mobile Header Row */}
+          {/* Mobile Header Row - Fixed positioned next to hamburger */}
           <Box
             display={{ base: "block", lg: "none" }}
-            ml="56px" // Account for hamburger icon (16px left + 24px icon + 16px spacing)
-            mr={4}
-            mb={4}
+            position="fixed"
+            top="16px"
+            right="16px" // Position on the right side of screen
+            zIndex={1001}
+            bg="transparent"
           >
             <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
               <Heading 
                 as="h1" 
-                size="md"
-                mb={1}
+                size="sm"
+                mb={0}
                 color={useColorModeValue('gray.800', 'white')}
                 lineHeight="1.2"
+                fontWeight="semibold"
+                textAlign="right"
               >
                 Welcome back, {profile?.first_name || user?.email?.split('@')[0] || 'Athlete'}
               </Heading>
@@ -424,6 +428,8 @@ export function Dashboard() {
               <Text 
                 color={useColorModeValue('gray.600', 'gray.200')}
                 fontSize="xs"
+                mt={0}
+                textAlign="right"
               >
                 {profile?.role === 'athlete' ? 'Athlete Dashboard' : 'Dashboard'}
               </Text>
