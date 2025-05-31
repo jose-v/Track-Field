@@ -209,29 +209,25 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
           position="relative"
           overflow="hidden"
           display="flex"
-          justifyContent="center"
+          justifyContent="space-between"
           alignItems="center"
+          px={6}
         >
-          <Flex 
-            width="100%" 
-            justifyContent="center" 
-            alignItems="center" 
-            p={0}
-            direction={{ base: "row", md: "row" }}
-            gap={{ base: 4, md: 6 }}
-          >
-          <Box display="flex" alignItems="center" justifyContent="center">
+          {/* Weather Icon - Left aligned */}
+          <Box display="flex" alignItems="center" justifyContent="flex-start">
             <Icon 
               as={WeatherIcon} 
               color="white" 
               boxSize={{ base: 14, md: 20 }}
             />
           </Box>
-            <Box p={0} m={0}>
+          
+          {/* Weather Text Content - Right aligned */}
+          <Box textAlign="right">
             <Text 
               fontSize={{ base: "md", md: "xl" }} 
               fontWeight="medium" 
-              textAlign="center" 
+              textAlign="right" 
               mb={-1}
             >
               {weather.condition}
@@ -239,38 +235,30 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
             <Text 
               fontSize={{ base: "2xl", md: "4xl" }} 
               fontWeight="bold" 
-              textAlign="center" 
+              textAlign="right" 
               lineHeight="1"
             >
               {weather.temp}°
             </Text>
-            <Flex direction="column" mt={1} alignItems="center">
-              <Flex alignItems="center" justifyContent="center">
-                <Icon 
-                  as={FaMapMarkerAlt} 
-                  color="blackAlpha.800" 
-                  mr={1} 
-                  boxSize={{ base: 3, md: 4 }}
-                />
-                <Text 
-                  fontWeight="medium" 
-                  fontSize={{ base: "xs", md: "sm" }}
-                >
-                  {location}
-                </Text>
-              </Flex>
+            <Flex direction="column" mt={1} alignItems="flex-end">
+              <Text 
+                fontWeight="medium" 
+                fontSize={{ base: "xs", md: "sm" }}
+                textAlign="right"
+              >
+                {location}
+              </Text>
               <Text 
                 mt={1} 
                 color="blackAlpha.800" 
                 fontSize={{ base: "xs", md: "sm" }} 
-                textAlign="center"
+                textAlign="right"
               >
                 {dateStr}
               </Text>
             </Flex>
           </Box>
-        </Flex>
-      </Box>
+        </Box>
       </Card>
     </Skeleton>
   )

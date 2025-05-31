@@ -64,9 +64,21 @@ export function Analytics() {
   const { profile } = useProfile();
   const [selectedTab, setSelectedTab] = useState(0);
 
+  // All useColorModeValue calls moved to top level to fix Rules of Hooks violations
   const bgColor = useColorModeValue('gray.50', 'gray.900');
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const desktopHeaderText = useColorModeValue('gray.600', 'gray.300');
+  const sleepHeadingColor = useColorModeValue('gray.700', 'gray.300');
+  const workoutHeadingColor = useColorModeValue('gray.700', 'gray.300');
+  const workoutSubtitleColor = useColorModeValue('gray.600', 'gray.400');
+  const injuryHeadingColor = useColorModeValue('gray.700', 'gray.300');
+  const injurySubtitleColor = useColorModeValue('gray.600', 'gray.400');
+  const trainingHeadingColor = useColorModeValue('gray.700', 'gray.300');
+  const wellnessHeadingColor = useColorModeValue('gray.700', 'gray.300');
+  const performanceHeadingColor = useColorModeValue('gray.700', 'gray.300');
+  const footerHeadingColor = useColorModeValue('gray.700', 'gray.300');
+  const footerTextColor = useColorModeValue('gray.600', 'gray.400');
 
   const isCoach = profile?.role === 'coach';
   const isAthlete = profile?.role === 'athlete';
@@ -92,7 +104,7 @@ export function Analytics() {
           {/* Desktop Header */}
           <Box display={{ base: "none", lg: "block" }}>
             <Heading size="lg" mb={2}>Analytics Dashboard</Heading>
-            <Text color={useColorModeValue('gray.600', 'gray.300')}>
+            <Text color={desktopHeaderText}>
               Track your progress and performance metrics
             </Text>
           </Box>
@@ -151,7 +163,7 @@ export function Analytics() {
               <TabPanel px={0}>
                 <VStack spacing={6} align="stretch">
                   <Box>
-                    <Heading size="md" mb={4} color={useColorModeValue('gray.700', 'gray.300')}>
+                    <Heading size="md" mb={4} color={sleepHeadingColor}>
                       Sleep & Recovery Analytics
                     </Heading>
                     <SimpleGrid columns={{ base: 1, lg: 2, xl: 3 }} spacing={6}>
@@ -166,10 +178,10 @@ export function Analytics() {
               <TabPanel px={0}>
                 <VStack spacing={6} align="stretch">
                   <Box>
-                    <Heading size="md" mb={4} color={useColorModeValue('gray.700', 'gray.300')}>
+                    <Heading size="md" mb={4} color={workoutHeadingColor}>
                       Workout Performance & Compliance
                     </Heading>
-                    <Text color={useColorModeValue('gray.600', 'gray.400')} mb={6}>
+                    <Text color={workoutSubtitleColor} mb={6}>
                       Track workout adherence, RPE trends, and personal record achievements
                     </Text>
                     <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
@@ -184,10 +196,10 @@ export function Analytics() {
               <TabPanel px={0}>
                 <VStack spacing={6} align="stretch">
                   <Box>
-                    <Heading size="md" mb={4} color={useColorModeValue('gray.700', 'gray.300')}>
+                    <Heading size="md" mb={4} color={injuryHeadingColor}>
                       Injury Risk Assessment
                     </Heading>
-                    <Text color={useColorModeValue('gray.600', 'gray.400')} mb={6}>
+                    <Text color={injurySubtitleColor} mb={6}>
                       Based on Acute:Chronic Workload Ratio (ACWR) methodology and wellness indicators
                     </Text>
                     <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
@@ -201,7 +213,7 @@ export function Analytics() {
               <TabPanel px={0}>
                 <VStack spacing={6} align="stretch">
                   <Box>
-                    <Heading size="md" mb={4} color={useColorModeValue('gray.700', 'gray.300')}>
+                    <Heading size="md" mb={4} color={trainingHeadingColor}>
                       Training Load Analysis
                     </Heading>
                     <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
@@ -215,7 +227,7 @@ export function Analytics() {
               <TabPanel px={0}>
                 <VStack spacing={6} align="stretch">
                   <Box>
-                    <Heading size="md" mb={4} color={useColorModeValue('gray.700', 'gray.300')}>
+                    <Heading size="md" mb={4} color={wellnessHeadingColor}>
                       Wellness Monitoring
                     </Heading>
                     <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
@@ -229,7 +241,7 @@ export function Analytics() {
               <TabPanel px={0}>
                 <VStack spacing={6} align="stretch">
                   <Box>
-                    <Heading size="md" mb={4} color={useColorModeValue('gray.700', 'gray.300')}>
+                    <Heading size="md" mb={4} color={performanceHeadingColor}>
                       Performance Metrics
                     </Heading>
                     <SimpleGrid columns={{ base: 1, lg: 2, xl: 3 }} spacing={6}>
@@ -250,10 +262,10 @@ export function Analytics() {
             borderColor={borderColor}
           >
             <VStack spacing={4}>
-              <Heading size="sm" color={useColorModeValue('gray.700', 'gray.300')}>
+              <Heading size="sm" color={footerHeadingColor}>
                 Analytics Architecture Information
               </Heading>
-              <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')} textAlign="center">
+              <Text fontSize="sm" color={footerTextColor} textAlign="center">
                 This dashboard showcases our centralized analytics architecture with real-time calculations, 
                 trend analysis, and AI-ready data processing. All metrics use consistent calculation methods 
                 across the application.

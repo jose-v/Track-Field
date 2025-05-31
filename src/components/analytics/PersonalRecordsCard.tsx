@@ -30,14 +30,18 @@ import { useAuth } from '../../contexts/AuthContext';
 
 export const PersonalRecordsCard: React.FC = () => {
   const { user } = useAuth();
-  const [pbData, setPbData] = useState<any>(null);
+  const [recordsData, setRecordsData] = useState<any>(null);
 
+  // All useColorModeValue calls moved to top level to fix Rules of Hooks violations
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const textColor = useColorModeValue('gray.700', 'gray.200');
   const cardShadow = useColorModeValue('none', 'lg');
   const statLabelColor = useColorModeValue('gray.600', 'gray.300');
   const statNumberColor = useColorModeValue('gray.900', 'gray.100');
+  const pbItemBg = useColorModeValue('gray.50', 'gray.700');
+  const goalProgressBg = useColorModeValue('gray.100', 'gray.600');
+  const achievementBg = useColorModeValue('green.50', 'green.900');
 
   // Mock personal records data
   const mockPBData = {
@@ -135,7 +139,7 @@ export const PersonalRecordsCard: React.FC = () => {
         const lastPBDate = new Date(Math.max(...currentPBs.map(pb => new Date(pb.date).getTime())));
         const daysSinceLastPB = Math.floor((new Date().getTime() - lastPBDate.getTime()) / (1000 * 60 * 60 * 24));
 
-        setPbData({
+        setRecordsData({
           currentPBs,
           recentAchievements,
           seasonGoals,
@@ -176,7 +180,7 @@ export const PersonalRecordsCard: React.FC = () => {
     return FaStar;
   };
 
-  if (!pbData) {
+  if (!recordsData) {
     return (
       <Box
         bg={cardBg}
@@ -191,7 +195,7 @@ export const PersonalRecordsCard: React.FC = () => {
     );
   }
 
-  const { currentPBs, recentAchievements, seasonGoals, milestones, metrics } = pbData;
+  const { currentPBs, recentAchievements, seasonGoals, milestones, metrics } = recordsData;
 
   return (
     <Box
@@ -295,7 +299,7 @@ export const PersonalRecordsCard: React.FC = () => {
               <Box 
                 key={index} 
                 p={3} 
-                bg={useColorModeValue('gray.50', 'gray.700')} 
+                bg={pbItemBg} 
                 borderRadius="md"
                 border={pb.isNew ? "2px solid" : "1px solid"}
                 borderColor={pb.isNew ? "green.300" : borderColor}
@@ -366,7 +370,7 @@ export const PersonalRecordsCard: React.FC = () => {
                   </Text>
                 </HStack>
                 <Box 
-                  bg={useColorModeValue('gray.100', 'gray.600')} 
+                  bg={goalProgressBg} 
                   borderRadius="full" 
                   h="6px" 
                   overflow="hidden"
@@ -399,7 +403,7 @@ export const PersonalRecordsCard: React.FC = () => {
                 <HStack 
                   key={index} 
                   p={2} 
-                  bg={useColorModeValue('green.50', 'green.900')} 
+                  bg={achievementBg} 
                   borderRadius="md"
                   borderLeft="4px solid"
                   borderColor="green.500"

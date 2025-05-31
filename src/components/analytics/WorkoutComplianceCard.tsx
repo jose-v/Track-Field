@@ -32,12 +32,14 @@ export const WorkoutComplianceCard: React.FC = () => {
   const { user } = useAuth();
   const [complianceData, setComplianceData] = useState<any>(null);
 
+  // All useColorModeValue calls moved to top level to fix Rules of Hooks violations
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const textColor = useColorModeValue('gray.700', 'gray.200');
   const cardShadow = useColorModeValue('none', 'lg');
   const statLabelColor = useColorModeValue('gray.600', 'gray.300');
   const statNumberColor = useColorModeValue('gray.900', 'gray.100');
+  const workoutItemBg = useColorModeValue('gray.50', 'gray.700');
 
   // Mock workout compliance data
   const mockComplianceData = {
@@ -339,7 +341,7 @@ export const WorkoutComplianceCard: React.FC = () => {
           </Text>
           <VStack spacing={2} align="stretch">
             {recentWorkouts.slice(0, 3).map((workout, index) => (
-              <HStack key={index} justify="space-between" p={2} bg={useColorModeValue('gray.50', 'gray.700')} borderRadius="md">
+              <HStack key={index} justify="space-between" p={2} bg={workoutItemBg} borderRadius="md">
                 <HStack spacing={3}>
                   <Icon 
                     as={getStatusIcon(workout.status)} 
