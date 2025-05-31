@@ -290,196 +290,227 @@ const Sidebar = ({ userType }: SidebarProps) => {
   };
 
   // Mobile drawer content
-  const MobileDrawerContent = () => (
-    <Drawer
-      isOpen={isMobileDrawerOpen}
-      placement="left"
-      onClose={onMobileDrawerClose}
-      size="full" // This makes it 100% width
-    >
-      <DrawerOverlay bg="blackAlpha.600" />
-      <DrawerContent
-        maxW="67vw" // Gmail-style 2/3 screen width
-        bg={drawerBg}
-        boxShadow="2xl"
+  const MobileDrawerContent = () => {
+    // Debug function to clear PWA cache
+    const clearPWACache = async () => {
+      if ('caches' in window) {
+        try {
+          const cacheNames = await caches.keys();
+          const trackFieldCaches = cacheNames.filter(name => name.startsWith('track-field-'));
+          
+          for (const cacheName of trackFieldCaches) {
+            await caches.delete(cacheName);
+            console.log('Cleared cache:', cacheName);
+          }
+          
+          // Also clear localStorage for good measure
+          localStorage.removeItem('chakra-ui-color-mode');
+          
+          // Force reload
+          window.location.reload();
+        } catch (error) {
+          console.error('Error clearing PWA cache:', error);
+        }
+      }
+    };
+
+    return (
+      <Drawer
+        isOpen={isMobileDrawerOpen}
+        placement="left"
+        onClose={onMobileDrawerClose}
+        size="full" // This makes it 100% width
       >
-        {/* Custom close button in header */}
-        <DrawerHeader borderBottomWidth="1px" borderColor={borderColor} pb={4}>
-          <Flex align="center" justify="center">
-            <Text fontWeight="bold" fontSize="xl" color="blue.500">
-              Track & Field
-            </Text>
-          </Flex>
-        </DrawerHeader>
+        <DrawerOverlay bg="blackAlpha.600" />
+        <DrawerContent
+          maxW="67vw" // Gmail-style 2/3 screen width
+          bg={drawerBg}
+          boxShadow="2xl"
+        >
+          {/* Custom close button in header */}
+          <DrawerHeader borderBottomWidth="1px" borderColor={borderColor} pb={4}>
+            <Flex align="center" justify="center">
+              <Text 
+                fontWeight="bold" 
+                fontSize="xl" 
+                color="blue.500"
+                onDoubleClick={clearPWACache} // Double-tap logo to clear cache
+                cursor="pointer"
+              >
+                Track & Field
+              </Text>
+            </Flex>
+          </DrawerHeader>
 
-        <DrawerBody px={0} py={0}>
-          <VStack spacing={0} align="stretch" height="100%">
-            {/* User Profile Section */}
-            <Box p={6} borderBottomWidth="1px" borderColor={borderColor}>
-              <Flex align="center" gap={3}>
-                <Avatar 
-                  size="md"
-                  bg="blue.500" 
-                  color="white"
-                  name={userInitials}
-                  src={profile?.avatar_url}
-                />
-                <VStack align="start" spacing={0} flex="1">
-                  <Text fontWeight="semibold" fontSize="md" color={useColorModeValue('gray.800', 'white')}>
-                    {fullName}
+          <DrawerBody px={0} py={0}>
+            <VStack spacing={0} align="stretch" height="100%">
+              {/* User Profile Section */}
+              <Box p={6} borderBottomWidth="1px" borderColor={borderColor}>
+                <Flex align="center" gap={3}>
+                  <Avatar 
+                    size="md"
+                    bg="blue.500" 
+                    color="white"
+                    name={userInitials}
+                    src={profile?.avatar_url}
+                  />
+                  <VStack align="start" spacing={0} flex="1">
+                    <Text fontWeight="semibold" fontSize="md" color={useColorModeValue('gray.800', 'white')}>
+                      {fullName}
+                    </Text>
+                    <Badge colorScheme="blue" fontSize="xs" textTransform="uppercase">
+                      {roleName}
+                    </Badge>
+                  </VStack>
+                </Flex>
+              </Box>
+
+              {/* Main Navigation */}
+              <Box flex="1" overflowY="auto">
+                <VStack spacing={1} align="stretch" p={4}>
+                  <Text 
+                    fontSize="xs" 
+                    fontWeight="bold" 
+                    color={useColorModeValue('gray.500', 'gray.400')}
+                    textTransform="uppercase" 
+                    letterSpacing="wider"
+                    mb={2}
+                    px={4}
+                  >
+                    Main Menu
                   </Text>
-                  <Badge colorScheme="blue" fontSize="xs" textTransform="uppercase">
-                    {roleName}
-                  </Badge>
+                  
+                  {navItems.map((item) => {
+                    const isHome = item.to === '/';
+                    const isActive = isHome
+                      ? location.pathname === '/'
+                      : location.pathname === item.to || (item.to !== '/loop' && location.pathname.startsWith(item.to));
+                    return (
+                      <MobileNavItem
+                        key={item.to}
+                        icon={item.icon}
+                        label={item.label}
+                        to={item.to}
+                        isActive={isActive}
+                        onClick={onMobileDrawerClose}
+                      />
+                    );
+                  })}
                 </VStack>
-              </Flex>
-            </Box>
 
-            {/* Main Navigation */}
-            <Box flex="1" overflowY="auto">
-              <VStack spacing={1} align="stretch" p={4}>
-                <Text 
-                  fontSize="xs" 
-                  fontWeight="bold" 
-                  color={useColorModeValue('gray.500', 'gray.400')}
-                  textTransform="uppercase" 
-                  letterSpacing="wider"
-                  mb={2}
-                  px={4}
-                >
-                  Main Menu
-                </Text>
-                
-                {navItems.map((item) => {
-                  const isHome = item.to === '/';
-                  const isActive = isHome
-                    ? location.pathname === '/'
-                    : location.pathname === item.to || (item.to !== '/loop' && location.pathname.startsWith(item.to));
-                  return (
+                {/* Quick Actions Section */}
+                <Box px={4} mt={6}>
+                  <Text 
+                    fontSize="xs" 
+                    fontWeight="bold" 
+                    color={useColorModeValue('gray.500', 'gray.400')}
+                    textTransform="uppercase" 
+                    letterSpacing="wider"
+                    mb={3}
+                    px={4}
+                  >
+                    Quick Actions
+                  </Text>
+                  
+                  <VStack spacing={1} align="stretch">
                     <MobileNavItem
-                      key={item.to}
-                      icon={item.icon}
-                      label={item.label}
-                      to={item.to}
-                      isActive={isActive}
+                      icon={FaBell}
+                      label="Notifications"
+                      to={userType === 'athlete' ? '/athlete/notifications' : '/coach/notifications'}
+                      isActive={location.pathname.includes('/notifications')}
                       onClick={onMobileDrawerClose}
                     />
-                  );
-                })}
-              </VStack>
+                    
+                    <MobileNavItem
+                      icon={FaUserAlt}
+                      label="Profile"
+                      to={userType === 'athlete' ? '/athlete/profile' : '/coach/profile'}
+                      isActive={location.pathname.includes('/profile')}
+                      onClick={onMobileDrawerClose}
+                    />
+                  </VStack>
+                </Box>
 
-              {/* Quick Actions Section */}
-              <Box px={4} mt={6}>
-                <Text 
-                  fontSize="xs" 
-                  fontWeight="bold" 
-                  color={useColorModeValue('gray.500', 'gray.400')}
-                  textTransform="uppercase" 
-                  letterSpacing="wider"
-                  mb={3}
-                  px={4}
-                >
-                  Quick Actions
-                </Text>
-                
-                <VStack spacing={1} align="stretch">
-                  <MobileNavItem
-                    icon={FaBell}
-                    label="Notifications"
-                    to={userType === 'athlete' ? '/athlete/notifications' : '/coach/notifications'}
-                    isActive={location.pathname.includes('/notifications')}
-                    onClick={onMobileDrawerClose}
-                  />
+                {/* Settings Section */}
+                <Box px={4} mt={6}>
+                  <Text 
+                    fontSize="xs" 
+                    fontWeight="bold" 
+                    color={useColorModeValue('gray.500', 'gray.400')}
+                    textTransform="uppercase" 
+                    letterSpacing="wider"
+                    mb={3}
+                    px={4}
+                  >
+                    Settings
+                  </Text>
                   
-                  <MobileNavItem
-                    icon={FaUserAlt}
-                    label="Profile"
-                    to={userType === 'athlete' ? '/athlete/profile' : '/coach/profile'}
-                    isActive={location.pathname.includes('/profile')}
-                    onClick={onMobileDrawerClose}
-                  />
-                </VStack>
+                  <VStack spacing={1} align="stretch">
+                    <Button
+                      leftIcon={<Icon as={LuMessageCircleMore} />}
+                      variant="ghost"
+                      justifyContent="flex-start"
+                      p={4}
+                      borderRadius="lg"
+                      onClick={() => {
+                        showFeedbackModal();
+                        onMobileDrawerClose();
+                      }}
+                      color={useColorModeValue('gray.700', 'gray.300')}
+                      _hover={{
+                        bg: useColorModeValue('gray.100', 'gray.700'),
+                        color: useColorModeValue('blue.600', 'blue.200'),
+                      }}
+                    >
+                      <Text fontSize="md" ml={1}>Give Feedback</Text>
+                    </Button>
+                    
+                    <Button
+                      leftIcon={<Icon as={LuShare} />}
+                      variant="ghost"
+                      justifyContent="flex-start"
+                      p={4}
+                      borderRadius="lg"
+                      onClick={() => {
+                        // Share functionality
+                        onMobileDrawerClose();
+                      }}
+                      color={useColorModeValue('gray.700', 'gray.300')}
+                      _hover={{
+                        bg: useColorModeValue('gray.100', 'gray.700'),
+                        color: useColorModeValue('blue.600', 'blue.200'),
+                      }}
+                    >
+                      <Text fontSize="md" ml={1}>Share App</Text>
+                    </Button>
+                  </VStack>
+                </Box>
               </Box>
 
-              {/* Settings Section */}
-              <Box px={4} mt={6}>
-                <Text 
-                  fontSize="xs" 
-                  fontWeight="bold" 
-                  color={useColorModeValue('gray.500', 'gray.400')}
-                  textTransform="uppercase" 
-                  letterSpacing="wider"
-                  mb={3}
-                  px={4}
-                >
-                  Settings
-                </Text>
-                
-                <VStack spacing={1} align="stretch">
+              {/* Bottom Actions */}
+              <Box p={4} borderTopWidth="1px" borderColor={borderColor}>
+                <HStack justify="space-between" align="center">
+                  <ThemeToggle size="md" />
                   <Button
-                    leftIcon={<Icon as={LuMessageCircleMore} />}
+                    leftIcon={<Icon as={FaSignOutAlt} />}
                     variant="ghost"
-                    justifyContent="flex-start"
-                    p={4}
-                    borderRadius="lg"
+                    colorScheme="red"
+                    size="sm"
                     onClick={() => {
-                      showFeedbackModal();
+                      signOut();
                       onMobileDrawerClose();
                     }}
-                    color={useColorModeValue('gray.700', 'gray.300')}
-                    _hover={{
-                      bg: useColorModeValue('gray.100', 'gray.700'),
-                      color: useColorModeValue('blue.600', 'blue.200'),
-                    }}
                   >
-                    <Text fontSize="md" ml={1}>Give Feedback</Text>
+                    Sign Out
                   </Button>
-                  
-                  <Button
-                    leftIcon={<Icon as={LuShare} />}
-                    variant="ghost"
-                    justifyContent="flex-start"
-                    p={4}
-                    borderRadius="lg"
-                    onClick={() => {
-                      // Share functionality
-                      onMobileDrawerClose();
-                    }}
-                    color={useColorModeValue('gray.700', 'gray.300')}
-                    _hover={{
-                      bg: useColorModeValue('gray.100', 'gray.700'),
-                      color: useColorModeValue('blue.600', 'blue.200'),
-                    }}
-                  >
-                    <Text fontSize="md" ml={1}>Share App</Text>
-                  </Button>
-                </VStack>
+                </HStack>
               </Box>
-            </Box>
-
-            {/* Bottom Actions */}
-            <Box p={4} borderTopWidth="1px" borderColor={borderColor}>
-              <HStack justify="space-between" align="center">
-                <ThemeToggle size="md" />
-                <Button
-                  leftIcon={<Icon as={FaSignOutAlt} />}
-                  variant="ghost"
-                  colorScheme="red"
-                  size="sm"
-                  onClick={() => {
-                    signOut();
-                    onMobileDrawerClose();
-                  }}
-                >
-                  Sign Out
-                </Button>
-              </HStack>
-            </Box>
-          </VStack>
-        </DrawerBody>
-      </DrawerContent>
-    </Drawer>
-  );
+            </VStack>
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
+    );
+  };
 
   return (
     <>
