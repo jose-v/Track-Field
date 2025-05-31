@@ -2,8 +2,28 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Track & Field</title>
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#4299E1" />
+    <meta name="application-name" content="Track & Field" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Track & Field" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="msapplication-TileColor" content="#4299E1" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    
+    <!-- Disable pull-to-refresh on mobile -->
+    <meta name="overscroll-behavior" content="none" />
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/icon-180.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/icon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/icon-16.png" />
+    
     <!-- Inter font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
     <!-- Critical inline styles -->
@@ -20,6 +40,34 @@
       .chakra-button[data-variant="primary"]:hover,
       .chakra-button[variant="primary"]:hover {
         color: white !important;
+      }
+      
+      /* PWA Full-screen optimizations */
+      html, body {
+        height: 100%;
+        overflow-x: hidden;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      
+      /* Hide address bar on mobile browsers */
+      @media screen and (max-width: 768px) {
+        html {
+          height: -webkit-fill-available;
+        }
+        body {
+          min-height: -webkit-fill-available;
+        }
+      }
+      
+      /* Disable overscroll bounce on iOS */
+      body {
+        overscroll-behavior-y: none;
       }
     </style>
     <script>

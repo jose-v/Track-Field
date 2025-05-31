@@ -28,6 +28,7 @@ import {
 } from '../components'
 import { supabase } from '../lib/supabase'
 import TodayWorkoutsCard from '../components/TodayWorkoutsCard'
+import PWAInstallPrompt from '../components/PWAInstallPrompt'
 
 // Function to format date in "Month Day, Year" format
 function formatDate(dateStr: string): string {
@@ -964,6 +965,9 @@ export function Dashboard() {
             </ModalBody>
           </ModalContent>
         </Modal>
+
+        {/* PWA Install Prompt */}
+        <PWAInstallPrompt />
 
       </Box>
     </Box>
