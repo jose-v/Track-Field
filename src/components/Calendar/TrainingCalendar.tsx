@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 import { FaCalendarAlt, FaRunning, FaMapMarkerAlt, FaClock } from 'react-icons/fa';
 import { api } from '../../services/api';
+import { MobileHeader } from '../';
 
 interface TrainingCalendarProps {
   isCoach?: boolean;
@@ -717,31 +718,12 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
   if (selectedMonth !== null) {
     return (
       <Box className="page container">
-        {/* Mobile Header - Fixed positioned */}
-        <Box
-          display={{ base: "block", lg: "none" }}
-          position="fixed"
-          top="26px"
-          right="16px"
-          zIndex={1001}
-          bg="transparent"
-        >
-          <Heading 
-            size="md"
-            color={useColorModeValue('gray.800', 'white')}
-            textAlign="right"
-            fontWeight="semibold"
-          >
-            Training Calendar
-          </Heading>
-          <Text 
-            color={useColorModeValue('gray.600', 'gray.200')}
-            fontSize="sm"
-            textAlign="right"
-          >
-            {months[selectedMonth]} {currentYear}
-          </Text>
-        </Box>
+        {/* Mobile Header using reusable component */}
+        <MobileHeader
+          title="Training Calendar"
+          subtitle={`${months[selectedMonth]} ${currentYear}`}
+          isLoading={false}
+        />
 
         {/* Desktop Header */}
         <Heading 
@@ -959,31 +941,12 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
   // Default: Year view
   return (
     <Box className="page container">
-      {/* Mobile Header - Fixed positioned */}
-      <Box
-        display={{ base: "block", lg: "none" }}
-        position="fixed"
-        top="26px"
-        right="16px"
-        zIndex={1001}
-        bg="transparent"
-      >
-        <Heading 
-          size="md"
-          color={useColorModeValue('gray.800', 'white')}
-          textAlign="right"
-          fontWeight="semibold"
-        >
-          Training Calendar
-        </Heading>
-        <Text 
-          color={useColorModeValue('gray.600', 'gray.200')}
-          fontSize="sm"
-          textAlign="right"
-        >
-          {currentYear}
-        </Text>
-      </Box>
+      {/* Mobile Header using reusable component */}
+      <MobileHeader
+        title="Training Calendar"
+        subtitle={currentYear.toString()}
+        isLoading={false}
+      />
 
       {/* Desktop Header */}
       <Heading 

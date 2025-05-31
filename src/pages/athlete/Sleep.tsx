@@ -21,8 +21,20 @@ import {
   useToast,
   useColorModeValue,
   Heading,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
+  NumberIncrementStepper,
+  NumberDecrementStepper,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
+  useDisclosure,
 } from '@chakra-ui/react';
-import { FaTrash, FaBed } from 'react-icons/fa';
+import { FaTrash, FaBed, FaPlus, FaEdit } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { handleSleepLog } from '../../services/gamificationIntegration';
@@ -33,6 +45,7 @@ import {
   formatSleepDuration,
   validateSleepRecord
 } from '../../utils/analytics/performance';
+import { MobileHeader } from '../../components';
 
 interface SleepRecord {
   id: string;
@@ -213,24 +226,12 @@ export function Sleep() {
   return (
     <Box minH="100vh" bg={bgColor}>
       <Container maxW="6xl" py={8}>
-        {/* Mobile Header - Fixed positioned */}
-        <Box
-          display={{ base: "block", lg: "none" }}
-          position="fixed"
-          top="26px"
-          right="16px"
-          zIndex={1001}
-          bg="transparent"
-        >
-          <Heading 
-            size="md"
-            color={useColorModeValue('gray.800', 'white')}
-            textAlign="right"
-            fontWeight="semibold"
-          >
-            Sleep Tracking
-          </Heading>
-        </Box>
+        {/* Mobile Header using reusable component */}
+        <MobileHeader
+          title="Sleep Tracking"
+          subtitle="Monitor your sleep patterns"
+          isLoading={false}
+        />
 
         <VStack spacing={8} align="stretch" mt={{ base: "20px", lg: 0 }}>
           {/* Desktop Header */}

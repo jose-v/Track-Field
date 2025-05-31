@@ -22,6 +22,7 @@ import { LuBellRing, LuMessageCircleMore } from 'react-icons/lu';
 import { useFeedback } from './FeedbackProvider';
 import { ShareComponent } from './ShareComponent';
 import { HamburgerIcon } from '@chakra-ui/icons';
+import { useScrollDirection } from '../hooks/useScrollDirection';
 
 interface SimplifiedNavProps {
   roleTitle: string;
@@ -50,6 +51,7 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
   const { showFeedbackModal } = useFeedback();
+  const { isHeaderVisible } = useScrollDirection(10);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     // Check localStorage for the saved sidebar state
     const savedSidebarState = localStorage.getItem('sidebarCollapsed');
@@ -137,11 +139,12 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
       position="fixed"
       w={`calc(100% - ${sidebarWidth}px)`}
       right="0"
-      top="0"
+      top={isHeaderVisible ? "0" : "-56px"}
       zIndex={999}
       py={3}
       px={6}
-      transition="width 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+      transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+      transform="translateZ(0)"
       display={{ base: 'none', md: 'block' }}
     >
       <Flex justify="space-between" align="center">

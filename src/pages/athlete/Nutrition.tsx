@@ -30,8 +30,9 @@ import { useState, useEffect } from 'react';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import EnhancedNutritionAnalysis from '../../components/EnhancedNutritionAnalysis';
+import { EnhancedNutritionAnalysis } from '../../components/EnhancedNutritionAnalysis';
 import { handleNutritionLog } from '../../services/integrationService';
+import { MobileHeader } from '../../components';
 
 interface EatingRecord {
   id: string;
@@ -166,24 +167,12 @@ export function Nutrition() {
   return (
     <Box bg={bgColor} minH="100vh" py={8}>
       <Container maxW="container.lg">
-        {/* Mobile Header - Fixed positioned */}
-        <Box
-          display={{ base: "block", lg: "none" }}
-          position="fixed"
-          top="26px"
-          right="16px"
-          zIndex={1001}
-          bg="transparent"
-        >
-          <Heading 
-            size="md"
-            color={useColorModeValue('gray.800', 'white')}
-            textAlign="right"
-            fontWeight="semibold"
-          >
-            Nutrition Tracking
-          </Heading>
-        </Box>
+        {/* Mobile Header using reusable component */}
+        <MobileHeader
+          title="Nutrition Tracking"
+          subtitle="Track your daily meals and nutrition intake"
+          isLoading={false}
+        />
 
         <VStack spacing={8} align="stretch" mt={{ base: "20px", lg: 0 }}>
           {/* Desktop Header */}

@@ -27,6 +27,7 @@ import { useState, useEffect } from 'react'
 import { useFeedback } from './FeedbackProvider'
 import { ShareComponent } from './ShareComponent'
 import { PWAControlButton } from './PWAControlButton'
+import { useScrollDirection } from '../hooks/useScrollDirection'
 import { 
   navIconStyle,
   homeIconStyle,
@@ -42,6 +43,7 @@ const Navigation = () => {
   const { profile, isLoading: profileLoading } = useProfile()
   const location = useLocation()
   const { showFeedbackModal } = useFeedback()
+  const { isHeaderVisible } = useScrollDirection(10)
   
   // Use more subtle colors for public navigation
   const isHome = location.pathname === '/'
@@ -137,11 +139,13 @@ const Navigation = () => {
       borderBottom="1px"
       borderColor={borderColor}
       position="fixed"
-      top={0}
+      top={isHeaderVisible ? 0 : "-64px"}
       left={0}
       w="100%"
       zIndex={1001}
       boxShadow={isPublicPage ? "sm" : "none"}
+      transition="top 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+      transform="translateZ(0)"
       // Backdrop blur for public pages
       sx={isPublicPage ? { backdropFilter: 'saturate(180%) blur(10px)' } : {}}
     >
