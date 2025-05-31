@@ -17,7 +17,9 @@ import { dateUtils } from '../../utils/date';
 import { useWorkoutsRealtime } from '../../hooks/useWorkoutsRealtime';
 import { handleWorkoutCompletion } from '../../services/integrationService';
 import { useFeedback } from '../../components/FeedbackProvider'; // Import the feedback hook
-import { MobileHeader } from '../../components';
+import { MobileHeader, ExerciseExecutionModal } from '../../components';
+import { RunTimeInput } from '../../components/RunTimeInput';
+import { isRunExercise, validateTime } from '../../utils/exerciseUtils';
 
 // Consistent Exercise type
 interface Exercise {
@@ -90,19 +92,9 @@ export function AthleteWorkouts() {
   const textColor = useColorModeValue('gray.600', 'gray.300');
   const errorTextColor = useColorModeValue('red.600', 'red.300');
   const headingColor = useColorModeValue('gray.700', 'gray.200');
-  const modalHeaderBg = useColorModeValue('gray.50', 'gray.700');
-  const modalHeaderBorderColor = useColorModeValue('gray.200', 'gray.600');
-  const modalTextColor = useColorModeValue('gray.500', 'gray.400');
-  const modalHeadingColor = useColorModeValue('gray.800', 'white');
-  const modalSpanColor = useColorModeValue('gray.500', 'gray.400');
-  const modalProgressBg = useColorModeValue('gray.100', 'gray.700');
-  const modalProgressBorderColor = useColorModeValue('gray.200', 'gray.600');
-  const modalProgressTextColor = useColorModeValue('gray.600', 'gray.300');
-  const modalIconBg = useColorModeValue('white', 'gray.800');
   
   const { user } = useAuth();
   const workoutStore = useWorkoutStore();
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const today = getCurrentDate();
   const toast = useToast();
   const { triggerFeedback, recordAppUsage } = useFeedback(); // Use the feedback hook
@@ -242,101 +234,76 @@ export function AthleteWorkouts() {
     formatDateForComparison(workout.date) === today
   ) || [];
 
-  useEffect(() => {
-    if (execModal.isOpen && execModal.running) {
-      timerRef.current = setInterval(() => {
-        setExecModal((prev) => ({ ...prev, timer: prev.timer + 1 }));
-      }, 1000);
-    } else if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [execModal.isOpen, execModal.running]);
+  // Modal control functions for shared component
+  const handleUpdateTimer = (newTimer: number) => {
+    setExecModal(prev => ({ ...prev, timer: newTimer }));
+  };
 
-  const handleDone = async () => {
+  const handleUpdateRunning = (newRunning: boolean) => {
+    setExecModal(prev => ({ ...prev, running: newRunning }));
+  };
+
+  const handleNextExercise = () => {
+    const workoutId = execModal.workout!.id;
+    const exIdx = execModal.exerciseIdx;
+    
+    // Mark current exercise as completed
+    workoutStore.markExerciseCompleted(workoutId, exIdx);
+    
+    // Update progress in store - DON'T mark as completed (false)
+    workoutStore.updateProgress(workoutId, exIdx + 1, execModal.workout!.exercises.length, false);
+    
+    // Update modal state
+    setExecModal(prev => ({
+      ...prev,
+      exerciseIdx: exIdx + 1,
+      timer: 0,
+      running: true,
+    }));
+  };
+
+  const handleFinishWorkout = async () => {
     if (!execModal.workout) return;
     
-    const workout = execModal.workout;
-    const exerciseIdx = execModal.exerciseIdx;
-    const totalExercises = workout.exercises.length;
+    const workoutId = execModal.workout.id;
+    const totalExercises = execModal.workout.exercises.length;
     
-    // Mark this exercise as completed
-    workoutStore.markExerciseCompleted(workout.id, exerciseIdx);
+    // Check if we need to trigger first workout completion feedback
+    const needsFirstWorkoutFeedback = !hasCompletedFirstWorkout;
     
-    // Get the current completion count for this workout
-    const completedCount = getCompletionCount(workout.id) + 1; // +1 for the current exercise
+    // Mark workout as completed
+    workoutStore.updateProgress(workoutId, totalExercises, totalExercises, true);
     
-    // Update progress in store
-    workoutStore.updateProgress(workout.id, completedCount, totalExercises);
+    // Close modal
+    setExecModal({
+      isOpen: false,
+      workout: null,
+      exerciseIdx: 0,
+      timer: 0,
+      running: false,
+    });
     
-    // Update database status if it's the last exercise
-    let workoutCompleted = false;
-    if (completedCount >= totalExercises) {
-      // Workout is now fully completed
-      workoutCompleted = true;
-      
-      try {
-        console.log(`Marking workout ${workout.id} as completed in database`);
-        const { error } = await supabase
-          .from('athlete_workouts')
-          .update({ status: 'completed' })
-          .eq('workout_id', workout.id)
-          .eq('athlete_id', user?.id);
-          
-        if (error) {
-          console.error('Error marking workout as completed:', error);
-          toast({
-            title: 'Error',
-            description: 'There was an error saving your completed workout. Please try again.',
-            status: 'error',
-            duration: 5000,
-            isClosable: true,
-          });
-        } else {
-          // Call any integration services that need to know about workout completion
-          await handleWorkoutCompletion(user?.id, workout.id, workout);
-          
-          toast({
-            title: 'Workout Completed!',
-            description: 'Great job completing your workout. Your progress has been saved.',
-            status: 'success',
-            duration: 5000,
-            isClosable: true,
-          });
-          
-          // Check if this is the user's first completed workout
-          if (!hasCompletedFirstWorkout) {
-            setHasCompletedFirstWorkout(true);
-            localStorage.setItem('hasCompletedFirstWorkout', 'true');
-            
-            // Trigger the feedback prompt for first success
-            setTimeout(() => {
-              triggerFeedback('first_success');
-            }, 1500); // Delay slightly to show completion toast first
-          }
-        }
-      } catch (err) {
-        console.error('Error in workout completion process:', err);
-      }
-    } else {
-      // Move to the next exercise
-      setExecModal({
-        ...execModal,
-        exerciseIdx: exerciseIdx + 1,
-        timer: 0,
-        running: false
-      });
-      return; // Don't close modal, go to next exercise
+    // Trigger feedback if first workout
+    if (needsFirstWorkoutFeedback) {
+      setHasCompletedFirstWorkout(true);
+      localStorage.setItem('hasCompletedFirstWorkout', 'true');
+      triggerFeedback('first_success'); // Use correct FeedbackTrigger type
     }
     
-    // Close the modal and reset if we're done
-    handleModalClose();
-    
-    // Refresh query cache to update UI
-    const queryClient = useQueryClient();
-    queryClient.invalidateQueries({ queryKey: ['athleteAssignedWorkouts', user?.id] });
+    // Handle integration service completion
+    try {
+      await handleWorkoutCompletion(workoutId, user?.id!);
+    } catch (error) {
+      console.error('Error handling workout completion:', error);
+    }
+  };
+
+  const handleShowVideo = (exerciseName: string, videoUrl: string) => {
+    setVideoModal({
+      isOpen: true,
+      videoUrl,
+      exerciseName
+    });
   };
 
   const renderWorkoutCards = (workouts: Workout[]) => {
@@ -473,12 +440,6 @@ export function AthleteWorkouts() {
 
   // Handle safe modal closing to prevent infinite update loops
   const handleModalClose = () => {
-    // Stop the timer if it's running
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    
     // Reset the modal state completely
     setExecModal({
       isOpen: false,
@@ -650,351 +611,43 @@ export function AthleteWorkouts() {
           </Box>
         )}
         
-        {/* Exercise Execution Modal - Redesigned with modern styling */}
-        <Modal isOpen={execModal.isOpen} onClose={handleModalClose} isCentered size="md">
-          <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(10px)" />
-          <ModalContent 
-            borderRadius="2xl" 
-            overflow="hidden" 
-            boxShadow="2xl"
-            bg={cardBg}
-            mx={4}
-          >
-            {/* Hero Header with Gradient */}
-            <Box 
-              h="120px" 
-              bg={execModal.running 
-                ? "linear-gradient(135deg, #38A169 0%, #68D391 50%, #4FD1C7 100%)" 
-                : "linear-gradient(135deg, #4299E1 0%, #90CDF4 50%, #A78BFA 100%)"
-              } 
-              position="relative"
-              overflow="hidden"
-            >
-              {/* Animated background pattern */}
-              <Box
-                position="absolute"
-                top="0"
-                left="0"
-                right="0"
-                bottom="0"
-                opacity="0.1"
-                bgImage="radial-gradient(circle at 2px 2px, white 1px, transparent 0)"
-                bgSize="20px 20px"
-              />
-              
-              {/* Central Icon */}
-              <Flex 
-                position="absolute" 
-                top="50%" 
-                left="50%" 
-                transform="translate(-50%, -50%)"
-                bg={modalIconBg} 
-                borderRadius="full" 
-                w="70px" 
-                h="70px" 
-                justifyContent="center" 
-                alignItems="center"
-                boxShadow="xl"
-                border="4px solid"
-                borderColor="white"
-              >
-                <Icon 
-                  as={execModal.running ? FaRunning : FaRegClock} 
-                  w={8} 
-                  h={8} 
-                  color={execModal.running ? "green.500" : "blue.500"} 
-                />
-              </Flex>
-              
-              {/* Progress Bar */}
-              {execModal.workout && execModal.workout.exercises && (
-                <Box position="absolute" bottom="0" left="0" right="0">
-                  <Progress 
-                    value={((execModal.exerciseIdx + 1) / execModal.workout.exercises.length) * 100} 
-                    size="sm" 
-                    height="8px"
-                    colorScheme={execModal.running ? "green" : "blue"} 
-                    backgroundColor="rgba(255,255,255,0.2)"
-                    borderRadius="0"
-                  />
-                </Box>
-              )}
-              
-              {/* Close Button */}
-              <IconButton
-                aria-label="Close"
-                icon={<Box as="span" fontSize="24px" color="white">×</Box>}
-                position="absolute"
-                top={4}
-                right={4}
-                variant="ghost"
-                colorScheme="whiteAlpha"
-                size="lg"
-                onClick={handleModalClose}
-                _hover={{ bg: 'whiteAlpha.200' }}
-              />
-            </Box>
-
-            {/* Modal Body */}
-            <ModalBody p={8}>
-              {execModal.workout && execModal.workout.exercises && execModal.workout.exercises[execModal.exerciseIdx] && (
-                <VStack spacing={6} align="center">
-                  {/* Exercise Title */}
-                  <VStack spacing={2}>
-                    <Text 
-                      fontSize="sm" 
-                      fontWeight="medium" 
-                      color={modalTextColor}
-                      textTransform="uppercase"
-                      letterSpacing="wider"
-                    >
-                      Exercise Execution
-                    </Text>
-                    <Heading 
-                      size="lg" 
-                      textAlign="center"
-                      color={modalHeadingColor}
-                      lineHeight="shorter"
-                    >
-                      {execModal.workout.exercises[execModal.exerciseIdx].name}
-                    </Heading>
-                  </VStack>
-
-                  {/* Exercise Details Card */}
-                  <Box 
-                    bg={modalHeaderBg} 
-                    borderRadius="xl" 
-                    p={6} 
-                    w="100%"
-                    border="1px solid"
-                    borderColor={modalHeaderBorderColor}
-                  >
-                    <HStack spacing={6} justify="center">
-                      <VStack spacing={1}>
-                        <Text 
-                          color={modalTextColor} 
-                          fontSize="sm"
-                          fontWeight="medium"
-                          textTransform="uppercase"
-                          letterSpacing="wider"
-                        >
-                          Sets
-                        </Text>
-                        <Text 
-                          fontWeight="bold" 
-                          fontSize="2xl"
-                          color={modalHeadingColor}
-                        >
-                          {execModal.workout.exercises[execModal.exerciseIdx].sets}
-                        </Text>
-                      </VStack>
-                      
-                      <Divider orientation="vertical" h="50px" />
-                      
-                      <VStack spacing={1}>
-                        <Text 
-                          color={modalTextColor} 
-                          fontSize="sm"
-                          fontWeight="medium"
-                          textTransform="uppercase"
-                          letterSpacing="wider"
-                        >
-                          Reps
-                        </Text>
-                        <Text 
-                          fontWeight="bold" 
-                          fontSize="2xl"
-                          color={modalHeadingColor}
-                        >
-                          {execModal.workout.exercises[execModal.exerciseIdx].reps}
-                        </Text>
-                      </VStack>
-                      
-                      {execModal.workout.exercises[execModal.exerciseIdx].weight && (
-                        <>
-                          <Divider orientation="vertical" h="50px" />
-                          <VStack spacing={1}>
-                            <Text 
-                              color={modalTextColor} 
-                              fontSize="sm"
-                              fontWeight="medium"
-                              textTransform="uppercase"
-                              letterSpacing="wider"
-                            >
-                              Weight
-                            </Text>
-                            <Text 
-                              fontWeight="bold" 
-                              fontSize="2xl"
-                              color={modalHeadingColor}
-                            >
-                              {execModal.workout.exercises[execModal.exerciseIdx].weight}
-                              <Text as="span" fontSize="lg" color={modalSpanColor}>
-                                kg
-                              </Text>
-                            </Text>
-                          </VStack>
-                        </>
-                      )}
-                    </HStack>
-                  </Box>
-
-                  {/* Timer Display */}
-                  <Box 
-                    bg={execModal.running 
-                      ? "linear-gradient(135deg, #F0FFF4, #C6F6D5)" 
-                      : "linear-gradient(135deg, #EBF8FF, #BEE3F8)"
-                    } 
-                    borderRadius="2xl" 
-                    p={6}
-                    border="2px solid"
-                    borderColor={execModal.running ? "green.200" : "blue.200"}
-                    boxShadow="lg"
-                    position="relative"
-                    overflow="hidden"
-                  >
-                    {/* Timer glow effect */}
-                    <Box
-                      position="absolute"
-                      top="50%"
-                      left="50%"
-                      transform="translate(-50%, -50%)"
-                      w="120px"
-                      h="120px"
-                      borderRadius="full"
-                      bg={execModal.running ? "green.100" : "blue.100"}
-                      opacity="0.3"
-                      filter="blur(20px)"
-                    />
-                    
-                    <Text 
-                      fontSize="4xl" 
-                      fontWeight="bold" 
-                      color={execModal.running ? "green.600" : "blue.600"}
-                      textAlign="center"
-                      fontFamily="mono"
-                      position="relative"
-                      zIndex="1"
-                    >
-                      {Math.floor(execModal.timer / 60).toString().padStart(2, '0')}:
-                      {(execModal.timer % 60).toString().padStart(2, '0')}
-                    </Text>
-                  </Box>
-
-                  {/* Action Buttons */}
-                  <VStack spacing={4} width="100%">
-                    <HStack spacing={3} width="100%" justify="center">
-                      {execModal.running ? (
-                        <Button 
-                          colorScheme="yellow" 
-                          size="lg"
-                          leftIcon={<Icon as={FaRegClock} />} 
-                          onClick={() => setExecModal({ ...execModal, running: false })}
-                          borderRadius="xl"
-                          px={8}
-                          py={6}
-                          fontWeight="semibold"
-                          boxShadow="lg"
-                          _hover={{ transform: 'translateY(-2px)', boxShadow: 'xl' }}
-                          transition="all 0.2s"
-                        >
-                          Pause
-                        </Button>
-                      ) : (
-                        <Button 
-                          colorScheme="blue" 
-                          size="lg"
-                          leftIcon={<Icon as={FaRunning} />} 
-                          onClick={() => setExecModal({ ...execModal, running: true })}
-                          borderRadius="xl"
-                          px={8}
-                          py={6}
-                          fontWeight="semibold"
-                          boxShadow="lg"
-                          _hover={{ transform: 'translateY(-2px)', boxShadow: 'xl' }}
-                          transition="all 0.2s"
-                        >
-                          Start
-                        </Button>
-                      )}
-                      
-                      <Button 
-                        colorScheme="green" 
-                        size="lg"
-                        leftIcon={<Icon as={CheckIcon} />} 
-                        onClick={handleDone}
-                        borderRadius="xl"
-                        px={8}
-                        py={6}
-                        fontWeight="semibold"
-                        boxShadow="lg"
-                        _hover={{ transform: 'translateY(-2px)', boxShadow: 'xl' }}
-                        transition="all 0.2s"
-                      >
-                        {execModal.workout.exercises.length > 0 && execModal.exerciseIdx + 1 < execModal.workout.exercises.length ? 'Next' : 'Finish'}
-                      </Button>
-                    </HStack>
-                    
-                    <Button 
-                      colorScheme="purple" 
-                      variant="outline"
-                      size="md"
-                      leftIcon={<Icon as={FaPlayCircle} />} 
-                      onClick={() => setVideoModal({ 
-                        isOpen: true, 
-                        videoUrl: getVideoUrl(execModal.workout!.exercises[execModal.exerciseIdx].name), 
-                        exerciseName: execModal.workout!.exercises[execModal.exerciseIdx].name || '' 
-                      })}
-                      borderRadius="xl"
-                      px={6}
-                      fontWeight="medium"
-                      _hover={{ bg: 'purple.50', transform: 'translateY(-1px)' }}
-                      transition="all 0.2s"
-                    >
-                      Watch Tutorial
-                    </Button>
-                  </VStack>
-
-                  {/* Progress Indicator */}
-                  <Box 
-                    bg={modalProgressBg} 
-                    borderRadius="lg" 
-                    px={4} 
-                    py={2}
-                    border="1px solid"
-                    borderColor={modalProgressBorderColor}
-                  >
-                    <Text 
-                      fontSize="sm" 
-                      color={modalProgressTextColor} 
-                      textAlign="center"
-                      fontWeight="medium"
-                    >
-                      Exercise <Text as="span" fontWeight="bold" color={execModal.running ? "green.500" : "blue.500"}>
-                        {execModal.exerciseIdx + 1}
-                      </Text> of {execModal.workout.exercises.length}
-                    </Text>
-                  </Box>
-                </VStack>
-              )}
-            </ModalBody>
-          </ModalContent>
-        </Modal>
+        {/* Exercise Execution Modal - Using shared component */}
+        <ExerciseExecutionModal
+          isOpen={execModal.isOpen}
+          onClose={() => setExecModal({ ...execModal, isOpen: false })}
+          workout={execModal.workout}
+          exerciseIdx={execModal.exerciseIdx}
+          timer={execModal.timer}
+          running={execModal.running}
+          onUpdateTimer={handleUpdateTimer}
+          onUpdateRunning={handleUpdateRunning}
+          onNextExercise={handleNextExercise}
+          onFinishWorkout={handleFinishWorkout}
+          onShowVideo={handleShowVideo}
+        />
 
         {/* Video Modal - Copied from Workouts.tsx */}
         <Modal isOpen={videoModal.isOpen} onClose={() => setVideoModal({ ...videoModal, isOpen: false })} isCentered size="xl">
           <ModalOverlay />
-          <ModalContent borderRadius="lg" overflow="hidden">
-            <Box h="80px" bg="linear-gradient(135deg, #DD6B20 0%, #F6AD55 100%)" position="relative">
-              <Flex position="absolute" top="50%" left="50%" transform="translate(-50%, -50%)" bg={modalIconBg} borderRadius="full" w="50px" h="50px" justifyContent="center" alignItems="center" boxShadow="md">
-                <Icon as={FaPlayCircle} w={6} h={6} color="orange.500" />
-              </Flex>
-            </Box>
-            <ModalHeader textAlign="center" pt={8}>How to: {videoModal.exerciseName}</ModalHeader>
-            <ModalCloseButton top="85px" onClick={() => setVideoModal({ ...videoModal, isOpen: false })} />
-            <ModalBody pb={6} display="flex" flexDirection="column" alignItems="center">
-              <Box w="100%" h="0" pb="56.25%" position="relative" borderRadius="md" overflow="hidden" boxShadow="md">
-                <iframe src={videoModal.videoUrl} title={videoModal.exerciseName} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
+          <ModalContent>
+            <ModalHeader>How to: {videoModal.exerciseName}</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody pb={6}>
+              <Box position="relative" paddingTop="56.25%">
+                <iframe
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    border: 'none',
+                  }}
+                  src={videoModal.videoUrl}
+                  title="Exercise Tutorial"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
               </Box>
             </ModalBody>
           </ModalContent>

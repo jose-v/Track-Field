@@ -28,6 +28,8 @@ export { default as SparkleIcon } from './SparkleIcon';
 export { default as MobileHeader } from './MobileHeader';
 export { PWARefreshButton } from './PWARefreshButton';
 export { PWAStartupHandler } from './PWAStartupHandler';
+export { RunTimeInput } from './RunTimeInput';
+export { ExerciseExecutionModal } from './ExerciseExecutionModal';
 
 // Quick Log Components
 export { default as SleepQuickLogCard } from './SleepQuickLogCard';

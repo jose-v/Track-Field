@@ -1511,5 +1511,122 @@ export const api = {
       if (error) throw error;
       return data || [];
     }
+  },
+
+  exerciseResults: {
+    // Save exercise result (including run times)
+    async save(resultData: {
+      athleteId: string;
+      workoutId: string;
+      exerciseIndex: number;
+      exerciseName: string;
+      timeMinutes?: number;
+      timeSeconds?: number;
+      timeHundredths?: number;
+      setsCompleted?: number;
+      repsCompleted?: number;
+      weightUsed?: number;
+      distanceMeters?: number;
+      rpeRating?: number;
+      notes?: string;
+    }) {
+      const { data, error } = await supabase
+        .from('exercise_results')
+        .insert([{
+          athlete_id: resultData.athleteId,
+          workout_id: resultData.workoutId,
+          exercise_index: resultData.exerciseIndex,
+          exercise_name: resultData.exerciseName,
+          time_minutes: resultData.timeMinutes,
+          time_seconds: resultData.timeSeconds,
+          time_hundredths: resultData.timeHundredths,
+          sets_completed: resultData.setsCompleted,
+          reps_completed: resultData.repsCompleted,
+          weight_used: resultData.weightUsed,
+          distance_meters: resultData.distanceMeters,
+          rpe_rating: resultData.rpeRating,
+          notes: resultData.notes
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    // Get exercise results for a specific athlete
+    async getByAthlete(athleteId: string) {
+      const { data, error } = await supabase
+        .from('exercise_results')
+        .select('*')
+        .eq('athlete_id', athleteId)
+        .order('completed_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+
+    // Get exercise results for a specific workout
+    async getByWorkout(workoutId: string) {
+      const { data, error } = await supabase
+        .from('exercise_results')
+        .select('*')
+        .eq('workout_id', workoutId)
+        .order('exercise_index', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    },
+
+    // Get exercise results for a specific exercise by name
+    async getByExerciseName(athleteId: string, exerciseName: string) {
+      const { data, error } = await supabase
+        .from('exercise_results')
+        .select('*')
+        .eq('athlete_id', athleteId)
+        .eq('exercise_name', exerciseName)
+        .order('completed_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+
+    // Update an existing exercise result
+    async update(resultId: string, updateData: any) {
+      const { data, error } = await supabase
+        .from('exercise_results')
+        .update(updateData)
+        .eq('id', resultId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    // Delete an exercise result
+    async delete(resultId: string) {
+      const { error } = await supabase
+        .from('exercise_results')
+        .delete()
+        .eq('id', resultId);
+
+      if (error) throw error;
+    },
+
+    // Get personal best times for run exercises
+    async getPersonalBests(athleteId: string, exerciseName: string) {
+      const { data, error } = await supabase
+        .from('exercise_results')
+        .select('*')
+        .eq('athlete_id', athleteId)
+        .eq('exercise_name', exerciseName)
+        .not('total_time_ms', 'is', null)
+        .order('total_time_ms', { ascending: true })
+        .limit(5); // Top 5 best times
+
+      if (error) throw error;
+      return data || [];
+    }
   }
 } 

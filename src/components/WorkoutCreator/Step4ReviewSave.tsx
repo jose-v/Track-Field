@@ -696,35 +696,35 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
       onDragEnd={handleDragEnd}
     >
       <VStack spacing={6} align="stretch" w="100%" bg={cardBg} p={6} borderRadius="md">
-        {/* Warnings Section */}
-        {warnings.length > 0 && (
-          <Alert status="warning" borderRadius="md" bg={warningBg}>
-            <AlertIcon />
-            <Box flex="1">
-              <AlertTitle fontSize="md" color={warningTitleColor}>⚠️ Items that need attention:</AlertTitle>
-              <AlertDescription>
-                <VStack align="start" spacing={1} mt={2}>
-                  {warnings.map((warning, index) => (
-                    <Text key={index} fontSize="sm" color={warningTextColor}>• {warning}</Text>
-                  ))}
-                </VStack>
-              </AlertDescription>
-            </Box>
-          </Alert>
-        )}
+      {/* Warnings Section */}
+      {warnings.length > 0 && (
+        <Alert status="warning" borderRadius="md" bg={warningBg}>
+          <AlertIcon />
+          <Box flex="1">
+            <AlertTitle fontSize="md" color={warningTitleColor}>⚠️ Items that need attention:</AlertTitle>
+            <AlertDescription>
+              <VStack align="start" spacing={1} mt={2}>
+                {warnings.map((warning, index) => (
+                  <Text key={index} fontSize="sm" color={warningTextColor}>• {warning}</Text>
+                ))}
+              </VStack>
+            </AlertDescription>
+          </Box>
+        </Alert>
+      )}
 
-        {/* Workout Summary - Analytics Card Style */}
-        <Box
-          bg={cardBg}
-          borderRadius="xl"
-          p={6}
-          border="1px solid"
-          borderColor={borderColor}
-          boxShadow="lg"
-        >
+      {/* Workout Summary - Analytics Card Style */}
+      <Box
+        bg={cardBg}
+        borderRadius="xl"
+        p={6}
+        border="1px solid"
+        borderColor={borderColor}
+        boxShadow="lg"
+      >
           <VStack spacing={5} align="stretch">
             {/* Header Section */}
-            <HStack justify="space-between" align="center">
+          <HStack justify="space-between" align="center">
               <Text fontSize="xl" fontWeight="bold" color={textColor}>
                 Workout Summary
               </Text>
@@ -738,7 +738,7 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
               >
                 {templateType === 'single' ? 'Single Day' : 'Weekly Plan'}
               </Badge>
-            </HStack>
+          </HStack>
 
             {/* Workout Name */}
             <Box>
@@ -828,7 +828,7 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
 
                   <VStack spacing={1} align="center">
                     <Text fontSize="2xl" fontWeight="bold" color={textColor}>
-                      {Object.keys(selectedAthletes).length}
+                {Object.keys(selectedAthletes).length}
                     </Text>
                     <Text fontSize="sm" color={subtitleColor}>
                       Athletes
@@ -856,12 +856,12 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
                     <Text fontSize="lg" color={textColor} fontWeight="medium">
                       {formatDateRange(startDate, endDate)}
                     </Text>
-                  </HStack>
+          </HStack>
                 )}
               </HStack>
             )}
-          </VStack>
-        </Box>
+        </VStack>
+      </Box>
 
         {/* Exercise/Day Details */}
         <VStack spacing={6} align="stretch">
@@ -869,8 +869,8 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
             <Heading size="lg" color={headingColor}>
               {templateType === 'single' ? 'Exercise Details' : 'Weekly Training Plan'}
             </Heading>
-          </HStack>
-
+        </HStack>
+        
           {templateType === 'single' ? (
             // Single Day Workout Display
             <VStack spacing={4} align="stretch">
@@ -995,8 +995,8 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
                                 {restFormatted}
                               </Text>
                             </VStack>
-                          )}
-                        </HStack>
+                    )}
+                  </HStack>
                         
                         {/* Coach Notes */}
                         {exercise.notes && (
@@ -1012,16 +1012,16 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
                   </Card>
                 );
               })}
-            </VStack>
+                    </VStack>
           ) : (
             // Weekly Plan Display with Drag and Drop
-            <VStack spacing={6} align="stretch">
-              {weeklyPlan.map((dayWorkout) => {
-                const dayLabel = DAYS_OF_WEEK.find(d => d.value === dayWorkout.day)?.label || dayWorkout.day;
-                
+          <VStack spacing={6} align="stretch">
+            {weeklyPlan.map((dayWorkout) => {
+              const dayLabel = DAYS_OF_WEEK.find(d => d.value === dayWorkout.day)?.label || dayWorkout.day;
+              
                 // Use DroppableDayZone for rest days and empty days
                 if (dayWorkout.isRestDay || dayWorkout.exercises.length === 0) {
-                  return (
+                return (
                     <DroppableDayZone
                       key={dayWorkout.day}
                       day={dayWorkout.day}
@@ -1029,13 +1029,13 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
                       isEmpty={dayWorkout.exercises.length === 0}
                       isRestDay={dayWorkout.isRestDay}
                     />
-                  );
-                }
-                
-                const dayStats = {
-                  totalSets: dayWorkout.exercises.reduce((sum, ex) => sum + (parseInt(ex.sets || '0') || 0), 0),
-                  estimatedTime: dayWorkout.exercises.length * 3
-                };
+                );
+              }
+              
+              const dayStats = {
+                totalSets: dayWorkout.exercises.reduce((sum, ex) => sum + (parseInt(ex.sets || '0') || 0), 0),
+                estimatedTime: dayWorkout.exercises.length * 3
+              };
                 
                 const exerciseIds = dayWorkout.exercises.map(ex => `${dayWorkout.day}-${ex.instanceId}`);
                 
@@ -1051,8 +1051,8 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
 
                   const dropZoneBg = useColorModeValue('blue.50', 'blue.800');
                   const dropZoneBorder = useColorModeValue('blue.300', 'blue.500');
-
-                  return (
+              
+              return (
                     <Card 
                       ref={setNodeRef}
                       variant="outline" 
@@ -1069,24 +1069,24 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
                 
                 return (
                   <DroppableDayCard key={dayWorkout.day}>
-                    <CardBody>
-                      <VStack spacing={4} align="stretch">
-                        {/* Day Header */}
-                        <HStack justify="space-between" align="center" pb={2} borderBottom="1px solid" borderColor={borderColor}>
-                          <VStack align="start" spacing={1}>
-                            <Text fontSize="lg" fontWeight="bold" color={textColor}>{dayLabel}</Text>
-                            <Text fontSize="sm" color={subtitleColor}>
-                              {dayWorkout.exercises.length} exercise{dayWorkout.exercises.length !== 1 ? 's' : ''} • ~{dayStats.estimatedTime} min
-                            </Text>
-                          </VStack>
-                          <Badge colorScheme="blue" variant="subtle" size="lg">
-                            {dayStats.totalSets} sets
-                          </Badge>
-                        </HStack>
-                        
+                  <CardBody>
+                    <VStack spacing={4} align="stretch">
+                      {/* Day Header */}
+                      <HStack justify="space-between" align="center" pb={2} borderBottom="1px solid" borderColor={borderColor}>
+                        <VStack align="start" spacing={1}>
+                          <Text fontSize="lg" fontWeight="bold" color={textColor}>{dayLabel}</Text>
+                          <Text fontSize="sm" color={subtitleColor}>
+                            {dayWorkout.exercises.length} exercise{dayWorkout.exercises.length !== 1 ? 's' : ''} • ~{dayStats.estimatedTime} min
+                          </Text>
+                        </VStack>
+                        <Badge colorScheme="blue" variant="subtle" size="lg">
+                          {dayStats.totalSets} sets
+                        </Badge>
+                      </HStack>
+                      
                         {/* Day Exercises with Drag and Drop */}
                         <SortableContext items={exerciseIds} strategy={verticalListSortingStrategy}>
-                          <VStack spacing={4} align="stretch">
+                      <VStack spacing={4} align="stretch">
                             {dayWorkout.exercises.map((exercise, index) => (
                               <DraggableExercise
                                 key={exercise.instanceId}
@@ -1095,19 +1095,19 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
                                 day={dayWorkout.day}
                                 onCopy={handleCopyExercise}
                                 onEdit={handleEditExercise}
-                              />
-                            ))}
-                          </VStack>
+                                        />
+                                      ))}
+                                  </VStack>
                         </SortableContext>
-                      </VStack>
+                                  </VStack>
                     </CardBody>
                   </DroppableDayCard>
                 );
               })}
-            </VStack>
+                                  </VStack>
           )}
-        </VStack>
-      </VStack>
+                                  </VStack>
+                                  </VStack>
 
       {/* Drag Overlay */}
       <DragOverlay>
@@ -1122,8 +1122,8 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
             return (
               <Box p={4} bg="orange.500" color="white" borderRadius="md" boxShadow="xl">
                 Moving Exercise...
-              </Box>
-            );
+                            </Box>
+                          );
           }
           
           // Find the exercise by instance ID - using the more flexible matching that was working
@@ -1166,9 +1166,9 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
                   <VStack align="start" spacing={1} flex={1}>
                     <Text fontSize="md" fontWeight="bold" color={useColorModeValue('gray.800', 'gray.100')}>
                       {exercise.name}
-                    </Text>
+                      </Text>
                     <Badge colorScheme="blue" variant="subtle" size="sm">{exercise.category}</Badge>
-                  </VStack>
+                    </VStack>
                 </HStack>
                 
                 {/* Key Parameters */}
@@ -1187,18 +1187,18 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
                       <Text fontSize="sm" fontWeight="bold" color={useColorModeValue('gray.700', 'gray.100')}>
                         {exercise.reps}
                       </Text>
-                    </VStack>
-                  )}
+          </VStack>
+        )}
                   {exercise.weight && (
                     <VStack spacing={0}>
                       <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')}>Weight</Text>
                       <Text fontSize="sm" fontWeight="bold" color={useColorModeValue('gray.700', 'gray.100')}>
                         {exercise.weight}kg
-                      </Text>
-                    </VStack>
-                  )}
+              </Text>
+            </VStack>
+      )}
                 </HStack>
-              </VStack>
+    </VStack>
             </Box>
           );
         })()}

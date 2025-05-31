@@ -215,7 +215,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
       detail: { isCollapsed, width: isCollapsed ? 70 : 200 } 
     }));
   }, [isCollapsed]);
-
+  
   // Get navigation items based on user type
   const getNavItems = () => {
     if (userType === 'athlete') {
@@ -521,103 +521,103 @@ const Sidebar = ({ userType }: SidebarProps) => {
       <MobileDrawerContent />
       
       {/* Desktop Sidebar */}
-      <Box
-        position="fixed"
-        left={0}
-        top={0}
-        h="100vh"
-        w={isCollapsed ? "70px" : "200px"}
-        bg={bgColor}
-        borderRight="1px"
-        borderColor={borderColor}
-        transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-        zIndex={1000}
-        boxShadow={sidebarShadow}
-        overflow="hidden"
+    <Box
+      position="fixed"
+      left={0}
+      top={0}
+      h="100vh"
+      w={isCollapsed ? "70px" : "200px"}
+      bg={bgColor}
+      borderRight="1px"
+      borderColor={borderColor}
+      transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+      zIndex={1000}
+      boxShadow={sidebarShadow}
+      overflow="hidden"
         display={{ base: 'none', md: 'block' }} // Hide on mobile, show on desktop
-      >
-        <VStack spacing={0} align="stretch" h="100%">
-          <Flex 
-            direction="column" 
-            align="center" 
-            justify="center" 
-            py={6}
-            borderBottom="1px"
-            borderColor={borderColor}
-          >
-            <Avatar 
-              size={isCollapsed ? "sm" : "md"}
-              bg="blue.500" 
-              color="white"
-              name={userInitials}
-              src={profile?.avatar_url}
-              mb={isCollapsed ? 0 : 2}
-            />
-            
-            {!isCollapsed && (
-              <Text fontSize="sm" fontWeight="bold" color="#898989" mt={2} textTransform="uppercase">{roleName}</Text>
-            )}
-          </Flex>
+    >
+      <VStack spacing={0} align="stretch" h="100%">
+        <Flex 
+          direction="column" 
+          align="center" 
+          justify="center" 
+          py={6}
+          borderBottom="1px"
+          borderColor={borderColor}
+        >
+          <Avatar 
+            size={isCollapsed ? "sm" : "md"}
+            bg="blue.500" 
+            color="white"
+            name={userInitials}
+            src={profile?.avatar_url}
+            mb={isCollapsed ? 0 : 2}
+          />
           
-          <VStack spacing={1} align="stretch" py={4} flex="1">
-            {navItems.map((item) => {
-              const isHome = item.to === '/';
-              const isActive = isHome
-                ? location.pathname === '/'
-                : location.pathname === item.to || (item.to !== '/loop' && location.pathname.startsWith(item.to));
-              return (
-                <NavItem
-                  key={item.to}
-                  icon={item.icon}
-                  label={item.label}
-                  to={item.to}
-                  isActive={isActive}
-                  isCollapsed={isCollapsed}
+          {!isCollapsed && (
+            <Text fontSize="sm" fontWeight="bold" color="#898989" mt={2} textTransform="uppercase">{roleName}</Text>
+          )}
+        </Flex>
+        
+        <VStack spacing={1} align="stretch" py={4} flex="1">
+          {navItems.map((item) => {
+            const isHome = item.to === '/';
+            const isActive = isHome
+              ? location.pathname === '/'
+              : location.pathname === item.to || (item.to !== '/loop' && location.pathname.startsWith(item.to));
+            return (
+              <NavItem
+                key={item.to}
+                icon={item.icon}
+                label={item.label}
+                to={item.to}
+                isActive={isActive}
+                isCollapsed={isCollapsed}
                   badge={undefined}
-                />
-              );
-            })}
-          </VStack>
-          
-          <Box p={4} borderTop="1px" borderColor={borderColor}>
-            {isCollapsed ? (
-              // Collapsed layout: Theme toggle above arrow
-              <VStack spacing={3} w="100%" align="center">
-                <Flex justify="center" align="center" w="100%">
-                  <ThemeToggle size="md" />
-                </Flex>
-                <Flex justify="center" align="center" w="100%">
-                  <Button 
-                    size="sm"
-                    variant="ghost"
-                    minW="auto"
-                    px={2}
-                    justifyContent="center"
-                    onClick={() => setIsCollapsed(!isCollapsed)}
-                  >
-                    <Icon as={FaChevronRight} />
-                  </Button>
-                </Flex>
-              </VStack>
-            ) : (
-              // Expanded layout: Theme toggle next to hide menu button
-              <HStack justify="space-between" w="100%">
+              />
+            );
+          })}
+        </VStack>
+        
+        <Box p={4} borderTop="1px" borderColor={borderColor}>
+          {isCollapsed ? (
+            // Collapsed layout: Theme toggle above arrow
+            <VStack spacing={3} w="100%" align="center">
+              <Flex justify="center" align="center" w="100%">
+                <ThemeToggle size="md" />
+              </Flex>
+              <Flex justify="center" align="center" w="100%">
                 <Button 
-                  leftIcon={<Icon as={FaChevronLeft} />}
                   size="sm"
                   variant="ghost"
-                  flex="1"
-                  justifyContent="flex-start"
+                  minW="auto"
+                  px={2}
+                  justifyContent="center"
                   onClick={() => setIsCollapsed(!isCollapsed)}
                 >
-                  HIDE MENU
+                  <Icon as={FaChevronRight} />
                 </Button>
-                <ThemeToggle size="sm" />
-              </HStack>
-            )}
-          </Box>
-        </VStack>
-      </Box>
+              </Flex>
+            </VStack>
+          ) : (
+            // Expanded layout: Theme toggle next to hide menu button
+            <HStack justify="space-between" w="100%">
+              <Button 
+                leftIcon={<Icon as={FaChevronLeft} />}
+                size="sm"
+                variant="ghost"
+                flex="1"
+                justifyContent="flex-start"
+                onClick={() => setIsCollapsed(!isCollapsed)}
+              >
+                HIDE MENU
+              </Button>
+              <ThemeToggle size="sm" />
+            </HStack>
+          )}
+        </Box>
+      </VStack>
+    </Box>
     </>
   );
 };
