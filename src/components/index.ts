@@ -26,6 +26,7 @@ export { default as AddAthleteModal } from './AddAthleteModal';
 export { default as AIModal } from './AIModal';
 export { default as SparkleIcon } from './SparkleIcon';
 export { default as MobileHeader } from './MobileHeader';
+export { PWARefreshButton } from './PWARefreshButton';
 
 // Quick Log Components
 export { default as SleepQuickLogCard } from './SleepQuickLogCard';

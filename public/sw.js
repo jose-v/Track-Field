@@ -1,5 +1,5 @@
 // Track & Field PWA Service Worker
-const CACHE_NAME = 'track-field-v6';
+const CACHE_NAME = 'track-field-v7';
 const urlsToCache = [
   '/',
   '/dashboard',
