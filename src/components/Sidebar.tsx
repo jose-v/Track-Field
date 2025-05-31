@@ -49,7 +49,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../hooks/useProfile';
 import { ThemeToggle } from './ThemeToggle';
 import { useFeedback } from './FeedbackProvider';
-import { PWAControlButton } from './PWAControlButton';
 
 interface NavItemProps {
   icon: React.ElementType;
@@ -362,7 +361,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
                 })}
               </VStack>
 
-              {/* App Links Section */}
+              {/* Quick Actions Section */}
               <Box px={4} mt={6}>
                 <Text 
                   fontSize="xs" 
@@ -395,7 +394,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
                 </VStack>
               </Box>
 
-              {/* PWA & Settings Section */}
+              {/* Settings Section */}
               <Box px={4} mt={6}>
                 <Text 
                   fontSize="xs" 
@@ -410,9 +409,43 @@ const Sidebar = ({ userType }: SidebarProps) => {
                 </Text>
                 
                 <VStack spacing={1} align="stretch">
-                  <Box px={4} py={2}>
-                    <PWAControlButton />
-                  </Box>
+                  <Button
+                    leftIcon={<Icon as={LuMessageCircleMore} />}
+                    variant="ghost"
+                    justifyContent="flex-start"
+                    p={4}
+                    borderRadius="lg"
+                    onClick={() => {
+                      showFeedbackModal();
+                      onMobileDrawerClose();
+                    }}
+                    color={useColorModeValue('gray.700', 'gray.300')}
+                    _hover={{
+                      bg: useColorModeValue('gray.100', 'gray.700'),
+                      color: useColorModeValue('blue.600', 'blue.200'),
+                    }}
+                  >
+                    <Text fontSize="md" ml={1}>Give Feedback</Text>
+                  </Button>
+                  
+                  <Button
+                    leftIcon={<Icon as={LuShare} />}
+                    variant="ghost"
+                    justifyContent="flex-start"
+                    p={4}
+                    borderRadius="lg"
+                    onClick={() => {
+                      // Share functionality
+                      onMobileDrawerClose();
+                    }}
+                    color={useColorModeValue('gray.700', 'gray.300')}
+                    _hover={{
+                      bg: useColorModeValue('gray.100', 'gray.700'),
+                      color: useColorModeValue('blue.600', 'blue.200'),
+                    }}
+                  >
+                    <Text fontSize="md" ml={1}>Share App</Text>
+                  </Button>
                 </VStack>
               </Box>
             </Box>
@@ -510,11 +543,8 @@ const Sidebar = ({ userType }: SidebarProps) => {
           
           <Box p={4} borderTop="1px" borderColor={borderColor}>
             {isCollapsed ? (
-              // Collapsed layout: PWA, Theme toggle above arrow
+              // Collapsed layout: Theme toggle above arrow
               <VStack spacing={3} w="100%" align="center">
-                <Flex justify="center" align="center" w="100%">
-                  <PWAControlButton />
-                </Flex>
                 <Flex justify="center" align="center" w="100%">
                   <ThemeToggle size="md" />
                 </Flex>
@@ -532,25 +562,20 @@ const Sidebar = ({ userType }: SidebarProps) => {
                 </Flex>
               </VStack>
             ) : (
-              // Expanded layout: PWA, Theme toggle, and hide menu button
-              <VStack spacing={3} w="100%">
-                <Flex justify="center" w="100%">
-                  <PWAControlButton />
-                </Flex>
-                <HStack justify="space-between" w="100%">
-                  <Button 
-                    leftIcon={<Icon as={FaChevronLeft} />}
-                    size="sm"
-                    variant="ghost"
-                    flex="1"
-                    justifyContent="flex-start"
-                    onClick={() => setIsCollapsed(!isCollapsed)}
-                  >
-                    HIDE MENU
-                  </Button>
-                  <ThemeToggle size="sm" />
-                </HStack>
-              </VStack>
+              // Expanded layout: Theme toggle next to hide menu button
+              <HStack justify="space-between" w="100%">
+                <Button 
+                  leftIcon={<Icon as={FaChevronLeft} />}
+                  size="sm"
+                  variant="ghost"
+                  flex="1"
+                  justifyContent="flex-start"
+                  onClick={() => setIsCollapsed(!isCollapsed)}
+                >
+                  HIDE MENU
+                </Button>
+                <ThemeToggle size="sm" />
+              </HStack>
             )}
           </Box>
         </VStack>
