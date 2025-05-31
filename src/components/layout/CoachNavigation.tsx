@@ -1,7 +1,6 @@
 import { useLocation } from 'react-router-dom';
 import { NavLink } from './BaseLayout';
 import { LuUsers, LuCalendarClock, LuClipboardList, LuBell } from 'react-icons/lu';
-import { BiLineChart } from 'react-icons/bi';
 import { IoFitnessOutline } from 'react-icons/io5';
 import { FaTachometerAlt } from 'react-icons/fa';
 import { ReactNode } from 'react';

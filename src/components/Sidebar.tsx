@@ -41,8 +41,7 @@ import {
   FaSignOutAlt,
   FaTachometerAlt
 } from 'react-icons/fa';
-import { BiLineChart } from 'react-icons/bi';
-import { BsCalendarCheck } from 'react-icons/bs';
+import { BsCalendarCheck, BsChatDots } from 'react-icons/bs';
 import { MdLoop, MdRestaurantMenu, MdOutlineBedtime, MdOutlineReport, MdOutlineForum } from 'react-icons/md';
 import { HamburgerIcon } from '@chakra-ui/icons';
 import { LuHouse, LuMessageCircleMore, LuBellRing, LuShare } from 'react-icons/lu';
@@ -50,6 +49,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../hooks/useProfile';
 import { ThemeToggle } from './ThemeToggle';
 import { useFeedback } from './FeedbackProvider';
+import { PWAControlButton } from './PWAControlButton';
 
 interface NavItemProps {
   icon: React.ElementType;
@@ -220,6 +220,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
   const getNavItems = () => {
     if (userType === 'athlete') {
       return [
+        { icon: FaHome, label: 'Home', to: '/' },
         { icon: FaTachometerAlt, label: 'Dashboard', to: '/athlete/dashboard' },
         { icon: FaDumbbell, label: 'My Workouts', to: '/athlete/workouts' },
         { icon: FaCalendarAlt, label: 'Calendar', to: '/athlete/calendar' },
@@ -228,17 +229,18 @@ const Sidebar = ({ userType }: SidebarProps) => {
         { icon: MdRestaurantMenu, label: 'Nutrition', to: '/athlete/nutrition' },
         { icon: MdOutlineBedtime, label: 'Sleep', to: '/athlete/sleep' },
         { icon: MdOutlineReport, label: 'Wellness', to: '/athlete/wellness' },
-        { icon: MdLoop, label: 'Loop', to: '/loop' },
+        { icon: BsChatDots, label: 'Loop', to: '/loop' },
       ];
     } else {
       return [
+        { icon: FaHome, label: 'Home', to: '/' },
         { icon: FaTachometerAlt, label: 'Dashboard', to: '/coach/dashboard' },
         { icon: FaUsers, label: 'Athletes', to: '/coach/athletes' },
         { icon: FaDumbbell, label: 'Workouts', to: '/coach/workouts' },
         { icon: FaCalendarAlt, label: 'Calendar', to: '/coach/calendar' },
         { icon: FaChartBar, label: 'Reports', to: '/coach/stats' },
         { icon: FaBell, label: 'Notifications', to: '/coach/notifications' },
-        { icon: MdLoop, label: 'Loop', to: '/loop' },
+        { icon: BsChatDots, label: 'Loop', to: '/loop' },
       ];
     }
   };
@@ -376,14 +378,6 @@ const Sidebar = ({ userType }: SidebarProps) => {
                 
                 <VStack spacing={1} align="stretch">
                   <MobileNavItem
-                    icon={FaHome}
-                    label="Home"
-                    to="/"
-                    isActive={location.pathname === '/'}
-                    onClick={onMobileDrawerClose}
-                  />
-                  
-                  <MobileNavItem
                     icon={FaBell}
                     label="Notifications"
                     to={userType === 'athlete' ? '/athlete/notifications' : '/coach/notifications'}
@@ -401,7 +395,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
                 </VStack>
               </Box>
 
-              {/* Support & Settings Section */}
+              {/* PWA & Settings Section */}
               <Box px={4} mt={6}>
                 <Text 
                   fontSize="xs" 
@@ -412,47 +406,13 @@ const Sidebar = ({ userType }: SidebarProps) => {
                   mb={3}
                   px={4}
                 >
-                  Support
+                  Settings
                 </Text>
                 
                 <VStack spacing={1} align="stretch">
-                  <Button
-                    leftIcon={<Icon as={LuMessageCircleMore} />}
-                    variant="ghost"
-                    justifyContent="flex-start"
-                    p={4}
-                    borderRadius="lg"
-                    onClick={() => {
-                      showFeedbackModal();
-                      onMobileDrawerClose();
-                    }}
-                    color={useColorModeValue('gray.700', 'gray.300')}
-                    _hover={{
-                      bg: useColorModeValue('gray.100', 'gray.700'),
-                      color: useColorModeValue('blue.600', 'blue.200'),
-                    }}
-                  >
-                    <Text fontSize="md" ml={1}>Give Feedback</Text>
-                  </Button>
-                  
-                  <Button
-                    leftIcon={<Icon as={LuShare} />}
-                    variant="ghost"
-                    justifyContent="flex-start"
-                    p={4}
-                    borderRadius="lg"
-                    onClick={() => {
-                      // Share functionality
-                      onMobileDrawerClose();
-                    }}
-                    color={useColorModeValue('gray.700', 'gray.300')}
-                    _hover={{
-                      bg: useColorModeValue('gray.100', 'gray.700'),
-                      color: useColorModeValue('blue.600', 'blue.200'),
-                    }}
-                  >
-                    <Text fontSize="md" ml={1}>Share App</Text>
-                  </Button>
+                  <Box px={4} py={2}>
+                    <PWAControlButton />
+                  </Box>
                 </VStack>
               </Box>
             </Box>
@@ -550,8 +510,11 @@ const Sidebar = ({ userType }: SidebarProps) => {
           
           <Box p={4} borderTop="1px" borderColor={borderColor}>
             {isCollapsed ? (
-              // Collapsed layout: Theme toggle above arrow
+              // Collapsed layout: PWA, Theme toggle above arrow
               <VStack spacing={3} w="100%" align="center">
+                <Flex justify="center" align="center" w="100%">
+                  <PWAControlButton />
+                </Flex>
                 <Flex justify="center" align="center" w="100%">
                   <ThemeToggle size="md" />
                 </Flex>
@@ -569,20 +532,25 @@ const Sidebar = ({ userType }: SidebarProps) => {
                 </Flex>
               </VStack>
             ) : (
-              // Expanded layout: Theme toggle next to hide menu button
-              <HStack justify="space-between" w="100%">
-                <Button 
-                  leftIcon={<Icon as={FaChevronLeft} />}
-                  size="sm"
-                  variant="ghost"
-                  flex="1"
-                  justifyContent="flex-start"
-                  onClick={() => setIsCollapsed(!isCollapsed)}
-                >
-                  HIDE MENU
-                </Button>
-                <ThemeToggle size="sm" />
-              </HStack>
+              // Expanded layout: PWA, Theme toggle, and hide menu button
+              <VStack spacing={3} w="100%">
+                <Flex justify="center" w="100%">
+                  <PWAControlButton />
+                </Flex>
+                <HStack justify="space-between" w="100%">
+                  <Button 
+                    leftIcon={<Icon as={FaChevronLeft} />}
+                    size="sm"
+                    variant="ghost"
+                    flex="1"
+                    justifyContent="flex-start"
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                  >
+                    HIDE MENU
+                  </Button>
+                  <ThemeToggle size="sm" />
+                </HStack>
+              </VStack>
             )}
           </Box>
         </VStack>
