@@ -15,11 +15,12 @@ const AthleteProfile = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
 
-  // Add color mode aware styles
+  // Add color mode aware styles - MOVED TO TOP to fix hooks order
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   const inputBg = useColorModeValue('white', 'gray.700');
   const errorText = useColorModeValue('red.500', 'red.300');
+  const headerTextColor = useColorModeValue('gray.800', 'white');
 
   React.useEffect(() => {
     if (profile) {
@@ -123,7 +124,7 @@ const AthleteProfile = () => {
       >
         <Heading 
           size="md"
-          color={useColorModeValue('gray.800', 'white')}
+          color={headerTextColor}
           textAlign="right"
           fontWeight="semibold"
         >
@@ -136,7 +137,7 @@ const AthleteProfile = () => {
         size="lg" 
         mb={6}
         display={{ base: "none", lg: "block" }}
-        color={useColorModeValue('gray.800', 'white')}
+        color={headerTextColor}
       >
         My Profile
       </Heading>
