@@ -137,7 +137,7 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
       borderBottom="1px"
       borderColor={borderColor}
       position="fixed"
-      w={{ base: "100%", md: `calc(100% - ${sidebarWidth}px)` }}
+      w={`calc(100% - ${sidebarWidth}px)`}
       right="0"
       top={isHeaderVisible ? "0" : "-56px"}
       zIndex={999}
@@ -145,7 +145,7 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
       px={6}
       transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
       transform="translateZ(0)"
-      display={{ base: 'block', md: 'block' }}
+      display={{ base: 'none', md: 'block' }}
     >
       <Flex justify="space-between" align="center">
         {/* Left side - App title & role badge (removed) */}

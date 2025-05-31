@@ -49,6 +49,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../hooks/useProfile';
 import { ThemeToggle } from './ThemeToggle';
 import { useFeedback } from './FeedbackProvider';
+import { useScrollDirection } from '../hooks/useScrollDirection';
 
 interface NavItemProps {
   icon: React.ElementType;
@@ -256,31 +257,37 @@ const Sidebar = ({ userType }: SidebarProps) => {
     : user?.email || 'User';
 
   // Mobile hamburger trigger (visible on mobile, hidden on desktop)
-  const MobileHamburgerTrigger = () => (
-    <IconButton
-      aria-label="Open Menu"
-      icon={<HamburgerIcon boxSize={6} />}
-      position="fixed"
-      top={4}
-      left={4}
-      zIndex={1002}
-      size="md"
-      variant="ghost"
-      display={{ base: 'flex', md: 'none' }}
-      onClick={onMobileDrawerOpen}
-      bg="transparent"
-      boxShadow="none"
-      borderRadius="md"
-      color={useColorModeValue('gray.700', 'gray.300')}
-      _hover={{
-        bg: useColorModeValue('gray.100', 'gray.700'),
-        color: useColorModeValue('blue.600', 'blue.300'),
-      }}
-      _active={{
-        bg: useColorModeValue('gray.200', 'gray.600'),
-      }}
-    />
-  );
+  const MobileHamburgerTrigger = () => {
+    const { isHeaderVisible } = useScrollDirection(10);
+    
+    return (
+      <IconButton
+        aria-label="Open Menu"
+        icon={<HamburgerIcon boxSize={6} />}
+        position="fixed"
+        top={isHeaderVisible ? 4 : "-48px"}
+        left={4}
+        zIndex={1002}
+        size="md"
+        variant="ghost"
+        display={{ base: 'flex', md: 'none' }}
+        onClick={onMobileDrawerOpen}
+        bg="transparent"
+        boxShadow="none"
+        borderRadius="md"
+        color={useColorModeValue('gray.700', 'gray.300')}
+        transition="top 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+        transform="translateZ(0)"
+        _hover={{
+          bg: useColorModeValue('gray.100', 'gray.700'),
+          color: useColorModeValue('blue.600', 'blue.300'),
+        }}
+        _active={{
+          bg: useColorModeValue('gray.200', 'gray.600'),
+        }}
+      />
+    );
+  };
 
   // Mobile drawer content
   const MobileDrawerContent = () => (
