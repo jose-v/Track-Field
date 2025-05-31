@@ -165,11 +165,12 @@ export const api = {
       try {
         console.log('Getting assigned workouts for athlete:', athleteId);
         
-        // Get all workout_ids assigned to this athlete
+        // Get all workout_ids assigned to this athlete, ordered by most recently assigned first
         const { data: assignments, error: assignError } = await supabase
           .from('athlete_workouts')
-          .select('workout_id')
-          .eq('athlete_id', athleteId);
+          .select('workout_id, assigned_at')
+          .eq('athlete_id', athleteId)
+          .order('assigned_at', { ascending: false });
           
         if (assignError) {
           console.error('Error fetching athlete workout assignments:', assignError);
@@ -231,6 +232,20 @@ export const api = {
           }
         }
         
+        // Sort workouts based on assignment order (most recently assigned first)
+        // Create a map of workout_id to assignment order
+        const assignmentOrder = new Map();
+        assignments.forEach((assignment, index) => {
+          assignmentOrder.set(assignment.workout_id, index);
+        });
+        
+        // Sort workouts to match the assignment order
+        workouts.sort((a, b) => {
+          const orderA = assignmentOrder.get(a.id) ?? 999;
+          const orderB = assignmentOrder.get(b.id) ?? 999;
+          return orderA - orderB;
+        });
+        
         // Ensure exercises is always an array (even if null/undefined in database)
         const workoutsWithExercises = workouts.map(workout => {
           // Check exercises property
@@ -271,7 +286,7 @@ export const api = {
           };
         });
         
-        console.log('Returning', workoutsWithExercises.length, 'workouts to athlete');
+        console.log('Returning', workoutsWithExercises.length, 'workouts to athlete (ordered by most recent assignment)');
         return workoutsWithExercises;
       } catch (error) {
         console.error('Error in getAssignedToAthlete:', error);
