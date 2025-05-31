@@ -13,8 +13,14 @@ import {
   AlertDescription,
   CloseButton,
   useDisclosure,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
+  Code,
 } from '@chakra-ui/react';
-import { FaDownload, FaExpand, FaCompress, FaMobile } from 'react-icons/fa';
+import { FaDownload, FaExpand, FaCompress, FaMobile, FaInfoCircle, FaApple, FaChrome } from 'react-icons/fa';
 import { usePWA } from '../hooks/usePWA';
 
 export const PWAInstallPrompt: React.FC = () => {
@@ -23,6 +29,9 @@ export const PWAInstallPrompt: React.FC = () => {
     isInstallable,
     isFullscreen,
     canGoFullscreen,
+    isHTTPS,
+    hasServiceWorker,
+    userAgent,
     installPWA,
     toggleFullscreen,
   } = usePWA();
@@ -30,15 +39,23 @@ export const PWAInstallPrompt: React.FC = () => {
   const bgColor = useColorModeValue('blue.50', 'blue.900');
   const borderColor = useColorModeValue('blue.200', 'blue.700');
 
-  // Don't show anything if neither feature is available
-  if (!isInstallable && !canGoFullscreen) {
+  // Show on mobile devices or if we have debugging info to display
+  const shouldShow = canGoFullscreen || isInstallable || !isHTTPS || !hasServiceWorker;
+
+  // Don't show if user has closed it and no critical issues
+  if (!isOpen && isHTTPS && hasServiceWorker) {
     return null;
   }
 
-  // Don't show if user has closed it
-  if (!isOpen) {
+  // Don't show anything if no relevant features and no issues
+  if (!shouldShow) {
     return null;
   }
+
+  const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+  const isAndroid = /Android/.test(userAgent);
+  const isChrome = /Chrome/.test(userAgent) && !/Edg/.test(userAgent);
+  const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
 
   return (
     <Box
@@ -47,11 +64,11 @@ export const PWAInstallPrompt: React.FC = () => {
       left={4}
       right={4}
       zIndex={1000}
-      maxW="400px"
+      maxW="500px"
       mx="auto"
     >
       <Alert
-        status="info"
+        status={!isHTTPS || !hasServiceWorker ? "warning" : "info"}
         borderRadius="lg"
         bg={bgColor}
         borderColor={borderColor}
@@ -62,16 +79,23 @@ export const PWAInstallPrompt: React.FC = () => {
         <AlertIcon as={FaMobile} />
         <Box flex="1">
           <AlertTitle fontSize="sm" mb={1}>
-            Enhanced Mobile Experience
+            {!isHTTPS || !hasServiceWorker ? "Setup Required" : "Enhanced Mobile Experience"}
           </AlertTitle>
+          
           <AlertDescription fontSize="xs" mb={3}>
-            {isInstallable 
-              ? "Install this app for a full-screen experience without browser chrome!"
-              : "Enable fullscreen mode for a better mobile experience!"
-            }
+            {!isHTTPS ? (
+              "HTTPS required for PWA functionality on mobile devices."
+            ) : !hasServiceWorker ? (
+              "Service Workers not supported in this browser."
+            ) : isInstallable ? (
+              "Install this app for a full-screen experience without browser chrome!"
+            ) : (
+              "Get the best mobile experience with fullscreen mode!"
+            )}
           </AlertDescription>
           
-          <VStack spacing={2} align="stretch">
+          {/* Action Buttons */}
+          <VStack spacing={2} align="stretch" mb={3}>
             {isInstallable && (
               <Button
                 size="sm"
@@ -97,6 +121,76 @@ export const PWAInstallPrompt: React.FC = () => {
               </Button>
             )}
           </VStack>
+
+          {/* Manual Install Instructions */}
+          {!isInstallable && isHTTPS && hasServiceWorker && (
+            <Accordion allowToggle size="sm">
+              <AccordionItem border="none">
+                <AccordionButton px={0} py={2} fontSize="xs">
+                  <Box flex="1" textAlign="left">
+                    <Icon as={FaInfoCircle} mr={2} />
+                    Manual Install Instructions
+                  </Box>
+                  <AccordionIcon />
+                </AccordionButton>
+                <AccordionPanel px={0} py={2} fontSize="xs">
+                  {isIOS && (
+                    <VStack align="start" spacing={1}>
+                      <HStack>
+                        <Icon as={FaApple} />
+                        <Text fontWeight="bold">iOS Safari:</Text>
+                      </HStack>
+                      <Text>1. Tap the Share button (⬆️)</Text>
+                      <Text>2. Scroll down and tap "Add to Home Screen"</Text>
+                      <Text>3. Tap "Add" to install</Text>
+                    </VStack>
+                  )}
+                  
+                  {isAndroid && (
+                    <VStack align="start" spacing={1}>
+                      <HStack>
+                        <Icon as={FaChrome} />
+                        <Text fontWeight="bold">Android Chrome:</Text>
+                      </HStack>
+                      <Text>1. Tap the menu (⋮) in top right</Text>
+                      <Text>2. Tap "Add to Home screen" or "Install app"</Text>
+                      <Text>3. Tap "Install" to confirm</Text>
+                    </VStack>
+                  )}
+                  
+                  {!isIOS && !isAndroid && (
+                    <VStack align="start" spacing={1}>
+                      <Text fontWeight="bold">Browser Menu:</Text>
+                      <Text>Look for "Add to Home Screen" or "Install App" option in your browser menu</Text>
+                    </VStack>
+                  )}
+                </AccordionPanel>
+              </AccordionItem>
+            </Accordion>
+          )}
+
+          {/* Debug Info for Development */}
+          {process.env.NODE_ENV === 'development' && (
+            <Accordion allowToggle size="sm">
+              <AccordionItem border="none">
+                <AccordionButton px={0} py={2} fontSize="xs">
+                  <Box flex="1" textAlign="left">
+                    Debug Info
+                  </Box>
+                  <AccordionIcon />
+                </AccordionButton>
+                <AccordionPanel px={0} py={2} fontSize="xs">
+                  <VStack align="start" spacing={1}>
+                    <Text>HTTPS: <Code fontSize="xs">{isHTTPS ? '✅' : '❌'}</Code></Text>
+                    <Text>Service Worker: <Code fontSize="xs">{hasServiceWorker ? '✅' : '❌'}</Code></Text>
+                    <Text>Installable: <Code fontSize="xs">{isInstallable ? '✅' : '❌'}</Code></Text>
+                    <Text>Fullscreen API: <Code fontSize="xs">{canGoFullscreen ? '✅' : '❌'}</Code></Text>
+                    <Text>Browser: <Code fontSize="xs">{isIOS ? 'iOS' : isAndroid ? 'Android' : 'Desktop'}</Code></Text>
+                  </VStack>
+                </AccordionPanel>
+              </AccordionItem>
+            </Accordion>
+          )}
         </Box>
         
         <CloseButton

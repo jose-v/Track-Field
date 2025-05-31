@@ -4,6 +4,9 @@ interface PWAState {
   isInstallable: boolean;
   isFullscreen: boolean;
   canGoFullscreen: boolean;
+  isHTTPS: boolean;
+  hasServiceWorker: boolean;
+  userAgent: string;
 }
 
 export const usePWA = () => {
@@ -11,20 +14,45 @@ export const usePWA = () => {
     isInstallable: false,
     isFullscreen: false,
     canGoFullscreen: false,
+    isHTTPS: false,
+    hasServiceWorker: false,
+    userAgent: '',
   });
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
+    // Check environment
+    const isHTTPS = location.protocol === 'https:' || location.hostname === 'localhost';
+    const hasServiceWorker = 'serviceWorker' in navigator;
+    const userAgent = navigator.userAgent;
+    
+    console.log('[PWA] Environment check:', {
+      isHTTPS,
+      hasServiceWorker,
+      userAgent,
+      hostname: location.hostname,
+      protocol: location.protocol
+    });
+
+    setPwaState(prev => ({ 
+      ...prev, 
+      isHTTPS,
+      hasServiceWorker,
+      userAgent
+    }));
+
     // Register service worker
-    if ('serviceWorker' in navigator) {
+    if (hasServiceWorker) {
       navigator.serviceWorker
         .register('/sw.js')
         .then((registration) => {
-          console.log('[PWA] SW registered: ', registration);
+          console.log('[PWA] SW registered successfully:', registration);
         })
         .catch((registrationError) => {
-          console.log('[PWA] SW registration failed: ', registrationError);
+          console.error('[PWA] SW registration failed:', registrationError);
         });
+    } else {
+      console.warn('[PWA] Service Worker not supported in this browser');
     }
 
     // Check if fullscreen API is available
@@ -35,6 +63,7 @@ export const usePWA = () => {
       (document.documentElement as any).msRequestFullscreen
     );
 
+    console.log('[PWA] Fullscreen API available:', canGoFullscreen);
     setPwaState(prev => ({ ...prev, canGoFullscreen }));
 
     // Listen for fullscreen changes
@@ -45,6 +74,7 @@ export const usePWA = () => {
         (document as any).mozFullScreenElement ||
         (document as any).msFullscreenElement
       );
+      console.log('[PWA] Fullscreen state changed:', isFullscreen);
       setPwaState(prev => ({ ...prev, isFullscreen }));
     };
 
@@ -55,6 +85,7 @@ export const usePWA = () => {
 
     // Listen for PWA install prompt
     const handleBeforeInstallPrompt = (e: Event) => {
+      console.log('[PWA] beforeinstallprompt event fired!', e);
       e.preventDefault();
       setDeferredPrompt(e);
       setPwaState(prev => ({ ...prev, isInstallable: true }));
@@ -62,9 +93,17 @@ export const usePWA = () => {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
+    // Listen for app installation
+    window.addEventListener('appinstalled', () => {
+      console.log('[PWA] App was installed successfully!');
+      setDeferredPrompt(null);
+      setPwaState(prev => ({ ...prev, isInstallable: false }));
+    });
+
     // Auto-hide address bar on mobile
     const hideAddressBar = () => {
       if (window.innerHeight < window.outerHeight) {
+        console.log('[PWA] Attempting to hide address bar');
         window.scrollTo(0, 1);
       }
     };
@@ -74,6 +113,13 @@ export const usePWA = () => {
     window.addEventListener('orientationchange', () => {
       setTimeout(hideAddressBar, 100);
     });
+
+    // Debug: Check if running as standalone PWA
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                        (navigator as any).standalone ||
+                        document.referrer.includes('android-app://');
+    
+    console.log('[PWA] Running as standalone app:', isStandalone);
 
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
@@ -85,16 +131,20 @@ export const usePWA = () => {
   }, []);
 
   const installPWA = async () => {
+    console.log('[PWA] Install PWA triggered, deferredPrompt:', deferredPrompt);
     if (deferredPrompt) {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       console.log(`[PWA] User response to install prompt: ${outcome}`);
       setDeferredPrompt(null);
       setPwaState(prev => ({ ...prev, isInstallable: false }));
+    } else {
+      console.warn('[PWA] No deferred prompt available');
     }
   };
 
   const enterFullscreen = () => {
+    console.log('[PWA] Entering fullscreen mode');
     const elem = document.documentElement;
     if (elem.requestFullscreen) {
       elem.requestFullscreen();
@@ -108,6 +158,7 @@ export const usePWA = () => {
   };
 
   const exitFullscreen = () => {
+    console.log('[PWA] Exiting fullscreen mode');
     if (document.exitFullscreen) {
       document.exitFullscreen();
     } else if ((document as any).webkitExitFullscreen) {
