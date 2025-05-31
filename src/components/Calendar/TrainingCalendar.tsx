@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 import { FaCalendarAlt, FaRunning, FaMapMarkerAlt, FaClock } from 'react-icons/fa';
+import { api } from '../../services/api';
 
 interface TrainingCalendarProps {
   isCoach?: boolean;
@@ -115,129 +116,67 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
       
       let workouts: WorkoutData[] = [];
       
+      console.log('Fetching workouts for user:', targetUserId, 'for year:', currentYear);
+      
+      // Format year for date filtering
+      const yearStart = `${currentYear}-01-01`;
+      const yearEnd = `${currentYear}-12-31`;
+      
       try {
-        console.log('Fetching workouts for user:', targetUserId, 'for year:', currentYear);
+        // Use the same API method as the athlete workouts page
+        const assignedWorkouts = await api.workouts.getAssignedToAthlete(targetUserId);
         
-        // Format year for date filtering
-        const yearStart = `${currentYear}-01-01`;
-        const yearEnd = `${currentYear}-12-31`;
-        
-        // Get all assigned workouts for this athlete
-        const { data: assignedWorkoutData, error: assignedError } = await supabase
-          .from('athlete_workouts')
-          .select(`
-            workout_id,
-            workouts (
-              id,
-              name,
-              type,
-              date,
-              duration
-            )
-          `)
-          .eq('athlete_id', targetUserId);
-        
-        if (assignedError) throw assignedError;
-        
-        if (assignedWorkoutData && assignedWorkoutData.length > 0) {
-          console.log('Found workouts:', assignedWorkoutData);
+        if (assignedWorkouts && assignedWorkouts.length > 0) {
+          console.log('Found assigned workouts:', assignedWorkouts.length);
           
-          // Transform the data to match our WorkoutData interface and filter by year
-          workouts = assignedWorkoutData
-            .map(item => {
-              const workout = item.workouts as any;
-              
-              return {
-                id: workout?.id || '',
-                name: workout?.name || 'Unnamed Workout',
-                date: workout?.date || '',
-                type: workout?.type || 'Custom',
-                duration: workout?.duration || '30'
-              };
-            })
+          // Transform and filter workouts for the current year
+          workouts = assignedWorkouts
             .filter(workout => {
               // Filter workouts for the current year
               if (!workout.date) return false;
               const workoutYear = new Date(workout.date).getFullYear();
               return workoutYear === currentYear;
-            });
+            })
+            .map(workout => ({
+              id: workout.id,
+              name: workout.name,
+              date: workout.date,
+              type: workout.type || 'Workout',
+              duration: workout.duration || '30'
+            }));
             
           console.log(`Filtered ${workouts.length} workouts for year ${currentYear}`);
         } else {
           console.log('No assigned workouts found for user:', targetUserId);
           
-          // Try fetching directly from workouts table if no assigned workouts
-          const { data: directWorkoutData, error: directError } = await supabase
-            .from('workouts')
-            .select('*')
-            .eq('user_id', targetUserId)
-            .gte('date', yearStart)
-            .lte('date', yearEnd);
+          // If no assigned workouts, try fetching workouts created by the user
+          if (!isCoach) {
+            console.log('Trying to fetch workouts created by user');
+            const createdWorkouts = await api.workouts.getByCreator(targetUserId);
             
-          if (directError) throw directError;
-          
-          if (directWorkoutData && directWorkoutData.length > 0) {
-            console.log(`Found ${directWorkoutData.length} direct workouts for year ${currentYear}:`, directWorkoutData);
-            
-            workouts = directWorkoutData.map(workout => ({
-              id: workout.id,
-              name: workout.name,
-              date: workout.date,
-              type: workout.type || 'Custom',
-              duration: workout.duration || '30'
-            }));
-          } else {
-            console.log('No workouts found for user:', targetUserId);
+            if (createdWorkouts && createdWorkouts.length > 0) {
+              workouts = createdWorkouts
+                .filter(workout => {
+                  if (!workout.date) return false;
+                  const workoutYear = new Date(workout.date).getFullYear();
+                  return workoutYear === currentYear;
+                })
+                .map(workout => ({
+                  id: workout.id,
+                  name: workout.name,
+                  date: workout.date,
+                  type: workout.type || 'Workout',
+                  duration: workout.duration || '30'
+                }));
+                
+              console.log(`Found ${workouts.length} created workouts for year ${currentYear}`);
+            }
           }
         }
       } catch (err) {
-        console.error('Error with database query, using mock data instead:', err);
-        
-        // Fallback to mock data if database query fails
-        workouts = [
-          {
-            id: '1',
-            name: 'Morning Run',
-            date: `${currentYear}-03-10`,
-            type: 'Cardio',
-            duration: '45'
-          },
-          {
-            id: '2',
-            name: 'Sprint Training',
-            date: `${currentYear}-03-12`,
-            type: 'Track',
-            duration: '60'
-          },
-          {
-            id: '3',
-            name: 'Distance Run',
-            date: `${currentYear}-03-15`,
-            type: 'Endurance',
-            duration: '90'
-          },
-          {
-            id: '4',
-            name: 'Track Workout',
-            date: `${currentYear}-04-05`,
-            type: 'Track',
-            duration: '75'
-          },
-          {
-            id: '5',
-            name: 'Hill Repeats',
-            date: `${currentYear}-04-10`,
-            type: 'Strength',
-            duration: '60'
-          },
-          {
-            id: '6',
-            name: 'Long Run',
-            date: `${currentYear}-05-02`,
-            type: 'Endurance',
-            duration: '120'
-          }
-        ];
+        console.error('Error fetching workouts from API:', err);
+        // Don't fall back to mock data - just return empty array
+        workouts = [];
       }
       
       // Organize workouts by month
@@ -264,6 +203,8 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
       return workouts;
     } catch (error) {
       console.error('Error fetching workouts:', error);
+      // Return empty array instead of mock data
+      setMonthlyWorkouts({});
       return [];
     }
   };
@@ -486,43 +427,9 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
           }
         }
       } catch (err) {
-        console.error('Error with database query, using mock data instead:', err);
-        
-        // Fallback to mock data if database query fails - using the current year
-        events = [
-          {
-            id: '1',
-            meet_id: 'm1',
-            meet_name: 'State Championship',
-            meet_date: `${currentYear}-03-15`,
-            location: 'Central Stadium',
-            event_name: '100m Sprint'
-          },
-          {
-            id: '2',
-            meet_id: 'm1',
-            meet_name: 'State Championship',
-            meet_date: `${currentYear}-03-15`,
-            location: 'Central Stadium',
-            event_name: '4x100m Relay'
-          },
-          {
-            id: '3',
-            meet_id: 'm2',
-            meet_name: 'Regional Qualifier',
-            meet_date: `${currentYear}-04-25`,
-            location: 'East Field Track',
-            event_name: 'Long Jump'
-          },
-          {
-            id: '4',
-            meet_id: 'm3',
-            meet_name: 'Carter Invitational',
-            meet_date: `${currentYear}-12-11`,
-            location: 'Greensboro, NC',
-            event_name: '400m Dash'
-          }
-        ];
+        console.error('Error fetching events from database:', err);
+        // Don't fall back to mock data - just return empty array
+        events = [];
       }
       
       // Organize events by month
@@ -546,6 +453,7 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
       return events;
     } catch (error) {
       console.error('Error fetching events:', error);
+      setMonthlyEvents({});
       return [];
     }
   };
@@ -753,11 +661,11 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
           setMonthlyEvents({});
         }
         
-        // Fetch workouts
-        await fetchWorkoutsForYear();
-        
-        // Fetch events
-        await fetchEventsForYear();
+        // Fetch workouts and events
+        await Promise.all([
+          fetchWorkoutsForYear(),
+          fetchEventsForYear()
+        ]);
         
         // Only update state if component is still mounted
         if (isMounted) {
@@ -773,11 +681,37 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
     
     fetchData();
     
+    // Set up automatic refresh every 30 seconds to catch new assignments
+    const refreshInterval = setInterval(() => {
+      console.log('Auto-refreshing calendar data...');
+      fetchData();
+    }, 30000);
+    
     // Cleanup function to handle component unmount
     return () => {
       isMounted = false;
+      clearInterval(refreshInterval);
     };
   }, [currentYear, user, athleteId, isCoach]);
+  
+  // Manual refresh function
+  const handleRefresh = async () => {
+    console.log('Manual refresh triggered');
+    setLoading(true);
+    setMonthlyWorkouts({});
+    setMonthlyEvents({});
+    
+    try {
+      await Promise.all([
+        fetchWorkoutsForYear(),
+        fetchEventsForYear()
+      ]);
+    } catch (error) {
+      console.error('Error during manual refresh:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
   
   // If month is selected, show month detail view
   if (selectedMonth !== null) {
@@ -799,6 +733,17 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
             <Flex align="center" gap={4}>
               <Button colorScheme="blue" variant="ghost" onClick={backToYearlyView} size="sm">
                 &lt; Back to Year
+              </Button>
+              
+              <Button 
+                size="sm" 
+                variant="outline" 
+                colorScheme="blue"
+                onClick={handleRefresh}
+                isLoading={loading}
+                loadingText="Refreshing..."
+              >
+                Refresh
               </Button>
               
               <Flex align="center">
@@ -828,14 +773,14 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
                   {currentYear}
                 </Text>
               </Flex>
+              
+              <Text fontSize="sm" color="gray.500">
+                {new Date(currentYear, selectedMonth + 1, 0).getDate()} DAYS
+              </Text>
             </Flex>
             
-            <Text fontSize="sm" color="gray.500">
-              {new Date(currentYear, selectedMonth + 1, 0).getDate()} DAYS
-            </Text>
-            
             {/* Stats Summary */}
-            <Flex className="stats" gap={4}>
+            <Flex className="stats" gap={4} align="center">
               <Box textAlign="center">
                 <Text fontWeight="bold" fontSize="xl">{stats.hours}</Text>
                 <Text fontSize="sm" color="gray.500">Hours</Text>
@@ -870,6 +815,7 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
                   textAlign="center"
                   fontWeight="bold"
                   fontSize="sm"
+                  color="white"
                 >
                   {day}
                 </GridItem>
@@ -906,7 +852,7 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
                     {/* Workouts for this day */}
                     <Flex 
                       position="absolute" 
-                      bottom={2} 
+                      top={10} 
                       left={2} 
                       right={2} 
                       direction="column" 
@@ -992,7 +938,7 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
       >
         {/* Calendar Header & Navigation */}
         <Flex className="calendar-header" justify="space-between" align="center" mb={4}>
-          <Flex className="year-navigation" align="center">
+          <Flex className="year-navigation" align="center" gap={4}>
             <Box 
               as="button" 
               onClick={goToPrevYear} 
@@ -1013,25 +959,23 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
               &gt;
             </Box>
             
-            <Select 
-              value={currentMonth}
-              onChange={handleMonthChange}
+            <Button 
+              size="sm" 
+              variant="outline" 
+              colorScheme="blue"
+              onClick={handleRefresh}
+              isLoading={loading}
+              loadingText="Refreshing..."
               ml={4}
-              size="sm"
-              width="auto"
             >
-              {months.map((month, idx) => (
-                <option key={month} value={idx}>
-                  {month}
-                </option>
-              ))}
-            </Select>
+              Refresh
+            </Button>
+            
+            <Text fontSize="sm" color={statLabelColor}>52 WEEKS</Text>
           </Flex>
           
-          <Text fontSize="sm" color={statLabelColor}>52 WEEKS</Text>
-          
           {/* Stats Summary */}
-          <Flex className="stats" gap={4}>
+          <Flex className="stats" gap={4} align="center">
             <Box textAlign="center">
               <Text fontWeight="bold" fontSize="xl">{stats.hours}</Text>
               <Text fontSize="sm" color={statLabelColor}>Hours</Text>
