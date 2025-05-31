@@ -34,17 +34,6 @@ export const useScrollDirection = (threshold: number = 10) => {
       const direction = scrollY > lastScrollY ? 'down' : 'up';
       const scrollDifference = Math.abs(scrollY - lastScrollY);
 
-      // Debug logging
-      console.log('Scroll debug:', { 
-        windowScrollY, 
-        documentScrollY, 
-        mainScrollY: mainContainer?.scrollTop || 0,
-        finalScrollY: scrollY, 
-        lastScrollY,
-        scrollDifference,
-        threshold 
-      });
-
       // Only update if scroll difference is greater than threshold
       if (scrollDifference < threshold) {
         ticking = false;
