@@ -259,7 +259,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
   const MobileHamburgerTrigger = () => (
     <IconButton
       aria-label="Open Menu"
-      icon={<HamburgerIcon />}
+      icon={<HamburgerIcon boxSize={6} />}
       position="fixed"
       top={4}
       left={4}
@@ -295,7 +295,6 @@ const Sidebar = ({ userType }: SidebarProps) => {
         maxW="67vw" // Gmail-style 2/3 screen width
         bg={drawerBg}
         boxShadow="2xl"
-        transition="transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
       >
         {/* Custom close button in header */}
         <DrawerHeader borderBottomWidth="1px" borderColor={borderColor} pb={4}>

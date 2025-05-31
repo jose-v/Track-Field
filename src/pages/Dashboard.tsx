@@ -382,8 +382,8 @@ export function Dashboard() {
   const cardShadowSm = useColorModeValue('none', 'sm')
 
   return (
-    <Box pt={0} pb={10} bg={useColorModeValue('gray.50', 'gray.900')}>
-      <Container maxW="container.xl" px={{ base: 2, md: 0 }} pt={0} mt={0}>
+    <Box pt={0} pb={10} bg={useColorModeValue('gray.50', 'gray.900')} w="100%" overflowX="hidden">
+      <Box maxW="100%" px={{ base: 3, md: 6 }} pt={0} mt={0} w="100%">
         {/* Header with personal greeting */}
         <Flex 
           mb={8} 
@@ -393,7 +393,7 @@ export function Dashboard() {
           mt={0} 
           pt={{ base: 4, md: 0 }}
           gap={{ base: 4, lg: 6 }}
-          px={{ base: 2, md: 0 }}
+          w="100%"
         >
           <Box flex="1">
             <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
@@ -421,6 +421,7 @@ export function Dashboard() {
             w={{ base: "100%", lg: "auto" }}
             minW={{ base: "auto", lg: "390px" }} 
             maxW={{ base: "100%", lg: "442px" }}
+            flexShrink={0}
           >
             <WeatherCard 
               city={profile?.city || "Greensboro"}
@@ -437,29 +438,25 @@ export function Dashboard() {
         </Flex>
 
         {/* Today's Workouts Card */}
-        <Box px={{ base: 2, md: 0 }}>
-          <TodayWorkoutsCard
-            todayWorkouts={todayWorkouts}
-            upcomingWorkouts={upcomingWorkouts}
-            profile={profile}
-            getWorkoutProgressData={getWorkoutProgressData}
-            handleStartWorkout={handleStartWorkout}
-            workoutsLoading={workoutsLoading}
-            profileLoading={profileLoading}
-          />
-        </Box>
+        <TodayWorkoutsCard
+          todayWorkouts={todayWorkouts}
+          upcomingWorkouts={upcomingWorkouts}
+          profile={profile}
+          getWorkoutProgressData={getWorkoutProgressData}
+          handleStartWorkout={handleStartWorkout}
+          workoutsLoading={workoutsLoading}
+          profileLoading={profileLoading}
+        />
 
         {/* Today's Check-in Section */}
-        <Box px={{ base: 2, md: 0 }}>
-          <TodaysCheckInSection onDataUpdate={handleDataUpdate} />
-        </Box>
+        <TodaysCheckInSection onDataUpdate={handleDataUpdate} />
 
         {/* Analytics & Info Cards */}
         <SimpleGrid 
           columns={{ base: 1, md: 2, lg: 3 }} 
           spacing={{ base: 4, md: 8 }} 
           my={{ base: 6, md: 10 }}
-          px={{ base: 2, md: 0 }}
+          w="100%"
         >
           {/* Track Meets Card */}
           <TrackMeetsCard viewAllLink="/athlete/events" />
@@ -897,7 +894,7 @@ export function Dashboard() {
           </ModalContent>
         </Modal>
 
-      </Container>
+      </Box>
     </Box>
   )
 } 
