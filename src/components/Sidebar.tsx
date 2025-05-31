@@ -294,16 +294,15 @@ const Sidebar = ({ userType }: SidebarProps) => {
       <DrawerContent
         maxW="67vw" // Gmail-style 2/3 screen width
         bg={drawerBg}
-        borderRightRadius="xl"
         boxShadow="2xl"
+        transition="transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
       >
         {/* Custom close button in header */}
         <DrawerHeader borderBottomWidth="1px" borderColor={borderColor} pb={4}>
-          <Flex align="center" justify="space-between">
+          <Flex align="center" justify="center">
             <Text fontWeight="bold" fontSize="xl" color="blue.500">
               Track & Field
             </Text>
-            <DrawerCloseButton position="static" />
           </Flex>
         </DrawerHeader>
 

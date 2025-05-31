@@ -327,8 +327,20 @@ export function AthleteWorkouts() {
   const renderWorkoutCards = (workouts: Workout[]) => {
     if (!workouts || workouts.length === 0) {
       return (
-        <Box p={5} borderWidth="1px" borderRadius="lg" shadow="sm" textAlign="center" mt={4}>
-          <Text fontSize="lg" color={noWorkoutsColor}>
+        <Box 
+          p={{ base: 4, md: 5 }} 
+          borderWidth="1px" 
+          borderRadius="lg" 
+          shadow="sm" 
+          textAlign="center" 
+          mt={{ base: 3, md: 4 }}
+          bg={useColorModeValue('white', 'gray.800')}
+          borderColor={useColorModeValue('gray.200', 'gray.700')}
+        >
+          <Text 
+            fontSize={{ base: 'md', md: 'lg' }} 
+            color={noWorkoutsColor}
+          >
             No workouts found.
           </Text>
         </Box>
@@ -336,7 +348,11 @@ export function AthleteWorkouts() {
     }
 
     return (
-      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6} alignItems="stretch">
+      <SimpleGrid 
+        columns={{ base: 1, md: 2, lg: 3 }} 
+        spacing={{ base: 4, md: 6 }} 
+        alignItems="stretch"
+      >
         {workouts.map((workout) => {
           // Get completion data from workoutStore
           const completedCount = getCompletionCount(workout.id);
@@ -562,32 +578,64 @@ export function AthleteWorkouts() {
   };
 
   return (
-    <Container maxW="container.xl" p={4} data-testid="athlete-workouts">
-      <HStack justify="space-between" mb={6}>
-        <Heading size="lg">My Workouts</Heading>
+    <Container maxW="container.xl" px={{ base: 4, md: 6 }} py={{ base: 6, md: 4 }} data-testid="athlete-workouts">
+      <Flex 
+        justify="space-between" 
+        align="center"
+        mb={{ base: 4, md: 6 }}
+        direction={{ base: 'column', sm: 'row' }}
+        gap={{ base: 3, sm: 0 }}
+      >
+        <Heading 
+          size={{ base: 'md', md: 'lg' }}
+          color={useColorModeValue('gray.800', 'white')}
+          textAlign={{ base: 'center', sm: 'left' }}
+        >
+          My Workouts
+        </Heading>
         <IconButton
           aria-label="Refresh workouts"
           icon={<RepeatIcon />}
           onClick={handleRefresh}
           colorScheme="blue"
           variant="outline"
+          size={{ base: 'sm', md: 'md' }}
         />
-      </HStack>
+      </Flex>
 
       {isLoading && (
-        <Center py={10}><Spinner thickness="4px" speed="0.65s" emptyColor="gray.200" color="blue.500" size="xl" /></Center>
+        <Center py={{ base: 8, md: 10 }}>
+          <Spinner 
+            thickness="4px" 
+            speed="0.65s" 
+            emptyColor="gray.200" 
+            color="blue.500" 
+            size={{ base: "lg", md: "xl" }} 
+          />
+        </Center>
       )}
 
       {isError && (
-        <Alert status="error" mb={4}>
+        <Alert status="error" mb={{ base: 3, md: 4 }} borderRadius="lg">
           <AlertIcon />
-          Error fetching assigned workouts: {error?.message}
+          <Box>
+            <Text fontWeight="medium">Error fetching assigned workouts</Text>
+            <Text fontSize="sm" color={useColorModeValue('red.600', 'red.300')}>
+              {error?.message}
+            </Text>
+          </Box>
         </Alert>
       )}
 
       {!isLoading && !isError && (
         <Box>
-          <Heading size="md" mb={4}>All Workouts ({assignedWorkouts?.length || 0})</Heading>
+          <Heading 
+            size={{ base: 'sm', md: 'md' }} 
+            mb={{ base: 3, md: 4 }}
+            color={useColorModeValue('gray.700', 'gray.200')}
+          >
+            All Workouts ({assignedWorkouts?.length || 0})
+          </Heading>
           {renderWorkoutCards(assignedWorkouts || [])}
         </Box>
       )}

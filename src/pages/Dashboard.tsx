@@ -65,19 +65,66 @@ function getMealTypeText(mealType: string): string {
 
 // Create a skeleton card component for loading states
 const SkeletonCard = ({ height = "330px" }: { height?: string }) => (
-  <Card borderRadius="lg" overflow="hidden" boxShadow={useColorModeValue('none', 'md')} h={height}>
-    <Skeleton height="80px" />
-    <CardBody pt={6}>
-      <SkeletonText mt="2" noOfLines={1} spacing="2" skeletonHeight="3" width="40%" mx="auto" />
-      <VStack spacing={4} mt={4}>
-        <Skeleton height="20px" width="100%" />
-        <Skeleton height="20px" width="100%" />
-        <Skeleton height="20px" width="100%" />
-        <Skeleton height="20px" width="100%" />
-        <Skeleton height="40px" width="120px" mx="auto" />
+  <Box
+    bg={useColorModeValue('white', 'gray.800')}
+    borderRadius="xl"
+    p={6}
+    border="1px solid"
+    borderColor={useColorModeValue('gray.200', 'gray.700')}
+    boxShadow={useColorModeValue('none', 'lg')}
+    h={height}
+  >
+    <Skeleton 
+      height="80px" 
+      borderRadius="lg"
+      mb={4}
+      startColor={useColorModeValue('gray.200', 'gray.700')}
+      endColor={useColorModeValue('gray.300', 'gray.600')}
+    />
+    <VStack spacing={4} align="stretch">
+      <SkeletonText 
+        mt="2" 
+        noOfLines={1} 
+        spacing="2" 
+        skeletonHeight="4" 
+        width="60%" 
+        startColor={useColorModeValue('gray.200', 'gray.700')}
+        endColor={useColorModeValue('gray.300', 'gray.600')}
+      />
+      <VStack spacing={3} align="stretch">
+        <Skeleton 
+          height="16px" 
+          width="100%" 
+          borderRadius="md"
+          startColor={useColorModeValue('gray.200', 'gray.700')}
+          endColor={useColorModeValue('gray.300', 'gray.600')}
+        />
+        <Skeleton 
+          height="16px" 
+          width="90%" 
+          borderRadius="md"
+          startColor={useColorModeValue('gray.200', 'gray.700')}
+          endColor={useColorModeValue('gray.300', 'gray.600')}
+        />
+        <Skeleton 
+          height="16px" 
+          width="75%" 
+          borderRadius="md"
+          startColor={useColorModeValue('gray.200', 'gray.700')}
+          endColor={useColorModeValue('gray.300', 'gray.600')}
+        />
+        <Skeleton 
+          height="40px" 
+          width="120px" 
+          borderRadius="lg"
+          mx="auto"
+          mt={4}
+          startColor={useColorModeValue('gray.200', 'gray.700')}
+          endColor={useColorModeValue('gray.300', 'gray.600')}
+        />
       </VStack>
-    </CardBody>
-  </Card>
+    </VStack>
+  </Box>
 );
 
 export function Dashboard() {
@@ -336,7 +383,7 @@ export function Dashboard() {
 
   return (
     <Box pt={0} pb={10} bg={useColorModeValue('gray.50', 'gray.900')}>
-      <Container maxW="container.xl" px={{ base: 4, md: 0 }} pt={0} mt={0}>
+      <Container maxW="container.xl" px={{ base: 2, md: 0 }} pt={0} mt={0}>
         {/* Header with personal greeting */}
         <Flex 
           mb={8} 
@@ -344,8 +391,9 @@ export function Dashboard() {
           align={{ base: "flex-start", lg: "center" }} 
           justify={{ base: "flex-start", lg: "space-between" }} 
           mt={0} 
-          pt={{ base: 6, md: 0 }}
-          gap={{ base: 6, lg: 6 }}
+          pt={{ base: 4, md: 0 }}
+          gap={{ base: 4, lg: 6 }}
+          px={{ base: 2, md: 0 }}
         >
           <Box flex="1">
             <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
@@ -389,25 +437,29 @@ export function Dashboard() {
         </Flex>
 
         {/* Today's Workouts Card */}
-        <TodayWorkoutsCard
-          todayWorkouts={todayWorkouts}
-          upcomingWorkouts={upcomingWorkouts}
-          profile={profile}
-          getWorkoutProgressData={getWorkoutProgressData}
-          handleStartWorkout={handleStartWorkout}
-          workoutsLoading={workoutsLoading}
-          profileLoading={profileLoading}
-        />
+        <Box px={{ base: 2, md: 0 }}>
+          <TodayWorkoutsCard
+            todayWorkouts={todayWorkouts}
+            upcomingWorkouts={upcomingWorkouts}
+            profile={profile}
+            getWorkoutProgressData={getWorkoutProgressData}
+            handleStartWorkout={handleStartWorkout}
+            workoutsLoading={workoutsLoading}
+            profileLoading={profileLoading}
+          />
+        </Box>
 
         {/* Today's Check-in Section */}
-        <TodaysCheckInSection onDataUpdate={handleDataUpdate} />
+        <Box px={{ base: 2, md: 0 }}>
+          <TodaysCheckInSection onDataUpdate={handleDataUpdate} />
+        </Box>
 
         {/* Analytics & Info Cards */}
         <SimpleGrid 
           columns={{ base: 1, md: 2, lg: 3 }} 
-          spacing={{ base: 6, md: 8 }} 
-          my={{ base: 8, md: 10 }}
-          px={{ base: 0, md: 0 }}
+          spacing={{ base: 4, md: 8 }} 
+          my={{ base: 6, md: 10 }}
+          px={{ base: 2, md: 0 }}
         >
           {/* Track Meets Card */}
           <TrackMeetsCard viewAllLink="/athlete/events" />
