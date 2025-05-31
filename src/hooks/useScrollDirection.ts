@@ -14,13 +14,36 @@ export const useScrollDirection = (threshold: number = 10) => {
   });
 
   useEffect(() => {
-    let lastScrollY = window.pageYOffset;
+    let lastScrollY = 0;
     let ticking = false;
 
     const updateScrollDirection = () => {
-      const scrollY = window.pageYOffset;
+      // Try multiple ways to get scroll position
+      const windowScrollY = window.pageYOffset || window.scrollY;
+      const documentScrollY = document.documentElement.scrollTop || document.body.scrollTop;
+      
+      // Use whichever scroll value is greater (indicates active scrolling)
+      let scrollY = Math.max(windowScrollY, documentScrollY);
+      
+      // Also check for any scrollable containers with class 'main' or similar
+      const mainContainer = document.querySelector('main, [role="main"], .main-content');
+      if (mainContainer && mainContainer.scrollTop > 0) {
+        scrollY = Math.max(scrollY, mainContainer.scrollTop);
+      }
+
       const direction = scrollY > lastScrollY ? 'down' : 'up';
       const scrollDifference = Math.abs(scrollY - lastScrollY);
+
+      // Debug logging
+      console.log('Scroll debug:', { 
+        windowScrollY, 
+        documentScrollY, 
+        mainScrollY: mainContainer?.scrollTop || 0,
+        finalScrollY: scrollY, 
+        lastScrollY,
+        scrollDifference,
+        threshold 
+      });
 
       // Only update if scroll difference is greater than threshold
       if (scrollDifference < threshold) {
@@ -48,10 +71,22 @@ export const useScrollDirection = (threshold: number = 10) => {
       }
     };
 
-    window.addEventListener('scroll', onScroll);
+    // Listen to multiple scroll sources
+    window.addEventListener('scroll', onScroll, { passive: true });
+    document.addEventListener('scroll', onScroll, { passive: true });
+    
+    // Also listen to the main content container if it exists
+    const mainContainer = document.querySelector('main, [role="main"], .main-content');
+    if (mainContainer) {
+      mainContainer.addEventListener('scroll', onScroll, { passive: true });
+    }
 
     return () => {
       window.removeEventListener('scroll', onScroll);
+      document.removeEventListener('scroll', onScroll);
+      if (mainContainer) {
+        mainContainer.removeEventListener('scroll', onScroll);
+      }
     };
   }, [threshold]);
 
