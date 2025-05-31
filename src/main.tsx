@@ -19,20 +19,27 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
       .then((registration) => {
         console.log('SW registered: ', registration);
         
+        // Check for updates immediately
+        registration.update();
+        
         // Listen for updates
         registration.addEventListener('updatefound', () => {
           const newWorker = registration.installing;
           if (newWorker) {
             newWorker.addEventListener('statechange', () => {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // New content is available, prompt user to refresh
-                if (confirm('New app version available! Refresh to update?')) {
-                  window.location.reload();
-                }
+                // New content is available, force reload for PWA
+                console.log('New PWA version available, updating...');
+                window.location.reload();
               }
             });
           }
         });
+        
+        // Also check for updates every 5 minutes
+        setInterval(() => {
+          registration.update();
+        }, 5 * 60 * 1000);
       })
       .catch((registrationError) => {
         console.log('SW registration failed: ', registrationError);
