@@ -111,97 +111,128 @@ const AthleteProfile = () => {
   ];
 
   return (
-    <Box maxW="lg" mx="auto" mt={8}>
-      {!editMode ? (
-        <ProfileCard
-          avatarUrl={avatarPreview || undefined}
-          bannerColor="#1976d2"
-          name={`${profile.first_name} ${profile.last_name}`}
-          role="Athlete"
-          stats={stats}
-          bio={profile.bio}
-          infoList={infoList}
-          onEdit={() => setEditMode(true)}
-          onAvatarEdit={handleAvatarClick}
-          onAction={() => {}}
-          editLabel="Edit Profile"
-          actionLabel="View Stats"
-        />
-      ) : (
-        <Box p={6} borderWidth={1} borderRadius="lg" boxShadow="md" bg={cardBg} borderColor={borderColor}>
-          <Heading size="lg" mb={6}>Edit Athlete Profile</Heading>
-          <form onSubmit={handleSubmit}>
-            <VStack spacing={5} align="stretch">
-              <FormControl>
-                <FormLabel>Avatar</FormLabel>
-                <HStack>
-                  <Avatar size="xl" src={avatarPreview || undefined} name={`${form.first_name} ${form.last_name}`} onClick={handleAvatarClick} cursor="pointer" />
-                  <input type="file" hidden ref={fileInputRef} accept="image/*" onChange={handleAvatarChange} />
-                  <Button onClick={handleAvatarClick} variant="outline">Change</Button>
+    <Box>
+      {/* Mobile Header - Fixed positioned */}
+      <Box
+        display={{ base: "block", lg: "none" }}
+        position="fixed"
+        top="26px"
+        right="16px"
+        zIndex={1001}
+        bg="transparent"
+      >
+        <Heading 
+          size="md"
+          color={useColorModeValue('gray.800', 'white')}
+          textAlign="right"
+          fontWeight="semibold"
+        >
+          My Profile
+        </Heading>
+      </Box>
+
+      {/* Desktop Header */}
+      <Heading 
+        size="lg" 
+        mb={6}
+        display={{ base: "none", lg: "block" }}
+        color={useColorModeValue('gray.800', 'white')}
+      >
+        My Profile
+      </Heading>
+
+      <Box maxW="lg" mx="auto" mt={{ base: "80px", lg: 8 }}>
+        {!editMode ? (
+          <ProfileCard
+            avatarUrl={avatarPreview || undefined}
+            bannerColor="#1976d2"
+            name={`${profile.first_name} ${profile.last_name}`}
+            role="Athlete"
+            stats={stats}
+            bio={profile.bio}
+            infoList={infoList}
+            onEdit={() => setEditMode(true)}
+            onAvatarEdit={handleAvatarClick}
+            onAction={() => {}}
+            editLabel="Edit Profile"
+            actionLabel="View Stats"
+          />
+        ) : (
+          <Box p={6} borderWidth={1} borderRadius="lg" boxShadow="md" bg={cardBg} borderColor={borderColor}>
+            <Heading size="lg" mb={6}>Edit Athlete Profile</Heading>
+            <form onSubmit={handleSubmit}>
+              <VStack spacing={5} align="stretch">
+                <FormControl>
+                  <FormLabel>Avatar</FormLabel>
+                  <HStack>
+                    <Avatar size="xl" src={avatarPreview || undefined} name={`${form.first_name} ${form.last_name}`} onClick={handleAvatarClick} cursor="pointer" />
+                    <input type="file" hidden ref={fileInputRef} accept="image/*" onChange={handleAvatarChange} />
+                    <Button onClick={handleAvatarClick} variant="outline">Change</Button>
+                  </HStack>
+                </FormControl>
+                <HStack spacing={4}>
+                  <FormControl isRequired>
+                    <FormLabel>First Name</FormLabel>
+                    <Input name="first_name" value={form.first_name} onChange={handleChange} bg={inputBg} />
+                  </FormControl>
+                  <FormControl isRequired>
+                    <FormLabel>Last Name</FormLabel>
+                    <Input name="last_name" value={form.last_name} onChange={handleChange} bg={inputBg} />
+                  </FormControl>
                 </HStack>
-              </FormControl>
-              <HStack spacing={4}>
                 <FormControl isRequired>
-                  <FormLabel>First Name</FormLabel>
-                  <Input name="first_name" value={form.first_name} onChange={handleChange} bg={inputBg} />
-                </FormControl>
-                <FormControl isRequired>
-                  <FormLabel>Last Name</FormLabel>
-                  <Input name="last_name" value={form.last_name} onChange={handleChange} bg={inputBg} />
-                </FormControl>
-              </HStack>
-              <FormControl isRequired>
-                <FormLabel>Email</FormLabel>
-                <Input name="email" type="email" value={form.email} onChange={handleChange} bg={inputBg} />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Phone</FormLabel>
-                <Input name="phone" value={form.phone} onChange={handleChange} bg={inputBg} />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Gender</FormLabel>
-                <Select name="gender" value={form.gender} onChange={handleChange} placeholder="Select gender" bg={inputBg}>
-                  {genderOptions.map((g) => <option key={g} value={g}>{g.charAt(0).toUpperCase() + g.slice(1)}</option>)}
-                </Select>
-              </FormControl>
-              <FormControl>
-                <FormLabel>Date of Birth</FormLabel>
-                <Input name="date_of_birth" type="date" value={form.date_of_birth} onChange={handleChange} bg={inputBg} />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Events (comma separated)</FormLabel>
-                <Input name="events" value={form.events} onChange={handleChange} placeholder="e.g. 100m, 200m, Long Jump" bg={inputBg} />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Address</FormLabel>
-                <Input name="address" value={form.address} onChange={handleChange} bg={inputBg} />
-              </FormControl>
-              <HStack spacing={4}>
-                <FormControl>
-                  <FormLabel>City</FormLabel>
-                  <Input name="city" value={form.city} onChange={handleChange} bg={inputBg} />
+                  <FormLabel>Email</FormLabel>
+                  <Input name="email" type="email" value={form.email} onChange={handleChange} bg={inputBg} />
                 </FormControl>
                 <FormControl>
-                  <FormLabel>State</FormLabel>
-                  <Input name="state" value={form.state} onChange={handleChange} bg={inputBg} />
+                  <FormLabel>Phone</FormLabel>
+                  <Input name="phone" value={form.phone} onChange={handleChange} bg={inputBg} />
                 </FormControl>
                 <FormControl>
-                  <FormLabel>Zip Code</FormLabel>
-                  <Input name="zip_code" value={form.zip_code} onChange={handleChange} bg={inputBg} />
+                  <FormLabel>Gender</FormLabel>
+                  <Select name="gender" value={form.gender} onChange={handleChange} placeholder="Select gender" bg={inputBg}>
+                    {genderOptions.map((g) => <option key={g} value={g}>{g.charAt(0).toUpperCase() + g.slice(1)}</option>)}
+                  </Select>
                 </FormControl>
-              </HStack>
-              <FormControl>
-                <FormLabel>Bio</FormLabel>
-                <Input name="bio" value={form.bio} onChange={handleChange} placeholder="Tell us about yourself..." bg={inputBg} />
-              </FormControl>
-              <HStack justify="flex-end">
-                <Button variant="ghost" onClick={() => setEditMode(false)}>Cancel</Button>
-                <Button colorScheme="blue" type="submit" isLoading={isUpdatingProfile}>Save Changes</Button>
-              </HStack>
-            </VStack>
-          </form>
-        </Box>
-      )}
+                <FormControl>
+                  <FormLabel>Date of Birth</FormLabel>
+                  <Input name="date_of_birth" type="date" value={form.date_of_birth} onChange={handleChange} bg={inputBg} />
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Events (comma separated)</FormLabel>
+                  <Input name="events" value={form.events} onChange={handleChange} placeholder="e.g. 100m, 200m, Long Jump" bg={inputBg} />
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Address</FormLabel>
+                  <Input name="address" value={form.address} onChange={handleChange} bg={inputBg} />
+                </FormControl>
+                <HStack spacing={4}>
+                  <FormControl>
+                    <FormLabel>City</FormLabel>
+                    <Input name="city" value={form.city} onChange={handleChange} bg={inputBg} />
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel>State</FormLabel>
+                    <Input name="state" value={form.state} onChange={handleChange} bg={inputBg} />
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel>Zip Code</FormLabel>
+                    <Input name="zip_code" value={form.zip_code} onChange={handleChange} bg={inputBg} />
+                  </FormControl>
+                </HStack>
+                <FormControl>
+                  <FormLabel>Bio</FormLabel>
+                  <Input name="bio" value={form.bio} onChange={handleChange} placeholder="Tell us about yourself..." bg={inputBg} />
+                </FormControl>
+                <HStack justify="flex-end">
+                  <Button variant="ghost" onClick={() => setEditMode(false)}>Cancel</Button>
+                  <Button colorScheme="blue" type="submit" isLoading={isUpdatingProfile}>Save Changes</Button>
+                </HStack>
+              </VStack>
+            </form>
+          </Box>
+        )}
+      </Box>
     </Box>
   );
 };
