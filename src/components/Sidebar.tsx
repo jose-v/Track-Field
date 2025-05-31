@@ -265,15 +265,19 @@ const Sidebar = ({ userType }: SidebarProps) => {
       left={4}
       zIndex={1002}
       size="md"
-      colorScheme="blue"
       variant="ghost"
       display={{ base: 'flex', md: 'none' }}
       onClick={onMobileDrawerOpen}
-      bg={useColorModeValue('white', 'gray.800')}
-      boxShadow="md"
+      bg="transparent"
+      boxShadow="none"
       borderRadius="md"
+      color={useColorModeValue('gray.700', 'gray.300')}
       _hover={{
-        bg: useColorModeValue('gray.50', 'gray.700'),
+        bg: useColorModeValue('gray.100', 'gray.700'),
+        color: useColorModeValue('blue.600', 'blue.300'),
+      }}
+      _active={{
+        bg: useColorModeValue('gray.200', 'gray.600'),
       }}
     />
   );

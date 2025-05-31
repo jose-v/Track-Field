@@ -336,23 +336,44 @@ export function Dashboard() {
 
   return (
     <Box pt={0} pb={10} bg={useColorModeValue('gray.50', 'gray.900')}>
-      <Container maxW="container.xl" px={0} pt={0} mt={0}>
+      <Container maxW="container.xl" px={{ base: 4, md: 0 }} pt={0} mt={0}>
         {/* Header with personal greeting */}
-        <Box mb={8} display="flex" alignItems="center" justifyContent="space-between" mt={0} pt={0}>
-          <Box>
+        <Flex 
+          mb={8} 
+          direction={{ base: "column", lg: "row" }}
+          align={{ base: "flex-start", lg: "center" }} 
+          justify={{ base: "flex-start", lg: "space-between" }} 
+          mt={0} 
+          pt={{ base: 6, md: 0 }}
+          gap={{ base: 6, lg: 6 }}
+        >
+          <Box flex="1">
             <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
-              <Heading as="h1" size="xl" mb={1}>
+              <Heading 
+                as="h1" 
+                size={{ base: "lg", md: "xl" }} 
+                mb={1}
+                color={useColorModeValue('gray.800', 'white')}
+              >
                 Welcome back, {profile?.first_name || user?.email?.split('@')[0] || 'Athlete'}
               </Heading>
             </Skeleton>
             <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
-              <Text color={useColorModeValue('gray.600', 'gray.200')}>
+              <Text 
+                color={useColorModeValue('gray.600', 'gray.200')}
+                fontSize={{ base: "sm", md: "md" }}
+              >
                 {profile?.role === 'athlete' ? 'Athlete Dashboard' : 'Dashboard'}
               </Text>
             </Skeleton>
           </Box>
-          {/* Weather Info Inline */}
-          <Box minW="390px" maxW="442px" ml={6}>
+          
+          {/* Weather Info - Responsive */}
+          <Box 
+            w={{ base: "100%", lg: "auto" }}
+            minW={{ base: "auto", lg: "390px" }} 
+            maxW={{ base: "100%", lg: "442px" }}
+          >
             <WeatherCard 
               city={profile?.city || "Greensboro"}
               state={profile?.state ? getStateAbbr(profile.state) : "NC"}
@@ -365,7 +386,7 @@ export function Dashboard() {
               fixedDate="Tuesday, May 20"
             />
           </Box>
-        </Box>
+        </Flex>
 
         {/* Today's Workouts Card */}
         <TodayWorkoutsCard
@@ -382,7 +403,12 @@ export function Dashboard() {
         <TodaysCheckInSection onDataUpdate={handleDataUpdate} />
 
         {/* Analytics & Info Cards */}
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8} my={10}>
+        <SimpleGrid 
+          columns={{ base: 1, md: 2, lg: 3 }} 
+          spacing={{ base: 6, md: 8 }} 
+          my={{ base: 8, md: 10 }}
+          px={{ base: 0, md: 0 }}
+        >
           {/* Track Meets Card */}
           <TrackMeetsCard viewAllLink="/athlete/events" />
 

@@ -204,7 +204,7 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
         p={0}
       >
         <Box
-          h="120px" 
+          h={{ base: "100px", md: "120px" }} 
           bg={headerGradient}
           position="relative"
           overflow="hidden"
@@ -212,19 +212,59 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
           justifyContent="center"
           alignItems="center"
         >
-          <Flex width="100%" justifyContent="center" alignItems="center" p={0}>
-          <Box display="flex" alignItems="center" justifyContent="center" mr={8}>
-            <Icon as={WeatherIcon} color="white" boxSize={90} />
+          <Flex 
+            width="100%" 
+            justifyContent="center" 
+            alignItems="center" 
+            p={0}
+            direction={{ base: "row", md: "row" }}
+            gap={{ base: 4, md: 6 }}
+          >
+          <Box display="flex" alignItems="center" justifyContent="center">
+            <Icon 
+              as={WeatherIcon} 
+              color="white" 
+              boxSize={{ base: 14, md: 20 }}
+            />
           </Box>
             <Box p={0} m={0}>
-            <Text fontSize="xl" fontWeight="medium" textAlign="center" mb={-1}>{weather.condition}</Text>
-            <Text fontSize="4xl" fontWeight="bold" textAlign="center" lineHeight="1">{weather.temp}°</Text>
+            <Text 
+              fontSize={{ base: "md", md: "xl" }} 
+              fontWeight="medium" 
+              textAlign="center" 
+              mb={-1}
+            >
+              {weather.condition}
+            </Text>
+            <Text 
+              fontSize={{ base: "2xl", md: "4xl" }} 
+              fontWeight="bold" 
+              textAlign="center" 
+              lineHeight="1"
+            >
+              {weather.temp}°
+            </Text>
             <Flex direction="column" mt={1} alignItems="center">
               <Flex alignItems="center" justifyContent="center">
-                <Icon as={FaMapMarkerAlt} color="blackAlpha.800" mr={1} />
-                <Text fontWeight="medium" fontSize="sm">{location}</Text>
+                <Icon 
+                  as={FaMapMarkerAlt} 
+                  color="blackAlpha.800" 
+                  mr={1} 
+                  boxSize={{ base: 3, md: 4 }}
+                />
+                <Text 
+                  fontWeight="medium" 
+                  fontSize={{ base: "xs", md: "sm" }}
+                >
+                  {location}
+                </Text>
               </Flex>
-              <Text mt={1} color="blackAlpha.800" fontSize="sm" textAlign="center">
+              <Text 
+                mt={1} 
+                color="blackAlpha.800" 
+                fontSize={{ base: "xs", md: "sm" }} 
+                textAlign="center"
+              >
                 {dateStr}
               </Text>
             </Flex>
