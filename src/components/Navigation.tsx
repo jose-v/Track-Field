@@ -22,11 +22,10 @@ import { HamburgerIcon, CloseIcon } from '@chakra-ui/icons'
 import { Link as RouterLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useProfile } from '../hooks/useProfile'
-import { FaBell, FaHome, FaCommentDots, FaExpand, FaDownload, FaCompress } from 'react-icons/fa'
+import { FaBell, FaHome, FaCommentDots, FaExpand, FaDownload, FaCompress, FaTachometerAlt } from 'react-icons/fa'
 import { useState, useEffect } from 'react'
 import { useFeedback } from './FeedbackProvider'
 import { ShareComponent } from './ShareComponent'
-import { BiLineChart } from 'react-icons/bi'
 import { usePWA } from '../hooks/usePWA'
 import { 
   navIconStyle,
@@ -144,8 +143,14 @@ const Navigation = () => {
   
   // Handle viewing notifications
   const handleViewNotifications = () => {
-    // For public navigation, direct to events page
-    window.location.href = '/events'
+    // Navigate to notifications based on user role
+    if (profile?.role === 'coach') {
+      window.location.href = '/coach/notifications'
+    } else if (profile?.role === 'athlete') {
+      window.location.href = '/athlete/notifications'
+    } else {
+      window.location.href = '/events'
+    }
     // Clear notification count when viewed
     setNotificationCount(0)
     localStorage.setItem('publicNotificationCount', '0')
@@ -296,6 +301,7 @@ const Navigation = () => {
                     )}
                   </MenuButton>
                   <MenuList>
+                    <MenuItem as={RouterLink} to="/" color={menuTextColor} _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}>Home</MenuItem>
                     <MenuItem as={RouterLink} to="/dashboard" color={menuTextColor} _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}>Dashboard</MenuItem>
                     <MenuItem as={RouterLink} 
                       to={profile?.role === 'coach' ? '/coach/profile' : profile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
@@ -344,7 +350,7 @@ const Navigation = () => {
               )
             ) : (
               <HStack spacing={4}>
-                {/* Home Button */}
+                {/* Home Button - Links to homepage */}
                 <IconButton
                   as={RouterLink}
                   to="/"
@@ -355,11 +361,11 @@ const Navigation = () => {
                   sx={homeIconStyle}
                 />
                 
-                {/* Dashboard Button */}
+                {/* Dashboard Button - Uses dashboard icon */}
                 <IconButton
                   as={RouterLink}
                   to="/dashboard"
-                  icon={<BiLineChart size="24px" />}
+                  icon={<FaTachometerAlt />}
                   aria-label="Dashboard"
                   variant="ghost"
                   size="md"
@@ -390,7 +396,7 @@ const Navigation = () => {
                 
                 {/* Notification Bell */}
                 <Box position="relative">
-                  <Tooltip label="Event notifications" hasArrow>
+                  <Tooltip label="Notifications" hasArrow>
                     <IconButton
                       icon={<FaBell />}
                       aria-label="Notifications"
@@ -441,6 +447,7 @@ const Navigation = () => {
                     )}
                   </MenuButton>
                   <MenuList>
+                    <MenuItem as={RouterLink} to="/" color={menuTextColor} _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}>Home</MenuItem>
                     <MenuItem as={RouterLink} to="/dashboard" color={menuTextColor} _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}>Dashboard</MenuItem>
                     <MenuItem as={RouterLink} 
                       to={profile?.role === 'coach' ? '/coach/profile' : profile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
@@ -502,7 +509,7 @@ const Navigation = () => {
                     to="/dashboard"
                     w="100%"
                     justifyContent="flex-start"
-                    leftIcon={<BiLineChart />}
+                    leftIcon={<FaTachometerAlt />}
                   >
                     Dashboard
                   </Button>
@@ -511,11 +518,21 @@ const Navigation = () => {
                     size="sm"
                     onClick={onToggle}
                     as={RouterLink} 
-                    to="/profile"
+                    to={profile?.role === 'coach' ? '/coach/profile' : profile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
                     w="100%"
                     justifyContent="flex-start"
                   >
                     Profile
+                  </Button>
+                  <Button 
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleViewNotifications}
+                    w="100%"
+                    justifyContent="flex-start"
+                    leftIcon={<FaBell />}
+                  >
+                    Notifications
                   </Button>
                   <Button 
                     colorScheme="red"
@@ -578,9 +595,30 @@ const Navigation = () => {
                   to="/dashboard"
                   w="100%"
                   justifyContent="flex-start"
-                  leftIcon={<BiLineChart />}
+                  leftIcon={<FaTachometerAlt />}
                 >
                   Dashboard
+                </Button>
+                <Button 
+                  variant="ghost"
+                  size="sm"
+                  onClick={onToggle}
+                  as={RouterLink} 
+                  to={profile?.role === 'coach' ? '/coach/profile' : profile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
+                  w="100%"
+                  justifyContent="flex-start"
+                >
+                  Profile
+                </Button>
+                <Button 
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleViewNotifications}
+                  w="100%"
+                  justifyContent="flex-start"
+                  leftIcon={<FaBell />}
+                >
+                  Notifications
                 </Button>
                 <Button 
                   colorScheme="red"
