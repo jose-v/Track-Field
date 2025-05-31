@@ -138,10 +138,11 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
       w={`calc(100% - ${sidebarWidth}px)`}
       right="0"
       top="0"
-      zIndex={1001}
+      zIndex={999}
       py={3}
       px={6}
       transition="width 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+      display={{ base: 'none', md: 'block' }}
     >
       <Flex justify="space-between" align="center">
         {/* Left side - App title & role badge (removed) */}

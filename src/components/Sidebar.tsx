@@ -11,16 +11,44 @@ import {
   Tooltip,
   Avatar,
   Badge,
-  HStack
+  HStack,
+  useDisclosure,
+  Drawer,
+  DrawerBody,
+  DrawerHeader,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerCloseButton,
+  IconButton,
+  useBreakpointValue
 } from '@chakra-ui/react';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
-import { FaChevronLeft, FaChevronRight, FaUsers, FaVideo, FaBook, FaCalendarAlt, FaBell, FaUserAlt, FaHome, FaDumbbell, FaChartBar, FaRunning } from 'react-icons/fa';
+import { 
+  FaChevronLeft, 
+  FaChevronRight, 
+  FaUsers, 
+  FaVideo, 
+  FaBook, 
+  FaCalendarAlt, 
+  FaBell, 
+  FaUserAlt, 
+  FaHome, 
+  FaDumbbell, 
+  FaChartBar, 
+  FaRunning,
+  FaShare,
+  FaCog,
+  FaSignOutAlt
+} from 'react-icons/fa';
 import { BiLineChart } from 'react-icons/bi';
 import { BsCalendarCheck } from 'react-icons/bs';
 import { MdLoop, MdRestaurantMenu, MdOutlineBedtime, MdOutlineReport, MdOutlineForum } from 'react-icons/md';
+import { HamburgerIcon } from '@chakra-ui/icons';
+import { LuHouse, LuMessageCircleMore, LuBellRing, LuShare } from 'react-icons/lu';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../hooks/useProfile';
 import { ThemeToggle } from './ThemeToggle';
+import { useFeedback } from './FeedbackProvider';
 
 interface NavItemProps {
   icon: React.ElementType;
@@ -29,13 +57,79 @@ interface NavItemProps {
   isActive: boolean;
   isCollapsed: boolean;
   badge?: string;
+  isMobile?: boolean;
 }
 
-const NavItem = ({ icon, label, to, isActive, isCollapsed, badge }: NavItemProps) => {
+interface SidebarProps {
+  userType: 'coach' | 'athlete';
+}
+
+// Mobile-specific nav item component
+const MobileNavItem = ({ icon, label, to, isActive, onClick }: {
+  icon: React.ElementType;
+  label: string;
+  to: string;
+  isActive: boolean;
+  onClick?: () => void;
+}) => {
+  const activeBg = useColorModeValue('blue.50', 'blue.900');
+  const hoverBg = useColorModeValue('gray.100', 'gray.700');
+  const activeColor = useColorModeValue('blue.600', 'blue.200');
+  const color = useColorModeValue('gray.700', 'gray.300');
+  
+  return (
+    <Flex
+      as={RouterLink}
+      to={to}
+      onClick={onClick}
+      align="center"
+      p={4}
+      borderRadius="lg"
+      role="group"
+      cursor="pointer"
+      bg={isActive ? activeBg : 'transparent'}
+      color={isActive ? activeColor : color}
+      fontWeight={isActive ? 'semibold' : 'medium'}
+      transition="all 0.2s"
+      justify="flex-start"
+      _hover={{
+        bg: hoverBg,
+        color: activeColor,
+      }}
+      _active={{
+        bg: activeBg,
+        color: activeColor,
+      }}
+    >
+      <Icon
+        as={icon}
+        fontSize="xl"
+        color={isActive ? activeColor : color}
+        mr={4}
+      />
+      <Flex justify="space-between" width="100%" align="center">
+        <Text fontSize="md">{label}</Text>
+      </Flex>
+    </Flex>
+  );
+};
+
+const NavItem = ({ icon, label, to, isActive, isCollapsed, badge, isMobile = false }: NavItemProps) => {
   const activeBg = useColorModeValue('blue.50', 'blue.900');
   const hoverBg = useColorModeValue('gray.100', 'gray.700');
   const activeColor = useColorModeValue('blue.600', 'blue.200');
   const color = '#898989';
+  
+  if (isMobile) {
+    return (
+      <MobileNavItem 
+        icon={icon}
+        label={label}
+        to={to}
+        isActive={isActive}
+      />
+    );
+  }
   
   return (
     <Tooltip label={isCollapsed ? label : ''} placement="right" hasArrow isDisabled={!isCollapsed}>
@@ -88,23 +182,28 @@ const NavItem = ({ icon, label, to, isActive, isCollapsed, badge }: NavItemProps
   );
 };
 
-interface SidebarProps {
-  userType: 'athlete' | 'coach';
-}
-
 const Sidebar = ({ userType }: SidebarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(() => {
     // Initialize from localStorage
     const saved = localStorage.getItem('sidebarCollapsed');
     return saved === 'true';
   });
+  
+  // Mobile drawer state
+  const { isOpen: isMobileDrawerOpen, onOpen: onMobileDrawerOpen, onClose: onMobileDrawerClose } = useDisclosure();
+  
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { profile } = useProfile();
+  const { showFeedbackModal } = useFeedback();
+  
+  // Check if we're on mobile
+  const isMobile = useBreakpointValue({ base: true, md: false });
   
   const bgColor = useColorModeValue('white', 'gray.900');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const sidebarShadow = useColorModeValue('none', 'sm');
+  const drawerBg = useColorModeValue('white', 'gray.900');
   
   useEffect(() => {
     // Save to localStorage whenever it changes
@@ -115,163 +214,379 @@ const Sidebar = ({ userType }: SidebarProps) => {
       detail: { isCollapsed, width: isCollapsed ? 70 : 200 } 
     }));
   }, [isCollapsed]);
-  
-  const navItems: Array<{
-    icon: React.ElementType;
-    label: string;
-    to: string;
-    badge?: string;
-  }> = userType === 'coach' 
-    ? [
-        { icon: FaHome, label: 'HOME', to: '/' },
-        { icon: BiLineChart, label: 'DASHBOARD', to: '/coach/dashboard' },
-        { icon: FaUsers, label: 'ATHLETES', to: '/coach/athletes' },
-        { icon: BsCalendarCheck, label: 'WORKOUTS', to: '/coach/workouts' },
-        { icon: FaDumbbell, label: 'WORKOUT CREATOR', to: '/coach/workout-creator', badge: 'BETA' },
-        { icon: FaCalendarAlt, label: 'CALENDAR', to: '/coach/calendar' },
-        { icon: FaChartBar, label: 'ANALYTICS', to: '/coach/analytics' },
-        { icon: MdOutlineReport, label: 'REPORTS', to: '/coach/stats' },
-        { icon: MdOutlineForum, label: 'LOOP', to: '/coach/loop' },
-        { icon: FaBell, label: 'NOTIFICATIONS', to: '/coach/notifications' },
-        { icon: FaUserAlt, label: 'PROFILE', to: '/coach/profile' },
-      ]
-    : [
-        { icon: FaHome, label: 'HOME', to: '/' },
-        { icon: BiLineChart, label: 'DASHBOARD', to: '/athlete/dashboard' },
-        { icon: BsCalendarCheck, label: 'MY WORKOUTS', to: '/athlete/workouts' },
-        { icon: FaDumbbell, label: 'WORKOUT CREATOR', to: '/athlete/workout-creator', badge: 'BETA' },
-        { icon: FaRunning, label: 'EVENTS', to: '/athlete/events' },
-        { icon: FaCalendarAlt, label: 'CALENDAR', to: '/athlete/calendar' },
-        { icon: MdRestaurantMenu, label: 'NUTRITION', to: '/athlete/nutrition' },
-        { icon: MdOutlineBedtime, label: 'SLEEP', to: '/athlete/sleep' },
-        { icon: FaChartBar, label: 'ANALYTICS', to: '/athlete/analytics' },
-        { icon: MdOutlineForum, label: 'LOOP', to: '/athlete/loop' },
-        { icon: FaBell, label: 'NOTIFICATIONS', to: '/athlete/notifications' },
-        { icon: FaUserAlt, label: 'PROFILE', to: '/athlete/profile' },
-      ];
 
-  const getInitials = (name: string) => {
-    if (name.includes('@')) {
-      const [localPart] = name.split('@');
-      return localPart[0]?.toUpperCase() || 'U';
+  // Get navigation items based on user type
+  const getNavItems = () => {
+    if (userType === 'athlete') {
+      return [
+        { icon: FaHome, label: 'Dashboard', to: '/athlete/dashboard' },
+        { icon: FaDumbbell, label: 'My Workouts', to: '/athlete/workouts' },
+        { icon: FaCalendarAlt, label: 'Calendar', to: '/athlete/calendar' },
+        { icon: FaChartBar, label: 'Analytics', to: '/athlete/analytics' },
+        { icon: BsCalendarCheck, label: 'Events', to: '/athlete/events' },
+        { icon: MdRestaurantMenu, label: 'Nutrition', to: '/athlete/nutrition' },
+        { icon: MdOutlineBedtime, label: 'Sleep', to: '/athlete/sleep' },
+        { icon: MdOutlineReport, label: 'Wellness', to: '/athlete/wellness' },
+        { icon: MdLoop, label: 'Loop', to: '/loop' },
+      ];
+    } else {
+      return [
+        { icon: FaHome, label: 'Dashboard', to: '/coach/dashboard' },
+        { icon: FaUsers, label: 'Athletes', to: '/coach/athletes' },
+        { icon: FaDumbbell, label: 'Workouts', to: '/coach/workouts' },
+        { icon: FaCalendarAlt, label: 'Calendar', to: '/coach/calendar' },
+        { icon: FaChartBar, label: 'Analytics', to: '/coach/analytics' },
+        { icon: BsCalendarCheck, label: 'Events', to: '/coach/events' },
+        { icon: FaBook, label: 'Resources', to: '/coach/resources' },
+        { icon: MdOutlineForum, label: 'Forum', to: '/coach/forum' },
+        { icon: MdLoop, label: 'Loop', to: '/loop' },
+      ];
     }
-    
-    const parts = name.split(/\s+/).filter(Boolean);
-    if (parts.length === 0) return 'U';
-    if (parts.length === 1) return parts[0][0]?.toUpperCase() || 'U';
-    return `${parts[0][0] || ''}${parts[parts.length-1][0] || ''}`.toUpperCase();
   };
+
+  const navItems = getNavItems();
   
-  const userInitials = profile && profile.first_name ? 
-    getInitials(`${profile.first_name} ${profile.last_name || ''}`) : 
-    user?.email ? getInitials(user.email) : 'U';
-  
-  const getRoleLabel = (role?: string) => {
-    if (!role) return '';
-    if (role === 'athlete') return 'Athlete';
-    if (role === 'coach') return 'Coach';
-    if (role === 'team_manager') return 'Team Manager';
-    return role.charAt(0).toUpperCase() + role.slice(1);
-  };
-  const roleName = getRoleLabel(profile?.role);
+  // Get user display info
+  const userInitials = profile?.first_name && profile?.last_name 
+    ? `${profile.first_name[0]}${profile.last_name[0]}`.toUpperCase()
+    : user?.email?.[0]?.toUpperCase() || 'U';
+  const roleName = userType === 'athlete' ? 'Athlete' : 'Coach';
+  const fullName = profile?.first_name && profile?.last_name 
+    ? `${profile.first_name} ${profile.last_name}`
+    : user?.email || 'User';
+
+  // Mobile hamburger trigger (visible on mobile, hidden on desktop)
+  const MobileHamburgerTrigger = () => (
+    <IconButton
+      aria-label="Open Menu"
+      icon={<HamburgerIcon />}
+      position="fixed"
+      top={4}
+      left={4}
+      zIndex={1002}
+      size="md"
+      colorScheme="blue"
+      variant="ghost"
+      display={{ base: 'flex', md: 'none' }}
+      onClick={onMobileDrawerOpen}
+      bg={useColorModeValue('white', 'gray.800')}
+      boxShadow="md"
+      borderRadius="md"
+      _hover={{
+        bg: useColorModeValue('gray.50', 'gray.700'),
+      }}
+    />
+  );
+
+  // Mobile drawer content
+  const MobileDrawerContent = () => (
+    <Drawer
+      isOpen={isMobileDrawerOpen}
+      placement="left"
+      onClose={onMobileDrawerClose}
+      size="full" // This makes it 100% width
+    >
+      <DrawerOverlay bg="blackAlpha.600" />
+      <DrawerContent
+        maxW="67vw" // Gmail-style 2/3 screen width
+        bg={drawerBg}
+        borderRightRadius="xl"
+        boxShadow="2xl"
+      >
+        {/* Custom close button in header */}
+        <DrawerHeader borderBottomWidth="1px" borderColor={borderColor} pb={4}>
+          <Flex align="center" justify="space-between">
+            <Text fontWeight="bold" fontSize="xl" color="blue.500">
+              Track & Field
+            </Text>
+            <DrawerCloseButton position="static" />
+          </Flex>
+        </DrawerHeader>
+
+        <DrawerBody px={0} py={0}>
+          <VStack spacing={0} align="stretch" height="100%">
+            {/* User Profile Section */}
+            <Box p={6} borderBottomWidth="1px" borderColor={borderColor}>
+              <Flex align="center" gap={3}>
+                <Avatar 
+                  size="md"
+                  bg="blue.500" 
+                  color="white"
+                  name={userInitials}
+                  src={profile?.avatar_url}
+                />
+                <VStack align="start" spacing={0} flex="1">
+                  <Text fontWeight="semibold" fontSize="md" color={useColorModeValue('gray.800', 'white')}>
+                    {fullName}
+                  </Text>
+                  <Badge colorScheme="blue" fontSize="xs" textTransform="uppercase">
+                    {roleName}
+                  </Badge>
+                </VStack>
+              </Flex>
+            </Box>
+
+            {/* Main Navigation */}
+            <Box flex="1" overflowY="auto">
+              <VStack spacing={1} align="stretch" p={4}>
+                <Text 
+                  fontSize="xs" 
+                  fontWeight="bold" 
+                  color={useColorModeValue('gray.500', 'gray.400')}
+                  textTransform="uppercase" 
+                  letterSpacing="wider"
+                  mb={2}
+                  px={4}
+                >
+                  Main Menu
+                </Text>
+                
+                {navItems.map((item) => {
+                  const isHome = item.to === '/';
+                  const isActive = isHome
+                    ? location.pathname === '/'
+                    : location.pathname === item.to || (item.to !== '/loop' && location.pathname.startsWith(item.to));
+                  return (
+                    <MobileNavItem
+                      key={item.to}
+                      icon={item.icon}
+                      label={item.label}
+                      to={item.to}
+                      isActive={isActive}
+                      onClick={onMobileDrawerClose}
+                    />
+                  );
+                })}
+              </VStack>
+
+              {/* App Links Section */}
+              <Box px={4} mt={6}>
+                <Text 
+                  fontSize="xs" 
+                  fontWeight="bold" 
+                  color={useColorModeValue('gray.500', 'gray.400')}
+                  textTransform="uppercase" 
+                  letterSpacing="wider"
+                  mb={3}
+                  px={4}
+                >
+                  Quick Actions
+                </Text>
+                
+                <VStack spacing={1} align="stretch">
+                  <MobileNavItem
+                    icon={LuHouse}
+                    label="Home"
+                    to="/"
+                    isActive={location.pathname === '/'}
+                    onClick={onMobileDrawerClose}
+                  />
+                  
+                  <MobileNavItem
+                    icon={LuBellRing}
+                    label="Notifications"
+                    to={userType === 'athlete' ? '/athlete/notifications' : '/coach/notifications'}
+                    isActive={location.pathname.includes('/notifications')}
+                    onClick={onMobileDrawerClose}
+                  />
+                  
+                  <MobileNavItem
+                    icon={FaUserAlt}
+                    label="Profile"
+                    to={userType === 'athlete' ? '/athlete/profile' : '/coach/profile'}
+                    isActive={location.pathname.includes('/profile')}
+                    onClick={onMobileDrawerClose}
+                  />
+                </VStack>
+              </Box>
+
+              {/* Support & Settings Section */}
+              <Box px={4} mt={6}>
+                <Text 
+                  fontSize="xs" 
+                  fontWeight="bold" 
+                  color={useColorModeValue('gray.500', 'gray.400')}
+                  textTransform="uppercase" 
+                  letterSpacing="wider"
+                  mb={3}
+                  px={4}
+                >
+                  Support
+                </Text>
+                
+                <VStack spacing={1} align="stretch">
+                  <Button
+                    leftIcon={<Icon as={LuMessageCircleMore} />}
+                    variant="ghost"
+                    justifyContent="flex-start"
+                    p={4}
+                    borderRadius="lg"
+                    onClick={() => {
+                      showFeedbackModal();
+                      onMobileDrawerClose();
+                    }}
+                    color={useColorModeValue('gray.700', 'gray.300')}
+                    _hover={{
+                      bg: useColorModeValue('gray.100', 'gray.700'),
+                      color: useColorModeValue('blue.600', 'blue.200'),
+                    }}
+                  >
+                    <Text fontSize="md" ml={1}>Give Feedback</Text>
+                  </Button>
+                  
+                  <Button
+                    leftIcon={<Icon as={LuShare} />}
+                    variant="ghost"
+                    justifyContent="flex-start"
+                    p={4}
+                    borderRadius="lg"
+                    onClick={() => {
+                      // Share functionality
+                      onMobileDrawerClose();
+                    }}
+                    color={useColorModeValue('gray.700', 'gray.300')}
+                    _hover={{
+                      bg: useColorModeValue('gray.100', 'gray.700'),
+                      color: useColorModeValue('blue.600', 'blue.200'),
+                    }}
+                  >
+                    <Text fontSize="md" ml={1}>Share App</Text>
+                  </Button>
+                </VStack>
+              </Box>
+            </Box>
+
+            {/* Bottom Actions */}
+            <Box p={4} borderTopWidth="1px" borderColor={borderColor}>
+              <HStack justify="space-between" align="center">
+                <ThemeToggle size="md" />
+                <Button
+                  leftIcon={<Icon as={FaSignOutAlt} />}
+                  variant="ghost"
+                  colorScheme="red"
+                  size="sm"
+                  onClick={() => {
+                    signOut();
+                    onMobileDrawerClose();
+                  }}
+                >
+                  Sign Out
+                </Button>
+              </HStack>
+            </Box>
+          </VStack>
+        </DrawerBody>
+      </DrawerContent>
+    </Drawer>
+  );
 
   return (
-    <Box
-      position="fixed"
-      left={0}
-      top={0}
-      h="100vh"
-      w={isCollapsed ? "70px" : "200px"}
-      bg={bgColor}
-      borderRight="1px"
-      borderColor={borderColor}
-      transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-      zIndex={1000}
-      boxShadow={sidebarShadow}
-      overflow="hidden"
-    >
-      <VStack spacing={0} align="stretch" h="100%">
-        <Flex 
-          direction="column" 
-          align="center" 
-          justify="center" 
-          py={6}
-          borderBottom="1px"
-          borderColor={borderColor}
-        >
-          <Avatar 
-            size={isCollapsed ? "sm" : "md"}
-            bg="blue.500" 
-            color="white"
-            name={userInitials}
-            src={profile?.avatar_url}
-            mb={isCollapsed ? 0 : 2}
-          />
+    <>
+      {/* Mobile Hamburger Trigger */}
+      <MobileHamburgerTrigger />
+      
+      {/* Mobile Drawer */}
+      <MobileDrawerContent />
+      
+      {/* Desktop Sidebar */}
+      <Box
+        position="fixed"
+        left={0}
+        top={0}
+        h="100vh"
+        w={isCollapsed ? "70px" : "200px"}
+        bg={bgColor}
+        borderRight="1px"
+        borderColor={borderColor}
+        transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+        zIndex={1000}
+        boxShadow={sidebarShadow}
+        overflow="hidden"
+        display={{ base: 'none', md: 'block' }} // Hide on mobile, show on desktop
+      >
+        <VStack spacing={0} align="stretch" h="100%">
+          <Flex 
+            direction="column" 
+            align="center" 
+            justify="center" 
+            py={6}
+            borderBottom="1px"
+            borderColor={borderColor}
+          >
+            <Avatar 
+              size={isCollapsed ? "sm" : "md"}
+              bg="blue.500" 
+              color="white"
+              name={userInitials}
+              src={profile?.avatar_url}
+              mb={isCollapsed ? 0 : 2}
+            />
+            
+            {!isCollapsed && (
+              <Text fontSize="sm" fontWeight="bold" color="#898989" mt={2} textTransform="uppercase">{roleName}</Text>
+            )}
+          </Flex>
           
-          {!isCollapsed && (
-            <Text fontSize="sm" fontWeight="bold" color="#898989" mt={2} textTransform="uppercase">{roleName}</Text>
-          )}
-        </Flex>
-        
-        <VStack spacing={1} align="stretch" py={4} flex="1">
-          {navItems.map((item) => {
-            const isHome = item.to === '/';
-            const isActive = isHome
-              ? location.pathname === '/'
-              : location.pathname === item.to || (item.to !== '/loop' && location.pathname.startsWith(item.to));
-            return (
-              <NavItem
-                key={item.to}
-                icon={item.icon}
-                label={item.label}
-                to={item.to}
-                isActive={isActive}
-                isCollapsed={isCollapsed}
-                badge={item.badge}
-              />
-            );
-          })}
-        </VStack>
-        
-        <Box p={4} borderTop="1px" borderColor={borderColor}>
-          {isCollapsed ? (
-            // Collapsed layout: Theme toggle above arrow
-            <VStack spacing={3} w="100%" align="center">
-              <Flex justify="center" align="center" w="100%">
-                <ThemeToggle size="md" />
-              </Flex>
-              <Flex justify="center" align="center" w="100%">
+          <VStack spacing={1} align="stretch" py={4} flex="1">
+            {navItems.map((item) => {
+              const isHome = item.to === '/';
+              const isActive = isHome
+                ? location.pathname === '/'
+                : location.pathname === item.to || (item.to !== '/loop' && location.pathname.startsWith(item.to));
+              return (
+                <NavItem
+                  key={item.to}
+                  icon={item.icon}
+                  label={item.label}
+                  to={item.to}
+                  isActive={isActive}
+                  isCollapsed={isCollapsed}
+                  badge={undefined}
+                />
+              );
+            })}
+          </VStack>
+          
+          <Box p={4} borderTop="1px" borderColor={borderColor}>
+            {isCollapsed ? (
+              // Collapsed layout: Theme toggle above arrow
+              <VStack spacing={3} w="100%" align="center">
+                <Flex justify="center" align="center" w="100%">
+                  <ThemeToggle size="md" />
+                </Flex>
+                <Flex justify="center" align="center" w="100%">
+                  <Button 
+                    size="sm"
+                    variant="ghost"
+                    minW="auto"
+                    px={2}
+                    justifyContent="center"
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                  >
+                    <Icon as={FaChevronRight} />
+                  </Button>
+                </Flex>
+              </VStack>
+            ) : (
+              // Expanded layout: Theme toggle next to hide menu button
+              <HStack justify="space-between" w="100%">
                 <Button 
+                  leftIcon={<Icon as={FaChevronLeft} />}
                   size="sm"
                   variant="ghost"
-                  minW="auto"
-                  px={2}
-                  justifyContent="center"
+                  flex="1"
+                  justifyContent="flex-start"
                   onClick={() => setIsCollapsed(!isCollapsed)}
                 >
-                  <Icon as={FaChevronRight} />
+                  HIDE MENU
                 </Button>
-              </Flex>
-            </VStack>
-          ) : (
-            // Expanded layout: Theme toggle next to hide menu button
-            <HStack justify="space-between" w="100%">
-              <Button 
-                leftIcon={<Icon as={FaChevronLeft} />}
-                size="sm"
-                variant="ghost"
-                flex="1"
-                justifyContent="flex-start"
-                onClick={() => setIsCollapsed(!isCollapsed)}
-              >
-                HIDE MENU
-              </Button>
-              <ThemeToggle size="sm" />
-            </HStack>
-          )}
-        </Box>
-      </VStack>
-    </Box>
+                <ThemeToggle size="sm" />
+              </HStack>
+            )}
+          </Box>
+        </VStack>
+      </Box>
+    </>
   );
 };
 
