@@ -1,5 +1,5 @@
 // Track & Field PWA Service Worker
-const CACHE_NAME = 'track-field-v7';
+const CACHE_NAME = 'track-field-v8';
 const urlsToCache = [
   '/',
   '/dashboard',
@@ -27,13 +27,22 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Fetch event - Handle SPA routing
+// Fetch event - Handle SPA routing with better PWA support
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  
   // Handle navigation requests for SPA
   if (event.request.mode === 'navigate') {
+    console.log('[SW] Navigation request:', url.pathname, url.search);
+    
     event.respondWith(
       fetch(event.request)
+        .then(response => {
+          console.log('[SW] Navigation successful:', url.pathname);
+          return response;
+        })
         .catch(() => {
+          console.log('[SW] Navigation failed, returning index for SPA:', url.pathname);
           // If network fails, return the main index.html for SPA routing
           return caches.match('/');
         })
@@ -77,4 +86,17 @@ self.addEventListener('activate', (event) => {
       return self.clients.claim();
     })
   );
+});
+
+// Handle PWA-specific events
+self.addEventListener('message', (event) => {
+  console.log('[SW] Message received:', event.data);
+  
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+  
+  if (event.data && event.data.type === 'GET_VERSION') {
+    event.ports[0].postMessage({ version: CACHE_NAME });
+  }
 }); 

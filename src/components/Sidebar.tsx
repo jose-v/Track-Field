@@ -50,6 +50,7 @@ import { useProfile } from '../hooks/useProfile';
 import { ThemeToggle } from './ThemeToggle';
 import { useFeedback } from './FeedbackProvider';
 import { useScrollDirection } from '../hooks/useScrollDirection';
+import { PWADebugConsole } from './PWADebugConsole';
 
 interface NavItemProps {
   icon: React.ElementType;
@@ -206,6 +207,10 @@ const Sidebar = ({ userType }: SidebarProps) => {
   const sidebarShadow = useColorModeValue('none', 'sm');
   const drawerBg = useColorModeValue('white', 'gray.900');
   
+  const [debugConsoleOpen, setDebugConsoleOpen] = useState(false);
+  const [tapCount, setTapCount] = useState(0);
+  const [tapTimer, setTapTimer] = useState<NodeJS.Timeout | null>(null);
+  
   useEffect(() => {
     // Save to localStorage whenever it changes
     localStorage.setItem('sidebarCollapsed', isCollapsed.toString());
@@ -314,6 +319,25 @@ const Sidebar = ({ userType }: SidebarProps) => {
       }
     };
 
+    // Handle triple-tap for debug console
+    const handleLogoClick = () => {
+      setTapCount(prev => prev + 1);
+      
+      if (tapTimer) {
+        clearTimeout(tapTimer);
+      }
+      
+      const timer = setTimeout(() => {
+        if (tapCount + 1 >= 3) {
+          console.log('PWA Debug Console triggered');
+          setDebugConsoleOpen(true);
+        }
+        setTapCount(0);
+      }, 500);
+      
+      setTapTimer(timer);
+    };
+
     return (
       <Drawer
         isOpen={isMobileDrawerOpen}
@@ -330,15 +354,21 @@ const Sidebar = ({ userType }: SidebarProps) => {
           {/* Custom close button in header */}
           <DrawerHeader borderBottomWidth="1px" borderColor={borderColor} pb={4}>
             <Flex align="center" justify="center">
-              <Text 
-                fontWeight="bold" 
-                fontSize="xl" 
-                color="blue.500"
-                onDoubleClick={clearPWACache} // Double-tap logo to clear cache
-                cursor="pointer"
-              >
-                Track & Field
-              </Text>
+              <VStack spacing={1} align="center">
+                <IconButton
+                  aria-label="Home"
+                  icon={<FaHome />}
+                  variant="ghost"
+                  size="lg"
+                  color="blue.400"
+                  _hover={{ color: 'blue.300' }}
+                  onClick={handleLogoClick} // Changed from clearPWACache to handleLogoClick
+                  onDoubleClick={clearPWACache} // Keep double-click for cache clearing
+                />
+                <Text fontSize="xs" color="gray.400" textAlign="center" lineHeight="tight">
+                  Track &<br />Field
+                </Text>
+              </VStack>
             </Flex>
           </DrawerHeader>
 
@@ -618,6 +648,11 @@ const Sidebar = ({ userType }: SidebarProps) => {
           </Box>
         </VStack>
       </Box>
+
+      <PWADebugConsole 
+        isOpen={debugConsoleOpen} 
+        onClose={() => setDebugConsoleOpen(false)} 
+      />
     </>
   );
 };

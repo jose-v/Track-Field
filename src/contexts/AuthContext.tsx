@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { PWADebugger } from '../utils/pwaDebug'
 
 interface AuthContextType {
   user: User | null
@@ -39,27 +40,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Check active sessions and sets the user
     const initializeAuth = async () => {
       try {
+        PWADebugger.log('Auth initialization started');
         console.log('Initializing auth state...');
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
+          PWADebugger.log('Auth initialization error', error);
           console.error('Error getting session:', error);
           setLoading(false);
           return;
         }
         
         if (data?.session) {
+          PWADebugger.log('Session found during initialization', { userId: data.session.user?.id });
           console.log('Session found during initialization');
           setUser(data.session.user);
           setSession(data.session);
         } else {
+          PWADebugger.log('No active session found during initialization');
           console.log('No active session found');
           setUser(null);
           setSession(null);
         }
       } catch (e) {
+        PWADebugger.log('Unexpected error during auth initialization', e);
         console.error('Unexpected error during auth initialization:', e);
       } finally {
+        PWADebugger.log('Auth initialization completed');
         setLoading(false);
       }
     };
@@ -68,6 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for changes on auth state
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      PWADebugger.log('Auth state changed', { event: _event, hasSession: !!newSession });
       console.log('Auth state changed:', _event);
       
       if (newSession) {
