@@ -74,9 +74,29 @@ export function Analytics() {
   return (
     <Box bg={bgColor} minH="100vh">
       <Container maxW="7xl" py={8}>
+        {/* Mobile Header - Fixed positioned */}
+        <Box
+          display={{ base: "block", lg: "none" }}
+          position="fixed"
+          top="26px"
+          right="16px"
+          zIndex={1001}
+          bg="transparent"
+        >
+          <Heading 
+            size="md"
+            color={useColorModeValue('gray.800', 'white')}
+            textAlign="right"
+            fontWeight="semibold"
+          >
+            Analytics Dashboard
+          </Heading>
+        </Box>
+
         {/* Header */}
-        <VStack spacing={6} align="stretch">
-          <Box>
+        <VStack spacing={6} align="stretch" mt={{ base: "80px", lg: 0 }}>
+          {/* Desktop Header */}
+          <Box display={{ base: "none", lg: "block" }}>
             <HStack justify="space-between" align="center" mb={4}>
               <VStack align="start" spacing={2}>
                 <HStack spacing={3}>

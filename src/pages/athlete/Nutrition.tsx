@@ -166,8 +166,28 @@ export function Nutrition() {
   return (
     <Box bg={bgColor} minH="100vh" py={8}>
       <Container maxW="container.lg">
-        <VStack spacing={8} align="stretch">
-          <Box>
+        {/* Mobile Header - Fixed positioned */}
+        <Box
+          display={{ base: "block", lg: "none" }}
+          position="fixed"
+          top="26px"
+          right="16px"
+          zIndex={1001}
+          bg="transparent"
+        >
+          <Heading 
+            size="md"
+            color={useColorModeValue('gray.800', 'white')}
+            textAlign="right"
+            fontWeight="semibold"
+          >
+            Nutrition Tracking
+          </Heading>
+        </Box>
+
+        <VStack spacing={8} align="stretch" mt={{ base: "80px", lg: 0 }}>
+          {/* Desktop Header */}
+          <Box display={{ base: "none", lg: "block" }}>
             <Heading size="lg" mb={2}>Nutrition Tracking</Heading>
             <Text color="gray.600">Track your daily meals and nutrition intake</Text>
           </Box>

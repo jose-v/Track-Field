@@ -213,8 +213,32 @@ export function Sleep() {
   return (
     <Box minH="100vh" bg={bgColor}>
       <Container maxW="6xl" py={8}>
-        <VStack spacing={8} align="stretch">
-          <HStack spacing={4} align="center">
+        {/* Mobile Header - Fixed positioned */}
+        <Box
+          display={{ base: "block", lg: "none" }}
+          position="fixed"
+          top="26px"
+          right="16px"
+          zIndex={1001}
+          bg="transparent"
+        >
+          <Heading 
+            size="md"
+            color={useColorModeValue('gray.800', 'white')}
+            textAlign="right"
+            fontWeight="semibold"
+          >
+            Sleep Tracking
+          </Heading>
+        </Box>
+
+        <VStack spacing={8} align="stretch" mt={{ base: "80px", lg: 0 }}>
+          {/* Desktop Header */}
+          <HStack 
+            spacing={4} 
+            align="center" 
+            display={{ base: "none", lg: "flex" }}
+          >
             <FaBed size={32} color="#4299E1" />
             <Heading size="lg" color="blue.500">
               Sleep Tracking
