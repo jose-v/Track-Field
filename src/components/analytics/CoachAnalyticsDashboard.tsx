@@ -69,7 +69,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 // Import chart components
 import TrainingLoadChart from './charts/TrainingLoadChart';
-import PerformanceChart from './charts/PerformanceChart';
+import { PerformanceChart } from './charts/PerformanceChart';
 
 // Types for our analytics data
 interface AthleteMetrics {

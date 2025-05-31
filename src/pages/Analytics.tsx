@@ -43,7 +43,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../hooks/useProfile';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { CoachAnalyticsDashboard } from '../components/coach/CoachAnalyticsDashboard';
+import { CoachAnalyticsDashboard } from '../components/analytics/CoachAnalyticsDashboard';
 import { MobileHeader } from '../components';
 
 // Import existing analytics components
