@@ -138,7 +138,7 @@ export function useProfile() {
 
   return {
     profile: profileQuery.data,
-    isLoading: profileQuery.isLoading || (auth.loading && !auth.user),
+    isLoading: auth.loading || (!!auth.user && profileQuery.isLoading),
     isError: profileQuery.isError,
     error: profileQuery.error,
     updateProfile: updateProfile.mutate,

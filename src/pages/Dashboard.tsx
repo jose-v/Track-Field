@@ -388,6 +388,20 @@ export function Dashboard() {
   const cardShadowLg = useColorModeValue('none', 'lg')
   const cardShadowSm = useColorModeValue('none', 'sm')
 
+  // Add timeout for loading states to prevent infinite loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (profileLoading) {
+        console.warn('Profile loading taking too long, this may indicate an issue');
+      }
+      if (workoutsLoading) {
+        console.warn('Workouts loading taking too long, this may indicate an issue');
+      }
+    }, 10000); // 10 second timeout
+    
+    return () => clearTimeout(timer);
+  }, [profileLoading, workoutsLoading]);
+
   return (
     <Box 
       pt={0} 
