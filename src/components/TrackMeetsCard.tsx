@@ -76,6 +76,7 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
   const textColor = useColorModeValue('gray.800', 'gray.100');
   const subtitleColor = useColorModeValue('gray.600', 'gray.300');
   const cardShadow = useColorModeValue('none', 'lg');
+  const sectionBg = useColorModeValue('gray.50', 'gray.700');
 
   // Fetch track meets data
   useEffect(() => {
@@ -254,7 +255,7 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
         {/* Content */}
         {trackMeets.length === 0 && coachMeets.length === 0 ? (
           <Box
-            bg={useColorModeValue('gray.50', 'gray.700')}
+            bg={sectionBg}
             p={6}
             borderRadius="lg"
             textAlign="center"
@@ -294,7 +295,7 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
                       key={meet.id} 
                       p={3} 
                       borderRadius="md" 
-                      bg={useColorModeValue('gray.50', 'gray.700')}
+                      bg={sectionBg}
                       border="1px solid"
                       borderColor={borderColor}
                       w="100%"
@@ -370,7 +371,7 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
                       key={meet.id} 
                       p={3} 
                       borderRadius="md" 
-                      bg={useColorModeValue('gray.50', 'gray.700')}
+                      bg={sectionBg}
                       border="1px solid"
                       borderColor={borderColor}
                       w="100%"

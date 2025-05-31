@@ -23,9 +23,12 @@ interface RPEPromptCardProps {
 
 interface PendingWorkout {
   id: string;
-  workout_name: string;
   scheduled_date: string;
   completed_at?: string;
+  workouts?: {
+    id: string;
+    name: string;
+  };
 }
 
 export const RPEPromptCard: React.FC<RPEPromptCardProps> = ({ onLogComplete }) => {
@@ -58,7 +61,15 @@ export const RPEPromptCard: React.FC<RPEPromptCardProps> = ({ onLogComplete }) =
 
       const { data, error } = await supabase
         .from('athlete_workouts')
-        .select('id, workout_name, scheduled_date, completed_at')
+        .select(`
+          id, 
+          scheduled_date, 
+          completed_at,
+          workouts (
+            id,
+            name
+          )
+        `)
         .eq('athlete_id', user.id)
         .not('completed_at', 'is', null)
         .gte('scheduled_date', sevenDaysAgo.toISOString().split('T')[0])
@@ -97,7 +108,7 @@ export const RPEPromptCard: React.FC<RPEPromptCardProps> = ({ onLogComplete }) =
 
       toast({
         title: 'RPE logged successfully!',
-        description: `${selectedWorkout.workout_name}: ${selectedRPE}/10`,
+        description: `${selectedWorkout.workouts?.name}: ${selectedRPE}/10`,
         status: 'success',
         duration: 3000,
         isClosable: true,
@@ -244,7 +255,7 @@ export const RPEPromptCard: React.FC<RPEPromptCardProps> = ({ onLogComplete }) =
                 <HStack justify="space-between">
                   <VStack align="start" spacing={0}>
                     <Text fontSize="sm" fontWeight="medium" color={statNumberColor}>
-                      {workout.workout_name}
+                      {workout.workouts?.name}
                     </Text>
                     <Text fontSize="xs" color={statLabelColor}>
                       {formatDate(workout.scheduled_date)}

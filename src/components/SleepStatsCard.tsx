@@ -29,6 +29,15 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
   // Fetch sleep stats directly from the database
   const { stats: sleepStats, isLoading, error } = useSleepStats();
   
+  // Color mode values matching quick-log cards - MUST be at the top before any conditional logic
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const statLabelColor = useColorModeValue('gray.600', 'gray.300');
+  const statNumberColor = useColorModeValue('gray.900', 'gray.100');
+  const textColor = useColorModeValue('gray.700', 'gray.100');
+  const cardShadow = useColorModeValue('none', 'lg');
+  const progressBg = useColorModeValue('gray.200', 'gray.600');
+  
   // Log the data for debugging
   useEffect(() => {
     if (!isLoading && !error) {
@@ -68,14 +77,6 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
         return { icon: FaMinus, color: 'gray.500', text: 'Stable' };
     }
   };
-
-  // Color mode values matching quick-log cards
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.700');
-  const statLabelColor = useColorModeValue('gray.600', 'gray.300');
-  const statNumberColor = useColorModeValue('gray.900', 'gray.100');
-  const textColor = useColorModeValue('gray.700', 'gray.100');
-  const cardShadow = useColorModeValue('none', 'lg');
 
   if (isLoading) {
     return (
@@ -223,7 +224,7 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
               </Text>
             </HStack>
             <Box
-              bg={useColorModeValue('gray.200', 'gray.600')}
+              bg={progressBg}
               borderRadius="full"
               h="8px"
               overflow="hidden"
