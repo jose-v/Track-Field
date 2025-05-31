@@ -62,6 +62,17 @@ export default function AppRoutes() {
       <Route path="sandbox" element={<SandboxPage />} />
       <Route path="test-auth" element={<PrivateRoute><TestAuth /></PrivateRoute>} />
 
+      {/* Protected Dashboard Route - Highest Priority */}
+      <Route path="/dashboard" element={<GeneralLayout><PrivateRoute><RoleDashboardRouter /></PrivateRoute></GeneralLayout>} />
+
+      {/* Other Protected Routes (general/unspecified roles) */}
+      <Route element={<GeneralLayout><Outlet /></GeneralLayout>}>
+        <Route path="/workouts" element={<PrivateRoute><Workouts /></PrivateRoute>} />
+        <Route path="/team" element={<PrivateRoute><Team /></PrivateRoute>} />
+        <Route path="/private-events" element={<PrivateRoute><Events /></PrivateRoute>} />
+        <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+      </Route>
+
       {/* Public Routes */}
       <Route element={<PublicLayout />}>    
         <Route index element={<Home />} />
@@ -73,15 +84,6 @@ export default function AppRoutes() {
         <Route path="events" element={<Events />} />
         <Route path="login" element={<Login />} />
         <Route path="signup" element={<Signup />} />
-      </Route>
-
-      {/* Original Protected Routes (general/unspecified roles) */}
-      <Route element={<GeneralLayout><Outlet /></GeneralLayout>}>
-        <Route path="/dashboard" element={<PrivateRoute><RoleDashboardRouter /></PrivateRoute>} />
-        <Route path="/workouts" element={<PrivateRoute><Workouts /></PrivateRoute>} />
-        <Route path="/team" element={<PrivateRoute><Team /></PrivateRoute>} />
-        <Route path="/private-events" element={<PrivateRoute><Events /></PrivateRoute>} />
-        <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
       </Route>
 
       {/* Coach Routes - With Feedback */}
