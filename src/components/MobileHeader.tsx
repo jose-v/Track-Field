@@ -23,8 +23,11 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
   subtitle,
   isLoading = false,
 }) => {
-  const { isHeaderVisible } = useScrollDirection(15);
+  const { isHeaderVisible, scrollDirection, scrollY } = useScrollDirection(10);
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+
+  // Debug logging
+  console.log('MobileHeader scroll state:', { isHeaderVisible, scrollDirection, scrollY });
 
   return (
     <>
