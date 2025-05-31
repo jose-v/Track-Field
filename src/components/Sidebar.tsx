@@ -38,7 +38,8 @@ import {
   FaRunning,
   FaShare,
   FaCog,
-  FaSignOutAlt
+  FaSignOutAlt,
+  FaTachometerAlt
 } from 'react-icons/fa';
 import { BiLineChart } from 'react-icons/bi';
 import { BsCalendarCheck } from 'react-icons/bs';
@@ -219,7 +220,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
   const getNavItems = () => {
     if (userType === 'athlete') {
       return [
-        { icon: FaHome, label: 'Dashboard', to: '/athlete/dashboard' },
+        { icon: FaTachometerAlt, label: 'Dashboard', to: '/athlete/dashboard' },
         { icon: FaDumbbell, label: 'My Workouts', to: '/athlete/workouts' },
         { icon: FaCalendarAlt, label: 'Calendar', to: '/athlete/calendar' },
         { icon: FaChartBar, label: 'Analytics', to: '/athlete/analytics' },
@@ -231,14 +232,12 @@ const Sidebar = ({ userType }: SidebarProps) => {
       ];
     } else {
       return [
-        { icon: FaHome, label: 'Dashboard', to: '/coach/dashboard' },
+        { icon: FaTachometerAlt, label: 'Dashboard', to: '/coach/dashboard' },
         { icon: FaUsers, label: 'Athletes', to: '/coach/athletes' },
         { icon: FaDumbbell, label: 'Workouts', to: '/coach/workouts' },
         { icon: FaCalendarAlt, label: 'Calendar', to: '/coach/calendar' },
-        { icon: FaChartBar, label: 'Analytics', to: '/coach/analytics' },
-        { icon: BsCalendarCheck, label: 'Events', to: '/coach/events' },
-        { icon: FaBook, label: 'Resources', to: '/coach/resources' },
-        { icon: MdOutlineForum, label: 'Forum', to: '/coach/forum' },
+        { icon: FaChartBar, label: 'Reports', to: '/coach/stats' },
+        { icon: FaBell, label: 'Notifications', to: '/coach/notifications' },
         { icon: MdLoop, label: 'Loop', to: '/loop' },
       ];
     }
@@ -377,7 +376,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
                 
                 <VStack spacing={1} align="stretch">
                   <MobileNavItem
-                    icon={LuHouse}
+                    icon={FaHome}
                     label="Home"
                     to="/"
                     isActive={location.pathname === '/'}
@@ -385,7 +384,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
                   />
                   
                   <MobileNavItem
-                    icon={LuBellRing}
+                    icon={FaBell}
                     label="Notifications"
                     to={userType === 'athlete' ? '/athlete/notifications' : '/coach/notifications'}
                     isActive={location.pathname.includes('/notifications')}

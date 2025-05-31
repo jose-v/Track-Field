@@ -3,6 +3,7 @@ import { NavLink } from './BaseLayout';
 import { LuUsers, LuCalendarClock, LuClipboardList, LuBell } from 'react-icons/lu';
 import { BiLineChart } from 'react-icons/bi';
 import { IoFitnessOutline } from 'react-icons/io5';
+import { FaTachometerAlt } from 'react-icons/fa';
 import { ReactNode } from 'react';
 
 // Coach navigation links
@@ -42,7 +43,7 @@ export function useCoachNavigation(): CoachNavConfig & { isCurrentPathActive: (p
     {
       name: 'Dashboard',
       path: '/coach/dashboard',
-      icon: <BiLineChart />
+      icon: <FaTachometerAlt />
     },
     {
       name: 'Athletes',
