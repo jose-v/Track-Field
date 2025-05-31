@@ -22,6 +22,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const lastRefreshAttempt = useRef<number>(0)
   const refreshInProgress = useRef<boolean>(false)
 
+  // Add timeout for loading states to prevent infinite loading
+  useEffect(() => {
+    if (loading) {
+      const timer = setTimeout(() => {
+        console.warn('Auth loading taking too long, forcing loading to false');
+        setLoading(false);
+      }, 15000); // 15 second timeout for auth
+      
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
+
   // Initialize auth and set up listeners
   useEffect(() => {
     // Check active sessions and sets the user
