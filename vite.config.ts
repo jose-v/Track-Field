@@ -45,6 +45,8 @@ export default defineConfig(({ mode }) => {
         strict: false,
         allow: ['.']
       },
+      // Add historyApiFallback for SPA routing
+      historyApiFallback: true,
       proxy: {
         '/api': {
           target: env.VITE_SUPABASE_URL + '/rest/v1',
@@ -52,6 +54,19 @@ export default defineConfig(({ mode }) => {
           rewrite: path => path.replace(/^\/api/, ''),
         },
       },
-    }
+    },
+    // Ensure proper SPA fallback for build/preview
+    preview: {
+      port: 4173,
+      historyApiFallback: true,
+    },
+    build: {
+      // Enable SPA fallback for builds
+      rollupOptions: {
+        output: {
+          manualChunks: undefined,
+        },
+      },
+    },
   }
 })
