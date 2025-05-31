@@ -36,11 +36,14 @@ export function AthleteLayout({ children }: { children: React.ReactNode }) {
       {/* Main content area */}
       <Box
         flex="1"
-        ml={`${sidebarWidth}px`}
+        ml={{ base: 0, md: `${sidebarWidth}px` }}
         transition="margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
         bg={bgColor}
         minH="100vh"
         position="relative"
+        w="100%"
+        maxW="100%"
+        overflowX="hidden"
       >
         {/* Simplified top navigation */}
         <SimplifiedNav 
@@ -58,10 +61,13 @@ export function AthleteLayout({ children }: { children: React.ReactNode }) {
         <Box 
           as="main" 
           pt="80px" 
-          px="6" 
+          px={{ base: 0, md: 6 }}
           pb="8"
           height="100%"
           overflowY="auto"
+          w="100%"
+          maxW="100%"
+          overflowX="hidden"
         >
           {children}
         </Box>

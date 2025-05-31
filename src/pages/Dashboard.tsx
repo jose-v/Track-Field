@@ -382,26 +382,40 @@ export function Dashboard() {
   const cardShadowSm = useColorModeValue('none', 'sm')
 
   return (
-    <Box pt={0} pb={10} bg={useColorModeValue('gray.50', 'gray.900')} w="100%" overflowX="hidden">
-      <Box maxW="100%" px={{ base: 3, md: 6 }} pt={0} mt={0} w="100%">
+    <Box 
+      pt={0} 
+      pb={10} 
+      bg={useColorModeValue('gray.50', 'gray.900')} 
+      w="100%"
+      maxW="100%"
+      overflowX="hidden"
+      position="relative"
+    >
+      <Box 
+        px={{ base: 4, md: 6 }} 
+        pt={0} 
+        mt={0} 
+        w="100%"
+        maxW="100%"
+        overflowX="hidden"
+        mx="auto"
+      >
         {/* Header with personal greeting */}
-        <Flex 
-          mb={8} 
-          direction={{ base: "column", lg: "row" }}
-          align={{ base: "flex-start", lg: "center" }} 
-          justify={{ base: "flex-start", lg: "space-between" }} 
-          mt={0} 
-          pt={{ base: 4, md: 0 }}
-          gap={{ base: 4, lg: 6 }}
-          w="100%"
-        >
-          <Box flex="1">
+        <Box w="100%" mb={8} pt={{ base: 4, md: 0 }}>
+          {/* Mobile Header Row */}
+          <Box
+            display={{ base: "block", lg: "none" }}
+            ml="56px" // Account for hamburger icon (16px left + 24px icon + 16px spacing)
+            mr={4}
+            mb={4}
+          >
             <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
               <Heading 
                 as="h1" 
-                size={{ base: "lg", md: "xl" }} 
+                size="md"
                 mb={1}
                 color={useColorModeValue('gray.800', 'white')}
+                lineHeight="1.2"
               >
                 Welcome back, {profile?.first_name || user?.email?.split('@')[0] || 'Athlete'}
               </Heading>
@@ -409,19 +423,70 @@ export function Dashboard() {
             <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
               <Text 
                 color={useColorModeValue('gray.600', 'gray.200')}
-                fontSize={{ base: "sm", md: "md" }}
+                fontSize="xs"
               >
                 {profile?.role === 'athlete' ? 'Athlete Dashboard' : 'Dashboard'}
               </Text>
             </Skeleton>
           </Box>
-          
-          {/* Weather Info - Responsive */}
+
+          {/* Desktop Header Row */}
+          <Flex 
+            display={{ base: "none", lg: "flex" }}
+            direction="row"
+            align="center" 
+            justify="space-between" 
+            gap={6}
+            w="100%"
+          >
+            <Box flex="1">
+              <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
+                <Heading 
+                  as="h1" 
+                  size="xl"
+                  mb={1}
+                  color={useColorModeValue('gray.800', 'white')}
+                >
+                  Welcome back, {profile?.first_name || user?.email?.split('@')[0] || 'Athlete'}
+                </Heading>
+              </Skeleton>
+              <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
+                <Text 
+                  color={useColorModeValue('gray.600', 'gray.200')}
+                  fontSize="md"
+                >
+                  {profile?.role === 'athlete' ? 'Athlete Dashboard' : 'Dashboard'}
+                </Text>
+              </Skeleton>
+            </Box>
+            
+            {/* Weather Info - Desktop only initially, mobile below */}
+            <Box 
+              w="400px"
+              minW="390px" 
+              maxW="442px"
+              flexShrink={1}
+              overflow="hidden"
+            >
+              <WeatherCard 
+                city={profile?.city || "Greensboro"}
+                state={profile?.state ? getStateAbbr(profile.state) : "NC"}
+                weather={{
+                  temp: "71",
+                  condition: "Clouds",
+                  description: "scattered clouds"
+                }}
+                isLoading={profileLoading}
+                fixedDate="Tuesday, May 20"
+              />
+            </Box>
+          </Flex>
+
+          {/* Mobile Weather Card */}
           <Box 
-            w={{ base: "100%", lg: "auto" }}
-            minW={{ base: "auto", lg: "390px" }} 
-            maxW={{ base: "100%", lg: "442px" }}
-            flexShrink={0}
+            display={{ base: "block", lg: "none" }}
+            w="100%"
+            mt={2}
           >
             <WeatherCard 
               city={profile?.city || "Greensboro"}
@@ -435,7 +500,7 @@ export function Dashboard() {
               fixedDate="Tuesday, May 20"
             />
           </Box>
-        </Flex>
+        </Box>
 
         {/* Today's Workouts Card */}
         <TodayWorkoutsCard

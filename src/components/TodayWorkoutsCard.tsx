@@ -76,11 +76,14 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
     <Box
       bg={cardBg}
       borderRadius="xl"
-      p={6}
+      p={{ base: 4, md: 6 }}
       border="1px solid"
       borderColor={borderColor}
       boxShadow={cardShadow}
       mb={10}
+      w="100%"
+      maxW="100%"
+      overflowX="hidden"
     >
       <VStack spacing={6} align="stretch">
         {/* Header */}
