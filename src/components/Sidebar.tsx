@@ -365,7 +365,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
                 </Flex>
               </Box>
 
-              {/* Main Navigation */}
+              {/* Main Navigation - Scrollable Content */}
               <Box flex="1" overflowY="auto">
                 <VStack spacing={1} align="stretch" p={4}>
                   <Text 
@@ -432,7 +432,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
                 </Box>
 
                 {/* Settings Section */}
-                <Box px={4} mt={6}>
+                <Box px={4} mt={6} pb={4}>
                   <Text 
                     fontSize="xs" 
                     fontWeight="bold" 
@@ -487,7 +487,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
                 </Box>
               </Box>
 
-              {/* Bottom Actions */}
+              {/* Bottom Actions - Fixed at bottom */}
               <Box p={4} borderTopWidth="1px" borderColor={borderColor}>
                 <HStack justify="space-between" align="center">
                   <ThemeToggle size="md" />
