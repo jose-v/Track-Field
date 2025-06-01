@@ -294,6 +294,72 @@ const WorkoutCreatorWireframe: React.FC = () => {
     }
   };
 
+  // Helper function to reset form to initial state
+  const resetFormState = () => {
+    setWorkoutName('');
+    setTemplateType('weekly');
+    setWorkoutType('Strength');
+    setDate('');
+    setTime('');
+    setDuration('');
+    setLocation('');
+    setSelectedExercises({
+      monday: [],
+      tuesday: [],
+      wednesday: [],
+      thursday: [],
+      friday: [],
+      saturday: [],
+      sunday: []
+    });
+    setRestDays({
+      monday: false,
+      tuesday: false,
+      wednesday: false,
+      thursday: false,
+      friday: false,
+      saturday: false,
+      sunday: false
+    });
+    setSelectedAthletes({});
+    setCurrentStep(1);
+    setIsEditing(false);
+  };
+
+  // Handle cancel action - with confirmation for unsaved changes
+  const handleCancel = () => {
+    if (isEditing) {
+      // For editing, just navigate back without confirmation
+      navigate(getWorkoutsRoute());
+    } else {
+      // For new workouts, could add confirmation if there are unsaved changes
+      const hasUnsavedChanges = workoutName.trim() || Object.values(selectedExercises).some(exercises => exercises.length > 0);
+      
+      if (hasUnsavedChanges) {
+        if (window.confirm('You have unsaved changes. Are you sure you want to cancel?')) {
+          resetFormState();
+          navigate(getWorkoutsRoute());
+        }
+      } else {
+        navigate(getWorkoutsRoute());
+      }
+    }
+  };
+
+  // Helper function to get the correct workouts route based on user role
+  const getWorkoutsRoute = () => {
+    switch (userProfile?.role) {
+      case 'coach':
+        return '/coach/workouts';
+      case 'athlete':
+        return '/athlete/workouts';
+      case 'team_manager':
+        return '/coach/workouts'; // Team managers use coach routes
+      default:
+        return '/coach/workouts'; // Fallback to coach route
+    }
+  };
+
   // Navigation functions
   const goToStep = (step: number) => {
     if (step >= 1 && step <= WORKOUT_CREATION_STEPS.length) {
@@ -466,10 +532,11 @@ const WorkoutCreatorWireframe: React.FC = () => {
 
       console.log('Saving workout:', workoutData);
       
-      let savedWorkout;
+      // Properly type the saved workout response
+      let savedWorkout: { id: string; name: string } | null = null;
       
       if (isEditing && editWorkoutId) {
-        // Update existing workout
+        // Update existing workout with proper error handling for atomicity
         const { data, error } = await supabase
           .from('workouts')
           .update({
@@ -485,27 +552,49 @@ const WorkoutCreatorWireframe: React.FC = () => {
             weekly_plan: workoutData.weekly_plan
           })
           .eq('id', editWorkoutId)
-          .select()
+          .select('id, name')
           .single();
           
         if (error) throw error;
         savedWorkout = data;
         
-        // Update athlete assignments - first clear existing assignments
-        await supabase
+        // Update athlete assignments in a transaction-like manner
+        // First clear existing assignments, then add new ones
+        const { error: deleteError } = await supabase
           .from('athlete_workouts')
           .delete()
           .eq('workout_id', editWorkoutId);
           
+        if (deleteError) {
+          console.warn('Warning: Could not clear existing athlete assignments:', deleteError);
+          // Continue anyway - this is not critical for workout update
+        }
+          
       } else {
         // Create new workout
-        savedWorkout = await api.workouts.createEnhanced(workoutData);
+        const newWorkout = await api.workouts.createEnhanced(workoutData);
+        savedWorkout = { id: newWorkout.id, name: newWorkout.name };
       }
       
-      // Assign to selected athletes if any
+      // Assign to selected athletes if any and if we have a valid workout ID
       const athleteIds = Object.keys(selectedAthletes);
-      if (athleteIds.length > 0 && savedWorkout.id) {
-        await api.athleteWorkouts.assign(savedWorkout.id, athleteIds);
+      if (athleteIds.length > 0 && savedWorkout?.id) {
+        try {
+          await api.athleteWorkouts.assign(savedWorkout.id, athleteIds);
+        } catch (assignmentError) {
+          console.warn('Warning: Workout saved but athlete assignment failed:', assignmentError);
+          // Show a warning but don't fail the entire operation
+          toast({
+            title: 'Workout Saved with Warning',
+            description: `"${workoutName}" was ${isEditing ? 'updated' : 'created'} but athlete assignment failed. You can assign athletes manually.`,
+            status: 'warning',
+            duration: 5000,
+            isClosable: true,
+          });
+          // Navigate anyway since the workout was saved successfully
+          navigate(getWorkoutsRoute());
+          return;
+        }
       }
 
       toast({
@@ -517,7 +606,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
       });
 
       // Navigate back to workouts list
-      navigate('/coach/workouts');
+      navigate(getWorkoutsRoute());
 
     } catch (error) {
       console.error('Error saving workout:', error);
@@ -766,7 +855,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
                   icon={<ArrowLeft size={18} />}
                   variant="ghost"
                   aria-label={isEditing ? "Cancel editing" : "Back to list"}
-                  onClick={() => navigate('/coach/workouts')}
+                  onClick={handleCancel}
                   color={textColor}
                   _hover={{ bg: 'blue.100' }}
                 />
@@ -910,7 +999,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
               <Button
                 variant="outline"
                 size="lg"
-                onClick={() => navigate('/coach/workouts')}
+                onClick={handleCancel}
                 borderWidth="2px"
                 borderColor="gray.300"
                 color={textColor}
@@ -946,7 +1035,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
               <Button
                 variant="outline"
                 size="lg"
-                onClick={() => navigate('/coach/workouts')}
+                onClick={handleCancel}
                 borderWidth="2px"
                 borderColor="gray.300"
                 color={textColor}

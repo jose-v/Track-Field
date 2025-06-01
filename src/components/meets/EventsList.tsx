@@ -32,11 +32,12 @@ export const EventsList: React.FC<EventsListProps> = ({
   showRunTime = false,
   onEventClick
 }) => {
-  // Color mode values
+  // Color mode values - extracted outside the map loop to fix hooks rule
   const textColor = useColorModeValue('gray.800', 'white');
   const mutedTextColor = useColorModeValue('gray.600', 'gray.300');
   const eventCardBg = useColorModeValue('white', 'gray.700');
   const eventCardBorder = useColorModeValue('gray.200', 'gray.600');
+  const hoverBg = useColorModeValue('gray.50', 'gray.600');
 
   const displayedEvents = events.slice(0, maxDisplayed);
   const remainingCount = Math.max(0, events.length - maxDisplayed);
@@ -78,7 +79,7 @@ export const EventsList: React.FC<EventsListProps> = ({
               bg={eventCardBg}
               width="100%"
               cursor={onEventClick ? "pointer" : "default"}
-              _hover={onEventClick ? { bg: useColorModeValue('gray.50', 'gray.600') } : {}}
+              _hover={onEventClick ? { bg: hoverBg } : {}}
               onClick={onEventClick && !showRunTime ? () => onEventClick(event) : undefined}
             >
               {/* Full width layout */}
