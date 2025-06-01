@@ -1,5 +1,5 @@
 /**
- * Reusable MeetCard component for displaying track meet information
+ * Reusable MeetCard component with enhanced event count display and improved accessibility
  */
 
 import React from 'react';
@@ -14,7 +14,8 @@ import {
   VStack,
   Flex,
   Button,
-  useColorModeValue
+  useColorModeValue,
+  Divider
 } from '@chakra-ui/react';
 import { FaCalendarAlt, FaMapMarkerAlt, FaRunning } from 'react-icons/fa';
 import { TravelTimeDisplay } from '../TravelTimeDisplay';
@@ -33,6 +34,7 @@ interface MeetCardProps {
   actionButtons?: React.ReactNode;
   children?: React.ReactNode;
   showTravelTime?: boolean;
+  onClick?: () => void;
 }
 
 export const MeetCard: React.FC<MeetCardProps> = ({
@@ -40,13 +42,28 @@ export const MeetCard: React.FC<MeetCardProps> = ({
   eventCount,
   actionButtons,
   children,
-  showTravelTime = true
+  showTravelTime = true,
+  onClick
 }) => {
   // Color mode values
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const mutedTextColor = useColorModeValue('gray.600', 'gray.300');
   const descriptionBg = useColorModeValue('gray.50', 'gray.700');
+
+  // Enhanced status color logic
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case 'Completed': return 'green';
+      case 'Cancelled': return 'red';
+      case 'Upcoming': return 'blue';
+      case 'In Progress': return 'orange';
+      default: return 'blue';
+    }
+  };
+
+  // Accessibility: Generate descriptive aria-label
+  const cardAriaLabel = `Meet: ${meet.name}, Date: ${formatMeetDate(meet.meet_date)}, Status: ${meet.status || 'Upcoming'}${eventCount ? `, Events: ${eventCount}` : ''}`;
 
   return (
     <Card
@@ -58,6 +75,13 @@ export const MeetCard: React.FC<MeetCardProps> = ({
       borderWidth="1px" 
       borderColor={borderColor}
       _dark={{ bg: 'gray.800' }}
+      cursor={onClick ? 'pointer' : 'default'}
+      onClick={onClick}
+      aria-label={cardAriaLabel}
+      role={onClick ? 'button' : 'article'}
+      tabIndex={onClick ? 0 : undefined}
+      _hover={onClick ? { boxShadow: 'lg', transform: 'translateY(-1px)' } : undefined}
+      transition="all 0.2s ease-in-out"
     >
       {/* Card header with gradient background */}
       <Box 
@@ -70,143 +94,159 @@ export const MeetCard: React.FC<MeetCardProps> = ({
         borderTopRightRadius="inherit"
       >
         <Flex justifyContent="space-between" alignItems="center">
-          <Heading size="md" color="white">{meet.name}</Heading>
-          <Badge 
-            colorScheme={getStatusColor(meet.status)} 
-            variant="solid" 
-            px={2} 
-            py={1} 
-            borderRadius="md"
-          >
-            {meet.status || 'Upcoming'}
-          </Badge>
+          <Heading size="md" color="white" noOfLines={1}>
+            {meet.name}
+          </Heading>
+          <HStack spacing={2}>
+            {/* Enhanced event count badge */}
+            {typeof eventCount === 'number' && (
+              <Badge 
+                colorScheme="purple" 
+                variant="solid" 
+                px={2} 
+                py={1} 
+                borderRadius="md"
+                aria-label={`${eventCount} events in this meet`}
+              >
+                <HStack spacing={1}>
+                  <FaRunning size={12} />
+                  <Text fontSize="xs">{eventCount}</Text>
+                </HStack>
+              </Badge>
+            )}
+            <Badge 
+              colorScheme={getStatusColor(meet.status)} 
+              variant="solid" 
+              px={2} 
+              py={1} 
+              borderRadius="md"
+            >
+              {meet.status || 'Upcoming'}
+            </Badge>
+          </HStack>
         </Flex>
       </Box>
       
       {/* Card body */}
       <CardBody px={4} py={4} bg={cardBg} _dark={{ bg: 'gray.800' }}>
-        <Flex justify="space-between" align="flex-start">
-          <VStack align="start" spacing={4} flex="1">
-            {/* Date Information */}
-            <HStack spacing={2}>
-              <FaCalendarAlt color="blue" />
-              <VStack align="start" spacing={1}>
-                <Text fontWeight="medium">
-                  {isMultiDayEvent(meet.meet_date, meet.end_date) 
-                    ? formatDateRange(meet.meet_date, meet.end_date)
-                    : formatMeetDate(meet.meet_date)
-                  }
+        <VStack align="stretch" spacing={3}>
+          {/* Date Information */}
+          <HStack>
+            <FaCalendarAlt color="blue" aria-hidden="true" />
+            <VStack align="start" spacing={1}>
+              <Text fontWeight="medium">
+                {isMultiDayEvent(meet.meet_date, meet.end_date) 
+                  ? formatDateRange(meet.meet_date, meet.end_date)
+                  : formatMeetDate(meet.meet_date)
+                }
+              </Text>
+              {isMultiDayEvent(meet.meet_date, meet.end_date) && (
+                <Text fontSize="sm" color="blue.600" fontWeight="medium">
+                  Multi-day event
                 </Text>
-                {isMultiDayEvent(meet.meet_date, meet.end_date) && (
-                  <Text fontSize="sm" color="blue.600" fontWeight="medium">
-                    Multi-day event
+              )}
+            </VStack>
+          </HStack>
+          
+          {/* Location Information */}
+          {(meet.city || meet.state || meet.venue_name) && (
+            <HStack spacing={2} align="start">
+              <FaMapMarkerAlt color="blue" aria-hidden="true" />
+              <VStack align="start" spacing={1} flex="1">
+                {meet.venue_name && (
+                  <Text fontWeight="medium">
+                    {meet.venue_name}
+                    {meet.venue_type && (
+                      <Badge ml={2} colorScheme="purple" size="sm">
+                        {meet.venue_type}
+                      </Badge>
+                    )}
                   </Text>
+                )}
+                {(meet.city || meet.state) && (
+                  <Text fontSize="sm" color={mutedTextColor}>
+                    {[meet.city, meet.state].filter(Boolean).join(', ')}
+                  </Text>
+                )}
+                {/* Maps Link with improved accessibility */}
+                {generateMapsLink(meet.venue_name, meet.city, meet.state) && (
+                  <Button
+                    as="a"
+                    href={generateMapsLink(meet.venue_name, meet.city, meet.state)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    size="xs"
+                    variant="outline"
+                    colorScheme="green"
+                    leftIcon={<FaMapMarkerAlt />}
+                    mt={1}
+                    aria-label={`Open directions to ${meet.venue_name || 'meet location'} in maps`}
+                  >
+                    Open in Maps
+                  </Button>
+                )}
+                {/* Travel Time Display */}
+                {showTravelTime && (
+                  <TravelTimeDisplay
+                    city={meet.city}
+                    state={meet.state}
+                    venueName={meet.venue_name}
+                    size="sm"
+                  />
                 )}
               </VStack>
             </HStack>
-            
-            {/* Location Information */}
-            {(meet.city || meet.state || meet.venue_name) && (
-              <HStack spacing={2} align="start">
-                <FaMapMarkerAlt color="blue" />
-                <VStack align="start" spacing={1} flex="1">
-                  {meet.venue_name && (
-                    <Text fontWeight="medium">
-                      {meet.venue_name}
-                      {meet.venue_type && (
-                        <Badge ml={2} colorScheme="purple" size="sm">
-                          {meet.venue_type}
-                        </Badge>
-                      )}
-                    </Text>
-                  )}
-                  {(meet.city || meet.state) && (
-                    <Text fontSize="sm" color={mutedTextColor}>
-                      {[meet.city, meet.state].filter(Boolean).join(', ')}
-                    </Text>
-                  )}
-                  {/* Maps Link */}
-                  {generateMapsLink(meet.venue_name, meet.city, meet.state) && (
-                    <Button
-                      as="a"
-                      href={generateMapsLink(meet.venue_name, meet.city, meet.state)!}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      size="xs"
-                      variant="outline"
-                      colorScheme="green"
-                      leftIcon={<FaMapMarkerAlt />}
-                      mt={1}
-                    >
-                      Open in Maps
-                    </Button>
-                  )}
-                  {/* Travel Time Display */}
-                  {showTravelTime && (
-                    <TravelTimeDisplay
-                      city={meet.city}
-                      state={meet.state}
-                      venueName={meet.venue_name}
-                      size="sm"
-                    />
-                  )}
-                </VStack>
-              </HStack>
-            )}
-            
-            {/* Event Count */}
-            {eventCount !== undefined && (
-              <HStack spacing={2}>
-                <FaRunning color="green" />
-                <Text fontSize="sm" fontWeight="medium">
-                  Events: <Text as="span" fontWeight="bold">{eventCount}</Text>
-                </Text>
-              </HStack>
-            )}
-
-            {/* Registration Link */}
-            {meet.join_link && (
-              <Button
-                as="a"
-                href={meet.join_link}
-                target="_blank"
-                rel="noopener noreferrer"
-                size="sm"
-                variant="outline"
-                colorScheme="blue"
-                leftIcon={<FaCalendarAlt />}
-              >
-                Registration
-              </Button>
-            )}
-            
-            {/* Description */}
-            {meet.description && (
-              <Box 
-                p={3} 
-                bg={descriptionBg} 
-                borderRadius="md" 
-                borderLeft="4px solid" 
-                borderLeftColor="blue.400"
-                width="100%"
-              >
-                <Text fontSize="sm" color={mutedTextColor} lineHeight="1.5">
-                  {meet.description}
-                </Text>
-              </Box>
-            )}
-
-            {/* Additional content */}
-            {children}
-          </VStack>
+          )}
+          
+          {/* Description */}
+          {meet.description && (
+            <Box 
+              p={3} 
+              bg={descriptionBg} 
+              borderRadius="md" 
+              borderLeft="4px solid" 
+              borderLeftColor="blue.400"
+            >
+              <Text fontSize="sm" color={mutedTextColor} lineHeight="1.5">
+                {meet.description}
+              </Text>
+            </Box>
+          )}
+          
+          {/* Children content (events, assignments, etc.) */}
+          {children && (
+            <>
+              <Divider my={2} />
+              {children}
+            </>
+          )}
           
           {/* Action buttons */}
           {actionButtons && (
-            <VStack spacing={2}>
-              {actionButtons}
-            </VStack>
+            <Flex justify="flex-end" pt={2}>
+              <HStack>
+                {actionButtons}
+              </HStack>
+            </Flex>
           )}
-        </Flex>
+          
+          {/* Registration link */}
+          {meet.join_link && (
+            <Button
+              as="a"
+              href={meet.join_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              size="sm"
+              variant="outline"
+              colorScheme="blue"
+              leftIcon={<FaCalendarAlt />}
+              aria-label={`Register for ${meet.name}`}
+            >
+              Registration
+            </Button>
+          )}
+        </VStack>
       </CardBody>
     </Card>
   );
