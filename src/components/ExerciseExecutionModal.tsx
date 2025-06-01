@@ -218,14 +218,22 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
   const currentExercise = workout.exercises[exerciseIdx];
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} isCentered size="md">
-      <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(10px)" />
+    <Modal isOpen={isOpen} onClose={onClose} isCentered size={{ base: 'full', md: 'md' }} motionPreset="none">
+      <ModalOverlay 
+        bg={{ base: 'blackAlpha.700', md: 'blackAlpha.600' }}
+        backdropFilter={{ base: 'none', md: 'blur(10px)' }}
+      />
       <ModalContent 
-        borderRadius="2xl" 
-        overflow="hidden" 
-        boxShadow="2xl"
+        borderRadius={{ base: '0', md: '2xl' }}
+        overflow="hidden"
+        boxShadow={{ base: 'none', md: '2xl' }}
         bg={cardBg}
-        mx={4}
+        mx={{ base: 0, md: 4 }}
+        w={{ base: '100vw', md: undefined }}
+        h={{ base: '100vh', md: undefined }}
+        maxW={{ base: '100vw', md: undefined }}
+        maxH={{ base: '100vh', md: undefined }}
+        p={0}
       >
         {/* Hero Header with Gradient */}
         <Box 
