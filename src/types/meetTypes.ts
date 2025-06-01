@@ -24,7 +24,7 @@ export interface MeetEvent {
   meet_id: string;
   run_time?: string;
   heat?: number;
-  event_type?: string;
+  event_type?: EventType;
 }
 
 export interface EventFormData {

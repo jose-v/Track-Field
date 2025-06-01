@@ -82,7 +82,22 @@ export const EventsList: React.FC<EventsListProps> = ({
               width="100%"
               cursor={isClickable ? "pointer" : "default"}
               _hover={isClickable ? { bg: hoverBg } : {}}
+              _focus={isClickable ? { 
+                bg: hoverBg, 
+                outline: "2px solid", 
+                outlineColor: "blue.500",
+                outlineOffset: "2px"
+              } : {}}
+              tabIndex={isClickable ? 0 : undefined}
+              role={isClickable ? "button" : undefined}
+              aria-label={isClickable ? `View details for ${event_name}` : undefined}
               onClick={isClickable ? () => onEventClick(event) : undefined}
+              onKeyDown={isClickable ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onEventClick(event);
+                }
+              } : undefined}
             >
               {/* Full width layout */}
               <VStack align="stretch" spacing={2}>

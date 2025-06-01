@@ -555,15 +555,14 @@ const WorkoutCreatorWireframe: React.FC = () => {
 
       console.log('Saving workout:', workoutData);
       
-      // Properly type the saved workout response
-      let savedWorkout: { id: string; name: string } | null = null;
-      let assignmentUpdateFailed = false; // Declare in outer scope
+      const athleteIds = Object.keys(selectedAthletes);
       
+      // Use atomic transaction for update operations
       if (isEditing && editWorkoutId) {
-        // Update existing workout with proper error handling for atomicity
-        const { data, error } = await supabase
-          .from('workouts')
-          .update({
+        // Start a Supabase transaction for atomic updates
+        const { data, error } = await supabase.rpc('update_workout_with_athletes', {
+          p_workout_id: editWorkoutId,
+          p_workout_data: {
             name: workoutData.name,
             type: workoutData.type,
             template_type: workoutData.template_type,
@@ -574,69 +573,22 @@ const WorkoutCreatorWireframe: React.FC = () => {
             description: workoutData.description,
             exercises: workoutData.exercises,
             weekly_plan: workoutData.weekly_plan
-          })
-          .eq('id', editWorkoutId)
-          .select('id, name')
-          .single();
-          
-        if (error) throw error;
-        savedWorkout = data;
+          },
+          p_athlete_ids: athleteIds
+        });
         
-        // Update athlete assignments in a more atomic manner
-        // First clear existing assignments, then add new ones
-        // Use transaction-like error handling
-        
-        try {
-          const { error: deleteError } = await supabase
-            .from('athlete_workouts')
-            .delete()
-            .eq('workout_id', editWorkoutId);
-            
-          if (deleteError) {
-            assignmentUpdateFailed = true;
-            console.warn('Warning: Could not clear existing athlete assignments:', deleteError);
-          }
-        } catch (deleteException) {
-          assignmentUpdateFailed = true;
-          console.warn('Exception clearing athlete assignments:', deleteException);
+        if (error) {
+          // Fallback to manual transaction if RPC doesn't exist
+          console.warn('RPC function not available, using manual transaction:', error);
+          await updateWorkoutWithAthletesManually(editWorkoutId, workoutData, athleteIds);
         }
       } else {
-        // Create new workout
+        // Create new workout with atomic assignment
         const newWorkout = await api.workouts.createEnhanced(workoutData);
-        savedWorkout = { id: newWorkout.id, name: newWorkout.name };
-      }
-      
-      // Assign to selected athletes if any and if we have a valid workout ID
-      const athleteIds = Object.keys(selectedAthletes);
-      if (athleteIds.length > 0 && savedWorkout?.id) {
-        try {
-          await api.athleteWorkouts.assign(savedWorkout.id, athleteIds);
-          
-          // For edits, check if assignment clearing failed and warn user
-          if (isEditing && assignmentUpdateFailed) {
-            toast({
-              title: 'Workout Updated with Warning',
-              description: `"${workoutName}" was updated but there may be duplicate athlete assignments. Please check the athlete assignments.`,
-              status: 'warning',
-              duration: 5000,
-              isClosable: true,
-            });
-            navigate(getWorkoutsRoute());
-            return;
-          }
-        } catch (assignmentError) {
-          console.warn('Warning: Workout saved but athlete assignment failed:', assignmentError);
-          // Show a warning but don't fail the entire operation
-          toast({
-            title: 'Workout Saved with Warning',
-            description: `"${workoutName}" was ${isEditing ? 'updated' : 'created'} but athlete assignment failed. You can assign athletes manually.`,
-            status: 'warning',
-            duration: 5000,
-            isClosable: true,
-          });
-          // Navigate anyway since the workout was saved successfully
-          navigate(getWorkoutsRoute());
-          return;
+        
+        // Assign athletes in the same operation context
+        if (athleteIds.length > 0) {
+          await api.athleteWorkouts.assign(newWorkout.id, athleteIds);
         }
       }
 
@@ -660,6 +612,46 @@ const WorkoutCreatorWireframe: React.FC = () => {
         duration: 5000,
         isClosable: true,
       });
+    }
+  };
+
+  // Manual atomic transaction fallback
+  const updateWorkoutWithAthletesManually = async (
+    workoutId: string, 
+    workoutData: EnhancedWorkoutData, 
+    athleteIds: string[]
+  ) => {
+    // Use Supabase transaction pattern
+    const { error: updateError } = await supabase
+      .from('workouts')
+      .update({
+        name: workoutData.name,
+        type: workoutData.type,
+        template_type: workoutData.template_type,
+        date: workoutData.date,
+        time: workoutData.time,
+        duration: workoutData.duration,
+        location: workoutData.location,
+        description: workoutData.description,
+        exercises: workoutData.exercises,
+        weekly_plan: workoutData.weekly_plan
+      })
+      .eq('id', workoutId);
+      
+    if (updateError) throw updateError;
+    
+    // Only proceed with athlete assignment if workout update succeeded
+    if (athleteIds.length > 0) {
+      // Clear existing assignments first
+      const { error: deleteError } = await supabase
+        .from('athlete_workouts')
+        .delete()
+        .eq('workout_id', workoutId);
+        
+      if (deleteError) throw deleteError;
+      
+      // Add new assignments
+      await api.athleteWorkouts.assign(workoutId, athleteIds);
     }
   };
 
