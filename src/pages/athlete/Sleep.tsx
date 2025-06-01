@@ -40,26 +40,12 @@ import { supabase } from '../../lib/supabase';
 import { handleSleepLog } from '../../services/gamificationIntegration';
 import { 
   calculateSleepDuration, 
-  getSleepQualityText, 
-  SLEEP_QUALITY_MAPPING,
   formatSleepDuration,
-  validateSleepRecord
+  getSleepQualityText,
+  SLEEP_QUALITY_MAPPING
 } from '../../utils/analytics/performance';
+import { SleepRecord } from '../../hooks/useSleepRecords';
 import { MobileHeader } from '../../components';
-
-interface SleepRecord {
-  id: string;
-  athlete_id: string;
-  sleep_date: string;
-  start_time: string;
-  end_time: string;
-  quality: number;
-  notes?: string;
-  created_at: string;
-}
-
-// Re-export for backward compatibility
-const qualityMapping = SLEEP_QUALITY_MAPPING;
 
 export function Sleep() {
   const { user } = useAuth();
@@ -70,7 +56,7 @@ export function Sleep() {
     sleep_date: new Date().toISOString().split('T')[0],
     start_time: '',
     end_time: '',
-    quality: 3, // Default to 'good' which is value 3
+    quality: 3, // Default to 3 (good)
     notes: '',
   });
 
@@ -106,18 +92,26 @@ export function Sleep() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate using centralized function
-    const validationErrors = validateSleepRecord({
-      startTime: formData.start_time,
-      endTime: formData.end_time,
-      quality: formData.quality,
-      date: formData.sleep_date
-    });
+    // Validate the record
+    const errors: string[] = [];
+    if (!formData.start_time) errors.push('Start time is required');
+    if (!formData.end_time) errors.push('End time is required');
+    if (!formData.sleep_date) errors.push('Date is required');
+    
+    if (formData.start_time && formData.end_time) {
+      const duration = calculateSleepDuration(formData.start_time, formData.end_time);
+      if (duration.total > 16) {
+        errors.push('Sleep duration cannot exceed 16 hours');
+      }
+      if (duration.total < 0.5) {
+        errors.push('Sleep duration must be at least 30 minutes');
+      }
+    }
 
-    if (validationErrors.length > 0) {
+    if (errors.length > 0) {
       toast({
         title: 'Validation Error',
-        description: validationErrors.join(', '),
+        description: errors.join(', '),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -218,11 +212,6 @@ export function Sleep() {
     return formatSleepDuration(duration.total);
   };
 
-  // Get quality text using centralized function
-  const getQualityText = (qualityValue: number): string => {
-    return getSleepQualityText(qualityValue);
-  };
-
   return (
     <Box minH="100vh" bg={bgColor}>
       <Container maxW="6xl" py={8}>
@@ -259,25 +248,23 @@ export function Sleep() {
               Add Sleep Record
             </Text>
             <form onSubmit={handleSubmit}>
-              <VStack spacing={4}>
-                <HStack spacing={4} width="full">
-                  <FormControl isRequired>
-                    <FormLabel>Date</FormLabel>
-                    <Input
-                      type="date"
-                      value={formData.sleep_date}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
-                        setFormData({ ...formData, sleep_date: e.target.value })}
-                    />
-                  </FormControl>
+              <VStack spacing={4} align="stretch">
+                <FormControl isRequired>
+                  <FormLabel>Sleep Date</FormLabel>
+                  <Input
+                    type="date"
+                    value={formData.sleep_date}
+                    onChange={(e) => setFormData({ ...formData, sleep_date: e.target.value })}
+                  />
+                </FormControl>
 
+                <HStack spacing={4}>
                   <FormControl isRequired>
                     <FormLabel>Bedtime</FormLabel>
                     <Input
                       type="time"
                       value={formData.start_time}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
-                        setFormData({ ...formData, start_time: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
                     />
                   </FormControl>
 
@@ -286,23 +273,24 @@ export function Sleep() {
                     <Input
                       type="time"
                       value={formData.end_time}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
-                        setFormData({ ...formData, end_time: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
                     />
                   </FormControl>
                 </HStack>
 
                 <FormControl isRequired>
-                  <FormLabel>Sleep Quality</FormLabel>
+                  <FormLabel>Sleep Quality (1-4)</FormLabel>
                   <Select
                     value={formData.quality}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => 
-                      setFormData({ ...formData, quality: parseInt(e.target.value) })}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      quality: parseInt(e.target.value)
+                    })}
                   >
-                    <option value={1}>Poor</option>
-                    <option value={2}>Fair</option>
-                    <option value={3}>Good</option>
-                    <option value={4}>Excellent</option>
+                    <option value={1}>Poor (1)</option>
+                    <option value={2}>Fair (2)</option>
+                    <option value={3}>Good (3)</option>
+                    <option value={4}>Excellent (4)</option>
                   </Select>
                 </FormControl>
 
@@ -310,7 +298,7 @@ export function Sleep() {
                   <FormLabel>Notes</FormLabel>
                   <Textarea
                     value={formData.notes}
-                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, notes: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     placeholder="Any notes about your sleep (interruptions, dreams, etc.)..."
                   />
                 </FormControl>
@@ -357,7 +345,7 @@ export function Sleep() {
                     <Td>{record.start_time}</Td>
                     <Td>{record.end_time}</Td>
                     <Td>{calculateDuration(record.start_time, record.end_time)}</Td>
-                    <Td>{getQualityText(record.quality).charAt(0).toUpperCase() + getQualityText(record.quality).slice(1)}</Td>
+                    <Td>{getSleepQualityText(record.quality)} ({record.quality})</Td>
                     <Td>{record.notes}</Td>
                     <Td>
                       <IconButton

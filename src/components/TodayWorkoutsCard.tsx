@@ -43,6 +43,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
   const cardShadow = useColorModeValue('none', 'lg');
   const statLabelColor = useColorModeValue('gray.600', 'gray.300');
   const statNumberColor = useColorModeValue('gray.900', 'gray.100');
+  const emptyStateBg = useColorModeValue('gray.50', 'gray.700');
 
   if (profileLoading || workoutsLoading) {
     return (
@@ -143,7 +144,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
           </Box>
         ) : (
           <Box
-            bg={useColorModeValue('gray.50', 'gray.700')}
+            bg={emptyStateBg}
             p={6}
             borderRadius="lg"
             textAlign="center"

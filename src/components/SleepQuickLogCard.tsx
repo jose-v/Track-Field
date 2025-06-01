@@ -18,6 +18,7 @@ import {
 import { FaMoon, FaStar, FaBed, FaClock } from 'react-icons/fa';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { getSleepQualityText } from '../utils/analytics/performance';
 
 interface SleepQuickLogCardProps {
   onLogComplete?: () => void;
@@ -25,7 +26,7 @@ interface SleepQuickLogCardProps {
 
 export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogComplete }) => {
   const [duration, setDuration] = useState(8);
-  const [quality, setQuality] = useState(4);
+  const [quality, setQuality] = useState(3); // Use numeric values to match database (3 = good)
   const [isLogging, setIsLogging] = useState(false);
   const { user } = useAuth();
   const toast = useToast();
@@ -41,17 +42,27 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
 
     setIsLogging(true);
     try {
+      // Log yesterday's sleep by default (since most people log previous night's sleep)
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       const sleepDate = yesterday.toISOString().split('T')[0];
+      
+      // Calculate start and end times based on duration
+      // Assume they woke up at current time and calculate backwards
+      const wakeTime = new Date();
+      const sleepTime = new Date(wakeTime.getTime() - (duration * 60 * 60 * 1000));
+      
+      const startTime = sleepTime.toTimeString().slice(0, 5); // HH:MM format
+      const endTime = wakeTime.toTimeString().slice(0, 5); // HH:MM format
 
       const { error } = await supabase
         .from('sleep_records')
         .insert({
           athlete_id: user.id,
           sleep_date: sleepDate,
-          duration_hours: duration,
-          quality_rating: quality,
+          start_time: startTime,
+          end_time: endTime,
+          quality: quality, // Numeric value as per database schema
           notes: 'Quick log from dashboard'
         });
 
@@ -59,7 +70,7 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
 
       toast({
         title: 'Sleep logged successfully!',
-        description: `${duration}h sleep, ${quality}/5 quality`,
+        description: `${duration}h sleep, ${getSleepQualityText(quality)} quality`,
         status: 'success',
         duration: 3000,
         isClosable: true,
@@ -81,15 +92,13 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
   };
 
   const getQualityColor = (rating: number) => {
-    if (rating >= 4) return 'green.500';
-    if (rating >= 3) return 'yellow.500';
-    return 'red.500';
-  };
-
-  const getQualityText = (rating: number) => {
-    if (rating >= 4) return 'Good';
-    if (rating >= 3) return 'Fair';
-    return 'Poor';
+    switch (rating) {
+      case 4: return 'green.500';
+      case 3: return 'blue.500';
+      case 2: return 'yellow.500';
+      case 1: return 'red.500';
+      default: return 'gray.500';
+    }
   };
 
   return (
@@ -111,7 +120,7 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
                 How did you sleep?
               </Text>
               <Text fontSize="sm" color={statLabelColor}>
-                Log last night's sleep
+                Log yesterday's sleep
               </Text>
             </VStack>
           </HStack>
@@ -166,16 +175,16 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
             </Text>
             <HStack spacing={1}>
               <Text fontSize="sm" fontWeight="bold" color={getQualityColor(quality)}>
-                {getQualityText(quality)}
+                {getSleepQualityText(quality).charAt(0).toUpperCase() + getSleepQualityText(quality).slice(1)}
               </Text>
               <Text fontSize="xs" color={statLabelColor}>
-                ({quality}/5)
+                ({quality}/4)
               </Text>
             </HStack>
           </HStack>
           
           <HStack spacing={2} justify="center">
-            {[1, 2, 3, 4, 5].map((rating) => (
+            {[1, 2, 3, 4].map((rating) => (
               <Icon
                 key={rating}
                 as={FaStar}

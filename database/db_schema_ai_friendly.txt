@@ -140,4 +140,28 @@ FOREIGN KEYS:
   - athlete_id -> athletes(id) ON DELETE CASCADE
   - workout_id -> workouts(id) ON DELETE CASCADE
 
+TABLE: athlete_wellness_surveys
+  - id: UUID [PRIMARY KEY, DEFAULT uuid_generate_v4()]
+  - athlete_id: UUID [FOREIGN KEY -> profiles(id) ON DELETE CASCADE, NOT NULL]
+  - survey_date: DATE [NOT NULL]
+  - fatigue_level: INTEGER [NOT NULL, CHECK (fatigue_level >= 1 AND fatigue_level <= 10)]
+  - muscle_soreness: INTEGER [NOT NULL, CHECK (muscle_soreness >= 1 AND muscle_soreness <= 10)]
+  - stress_level: INTEGER [NOT NULL, CHECK (stress_level >= 1 AND stress_level <= 10)]
+  - motivation_level: INTEGER [NOT NULL, CHECK (motivation_level >= 1 AND motivation_level <= 10)]
+  - overall_feeling: INTEGER [NOT NULL, CHECK (overall_feeling >= 1 AND overall_feeling <= 10)]
+  - sleep_quality: INTEGER [CHECK (sleep_quality >= 1 AND sleep_quality <= 10)]
+  - sleep_duration: NUMERIC(4,2) [CHECK (sleep_duration >= 0 AND sleep_duration <= 24)]
+  - notes: TEXT
+  - created_at: TIMESTAMPTZ [DEFAULT NOW()]
+  - updated_at: TIMESTAMPTZ [DEFAULT NOW()]
+  - UNIQUE(athlete_id, survey_date)
+PRIMARY KEY: id
+FOREIGN KEYS:
+  - athlete_id -> profiles(id) ON DELETE CASCADE
+RLS POLICIES:
+  - Athletes can view their own wellness surveys: SELECT USING (auth.uid() = athlete_id)
+  - Athletes can insert their own wellness surveys: INSERT WITH CHECK (auth.uid() = athlete_id)
+  - Athletes can update their own wellness surveys: UPDATE USING (auth.uid() = athlete_id)
+  - Coaches can view their athletes wellness surveys: SELECT USING (EXISTS coach-athlete approved relationship)
+
 -- Add more tables as needed following this format 

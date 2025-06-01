@@ -41,24 +41,22 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
   const [endHour, setEndHour] = useState(1);
   const [endMinute, setEndMinute] = useState(0);
 
-  // Memoize color mode values for performance
-  const colorValues = useMemo(() => ({
-    bgColor: useColorModeValue('white', 'gray.800'),
-    borderColor: useColorModeValue('gray.200', 'gray.600'),
-    headerBg: useColorModeValue('blue.500', 'blue.600'),
-    selectedBg: useColorModeValue('blue.100', 'blue.700'),
-    selectedColor: useColorModeValue('blue.600', 'blue.200'),
-    textColor: useColorModeValue('gray.700', 'gray.200'),
-    mutedTextColor: useColorModeValue('gray.400', 'gray.500'),
-    timeBg: useColorModeValue('gray.50', 'gray.700'),
-    timeSelectedBg: useColorModeValue('blue.500', 'blue.600'),
-    timeSelectedColor: useColorModeValue('white', 'white'),
-  }), []);
-
-  const {
-    bgColor, borderColor, headerBg, selectedBg, selectedColor, textColor,
-    mutedTextColor, timeBg, timeSelectedBg, timeSelectedColor
-  } = colorValues;
+  // Color mode values moved to top level to fix Hooks rule violations
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const headerBg = useColorModeValue('blue.500', 'blue.600');
+  const selectedBg = useColorModeValue('blue.100', 'blue.700');
+  const selectedColor = useColorModeValue('blue.600', 'blue.200');
+  const textColor = useColorModeValue('gray.700', 'gray.200');
+  const mutedTextColor = useColorModeValue('gray.400', 'gray.500');
+  const timeBg = useColorModeValue('gray.50', 'gray.700');
+  const timeSelectedBg = useColorModeValue('blue.500', 'blue.600');
+  const timeSelectedColor = useColorModeValue('white', 'white');
+  // Add missing color values to fix remaining hooks violations
+  const inRangeBg = useColorModeValue('blue.50', 'blue.900');
+  const inRangeColor = useColorModeValue('blue.600', 'blue.200');
+  const inRangeHoverBg = useColorModeValue('blue.100', 'blue.800');
+  const timeHoverBg = useColorModeValue('gray.50', 'gray.600');
 
   // Helper functions
   const formatDate = (date: Date): string => {
@@ -301,14 +299,14 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                         isSelected 
                           ? selectedBg 
                           : isInRange 
-                            ? useColorModeValue('blue.50', 'blue.900')
+                            ? inRangeBg
                             : undefined
                       }
                       color={
                         isSelected 
                           ? selectedColor 
                           : isInRange 
-                            ? useColorModeValue('blue.600', 'blue.200')
+                            ? inRangeColor
                             : dayObj.isCurrentMonth ? textColor : mutedTextColor
                       }
                       onClick={() => handleDateClick(dayObj.date)}
@@ -323,7 +321,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                               : "md"
                       }
                       _hover={{
-                        bg: isSelected ? selectedBg : isInRange ? useColorModeValue('blue.100', 'blue.800') : 'gray.100'
+                        bg: isSelected ? selectedBg : isInRange ? inRangeHoverBg : timeHoverBg
                       }}
                     >
                       {dayObj.day}
@@ -421,7 +419,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                       fontSize="sm"
                       onClick={() => handleTimeSelection(timeSlot)}
                       _hover={{
-                        bg: isSelected ? undefined : useColorModeValue('gray.50', 'gray.600')
+                        bg: isSelected ? undefined : timeBg
                       }}
                     >
                       {timeSlot}

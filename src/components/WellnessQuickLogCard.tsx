@@ -95,9 +95,10 @@ export const WellnessQuickLogCard: React.FC<WellnessQuickLogCardProps> = ({ onLo
           athlete_id: user.id,
           survey_date: today,
           fatigue_level: fatigue,
-          soreness_level: soreness,
+          muscle_soreness: soreness,
           stress_level: stress,
           motivation_level: motivation,
+          overall_feeling: Math.round(((10 - fatigue) + (10 - soreness) + (10 - stress) + motivation) / 4),
           notes: 'Quick check-in from dashboard'
         });
 

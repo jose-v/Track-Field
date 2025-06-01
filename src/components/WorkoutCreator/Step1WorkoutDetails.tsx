@@ -119,6 +119,7 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
   const inputBg = useColorModeValue('white', 'gray.700');
   const labelColor = useColorModeValue('gray.700', 'gray.200');
   const placeholderColor = useColorModeValue('gray.500', 'gray.300');
+  const inputHoverBorderColor = useColorModeValue('gray.400', 'gray.500');
 
   const getTypeIcon = (type: string, size: number = 20) => {
     switch (type) {
@@ -164,7 +165,7 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
               color={textColor}
               _placeholder={{ color: placeholderColor }}
               _focus={{ borderColor: "blue.400" }}
-              _hover={{ borderColor: useColorModeValue("gray.400", "gray.500") }}
+              _hover={{ borderColor: inputHoverBorderColor }}
             />
           </FormControl>
         </Box>

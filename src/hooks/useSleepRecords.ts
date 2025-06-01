@@ -14,7 +14,7 @@ export interface SleepRecord {
   sleep_date: string;
   start_time: string;
   end_time: string;
-  quality: number;
+  quality: number; // Back to number to match database schema
   notes?: string;
   created_at: string;
 }

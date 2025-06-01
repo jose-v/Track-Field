@@ -155,6 +155,9 @@ const DraggableExercise: React.FC<DraggableExerciseProps> = ({
   const subtitleColor = useColorModeValue('gray.600', 'gray.300');
   const exerciseCardBg = useColorModeValue('gray.50', 'gray.600');
   const noExercisesColor = useColorModeValue('gray.500', 'gray.300');
+  const dragHandleBg = useColorModeValue('gray.200', 'gray.600');
+  const dragHandleHoverBg = useColorModeValue('gray.300', 'gray.500');
+  const dragHandleActiveBg = useColorModeValue('gray.400', 'gray.400');
 
   const sets = parseInt(exercise.sets || '0') || 0;
   const reps = parseInt(exercise.reps || '0') || 0;
@@ -205,9 +208,9 @@ const DraggableExercise: React.FC<DraggableExerciseProps> = ({
               cursor="grab"
               p={2}
               borderRadius="md"
-              bg={useColorModeValue('gray.200', 'gray.600')}
-              _hover={{ bg: useColorModeValue('gray.300', 'gray.500') }}
-              _active={{ cursor: 'grabbing', bg: useColorModeValue('gray.400', 'gray.400') }}
+              bg={dragHandleBg}
+              _hover={{ bg: dragHandleHoverBg }}
+              _active={{ cursor: 'grabbing', bg: dragHandleActiveBg }}
             >
               <GripVertical size={20} color="white" />
             </Box>
@@ -510,6 +513,14 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
   const warningTitleColor = useColorModeValue('orange.800', 'orange.200');
   const warningTextColor = useColorModeValue('orange.700', 'orange.300');
   const warningBg = useColorModeValue('orange.50', 'orange.900');
+  const dragHandleBg = useColorModeValue('gray.200', 'gray.600');
+  const dragHandleHoverBg = useColorModeValue('gray.300', 'gray.500');
+  const dragHandleActiveBg = useColorModeValue('gray.400', 'gray.400');
+  const viewAllAthletesBg = useColorModeValue('gray.100', 'gray.600');
+  const viewAllAthletesHoverBg = useColorModeValue('gray.200', 'gray.500');
+  const dragOverlayBg = useColorModeValue('white', 'gray.700');
+  const dragOverlayTextColor = useColorModeValue('gray.800', 'gray.100');
+  const dragOverlaySubtitleColor = useColorModeValue('gray.600', 'gray.300');
 
   const getWorkoutStats = () => {
     if (templateType === 'single') {
@@ -778,12 +789,12 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
                           w="48px"
                           h="48px"
                           borderRadius="full"
-                          bg={useColorModeValue('gray.100', 'gray.600')}
+                          bg={viewAllAthletesBg}
                           display="flex"
                           alignItems="center"
                           justifyContent="center"
                           cursor="pointer"
-                          _hover={{ bg: useColorModeValue('gray.200', 'gray.500') }}
+                          _hover={{ bg: viewAllAthletesHoverBg }}
                         >
                           <Text fontSize="xs" color={textColor} fontWeight="medium">
                             View All
@@ -1142,7 +1153,7 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
           return (
             <Box
               p={4}
-              bg={useColorModeValue('white', 'gray.700')}
+              bg={dragOverlayBg}
               borderRadius="md"
               borderLeft="4px solid"
               borderLeftColor="blue.400"
@@ -1159,12 +1170,12 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
                   <Box
                     p={2}
                     borderRadius="md"
-                    bg={useColorModeValue('gray.200', 'gray.600')}
+                    bg={dragHandleBg}
                   >
-                    <GripVertical size={18} color="white" />
+                    <GripVertical size={18} color={dragOverlayTextColor} />
                   </Box>
                   <VStack align="start" spacing={1} flex={1}>
-                    <Text fontSize="md" fontWeight="bold" color={useColorModeValue('gray.800', 'gray.100')}>
+                    <Text fontSize="md" fontWeight="bold" color={dragOverlayTextColor}>
                       {exercise.name}
                       </Text>
                     <Badge colorScheme="blue" variant="subtle" size="sm">{exercise.category}</Badge>
@@ -1175,24 +1186,24 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
                 <HStack spacing={4} justify="space-around">
                   {exercise.sets && (
                     <VStack spacing={0}>
-                      <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')}>Sets</Text>
-                      <Text fontSize="sm" fontWeight="bold" color={useColorModeValue('gray.700', 'gray.100')}>
+                      <Text fontSize="xs" color={dragOverlaySubtitleColor}>Sets</Text>
+                      <Text fontSize="sm" fontWeight="bold" color={dragOverlayTextColor}>
                         {exercise.sets}
                       </Text>
                     </VStack>
                   )}
                   {exercise.reps && (
                     <VStack spacing={0}>
-                      <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')}>Reps</Text>
-                      <Text fontSize="sm" fontWeight="bold" color={useColorModeValue('gray.700', 'gray.100')}>
+                      <Text fontSize="xs" color={dragOverlaySubtitleColor}>Reps</Text>
+                      <Text fontSize="sm" fontWeight="bold" color={dragOverlayTextColor}>
                         {exercise.reps}
                       </Text>
           </VStack>
         )}
                   {exercise.weight && (
                     <VStack spacing={0}>
-                      <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')}>Weight</Text>
-                      <Text fontSize="sm" fontWeight="bold" color={useColorModeValue('gray.700', 'gray.100')}>
+                      <Text fontSize="xs" color={dragOverlaySubtitleColor}>Weight</Text>
+                      <Text fontSize="sm" fontWeight="bold" color={dragOverlayTextColor}>
                         {exercise.weight}kg
               </Text>
             </VStack>

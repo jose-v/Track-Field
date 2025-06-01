@@ -21,6 +21,7 @@ import {
 import { ArrowLeft, ChevronLeft, ChevronRight, Save, Target } from 'lucide-react';
 import { api, type EnhancedWorkoutData } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 
 // Lazy load step components to improve initial load time
 const Step1WorkoutDetails = lazy(() => import('./Step1WorkoutDetails').then(module => ({ default: module.default })));
@@ -93,30 +94,26 @@ const WorkoutCreatorWireframe: React.FC = () => {
   const toast = useToast();
   const { user } = useAuth();
 
-  // Theme-aware colors - moved to useMemo for performance
-  const themeColors = React.useMemo(() => ({
-    bgColor: useColorModeValue('white', 'gray.800'),
-    cardBg: useColorModeValue('white', 'gray.700'),
-    borderColor: useColorModeValue('gray.200', 'gray.600'),
-    textColor: useColorModeValue('gray.700', 'gray.100'),
-    subtitleColor: useColorModeValue('gray.600', 'gray.300'),
-    statsBg: useColorModeValue('gray.50', 'gray.700'),
-    progressBg: useColorModeValue('white', 'gray.800'),
-    stepHeaderTitleColor: useColorModeValue('blue.700', 'blue.300'),
-    stepHeaderDescColor: useColorModeValue('blue.600', 'blue.400'),
-    dayButtonHoverBg: useColorModeValue('blue.50', 'blue.900'),
-    progressStepCurrentColor: useColorModeValue('blue.600', 'blue.300'),
-    progressStepCompletedColor: useColorModeValue('green.600', 'green.300'),
-    progressStepInactiveColor: useColorModeValue('gray.500', 'gray.300'),
-    progressStepArrowColor: useColorModeValue('gray.400', 'gray.400'),
-  }), []);
-
-  const {
-    bgColor, cardBg, borderColor, textColor, subtitleColor, statsBg, progressBg,
-    stepHeaderTitleColor, stepHeaderDescColor, dayButtonHoverBg,
-    progressStepCurrentColor, progressStepCompletedColor, progressStepInactiveColor,
-    progressStepArrowColor
-  } = themeColors;
+  // Theme-aware colors - moved to top level to fix Hooks rule violations
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const cardBg = useColorModeValue('white', 'gray.700');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const textColor = useColorModeValue('gray.700', 'gray.100');
+  const subtitleColor = useColorModeValue('gray.600', 'gray.300');
+  const statsBg = useColorModeValue('gray.50', 'gray.700');
+  const progressBg = useColorModeValue('white', 'gray.800');
+  const stepHeaderTitleColor = useColorModeValue('blue.700', 'blue.300');
+  const stepHeaderDescColor = useColorModeValue('blue.600', 'blue.400');
+  const dayButtonHoverBg = useColorModeValue('blue.50', 'blue.900');
+  const progressStepCurrentColor = useColorModeValue('blue.600', 'blue.300');
+  const progressStepCompletedColor = useColorModeValue('green.600', 'green.300');
+  const progressStepInactiveColor = useColorModeValue('gray.500', 'gray.300');
+  const progressStepArrowColor = useColorModeValue('gray.400', 'gray.400');
+  const buttonHoverBg = useColorModeValue('gray.100', 'gray.600');
+  const navigationButtonHoverBg = useColorModeValue('gray.50', 'gray.700');
+  const navigationButtonHoverBorderColor = useColorModeValue('gray.400', 'gray.500');
+  const progressDotInactiveBg = useColorModeValue('gray.300', 'gray.600');
+  const progressDotBorderColor = useColorModeValue('white', 'gray.800');
 
   // Sidebar state
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -318,7 +315,9 @@ const WorkoutCreatorWireframe: React.FC = () => {
       warnings.push('No exercises added to workout');
     }
     
-    if (Object.keys(selectedAthletes).length === 0) {
+    // Only show athlete assignment warning for coaches and team managers
+    // Athletes are expected to create workouts for themselves
+    if (Object.keys(selectedAthletes).length === 0 && userProfile?.role !== 'athlete') {
       warnings.push('No athletes assigned to this workout');
     }
     
@@ -446,13 +445,18 @@ const WorkoutCreatorWireframe: React.FC = () => {
         // For athletes, they typically can't assign workouts to others
       } catch (error) {
         console.error('Error loading user profile:', error);
-        toast({
-          title: 'Loading Error',
-          description: 'Failed to load athlete data. Some features may be limited.',
-          status: 'warning',
-          duration: 3000,
-          isClosable: true,
-        });
+        // Only show warning for actual profile loading errors, not athlete loading errors
+        // since those are handled in their respective functions with fallback logic
+        if (error instanceof Error && error.message.includes('Profile not found')) {
+          toast({
+            title: 'Profile Loading Error',
+            description: 'Could not load your profile data. Please try refreshing the page.',
+            status: 'warning',
+            duration: 3000,
+            isClosable: true,
+          });
+        }
+        // Don't show a toast for database view/relation errors as they're handled elsewhere
       }
     };
 
@@ -462,7 +466,40 @@ const WorkoutCreatorWireframe: React.FC = () => {
   const loadCoachAthletes = async (coachId: string) => {
     setIsLoadingAthletes(true);
     try {
-      const athleteData = await api.athletes.getByCoach(coachId);
+      // Try the API method first, but catch and handle specific errors
+      let athleteData = [];
+      try {
+        athleteData = await api.athletes.getByCoach(coachId);
+      } catch (error: any) {
+        console.warn('Could not load athletes via getByCoach, trying alternative approach:', error);
+        
+        // Fallback: Try to get athlete IDs directly and then fetch athlete profiles
+        try {
+          const athleteIds = await api.athletes.getAthleteIdsByCoach(coachId);
+          if (athleteIds.length > 0) {
+            // Get athlete profiles directly from profiles table
+            const { data: profiles, error: profileError } = await supabase
+              .from('profiles')
+              .select('id, first_name, last_name, avatar_url')
+              .in('id', athleteIds)
+              .eq('role', 'athlete');
+            
+            if (!profileError && profiles) {
+              athleteData = profiles.map(profile => ({
+                id: profile.id,
+                first_name: profile.first_name,
+                last_name: profile.last_name,
+                full_name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
+                avatar_url: profile.avatar_url,
+                events: [] // Default empty events
+              }));
+            }
+          }
+        } catch (fallbackError) {
+          console.warn('Fallback approach also failed:', fallbackError);
+          // If all methods fail, we'll just continue with empty array
+        }
+      }
       
       // Transform API data to match component interface
       const transformedAthletes: Athlete[] = athleteData.map(athlete => ({
@@ -476,13 +513,16 @@ const WorkoutCreatorWireframe: React.FC = () => {
       console.log(`Loaded ${transformedAthletes.length} athletes for coach`);
     } catch (error) {
       console.error('Error loading coach athletes:', error);
-      toast({
-        title: 'Failed to Load Athletes',
-        description: 'Could not load your assigned athletes. Please try again.',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      // Only show toast for critical errors, not database view issues
+      if (error instanceof Error && !error.message.includes('relation') && !error.message.includes('view')) {
+        toast({
+          title: 'Failed to Load Athletes',
+          description: 'Could not load your assigned athletes. Please try again.',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
       setAthletes([]);
     } finally {
       setIsLoadingAthletes(false);
@@ -492,7 +532,35 @@ const WorkoutCreatorWireframe: React.FC = () => {
   const loadAllAthletes = async () => {
     setIsLoadingAthletes(true);
     try {
-      const athleteData = await api.athletes.getAll();
+      // Try the API method first, but catch and handle specific errors
+      let athleteData = [];
+      try {
+        athleteData = await api.athletes.getAll();
+      } catch (error: any) {
+        console.warn('Could not load athletes via getAll, trying alternative approach:', error);
+        
+        // Fallback: Get all athlete profiles directly from profiles table
+        try {
+          const { data: profiles, error: profileError } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, avatar_url')
+            .eq('role', 'athlete');
+          
+          if (!profileError && profiles) {
+            athleteData = profiles.map(profile => ({
+              id: profile.id,
+              first_name: profile.first_name,
+              last_name: profile.last_name,
+              full_name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
+              avatar_url: profile.avatar_url,
+              events: [] // Default empty events
+            }));
+          }
+        } catch (fallbackError) {
+          console.warn('Fallback approach also failed:', fallbackError);
+          // If all methods fail, we'll just continue with empty array
+        }
+      }
       
       // Transform API data to match component interface
       const transformedAthletes: Athlete[] = athleteData.map(athlete => ({
@@ -506,13 +574,16 @@ const WorkoutCreatorWireframe: React.FC = () => {
       console.log(`Loaded ${transformedAthletes.length} total athletes`);
     } catch (error) {
       console.error('Error loading all athletes:', error);
-      toast({
-        title: 'Failed to Load Athletes',
-        description: 'Could not load athlete data. Please try again.',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      // Only show toast for critical errors, not database view issues
+      if (error instanceof Error && !error.message.includes('relation') && !error.message.includes('view')) {
+        toast({
+          title: 'Failed to Load Athletes',
+          description: 'Could not load athlete data. Please try again.',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
       setAthletes([]);
     } finally {
       setIsLoadingAthletes(false);
@@ -559,7 +630,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
                   isDisabled={!isAccessible}
                   color={isCurrent ? progressStepCurrentColor : isCompleted ? progressStepCompletedColor : progressStepInactiveColor}
                   fontWeight={isCurrent ? 'bold' : 'normal'}
-                  _hover={isAccessible ? { bg: useColorModeValue('gray.100', 'gray.600') } : {}}
+                  _hover={isAccessible ? { bg: buttonHoverBg } : {}}
                   cursor={isAccessible ? 'pointer' : 'default'}
                   flex="1"
                   minW="0"
@@ -591,7 +662,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
                   aria-label="Back to list"
                   onClick={() => alert('Go back to workout list')}
                   color={textColor}
-                  _hover={{ bg: useColorModeValue('gray.100', 'gray.600') }}
+                  _hover={{ bg: buttonHoverBg }}
                 />
                 <VStack align="start" spacing={1}>
                   <Heading size="md" color={stepHeaderTitleColor}>
@@ -664,7 +735,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
           borderWidth="2px"
           borderColor={borderColor}
           color={textColor}
-          _hover={{ bg: useColorModeValue("gray.50", "gray.700"), borderColor: useColorModeValue("gray.400", "gray.500") }}
+          _hover={{ bg: navigationButtonHoverBg, borderColor: navigationButtonHoverBorderColor }}
         >
           Previous
         </Button>
@@ -677,13 +748,13 @@ const WorkoutCreatorWireframe: React.FC = () => {
                 w={6}
                 h={6}
                 borderRadius="full"
-                bg={step.id === currentStep ? 'blue.500' : step.id < currentStep ? 'green.500' : useColorModeValue('gray.300', 'gray.600')}
+                bg={step.id === currentStep ? 'blue.500' : step.id < currentStep ? 'green.500' : progressDotInactiveBg}
                 cursor="pointer"
                 onClick={() => step.id <= currentStep && goToStep(step.id)}
                 transition="all 0.3s"
                 _hover={{ transform: step.id <= currentStep ? 'scale(1.2)' : 'none' }}
                 border="2px solid"
-                borderColor={useColorModeValue('white', 'gray.800')}
+                borderColor={progressDotBorderColor}
                 position="relative"
               >
                 {step.id < currentStep && (
