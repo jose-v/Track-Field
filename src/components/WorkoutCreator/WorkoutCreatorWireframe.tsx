@@ -23,6 +23,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api, type EnhancedWorkoutData } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { useScrollDirection } from '../../hooks/useScrollDirection';
 
 // Lazy load step components to improve initial load time
 const Step1WorkoutDetails = lazy(() => import('./Step1WorkoutDetails').then(module => ({ default: module.default })));
@@ -96,6 +97,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { isHeaderVisible } = useScrollDirection(10);
   
   // Check if we're editing a workout
   const editWorkoutId = searchParams.get('edit');
@@ -790,7 +792,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
       {/* Progress Bar - Fixed under top navigation */}
       <Box 
         position="fixed"
-        top="65px"
+        top={isHeaderVisible ? "65px" : "0px"}
         left={`${sidebarWidth}px`}
         right="0"
         zIndex="998"
@@ -798,7 +800,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
         borderBottom="1px solid"
         borderBottomColor={borderColor}
         data-testid="workout-creator-progress"
-        transition="left 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+        transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
       >
         <Progress 
           value={progressPercentage} 
@@ -846,7 +848,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
       </Box>
 
       {/* Step Header Card - with top margin to account for fixed progress bar */}
-      <Card variant="outline" shadow="none" mb={2} mt="80px" mx={6} bg={cardBg} borderColor={borderColor}>
+      <Card variant="outline" shadow="none" mb={2} mt={isHeaderVisible ? "80px" : "20px"} mx={6} bg={cardBg} borderColor={borderColor}>
         <CardBody p={4}>
           <VStack spacing={4} align="stretch" w="100%">
             <HStack justify="space-between" align="center" w="100%">
