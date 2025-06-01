@@ -175,7 +175,7 @@ export function WorkoutCard({
               variant="ghost" 
               color="white" 
               as={RouterLink}
-              to={`/athlete/workouts/edit/${workout.id}`}
+              to={`/athlete/workout-creator?edit=${workout.id}`}
             />
           )}
           {isCoach && onDelete && (
