@@ -24,6 +24,14 @@ self.addEventListener('install', (event) => {
 
 // Fetch event - Handle SPA routing
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  
+  // Skip intercepting external API calls (third-party domains)
+  if (url.origin !== location.origin) {
+    // Let external API calls pass through normally
+    return;
+  }
+  
   // Handle navigation requests for SPA
   if (event.request.mode === 'navigate') {
     event.respondWith(
@@ -36,7 +44,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Handle other requests (assets, API calls, etc.)
+  // Handle other requests (assets, API calls, etc.) - only for same origin
   event.respondWith(
     caches.match(event.request)
       .then((response) => {

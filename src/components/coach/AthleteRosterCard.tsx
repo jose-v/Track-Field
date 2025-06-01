@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Text,
@@ -16,11 +16,29 @@ import {
   useToast,
   Skeleton,
   SkeletonCircle,
+  Card,
+  CardBody,
+  CardHeader,
+  Heading,
+  IconButton,
+  useDisclosure,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
+  Code,
+  Stack,
+  AvatarGroup
 } from '@chakra-ui/react';
-import { FaRunning, FaExclamationTriangle, FaCheckCircle, FaUser, FaEye } from 'react-icons/fa';
+import { FaRunning, FaExclamationTriangle, FaCheckCircle, FaUser, FaEye, FaUserPlus, FaTrash, FaUsers } from 'react-icons/fa';
 import { Link as RouterLink } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useCoachAthletes } from '../../hooks/useCoachAthletes';
+import AddAthleteModal from '../AddAthleteModal';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface AthleteStatus {
   id: string;
@@ -41,8 +59,23 @@ interface AthleteRosterCardProps {
 const AthleteRosterCard: React.FC<AthleteRosterCardProps> = ({ onAthleteClick }) => {
   const { user } = useAuth();
   const toast = useToast();
+  const queryClient = useQueryClient();
+  
+  // Use the existing useCoachAthletes hook for database-connected athletes
+  const { data: coachAthletes = [], isLoading: athletesLoading, refetch } = useCoachAthletes();
+  
   const [athletes, setAthletes] = useState<AthleteStatus[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Add athlete modal
+  const { isOpen: isAddAthleteOpen, onOpen: onAddAthleteOpen, onClose: onAddAthleteClose } = useDisclosure();
+  
+  // Delete athlete confirmation
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [athleteToRemove, setAthleteToRemove] = useState<any>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
 
   // Color mode values
   const cardBg = useColorModeValue('white', 'gray.800');
@@ -53,12 +86,13 @@ const AthleteRosterCard: React.FC<AthleteRosterCardProps> = ({ onAthleteClick })
   const statLabelColor = useColorModeValue('gray.600', 'gray.300');
   const statNumberColor = useColorModeValue('gray.900', 'gray.100');
   const athleteCardBg = useColorModeValue('gray.50', 'gray.700');
+  const athleteItemHoverBg = useColorModeValue('gray.50', 'gray.700');
 
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && coachAthletes.length >= 0) { // Include case where array is empty but loaded
       fetchAthleteStatuses();
     }
-  }, [user?.id]);
+  }, [user?.id, coachAthletes]);
 
   const fetchAthleteStatuses = async () => {
     if (!user?.id) return;
@@ -66,28 +100,14 @@ const AthleteRosterCard: React.FC<AthleteRosterCardProps> = ({ onAthleteClick })
     try {
       setIsLoading(true);
 
-      // Get coach's athletes
-      const { data: coachAthletes, error: athletesError } = await supabase
-        .from('coach_athletes')
-        .select(`
-          athlete_id,
-          profiles!coach_athletes_athlete_id_fkey(
-            id,
-            first_name,
-            last_name,
-            avatar_url
-          )
-        `)
-        .eq('coach_id', user.id);
-
-      if (athletesError) throw athletesError;
-
+      // Use the athletes from the useCoachAthletes hook
       if (!coachAthletes || coachAthletes.length === 0) {
         setAthletes([]);
+        setIsLoading(false);
         return;
       }
 
-      const athleteIds = coachAthletes.map(ca => ca.athlete_id);
+      const athleteIds = coachAthletes.map(athlete => athlete.id);
 
       // Get workout data for the past 30 days
       const thirtyDaysAgo = new Date();
@@ -102,10 +122,9 @@ const AthleteRosterCard: React.FC<AthleteRosterCardProps> = ({ onAthleteClick })
 
       if (workoutError) throw workoutError;
 
-      // Process athlete statuses
-      const athleteStatuses: AthleteStatus[] = coachAthletes.map(ca => {
-        const profile = ca.profiles;
-        const athleteWorkouts = (workoutData || []).filter(w => w.athlete_id === ca.athlete_id);
+      // Process athlete statuses using coachAthletes data
+      const athleteStatuses: AthleteStatus[] = coachAthletes.map(athlete => {
+        const athleteWorkouts = (workoutData || []).filter(w => w.athlete_id === athlete.id);
         
         // Calculate compliance (completed vs assigned workouts)
         const totalWorkouts = athleteWorkouts.length;
@@ -140,9 +159,9 @@ const AthleteRosterCard: React.FC<AthleteRosterCardProps> = ({ onAthleteClick })
           : 'No recent activity';
 
         return {
-          id: ca.athlete_id,
-          name: `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim(),
-          avatarUrl: profile?.avatar_url,
+          id: athlete.id,
+          name: `${athlete.first_name || ''} ${athlete.last_name || ''}`.trim(),
+          avatarUrl: athlete.avatar_url,
           injuryRisk,
           compliance,
           lastActivity,
@@ -200,6 +219,86 @@ const AthleteRosterCard: React.FC<AthleteRosterCardProps> = ({ onAthleteClick })
     return 'red';
   };
 
+  // Helper function to get Badge color based on completion rate
+  const getCompletionColor = (rate: number) => {
+    if (rate >= 80) return 'green';
+    if (rate >= 60) return 'yellow';
+    return 'red';
+  };
+
+  // Handle opening the delete confirmation dialog
+  const handleOpenRemoveDialog = async (athlete: any) => {
+    setAthleteToRemove(athlete);
+    setDeleteError(null);
+    setIsDeleteAlertOpen(true);
+  };
+  
+  // Handle closing the delete confirmation dialog
+  const handleCloseRemoveDialog = () => {
+    setIsDeleteAlertOpen(false);
+    setAthleteToRemove(null);
+    setDeleteError(null);
+  };
+  
+  // Handle removing an athlete from the team
+  const handleRemoveAthlete = async () => {
+    if (!athleteToRemove?.id || !user?.id) {
+      setDeleteError("Missing athlete or user information");
+      return;
+    }
+    
+    try {
+      setIsRemoving(true);
+      setDeleteError(null);
+      
+      // Delete the coach-athlete relationship
+      const { error } = await supabase
+        .from('coach_athletes')
+        .delete()
+        .match({
+          'athlete_id': athleteToRemove.id,
+          'coach_id': user.id
+        });
+      
+      if (error) {
+        console.error('Error deleting coach-athlete relationship:', error);
+        setDeleteError(`Delete failed: ${error.message}`);
+        
+        toast({
+          title: 'Error',
+          description: `Failed to remove athlete: ${error.message}`,
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+      } else {
+        // Force refresh all athlete-related queries
+        await Promise.all([
+          refetch(),
+          queryClient.invalidateQueries({ queryKey: ['coach-athletes'] }),
+          queryClient.invalidateQueries({ queryKey: ['coach-athletes', user.id] })
+        ]);
+        
+        toast({
+          title: 'Athlete Removed',
+          description: `${athleteToRemove.name} has been removed from your team.`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+        
+        handleCloseRemoveDialog();
+        // Refresh athlete statuses
+        fetchAthleteStatuses();
+      }
+    } catch (err) {
+      console.error('Error removing athlete:', err);
+      setDeleteError('An unexpected error occurred');
+    } finally {
+      setIsRemoving(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <Box
@@ -237,144 +336,242 @@ const AthleteRosterCard: React.FC<AthleteRosterCardProps> = ({ onAthleteClick })
   }
 
   return (
-    <Box
-      bg={cardBg}
-      borderRadius="xl"
-      p={6}
-      border="1px solid"
-      borderColor={borderColor}
-      boxShadow={cardShadow}
-    >
-      <HStack spacing={3} mb={4} justify="space-between">
-        <HStack spacing={3}>
-          <Icon as={FaRunning} boxSize={6} color="blue.500" />
-          <VStack align="start" spacing={0}>
-            <Text fontSize="lg" fontWeight="bold" color={statNumberColor}>
-              Team Roster
-            </Text>
-            <Text fontSize="sm" color={statLabelColor}>
-              {athletes.length} athletes • Click to view details
-            </Text>
-          </VStack>
-        </HStack>
-        <Button
-          as={RouterLink}
-          to="/coach/athletes"
-          size="sm"
-          variant="outline"
-          colorScheme="blue"
-          leftIcon={<Icon as={FaEye} />}
-        >
-          View All
-        </Button>
-      </HStack>
-
-      {athletes.length === 0 ? (
-        <Box
-          bg={useColorModeValue('gray.50', 'gray.700')}
-          p={6}
-          borderRadius="lg"
-          textAlign="center"
-        >
-          <Text fontSize="sm" color={statLabelColor}>
-            No athletes in your team yet
-          </Text>
-          <Button
-            as={RouterLink}
-            to="/coach/athletes"
-            size="sm"
-            colorScheme="blue"
-            mt={3}
-          >
-            Add Athletes
-          </Button>
-        </Box>
-      ) : (
-        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3} maxH="400px" overflowY="auto">
-          {athletes.map(athlete => (
-            <Box
-              key={athlete.id}
-              p={3}
-              bg={athleteCardBg}
-              borderRadius="md"
-              cursor="pointer"
-              onClick={() => onAthleteClick?.(athlete.id)}
-              _hover={{ transform: 'translateY(-1px)', boxShadow: 'md' }}
-              transition="all 0.2s"
-              border="1px solid"
-              borderColor={`${getRiskColor(athlete.injuryRisk)}.200`}
+    <Card bg={cardBg} borderColor={borderColor} borderWidth="1px" shadow={cardShadow} borderRadius="xl">
+      <CardHeader>
+        <Flex justify="space-between" align="center">
+          <HStack spacing={3}>
+            <Icon as={FaUsers} boxSize={6} color="blue.500" />
+            <VStack align="start" spacing={0}>
+              <Heading size="md">Team Roster</Heading>
+              <Text fontSize="sm" color={subtitleColor}>
+                {coachAthletes.length} athletes • Performance monitoring
+              </Text>
+            </VStack>
+          </HStack>
+          <HStack spacing={2}>
+            <Button
+              size="sm"
+              variant="outline"
+              colorScheme="blue"
+              leftIcon={<Icon as={FaEye} />}
+              as={RouterLink}
+              to="/coach/athletes"
             >
-              <HStack spacing={3} align="start">
-                <Avatar
-                  size="md"
-                  name={athlete.name}
-                  src={athlete.avatarUrl}
-                  bg={`${getRiskColor(athlete.injuryRisk)}.100`}
-                />
-                <VStack align="start" spacing={1} flex={1} minW={0}>
-                  <HStack spacing={2} w="100%">
-                    <Text fontSize="sm" fontWeight="bold" color={statNumberColor} noOfLines={1} flex={1}>
-                      {athlete.name}
-                    </Text>
-                    <Tooltip label={`${athlete.injuryRisk.charAt(0).toUpperCase() + athlete.injuryRisk.slice(1)} risk`}>
-                      <Icon
-                        as={getRiskIcon(athlete.injuryRisk)}
-                        color={`${getRiskColor(athlete.injuryRisk)}.500`}
-                        boxSize={4}
-                      />
-                    </Tooltip>
-                  </HStack>
-                  
-                  <HStack spacing={2} w="100%">
-                    <Text fontSize="xs" color={statLabelColor}>
-                      Compliance:
-                    </Text>
-                    <Badge
-                      colorScheme={getComplianceColor(athlete.compliance)}
-                      variant="subtle"
-                      fontSize="xs"
-                    >
-                      {athlete.compliance}%
-                    </Badge>
-                  </HStack>
+              View All
+            </Button>
+            <IconButton
+              icon={<FaUserPlus />}
+              aria-label="Add athlete"
+              onClick={onAddAthleteOpen}
+              colorScheme="green"
+              size="sm"
+            />
+          </HStack>
+        </Flex>
+      </CardHeader>
 
-                  <Progress
-                    value={athlete.compliance}
-                    size="xs"
-                    colorScheme={getComplianceColor(athlete.compliance)}
-                    w="100%"
-                    bg={useColorModeValue('gray.200', 'gray.600')}
-                  />
-
-                  <Text fontSize="xs" color={statLabelColor}>
-                    Last: {athlete.lastActivity}
-                  </Text>
-
-                  {athlete.recentRPE && (
-                    <HStack spacing={1}>
-                      <Text fontSize="xs" color={statLabelColor}>Avg RPE:</Text>
-                      <Badge
-                        colorScheme={athlete.recentRPE >= 8 ? 'red' : athlete.recentRPE >= 7 ? 'orange' : 'green'}
-                        variant="subtle"
-                        fontSize="xs"
-                      >
-                        {athlete.recentRPE.toFixed(1)}
-                      </Badge>
-                    </HStack>
-                  )}
-
-                  {athlete.missedWorkouts > 0 && (
-                    <Text fontSize="xs" color="red.500">
-                      {athlete.missedWorkouts} missed workout{athlete.missedWorkouts !== 1 ? 's' : ''}
-                    </Text>
-                  )}
+      <CardBody pt={0}>
+        {athletesLoading || isLoading ? (
+          <VStack spacing={3}>
+            {[1, 2, 3].map(i => (
+              <HStack key={i} spacing={3} w="100%" p={3} bg={athleteCardBg} borderRadius="md">
+                <SkeletonCircle size="12" />
+                <VStack align="start" spacing={1} flex={1}>
+                  <Skeleton height="16px" width="80%" />
+                  <Skeleton height="12px" width="60%" />
                 </VStack>
               </HStack>
+            ))}
+          </VStack>
+        ) : coachAthletes.length === 0 ? (
+          <VStack spacing={4} py={8} textAlign="center">
+            <Icon as={FaUsers} boxSize={12} color="gray.400" />
+            <Text color={subtitleColor}>No athletes in your team yet</Text>
+            <Button
+              leftIcon={<FaUserPlus />}
+              colorScheme="blue"
+              onClick={onAddAthleteOpen}
+            >
+              Add Your First Athlete
+            </Button>
+          </VStack>
+        ) : (
+          <VStack spacing={3} maxH="500px" overflowY="auto">
+            {/* Team Summary */}
+            <Box w="100%" p={3} bg={athleteCardBg} borderRadius="md">
+              <HStack spacing={4} justify="space-between">
+                <HStack spacing={3}>
+                  <AvatarGroup size="sm" max={5}>
+                    {coachAthletes.slice(0, 5).map(athlete => (
+                      <Avatar
+                        key={athlete.id}
+                        name={`${athlete.first_name} ${athlete.last_name}`}
+                        src={athlete.avatar_url}
+                      />
+                    ))}
+                  </AvatarGroup>
+                  <VStack align="start" spacing={0}>
+                    <Text fontSize="sm" fontWeight="bold" color={textColor}>
+                      {coachAthletes.length} Team Members
+                    </Text>
+                    <Text fontSize="xs" color={subtitleColor}>
+                      {athletes.filter(a => a.injuryRisk === 'high').length} high risk • {' '}
+                      {athletes.filter(a => a.compliance >= 80).length} high compliance
+                    </Text>
+                  </VStack>
+                </HStack>
+                {athletes.length > 0 && (
+                  <VStack align="end" spacing={0}>
+                    <Text fontSize="sm" fontWeight="bold" color={textColor}>
+                      {Math.round(athletes.reduce((sum, a) => sum + a.compliance, 0) / athletes.length)}%
+                    </Text>
+                    <Text fontSize="xs" color={subtitleColor}>Avg Compliance</Text>
+                  </VStack>
+                )}
+              </HStack>
             </Box>
-          ))}
-        </SimpleGrid>
-      )}
-    </Box>
+
+            {/* Individual Athletes */}
+            {athletes.map(athlete => (
+              <Box
+                key={athlete.id}
+                w="100%"
+                p={3}
+                bg={athleteCardBg}
+                borderRadius="md"
+                border="1px solid"
+                borderColor={`${getRiskColor(athlete.injuryRisk)}.200`}
+                _hover={{ bg: athleteItemHoverBg, transform: 'translateY(-1px)' }}
+                transition="all 0.2s"
+                cursor="pointer"
+                onClick={() => onAthleteClick?.(athlete.id)}
+              >
+                <HStack spacing={3} justify="space-between">
+                  <HStack spacing={3} flex={1}>
+                    <Avatar
+                      size="md"
+                      name={athlete.name}
+                      src={athlete.avatarUrl}
+                      bg={`${getRiskColor(athlete.injuryRisk)}.100`}
+                    />
+                    <VStack align="start" spacing={1} flex={1}>
+                      <HStack spacing={2} w="100%">
+                        <Text fontSize="sm" fontWeight="bold" color={textColor} flex={1}>
+                          {athlete.name}
+                        </Text>
+                        <Tooltip label={`${athlete.injuryRisk.charAt(0).toUpperCase() + athlete.injuryRisk.slice(1)} risk`}>
+                          <Icon
+                            as={getRiskIcon(athlete.injuryRisk)}
+                            color={`${getRiskColor(athlete.injuryRisk)}.500`}
+                            boxSize={4}
+                          />
+                        </Tooltip>
+                      </HStack>
+                      
+                      <HStack spacing={3} w="100%">
+                        <Badge
+                          colorScheme={getComplianceColor(athlete.compliance)}
+                          variant="subtle"
+                          fontSize="xs"
+                        >
+                          {athlete.compliance}% compliance
+                        </Badge>
+                        {athlete.recentRPE && (
+                          <Badge
+                            colorScheme={athlete.recentRPE >= 8 ? 'red' : athlete.recentRPE >= 7 ? 'orange' : 'green'}
+                            variant="subtle"
+                            fontSize="xs"
+                          >
+                            RPE {athlete.recentRPE.toFixed(1)}
+                          </Badge>
+                        )}
+                      </HStack>
+
+                      <Progress
+                        value={athlete.compliance}
+                        size="xs"
+                        colorScheme={getComplianceColor(athlete.compliance)}
+                        w="100%"
+                        bg={useColorModeValue('gray.200', 'gray.600')}
+                      />
+
+                      <HStack spacing={4} w="100%">
+                        <Text fontSize="xs" color={subtitleColor}>
+                          Last: {athlete.lastActivity}
+                        </Text>
+                        {athlete.missedWorkouts > 0 && (
+                          <Text fontSize="xs" color="red.500">
+                            {athlete.missedWorkouts} missed
+                          </Text>
+                        )}
+                      </HStack>
+                    </VStack>
+                  </HStack>
+                  
+                  <IconButton
+                    icon={<FaTrash />}
+                    aria-label="Remove athlete"
+                    size="sm"
+                    variant="ghost"
+                    colorScheme="red"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenRemoveDialog(athlete);
+                    }}
+                  />
+                </HStack>
+              </Box>
+            ))}
+          </VStack>
+        )}
+      </CardBody>
+
+      {/* Add Athlete Modal */}
+      <AddAthleteModal 
+        isOpen={isAddAthleteOpen} 
+        onClose={onAddAthleteClose}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        isOpen={isDeleteAlertOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={handleCloseRemoveDialog}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Remove Athlete
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              {deleteError && (
+                <Text color="red.500" fontSize="sm" mb={3}>
+                  {deleteError}
+                </Text>
+              )}
+              Are you sure you want to remove <strong>{athleteToRemove?.name}</strong> from your team?
+              This will remove them from your coaching roster but won't delete their account.
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={handleCloseRemoveDialog}>
+                Cancel
+              </Button>
+              <Button 
+                colorScheme="red" 
+                onClick={handleRemoveAthlete}
+                ml={3}
+                isLoading={isRemoving}
+                loadingText="Removing..."
+              >
+                Remove
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+    </Card>
   );
 };
 

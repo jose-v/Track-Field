@@ -85,7 +85,7 @@ const Navigation = () => {
     } else if (profile?.role === 'athlete') {
       window.location.href = '/athlete/notifications'
     } else {
-      window.location.href = '/events'
+      window.location.href = '/meets'
     }
     // Clear notification count when viewed
     setNotificationCount(0)
@@ -124,7 +124,7 @@ const Navigation = () => {
     { label: 'Home', path: '/' },
     { label: 'Features', path: '/features' },
     { label: 'Pricing', path: '/pricing' },
-    { label: 'Events', path: '/events' },
+    { label: 'Meets', path: '/meets' },
     { label: 'About', path: '/about' },
     { label: 'Contact', path: '/contact' },
   ]

@@ -72,7 +72,7 @@ export const isUserAuthenticated = (): boolean => {
     currentUrl.includes('/dashboard') ||
     currentUrl.includes('/notifications') ||
     currentUrl.includes('/workouts') ||
-    currentUrl.includes('/events') ||
+    currentUrl.includes('/meets') ||
     currentUrl.includes('/calendar') ||
     currentUrl.includes('/nutrition') ||
     currentUrl.includes('/sleep')

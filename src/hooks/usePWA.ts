@@ -42,7 +42,7 @@ export const usePWA = () => {
     }));
 
     // Register service worker
-    if (hasServiceWorker) {
+    if (hasServiceWorker && false) { // Temporarily disabled
       navigator.serviceWorker
         .register('/sw.js')
         .then((registration) => {
@@ -52,7 +52,7 @@ export const usePWA = () => {
           console.error('[PWA] SW registration failed:', registrationError);
         });
     } else {
-      console.warn('[PWA] Service Worker not supported in this browser');
+      console.warn('[PWA] Service Worker disabled for development');
     }
 
     // Check if fullscreen API is available

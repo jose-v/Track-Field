@@ -13,7 +13,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 )
 
 // Register service worker for PWA functionality
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+if ('serviceWorker' in navigator && import.meta.env.PROD && false) { // Temporarily disabled
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
       .then((registration) => {

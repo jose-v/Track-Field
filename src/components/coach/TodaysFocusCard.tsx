@@ -146,7 +146,7 @@ const TodaysFocusCard: React.FC<TodaysFocusCardProps> = ({ onTaskClick }) => {
           description: `${event.city}, ${event.state}`,
           priority: isToday ? 'high' : isTomorrow ? 'medium' : 'low',
           dueTime: isToday ? 'Today' : isTomorrow ? 'Tomorrow' : eventDate.toLocaleDateString(),
-          actionLink: `/coach/events/${event.id}`,
+          actionLink: `/coach/meets/${event.id}`,
           status: 'pending'
         };
 

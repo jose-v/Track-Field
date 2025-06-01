@@ -164,4 +164,101 @@ RLS POLICIES:
   - Athletes can update their own wellness surveys: UPDATE USING (auth.uid() = athlete_id)
   - Coaches can view their athletes wellness surveys: SELECT USING (EXISTS coach-athlete approved relationship)
 
+TABLE: track_meets
+  - id: UUID [PRIMARY KEY, DEFAULT uuid_generate_v4()]
+  - name: TEXT [NOT NULL]
+  - meet_date: DATE [NOT NULL] -- Start date for both single and multi-day meets
+  - end_date: DATE -- End date for multi-day meets (optional)
+  - venue_type: TEXT [CHECK (venue_type IN ('Indoor', 'Outdoor'))] -- Indoor or Outdoor venue type
+  - venue_name: TEXT -- Name of the stadium or venue
+  - join_link: TEXT -- Optional registration or information link
+  - description: TEXT -- Additional details and description about the meet
+  - address: TEXT
+  - city: TEXT
+  - state: TEXT
+  - zip: TEXT
+  - website: TEXT
+  - contact_name: TEXT
+  - contact_email: TEXT
+  - contact_phone: TEXT
+  - coach_id: UUID [FOREIGN KEY -> coaches(id) ON DELETE SET NULL]
+  - athlete_id: UUID [FOREIGN KEY -> athletes(id) ON DELETE SET NULL]
+  - school: TEXT
+  - meet_type: TEXT
+  - sanctioning_body: TEXT
+  - host_organization: TEXT
+  - status: TEXT [DEFAULT 'Planned', CHECK (status IN ('Planned', 'Completed', 'Cancelled'))]
+  - registration_deadline: DATE
+  - entry_fee: NUMERIC(10,2)
+  - arrival_date: DATE
+  - departure_date: DATE
+  - transportation_modes: TEXT[]
+  - transportation_info: TEXT
+  - lodging_type: TEXT
+  - lodging_details: TEXT
+  - created_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW(), NOT NULL]
+  - updated_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW(), NOT NULL]
+PRIMARY KEY: id
+FOREIGN KEYS:
+  - coach_id -> coaches(id) ON DELETE SET NULL
+  - athlete_id -> athletes(id) ON DELETE SET NULL
+INDEXES:
+  - idx_track_meets_meet_date ON meet_date
+  - idx_track_meets_end_date ON end_date
+  - idx_track_meets_coach_id ON coach_id
+  - idx_track_meets_athlete_id ON athlete_id
+RLS POLICIES:
+  - Track meets are viewable by everyone: SELECT USING (true)
+  - Coaches can create meets: INSERT WITH CHECK (auth.uid() = coach_id)
+  - Athletes can create meets: INSERT WITH CHECK (auth.uid() = athlete_id)
+  - Creators can update their meets: UPDATE USING (auth.uid() = coach_id OR auth.uid() = athlete_id)
+  - Creators can delete their meets: DELETE USING (auth.uid() = coach_id OR auth.uid() = athlete_id)
+
+TABLE: meet_events
+  - id: UUID [PRIMARY KEY, DEFAULT uuid_generate_v4()]
+  - meet_id: UUID [FOREIGN KEY -> track_meets(id) ON DELETE CASCADE, NOT NULL]
+  - event_id: UUID [FOREIGN KEY -> events(id) ON DELETE SET NULL]
+  - event_name: TEXT [NOT NULL]
+  - event_date: DATE -- Specific date for this event (useful for multi-day meets)
+  - event_day: INTEGER -- Day number (1, 2, 3, etc.)
+  - start_time: TIME -- Start time for the event
+  - heat: INTEGER -- Heat number for the event
+  - event_type: TEXT [CHECK (event_type IN ('Preliminary', 'Qualifier', 'Semifinal', 'Finals'))] -- Type of event
+  - run_time: TEXT -- Actual run time result (to be filled post-event)
+  - created_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW(), NOT NULL]
+  - updated_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW(), NOT NULL]
+PRIMARY KEY: id
+FOREIGN KEYS:
+  - meet_id -> track_meets(id) ON DELETE CASCADE
+  - event_id -> events(id) ON DELETE SET NULL
+INDEXES:
+  - idx_meet_events_meet_id ON meet_id
+  - idx_meet_events_event_date ON event_date
+  - idx_meet_events_heat ON heat
+  - idx_meet_events_event_type ON event_type
+RLS POLICIES:
+  - Meet events are viewable by everyone: SELECT USING (true)
+  - Meet creators can manage events: INSERT, UPDATE, DELETE based on meet ownership
+
+TABLE: athlete_meet_events
+  - id: UUID [PRIMARY KEY, DEFAULT uuid_generate_v4()]
+  - athlete_id: UUID [FOREIGN KEY -> athletes(id) ON DELETE CASCADE, NOT NULL]
+  - meet_event_id: UUID [FOREIGN KEY -> meet_events(id) ON DELETE CASCADE, NOT NULL]
+  - assigned_by: UUID [FOREIGN KEY -> profiles(id) ON DELETE SET NULL] -- Coach who made the assignment
+  - registered_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW(), NOT NULL]
+  - status: TEXT [DEFAULT 'registered', CHECK (status IN ('registered', 'withdrawn', 'completed'))]
+  - result: TEXT -- Final result/time for the athlete in this event
+  - place: INTEGER -- Finishing place in the event
+  - notes: TEXT
+  - UNIQUE(athlete_id, meet_event_id)
+PRIMARY KEY: id
+FOREIGN KEYS:
+  - athlete_id -> athletes(id) ON DELETE CASCADE
+  - meet_event_id -> meet_events(id) ON DELETE CASCADE
+  - assigned_by -> profiles(id) ON DELETE SET NULL
+RLS POLICIES:
+  - Athletes can view their assignments: SELECT USING (auth.uid() = athlete_id)
+  - Coaches can view assignments for their athletes: SELECT USING (EXISTS coach-athlete relationship)
+  - Athletes and coaches can manage assignments: INSERT, UPDATE, DELETE based on ownership
+
 -- Add more tables as needed following this format 

@@ -19,7 +19,12 @@ export interface TrackMeet {
   status: string;
   registration_deadline?: string;
   entry_fee?: number;
-  meet_date: string;
+  meet_date: string; // Start date for both single and multi-day meets
+  end_date?: string; // End date for multi-day meets
+  venue_type?: 'Indoor' | 'Outdoor'; // Indoor or Outdoor
+  venue_name?: string; // TF Stadium/venue name
+  join_link?: string; // Optional link to join the meet
+  description?: string; // Additional details about the meet
   arrival_date?: string;
   departure_date?: string;
   transportation_modes?: string[];
@@ -49,7 +54,12 @@ export interface TrackMeetFormData {
   status: string;
   registration_deadline?: string;
   entry_fee?: number;
-  meet_date: string;
+  meet_date: string; // Start date for both single and multi-day meets
+  end_date?: string; // End date for multi-day meets
+  venue_type?: 'Indoor' | 'Outdoor'; // Indoor or Outdoor
+  venue_name?: string; // TF Stadium/venue name
+  join_link?: string; // Optional link to join the meet
+  description?: string; // Additional details about the meet
   arrival_date?: string;
   departure_date?: string;
   transportation_modes?: string[];
@@ -64,8 +74,12 @@ export interface MeetEvent {
   meet_id: string;
   event_id?: string;
   event_name: string;
-  event_day?: number;
+  event_date?: string; // Specific date for this event (for multi-day meets)
+  event_day?: number; // Day number (1, 2, 3, etc.)
   start_time?: string;
+  heat?: number; // Heat number
+  event_type?: 'Qualifier' | 'Finals' | 'Preliminary' | 'Semifinal'; // Type of event
+  run_time?: string; // Actual run time (to be filled after event completion)
   created_at: string;
   updated_at: string;
   event?: {
@@ -78,8 +92,12 @@ export interface MeetEvent {
 export interface MeetEventFormData {
   event_id?: string;
   event_name: string;
-  event_day?: number;
+  event_date?: string; // Specific date for this event
+  event_day?: number | string; // Can be string from form input or number for database
   start_time?: string;
+  heat?: number | string; // Heat number
+  event_type?: 'Qualifier' | 'Finals' | 'Preliminary' | 'Semifinal'; // Type of event
+  run_time?: string; // Actual run time (to be filled after event completion)
 }
 
 // Athlete Assignment

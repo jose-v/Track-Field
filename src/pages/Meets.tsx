@@ -195,7 +195,7 @@ const getCategoryIcon = (category: string) => {
   return icons[category] || FaRunning;
 };
 
-export function Events() {
+export function Meets() {
   const [filter, setFilter] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   
@@ -247,7 +247,7 @@ export function Events() {
               fontWeight="bold"
               lineHeight="1.2"
             >
-              Track & Field Events
+              Track & Field Meets
             </Heading>
             <Text 
               fontSize="xl"
@@ -255,7 +255,7 @@ export function Events() {
               maxW="2xl"
               lineHeight="1.6"
             >
-              Discover upcoming track and field events across the United States
+              Discover upcoming track and field meets across the United States
             </Text>
           </VStack>
           
@@ -530,7 +530,7 @@ export function Events() {
               bg={lightBg}
             >
               <Text fontSize="lg" color={subtitleColor}>
-                No events found matching your current filters.
+                No meets found matching your current filters.
               </Text>
               <Button 
                 mt={4} 
@@ -542,7 +542,7 @@ export function Events() {
                 size="md"
                 borderRadius="full"
               >
-                View All Events
+                View All Meets
               </Button>
             </Box>
           )}
@@ -552,4 +552,4 @@ export function Events() {
   );
 }
 
-export default Events; 
+export default Meets; 

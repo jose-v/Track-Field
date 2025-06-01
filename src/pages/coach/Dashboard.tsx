@@ -18,18 +18,6 @@ import {
     useColorModeValue,
     useToast,
     Spinner,
-    Modal,
-    ModalOverlay,
-    ModalContent,
-    ModalHeader,
-    ModalFooter,
-    ModalBody,
-    ModalCloseButton,
-    FormControl,
-    FormLabel,
-    Input,
-    FormErrorMessage,
-    Select,
     useDisclosure
   } from '@chakra-ui/react';
   import { useAuth } from '../../contexts/AuthContext';
@@ -39,10 +27,11 @@ import { useCoachAthletes } from '../../hooks/useCoachAthletes';
 import { useState, useEffect } from 'react';
 import { useProfile } from '../../hooks/useProfile';
 import { useQueryClient } from '@tanstack/react-query';
-import { YourTeamCard, WeatherCard, TrackMeetsCard, AlertsNotificationsCard, AthleteRosterCard, TodaysFocusCard } from '../../components';
+import { WeatherCard, TrackMeetsCard, AlertsNotificationsCard, TodaysFocusCard } from '../../components';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
-import { useForm } from 'react-hook-form';
+import AthleteRosterCard from '../../components/coach/AthleteRosterCard';
+import { MeetFormDrawer, type TrackMeetFormData, type TrackMeetData } from '../../components/meets/MeetFormDrawer';
 
   
 // Mock data that's still needed for the exercises dropdown
@@ -223,135 +212,6 @@ function useCoachAthleteEvents() {
   });
 }
   
-// Add TrackMeetFormData interface
-interface TrackMeetFormData {
-  name: string;
-  meet_date: string;
-  city?: string;
-  state?: string;
-  status?: string;
-}
-
-// Schedule Event Modal Component
-function ScheduleEventModal({ isOpen, onClose }) {
-  const { user } = useAuth();
-  const toast = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const {
-    handleSubmit,
-    register,
-    reset,
-    formState: { errors }
-  } = useForm<TrackMeetFormData>();
-  
-  // Reset form when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      reset();
-    }
-  }, [isOpen, reset]);
-  
-  const onSubmit = async (data: TrackMeetFormData) => {
-    try {
-      setIsSubmitting(true);
-      
-      // Create new track meet
-      const { error } = await supabase
-        .from('track_meets')
-        .insert([{
-          ...data,
-          coach_id: user?.id
-        }]);
-      
-      if (error) throw error;
-      
-      toast({
-        title: 'Event scheduled',
-        description: 'The track meet has been scheduled successfully',
-        status: 'success',
-        duration: 2000,
-        isClosable: true,
-      });
-      
-      onClose();
-    } catch (error) {
-      console.error('Error scheduling event:', error);
-      toast({
-        title: 'Error scheduling event',
-        description: (error as Error).message,
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl">
-      <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>Schedule New Event</ModalHeader>
-        <ModalCloseButton />
-        <ModalBody>
-                     <form id="schedule-event-form" onSubmit={handleSubmit(onSubmit)}>
-             <VStack spacing={4}>
-               <FormControl isInvalid={!!errors.name} isRequired>
-                 <FormLabel>Meet Name</FormLabel>
-                 <Input {...register('name', { required: 'Name is required' })} />
-                 <FormErrorMessage>{errors.name?.message}</FormErrorMessage>
-               </FormControl>
-               
-               <FormControl isInvalid={!!errors.meet_date} isRequired>
-                 <FormLabel>Date</FormLabel>
-                 <Input type="date" {...register('meet_date', { required: 'Date is required' })} />
-                 <FormErrorMessage>{errors.meet_date?.message}</FormErrorMessage>
-               </FormControl>
-               
-               <FormControl isInvalid={!!errors.city}>
-                 <FormLabel>City</FormLabel>
-                 <Input {...register('city')} />
-                 <FormErrorMessage>{errors.city?.message}</FormErrorMessage>
-               </FormControl>
-               
-               <FormControl isInvalid={!!errors.state}>
-                 <FormLabel>State</FormLabel>
-                 <Input {...register('state')} />
-                 <FormErrorMessage>{errors.state?.message}</FormErrorMessage>
-               </FormControl>
-               
-               <FormControl isInvalid={!!errors.status}>
-                 <FormLabel>Status</FormLabel>
-                 <Select {...register('status')} defaultValue="Planned">
-                   <option value="Planned">Planned</option>
-                   <option value="Completed">Completed</option>
-                   <option value="Cancelled">Cancelled</option>
-                 </Select>
-                 <FormErrorMessage>{errors.status?.message}</FormErrorMessage>
-               </FormControl>
-             </VStack>
-           </form>
-        </ModalBody>
-        <ModalFooter>
-          <Button variant="ghost" mr={3} onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            colorScheme="blue"
-            isLoading={isSubmitting}
-            type="submit"
-            form="schedule-event-form"
-          >
-            Schedule Event
-          </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
-  );
-}
-
 export function CoachDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -419,8 +279,44 @@ export function CoachDashboard() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [queryClient]);
 
-  // Get the disclosure hooks for the schedule event modal
-  const { isOpen: isScheduleModalOpen, onOpen: onScheduleModalOpen, onClose: onScheduleModalClose } = useDisclosure();
+  // Get the disclosure hooks for the schedule meet drawer
+  const { isOpen: isScheduleMeetOpen, onOpen: onScheduleMeetOpen, onClose: onScheduleMeetClose } = useDisclosure();
+
+  // Create meet submission handler
+  const handleCreateMeet = async (data: TrackMeetFormData) => {
+    try {
+      // Create new track meet
+      const { error } = await supabase
+        .from('track_meets')
+        .insert([{
+          ...data,
+          coach_id: user?.id
+        }]);
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'Meet scheduled',
+        description: 'The track meet has been scheduled successfully',
+        status: 'success',
+        duration: 2000,
+        isClosable: true,
+      });
+      
+      onScheduleMeetClose();
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: ['coach-athlete-events'] });
+    } catch (error) {
+      console.error('Error scheduling meet:', error);
+      toast({
+        title: 'Error scheduling meet',
+        description: (error as Error).message,
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
 
   // Handler functions for component interactions
   const handleAlertClick = (alert: any) => {
@@ -443,11 +339,50 @@ export function CoachDashboard() {
     <Box py={8}>
       {/* Header Section */}
       <Flex justify="space-between" align="start" mb={8}>
-        <Box>
+        <Box flex={1}>
           <Heading mb={2}>Coach Dashboard</Heading>
-          <Text color={subtitleColor}>
+          <Text color={subtitleColor} mb={4}>
             Welcome back, Coach {profile?.last_name || ''}! Here's your mission control.
           </Text>
+          
+          {/* Quick Actions integrated into header */}
+          <HStack spacing={3} flexWrap="wrap">
+            <Button 
+              as={RouterLink} 
+              to="/coach/workout-creator" 
+              variant="solid" 
+              colorScheme="blue"
+              size="sm"
+            >
+              Create Workout
+            </Button>
+            <Button 
+              as={RouterLink} 
+              to="/coach/athletes" 
+              variant="solid" 
+              colorScheme="blue"
+              size="sm"
+            >
+              Manage Athletes
+            </Button>
+            <Button 
+              variant="solid" 
+              colorScheme="blue"
+              size="sm"
+              onClick={onScheduleMeetOpen}
+            >
+              Schedule Meet
+            </Button>
+            <Button 
+              as={RouterLink} 
+              to="/coach/stats" 
+              variant="solid" 
+              colorScheme="teal"
+              size="sm"
+            >
+              View Analytics
+            </Button>
+          </HStack>
         </Box>
         
         {/* Weather Widget */}
@@ -471,10 +406,48 @@ export function CoachDashboard() {
         <AlertsNotificationsCard onAlertClick={handleAlertClick} />
       </Box>
 
-      {/* Priority Section 2: Today's Focus & Critical Tasks */}
+      {/* Priority Section 2: Today's Focus & Upcoming Events */}
       <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={8} mb={8}>
         <TodaysFocusCard onTaskClick={handleTaskClick} />
-        <AthleteRosterCard onAthleteClick={handleAthleteClick} />
+        
+        {/* Upcoming Events moved here from secondary section */}
+        <Card bg={cardBg} borderColor={borderColor} borderWidth="1px" shadow={cardShadow} borderRadius="xl" data-testid="upcoming-events-card">
+          <CardBody>
+            <Heading size="md" mb={4}>Upcoming Events</Heading>
+            {eventsLoading ? (
+              <Flex justify="center" py={4}>
+                <Spinner />
+              </Flex>
+            ) : !athleteEvents || athleteEvents.length === 0 ? (
+              <Text>No upcoming events assigned to your athletes.</Text>
+            ) : (
+              <Stack spacing={4}>
+                {athleteEvents.map((athleteWithEvents) => (
+                  <Box key={athleteWithEvents.id}>
+                    <Text fontWeight="medium" mb={1}>{athleteWithEvents.name}</Text>
+                    {athleteWithEvents.events.length > 0 ? (
+                      <Stack pl={4} spacing={1}>
+                        {athleteWithEvents.events.map((event, idx) => (
+                          <HStack key={idx}>
+                            <Icon as={FaFlagCheckered} color="teal.400" boxSize={3} />
+                            <Box>
+                              <Text fontSize="sm" fontWeight="medium">{event.name}</Text>
+                              <Text fontSize="xs" color={eventDateColor}>
+                                {new Date(event.date).toLocaleDateString()} • {event.eventName}
+                              </Text>
+                            </Box>
+                          </HStack>
+                        ))}
+                      </Stack>
+                    ) : (
+                      <Text fontSize="sm" color={noEventsColor} pl={4}>No upcoming events</Text>
+                    )}
+                  </Box>
+                ))}
+              </Stack>
+            )}
+          </CardBody>
+        </Card>
       </SimpleGrid>
 
       {/* Dashboard Stats - At-a-Glance Metrics */}
@@ -523,98 +496,30 @@ export function CoachDashboard() {
         </Stat>
       </SimpleGrid>
       
-      {/* Quick Actions - Prominent Action Buttons */}
-      <Stack direction={{ base: 'column', md: 'row' }} spacing={4} mb={8} bg={cardBg} p={5} rounded="lg" shadow={cardShadow} borderWidth="1px" borderColor={borderColor}>
-        <Heading size="md" mb={{ base: 2, md: 0 }}>Quick Actions:</Heading>
-        <Button 
-          as={RouterLink} 
-          to="/coach/workout-creator" 
-          variant="solid" 
-          colorScheme="blue"
-          leftIcon={<Icon as={FaClipboardList} />}
-        >
-          Create Workout
-        </Button>
-        <Button 
-          as={RouterLink} 
-          to="/coach/athletes" 
-          variant="solid" 
-          colorScheme="blue"
-          leftIcon={<Icon as={FaUserFriends} />}
-        >
-          Manage Athletes
-        </Button>
-        <Button 
-          variant="solid" 
-          colorScheme="blue"
-          leftIcon={<Icon as={FaCalendarAlt} />}
-          onClick={onScheduleModalOpen}
-        >
-          Schedule Event
-        </Button>
-        <Button 
-          as={RouterLink} 
-          to="/coach/stats" 
-          variant="solid" 
-          colorScheme="teal"
-          leftIcon={<Icon as={FaChartLine} />}
-        >
-          View Analytics
-        </Button>
-      </Stack>
-      
-      {/* Secondary Information - Team Details and Events */}
-      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8} mb={8}>
-        {/* Your Team Card */}
-        <YourTeamCard />
-
-        <Card bg={cardBg} borderColor={borderColor} borderWidth="1px" shadow={cardShadow} borderRadius="xl" data-testid="upcoming-events-card">
-          <CardBody>
-            <Heading size="md" mb={4}>Upcoming Events</Heading>
-            {eventsLoading ? (
-              <Flex justify="center" py={4}>
-                <Spinner />
-              </Flex>
-            ) : !athleteEvents || athleteEvents.length === 0 ? (
-              <Text>No upcoming events assigned to your athletes.</Text>
-            ) : (
-              <Stack spacing={4}>
-                {athleteEvents.map((athleteWithEvents) => (
-                  <Box key={athleteWithEvents.id}>
-                    <Text fontWeight="medium" mb={1}>{athleteWithEvents.name}</Text>
-                    {athleteWithEvents.events.length > 0 ? (
-                      <Stack pl={4} spacing={1}>
-                        {athleteWithEvents.events.map((event, idx) => (
-                          <HStack key={idx}>
-                            <Icon as={FaFlagCheckered} color="teal.400" boxSize={3} />
-                            <Box>
-                              <Text fontSize="sm" fontWeight="medium">{event.name}</Text>
-                              <Text fontSize="xs" color={eventDateColor}>
-                                {new Date(event.date).toLocaleDateString()} • {event.eventName}
-                              </Text>
-                            </Box>
-                          </HStack>
-                        ))}
-                      </Stack>
-                    ) : (
-                      <Text fontSize="sm" color={noEventsColor} pl={4}>No upcoming events</Text>
-                    )}
-                  </Box>
-                ))}
-              </Stack>
-            )}
-          </CardBody>
-        </Card>
-      </SimpleGrid>
+      {/* Secondary Information - Team Roster */}
+      <Box mb={8}>
+        {/* Enhanced Team Roster Card (replaces both YourTeamCard and AthleteRosterCard) */}
+        <AthleteRosterCard onAthleteClick={handleAthleteClick} />
+      </Box>
       
       {/* Track Meets Calendar View */}
       <Box mb={8}>
         <Heading size="md" mb={4}>Track Meets Calendar</Heading>
-        <TrackMeetsCard viewAllLink="/coach/events" />
+        <TrackMeetsCard 
+          viewAllLink="/coach/meets" 
+          userRole="coach"
+        />
       </Box>
       
-      {/* Schedule Event Modal */}
-      <ScheduleEventModal isOpen={isScheduleModalOpen} onClose={onScheduleModalClose} />
+      {/* Schedule Meet Drawer */}
+      <MeetFormDrawer
+        isOpen={isScheduleMeetOpen}
+        onClose={onScheduleMeetClose}
+        onSubmit={handleCreateMeet}
+        currentMeet={null}
+        isEditing={false}
+        title="Schedule New Meet"
+      />
     </Box>
   );
 }

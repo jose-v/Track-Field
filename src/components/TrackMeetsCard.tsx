@@ -54,14 +54,18 @@ interface TrackMeet {
   assigned_events?: MeetEvent[];
   total_events?: number;
   assigned_events_count?: number;
+  assigned_athletes?: { id: string; name: string }[];
+  assigned_athletes_count?: number;
 }
 
 interface TrackMeetsCardProps extends CardProps {
   viewAllLink?: string;
+  userRole?: 'athlete' | 'coach';
 }
 
 const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
-  viewAllLink = "/athlete/events",
+  viewAllLink = "/athlete/meets",
+  userRole = 'athlete',
   ...rest
 }) => {
   const { user } = useAuth();
@@ -91,35 +95,9 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
     try {
       setIsLoading(true);
 
-      // Fetch meets where the user is assigned as an athlete
-      const { data: athleteMeets, error: athleteError } = await supabase
-        .from('track_meets')
-        .select(`
-          *,
-          meet_events (
-            id,
-            event_name,
-            meet_id
-          )
-        `)
-        .eq('athlete_id', user.id)
-        .order('meet_date', { ascending: true });
-
-      if (athleteError) throw athleteError;
-
-      // Fetch meets created by coaches of this athlete
-      const { data: coachAthleteData, error: coachAthleteError } = await supabase
-        .from('coach_athletes')
-        .select('coach_id')
-        .eq('athlete_id', user.id);
-
-      if (coachAthleteError) throw coachAthleteError;
-
-      let coachMeetsData: TrackMeet[] = [];
-      if (coachAthleteData && coachAthleteData.length > 0) {
-        const coachIds = coachAthleteData.map(ca => ca.coach_id);
-        
-        const { data: coachMeetsResult, error: coachMeetsError } = await supabase
+      if (userRole === 'coach') {
+        // For coaches: fetch meets they created
+        const { data: coachCreatedMeets, error: coachError } = await supabase
           .from('track_meets')
           .select(`
             *,
@@ -129,30 +107,136 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
               meet_id
             )
           `)
-          .in('coach_id', coachIds)
+          .eq('coach_id', user.id)
           .order('meet_date', { ascending: true });
 
-        if (coachMeetsError) throw coachMeetsError;
-        coachMeetsData = coachMeetsResult || [];
+        if (coachError) throw coachError;
+
+        // For each meet, get the assigned athletes
+        const processedCoachMeets = await Promise.all((coachCreatedMeets || []).map(async (meet) => {
+          // Get athletes assigned to this meet through athlete_meet_events
+          const meetEventIds = meet.meet_events?.map(e => e.id) || [];
+          
+          if (meetEventIds.length === 0) {
+            return {
+              ...meet,
+              total_events: meet.meet_events?.length || 0,
+              assigned_events: meet.meet_events || [],
+              assigned_events_count: meet.meet_events?.length || 0,
+              assigned_athletes: [],
+              assigned_athletes_count: 0,
+            };
+          }
+          
+          const { data: athleteEvents, error: athleteEventsError } = await supabase
+            .from('athlete_meet_events')
+            .select(`
+              athlete_id,
+              athletes!athlete_meet_events_athlete_id_fkey (
+                id,
+                profiles!athletes_id_fkey (
+                  id,
+                  first_name,
+                  last_name
+                )
+              )
+            `)
+            .in('meet_event_id', meetEventIds);
+
+          if (athleteEventsError) {
+            console.error('Error fetching athletes for meet:', athleteEventsError);
+          }
+
+          // Get unique athletes (in case they're in multiple events)
+          const uniqueAthletes = new Map();
+          (athleteEvents || []).forEach(ae => {
+            if (ae.athletes?.profiles) {
+              const name = `${ae.athletes.profiles.first_name || ''} ${ae.athletes.profiles.last_name || ''}`.trim();
+              uniqueAthletes.set(ae.athlete_id, {
+                id: ae.athlete_id,
+                name: name || 'Unknown Athlete'
+              });
+            }
+          });
+
+          const assigned_athletes = Array.from(uniqueAthletes.values());
+
+          return {
+            ...meet,
+            total_events: meet.meet_events?.length || 0,
+            assigned_events: meet.meet_events || [],
+            assigned_events_count: meet.meet_events?.length || 0,
+            assigned_athletes,
+            assigned_athletes_count: assigned_athletes.length,
+          };
+        }));
+
+        setTrackMeets(processedCoachMeets);
+        setCoachMeets([]); // Clear coach meets for coach view
+      } else {
+        // For athletes: fetch meets where they are assigned or from their coaches
+        const { data: athleteMeets, error: athleteError } = await supabase
+          .from('track_meets')
+          .select(`
+            *,
+            meet_events (
+              id,
+              event_name,
+              meet_id
+            )
+          `)
+          .eq('athlete_id', user.id)
+          .order('meet_date', { ascending: true });
+
+        if (athleteError) throw athleteError;
+
+        // Fetch meets created by coaches of this athlete
+        const { data: coachAthleteData, error: coachAthleteError } = await supabase
+          .from('coach_athletes')
+          .select('coach_id')
+          .eq('athlete_id', user.id);
+
+        if (coachAthleteError) throw coachAthleteError;
+
+        let coachMeetsData: TrackMeet[] = [];
+        if (coachAthleteData && coachAthleteData.length > 0) {
+          const coachIds = coachAthleteData.map(ca => ca.coach_id);
+          
+          const { data: coachMeetsResult, error: coachMeetsError } = await supabase
+            .from('track_meets')
+            .select(`
+              *,
+              meet_events (
+                id,
+                event_name,
+                meet_id
+              )
+            `)
+            .in('coach_id', coachIds)
+            .order('meet_date', { ascending: true });
+
+          if (coachMeetsError) throw coachMeetsError;
+          coachMeetsData = coachMeetsResult || [];
+        }
+
+        // Process the data to include event counts and assignments
+        const processedAthleteMeets = (athleteMeets || []).map(meet => ({
+          ...meet,
+          total_events: meet.meet_events?.length || 0,
+          assigned_events: meet.meet_events || [],
+          assigned_events_count: meet.meet_events?.length || 0,
+        }));
+
+        const processedCoachMeets = coachMeetsData.map(meet => ({
+          ...meet,
+          total_events: meet.meet_events?.length || 0,
+          assigned_events: [], // Coach meets don't show athlete assignments in this view
+          assigned_events_count: 0,
+        }));
+
+        setTrackMeets(processedAthleteMeets);
+        setCoachMeets(processedCoachMeets);
       }
-
-      // Process the data to include event counts and assignments
-      const processedAthleteMeets = (athleteMeets || []).map(meet => ({
-        ...meet,
-        total_events: meet.meet_events?.length || 0,
-        assigned_events: meet.meet_events || [],
-        assigned_events_count: meet.meet_events?.length || 0,
-      }));
-
-      const processedCoachMeets = coachMeetsData.map(meet => ({
-        ...meet,
-        total_events: meet.meet_events?.length || 0,
-        assigned_events: [], // Coach meets don't show athlete assignments in this view
-        assigned_events_count: 0,
-      }));
-
-      setTrackMeets(processedAthleteMeets);
-      setCoachMeets(processedCoachMeets);
 
     } catch (error) {
       console.error('Error fetching track meets:', error);
@@ -276,13 +360,13 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
           </Box>
         ) : (
           <VStack spacing={4} align="stretch" flex="1">
-            {/* My Track Meets */}
+            {/* My Track Meets / Coach's Scheduled Meets */}
             {trackMeets.length > 0 && (
               <Box>
                 <HStack spacing={2} mb={3}>
                   <Icon as={FaMapMarkerAlt} color="blue.500" fontSize="sm" />
                   <Text fontSize="sm" fontWeight="bold" color={textColor}>
-                    My Track Meets
+                    {userRole === 'coach' ? 'My Scheduled Meets' : 'My Track Meets'}
                   </Text>
                   <Badge colorScheme="blue" variant="outline" fontSize="xs">
                     {trackMeets.length}
@@ -326,8 +410,29 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
                         </Tag>
                       </HStack>
                       
-                      {/* Assigned Events */}
-                      {meet.assigned_events && meet.assigned_events.length > 0 && (
+                      {/* Assigned Athletes (for coach view) or Events (for athlete view) */}
+                      {userRole === 'coach' && meet.assigned_athletes && meet.assigned_athletes.length > 0 && (
+                        <Box>
+                          <Text fontSize="xs" fontWeight="medium" color="blue.500" mb={1}>
+                            Athletes: {meet.assigned_athletes_count}
+                          </Text>
+                          <Flex flexWrap="wrap" gap={1}>
+                            {meet.assigned_athletes.slice(0, 3).map((athlete) => (
+                              <Tag key={athlete.id} size="sm" variant="subtle" colorScheme="green" fontSize="xs">
+                                {athlete.name}
+                              </Tag>
+                            ))}
+                            {meet.assigned_athletes.length > 3 && (
+                              <Tag size="sm" variant="subtle" colorScheme="gray" fontSize="xs">
+                                +{meet.assigned_athletes.length - 3}
+                              </Tag>
+                            )}
+                          </Flex>
+                        </Box>
+                      )}
+                      
+                      {/* Assigned Events (for athlete view only) */}
+                      {userRole === 'athlete' && meet.assigned_events && meet.assigned_events.length > 0 && (
                         <Box>
                           <Text fontSize="xs" fontWeight="medium" color="blue.500" mb={1}>
                             Events: {meet.assigned_events_count} of {meet.total_events}

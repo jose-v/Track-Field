@@ -538,7 +538,7 @@ export function Dashboard() {
           w="100%"
         >
           {/* Track Meets Card */}
-          <TrackMeetsCard viewAllLink="/athlete/events" />
+          <TrackMeetsCard viewAllLink="/athlete/meets" />
 
           {/* Sleep Card */}
           {profileLoading ? (

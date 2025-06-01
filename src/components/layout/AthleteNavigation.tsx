@@ -50,7 +50,7 @@ export function useAthleteNavigation(): AthleteNavConfig & { isCurrentPathActive
     },
     {
       name: 'Events',
-      path: '/athlete/events',
+      path: '/athlete/meets',
       icon: <BiCalendar />
     },
     {

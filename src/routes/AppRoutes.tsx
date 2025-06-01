@@ -6,7 +6,6 @@ import { Signup } from '../pages/Signup';
 import { Pricing } from '../pages/Pricing';
 import { Features } from '../pages/Features';
 import { About } from '../pages/About';
-import { Events } from '../pages/Events';
 import { Contact } from '../pages/Contact';
 import { Layout as GeneralLayout } from '../components/Layout';
 import { PrivateRoute } from '../components/PrivateRoute';
@@ -16,11 +15,11 @@ import Loop from '../pages/Loop';
 import LoopRouteWrapper from '../pages/LoopRouteWrapper';
 import WorkoutCreatorDemo from '../pages/WorkoutCreatorDemo';
 import Account from '../pages/Account';
+import { Meets } from '../pages/Meets';
 
 // Coach pages
 import { CoachDashboard } from '../pages/coach/Dashboard';
 import { CoachWorkouts } from '../pages/coach/Workouts';
-import { CoachEvents } from '../pages/coach/Events';
 import { CoachStats } from '../pages/coach/Stats';
 import { CoachAthletes } from '../pages/coach/Athletes';
 import { CreateWorkout } from '../pages/coach/CreateWorkout';
@@ -28,19 +27,20 @@ import { ImportWorkout } from '../pages/coach/ImportWorkout';
 import { EditWorkout } from '../pages/coach/EditWorkout';
 import { Calendar as CoachCalendar } from '../pages/coach/Calendar';
 import CoachProfile from "../pages/coach/Profile";
+import { CoachMeets } from '../pages/coach/Meets';
 
 // Athlete pages
 import { Dashboard as AthleteDashboard } from '../pages/Dashboard';
 import { Workouts } from '../pages/Workouts';
 import { Team } from '../pages/Team';
 import { Profile } from '../pages/Profile';
-import { AthleteEvents } from '../pages/athlete/Events';
 import { AthleteWorkouts } from '../pages/athlete/AthleteWorkouts';
 import { Nutrition } from '../pages/athlete/Nutrition';
 import { Sleep } from '../pages/athlete/Sleep';
 import { Calendar as AthleteCalendar } from '../pages/athlete/Calendar';
 import AthleteProfile from "../pages/athlete/Profile";
 import Analytics from '../pages/Analytics';
+import { AthleteMeets } from '../pages/athlete/Meets';
 
 // Features
 import { GamificationTestPage } from '../features/gamification';
@@ -69,7 +69,7 @@ export default function AppRoutes() {
       <Route element={<GeneralLayout><Outlet /></GeneralLayout>}>
         <Route path="/workouts" element={<PrivateRoute><Workouts /></PrivateRoute>} />
         <Route path="/team" element={<PrivateRoute><Team /></PrivateRoute>} />
-        <Route path="/private-events" element={<PrivateRoute><Events /></PrivateRoute>} />
+        <Route path="/private-meets" element={<PrivateRoute><Meets /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
       </Route>
 
@@ -81,7 +81,7 @@ export default function AppRoutes() {
         <Route path="pricing" element={<Pricing />} />
         <Route path="about" element={<About />} />
         <Route path="contact" element={<Contact />} />
-        <Route path="events" element={<Events />} />
+        <Route path="meets" element={<Meets />} />
         <Route path="login" element={<Login />} />
         <Route path="signup" element={<Signup />} />
       </Route>
@@ -94,7 +94,6 @@ export default function AppRoutes() {
         <Route path="/coach/workouts/new" element={<PrivateRoute><CreateWorkout /></PrivateRoute>} />
         <Route path="/coach/workouts/import" element={<PrivateRoute><ImportWorkout /></PrivateRoute>} />
         <Route path="/coach/workouts/edit/:id" element={<PrivateRoute><EditWorkout /></PrivateRoute>} />
-        <Route path="/coach/events" element={<PrivateRoute><CoachEvents /></PrivateRoute>} />
         <Route path="/coach/stats" element={<PrivateRoute><CoachStats /></PrivateRoute>} />
         <Route path="/coach/profile" element={<PrivateRoute><CoachProfile /></PrivateRoute>} />
         <Route path="/coach/calendar" element={<PrivateRoute><CoachCalendar /></PrivateRoute>} />
@@ -103,6 +102,7 @@ export default function AppRoutes() {
         <Route path="/coach/workout-creator" element={<PrivateRoute><WorkoutCreatorDemo /></PrivateRoute>} />
         <Route path="/coach/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
         <Route path="/account" element={<PrivateRoute><Account /></PrivateRoute>} />
+        <Route path="/coach/meets" element={<PrivateRoute><CoachMeets /></PrivateRoute>} />
       </Route>
 
       {/* Athlete Routes - With Feedback */}
@@ -111,7 +111,6 @@ export default function AppRoutes() {
         <Route path="/athlete/profile" element={<PrivateRoute><AthleteProfile /></PrivateRoute>} />
         <Route path="/athlete/workouts" element={<PrivateRoute><AthleteWorkouts /></PrivateRoute>} />
         <Route path="/athlete/workouts/edit/:id" element={<PrivateRoute><EditWorkout /></PrivateRoute>} />
-        <Route path="/athlete/events" element={<PrivateRoute><AthleteEvents /></PrivateRoute>} />
         <Route path="/athlete/calendar" element={<PrivateRoute><AthleteCalendar /></PrivateRoute>} />
         <Route path="/athlete/stats" element={<PrivateRoute><NotFound /></PrivateRoute>} />
         <Route path="/athlete/nutrition" element={<PrivateRoute><Nutrition /></PrivateRoute>} />
@@ -122,6 +121,7 @@ export default function AppRoutes() {
         <Route path="/athlete/workout-creator" element={<PrivateRoute><WorkoutCreatorDemo /></PrivateRoute>} />
         <Route path="/athlete/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
         <Route path="/account" element={<PrivateRoute><Account /></PrivateRoute>} />
+        <Route path="/athlete/meets" element={<PrivateRoute><AthleteMeets /></PrivateRoute>} />
       </Route>
 
       {/* Loop Feature Routes (Accessible to both coaches and athletes) */}
