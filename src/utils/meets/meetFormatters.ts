@@ -30,20 +30,32 @@ export const formatMeetDate = (dateString: string | Date, includeYear = true): s
  */
 export const formatEventTime = (timeString: string): string => {
   try {
-    if (!timeString || typeof timeString !== 'string') {
+    // Tighter validation to avoid hidden NaNs
+    if (!timeString || typeof timeString !== 'string' || timeString.trim() === '') {
       return 'Time TBD';
     }
     
-    // Create a date object with today's date and the provided time
-    const today = new Date();
-    const [hours, minutes] = timeString.split(':').map(Number);
-    
-    if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    // Validate time format (HH:MM or H:MM)
+    const timePattern = /^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/;
+    if (!timePattern.test(timeString.trim())) {
       console.warn('Invalid time format provided:', timeString);
       return 'Invalid Time';
     }
     
+    const [hoursStr, minutesStr] = timeString.trim().split(':');
+    const hours = parseInt(hoursStr, 10);
+    const minutes = parseInt(minutesStr, 10);
+    
+    // Explicit NaN checks to avoid hidden NaNs
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+      console.warn('Time parsing resulted in NaN:', timeString);
+      return 'Invalid Time';
+    }
+    
+    // Create a date object with today's date and the provided time
+    const today = new Date();
     today.setHours(hours, minutes, 0, 0);
+    
     return format(today, 'h:mm a');
   } catch (error) {
     console.error('Error formatting event time:', error);
@@ -52,34 +64,45 @@ export const formatEventTime = (timeString: string): string => {
 };
 
 /**
- * NEW: Calculate and format meet duration for multi-day events
+ * Calculate and format meet duration for multi-day events with DST-safe calculations
  */
 export const formatMeetDuration = (startDate: string | Date, endDate?: string | Date): string => {
   try {
     const start = typeof startDate === 'string' ? parseISO(startDate) : startDate;
     
     if (!isValid(start)) {
-      return 'Single day event';
+      return 'Single day';
     }
     
     if (!endDate) {
-      return 'Single day event';
+      return 'Single day';
     }
     
     const end = typeof endDate === 'string' ? parseISO(endDate) : endDate;
     
     if (!isValid(end)) {
-      return 'Single day event';
+      return 'Single day';
     }
     
-    const daysDifference = differenceInDays(end, start);
+    // Use calendar day difference to avoid DST issues
+    const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    const daysDifference = Math.round((endDay.getTime() - startDay.getTime()) / (1000 * 60 * 60 * 24));
     
     if (daysDifference <= 0) {
-      return 'Single day event';
+      return 'Single day';
     }
     
     const totalDays = daysDifference + 1; // Include both start and end days
-    return `${totalDays}-day event`;
+    
+    // Clearer messaging based on duration
+    if (totalDays === 2) {
+      return '2-day meet';
+    } else if (totalDays <= 7) {
+      return `${totalDays}-day meet`;
+    } else {
+      return `${totalDays}-day competition`;
+    }
   } catch (error) {
     console.error('Error calculating meet duration:', error);
     return 'Duration unknown';
@@ -89,7 +112,7 @@ export const formatMeetDuration = (startDate: string | Date, endDate?: string | 
 /**
  * Get status color for consistent theming across components - SINGLE SOURCE OF TRUTH
  */
-export const getStatusColor = (status?: string): string => {
+export const getStatusColor = (status?: MeetStatus | string): string => {
   const statusColors: Record<string, string> = {
     'Completed': 'green',
     'Cancelled': 'red',
@@ -107,15 +130,16 @@ export const getStatusColor = (status?: string): string => {
 };
 
 /**
- * Enhanced event status calculation with time-aware logic
+ * Enhanced event status calculation with case-insensitive status & calendar-day differences
  */
-export const getEventStatus = (meetDate: string | Date, meetStatus?: string): string => {
+export const getEventStatus = (meetDate: string | Date, meetStatus?: MeetStatus | string): string => {
   try {
-    // If meet has explicit status, use it for cancelled/completed
-    if (meetStatus === 'Cancelled') return 'Cancelled';
-    if (meetStatus === 'Completed') return 'Completed';
-    if (meetStatus === 'Postponed') return 'Postponed';
-    if (meetStatus === 'In Progress') return 'In Progress';
+    // Case-insensitive status checking for explicit statuses
+    const normalizedStatus = meetStatus?.toLowerCase();
+    if (normalizedStatus === 'cancelled') return 'Cancelled';
+    if (normalizedStatus === 'completed') return 'Completed';
+    if (normalizedStatus === 'postponed') return 'Postponed';
+    if (normalizedStatus === 'in progress') return 'In Progress';
     
     const date = typeof meetDate === 'string' ? parseISO(meetDate) : meetDate;
     
@@ -123,15 +147,13 @@ export const getEventStatus = (meetDate: string | Date, meetStatus?: string): st
       return 'Unknown';
     }
     
+    // Use calendar-day differences to avoid time-of-day issues
     const today = new Date();
-    const meetDateTime = new Date(date);
+    const todayCalendar = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const meetCalendar = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     
-    // Set times to beginning of day for accurate comparison
-    meetDateTime.setHours(0, 0, 0, 0);
-    today.setHours(0, 0, 0, 0);
-    
-    const diffTime = meetDateTime.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffTime = meetCalendar.getTime() - todayCalendar.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
     
     if (diffDays < 0) {
       return 'Past';

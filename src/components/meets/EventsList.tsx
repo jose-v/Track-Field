@@ -64,99 +64,104 @@ export const EventsList: React.FC<EventsListProps> = ({
       
       {/* Events list - now full width */}
       <VStack align="stretch" spacing={2}>
-        {displayedEvents.map((event) => (
-          <Box 
-            key={event.id} 
-            p={3}
-            borderWidth="1px" 
-            borderRadius="md" 
-            borderColor={eventCardBorder} 
-            bg={eventCardBg}
-            width="100%"
-            cursor={onEventClick ? "pointer" : "default"}
-            _hover={onEventClick ? { bg: useColorModeValue('gray.50', 'gray.600') } : {}}
-            onClick={onEventClick && !showRunTime ? () => onEventClick(event) : undefined}
-          >
-            {/* Full width layout */}
-            <VStack align="stretch" spacing={2}>
-              {/* Event name and icon row */}
-              <HStack justify="space-between" align="center">
-                <HStack flex="1">
-                  <FaRunning color="blue" />
-                  <Text fontWeight="medium" fontSize="sm" color={textColor}>
-                    {event.event_name}
-                  </Text>
-                </HStack>
-                
-                {/* Run time section */}
-                {showRunTime && (
-                  <Box>
-                    {event.run_time ? (
-                      <Box
-                        px={3}
-                        py={1}
-                        bg="green.50"
-                        borderRadius="md"
-                        borderLeft="3px solid"
-                        borderLeftColor="green.400"
-                        _dark={{ bg: 'green.900', borderLeftColor: 'green.400' }}
-                      >
-                        <Text fontSize="sm" fontWeight="bold" color="green.700" _dark={{ color: 'green.200' }}>
-                          {event.run_time}
-                        </Text>
-                      </Box>
-                    ) : (
-                      <Button
-                        size="xs"
-                        colorScheme="blue"
-                        variant="outline"
-                        leftIcon={<FaPlus size={10} />}
-                        onClick={onEventClick ? () => onEventClick(event) : undefined}
-                        aria-label={`Add run time for ${event.event_name}`}
-                      >
-                        Add Time
-                      </Button>
-                    )}
-                  </Box>
-                )}
-              </HStack>
-              
-              {/* Event details row */}
-              <HStack spacing={4} fontSize="xs" color={mutedTextColor} justify="space-between">
-                <HStack spacing={3}>
-                  {event.event_day && (
-                    <HStack>
-                      <Text fontWeight="medium">Day {event.event_day}</Text>
-                    </HStack>
-                  )}
+        {displayedEvents.map((event) => {
+          // Extract event properties for consistent naming and cleaner JSX
+          const { id, event_name, event_day, start_time, heat, event_type, run_time } = event;
+          
+          return (
+            <Box 
+              key={id} 
+              p={3}
+              borderWidth="1px" 
+              borderRadius="md" 
+              borderColor={eventCardBorder} 
+              bg={eventCardBg}
+              width="100%"
+              cursor={onEventClick ? "pointer" : "default"}
+              _hover={onEventClick ? { bg: useColorModeValue('gray.50', 'gray.600') } : {}}
+              onClick={onEventClick && !showRunTime ? () => onEventClick(event) : undefined}
+            >
+              {/* Full width layout */}
+              <VStack align="stretch" spacing={2}>
+                {/* Event name and icon row */}
+                <HStack justify="space-between" align="center">
+                  <HStack flex="1">
+                    <FaRunning color="blue" />
+                    <Text fontWeight="medium" fontSize="sm" color={textColor}>
+                      {event_name}
+                    </Text>
+                  </HStack>
                   
-                  {event.start_time && (
-                    <HStack>
-                      <FaStopwatch />
-                      <Text>{formatEventTime(event.start_time)}</Text>
-                    </HStack>
+                  {/* Run time section */}
+                  {showRunTime && (
+                    <Box>
+                      {run_time ? (
+                        <Box
+                          px={3}
+                          py={1}
+                          bg="green.50"
+                          borderRadius="md"
+                          borderLeft="3px solid"
+                          borderLeftColor="green.400"
+                          _dark={{ bg: 'green.900', borderLeftColor: 'green.400' }}
+                        >
+                          <Text fontSize="sm" fontWeight="bold" color="green.700" _dark={{ color: 'green.200' }}>
+                            {run_time}
+                          </Text>
+                        </Box>
+                      ) : (
+                        <Button
+                          size="xs"
+                          colorScheme="blue"
+                          variant="outline"
+                          leftIcon={<FaPlus size={10} />}
+                          onClick={onEventClick ? () => onEventClick(event) : undefined}
+                          aria-label={`Add run time for ${event_name}`}
+                        >
+                          Add Time
+                        </Button>
+                      )}
+                    </Box>
                   )}
                 </HStack>
                 
-                {/* Additional event info */}
-                {(event.heat || event.event_type) && (
-                  <HStack spacing={2}>
-                    {event.heat && (
-                      <Text fontSize="xs" color={mutedTextColor}>
-                        Heat {event.heat}
-                      </Text>
+                {/* Event details row */}
+                <HStack spacing={4} fontSize="xs" color={mutedTextColor} justify="space-between">
+                  <HStack spacing={3}>
+                    {event_day && (
+                      <HStack>
+                        <Text fontWeight="medium">Day {event_day}</Text>
+                      </HStack>
                     )}
-                    {event.event_type && (
-                      <Text fontSize="xs" color={mutedTextColor} fontWeight="medium">
-                        {event.event_type}
-                      </Text>
+                    
+                    {start_time && (
+                      <HStack>
+                        <FaStopwatch />
+                        <Text>{formatEventTime(start_time)}</Text>
+                      </HStack>
                     )}
                   </HStack>
-                )}
-              </HStack>
-            </VStack>
-          </Box>
-        ))}
+                  
+                  {/* Additional event info - Fixed: check for heat !== undefined to handle heat 0 */}
+                  {(heat !== undefined || event_type) && (
+                    <HStack spacing={2}>
+                      {heat !== undefined && (
+                        <Text fontSize="xs" color={mutedTextColor}>
+                          Heat {heat}
+                        </Text>
+                      )}
+                      {event_type && (
+                        <Text fontSize="xs" color={mutedTextColor} fontWeight="medium">
+                          {event_type}
+                        </Text>
+                      )}
+                    </HStack>
+                  )}
+                </HStack>
+              </VStack>
+            </Box>
+          );
+        })}
         
         {/* Show remaining count */}
         {remainingCount > 0 && (

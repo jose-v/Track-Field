@@ -80,7 +80,7 @@ export const RunTimeModal: React.FC<RunTimeModalProps> = ({
                 placeholder="e.g., 10.85, 2:05.43, 15:30.12"
                 value={runTime}
                 onChange={(e) => setRunTime(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyPress}
                 size="lg"
                 autoFocus
               />
