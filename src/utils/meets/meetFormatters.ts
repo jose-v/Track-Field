@@ -87,7 +87,7 @@ export const formatMeetDuration = (startDate: string | Date, endDate?: string | 
 };
 
 /**
- * Get status color for consistent theming across components
+ * Get status color for consistent theming across components - SINGLE SOURCE OF TRUTH
  */
 export const getStatusColor = (status?: string): string => {
   const statusColors: Record<string, string> = {
@@ -96,7 +96,11 @@ export const getStatusColor = (status?: string): string => {
     'Postponed': 'orange',
     'In Progress': 'orange',
     'Upcoming': 'blue',
-    'Draft': 'gray'
+    'Draft': 'gray',
+    'Today': 'orange',
+    'Past': 'gray',
+    'This Week': 'blue',
+    'This Month': 'blue'
   };
   
   return statusColors[status || 'Upcoming'] || 'blue';

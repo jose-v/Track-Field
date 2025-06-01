@@ -42,28 +42,24 @@ export const MeetCard: React.FC<MeetCardProps> = ({
   eventCount,
   actionButtons,
   children,
-  showTravelTime = true,
+  showTravelTime = false,
   onClick
 }) => {
-  // Color mode values
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const mutedTextColor = useColorModeValue('gray.600', 'gray.300');
   const descriptionBg = useColorModeValue('gray.50', 'gray.700');
 
-  // Enhanced status color logic
-  const getStatusColor = (status?: string) => {
-    switch (status) {
-      case 'Completed': return 'green';
-      case 'Cancelled': return 'red';
-      case 'Upcoming': return 'blue';
-      case 'In Progress': return 'orange';
-      default: return 'blue';
-    }
-  };
-
   // Accessibility: Generate descriptive aria-label
   const cardAriaLabel = `Meet: ${meet.name}, Date: ${formatMeetDate(meet.meet_date)}, Status: ${meet.status || 'Upcoming'}${eventCount ? `, Events: ${eventCount}` : ''}`;
+
+  // Handle keyboard interactions for clickable card
+  const handleKeyPress = (event: React.KeyboardEvent) => {
+    if (onClick && (event.key === 'Enter' || event.key === ' ')) {
+      event.preventDefault();
+      onClick();
+    }
+  };
 
   return (
     <Card
@@ -77,10 +73,12 @@ export const MeetCard: React.FC<MeetCardProps> = ({
       _dark={{ bg: 'gray.800' }}
       cursor={onClick ? 'pointer' : 'default'}
       onClick={onClick}
+      onKeyPress={handleKeyPress}
       aria-label={cardAriaLabel}
       role={onClick ? 'button' : 'article'}
       tabIndex={onClick ? 0 : undefined}
       _hover={onClick ? { boxShadow: 'lg', transform: 'translateY(-1px)' } : undefined}
+      _focus={onClick ? { outline: '2px solid', outlineColor: 'blue.500', outlineOffset: '2px' } : undefined}
       transition="all 0.2s ease-in-out"
     >
       {/* Card header with gradient background */}
