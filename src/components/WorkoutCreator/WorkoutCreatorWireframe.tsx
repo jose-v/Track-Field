@@ -765,17 +765,17 @@ const WorkoutCreatorWireframe: React.FC = () => {
                 <IconButton
                   icon={<ArrowLeft size={18} />}
                   variant="ghost"
-                  aria-label="Back to list"
-                  onClick={() => alert('Go back to workout list')}
+                  aria-label={isEditing ? "Cancel editing" : "Back to list"}
+                  onClick={() => navigate('/coach/workouts')}
                   color={textColor}
                   _hover={{ bg: 'blue.100' }}
                 />
                 <VStack align="start" spacing={1}>
                   <Heading size="md" color="blue.600">
-                    {currentStepInfo.title}
+                    {isEditing ? `Edit: ${currentStepInfo.title}` : currentStepInfo.title}
                   </Heading>
                   <Text fontSize="sm" color={subtitleColor}>
-                    {currentStepInfo.description}
+                    {isEditing ? `Editing "${workoutName}" - ${currentStepInfo.description}` : currentStepInfo.description}
                   </Text>
                 </VStack>
               </HStack>
@@ -905,37 +905,77 @@ const WorkoutCreatorWireframe: React.FC = () => {
         </HStack>
 
         {currentStep < WORKOUT_CREATION_STEPS.length ? (
-          <Button
-            rightIcon={<ChevronRight size={20} />}
-            colorScheme="blue"
-            size="lg"
-            onClick={goToNextStep}
-            borderWidth="2px"
-            _hover={{ 
-              transform: "scale(1.05)"
-            }}
-            transition="all 0.2s"
-            fontWeight="bold"
-            px={8}
-          >
-            Continue
-          </Button>
+          <HStack spacing={3}>
+            {isEditing && (
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => navigate('/coach/workouts')}
+                borderWidth="2px"
+                borderColor="gray.300"
+                color={textColor}
+                _hover={{ 
+                  bg: 'gray.100',
+                  borderColor: 'gray.400'
+                }}
+                transition="all 0.2s"
+                px={6}
+              >
+                Cancel
+              </Button>
+            )}
+            <Button
+              rightIcon={<ChevronRight size={20} />}
+              colorScheme="blue"
+              size="lg"
+              onClick={goToNextStep}
+              borderWidth="2px"
+              _hover={{ 
+                transform: "scale(1.05)"
+              }}
+              transition="all 0.2s"
+              fontWeight="bold"
+              px={8}
+            >
+              Continue
+            </Button>
+          </HStack>
         ) : (
-          <Button
-            rightIcon={<Save size={20} />}
-            colorScheme="green"
-            size="lg"
-            onClick={handleSaveWorkout}
-            borderWidth="2px"
-            _hover={{ 
-              transform: "scale(1.05)"
-            }}
-            transition="all 0.2s"
-            fontWeight="bold"
-            px={8}
-          >
-            Save Workout
-          </Button>
+          <HStack spacing={3}>
+            {isEditing && (
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => navigate('/coach/workouts')}
+                borderWidth="2px"
+                borderColor="gray.300"
+                color={textColor}
+                _hover={{ 
+                  bg: 'gray.100',
+                  borderColor: 'gray.400'
+                }}
+                transition="all 0.2s"
+                px={6}
+              >
+                Cancel
+              </Button>
+            )}
+            <Button
+              rightIcon={<Save size={20} />}
+              colorScheme="green"
+              size="lg"
+              onClick={handleSaveWorkout}
+              borderWidth="2px"
+              _hover={{ 
+                transform: "scale(1.05)"
+              }}
+              transition="all 0.2s"
+              fontWeight="bold"
+              px={8}
+            >
+              {isEditing ? 'Update Workout' : 'Save Workout'}
+            </Button>
+          </HStack>
         )}
       </HStack>
     </Box>
