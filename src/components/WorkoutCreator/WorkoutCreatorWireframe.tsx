@@ -19,6 +19,7 @@ import {
   useToast,
 } from '@chakra-ui/react';
 import { ArrowLeft, ChevronLeft, ChevronRight, Save, Target } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api, type EnhancedWorkoutData } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
@@ -93,31 +94,26 @@ interface Athlete {
 const WorkoutCreatorWireframe: React.FC = () => {
   const toast = useToast();
   const { user } = useAuth();
-
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  
+  // Check if we're editing a workout
+  const editWorkoutId = searchParams.get('edit');
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoadingWorkout, setIsLoadingWorkout] = useState(false);
+  
   // Theme-aware colors - moved to top level to fix Hooks rule violations
-  const bgColor = useColorModeValue('white', 'gray.800');
-  const cardBg = useColorModeValue('white', 'gray.700');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
-  const textColor = useColorModeValue('gray.700', 'gray.100');
+  const bgColor = useColorModeValue('gray.50', 'gray.900');
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const textColor = useColorModeValue('gray.800', 'white');
   const subtitleColor = useColorModeValue('gray.600', 'gray.300');
-  const statsBg = useColorModeValue('gray.50', 'gray.700');
-  const progressBg = useColorModeValue('white', 'gray.800');
-  const stepHeaderTitleColor = useColorModeValue('blue.700', 'blue.300');
-  const stepHeaderDescColor = useColorModeValue('blue.600', 'blue.400');
-  const dayButtonHoverBg = useColorModeValue('blue.50', 'blue.900');
-  const progressStepCurrentColor = useColorModeValue('blue.600', 'blue.300');
-  const progressStepCompletedColor = useColorModeValue('green.600', 'green.300');
-  const progressStepInactiveColor = useColorModeValue('gray.500', 'gray.300');
-  const progressStepArrowColor = useColorModeValue('gray.400', 'gray.400');
-  const buttonHoverBg = useColorModeValue('gray.100', 'gray.600');
-  const navigationButtonHoverBg = useColorModeValue('gray.50', 'gray.700');
-  const navigationButtonHoverBorderColor = useColorModeValue('gray.400', 'gray.500');
-  const progressDotInactiveBg = useColorModeValue('gray.300', 'gray.600');
-  const progressDotBorderColor = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const statsBg = useColorModeValue('blue.50', 'blue.900');
+  const navBg = useColorModeValue('white', 'gray.800');
 
   // Sidebar state
   const [sidebarWidth, setSidebarWidth] = useState(() => {
-    // Always check localStorage first for the saved state
+    // Check localStorage for the saved sidebar state
     const savedSidebarState = localStorage.getItem('sidebarCollapsed');
     return savedSidebarState === 'true' ? 70 : 200;
   });
@@ -187,6 +183,116 @@ const WorkoutCreatorWireframe: React.FC = () => {
   const [isLoadingAthletes, setIsLoadingAthletes] = useState(false);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
+
+  // Load workout data if editing
+  useEffect(() => {
+    if (editWorkoutId) {
+      setIsEditing(true);
+      setIsLoadingWorkout(true);
+      loadWorkoutForEditing(editWorkoutId);
+    }
+  }, [editWorkoutId]);
+
+  const loadWorkoutForEditing = async (workoutId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('workouts')
+        .select('*')
+        .eq('id', workoutId)
+        .single();
+        
+      if (error) throw error;
+      
+      if (data) {
+        // Populate form with workout data
+        setWorkoutName(data.name || '');
+        setWorkoutType(data.type || 'Strength');
+        setTemplateType(data.template_type as 'single' | 'weekly' || 'weekly');
+        setDate(data.date || '');
+        setTime(data.time || '');
+        setDuration(data.duration || '');
+        setLocation(data.location || '');
+        
+        // Load exercises
+        if (data.exercises && Array.isArray(data.exercises)) {
+          if (data.template_type === 'single') {
+            // For single day workouts, put exercises in Monday
+            setSelectedExercises(prev => ({
+              ...prev,
+              monday: data.exercises.map((ex: any) => ({
+                ...ex,
+                instanceId: `${ex.id || ex.name}-${Date.now()}-${Math.random()}`
+              }))
+            }));
+          }
+        }
+        
+        // Load weekly plan if exists
+        if (data.weekly_plan && Array.isArray(data.weekly_plan)) {
+          const weeklyExercises: Record<string, SelectedExercise[]> = {};
+          const weeklyRestDays: Record<string, boolean> = {};
+          
+          data.weekly_plan.forEach((dayPlan: any) => {
+            weeklyExercises[dayPlan.day] = (dayPlan.exercises || []).map((ex: any) => ({
+              ...ex,
+              instanceId: `${ex.id || ex.name}-${Date.now()}-${Math.random()}`
+            }));
+            weeklyRestDays[dayPlan.day] = dayPlan.isRestDay || false;
+          });
+          
+          setSelectedExercises(prev => ({ ...prev, ...weeklyExercises }));
+          setRestDays(prev => ({ ...prev, ...weeklyRestDays }));
+        }
+        
+        // Load athlete assignments
+        const { data: assignments } = await supabase
+          .from('athlete_workouts')
+          .select('athlete_id')
+          .eq('workout_id', workoutId);
+          
+        if (assignments && assignments.length > 0) {
+          const athleteIds = assignments.map(a => a.athlete_id);
+          // Load athlete details
+          const { data: athleteData } = await supabase
+            .from('athletes')
+            .select('id, first_name, last_name')
+            .in('id', athleteIds);
+            
+          if (athleteData) {
+            const athleteMap: Record<string, Athlete> = {};
+            athleteData.forEach(athlete => {
+              athleteMap[athlete.id] = {
+                id: athlete.id,
+                name: `${athlete.first_name} ${athlete.last_name}`,
+                event: 'N/A', // We don't have event info in this context
+                avatar: '' // No avatar in this context
+              };
+            });
+            setSelectedAthletes(athleteMap);
+          }
+        }
+        
+        toast({
+          title: 'Workout Loaded',
+          description: `Editing "${data.name}"`,
+          status: 'info',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error('Error loading workout:', error);
+      toast({
+        title: 'Error Loading Workout',
+        description: 'Could not load workout data for editing.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoadingWorkout(false);
+    }
+  };
 
   // Navigation functions
   const goToStep = (step: number) => {
@@ -329,32 +435,10 @@ const WorkoutCreatorWireframe: React.FC = () => {
 
   // Handle saving workout to database
   const handleSaveWorkout = async () => {
-    if (!user) {
-      toast({
-        title: 'Authentication Required',
-        description: 'Please log in to save workouts.',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
     if (!workoutName.trim()) {
       toast({
-        title: 'Workout Name Required',
-        description: 'Please enter a name for your workout.',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    if (!date) {
-      toast({
-        title: 'Date Required',
-        description: 'Please select a date for your workout.',
+        title: 'Error',
+        description: 'Please enter a workout name.',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -382,7 +466,41 @@ const WorkoutCreatorWireframe: React.FC = () => {
 
       console.log('Saving workout:', workoutData);
       
-      const savedWorkout = await api.workouts.createEnhanced(workoutData);
+      let savedWorkout;
+      
+      if (isEditing && editWorkoutId) {
+        // Update existing workout
+        const { data, error } = await supabase
+          .from('workouts')
+          .update({
+            name: workoutData.name,
+            type: workoutData.type,
+            template_type: workoutData.template_type,
+            date: workoutData.date,
+            time: workoutData.time,
+            duration: workoutData.duration,
+            location: workoutData.location,
+            description: workoutData.description,
+            exercises: workoutData.exercises,
+            weekly_plan: workoutData.weekly_plan
+          })
+          .eq('id', editWorkoutId)
+          .select()
+          .single();
+          
+        if (error) throw error;
+        savedWorkout = data;
+        
+        // Update athlete assignments - first clear existing assignments
+        await supabase
+          .from('athlete_workouts')
+          .delete()
+          .eq('workout_id', editWorkoutId);
+          
+      } else {
+        // Create new workout
+        savedWorkout = await api.workouts.createEnhanced(workoutData);
+      }
       
       // Assign to selected athletes if any
       const athleteIds = Object.keys(selectedAthletes);
@@ -391,33 +509,21 @@ const WorkoutCreatorWireframe: React.FC = () => {
       }
 
       toast({
-        title: 'Workout Saved Successfully!',
-        description: `"${workoutName}" has been created and ${athleteIds.length > 0 ? `assigned to ${athleteIds.length} athlete(s)` : 'is ready to be assigned'}.`,
+        title: isEditing ? 'Workout Updated Successfully!' : 'Workout Saved Successfully!',
+        description: `"${workoutName}" has been ${isEditing ? 'updated' : 'created'} and ${athleteIds.length > 0 ? `assigned to ${athleteIds.length} athlete(s)` : 'is ready to be assigned'}.`,
         status: 'success',
         duration: 5000,
         isClosable: true,
       });
 
-      // Reset form for new workout
-      setWorkoutName('');
-      setDate('');
-      setTime('');
-      setDuration('');
-      setLocation('');
-      setSelectedExercises({
-        monday: [], tuesday: [], wednesday: [], thursday: [], friday: [], saturday: [], sunday: []
-      });
-      setSelectedAthletes({});
-      setRestDays({
-        monday: false, tuesday: false, wednesday: false, thursday: false, friday: false, saturday: false, sunday: false
-      });
-      setCurrentStep(1);
+      // Navigate back to workouts list
+      navigate('/coach/workouts');
 
     } catch (error) {
       console.error('Error saving workout:', error);
       toast({
-        title: 'Save Failed',
-        description: error instanceof Error ? error.message : 'Failed to save workout. Please try again.',
+        title: 'Error',
+        description: isEditing ? 'There was an error updating the workout.' : 'There was an error creating the workout.',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -599,7 +705,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
         left={`${sidebarWidth}px`}
         right="0"
         zIndex="998"
-        bg={progressBg}
+        bg={navBg}
         borderBottom="1px solid"
         borderBottomColor={borderColor}
         data-testid="workout-creator-progress"
@@ -628,9 +734,9 @@ const WorkoutCreatorWireframe: React.FC = () => {
                   size="sm"
                   onClick={() => isAccessible && goToStep(step.id)}
                   isDisabled={!isAccessible}
-                  color={isCurrent ? progressStepCurrentColor : isCompleted ? progressStepCompletedColor : progressStepInactiveColor}
+                  color={isCurrent ? 'blue.500' : isCompleted ? 'green.500' : 'gray.500'}
                   fontWeight={isCurrent ? 'bold' : 'normal'}
-                  _hover={isAccessible ? { bg: buttonHoverBg } : {}}
+                  _hover={isAccessible ? { bg: 'blue.100' } : {}}
                   cursor={isAccessible ? 'pointer' : 'default'}
                   flex="1"
                   minW="0"
@@ -638,9 +744,9 @@ const WorkoutCreatorWireframe: React.FC = () => {
                   <HStack spacing={1} minW="0">
                     <Text fontSize="xs">{step.id}</Text>
                     <Text fontSize="xs" isTruncated>{step.shortTitle}</Text>
-                    {isCompleted && <Text fontSize="xs" color={progressStepCompletedColor}>✓</Text>}
+                    {isCompleted && <Text fontSize="xs" color="green.500">✓</Text>}
                     {index < WORKOUT_CREATION_STEPS.length - 1 && (
-                      <Text fontSize="xs" color={progressStepArrowColor}>→</Text>
+                      <Text fontSize="xs" color="gray.400">→</Text>
                     )}
                   </HStack>
                 </Button>
@@ -662,13 +768,13 @@ const WorkoutCreatorWireframe: React.FC = () => {
                   aria-label="Back to list"
                   onClick={() => alert('Go back to workout list')}
                   color={textColor}
-                  _hover={{ bg: buttonHoverBg }}
+                  _hover={{ bg: 'blue.100' }}
                 />
                 <VStack align="start" spacing={1}>
-                  <Heading size="md" color={stepHeaderTitleColor}>
+                  <Heading size="md" color="blue.600">
                     {currentStepInfo.title}
                   </Heading>
-                  <Text fontSize="sm" color={stepHeaderDescColor}>
+                  <Text fontSize="sm" color={subtitleColor}>
                     {currentStepInfo.description}
                   </Text>
                 </VStack>
@@ -735,7 +841,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
           borderWidth="2px"
           borderColor={borderColor}
           color={textColor}
-          _hover={{ bg: navigationButtonHoverBg, borderColor: navigationButtonHoverBorderColor }}
+          _hover={{ bg: 'blue.100', borderColor: 'blue.300' }}
         >
           Previous
         </Button>
@@ -748,13 +854,13 @@ const WorkoutCreatorWireframe: React.FC = () => {
                 w={6}
                 h={6}
                 borderRadius="full"
-                bg={step.id === currentStep ? 'blue.500' : step.id < currentStep ? 'green.500' : progressDotInactiveBg}
+                bg={step.id === currentStep ? 'blue.500' : step.id < currentStep ? 'green.500' : 'gray.300'}
                 cursor="pointer"
                 onClick={() => step.id <= currentStep && goToStep(step.id)}
                 transition="all 0.3s"
                 _hover={{ transform: step.id <= currentStep ? 'scale(1.2)' : 'none' }}
                 border="2px solid"
-                borderColor={progressDotBorderColor}
+                borderColor={step.id === currentStep ? 'blue.300' : 'gray.300'}
                 position="relative"
               >
                 {step.id < currentStep && (
@@ -954,6 +1060,20 @@ const WorkoutCreatorWireframe: React.FC = () => {
         return <Box>Unknown step</Box>;
     }
   };
+
+  // Add early return for loading state
+  if (isLoadingWorkout) {
+    return (
+      <Box w="100%" position="relative" bg={bgColor} minH="100vh">
+        <Center h="100vh">
+          <VStack spacing={4}>
+            <Spinner size="xl" color="blue.500" thickness="4px" />
+            <Text color={textColor} fontSize="lg">Loading workout for editing...</Text>
+          </VStack>
+        </Center>
+      </Box>
+    );
+  }
 
   return (
     <Box w="100%" position="relative" bg={bgColor} minH="100vh">

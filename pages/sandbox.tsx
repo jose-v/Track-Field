@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChakraProvider, VStack, Box, Text, extendTheme } from '@chakra-ui/react';
-import WorkoutCreatorPOC from '../src/components/WorkoutCreatorPOC';
+import WorkoutCreatorWireframe from '../src/components/WorkoutCreator/WorkoutCreatorWireframe';
 
 // Clean theme for sandbox testing
 const sandboxTheme = extendTheme({
@@ -27,7 +27,7 @@ const SandboxPage: React.FC = () => {
           </Text>
         </Box>
         <VStack spacing={0} p={0}>
-          <WorkoutCreatorPOC />
+          <WorkoutCreatorWireframe />
         </VStack>
       </Box>
     </ChakraProvider>

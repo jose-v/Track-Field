@@ -538,7 +538,7 @@ export function CoachWorkouts() {
                 isCoach={true}
                 progress={progress}
                 assignedTo={athleteNames}
-                onEdit={() => navigate(`/coach/workouts/edit/${workout.id}`)}
+                onEdit={() => navigate(`/coach/workout-creator?edit=${workout.id}`)}
                 onDelete={() => deleteWorkout(workout.id)}
                 onRefresh={handleRefresh}
                 showRefresh={true}
