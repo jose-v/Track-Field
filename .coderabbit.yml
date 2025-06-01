@@ -1,0 +1,133 @@
+# CodeRabbit Configuration for Track & Field React App
+# https://docs.coderabbit.ai/guides/configure-coderabbit
+
+# Review settings
+reviews:
+  # Enable auto-review on all PRs
+  auto_review: true
+  
+  # Review draft PRs
+  drafts: true
+  
+  # Skip reviewing when PR is approved by maintainers
+  skip_when_approved: false
+  
+  # Request changes for critical issues
+  request_changes: true
+
+# Language-specific settings
+language:
+  typescript:
+    # Focus on React patterns and hooks
+    patterns:
+      - "react-hooks"
+      - "component-composition"
+      - "typescript-best-practices"
+      - "performance-optimization"
+  
+  javascript:
+    # Apply strict standards
+    level: "strict"
+
+# Path-based review rules
+path_filters:
+  # Focus on our newly refactored areas
+  high_priority:
+    - "src/components/meets/**"
+    - "src/hooks/meets/**"
+    - "src/utils/meets/**"
+    - "src/types/**"
+    - "src/pages/athlete/Meets.tsx"
+  
+  # Standard review for other areas
+  standard:
+    - "src/**"
+  
+  # Skip common files
+  ignore:
+    - "dist/**"
+    - "node_modules/**"
+    - "*.md"
+    - "*.json"
+    - ".env*"
+
+# Review focus areas for our Track & Field app
+review_rules:
+  # Code quality
+  code_quality:
+    - "no-duplicate-code"
+    - "proper-error-handling"
+    - "type-safety"
+    - "performance-best-practices"
+  
+  # React-specific
+  react:
+    - "component-structure"
+    - "hooks-usage"
+    - "state-management"
+    - "prop-validation"
+    - "accessibility"
+  
+  # Security (important for Supabase integration)
+  security:
+    - "api-security"
+    - "data-validation"
+    - "authentication-checks"
+  
+  # Performance
+  performance:
+    - "bundle-size"
+    - "render-optimization"
+    - "memory-leaks"
+
+# Custom rules for our domain
+custom_rules:
+  # Athletic meets domain logic
+  - name: "meet-data-validation"
+    description: "Ensure proper validation of meet and event data"
+    pattern: "src/hooks/meets/**"
+    
+  - name: "supabase-error-handling"
+    description: "Verify proper error handling for Supabase operations"
+    pattern: "*.ts,*.tsx"
+    
+  - name: "component-reusability"
+    description: "Check that components follow reusability patterns"
+    pattern: "src/components/**"
+
+# Comments and suggestions
+comments:
+  # Be constructive and educational
+  tone: "constructive"
+  
+  # Include code examples in suggestions
+  include_examples: true
+  
+  # Focus on our recent refactoring areas
+  priority_areas:
+    - "newly-refactored-components"
+    - "custom-hooks"
+    - "type-definitions"
+
+# Integration settings
+integrations:
+  github:
+    # Auto-approve minor fixes
+    auto_approve_minor: false
+    
+    # Require review for major changes
+    require_review_major: true
+    
+    # Label PRs based on review
+    auto_label: true
+    
+  # Slack notifications (if you have Slack)
+  slack:
+    enabled: false
+
+# Exclude certain review types for specific patterns
+exclusions:
+  # Don't review auto-generated files
+  - "*.generated.*"
+  - "vite.config.*"
+  - "tailwind.config.*" 
