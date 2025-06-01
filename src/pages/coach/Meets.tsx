@@ -754,7 +754,7 @@ export function CoachMeets() {
                             <Text fontSize="md" color={subtextColor} fontWeight="medium">
                               {meet.venue_name}
                               {meet.venue_type && (
-                                <Badge ml={2} colorScheme="purple" size="sm">
+                                <Badge ml={2} colorScheme="purple" fontSize="xs">
                                   {meet.venue_type}
                                 </Badge>
                               )}

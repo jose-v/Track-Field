@@ -219,7 +219,7 @@ const DraggableExercise: React.FC<DraggableExerciseProps> = ({
                 <Text fontSize="md" fontWeight="bold" color={textColor}>
                   {index + 1}. {exercise.name}
                 </Text>
-                <Badge colorScheme="blue" variant="subtle" size="sm">{exercise.category}</Badge>
+                <Badge colorScheme="blue" variant="subtle" fontSize="xs">{exercise.category}</Badge>
               </HStack>
               <Text fontSize="xs" color={subtitleColor} noOfLines={1}>
                 {exercise.description}
@@ -437,7 +437,7 @@ const DroppableDayZone: React.FC<DroppableDayZoneProps> = ({ day, dayLabel, isEm
         <CardBody>
           <HStack justify="space-between" align="center">
             <Text fontSize="lg" fontWeight="bold" color={textColor}>{dayLabel}</Text>
-            <Badge colorScheme="gray" variant="solid" size="lg">Rest Day</Badge>
+            <Badge colorScheme="gray" variant="solid" fontSize="lg">Rest Day</Badge>
           </HStack>
         </CardBody>
       </Card>
@@ -919,7 +919,7 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
                               <Text fontSize="lg" fontWeight="bold" color={textColor}>
                                 {index + 1}. {exercise.name}
                               </Text>
-                              <Badge colorScheme="blue" variant="subtle">{exercise.category}</Badge>
+                              <Badge colorScheme="blue" variant="subtle" fontSize="xs">{exercise.category}</Badge>
                             </HStack>
                             <Text fontSize="sm" color={subtitleColor} noOfLines={2}>
                               {exercise.description}
@@ -1090,7 +1090,7 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
                             {dayWorkout.exercises.length} exercise{dayWorkout.exercises.length !== 1 ? 's' : ''} • ~{dayStats.estimatedTime} min
                           </Text>
                         </VStack>
-                        <Badge colorScheme="blue" variant="subtle" size="lg">
+                        <Badge colorScheme="blue" variant="subtle" fontSize="lg">
                           {dayStats.totalSets} sets
                         </Badge>
                       </HStack>
@@ -1178,7 +1178,7 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
                     <Text fontSize="md" fontWeight="bold" color={dragOverlayTextColor}>
                       {exercise.name}
                       </Text>
-                    <Badge colorScheme="blue" variant="subtle" size="sm">{exercise.category}</Badge>
+                    <Badge colorScheme="blue" variant="subtle" fontSize="xs">{exercise.category}</Badge>
                     </VStack>
                 </HStack>
                 

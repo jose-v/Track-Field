@@ -155,7 +155,7 @@ const PaymentMethods: React.FC = () => {
                           </>
                         )}
                         {method.isDefault && (
-                          <Badge colorScheme="green" size="sm">
+                          <Badge colorScheme="green" fontSize="xs">
                             Default
                           </Badge>
                         )}

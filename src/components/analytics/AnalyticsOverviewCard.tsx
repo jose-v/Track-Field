@@ -109,7 +109,7 @@ export const AnalyticsOverviewCard: React.FC = () => {
               {overviewData.sleepScore}%
             </StatNumber>
             <StatHelpText fontSize="xs">
-              <Badge colorScheme="purple" variant="subtle" size="sm">
+              <Badge colorScheme="purple" variant="subtle" fontSize="xs">
                 Excellent
               </Badge>
             </StatHelpText>
@@ -130,7 +130,7 @@ export const AnalyticsOverviewCard: React.FC = () => {
               <Badge 
                 colorScheme={getRiskColor(overviewData.injuryRisk)} 
                 variant="subtle" 
-                size="sm"
+                fontSize="xs"
               >
                 ACWR: 1.1
               </Badge>
@@ -152,7 +152,7 @@ export const AnalyticsOverviewCard: React.FC = () => {
               <Badge 
                 colorScheme={getLoadColor(overviewData.trainingLoad)} 
                 variant="subtle" 
-                size="sm"
+                fontSize="xs"
               >
                 7-day avg
               </Badge>
@@ -171,7 +171,7 @@ export const AnalyticsOverviewCard: React.FC = () => {
               {overviewData.wellnessScore}%
             </StatNumber>
             <StatHelpText fontSize="xs">
-              <Badge colorScheme="green" variant="subtle" size="sm">
+              <Badge colorScheme="green" variant="subtle" fontSize="xs">
                 Good
               </Badge>
             </StatHelpText>

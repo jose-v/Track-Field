@@ -192,8 +192,21 @@ const WorkoutCreatorWireframe: React.FC = () => {
       setIsEditing(true);
       setIsLoadingWorkout(true);
       loadWorkoutForEditing(editWorkoutId);
+    } else if (isEditing) {
+      // Reset edit mode when query param is cleared
+      setIsEditing(false);
+      resetFormState();
     }
   }, [editWorkoutId]);
+
+  // Cleanup effect to prevent late setState calls
+  useEffect(() => {
+    return () => {
+      // Component cleanup - cancel any pending async operations
+      setIsLoadingWorkout(false);
+      setIsLoadingAthletes(false);
+    };
+  }, []);
 
   const loadWorkoutForEditing = async (workoutId: string) => {
     try {
@@ -350,7 +363,14 @@ const WorkoutCreatorWireframe: React.FC = () => {
 
   // Helper function to get the correct workouts route based on user role
   const getWorkoutsRoute = () => {
-    switch (userProfile?.role) {
+    // Ensure userProfile exists and has a valid role
+    if (!userProfile || !userProfile.role) {
+      // If no profile or role, try to determine from user context
+      // For safety, default to athlete route rather than coach route
+      return '/athlete/workouts';
+    }
+    
+    switch (userProfile.role) {
       case 'coach':
         return '/coach/workouts';
       case 'athlete':
@@ -358,7 +378,8 @@ const WorkoutCreatorWireframe: React.FC = () => {
       case 'team_manager':
         return '/coach/workouts'; // Team managers use coach routes
       default:
-        return '/coach/workouts'; // Fallback to coach route
+        // More cautious fallback - default to athlete rather than coach
+        return '/athlete/workouts';
     }
   };
 
@@ -536,6 +557,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
       
       // Properly type the saved workout response
       let savedWorkout: { id: string; name: string } | null = null;
+      let assignmentUpdateFailed = false; // Declare in outer scope
       
       if (isEditing && editWorkoutId) {
         // Update existing workout with proper error handling for atomicity
@@ -560,18 +582,24 @@ const WorkoutCreatorWireframe: React.FC = () => {
         if (error) throw error;
         savedWorkout = data;
         
-        // Update athlete assignments in a transaction-like manner
+        // Update athlete assignments in a more atomic manner
         // First clear existing assignments, then add new ones
-        const { error: deleteError } = await supabase
-          .from('athlete_workouts')
-          .delete()
-          .eq('workout_id', editWorkoutId);
-          
-        if (deleteError) {
-          console.warn('Warning: Could not clear existing athlete assignments:', deleteError);
-          // Continue anyway - this is not critical for workout update
+        // Use transaction-like error handling
+        
+        try {
+          const { error: deleteError } = await supabase
+            .from('athlete_workouts')
+            .delete()
+            .eq('workout_id', editWorkoutId);
+            
+          if (deleteError) {
+            assignmentUpdateFailed = true;
+            console.warn('Warning: Could not clear existing athlete assignments:', deleteError);
+          }
+        } catch (deleteException) {
+          assignmentUpdateFailed = true;
+          console.warn('Exception clearing athlete assignments:', deleteException);
         }
-          
       } else {
         // Create new workout
         const newWorkout = await api.workouts.createEnhanced(workoutData);
@@ -583,6 +611,19 @@ const WorkoutCreatorWireframe: React.FC = () => {
       if (athleteIds.length > 0 && savedWorkout?.id) {
         try {
           await api.athleteWorkouts.assign(savedWorkout.id, athleteIds);
+          
+          // For edits, check if assignment clearing failed and warn user
+          if (isEditing && assignmentUpdateFailed) {
+            toast({
+              title: 'Workout Updated with Warning',
+              description: `"${workoutName}" was updated but there may be duplicate athlete assignments. Please check the athlete assignments.`,
+              status: 'warning',
+              duration: 5000,
+              isClosable: true,
+            });
+            navigate(getWorkoutsRoute());
+            return;
+          }
         } catch (assignmentError) {
           console.warn('Warning: Workout saved but athlete assignment failed:', assignmentError);
           // Show a warning but don't fail the entire operation

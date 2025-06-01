@@ -69,6 +69,8 @@ export const EventsList: React.FC<EventsListProps> = ({
           // Extract event properties for consistent naming and cleaner JSX
           const { id, event_name, event_day, start_time, heat, event_type, run_time } = event;
           
+          const isClickable = onEventClick && (!showRunTime || !run_time);
+          
           return (
             <Box 
               key={id} 
@@ -78,9 +80,9 @@ export const EventsList: React.FC<EventsListProps> = ({
               borderColor={eventCardBorder} 
               bg={eventCardBg}
               width="100%"
-              cursor={onEventClick ? "pointer" : "default"}
-              _hover={onEventClick ? { bg: hoverBg } : {}}
-              onClick={onEventClick && !showRunTime ? () => onEventClick(event) : undefined}
+              cursor={isClickable ? "pointer" : "default"}
+              _hover={isClickable ? { bg: hoverBg } : {}}
+              onClick={isClickable ? () => onEventClick(event) : undefined}
             >
               {/* Full width layout */}
               <VStack align="stretch" spacing={2}>

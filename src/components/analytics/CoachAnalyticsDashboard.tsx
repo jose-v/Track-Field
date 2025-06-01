@@ -503,7 +503,7 @@ export const CoachAnalyticsDashboard: React.FC = () => {
                             <Avatar name={athlete.name} size="sm" />
                             <VStack align="start" spacing={1}>
                               <Text fontWeight="medium" fontSize="sm" color={textPrimary}>{athlete.name}</Text>
-                              <Badge colorScheme={getStatusColor(athlete.status)} size="sm" variant="solid">
+                              <Badge colorScheme={getStatusColor(athlete.status)} fontSize="xs" variant="solid">
                                 {athlete.status}
                               </Badge>
                             </VStack>
@@ -561,7 +561,7 @@ export const CoachAnalyticsDashboard: React.FC = () => {
                           </HStack>
                         </Td>
                         <Td borderColor={borderColor} py={4}>
-                          <Badge colorScheme="purple" variant="outline" size="sm">
+                          <Badge colorScheme="purple" variant="outline" fontSize="xs">
                             {athlete.recentPRs}
                           </Badge>
                         </Td>
