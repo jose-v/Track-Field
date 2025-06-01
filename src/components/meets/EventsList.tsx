@@ -1,5 +1,5 @@
 /**
- * Reusable EventsList component for displaying track meet events
+ * Reusable EventsList component for displaying track meet events with full-width layout
  */
 
 import React from 'react';
@@ -10,9 +10,10 @@ import {
   VStack,
   Divider,
   Flex,
+  Button,
   useColorModeValue
 } from '@chakra-ui/react';
-import { FaRunning, FaStopwatch } from 'react-icons/fa';
+import { FaRunning, FaStopwatch, FaPlus } from 'react-icons/fa';
 import { formatEventTime } from '../../utils/meets';
 import type { MeetEvent } from '../../types/meetTypes';
 
@@ -61,32 +62,72 @@ export const EventsList: React.FC<EventsListProps> = ({
       
       <Divider my={2} />
       
-      {/* Events list */}
+      {/* Events list - now full width */}
       <VStack align="stretch" spacing={2}>
         {displayedEvents.map((event) => (
           <Box 
             key={event.id} 
-            p={2} 
+            p={3}
             borderWidth="1px" 
             borderRadius="md" 
             borderColor={eventCardBorder} 
             bg={eventCardBg}
+            width="100%"
             cursor={onEventClick ? "pointer" : "default"}
             _hover={onEventClick ? { bg: useColorModeValue('gray.50', 'gray.600') } : {}}
-            onClick={onEventClick ? () => onEventClick(event) : undefined}
+            onClick={onEventClick && !showRunTime ? () => onEventClick(event) : undefined}
           >
-            <HStack justify="space-between" align="start">
-              <VStack align="start" spacing={1} flex="1">
-                <HStack>
+            {/* Full width layout */}
+            <VStack align="stretch" spacing={2}>
+              {/* Event name and icon row */}
+              <HStack justify="space-between" align="center">
+                <HStack flex="1">
                   <FaRunning color="blue" />
                   <Text fontWeight="medium" fontSize="sm" color={textColor}>
                     {event.event_name}
                   </Text>
                 </HStack>
                 
-                <HStack spacing={3} fontSize="xs" color={mutedTextColor}>
+                {/* Run time section */}
+                {showRunTime && (
+                  <Box>
+                    {event.run_time ? (
+                      <Box
+                        px={3}
+                        py={1}
+                        bg="green.50"
+                        borderRadius="md"
+                        borderLeft="3px solid"
+                        borderLeftColor="green.400"
+                        _dark={{ bg: 'green.900', borderLeftColor: 'green.400' }}
+                      >
+                        <Text fontSize="sm" fontWeight="bold" color="green.700" _dark={{ color: 'green.200' }}>
+                          {event.run_time}
+                        </Text>
+                      </Box>
+                    ) : (
+                      <Button
+                        size="xs"
+                        colorScheme="blue"
+                        variant="outline"
+                        leftIcon={<FaPlus size={10} />}
+                        onClick={onEventClick ? () => onEventClick(event) : undefined}
+                        aria-label={`Add run time for ${event.event_name}`}
+                      >
+                        Add Time
+                      </Button>
+                    )}
+                  </Box>
+                )}
+              </HStack>
+              
+              {/* Event details row */}
+              <HStack spacing={4} fontSize="xs" color={mutedTextColor} justify="space-between">
+                <HStack spacing={3}>
                   {event.event_day && (
-                    <Text>Day {event.event_day}</Text>
+                    <HStack>
+                      <Text fontWeight="medium">Day {event.event_day}</Text>
+                    </HStack>
                   )}
                   
                   {event.start_time && (
@@ -96,30 +137,30 @@ export const EventsList: React.FC<EventsListProps> = ({
                     </HStack>
                   )}
                 </HStack>
-              </VStack>
-
-              {/* Run time display */}
-              {showRunTime && event.run_time && (
-                <Box
-                  px={2}
-                  py={1}
-                  bg="green.50"
-                  borderRadius="md"
-                  borderLeft="3px solid"
-                  borderLeftColor="green.400"
-                >
-                  <Text fontSize="xs" fontWeight="bold" color="green.700">
-                    {event.run_time}
-                  </Text>
-                </Box>
-              )}
-            </HStack>
+                
+                {/* Additional event info */}
+                {(event.heat || event.event_type) && (
+                  <HStack spacing={2}>
+                    {event.heat && (
+                      <Text fontSize="xs" color={mutedTextColor}>
+                        Heat {event.heat}
+                      </Text>
+                    )}
+                    {event.event_type && (
+                      <Text fontSize="xs" color={mutedTextColor} fontWeight="medium">
+                        {event.event_type}
+                      </Text>
+                    )}
+                  </HStack>
+                )}
+              </HStack>
+            </VStack>
           </Box>
         ))}
         
         {/* Show remaining count */}
         {remainingCount > 0 && (
-          <Text fontSize="xs" color={mutedTextColor} textAlign="center">
+          <Text fontSize="xs" color={mutedTextColor} textAlign="center" py={2}>
             +{remainingCount} more event{remainingCount !== 1 ? 's' : ''}
           </Text>
         )}

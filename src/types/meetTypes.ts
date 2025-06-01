@@ -23,6 +23,8 @@ export interface MeetEvent {
   start_time?: string;
   meet_id: string;
   run_time?: string;
+  heat?: number;
+  event_type?: string;
 }
 
 export interface EventFormData {
