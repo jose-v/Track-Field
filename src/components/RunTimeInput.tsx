@@ -267,7 +267,7 @@ export const RunTimeInput: React.FC<RunTimeInputProps> = ({
             label="Min"
           />
 
-          <Text fontSize="2xl" fontWeight="bold" color={modalHeadingColor} mt={8}>:</Text>
+          <Text fontSize="2xl" fontWeight="bold" color={modalHeadingColor} mt={5}>:</Text>
 
           <ScrollPicker
             value={seconds}
@@ -278,7 +278,7 @@ export const RunTimeInput: React.FC<RunTimeInputProps> = ({
             formatValue={(val) => val.toString().padStart(2, '0')}
           />
 
-          <Text fontSize="2xl" fontWeight="bold" color={modalHeadingColor} mt={8}>:</Text>
+          <Text fontSize="2xl" fontWeight="bold" color={modalHeadingColor} mt={5}>:</Text>
 
           <ScrollPicker
             value={hundredths}
