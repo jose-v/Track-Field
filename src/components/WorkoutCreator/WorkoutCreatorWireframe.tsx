@@ -234,7 +234,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
             // For single day workouts, put exercises in Monday
             setSelectedExercises(prev => ({
               ...prev,
-              monday: data.exercises.map((ex: any) => ({
+              monday: data.exercises.map((ex: Exercise & { instanceId?: string }) => ({
                 ...ex,
                 instanceId: `${ex.id || ex.name}-${Date.now()}-${Math.random()}`
               }))
@@ -247,8 +247,8 @@ const WorkoutCreatorWireframe: React.FC = () => {
           const weeklyExercises: Record<string, SelectedExercise[]> = {};
           const weeklyRestDays: Record<string, boolean> = {};
           
-          data.weekly_plan.forEach((dayPlan: any) => {
-            weeklyExercises[dayPlan.day] = (dayPlan.exercises || []).map((ex: any) => ({
+          data.weekly_plan.forEach((dayPlan: { day: string; exercises: Exercise[]; isRestDay: boolean }) => {
+            weeklyExercises[dayPlan.day] = (dayPlan.exercises || []).map((ex: Exercise & { instanceId?: string }) => ({
               ...ex,
               instanceId: `${ex.id || ex.name}-${Date.now()}-${Math.random()}`
             }));
@@ -553,8 +553,6 @@ const WorkoutCreatorWireframe: React.FC = () => {
         })) : undefined
       };
 
-      console.log('Saving workout:', workoutData);
-      
       const athleteIds = Object.keys(selectedAthletes);
       
       // Use atomic transaction for update operations
@@ -579,7 +577,6 @@ const WorkoutCreatorWireframe: React.FC = () => {
         
         if (error) {
           // Fallback to manual transaction if RPC doesn't exist
-          console.warn('RPC function not available, using manual transaction:', error);
           await updateWorkoutWithAthletesManually(editWorkoutId, workoutData, athleteIds);
         }
       } else {
@@ -726,7 +723,6 @@ const WorkoutCreatorWireframe: React.FC = () => {
             }
           }
         } catch (fallbackError) {
-          console.warn('Fallback approach also failed:', fallbackError);
           // If all methods fail, we'll just continue with empty array
         }
       }
@@ -740,7 +736,6 @@ const WorkoutCreatorWireframe: React.FC = () => {
       }));
       
       setAthletes(transformedAthletes);
-      console.log(`Loaded ${transformedAthletes.length} athletes for coach`);
     } catch (error) {
       console.error('Error loading coach athletes:', error);
       // Only show toast for critical errors, not database view issues
@@ -787,7 +782,6 @@ const WorkoutCreatorWireframe: React.FC = () => {
             }));
           }
         } catch (fallbackError) {
-          console.warn('Fallback approach also failed:', fallbackError);
           // If all methods fail, we'll just continue with empty array
         }
       }
@@ -801,7 +795,6 @@ const WorkoutCreatorWireframe: React.FC = () => {
       }));
       
       setAthletes(transformedAthletes);
-      console.log(`Loaded ${transformedAthletes.length} total athletes`);
     } catch (error) {
       console.error('Error loading all athletes:', error);
       // Only show toast for critical errors, not database view issues

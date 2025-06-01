@@ -7,11 +7,6 @@ export default defineConfig(({ mode }) => {
   // Load env file based on mode in the current directory
   const env = loadEnv(mode, process.cwd(), '')
   
-  console.log('Vite build env:', {
-    VITE_SUPABASE_URL: env.VITE_SUPABASE_URL,
-    VITE_SUPABASE_ANON_KEY_DEFINED: !!env.VITE_SUPABASE_ANON_KEY,
-  })
-  
   return {
     root: '.',
     plugins: [react()],

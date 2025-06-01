@@ -3,28 +3,30 @@ import React from 'react';
 // Performance monitoring utility for development
 export class PerformanceMonitor {
   private static marks: Map<string, number> = new Map();
+  private static isDevMode = process.env.NODE_ENV === 'development';
 
   static start(label: string): void {
-    if (process.env.NODE_ENV === 'development') {
+    if (this.isDevMode) {
       this.marks.set(label, performance.now());
       console.time(label);
     }
   }
 
-  static end(label: string): void {
-    if (process.env.NODE_ENV === 'development') {
+  static end(label: string): number | void {
+    if (this.isDevMode) {
       const startTime = this.marks.get(label);
       if (startTime) {
         const duration = performance.now() - startTime;
         console.timeEnd(label);
         console.log(`${label} took ${duration.toFixed(2)}ms`);
         this.marks.delete(label);
+        return duration;
       }
     }
   }
 
-  static measure(label: string, fn: () => any): any {
-    if (process.env.NODE_ENV === 'development') {
+  static measure<T>(label: string, fn: () => T): T {
+    if (this.isDevMode) {
       this.start(label);
       const result = fn();
       this.end(label);
@@ -34,8 +36,16 @@ export class PerformanceMonitor {
   }
 
   static logComponentRender(componentName: string): void {
-    if (process.env.NODE_ENV === 'development') {
+    if (this.isDevMode) {
       console.log(`🔄 ${componentName} rendered at ${new Date().toLocaleTimeString()}`);
+    }
+  }
+
+  static logMemoryUsage(label?: string): void {
+    if (this.isDevMode && 'memory' in performance) {
+      const memory = (performance as any).memory;
+      const prefix = label ? `${label}: ` : '';
+      console.log(`${prefix}Memory - Used: ${(memory.usedJSHeapSize / 1048576).toFixed(2)}MB, Total: ${(memory.totalJSHeapSize / 1048576).toFixed(2)}MB`);
     }
   }
 }

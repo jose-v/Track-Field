@@ -12,38 +12,26 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>,
 )
 
-// Register service worker for PWA functionality
-if ('serviceWorker' in navigator && import.meta.env.PROD && false) { // Temporarily disabled
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then((registration) => {
-        console.log('SW registered: ', registration);
-        
-        // Check for updates immediately
-        registration.update();
-        
-        // Listen for updates
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // New content is available, force reload for PWA
-                console.log('New PWA version available, updating...');
-                window.location.reload();
-              }
-            });
-          }
-        });
-        
-        // Check for updates every 2 minutes (more frequent than before)
-        setInterval(() => {
-          console.log('Checking for PWA updates...');
-          registration.update();
-        }, 2 * 60 * 1000);
-      })
-      .catch((registrationError) => {
-        console.log('SW registration failed: ', registrationError);
-      });
+// Register service worker for PWA functionality (only in production)
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  navigator.serviceWorker.register('/sw.js')
+    .then(() => {
+      // Service worker registered successfully
+    })
+    .catch((registrationError) => {
+      console.error('SW registration failed:', registrationError);
+    });
+
+  // Check for service worker updates
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    // New service worker has taken control
+    window.location.reload();
+  });
+
+  // Listen for service worker updates
+  navigator.serviceWorker.ready.then((registration) => {
+    registration.addEventListener('updatefound', () => {
+      // New service worker is available
+    });
   });
 }

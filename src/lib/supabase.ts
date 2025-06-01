@@ -45,54 +45,5 @@ try {
   supabaseAnonKey = FALLBACK_KEY;
 }
 
-// Log what we're actually using to connect
-console.log('Supabase connection info:', {
-  url: supabaseUrl,
-  keyPrefix: supabaseAnonKey.substring(0, 20) + '...',
-  keyLength: supabaseAnonKey.length
-});
-
-// Create supabase client with error handling
-let supabase: any;
-
-try {
-  // Create the Supabase client
-  supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true
-    }
-  });
-  
-  // Test the client with a simple query to verify it's working
-  supabase.auth.onAuthStateChange((event: string, session: any) => {
-    console.log('Supabase auth state change:', event, session ? 'has session' : 'no session');
-  });
-  
-  console.log('Supabase client initialized successfully');
-} catch (error) {
-  console.error('CRITICAL ERROR initializing Supabase client:', error);
-  
-  // Create a dummy client that won't throw errors
-  supabase = {
-    auth: {
-      onAuthStateChange: (callback: any) => {
-        console.log('Mock auth change listener registered');
-        return { data: { subscription: { unsubscribe: () => {} } } };
-      },
-      getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-      getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-      signOut: () => Promise.resolve({ error: null })
-    },
-    from: () => ({
-      select: () => ({ data: null, error: null }),
-      insert: () => ({ data: null, error: null }),
-      update: () => ({ data: null, error: null }),
-      delete: () => ({ data: null, error: null })
-    })
-  };
-}
-
-// Export the client
-export { supabase }; 
+// Create and export the Supabase client
+export const supabase = createClient(supabaseUrl, supabaseAnonKey); 
