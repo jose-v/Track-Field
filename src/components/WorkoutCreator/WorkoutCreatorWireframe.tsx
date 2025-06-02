@@ -17,6 +17,7 @@ import {
   Spinner,
   Center,
   useToast,
+  Tooltip,
 } from '@chakra-ui/react';
 import { ArrowLeft, ChevronLeft, ChevronRight, Save, Target } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
@@ -1043,21 +1044,60 @@ const WorkoutCreatorWireframe: React.FC = () => {
                 Cancel
               </Button>
             )}
-            <Button
-              rightIcon={<ChevronRight size={20} />}
-              colorScheme="blue"
-              size="lg"
-              onClick={goToNextStep}
-              borderWidth="2px"
-              _hover={{ 
-                transform: "scale(1.05)"
-              }}
-              transition="all 0.2s"
-              fontWeight="bold"
-              px={8}
+            <Tooltip
+              label={
+                currentStep === 1 && workoutName.trim() === '' 
+                  ? "Please enter a workout name to continue"
+                  : currentStep === 2 && Object.values(selectedExercises).flat().length === 0
+                  ? "Add at least 1 exercise to continue"
+                  : ""
+              }
+              isDisabled={
+                (currentStep === 1 && workoutName.trim() !== '') ||
+                (currentStep === 2 && Object.values(selectedExercises).flat().length > 0) ||
+                (currentStep !== 1 && currentStep !== 2)
+              }
+              placement="top"
+              hasArrow
+              bg="orange.500"
+              color="white"
             >
-              Continue
-            </Button>
+              <Button
+                rightIcon={<ChevronRight size={20} />}
+                colorScheme="blue"
+                size="lg"
+                onClick={goToNextStep}
+                isDisabled={
+                  (currentStep === 1 && workoutName.trim() === '') ||
+                  (currentStep === 2 && Object.values(selectedExercises).flat().length === 0)
+                }
+                borderWidth="2px"
+                _hover={{ 
+                  transform: 
+                    (currentStep === 1 && workoutName.trim() === '') ||
+                    (currentStep === 2 && Object.values(selectedExercises).flat().length === 0)
+                      ? "none" 
+                      : "scale(1.05)"
+                }}
+                transition="all 0.2s"
+                fontWeight="bold"
+                px={8}
+                opacity={
+                  (currentStep === 1 && workoutName.trim() === '') ||
+                  (currentStep === 2 && Object.values(selectedExercises).flat().length === 0)
+                    ? 0.4 
+                    : 1
+                }
+                cursor={
+                  (currentStep === 1 && workoutName.trim() === '') ||
+                  (currentStep === 2 && Object.values(selectedExercises).flat().length === 0)
+                    ? 'not-allowed' 
+                    : 'pointer'
+                }
+              >
+                Continue
+              </Button>
+            </Tooltip>
           </HStack>
         ) : (
           <HStack spacing={3}>
