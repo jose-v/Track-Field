@@ -6,7 +6,7 @@ import {
   Avatar, Flex, Divider, Alert, AlertIcon, Spinner, SimpleGrid,
   Card, CardBody, Icon, Tooltip
 } from '@chakra-ui/react';
-import { FaSearch, FaUsers, FaCalendarAlt, FaExclamationTriangle, FaCheck, FaTimes } from 'react-icons/fa';
+import { FaSearch, FaUsers, FaCalendarAlt, FaExclamationTriangle, FaCheck, FaTimes, FaClock } from 'react-icons/fa';
 import { api } from '../services/api';
 import type { MonthlyPlan } from '../services/dbSchema';
 import { useCoachAthletes } from '../hooks/useCoachAthletes';
@@ -50,6 +50,11 @@ export function PlanAssignmentModal({
   
   // Modal state
   const [selectedAthletes, setSelectedAthletes] = useState<string[]>([]);
+  const [startDate, setStartDate] = useState(() => {
+    // Default to today's date
+    const today = new Date();
+    return today.toISOString().split('T')[0]; // YYYY-MM-DD format
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [checkingConflicts, setCheckingConflicts] = useState(false);
@@ -165,6 +170,9 @@ export function PlanAssignmentModal({
       setSelectedAthletes([]);
       setSearchQuery('');
       setAthletesWithAssignments([]);
+      // Reset start date to today
+      const today = new Date();
+      setStartDate(today.toISOString().split('T')[0]);
     }
   }, [isOpen]);
 
@@ -203,15 +211,26 @@ export function PlanAssignmentModal({
       return;
     }
 
+    if (!startDate) {
+      toast({
+        title: 'Start date required',
+        description: 'Please select a start date for the training plan.',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true
+      });
+      return;
+    }
+
     try {
       setLoading(true);
 
-      // Assign plan to selected athletes
-      await api.monthlyPlanAssignments.assign(monthlyPlan.id, selectedAthletes);
+      // Assign plan to selected athletes with start date
+      await api.monthlyPlanAssignments.assign(monthlyPlan.id, selectedAthletes, startDate);
 
       toast({
         title: 'Plan assigned successfully!',
-        description: `"${monthlyPlan.name}" has been assigned to ${selectedAthletes.length} athlete${selectedAthletes.length > 1 ? 's' : ''}.`,
+        description: `"${monthlyPlan.name}" has been assigned to ${selectedAthletes.length} athlete${selectedAthletes.length > 1 ? 's' : ''} starting ${new Date(startDate).toLocaleDateString()}.`,
         status: 'success',
         duration: 5000,
         isClosable: true
@@ -282,6 +301,80 @@ export function PlanAssignmentModal({
                     )}
                   </VStack>
                 </HStack>
+              </CardBody>
+            </Card>
+
+            {/* Start Date Selection - Enhanced Date Picker */}
+            <Card bg={cardBg} borderColor={borderColor} borderWidth="1px" boxShadow="md">
+              <CardBody p={4}>
+                <VStack spacing={3} align="stretch">
+                  <HStack spacing={3} align="center">
+                    <Icon as={FaClock} color="blue.500" boxSize={5} />
+                    <VStack align="start" spacing={0} flex="1">
+                      <Text fontSize="md" fontWeight="semibold" color={titleColor}>
+                        Training Start Date *
+                      </Text>
+                      <Text fontSize="sm" color={infoColor}>
+                        Select when athletes should start this training plan
+                      </Text>
+                    </VStack>
+                  </HStack>
+                  
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    disabled={loading || checkingConflicts}
+                    min={new Date().toISOString().split('T')[0]} // Minimum today's date
+                    size="lg"
+                    borderColor={borderColor}
+                    borderWidth="2px"
+                    _focus={{ 
+                      borderColor: 'blue.400', 
+                      boxShadow: '0 0 0 1px blue.400' 
+                    }}
+                    _hover={{
+                      borderColor: 'blue.300'
+                    }}
+                    bg={useColorModeValue('white', 'gray.700')}
+                    color={useColorModeValue('gray.800', 'gray.100')}
+                    fontSize="md"
+                    cursor="pointer"
+                    _disabled={{
+                      opacity: 0.6,
+                      cursor: 'not-allowed'
+                    }}
+                    sx={{
+                      // Ensure calendar icon is visible
+                      '::-webkit-calendar-picker-indicator': {
+                        cursor: 'pointer',
+                        filter: useColorModeValue('none', 'invert(1)'),
+                        opacity: 1
+                      },
+                      // Style the date input text
+                      '::-webkit-datetime-edit': {
+                        color: useColorModeValue('gray.800', 'gray.100')
+                      },
+                      '::-webkit-datetime-edit-fields-wrapper': {
+                        color: useColorModeValue('gray.800', 'gray.100')
+                      }
+                    }}
+                  />
+                  
+                  <HStack spacing={2} align="center">
+                    <Icon as={FaCalendarAlt} color="blue.500" boxSize={4} />
+                    <Text fontSize="sm" color={infoColor}>
+                      Plan starts on <Text as="span" fontWeight="bold" color={useColorModeValue('blue.600', 'blue.300')}>
+                        {new Date(startDate).toLocaleDateString('en-US', { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}
+                      </Text>
+                    </Text>
+                  </HStack>
+                </VStack>
               </CardBody>
             </Card>
 

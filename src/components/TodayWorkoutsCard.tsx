@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Text,
@@ -11,10 +11,23 @@ import {
   Skeleton,
   useColorModeValue,
   Heading,
+  Progress,
+  Divider,
+  Alert,
+  AlertIcon,
+  Card,
+  CardBody,
+  Flex,
+  CircularProgress,
+  CircularProgressLabel,
+  Tag,
+  useToast
 } from '@chakra-ui/react';
-import { FaRunning, FaCalendarAlt, FaArrowRight } from 'react-icons/fa';
+import { FaRunning, FaCalendarAlt, FaArrowRight, FaClock, FaFire, FaCheck, FaBed } from 'react-icons/fa';
 import { Link as RouterLink } from 'react-router-dom';
 import { WorkoutCard } from './WorkoutCard';
+import { api } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 interface TodayWorkoutsCardProps {
   todayWorkouts: any[];
@@ -37,6 +50,14 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
   workoutsLoading,
   profileLoading
 }) => {
+  const { user } = useAuth();
+  const toast = useToast();
+  
+  // State for daily workout from monthly plans
+  const [dailyWorkout, setDailyWorkout] = useState<any>(null);
+  const [dailyWorkoutLoading, setDailyWorkoutLoading] = useState(false);
+  const [dailyWorkoutError, setDailyWorkoutError] = useState<string | null>(null);
+
   // Color mode values matching quick-log cards
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
@@ -46,6 +67,42 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
   const statLabelColor = useColorModeValue('gray.600', 'gray.300');
   const statNumberColor = useColorModeValue('gray.900', 'gray.100');
   const emptyStateBg = useColorModeValue('gray.50', 'gray.700');
+  const dailyWorkoutBg = useColorModeValue('teal.50', 'teal.900');
+  const dailyWorkoutBorder = useColorModeValue('teal.200', 'teal.700');
+
+  // Fetch today's daily workout from monthly plans
+  useEffect(() => {
+    const fetchDailyWorkout = async () => {
+      if (!user?.id || profile?.role !== 'athlete') return;
+
+      try {
+        setDailyWorkoutLoading(true);
+        setDailyWorkoutError(null);
+        
+        const result = await api.monthlyPlanAssignments.getTodaysWorkout(user.id);
+        setDailyWorkout(result);
+      } catch (error) {
+        console.error('Error fetching daily workout:', error);
+        setDailyWorkoutError('Failed to load daily workout');
+      } finally {
+        setDailyWorkoutLoading(false);
+      }
+    };
+
+    fetchDailyWorkout();
+  }, [user?.id, profile?.role]);
+
+  // Helper function to format exercise count
+  const getExerciseCountText = (exercises: any[]) => {
+    if (!exercises || exercises.length === 0) return 'No exercises';
+    return exercises.length === 1 ? '1 exercise' : `${exercises.length} exercises`;
+  };
+
+  // Helper function to get day name
+  const getDayName = () => {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    return days[new Date().getDay()];
+  };
 
   if (profileLoading || workoutsLoading) {
     return (
@@ -89,13 +146,196 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
       overflowX="hidden"
     >
       <VStack spacing={6} align="stretch">
+        {/* Daily Workout from Monthly Plan - Athletes Only */}
+        {profile?.role === 'athlete' && (
+          <Box>
+            {dailyWorkoutLoading ? (
+              <Box bg={dailyWorkoutBg} p={4} borderRadius="lg" border="1px solid" borderColor={dailyWorkoutBorder}>
+                <HStack spacing={3} mb={3}>
+                  <Icon as={FaFire} color="teal.500" boxSize={5} />
+                  <Skeleton height="24px" width="200px" />
+                </HStack>
+                <Skeleton height="16px" width="100%" />
+              </Box>
+            ) : dailyWorkout?.hasWorkout ? (
+              <Box bg={dailyWorkoutBg} p={4} borderRadius="lg" border="1px solid" borderColor={dailyWorkoutBorder}>
+                <VStack spacing={4} align="stretch">
+                  {/* Daily Workout Header */}
+                  <HStack justify="space-between" align="center">
+                    <HStack spacing={3}>
+                      <Icon as={FaFire} color="teal.500" boxSize={5} />
+                      <VStack align="start" spacing={0}>
+                        <Text fontSize="lg" fontWeight="bold" color={textColor}>
+                          Today's Training Plan
+                        </Text>
+                        <Text fontSize="sm" color={subtitleColor}>
+                          {dailyWorkout.primaryWorkout?.description}
+                        </Text>
+                      </VStack>
+                    </HStack>
+                    <VStack spacing={1} align="end">
+                      <Badge colorScheme="teal" variant="solid" fontSize="xs" px={2} py={1}>
+                        {getDayName()}
+                      </Badge>
+                      <Text fontSize="xs" color={subtitleColor}>
+                        Week {dailyWorkout.primaryWorkout?.progress?.currentWeek} of {dailyWorkout.primaryWorkout?.progress?.totalWeeks}
+                      </Text>
+                    </VStack>
+                  </HStack>
+
+                  {/* Progress */}
+                  <HStack spacing={4}>
+                    <Box flex="1">
+                      <HStack justify="space-between" mb={1}>
+                        <Text fontSize="sm" color={subtitleColor}>Week Progress</Text>
+                        <Text fontSize="sm" color={textColor} fontWeight="medium">
+                          {Math.round(dailyWorkout.primaryWorkout?.progress?.weekProgress || 0)}%
+                        </Text>
+                      </HStack>
+                      <Progress 
+                        value={dailyWorkout.primaryWorkout?.progress?.weekProgress || 0} 
+                        colorScheme="teal" 
+                        size="sm" 
+                        borderRadius="full"
+                      />
+                    </Box>
+                    <Box flex="1">
+                      <HStack justify="space-between" mb={1}>
+                        <Text fontSize="sm" color={subtitleColor}>Overall Progress</Text>
+                        <Text fontSize="sm" color={textColor} fontWeight="medium">
+                          {Math.round(dailyWorkout.primaryWorkout?.progress?.overallProgress || 0)}%
+                        </Text>
+                      </HStack>
+                      <Progress 
+                        value={dailyWorkout.primaryWorkout?.progress?.overallProgress || 0} 
+                        colorScheme="green" 
+                        size="sm" 
+                        borderRadius="full"
+                      />
+                    </Box>
+                  </HStack>
+
+                  {/* Workout Details */}
+                  {dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises && (
+                    <Card 
+                      bg={cardBg} 
+                      borderColor={borderColor} 
+                      borderWidth="1px"
+                      boxShadow="sm"
+                    >
+                      <CardBody p={4}>
+                        <VStack spacing={4} align="stretch">
+                          {/* Header with exercise count */}
+                          <HStack justify="space-between" align="center">
+                            <VStack align="start" spacing={1}>
+                              <Text fontSize="md" fontWeight="semibold" color={textColor}>
+                                {getExerciseCountText(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises)}
+                              </Text>
+                              <Text fontSize="sm" color={subtitleColor}>
+                                From: {dailyWorkout.primaryWorkout?.monthlyPlan?.name}
+                              </Text>
+                            </VStack>
+                            <Button
+                              size="sm"
+                              colorScheme="teal"
+                              leftIcon={<Icon as={FaRunning} />}
+                              onClick={() => {
+                                // Create a workout-like object to pass to existing handler
+                                const workoutObj = {
+                                  id: `daily-${dailyWorkout.primaryWorkout?.weeklyWorkout?.id || 'unknown'}`,
+                                  name: `${getDayName()}'s Training`,
+                                  exercises: dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises,
+                                  description: dailyWorkout.primaryWorkout.description,
+                                  type: 'Daily Training',
+                                  duration: dailyWorkout.primaryWorkout?.weeklyWorkout?.duration || '45 mins'
+                                };
+                                handleStartWorkout(workoutObj);
+                              }}
+                            >
+                              Start Training
+                            </Button>
+                          </HStack>
+
+                          {/* Exercise List Preview */}
+                          <VStack spacing={2} align="stretch">
+                            <Text fontSize="sm" fontWeight="medium" color={textColor}>
+                              Today's Exercises:
+                            </Text>
+                            <VStack spacing={1} align="stretch" maxH="120px" overflowY="auto">
+                              {dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises.slice(0, 4).map((exercise: any, index: number) => (
+                                <HStack key={index} spacing={3} p={2} bg={useColorModeValue('gray.50', 'gray.700')} borderRadius="md">
+                                  <Badge 
+                                    colorScheme="teal" 
+                                    variant="solid" 
+                                    fontSize="xs" 
+                                    minW="20px" 
+                                    textAlign="center"
+                                    borderRadius="full"
+                                  >
+                                    {index + 1}
+                                  </Badge>
+                                  <Text fontSize="sm" color={textColor} flex="1">
+                                    {exercise.name || 'Exercise'}
+                                  </Text>
+                                  {exercise.sets && exercise.reps && (
+                                    <Text fontSize="xs" color={subtitleColor}>
+                                      {exercise.sets} × {exercise.reps}
+                                    </Text>
+                                  )}
+                                  {exercise.distance && (
+                                    <Text fontSize="xs" color={subtitleColor}>
+                                      {exercise.distance}
+                                    </Text>
+                                  )}
+                                </HStack>
+                              ))}
+                              {dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises.length > 4 && (
+                                <Text fontSize="xs" color={subtitleColor} textAlign="center" fontStyle="italic">
+                                  +{dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises.length - 4} more exercises
+                                </Text>
+                              )}
+                            </VStack>
+                          </VStack>
+                        </VStack>
+                      </CardBody>
+                    </Card>
+                  )}
+                </VStack>
+              </Box>
+            ) : dailyWorkout?.message ? (
+              <Box bg={emptyStateBg} p={4} borderRadius="lg" textAlign="center">
+                <HStack justify="center" spacing={3} mb={2}>
+                  <Icon as={dailyWorkout.message.includes('Rest') ? FaBed : FaCalendarAlt} 
+                        color={subtitleColor} boxSize={5} />
+                  <Text fontSize="md" fontWeight="medium" color={textColor}>
+                    {dailyWorkout.message}
+                  </Text>
+                </HStack>
+                {dailyWorkout.message.includes('Rest') && (
+                  <Text fontSize="sm" color={subtitleColor}>
+                    Recovery is an important part of training!
+                  </Text>
+                )}
+              </Box>
+            ) : null}
+            
+            {/* Divider between daily workout and regular workouts */}
+            {(dailyWorkout?.hasWorkout || dailyWorkout?.message) && (todayWorkouts.length > 0 || upcomingWorkouts.length > 0) && (
+              <Divider />
+            )}
+          </Box>
+        )}
+
         {/* Header */}
         <HStack justify="space-between" align="center">
           <HStack spacing={3}>
             <Icon as={FaRunning} boxSize={6} color="green.500" />
             <VStack align="start" spacing={0}>
               <Text fontSize="xl" fontWeight="bold" color={textColor}>
-                Today's Workouts
+                {profile?.role === 'athlete' && (dailyWorkout?.hasWorkout || dailyWorkout?.message) 
+                  ? "Additional Workouts" 
+                  : "Today's Workouts"
+                }
               </Text>
               <Text fontSize="sm" color={subtitleColor}>
                 {todayWorkouts.length > 0 

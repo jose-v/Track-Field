@@ -1814,7 +1814,7 @@ export const api = {
 
   monthlyPlanAssignments: {
     // Assign monthly plan to athletes
-    async assign(monthlyPlanId: string, athleteIds: string[]) {
+    async assign(monthlyPlanId: string, athleteIds: string[], startDate: string) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
@@ -1822,6 +1822,7 @@ export const api = {
         monthly_plan_id: monthlyPlanId,
         athlete_id: athleteId,
         assigned_by: user.id,
+        start_date: startDate,
         status: 'assigned' as const
       }));
 
@@ -1930,6 +1931,88 @@ export const api = {
 
       if (error) throw error;
       return true;
+    },
+
+    // Get today's daily workout for an athlete
+    async getTodaysWorkout(athleteId: string) {
+      try {
+        // Import the calculator (dynamic import to avoid circular dependencies)
+        const { calculateDailyWorkout, getDailyWorkoutDescription, shouldShowWorkout, getWorkoutProgress } = 
+          await import('../utils/dailyWorkoutCalculator');
+
+        // Get all active assignments for the athlete
+        const assignments = await this.getByAthlete(athleteId);
+        
+        // Filter to only current/active assignments (not completed)
+        const activeAssignments = assignments.filter(assignment => 
+          assignment.status !== 'completed' && assignment.monthly_plans
+        );
+
+        if (activeAssignments.length === 0) {
+          return {
+            hasWorkout: false,
+            message: 'No active training plans assigned',
+            assignments: []
+          };
+        }
+
+        // Calculate today's workout for each active assignment
+        const todaysWorkouts = await Promise.all(
+          activeAssignments.map(async (assignment) => {
+            const monthlyPlan = assignment.monthly_plans;
+            
+            // Get the current week's workout info
+            const today = new Date();
+            const startDate = new Date(assignment.start_date);
+            const daysSinceStart = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 3600 * 24));
+            const currentWeek = Math.floor(daysSinceStart / 7) + 1;
+            
+            // Find current week info
+            const weekInfo = monthlyPlan.weeks.find(w => w.week_number === currentWeek);
+            
+            let weeklyWorkout = null;
+            if (weekInfo && !weekInfo.is_rest_week && weekInfo.workout_id) {
+              try {
+                // Get all workouts and find the one we need
+                const allWorkouts = await api.workouts.getAll();
+                weeklyWorkout = allWorkouts.find(w => w.id === weekInfo.workout_id) || null;
+              } catch (error) {
+                console.error('Error loading weekly workout:', error);
+              }
+            }
+
+            // Calculate daily workout
+            const dailyResult = calculateDailyWorkout(assignment, monthlyPlan, weeklyWorkout);
+            const description = getDailyWorkoutDescription(dailyResult);
+            const hasWorkout = shouldShowWorkout(dailyResult);
+            const progress = getWorkoutProgress(dailyResult, monthlyPlan);
+
+            return {
+              assignment,
+              monthlyPlan,
+              dailyResult,
+              description,
+              hasWorkout,
+              progress,
+              weeklyWorkout
+            };
+          })
+        );
+
+        // Find the primary workout for today (first one with an actual workout)
+        const primaryWorkout = todaysWorkouts.find(tw => tw.hasWorkout) || todaysWorkouts[0];
+
+        return {
+          hasWorkout: todaysWorkouts.some(tw => tw.hasWorkout),
+          primaryWorkout,
+          allWorkouts: todaysWorkouts,
+          message: primaryWorkout?.description || 'No training scheduled for today'
+        };
+
+      } catch (error) {
+        console.error('Error getting today\'s workout:', error);
+        throw error;
+      }
     }
   }
 } 

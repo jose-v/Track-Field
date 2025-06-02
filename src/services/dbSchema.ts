@@ -155,6 +155,7 @@ export interface MonthlyPlanAssignment {
   monthly_plan_id: string;
   athlete_id: string;
   assigned_at: string;
+  start_date: string;
   status: 'assigned' | 'in_progress' | 'completed';
   assigned_by: string;
 } 
