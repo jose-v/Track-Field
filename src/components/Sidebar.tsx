@@ -39,10 +39,13 @@ import {
   FaShare,
   FaCog,
   FaSignOutAlt,
-  FaTachometerAlt
+  FaTachometerAlt,
+  FaClipboardList
 } from 'react-icons/fa';
 import { BsCalendarCheck, BsChatDots } from 'react-icons/bs';
 import { MdLoop, MdRestaurantMenu, MdOutlineBedtime, MdOutlineReport, MdOutlineForum } from 'react-icons/md';
+import { LuUsers, LuCalendarClock, LuClipboardList, LuBell } from 'react-icons/lu';
+import { IoFitnessOutline } from 'react-icons/io5';
 import { HamburgerIcon } from '@chakra-ui/icons';
 import { LuHouse, LuMessageCircleMore, LuBellRing, LuShare } from 'react-icons/lu';
 import { useAuth } from '../contexts/AuthContext';
@@ -50,6 +53,7 @@ import { useProfile } from '../hooks/useProfile';
 import { ThemeToggle } from './ThemeToggle';
 import { useFeedback } from './FeedbackProvider';
 import { useScrollDirection } from '../hooks/useScrollDirection';
+import { useCoachNavigation } from './layout/CoachNavigation';
 
 interface NavItemProps {
   icon: React.ElementType;
@@ -198,25 +202,24 @@ const Sidebar = ({ userType }: SidebarProps) => {
   const { profile } = useProfile();
   const { showFeedbackModal } = useFeedback();
   
-  // Check if we're on mobile
-  const isMobile = useBreakpointValue({ base: true, md: false });
+  // Get coach navigation configuration
+  const coachNavigation = useCoachNavigation();
   
-  const bgColor = useColorModeValue('white', 'gray.900');
+  // Color mode values for the sidebar
+  const sidebarBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
-  const sidebarShadow = useColorModeValue('none', 'sm');
   const drawerBg = useColorModeValue('white', 'gray.900');
   
-  useEffect(() => {
-    // Save to localStorage whenever it changes
-    localStorage.setItem('sidebarCollapsed', isCollapsed.toString());
+  const toggleSidebar = () => {
+    const newCollapsed = !isCollapsed;
+    setIsCollapsed(newCollapsed);
+    localStorage.setItem('sidebarCollapsed', newCollapsed.toString());
     
-    // Dispatch event with both width and isCollapsed
-    window.dispatchEvent(new CustomEvent('sidebarToggle', { 
-      detail: { isCollapsed, width: isCollapsed ? 70 : 200 } 
-    }));
-  }, [isCollapsed]);
-  
-  // Get navigation items based on user type
+    // Dispatch custom event with the new width
+    const width = newCollapsed ? 70 : 200;
+    window.dispatchEvent(new CustomEvent('sidebarToggle', { detail: { width } }));
+  };
+
   const getNavItems = () => {
     if (userType === 'athlete') {
       return [
@@ -233,16 +236,27 @@ const Sidebar = ({ userType }: SidebarProps) => {
         { icon: BsChatDots, label: 'Loop', to: '/loop' },
       ];
     } else {
+      // Create a mapping of coach navigation paths to their proper icons
+      const coachIconMap: { [key: string]: any } = {
+        '/coach/dashboard': FaTachometerAlt,
+        '/coach/athletes': FaUsers,
+        '/coach/workouts': FaDumbbell,
+        '/coach/workout-creator': FaCog,
+        '/coach/monthly-plans': FaClipboardList,
+        '/coach/calendar': FaCalendarAlt,
+        '/coach/meets': BsCalendarCheck,
+        '/coach/stats': FaChartBar,
+        '/coach/notifications': FaBell,
+      };
+
+      // Use the coach navigation configuration from the hook
       return [
         { icon: FaHome, label: 'Home', to: '/' },
-        { icon: FaTachometerAlt, label: 'Dashboard', to: '/coach/dashboard' },
-        { icon: FaUsers, label: 'Athletes', to: '/coach/athletes' },
-        { icon: FaDumbbell, label: 'Workouts', to: '/coach/workouts' },
-        { icon: FaCog, label: 'Workout Creator', to: '/coach/workout-creator' },
-        { icon: FaCalendarAlt, label: 'Calendar', to: '/coach/calendar' },
-        { icon: BsCalendarCheck, label: 'Meets', to: '/coach/meets' },
-        { icon: FaChartBar, label: 'Reports', to: '/coach/stats' },
-        { icon: FaBell, label: 'Notifications', to: '/coach/notifications' },
+        ...coachNavigation.navLinks.map(navItem => ({
+          icon: coachIconMap[navItem.path] || FaTachometerAlt,
+          label: navItem.name,
+          to: navItem.path
+        })),
         { icon: BsChatDots, label: 'Loop', to: '/loop' },
       ];
     }
@@ -530,12 +544,12 @@ const Sidebar = ({ userType }: SidebarProps) => {
       top={0}
       h="100vh"
       w={isCollapsed ? "70px" : "200px"}
-      bg={bgColor}
+      bg={sidebarBg}
       borderRight="1px"
       borderColor={borderColor}
       transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
       zIndex={1000}
-      boxShadow={sidebarShadow}
+      boxShadow="none"
       overflow="hidden"
         display={{ base: 'none', md: 'block' }} // Hide on mobile, show on desktop
     >

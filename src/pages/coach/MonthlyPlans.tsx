@@ -9,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import { MonthlyPlanCard } from '../../components/MonthlyPlanCard';
 import { MonthlyPlanCreator } from '../../components/MonthlyPlanCreator';
+import { PlanAssignmentModal } from '../../components/PlanAssignmentModal';
 import type { MonthlyPlan } from '../../services/dbSchema';
 import { useCoachAthletes } from '../../hooks/useCoachAthletes';
 
@@ -29,12 +30,14 @@ export function CoachMonthlyPlans() {
   
   // Modal state
   const { isOpen: isCreatorOpen, onOpen: onCreatorOpen, onClose: onCreatorClose } = useDisclosure();
+  const { isOpen: isAssignmentOpen, onOpen: onAssignmentOpen, onClose: onAssignmentClose } = useDisclosure();
   
   // Data state
   const [monthlyPlans, setMonthlyPlans] = useState<MonthlyPlanWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [selectedPlanForAssignment, setSelectedPlanForAssignment] = useState<MonthlyPlan | null>(null);
 
   // Theme colors
   const bgColor = useColorModeValue('gray.50', 'gray.900');
@@ -176,13 +179,20 @@ export function CoachMonthlyPlans() {
 
   // Handle plan assignment (placeholder for future)
   const handleAssignPlan = (plan: MonthlyPlan) => {
-    toast({
-      title: 'Assignment functionality',
-      description: 'Plan assignment will be available soon!',
-      status: 'info',
-      duration: 3000,
-      isClosable: true
-    });
+    setSelectedPlanForAssignment(plan);
+    onAssignmentOpen();
+  };
+
+  // Handle assignment modal success
+  const handleAssignmentSuccess = () => {
+    loadMonthlyPlans(); // Refresh data to update assignment stats
+    setSelectedPlanForAssignment(null);
+  };
+
+  // Handle assignment modal close
+  const handleAssignmentClose = () => {
+    setSelectedPlanForAssignment(null);
+    onAssignmentClose();
   };
 
   // Handle view plan details
@@ -384,6 +394,16 @@ export function CoachMonthlyPlans() {
           onClose={onCreatorClose}
           onSuccess={handleCreationSuccess}
         />
+
+        {/* Plan Assignment Modal */}
+        {selectedPlanForAssignment && (
+          <PlanAssignmentModal
+            isOpen={isAssignmentOpen}
+            onClose={handleAssignmentClose}
+            onSuccess={handleAssignmentSuccess}
+            monthlyPlan={selectedPlanForAssignment}
+          />
+        )}
       </VStack>
     </Box>
   );

@@ -55,13 +55,23 @@ export function useCoachNavigation(): CoachNavConfig & { isCurrentPathActive: (p
       icon: <IoFitnessOutline />
     },
     {
-      name: 'Monthly Plans',
+      name: 'Workout Creator',
+      path: '/coach/workout-creator',
+      icon: <FaTachometerAlt />
+    },
+    {
+      name: 'Training Plans',
       path: '/coach/monthly-plans',
       icon: <FaCalendarAlt />
     },
     {
       name: 'Calendar',
       path: '/coach/calendar',
+      icon: <LuCalendarClock />
+    },
+    {
+      name: 'Meets',
+      path: '/coach/meets',
       icon: <LuCalendarClock />
     },
     {
