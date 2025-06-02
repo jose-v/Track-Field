@@ -22,6 +22,7 @@ interface TodayWorkoutsCardProps {
   profile: any;
   getWorkoutProgressData: (workout: any) => any;
   handleStartWorkout: (workout: any) => void;
+  handleResetProgress?: (workoutId: string, workoutName: string) => void;
   workoutsLoading: boolean;
   profileLoading: boolean;
 }
@@ -32,6 +33,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
   profile,
   getWorkoutProgressData,
   handleStartWorkout,
+  handleResetProgress,
   workoutsLoading,
   profileLoading
 }) => {
@@ -138,6 +140,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                   isCoach={profile?.role === 'coach'}
                   progress={getWorkoutProgressData(workout)}
                   onStart={() => handleStartWorkout(workout)}
+                  onReset={handleResetProgress ? () => handleResetProgress(workout.id, workout.name) : undefined}
                 />
               ))}
             </SimpleGrid>
@@ -193,6 +196,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                   isCoach={profile?.role === 'coach'}
                   progress={getWorkoutProgressData(workout)}
                   onStart={() => handleStartWorkout(workout)}
+                  onReset={handleResetProgress ? () => handleResetProgress(workout.id, workout.name) : undefined}
                 />
               ))}
             </SimpleGrid>

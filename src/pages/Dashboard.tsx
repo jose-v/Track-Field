@@ -34,6 +34,7 @@ import {
 import { supabase } from '../lib/supabase'
 import TodayWorkoutsCard from '../components/TodayWorkoutsCard'
 import usePageClass from '../hooks/usePageClass'
+import { api } from '../services/api'
 
 // Function to format date in "Month Day, Year" format
 function formatDate(dateStr: string): string {
@@ -323,6 +324,7 @@ export function Dashboard() {
   }, [user, profile]);
 
   const workoutStore = useWorkoutStore();
+  const toast = useToast();
 
   // Function to get completion count for a workout
   const getCompletionCount = (workoutId: string): number => {
@@ -404,6 +406,43 @@ export function Dashboard() {
     
     return () => clearTimeout(timer);
   }, [profileLoading, workoutsLoading]);
+
+  // Function to handle resetting workout progress
+  const handleResetProgress = async (workoutId: string, workoutName: string) => {
+    try {
+      console.log(`Resetting progress for workout ${workoutId}`);
+      
+      // Reset progress in the workout store
+      workoutStore.resetProgress(workoutId);
+      
+      // Also reset in the database if the user has an assignment
+      if (user?.id) {
+        try {
+          await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutId, 'assigned');
+          console.log(`Workout ${workoutId} status reset to 'assigned' in database`);
+        } catch (error) {
+          console.error('Error resetting workout status in database:', error);
+        }
+      }
+      
+      toast({
+        title: 'Progress Reset',
+        description: `"${workoutName}" progress has been reset. You can start from the beginning.`,
+        status: 'success',
+        duration: 3000,
+        isClosable: true
+      });
+    } catch (error) {
+      console.error('Error resetting workout progress:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to reset workout progress. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true
+      });
+    }
+  };
 
   return (
     <Box 
@@ -538,6 +577,7 @@ export function Dashboard() {
           profile={profile}
           getWorkoutProgressData={getWorkoutProgressData}
           handleStartWorkout={handleStartWorkout}
+          handleResetProgress={handleResetProgress}
           workoutsLoading={workoutsLoading}
           profileLoading={profileLoading}
         />

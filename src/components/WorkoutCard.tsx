@@ -396,23 +396,33 @@ export function WorkoutCard({
         leastDestructiveRef={cancelRef}
         onClose={onResetClose}
       >
-        <AlertDialogOverlay>
-          <AlertDialogContent>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+        <AlertDialogOverlay bg="blackAlpha.600">
+          <AlertDialogContent bg={useColorModeValue('white', 'gray.800')} color={useColorModeValue('gray.800', 'white')}>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color={useColorModeValue('gray.800', 'white')}>
               Reset Workout Progress
             </AlertDialogHeader>
 
-            <AlertDialogBody>
+            <AlertDialogBody color={useColorModeValue('gray.600', 'gray.200')}>
               Are you sure you want to reset your progress on "{workout.name}"? 
               This will clear all completed exercises and you'll start from the beginning.
               This action cannot be undone.
             </AlertDialogBody>
 
             <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={onResetClose}>
+              <Button 
+                ref={cancelRef} 
+                onClick={onResetClose}
+                variant="ghost"
+                colorScheme="gray"
+              >
                 Cancel
               </Button>
-              <Button colorScheme="orange" onClick={handleResetConfirm} ml={3}>
+              <Button 
+                colorScheme="orange" 
+                onClick={handleResetConfirm} 
+                ml={3}
+                variant="solid"
+              >
                 Reset Progress
               </Button>
             </AlertDialogFooter>
