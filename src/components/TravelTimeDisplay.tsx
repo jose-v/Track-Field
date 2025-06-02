@@ -10,6 +10,9 @@ import {
 import { FaCar, FaPlane } from 'react-icons/fa';
 import { calculateTravelTimes, getUserLocation, geocodeLocation, geocodeLocationFallback, useUserHomeLocation, setUserHomeLocation } from '../services/travelTime';
 
+// Check if we're in development mode - more browser compatible
+const isDev = import.meta.env.DEV;
+
 interface TravelTimeDisplayProps {
   city?: string;
   state?: string;
@@ -93,7 +96,7 @@ export const TravelTimeDisplay: React.FC<TravelTimeDisplayProps> = ({
         
         // Try fallback geocoding service if primary fails
         if (!destinationLocation) {
-          if (process.env.NODE_ENV === 'development') {
+          if (isDev) {
             console.log('Primary geocoding failed, trying fallback for:', destinationQuery);
           }
           destinationLocation = await geocodeLocationFallback(destinationQuery);
@@ -109,7 +112,7 @@ export const TravelTimeDisplay: React.FC<TravelTimeDisplayProps> = ({
         
       } catch (err) {
         // Only log errors in development
-        if (process.env.NODE_ENV === 'development') {
+        if (isDev) {
           console.error('Travel time calculation error:', err);
         }
         setError('Unable to calculate');
