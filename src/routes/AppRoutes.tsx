@@ -28,6 +28,7 @@ import { EditWorkout } from '../pages/coach/EditWorkout';
 import { Calendar as CoachCalendar } from '../pages/coach/Calendar';
 import CoachProfile from "../pages/coach/Profile";
 import { CoachMeets } from '../pages/coach/Meets';
+import { CoachMonthlyPlans } from '../pages/coach/MonthlyPlans';
 
 // Athlete pages
 import { Dashboard as AthleteDashboard } from '../pages/Dashboard';
@@ -103,6 +104,7 @@ export default function AppRoutes() {
         <Route path="/coach/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
         <Route path="/account" element={<PrivateRoute><Account /></PrivateRoute>} />
         <Route path="/coach/meets" element={<PrivateRoute><CoachMeets /></PrivateRoute>} />
+        <Route path="/coach/monthly-plans" element={<PrivateRoute><CoachMonthlyPlans /></PrivateRoute>} />
       </Route>
 
       {/* Athlete Routes - With Feedback */}
