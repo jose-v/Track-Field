@@ -63,19 +63,19 @@ export const TravelTimeDisplay: React.FC<TravelTimeDisplayProps> = ({
             // Don't return here, continue with the calculation
           } else {
             setLoading(false);
-            setError('Location permission needed');
+            // Don't show error for geolocation failure - it's expected behavior
             return;
           }
         } catch (err) {
           setLoading(false);
-          setError('Location permission needed');
+          // Silently handle geolocation errors
           return;
         }
         setLoading(false);
       }
       
       if (!userLocation) {
-        setError('Location permission needed');
+        // No error message - just don't show travel times if no location
         return;
       }
       
@@ -93,7 +93,9 @@ export const TravelTimeDisplay: React.FC<TravelTimeDisplayProps> = ({
         
         // Try fallback geocoding service if primary fails
         if (!destinationLocation) {
-          console.log('Primary geocoding failed, trying fallback for:', destinationQuery);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Primary geocoding failed, trying fallback for:', destinationQuery);
+          }
           destinationLocation = await geocodeLocationFallback(destinationQuery);
         }
         
@@ -106,7 +108,10 @@ export const TravelTimeDisplay: React.FC<TravelTimeDisplayProps> = ({
         setTravelTimes(times);
         
       } catch (err) {
-        // Silently handle calculation errors
+        // Only log errors in development
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Travel time calculation error:', err);
+        }
         setError('Unable to calculate');
       } finally {
         setLoading(false);

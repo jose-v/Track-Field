@@ -81,7 +81,9 @@ const geocodeLocation = async (query: string): Promise<Location | null> => {
     const encodedQuery = encodeURIComponent(query);
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodedQuery}&limit=1`;
     
-    console.log('Geocoding API URL:', url);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Geocoding API URL:', url);
+    }
     
     // Add timeout to prevent hanging requests
     const controller = new AbortController();
@@ -96,29 +98,41 @@ const geocodeLocation = async (query: string): Promise<Location | null> => {
     
     clearTimeout(timeoutId);
     
-    console.log('Geocoding API response status:', response.status, response.statusText);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Geocoding API response status:', response.status, response.statusText);
+    }
     
     if (!response.ok) {
-      console.log('Geocoding API error response:', response);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Geocoding API error response:', response);
+      }
       return null;
     }
     
     const data = await response.json();
-    console.log('Geocoding API response data:', data);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Geocoding API response data:', data);
+    }
     
     if (data && data.length > 0) {
       const result = {
         lat: parseFloat(data[0].lat),
         lng: parseFloat(data[0].lon)
       };
-      console.log('Geocoding successful, parsed result:', result);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Geocoding successful, parsed result:', result);
+      }
       return result;
     }
     
-    console.log('Geocoding API returned empty results for query:', query);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Geocoding API returned empty results for query:', query);
+    }
     return null;
   } catch (error) {
-    console.log('Geocoding API error for query:', query, 'Error:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Geocoding API error for query:', query, 'Error:', error);
+    }
     return null;
   }
 };
@@ -130,7 +144,9 @@ const geocodeLocationFallback = async (query: string): Promise<Location | null> 
     const encodedQuery = encodeURIComponent(query);
     const url = `https://photon.komoot.io/api/?q=${encodedQuery}&limit=1`;
     
-    console.log('Fallback geocoding API URL:', url);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Fallback geocoding API URL:', url);
+    }
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
@@ -144,15 +160,21 @@ const geocodeLocationFallback = async (query: string): Promise<Location | null> 
     
     clearTimeout(timeoutId);
     
-    console.log('Fallback geocoding response status:', response.status);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Fallback geocoding response status:', response.status);
+    }
     
     if (!response.ok) {
-      console.log('Fallback geocoding failed:', response.status);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Fallback geocoding failed:', response.status);
+      }
       return null;
     }
     
     const data = await response.json();
-    console.log('Fallback geocoding response:', data);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Fallback geocoding response:', data);
+    }
     
     if (data && data.features && data.features.length > 0) {
       const coords = data.features[0].geometry.coordinates;
@@ -160,14 +182,20 @@ const geocodeLocationFallback = async (query: string): Promise<Location | null> 
         lat: coords[1], // GeoJSON format: [lng, lat]
         lng: coords[0]
       };
-      console.log('Fallback geocoding successful:', result);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Fallback geocoding successful:', result);
+      }
       return result;
     }
     
-    console.log('Fallback geocoding returned no results');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Fallback geocoding returned no results');
+    }
     return null;
   } catch (error) {
-    console.log('Fallback geocoding error:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Fallback geocoding error:', error);
+    }
     return null;
   }
 };
@@ -176,25 +204,45 @@ const geocodeLocationFallback = async (query: string): Promise<Location | null> 
 const getUserLocation = (): Promise<Location | null> => {
   return new Promise((resolve) => {
     if (!navigator.geolocation) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Geolocation not supported by this browser');
+      }
       resolve(null);
       return;
     }
     
     const options = {
-      timeout: 15000, // Increased timeout to 15 seconds
-      maximumAge: 600000, // 10 minutes
-      enableHighAccuracy: false
+      timeout: 10000, // Reduced timeout to 10 seconds
+      maximumAge: 300000, // 5 minutes cache
+      enableHighAccuracy: false // Less accurate but more reliable
     };
     
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        resolve({
+        const location = {
           lat: position.coords.latitude,
           lng: position.coords.longitude
-        });
+        };
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Geolocation successful:', location);
+        }
+        
+        resolve(location);
       },
       (error) => {
-        // Silently handle geolocation errors to reduce console noise
+        // Handle different types of geolocation errors gracefully
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Geolocation error:', {
+            code: error.code,
+            message: error.message,
+            type: error.code === 1 ? 'PERMISSION_DENIED' : 
+                  error.code === 2 ? 'POSITION_UNAVAILABLE' : 
+                  error.code === 3 ? 'TIMEOUT' : 'UNKNOWN'
+          });
+        }
+        
+        // Always resolve with null instead of rejecting to prevent unhandled promise rejections
         resolve(null);
       },
       options
