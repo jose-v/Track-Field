@@ -127,6 +127,13 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
   const labelColor = useColorModeValue('gray.700', 'gray.200');
   const placeholderColor = useColorModeValue('gray.500', 'gray.300');
   const inputHoverBorderColor = useColorModeValue('gray.400', 'gray.500');
+  
+  // Template colors (moved from conditional rendering)
+  const templateSelectedBg = useColorModeValue('blue.50', 'blue.900');
+  const templateSelectedBorderColor = useColorModeValue('blue.500', 'blue.400');
+  const templateSelectedHoverBg = useColorModeValue('blue.100', 'blue.800');
+  const templateIconColor = useColorModeValue('gray.400', 'gray.500');
+  const templateTextColor = useColorModeValue('blue.600', 'blue.200');
 
   const getTypeIcon = (type: string, size: number = 20) => {
     switch (type) {
@@ -182,23 +189,23 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
           {/* For screens 1920px+ (custom breakpoint), show all 3 cards in one row */}
           <Box display={{ base: "none", "2xl": "none" }} sx={{ "@media (min-width: 1920px)": { display: "block" } }}>
             <HStack spacing={4} align="start" w="100%">
-              {/* Template Type Selection - 25% */}
-              <Card flex="0.25" variant="outline" shadow="none" bg={cardBg} borderColor={borderColor}>
+              {/* Template Type Selection */}
+              <Card flex="1" variant="outline" shadow="none" bg={cardBg} borderColor={borderColor}>
                 <CardBody p={6}>
                   <VStack spacing={4} align="stretch">
-                    <VStack spacing={2} align="start">
+                    <VStack spacing={2} align="center">
                       <HStack>
                         <Calendar size={24} color="var(--chakra-colors-blue-500)" />
                         <Heading size="md" color={textColor}>
-                          Template Type
+                          Choose Your Template Type
                         </Heading>
                       </HStack>
-                      <Text fontSize="sm" color={subtitleColor}>
-                        Single workout or weekly plan?
+                      <Text fontSize="sm" color={subtitleColor} textAlign="center">
+                        Will this be a single workout or a weekly training plan?
                       </Text>
                     </VStack>
                     
-                    <VStack spacing={3}>
+                    <VStack spacing={4}>
                       {TEMPLATE_TYPES.map((type) => (
                         <Card
                           key={type.value}
@@ -215,23 +222,23 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
                           }}
                           transition="all 0.2s"
                           w="100%"
-                          h="100px"
+                          h="140px"
                           position="relative"
                         >
-                          <CardBody p={4}>
-                            <Flex justify="center" align="center" h="100%">
-                              <HStack spacing={3} w="100%">
+                          <CardBody p={6} display="flex" alignItems="center" h="100%">
+                            <Flex justify="center" align="center" h="100%" w="100%">
+                              <HStack spacing={4} w="100%">
                                 <Box color={templateType === type.value ? "blue.500" : useColorModeValue("gray.500", "gray.400")}>
-                                  {type.value === 'single' ? <FileText size={24} /> : <Calendar size={24} />}
+                                  {type.value === 'single' ? <FileText size={32} /> : <Calendar size={32} />}
                                 </Box>
-                                <VStack spacing={1} align="start" flex="1">
+                                <VStack spacing={2} align="start" flex="1">
                                   <Heading size="sm" color={templateType === type.value ? "blue.700" : textColor}>
                                     {type.label}
                                   </Heading>
-                                  <Text fontSize="xs" color={subtitleColor} lineHeight="short" noOfLines={2}>
+                                  <Text fontSize="xs" color={subtitleColor} lineHeight="short">
                                     {type.value === 'single' 
-                                      ? 'One-time workout session'
-                                      : 'Complete weekly schedule'
+                                      ? 'Perfect for one-time workouts or specific training sessions'
+                                      : 'Create weekly schedules and save as templates for monthly plans'
                                     }
                                   </Text>
                                 </VStack>
@@ -246,8 +253,8 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
                               bg="blue.500"
                               color="white"
                               borderRadius="full"
-                              w={4}
-                              h={4}
+                              w={5}
+                              h={5}
                               display="flex"
                               alignItems="center"
                               justifyContent="center"
@@ -257,22 +264,71 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
                           )}
                         </Card>
                       ))}
-                    </VStack>
                     
-                    {/* Template Checkbox - Show only for Weekly Training Plan */}
-                    {templateType === 'weekly' && setIsTemplate && (
-                      <Box mt={4} p={3} bg={useColorModeValue('blue.50', 'blue.900')} borderRadius="md" borderWidth="1px" borderColor={useColorModeValue('blue.200', 'blue.700')}>
-                        <Checkbox
-                          isChecked={isTemplate}
-                          onChange={(e) => setIsTemplate(e.target.checked)}
-                          colorScheme="blue"
+                      {/* Template Checkbox - Show only for Weekly Training Plan */}
+                      {templateType === 'weekly' && setIsTemplate && (
+                        <Card
+                          variant="outline"
+                          shadow="none"
+                          cursor="pointer"
+                          onClick={() => setIsTemplate(!isTemplate)}
+                          bg={isTemplate ? templateSelectedBg : cardBg}
+                          borderColor={isTemplate ? templateSelectedBorderColor : borderColor}
+                          borderWidth="2px"
+                          _hover={{ 
+                            borderColor: isTemplate ? "blue.500" : "blue.300",
+                            bg: isTemplate ? templateSelectedHoverBg : hoverBg
+                          }}
+                          transition="all 0.2s"
+                          position="relative"
+                          w="100%"
+                          h="140px"
                         >
-                          <Text fontSize="sm" color={useColorModeValue('blue.700', 'blue.200')}>
-                            Save as template for monthly plans
-                          </Text>
-                        </Checkbox>
-                      </Box>
-                    )}
+                          <CardBody p={6} display="flex" alignItems="center" h="100%">
+                            <Flex justify="center" align="center" h="100%" w="100%">
+                              <HStack spacing={4} w="100%">
+                                <Box color={isTemplate ? "blue.500" : templateIconColor}>
+                                  <BookOpen size={32} />
+                                </Box>
+                                <VStack spacing={2} align="start" flex="1">
+                                  <Heading 
+                                    size="sm" 
+                                    color={isTemplate ? "blue.700" : textColor}
+                                    lineHeight="tight"
+                                  >
+                                    Save as Template
+                                  </Heading>
+                                  <Text 
+                                    fontSize="xs" 
+                                    color={isTemplate ? templateTextColor : subtitleColor}
+                                    lineHeight="short"
+                                  >
+                                    Use for monthly plans
+                                  </Text>
+                                </VStack>
+                              </HStack>
+                            </Flex>
+                            {isTemplate && (
+                              <Box
+                                position="absolute"
+                                top={2}
+                                right={2}
+                                bg="blue.500"
+                                color="white"
+                                borderRadius="full"
+                                w={5}
+                                h={5}
+                                display="flex"
+                                alignItems="center"
+                                justifyContent="center"
+                              >
+                                <Text fontSize="xs" fontWeight="bold">✓</Text>
+                              </Box>
+                            )}
+                          </CardBody>
+                        </Card>
+                      )}
+                    </VStack>
                   </VStack>
                 </CardBody>
               </Card>
@@ -459,8 +515,8 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
                           h="140px"
                           position="relative"
                         >
-                          <CardBody p={6}>
-                            <Flex justify="center" align="center" h="100%">
+                          <CardBody p={6} display="flex" alignItems="center" h="100%">
+                            <Flex justify="center" align="center" h="100%" w="100%">
                               <HStack spacing={4} w="100%">
                                 <Box color={templateType === type.value ? "blue.500" : useColorModeValue("gray.500", "gray.400")}>
                                   {type.value === 'single' ? <FileText size={32} /> : <Calendar size={32} />}
@@ -472,7 +528,7 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
                                   <Text fontSize="xs" color={subtitleColor} lineHeight="short">
                                     {type.value === 'single' 
                                       ? 'Perfect for one-time workouts or specific training sessions'
-                                      : 'Create a complete weekly training schedule with different workouts'
+                                      : 'Create weekly schedules and save as templates for monthly plans'
                                     }
                                   </Text>
                                 </VStack>
@@ -498,22 +554,71 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
                           )}
                         </Card>
                       ))}
-                    </VStack>
                     
-                    {/* Template Checkbox - Show only for Weekly Training Plan */}
-                    {templateType === 'weekly' && setIsTemplate && (
-                      <Box mt={4} p={4} bg={useColorModeValue('blue.50', 'blue.900')} borderRadius="md" borderWidth="1px" borderColor={useColorModeValue('blue.200', 'blue.700')}>
-                        <Checkbox
-                          isChecked={isTemplate}
-                          onChange={(e) => setIsTemplate(e.target.checked)}
-                          colorScheme="blue"
+                      {/* Template Checkbox - Show only for Weekly Training Plan */}
+                      {templateType === 'weekly' && setIsTemplate && (
+                        <Card
+                          variant="outline"
+                          shadow="none"
+                          cursor="pointer"
+                          onClick={() => setIsTemplate(!isTemplate)}
+                          bg={isTemplate ? templateSelectedBg : cardBg}
+                          borderColor={isTemplate ? templateSelectedBorderColor : borderColor}
+                          borderWidth="2px"
+                          _hover={{ 
+                            borderColor: isTemplate ? "blue.500" : "blue.300",
+                            bg: isTemplate ? templateSelectedHoverBg : hoverBg
+                          }}
+                          transition="all 0.2s"
+                          position="relative"
+                          w="100%"
+                          h="140px"
                         >
-                          <Text fontSize="sm" color={useColorModeValue('blue.700', 'blue.200')}>
-                            Save as template for monthly plans
-                          </Text>
-                        </Checkbox>
-                      </Box>
-                    )}
+                          <CardBody p={6} display="flex" alignItems="center" h="100%">
+                            <Flex justify="center" align="center" h="100%" w="100%">
+                              <HStack spacing={4} w="100%">
+                                <Box color={isTemplate ? "blue.500" : templateIconColor}>
+                                  <BookOpen size={32} />
+                                </Box>
+                                <VStack spacing={2} align="start" flex="1">
+                                  <Heading 
+                                    size="sm" 
+                                    color={isTemplate ? "blue.700" : textColor}
+                                    lineHeight="tight"
+                                  >
+                                    Save as Template
+                                  </Heading>
+                                  <Text 
+                                    fontSize="xs" 
+                                    color={isTemplate ? templateTextColor : subtitleColor}
+                                    lineHeight="short"
+                                  >
+                                    Use for monthly plans
+                                  </Text>
+                                </VStack>
+                              </HStack>
+                            </Flex>
+                            {isTemplate && (
+                              <Box
+                                position="absolute"
+                                top={2}
+                                right={2}
+                                bg="blue.500"
+                                color="white"
+                                borderRadius="full"
+                                w={5}
+                                h={5}
+                                display="flex"
+                                alignItems="center"
+                                justifyContent="center"
+                              >
+                                <Text fontSize="xs" fontWeight="bold">✓</Text>
+                              </Box>
+                            )}
+                          </CardBody>
+                        </Card>
+                      )}
+                    </VStack>
                   </VStack>
                 </CardBody>
               </Card>
