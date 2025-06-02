@@ -10,6 +10,7 @@ import { api } from '../../services/api';
 import { MonthlyPlanCard } from '../../components/MonthlyPlanCard';
 import { MonthlyPlanCreator } from '../../components/MonthlyPlanCreator';
 import { PlanAssignmentModal } from '../../components/PlanAssignmentModal';
+import { PlanDetailView } from '../../components/PlanDetailView';
 import type { MonthlyPlan } from '../../services/dbSchema';
 import { useCoachAthletes } from '../../hooks/useCoachAthletes';
 
@@ -38,6 +39,8 @@ export function CoachMonthlyPlans() {
   const [refreshing, setRefreshing] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
   const [selectedPlanForAssignment, setSelectedPlanForAssignment] = useState<MonthlyPlan | null>(null);
+  const [selectedPlanForView, setSelectedPlanForView] = useState<MonthlyPlan | null>(null);
+  const [showDetailView, setShowDetailView] = useState(false);
 
   // Theme colors
   const bgColor = useColorModeValue('gray.50', 'gray.900');
@@ -197,13 +200,33 @@ export function CoachMonthlyPlans() {
 
   // Handle view plan details
   const handleViewPlan = (plan: MonthlyPlan) => {
+    setSelectedPlanForView(plan);
+    setShowDetailView(true);
+  };
+
+  // Handle back from detail view
+  const handleBackFromDetail = () => {
+    setShowDetailView(false);
+    setSelectedPlanForView(null);
+  };
+
+  // Handle edit from detail view
+  const handleEditFromDetail = () => {
     toast({
-      title: 'Plan details',
-      description: 'Detailed plan view will be available soon!',
+      title: 'Edit functionality',
+      description: 'Plan editing will be available soon!',
       status: 'info',
       duration: 3000,
       isClosable: true
     });
+  };
+
+  // Handle assign from detail view
+  const handleAssignFromDetail = () => {
+    if (selectedPlanForView) {
+      setSelectedPlanForAssignment(selectedPlanForView);
+      onAssignmentOpen();
+    }
   };
 
   // Skeleton loading cards
@@ -264,147 +287,158 @@ export function CoachMonthlyPlans() {
 
   return (
     <Box minH="100vh" bg={bgColor} p={6}>
-      <VStack spacing={6} align="stretch" maxW="7xl" mx="auto">
-        {/* Header */}
-        <Flex justify="space-between" align="center" flexWrap="wrap" gap={4}>
-          <VStack align="start" spacing={2}>
+      {showDetailView && selectedPlanForView ? (
+        /* Plan Detail View */
+        <PlanDetailView
+          monthlyPlan={selectedPlanForView}
+          onBack={handleBackFromDetail}
+          onEdit={handleEditFromDetail}
+          onAssign={handleAssignFromDetail}
+        />
+      ) : (
+        /* Main Plans List View */
+        <VStack spacing={6} align="stretch" maxW="7xl" mx="auto">
+          {/* Header */}
+          <Flex justify="space-between" align="center" flexWrap="wrap" gap={4}>
+            <VStack align="start" spacing={2}>
+              <HStack spacing={3}>
+                <FaCalendarAlt size={24} color="teal" />
+                <Heading size="lg">Monthly Plans</Heading>
+                {monthlyPlans.length > 0 && (
+                  <Badge colorScheme="teal" px={3} py={1} borderRadius="md">
+                    {monthlyPlans.length} plan{monthlyPlans.length !== 1 ? 's' : ''}
+                  </Badge>
+                )}
+              </HStack>
+              <Text color="gray.600">
+                Create and manage monthly training plans for your athletes
+              </Text>
+            </VStack>
+
             <HStack spacing={3}>
-              <FaCalendarAlt size={24} color="teal" />
-              <Heading size="lg">Monthly Plans</Heading>
-              {monthlyPlans.length > 0 && (
-                <Badge colorScheme="teal" px={3} py={1} borderRadius="md">
-                  {monthlyPlans.length} plan{monthlyPlans.length !== 1 ? 's' : ''}
-                </Badge>
-              )}
+              <IconButton
+                aria-label="Refresh plans"
+                icon={refreshing ? <Spinner size="sm" /> : <FaRedo />}
+                onClick={handleRefresh}
+                isDisabled={refreshing}
+                variant="outline"
+              />
+              <Button
+                leftIcon={<FaPlus />}
+                colorScheme="teal"
+                onClick={onCreatorOpen}
+                size="md"
+              >
+                Create Monthly Plan
+              </Button>
             </HStack>
-            <Text color="gray.600">
-              Create and manage monthly training plans for your athletes
-            </Text>
-          </VStack>
+          </Flex>
 
-          <HStack spacing={3}>
-            <IconButton
-              aria-label="Refresh plans"
-              icon={refreshing ? <Spinner size="sm" /> : <FaRedo />}
-              onClick={handleRefresh}
-              isDisabled={refreshing}
-              variant="outline"
-            />
-            <Button
-              leftIcon={<FaPlus />}
-              colorScheme="teal"
-              onClick={onCreatorOpen}
-              size="md"
-            >
-              Create Monthly Plan
-            </Button>
-          </HStack>
-        </Flex>
-
-        {/* Content */}
-        {monthlyPlans.length === 0 ? (
-          <Card bg={cardBg} borderColor={borderColor} borderWidth="1px">
-            <CardBody p={12}>
-              <VStack spacing={6}>
-                <Box textAlign="center">
-                  <FaCalendarAlt size={64} color="gray" opacity={0.3} />
-                </Box>
-                <VStack spacing={3} textAlign="center">
-                  <Heading size="md" color="gray.600">
-                    No monthly plans yet
-                  </Heading>
-                  <Text color="gray.500" maxW="400px">
-                    Get started by creating your first monthly training plan. 
-                    Use weekly workout templates to build comprehensive training schedules.
-                  </Text>
-                </VStack>
-                <Button
-                  leftIcon={<FaPlus />}
-                  colorScheme="teal"
-                  size="lg"
-                  onClick={onCreatorOpen}
-                >
-                  Create Your First Monthly Plan
-                </Button>
-              </VStack>
-            </CardBody>
-          </Card>
-        ) : (
-          <>
-            {/* Stats Summary */}
+          {/* Content */}
+          {monthlyPlans.length === 0 ? (
             <Card bg={cardBg} borderColor={borderColor} borderWidth="1px">
-              <CardBody p={5}>
-                <HStack spacing={8} justify="center">
-                  <VStack spacing={1}>
-                    <Text fontSize="2xl" fontWeight="bold" color="teal.500">
-                      {monthlyPlans.length}
+              <CardBody p={12}>
+                <VStack spacing={6}>
+                  <Box textAlign="center">
+                    <FaCalendarAlt size={64} color="gray" opacity={0.3} />
+                  </Box>
+                  <VStack spacing={3} textAlign="center">
+                    <Heading size="md" color="gray.600">
+                      No monthly plans yet
+                    </Heading>
+                    <Text color="gray.500" maxW="400px">
+                      Get started by creating your first monthly training plan. 
+                      Use weekly workout templates to build comprehensive training schedules.
                     </Text>
-                    <Text fontSize="sm" color="gray.600">Total Plans</Text>
                   </VStack>
-                  <VStack spacing={1}>
-                    <Text fontSize="2xl" fontWeight="bold" color="blue.500">
-                      {monthlyPlans.reduce((sum, plan) => 
-                        sum + (plan.assignmentStats?.totalAssigned || 0), 0
-                      )}
-                    </Text>
-                    <Text fontSize="sm" color="gray.600">Total Assignments</Text>
-                  </VStack>
-                  <VStack spacing={1}>
-                    <Text fontSize="2xl" fontWeight="bold" color="green.500">
-                      {monthlyPlans.reduce((sum, plan) => 
-                        sum + (plan.assignmentStats?.completed || 0), 0
-                      )}
-                    </Text>
-                    <Text fontSize="sm" color="gray.600">Completed</Text>
-                  </VStack>
-                  <VStack spacing={1}>
-                    <Text fontSize="2xl" fontWeight="bold" color="orange.500">
-                      {monthlyPlans.reduce((sum, plan) => 
-                        sum + (plan.assignmentStats?.inProgress || 0), 0
-                      )}
-                    </Text>
-                    <Text fontSize="sm" color="gray.600">In Progress</Text>
-                  </VStack>
-                </HStack>
+                  <Button
+                    leftIcon={<FaPlus />}
+                    colorScheme="teal"
+                    size="lg"
+                    onClick={onCreatorOpen}
+                  >
+                    Create Your First Monthly Plan
+                  </Button>
+                </VStack>
               </CardBody>
             </Card>
+          ) : (
+            <>
+              {/* Stats Summary */}
+              <Card bg={cardBg} borderColor={borderColor} borderWidth="1px">
+                <CardBody p={5}>
+                  <HStack spacing={8} justify="center">
+                    <VStack spacing={1}>
+                      <Text fontSize="2xl" fontWeight="bold" color="teal.500">
+                        {monthlyPlans.length}
+                      </Text>
+                      <Text fontSize="sm" color="gray.600">Total Plans</Text>
+                    </VStack>
+                    <VStack spacing={1}>
+                      <Text fontSize="2xl" fontWeight="bold" color="blue.500">
+                        {monthlyPlans.reduce((sum, plan) => 
+                          sum + (plan.assignmentStats?.totalAssigned || 0), 0
+                        )}
+                      </Text>
+                      <Text fontSize="sm" color="gray.600">Total Assignments</Text>
+                    </VStack>
+                    <VStack spacing={1}>
+                      <Text fontSize="2xl" fontWeight="bold" color="green.500">
+                        {monthlyPlans.reduce((sum, plan) => 
+                          sum + (plan.assignmentStats?.completed || 0), 0
+                        )}
+                      </Text>
+                      <Text fontSize="sm" color="gray.600">Completed</Text>
+                    </VStack>
+                    <VStack spacing={1}>
+                      <Text fontSize="2xl" fontWeight="bold" color="orange.500">
+                        {monthlyPlans.reduce((sum, plan) => 
+                          sum + (plan.assignmentStats?.inProgress || 0), 0
+                        )}
+                      </Text>
+                      <Text fontSize="sm" color="gray.600">In Progress</Text>
+                    </VStack>
+                  </HStack>
+                </CardBody>
+              </Card>
 
-            {/* Plans Grid */}
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-              {monthlyPlans.map((plan) => (
-                <MonthlyPlanCard
-                  key={plan.id}
-                  monthlyPlan={plan}
-                  isCoach={true}
-                  completionStats={plan.assignmentStats}
-                  statsLoading={statsLoading}
-                  onEdit={() => handleEditPlan(plan)}
-                  onDelete={() => handleDeletePlan(plan)}
-                  onAssign={() => handleAssignPlan(plan)}
-                  onView={() => handleViewPlan(plan)}
-                />
-              ))}
-            </SimpleGrid>
-          </>
-        )}
+              {/* Plans Grid */}
+              <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+                {monthlyPlans.map((plan) => (
+                  <MonthlyPlanCard
+                    key={plan.id}
+                    monthlyPlan={plan}
+                    isCoach={true}
+                    completionStats={plan.assignmentStats}
+                    statsLoading={statsLoading}
+                    onEdit={() => handleEditPlan(plan)}
+                    onDelete={() => handleDeletePlan(plan)}
+                    onAssign={() => handleAssignPlan(plan)}
+                    onView={() => handleViewPlan(plan)}
+                  />
+                ))}
+              </SimpleGrid>
+            </>
+          )}
 
-        {/* Monthly Plan Creator Modal */}
-        <MonthlyPlanCreator
-          isOpen={isCreatorOpen}
-          onClose={onCreatorClose}
-          onSuccess={handleCreationSuccess}
-        />
-
-        {/* Plan Assignment Modal */}
-        {selectedPlanForAssignment && (
-          <PlanAssignmentModal
-            isOpen={isAssignmentOpen}
-            onClose={handleAssignmentClose}
-            onSuccess={handleAssignmentSuccess}
-            monthlyPlan={selectedPlanForAssignment}
+          {/* Monthly Plan Creator Modal */}
+          <MonthlyPlanCreator
+            isOpen={isCreatorOpen}
+            onClose={onCreatorClose}
+            onSuccess={handleCreationSuccess}
           />
-        )}
-      </VStack>
+
+          {/* Plan Assignment Modal */}
+          {selectedPlanForAssignment && (
+            <PlanAssignmentModal
+              isOpen={isAssignmentOpen}
+              onClose={handleAssignmentClose}
+              onSuccess={handleAssignmentSuccess}
+              monthlyPlan={selectedPlanForAssignment}
+            />
+          )}
+        </VStack>
+      )}
     </Box>
   );
 } 
