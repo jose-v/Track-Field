@@ -1,3 +1,11 @@
+# Track & Field
+
+A comprehensive track and field management application built with React, TypeScript, and Supabase.
+
+<!-- CodeRabbit seat assignment trigger -->
+
+## Features
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
@@ -77,8 +85,6 @@ According to the project milestones, the following testing tasks remain:
 1. Write integration tests for React hooks (useGamification, etc.)
 2. Perform UI component testing for gamification components
 3. Conduct end-to-end testing of the gamification flow
-
-## Features
 
 ### AI Chatbot Assistant
 
