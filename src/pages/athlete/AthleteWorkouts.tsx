@@ -246,12 +246,13 @@ export function AthleteWorkouts() {
   const handleNextExercise = () => {
     const workoutId = execModal.workout!.id;
     const exIdx = execModal.exerciseIdx;
+    const totalExercises = execModal.workout!.exercises.length;
     
     // Mark current exercise as completed
     workoutStore.markExerciseCompleted(workoutId, exIdx);
     
-    // Update progress in store - DON'T mark as completed (false)
-    workoutStore.updateProgress(workoutId, exIdx + 1, execModal.workout!.exercises.length, false);
+    // Update progress in store - set the next exercise index as current
+    workoutStore.updateProgress(workoutId, exIdx + 1, totalExercises, false);
     
     // Update modal state
     setExecModal(prev => ({
@@ -267,12 +268,26 @@ export function AthleteWorkouts() {
     
     const workoutId = execModal.workout.id;
     const totalExercises = execModal.workout.exercises.length;
+    const finalExerciseIdx = execModal.exerciseIdx;
+    
+    // Mark the final exercise as completed if it hasn't been marked yet
+    workoutStore.markExerciseCompleted(workoutId, finalExerciseIdx);
     
     // Check if we need to trigger first workout completion feedback
     const needsFirstWorkoutFeedback = !hasCompletedFirstWorkout;
     
-    // Mark workout as completed
+    // Mark workout as completed in store
     workoutStore.updateProgress(workoutId, totalExercises, totalExercises, true);
+    
+    // Update database assignment status
+    if (user?.id) {
+      try {
+        await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutId, 'completed');
+        console.log(`Workout ${workoutId} marked as completed in database`);
+      } catch (error) {
+        console.error('Error updating workout completion status:', error);
+      }
+    }
     
     // Close modal
     setExecModal({
@@ -340,6 +355,24 @@ export function AthleteWorkouts() {
           const completedCount = getCompletionCount(workout.id);
           const totalExercises = workout.exercises?.length || 0;
           
+          // Get the workout progress to find the first uncompleted exercise
+          const workoutProgress = workoutStore.getProgress(workout.id);
+          const completedExercises = workoutProgress?.completedExercises || [];
+          
+          // Find the first exercise that hasn't been completed
+          let nextExerciseIndex = 0;
+          for (let i = 0; i < totalExercises; i++) {
+            if (!completedExercises.includes(i)) {
+              nextExerciseIndex = i;
+              break;
+            }
+          }
+          
+          // If all exercises are completed, start from 0 to restart
+          if (completedCount === totalExercises && totalExercises > 0) {
+            nextExerciseIndex = 0;
+          }
+          
           const progressPercent = totalExercises > 0 
             ? (completedCount / totalExercises) * 100 
             : 0;
@@ -356,7 +389,7 @@ export function AthleteWorkouts() {
               workout={workout}
               isCoach={false}
               progress={progress}
-              onStart={() => handleGo(workout, completedCount === totalExercises ? 0 : completedCount)}
+              onStart={() => handleGo(workout, nextExerciseIndex)}
               onRefresh={() => forceRefreshWorkoutProgress(workout.id)}
               showRefresh={true}
             />
