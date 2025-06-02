@@ -30,6 +30,7 @@ export function WeeklyWorkoutSelector({
   onChange,
   maxWeeks = 6
 }: WeeklyWorkoutSelectorProps) {
+  // All hooks must be called before any conditional returns
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const cardBg = useColorModeValue('white', 'gray.800');
   const titleColor = useColorModeValue('gray.800', 'gray.100');
@@ -38,6 +39,7 @@ export function WeeklyWorkoutSelector({
   const restBadgeColor = useColorModeValue('orange.700', 'orange.200');
   const activeBadgeBg = useColorModeValue('blue.100', 'blue.800');
   const activeBadgeColor = useColorModeValue('blue.700', 'blue.200');
+  const summaryBg = useColorModeValue('gray.50', 'gray.700');
 
   // Update week configuration
   const updateWeek = (weekNumber: number, field: 'workout_id' | 'is_rest_week', value: string | boolean) => {
@@ -76,6 +78,7 @@ export function WeeklyWorkoutSelector({
     return workout ? workout.name : 'Select workout...';
   };
 
+  // Conditional renders after all hooks
   if (loading) {
     return (
       <VStack spacing={4} align="stretch">
@@ -243,7 +246,7 @@ export function WeeklyWorkoutSelector({
       {/* Summary */}
       <Box 
         p={4} 
-        bg={useColorModeValue('gray.50', 'gray.700')} 
+        bg={summaryBg} 
         borderRadius="md"
       >
         <HStack justify="space-between">

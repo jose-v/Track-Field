@@ -22,7 +22,7 @@ interface AthleteWithAssignment {
   id: string;
   first_name: string;
   last_name: string;
-  email: string;
+  email?: string;
   avatar_url?: string;
   hasConflict?: boolean;
   conflictPlan?: string;
@@ -36,10 +36,14 @@ export function PlanAssignmentModal({
   monthlyPlan
 }: PlanAssignmentModalProps) {
   const toast = useToast();
+  
+  // All hooks must be called before any conditional logic
   const titleColor = useColorModeValue('gray.800', 'gray.100');
   const infoColor = useColorModeValue('gray.600', 'gray.200');
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const planInfoBg = useColorModeValue('teal.50', 'teal.900');
+  const selectedCardBg = useColorModeValue('teal.50', 'teal.900');
 
   // Athletes data
   const { data: coachAthletes, isLoading: athletesLoading } = useCoachAthletes();
@@ -109,18 +113,26 @@ export function PlanAssignmentModal({
               : undefined;
 
             return {
-              ...athlete,
+              id: athlete.id,
+              first_name: athlete.first_name,
+              last_name: athlete.last_name,
+              email: athlete.email || '',
+              avatar_url: athlete.avatar_url,
               hasConflict,
               conflictPlan,
               isAlreadyAssigned: hasThisPlan
-            };
+            } as AthleteWithAssignment;
           } catch (error) {
             console.error(`Error checking conflicts for athlete ${athlete.id}:`, error);
             return {
-              ...athlete,
+              id: athlete.id,
+              first_name: athlete.first_name,
+              last_name: athlete.last_name,
+              email: athlete.email || '',
+              avatar_url: athlete.avatar_url,
               hasConflict: false,
               isAlreadyAssigned: false
-            };
+            } as AthleteWithAssignment;
           }
         })
       );
@@ -162,7 +174,7 @@ export function PlanAssignmentModal({
     
     return athletesWithAssignments.filter(athlete => {
       const fullName = `${athlete.first_name} ${athlete.last_name}`.toLowerCase();
-      const email = athlete.email.toLowerCase();
+      const email = athlete.email?.toLowerCase() || '';
       const query = searchQuery.toLowerCase();
       
       return fullName.includes(query) || email.includes(query);
@@ -195,14 +207,7 @@ export function PlanAssignmentModal({
       setLoading(true);
 
       // Assign plan to selected athletes
-      await Promise.all(
-        selectedAthletes.map(athleteId =>
-          api.monthlyPlanAssignments.assign({
-            monthly_plan_id: monthlyPlan.id,
-            athlete_id: athleteId
-          })
-        )
-      );
+      await api.monthlyPlanAssignments.assign(monthlyPlan.id, selectedAthletes);
 
       toast({
         title: 'Plan assigned successfully!',
@@ -259,7 +264,7 @@ export function PlanAssignmentModal({
         <ModalBody>
           <VStack spacing={5} align="stretch">
             {/* Plan Info */}
-            <Card bg={useColorModeValue('teal.50', 'teal.900')} borderColor="teal.200">
+            <Card bg={planInfoBg} borderColor={borderColor}>
               <CardBody p={4}>
                 <HStack spacing={3}>
                   <Icon as={FaCalendarAlt} color="teal.500" boxSize={5} />
@@ -356,7 +361,7 @@ export function PlanAssignmentModal({
                           key={athlete.id}
                           borderColor={isSelected ? 'teal.300' : borderColor}
                           borderWidth="2px"
-                          bg={isSelected ? useColorModeValue('teal.50', 'teal.900') : cardBg}
+                          bg={isSelected ? selectedCardBg : cardBg}
                           opacity={isDisabled ? 0.6 : 1}
                           cursor={isDisabled ? 'not-allowed' : 'pointer'}
                           onClick={() => !isDisabled && handleAthleteToggle(athlete.id)}

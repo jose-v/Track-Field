@@ -40,4 +40,7 @@ export { default as TodaysCheckInSection } from './TodaysCheckInSection';
 // Coach components
 export { AlertsNotificationsCard, AthleteRosterCard, TodaysFocusCard } from './coach';
 
+// Athlete components
+export { MonthlyPlanAssignments } from './athlete/MonthlyPlanAssignments';
+
 export { DateTimePicker } from './DateTimePicker' 

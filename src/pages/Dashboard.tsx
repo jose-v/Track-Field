@@ -29,7 +29,8 @@ import {
   AIModal,
   SparkleIcon,
   MobileHeader,
-  ExerciseExecutionModal
+  ExerciseExecutionModal,
+  MonthlyPlanAssignments
 } from '../components'
 import { supabase } from '../lib/supabase'
 import TodayWorkoutsCard from '../components/TodayWorkoutsCard'
@@ -637,6 +638,20 @@ export function Dashboard() {
 
         {/* Today's Check-in Section */}
         <TodaysCheckInSection onDataUpdate={handleDataUpdate} />
+
+        {/* Monthly Plan Assignments - Only for Athletes */}
+        {profile?.role === 'athlete' && (
+          <Box my={{ base: 6, md: 10 }}>
+            <Heading 
+              size="lg" 
+              mb={{ base: 4, md: 6 }} 
+              color={useColorModeValue('gray.800', 'gray.100')}
+            >
+              My Monthly Plans
+            </Heading>
+            <MonthlyPlanAssignments />
+          </Box>
+        )}
 
         {/* Analytics & Info Cards */}
         <SimpleGrid 

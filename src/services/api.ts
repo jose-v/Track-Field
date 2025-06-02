@@ -54,6 +54,7 @@ export interface EnhancedWorkoutData {
   time?: string
   duration?: string
   exercises?: Exercise[]
+  is_template?: boolean
   weekly_plan?: {
     day: string
     exercises: Exercise[]
@@ -287,6 +288,7 @@ export const api = {
           date: workoutData.date,
           time: workoutData.time,
           duration: workoutData.duration,
+          is_template: workoutData.is_template || false,
           exercises: workoutData.template_type === 'single' ? (workoutData.exercises || []) : []
         };
         
@@ -1730,11 +1732,24 @@ export const api = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
+      // Calculate start_date and end_date from month and year
+      const start_date = new Date(planData.year, planData.month - 1, 1).toISOString().split('T')[0];
+      // Get last day of the month (0 as day gets the last day of previous month)
+      const end_date = new Date(planData.year, planData.month, 0).toISOString().split('T')[0];
+
+      // Extract workout IDs for weekly_workout_ids column
+      const weekly_workout_ids = planData.weeks
+        .filter(week => !week.is_rest_week && week.workout_id)
+        .map(week => week.workout_id);
+
       const { data, error } = await supabase
         .from('monthly_plans')
         .insert([{
           ...planData,
-          coach_id: user.id
+          coach_id: user.id,
+          start_date: start_date,
+          end_date: end_date,
+          weekly_workout_ids: weekly_workout_ids
         }])
         .select()
         .single();
@@ -1744,11 +1759,11 @@ export const api = {
     },
 
     // Update a monthly plan
-    async update(monthlyPlanId: string, updateData: any) {
+    async update(id: string, updateData: any) {
       const { data, error } = await supabase
         .from('monthly_plans')
         .update(updateData)
-        .eq('id', monthlyPlanId)
+        .eq('id', id)
         .select()
         .single();
 
@@ -1778,6 +1793,22 @@ export const api = {
 
       if (error) throw error;
       return data || [];
+    },
+
+    // Update weekly structure of a monthly plan
+    async updateWeeks(id: string, weeks: { week_number: number; workout_id: string; is_rest_week: boolean }[]) {
+      const { data, error } = await supabase
+        .from('monthly_plans')
+        .update({ 
+          weeks: weeks,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
     }
   },
 
@@ -1805,21 +1836,42 @@ export const api = {
 
     // Get assignments for a monthly plan
     async getByPlan(monthlyPlanId: string) {
-      const { data, error } = await supabase
-        .from('monthly_plan_assignments')
-        .select(`
-          *,
-          profiles!athlete_id (
-            id,
-            first_name,
-            last_name,
-            email
-          )
-        `)
-        .eq('monthly_plan_id', monthlyPlanId);
+      try {
+        // First get the assignments
+        const { data: assignments, error: assignmentError } = await supabase
+          .from('monthly_plan_assignments')
+          .select('*')
+          .eq('monthly_plan_id', monthlyPlanId);
 
-      if (error) throw error;
-      return data || [];
+        if (assignmentError) throw assignmentError;
+        
+        if (!assignments || assignments.length === 0) {
+          return [];
+        }
+
+        // Then get the athlete profiles separately
+        const athleteIds = assignments.map(a => a.athlete_id);
+        const { data: profiles, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, email')
+          .in('id', athleteIds);
+
+        if (profileError) {
+          console.warn('Could not load athlete profiles, returning assignments without profile data:', profileError);
+          return assignments;
+        }
+
+        // Combine the data
+        const assignmentsWithProfiles = assignments.map(assignment => ({
+          ...assignment,
+          profiles: profiles?.find(p => p.id === assignment.athlete_id) || null
+        }));
+
+        return assignmentsWithProfiles;
+      } catch (error) {
+        console.error('Error in getByPlan:', error);
+        throw error;
+      }
     },
 
     // Get assignments for an athlete
@@ -1857,7 +1909,7 @@ export const api = {
       return data;
     },
 
-    // Remove assignment
+    // Remove assignment (unassign athlete from plan)
     async remove(assignmentId: string) {
       const { error } = await supabase
         .from('monthly_plan_assignments')
@@ -1865,6 +1917,19 @@ export const api = {
         .eq('id', assignmentId);
 
       if (error) throw error;
+      return true;
+    },
+
+    // Remove assignment by plan and athlete
+    async removeByPlanAndAthlete(planId: string, athleteId: string) {
+      const { error } = await supabase
+        .from('monthly_plan_assignments')
+        .delete()
+        .eq('monthly_plan_id', planId)
+        .eq('athlete_id', athleteId);
+
+      if (error) throw error;
+      return true;
     }
   }
 } 

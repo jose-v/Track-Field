@@ -17,7 +17,7 @@ import { dateUtils } from '../../utils/date';
 import { useWorkoutsRealtime } from '../../hooks/useWorkoutsRealtime';
 import { handleWorkoutCompletion } from '../../services/integrationService';
 import { useFeedback } from '../../components/FeedbackProvider'; // Import the feedback hook
-import { MobileHeader, ExerciseExecutionModal } from '../../components';
+import { MobileHeader, ExerciseExecutionModal, MonthlyPlanAssignments } from '../../components';
 import { RunTimeInput } from '../../components/RunTimeInput';
 import { isRunExercise, validateTime } from '../../utils/exerciseUtils';
 
@@ -719,16 +719,33 @@ export function AthleteWorkouts() {
         )}
 
         {!isLoading && !isError && (
-          <Box>
-            <Heading 
-              size={{ base: 'sm', md: 'md' }} 
-              mb={{ base: 3, md: 4 }}
-              color={headingColor}
-            >
-              All Workouts ({assignedWorkouts?.length || 0})
-            </Heading>
-            {renderWorkoutCards(assignedWorkouts || [])}
-          </Box>
+          <Tabs variant="enclosed" colorScheme="blue">
+            <TabList>
+              <Tab>Daily Workouts</Tab>
+              <Tab>Monthly Plans</Tab>
+            </TabList>
+            
+            <TabPanels>
+              {/* Daily Workouts Tab */}
+              <TabPanel px={0}>
+                <Box>
+                  <Heading 
+                    size={{ base: 'sm', md: 'md' }} 
+                    mb={{ base: 3, md: 4 }}
+                    color={headingColor}
+                  >
+                    All Workouts ({assignedWorkouts?.length || 0})
+                  </Heading>
+                  {renderWorkoutCards(assignedWorkouts || [])}
+                </Box>
+              </TabPanel>
+              
+              {/* Monthly Plans Tab */}
+              <TabPanel px={0}>
+                <MonthlyPlanAssignments />
+              </TabPanel>
+            </TabPanels>
+          </Tabs>
         )}
         
         {/* Exercise Execution Modal - Using shared component */}

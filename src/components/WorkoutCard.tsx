@@ -3,7 +3,7 @@ import {
   Box, Card, CardBody, Heading, Text, Icon, Flex, HStack, VStack, 
   Button, Badge, IconButton, useColorModeValue, Tooltip
 } from '@chakra-ui/react';
-import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaEdit, FaTrash, FaPlayCircle, FaCalendarAlt, FaClock, FaMapMarkerAlt, FaUsers, FaTasks, FaUndo } from 'react-icons/fa';
+import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaEdit, FaTrash, FaPlayCircle, FaCalendarAlt, FaClock, FaMapMarkerAlt, FaUsers, FaTasks, FaUndo, FaLayerGroup } from 'react-icons/fa';
 import type { Workout, Exercise } from '../services/api';
 import { dateUtils } from '../utils/date';
 import { ProgressBar } from './ProgressBar';
@@ -90,6 +90,7 @@ interface WorkoutCardProps {
   statsLoading?: boolean;
   detailedProgress?: boolean;
   onReset?: () => void;
+  isTemplate?: boolean;
 }
 
 export function WorkoutCard({
@@ -104,7 +105,8 @@ export function WorkoutCard({
   showRefresh = false,
   statsLoading = false,
   detailedProgress = false,
-  onReset
+  onReset,
+  isTemplate = false
 }: WorkoutCardProps) {
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const iconBgColor = useColorModeValue('white', 'gray.800');
@@ -182,7 +184,7 @@ export function WorkoutCard({
                 px={3}
                 borderRadius="md"
           >
-            {typeName}
+            {isTemplate ? 'Template' : typeName}
           </Badge>
         </HStack>
         
@@ -219,7 +221,7 @@ export function WorkoutCard({
               onClick={onDelete} 
             />
           )}
-          {showRefresh && onRefresh && (
+          {!isTemplate && showRefresh && onRefresh && (
             <IconButton 
               icon={<FaRedo />} 
               aria-label="Refresh progress" 
@@ -240,35 +242,41 @@ export function WorkoutCard({
             {/* Title */}
             <Heading size="lg" mt={1} noOfLines={1} color={titleColor}>{workout.name}</Heading>
             
-            {/* Date and time */}
-            <HStack spacing={4} fontSize="md" color={infoColor} width="100%">
-              <Tooltip label="Scheduled Date" placement="top">
-                <Flex align="center">
-                  <Icon as={FaCalendarAlt} mr={2} color={typeColor} boxSize={4} />
-                  <Text>{formattedScheduleDate}</Text>
-                </Flex>
-              </Tooltip>
-              {workout.time && (
-                <Flex align="center">
-                  <Icon as={FaClock} mr={2} color={typeColor} boxSize={4} />
-                  <Text>{workout.time}</Text>
-                </Flex>
-              )}
-            </HStack>
+            {/* Date and time - Hide for templates */}
+            {!isTemplate && (
+              <HStack spacing={4} fontSize="md" color={infoColor} width="100%">
+                <Tooltip label="Scheduled Date" placement="top">
+                  <Flex align="center">
+                    <Icon as={FaCalendarAlt} mr={2} color={typeColor} boxSize={4} />
+                    <Text>{formattedScheduleDate}</Text>
+                  </Flex>
+                </Tooltip>
+                {workout.time && (
+                  <Flex align="center">
+                    <Icon as={FaClock} mr={2} color={typeColor} boxSize={4} />
+                    <Text>{workout.time}</Text>
+                  </Flex>
+                )}
+              </HStack>
+            )}
             
-            {/* Duration and location info */}
-            <HStack spacing={4} fontSize="md" color={infoColor} width="100%">
-              <Flex align="center">
-                <Icon as={FaClock} mr={2} color={typeColor} boxSize={4} />
-                <Text>{workout.duration}</Text>
-              </Flex>
-              {(workout as any).location && (
-                <Flex align="center">
-                  <Icon as={FaMapMarkerAlt} mr={2} color={typeColor} boxSize={4} />
-                  <Text>{(workout as any).location}</Text>
-                </Flex>
-              )}
-            </HStack>
+            {/* Duration and location info - Show duration for templates, hide time-specific info */}
+            {(workout.duration || (workout as any).location) && (
+              <HStack spacing={4} fontSize="md" color={infoColor} width="100%">
+                {workout.duration && (
+                  <Flex align="center">
+                    <Icon as={FaClock} mr={2} color={typeColor} boxSize={4} />
+                    <Text>{isTemplate ? `~${workout.duration}` : workout.duration}</Text>
+                  </Flex>
+                )}
+                {(workout as any).location && (
+                  <Flex align="center">
+                    <Icon as={FaMapMarkerAlt} mr={2} color={typeColor} boxSize={4} />
+                    <Text>{(workout as any).location}</Text>
+                  </Flex>
+                )}
+              </HStack>
+            )}
             
             {/* Exercises info */}
             <Box width="100%" py={2}>
@@ -292,12 +300,22 @@ export function WorkoutCard({
               )}
             </Box>
             
-            {/* Assigned to (for coach view) */}
-            {isCoach && (
+            {/* Assigned to (for coach view) - Hide for templates */}
+            {!isTemplate && isCoach && (
               <Flex align="center" width="100%">
                 <Icon as={FaUsers} mr={2} color={typeColor} boxSize={4} />
                 <Text fontSize="md" color={infoColor} noOfLines={1} title={assignedTo}>
                   Assigned to: {assignedTo}
+                </Text>
+              </Flex>
+            )}
+            
+            {/* Template type for templates */}
+            {isTemplate && workout.template_type && (
+              <Flex align="center" width="100%">
+                <Icon as={FaLayerGroup} mr={2} color={typeColor} boxSize={4} />
+                <Text fontSize="md" color={infoColor}>
+                  Template Type: {workout.template_type === 'weekly' ? 'Weekly Plan' : 'Single Workout'}
                 </Text>
               </Flex>
             )}
@@ -312,65 +330,67 @@ export function WorkoutCard({
             )}
           </VStack>
           
-          {/* Bottom section with progress bar and action button */}
+          {/* Bottom section with progress bar and action button - Hide progress for templates */}
           <VStack width="100%" spacing={2}>
-            {/* Progress bar */}
-            <Box width="100%">
-              <Flex justifyContent="space-between" alignItems="center" mb={2}>
-                {!detailedProgress && (
-                  <Text fontSize="sm" color={infoColor} fontWeight="medium">
-                    {isCoach ? 'Athlete Completion' : 'Your Progress'}
-                  </Text>
-                )}
-                {detailedProgress && (
-                  <Text fontSize="sm" color={infoColor} fontWeight="medium">
-                    Progress
-                  </Text>
-                )}
-                {!detailedProgress && showRefresh && onRefresh && (
-                  <IconButton
-                    icon={<FaRedo />}
-                    aria-label="Sync progress"
-                    size="xs"
-                    variant="outline"
-                    onClick={(e) => { 
-                      e.stopPropagation();
-                      onRefresh();
-                    }}
-                    title="Sync progress with database"
-                  />
-                )}
-              </Flex>
-              
-              {detailedProgress && isCoach ? (
-                <>
+            {/* Progress bar - Only show for non-templates */}
+            {!isTemplate && (
+              <Box width="100%">
+                <Flex justifyContent="space-between" alignItems="center" mb={2}>
+                  {!detailedProgress && (
+                    <Text fontSize="sm" color={infoColor} fontWeight="medium">
+                      {isCoach ? 'Athlete Completion' : 'Your Progress'}
+                    </Text>
+                  )}
+                  {detailedProgress && (
+                    <Text fontSize="sm" color={infoColor} fontWeight="medium">
+                      Progress
+                    </Text>
+                  )}
+                  {!detailedProgress && showRefresh && onRefresh && (
+                    <IconButton
+                      icon={<FaRedo />}
+                      aria-label="Sync progress"
+                      size="xs"
+                      variant="outline"
+                      onClick={(e) => { 
+                        e.stopPropagation();
+                        onRefresh();
+                      }}
+                      title="Sync progress with database"
+                    />
+                  )}
+                </Flex>
+                
+                {detailedProgress && isCoach ? (
+                  <>
+                    <ProgressBar
+                      completed={progress.completed}
+                      total={progress.total}
+                      percentage={progress.percentage}
+                      colorScheme={progress.completed === progress.total && progress.total > 0 ? "green" : "primary"}
+                      itemLabel="athlete(s)"
+                      textColor={infoColor}
+                      showText={false}
+                    />
+                    
+                    {statsLoading && (
+                      <Text fontSize="xs" color={loadingTextColor} mt={1}>
+                        Updating progress...
+                      </Text>
+                    )}
+                  </>
+                ) : (
                   <ProgressBar
                     completed={progress.completed}
                     total={progress.total}
                     percentage={progress.percentage}
                     colorScheme={progress.completed === progress.total && progress.total > 0 ? "green" : "primary"}
-                    itemLabel="athlete(s)"
+                    itemLabel={isCoach ? "athlete(s)" : "exercises"}
                     textColor={infoColor}
-                    showText={false}
                   />
-                  
-                  {statsLoading && (
-                    <Text fontSize="xs" color={loadingTextColor} mt={1}>
-                      Updating progress...
-                    </Text>
-                  )}
-                </>
-              ) : (
-                <ProgressBar
-                  completed={progress.completed}
-                  total={progress.total}
-                  percentage={progress.percentage}
-                  colorScheme={progress.completed === progress.total && progress.total > 0 ? "green" : "primary"}
-                  itemLabel={isCoach ? "athlete(s)" : "exercises"}
-                  textColor={infoColor}
-                />
-              )}
-            </Box>
+                )}
+              </Box>
+            )}
             
             {/* Action button */}
             {onStart && (
@@ -378,19 +398,21 @@ export function WorkoutCard({
                 <Button 
                   width="100%" 
                   variant="primary"
-                  leftIcon={<FaPlayCircle />} 
+                  leftIcon={isTemplate ? <FaEdit /> : <FaPlayCircle />} 
                   onClick={onStart}
                   size="md"
                 >
-                  {!isCoach && progress.completed === progress.total && progress.total > 0 
-                    ? "Start Again" 
-                    : !isCoach && progress.completed > 0 
-                      ? "Continue Workout" 
-                      : "Start Workout"}
+                  {isTemplate 
+                    ? "Use Template" 
+                    : !isCoach && progress.completed === progress.total && progress.total > 0 
+                      ? "Start Again" 
+                      : !isCoach && progress.completed > 0 
+                        ? "Continue Workout" 
+                        : "Start Workout"}
                 </Button>
                 
-                {/* Reset Progress Button - Show for athletes with any progress */}
-                {!isCoach && onReset && progress.completed > 0 && (
+                {/* Reset Progress Button - Hide for templates */}
+                {!isTemplate && !isCoach && onReset && progress.completed > 0 && (
                   <Button 
                     width="100%" 
                     variant="outline"

@@ -145,6 +145,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
   const [time, setTime] = useState(''); // Use single time field as per schema  
   const [duration, setDuration] = useState(''); // Add duration field
   const [location, setLocation] = useState('');
+  const [isTemplate, setIsTemplate] = useState(false); // Add isTemplate state
   
   // Lazy initialize complex state objects
   const [selectedExercises, setSelectedExercises] = useState<Record<string, SelectedExercise[]>>(() => ({
@@ -228,6 +229,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
         setTime(data.time || '');
         setDuration(data.duration || '');
         setLocation(data.location || '');
+        setIsTemplate(data.is_template || false); // Load is_template value
         
         // Load exercises
         if (data.exercises && Array.isArray(data.exercises)) {
@@ -340,6 +342,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
     setSelectedAthletes({});
     setCurrentStep(1);
     setIsEditing(false);
+    setIsTemplate(false);
   };
 
   // Handle cancel action - with confirmation for unsaved changes
@@ -545,6 +548,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
         time: time,
         duration: duration,
         location: location,
+        is_template: isTemplate,
         description: templateType === 'weekly' ? 'Weekly Training Plan' : 'Single Day Workout',
         exercises: templateType === 'single' ? (selectedExercises.monday || []) : [],
         weekly_plan: templateType === 'weekly' ? Object.keys(selectedExercises).map(day => ({
@@ -570,6 +574,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
             duration: workoutData.duration,
             location: workoutData.location,
             description: workoutData.description,
+            is_template: workoutData.is_template,
             exercises: workoutData.exercises,
             weekly_plan: workoutData.weekly_plan
           },
@@ -637,6 +642,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
         duration: workoutData.duration,
         location: workoutData.location,
         description: workoutData.description,
+        is_template: workoutData.is_template,
         exercises: workoutData.exercises,
         weekly_plan: workoutData.weekly_plan
       })
@@ -1169,6 +1175,8 @@ const WorkoutCreatorWireframe: React.FC = () => {
               setDuration={setDuration}
               location={location}
               setLocation={setLocation}
+              isTemplate={isTemplate}
+              setIsTemplate={setIsTemplate}
             />
           </Suspense>
         );

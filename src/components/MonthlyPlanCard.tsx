@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box, Card, CardBody, Heading, Text, Icon, Flex, HStack, VStack, 
-  Button, Badge, IconButton, useColorModeValue, Tooltip, SimpleGrid
+  Button, Badge, IconButton, useColorModeValue, Tooltip, SimpleGrid, Skeleton
 } from '@chakra-ui/react';
-import { FaCalendarAlt, FaEdit, FaTrash, FaUsers, FaClock, FaPlayCircle, FaDumbbell, FaChartLine } from 'react-icons/fa';
+import { FaCalendarAlt, FaEdit, FaTrash, FaUsers, FaClock, FaPlayCircle, FaDumbbell, FaChartLine, FaListAlt } from 'react-icons/fa';
 import type { MonthlyPlan } from '../services/dbSchema';
 import { dateUtils } from '../utils/date';
+import { api } from '../services/api';
+import { supabase } from '../lib/supabase';
 
 // Helper function to get month name
 function getMonthName(month: number): string {
@@ -16,13 +18,14 @@ function getMonthName(month: number): string {
   return months[month - 1] || 'Unknown';
 }
 
-// Helper function to count active weeks (non-rest weeks)
+// Helper functions for week counting
 function getActiveWeekCount(weeks: any[]): number {
+  if (!Array.isArray(weeks)) return 0;
   return weeks.filter(week => !week.is_rest_week).length;
 }
 
-// Helper function to count rest weeks
 function getRestWeekCount(weeks: any[]): number {
+  if (!Array.isArray(weeks)) return 0;
   return weeks.filter(week => week.is_rest_week).length;
 }
 
@@ -66,10 +69,63 @@ export function MonthlyPlanCard({
   const restBadgeBg = useColorModeValue('orange.100', 'orange.800');
   const restBadgeColor = useColorModeValue('orange.700', 'orange.200');
 
+  // State for workout names
+  const [workoutNames, setWorkoutNames] = useState<string[]>([]);
+  const [loadingWorkouts, setLoadingWorkouts] = useState(false);
+
   const monthName = getMonthName(monthlyPlan.month);
   const activeWeeks = getActiveWeekCount(monthlyPlan.weeks);
   const restWeeks = getRestWeekCount(monthlyPlan.weeks);
   const totalWeeks = monthlyPlan.weeks.length;
+
+  // Load workout names
+  useEffect(() => {
+    const loadWorkoutNames = async () => {
+      if (!monthlyPlan.weeks || monthlyPlan.weeks.length === 0) {
+        return;
+      }
+
+      try {
+        setLoadingWorkouts(true);
+        // Get unique workout IDs from weeks
+        const workoutIds = monthlyPlan.weeks
+          .filter(week => !week.is_rest_week && week.workout_id)
+          .map(week => week.workout_id);
+        const uniqueWorkoutIds = [...new Set(workoutIds)];
+        
+        if (uniqueWorkoutIds.length === 0) {
+          setWorkoutNames([]);
+          return;
+        }
+        
+        // Fetch workout details - we'll need to call the API for each workout
+        const workoutPromises = uniqueWorkoutIds.map(async (workoutId) => {
+          try {
+            const { data, error } = await supabase
+              .from('workouts')
+              .select('name')
+              .eq('id', workoutId)
+              .single();
+            
+            if (error) throw error;
+            return data?.name || 'Unknown Workout';
+          } catch (error) {
+            console.error(`Error fetching workout ${workoutId}:`, error);
+            return 'Unknown Workout';
+          }
+        });
+
+        const names = await Promise.all(workoutPromises);
+        setWorkoutNames(names);
+      } catch (error) {
+        console.error('Error loading workout names:', error);
+      } finally {
+        setLoadingWorkouts(false);
+      }
+    };
+
+    loadWorkoutNames();
+  }, [monthlyPlan.weeks]);
 
   return (
     <Card 
@@ -183,12 +239,67 @@ export function MonthlyPlanCard({
             </HStack>
           </VStack>
 
+          {/* Athletes Assigned - Prominent display */}
+          {isCoach && (
+            <Box 
+              bg={useColorModeValue('blue.50', 'blue.900')} 
+              borderColor={useColorModeValue('blue.200', 'blue.700')}
+              borderWidth="1px"
+              borderRadius="md"
+              p={3}
+            >
+              <HStack justify="space-between" align="center">
+                <HStack spacing={2}>
+                  <Icon as={FaUsers} color="blue.500" boxSize={4} />
+                  <Text fontSize="sm" fontWeight="semibold" color={titleColor}>
+                    Athletes Assigned
+                  </Text>
+                </HStack>
+                <Badge colorScheme="blue" fontSize="md" px={3} py={1} borderRadius="full">
+                  {completionStats?.totalAssigned || assignmentCount || 0}
+                </Badge>
+              </HStack>
+            </Box>
+          )}
+
           {/* Description */}
           {monthlyPlan.description && (
             <Text fontSize="sm" color={infoColor} lineHeight="1.4">
               {monthlyPlan.description}
             </Text>
           )}
+
+          {/* Weekly Workouts */}
+          <VStack align="stretch" spacing={3}>
+            <HStack justify="space-between" align="center">
+              <Text fontSize="sm" fontWeight="semibold" color={titleColor}>
+                <Icon as={FaListAlt} mr={2} />
+                Weekly Workouts
+              </Text>
+              {loadingWorkouts && <Skeleton height="16px" width="60px" />}
+            </HStack>
+            
+            {workoutNames.length > 0 ? (
+              <Box maxH="80px" overflowY="auto">
+                <VStack align="start" spacing={1}>
+                  {workoutNames.slice(0, 3).map((name, index) => (
+                    <Text key={index} fontSize="xs" color={infoColor} noOfLines={1}>
+                      • {name}
+                    </Text>
+                  ))}
+                  {workoutNames.length > 3 && (
+                    <Text fontSize="xs" color={infoColor} fontStyle="italic">
+                      +{workoutNames.length - 3} more workouts
+                    </Text>
+                  )}
+                </VStack>
+              </Box>
+            ) : (
+              <Text fontSize="xs" color={infoColor}>
+                {activeWeeks} training weeks, {restWeeks} rest weeks
+              </Text>
+            )}
+          </VStack>
 
           {/* Week breakdown */}
           <VStack align="stretch" spacing={3}>
@@ -228,28 +339,22 @@ export function MonthlyPlanCard({
           </VStack>
 
           {/* Assignment statistics for coaches */}
-          {isCoach && (
+          {isCoach && completionStats && completionStats.totalAssigned > 0 && (
             <VStack align="stretch" spacing={3}>
               <Text fontSize="sm" fontWeight="semibold" color={titleColor}>
-                Assignment Status
+                Progress Summary
               </Text>
               
               {statsLoading ? (
                 <Text fontSize="sm" color={loadingTextColor}>
                   Loading statistics...
                 </Text>
-              ) : completionStats ? (
+              ) : (
                 <VStack align="stretch" spacing={2}>
-                  <HStack justify="space-between">
-                    <Text fontSize="sm" color={infoColor}>Athletes assigned:</Text>
-                    <Text fontSize="sm" fontWeight="semibold" color={titleColor}>
-                      {completionStats.totalAssigned}
-                    </Text>
-                  </HStack>
                   <HStack justify="space-between">
                     <Text fontSize="sm" color={infoColor}>Completed:</Text>
                     <Text fontSize="sm" fontWeight="semibold" color="green.500">
-                      {completionStats.completed}
+                      {completionStats.completed}/{completionStats.totalAssigned}
                     </Text>
                   </HStack>
                   <HStack justify="space-between">
@@ -261,7 +366,7 @@ export function MonthlyPlanCard({
                   {completionStats.percentage > 0 && (
                     <Box>
                       <Text fontSize="xs" color={infoColor} mb={1}>
-                        Overall Progress: {completionStats.percentage.toFixed(1)}%
+                        Overall: {completionStats.percentage.toFixed(1)}%
                       </Text>
                       <Box bg={weekBadgeBg} borderRadius="full" h={2}>
                         <Box 
@@ -275,10 +380,6 @@ export function MonthlyPlanCard({
                     </Box>
                   )}
                 </VStack>
-              ) : (
-                <Text fontSize="sm" color={infoColor}>
-                  {assignmentCount > 0 ? `Assigned to ${assignmentCount} athletes` : 'Not assigned yet'}
-                </Text>
               )}
             </VStack>
           )}
@@ -308,7 +409,7 @@ export function MonthlyPlanCard({
                 flex={1}
                 ml={onView ? 2 : 0}
               >
-                Assign Plan
+                {completionStats?.totalAssigned ? 'Manage Athletes' : 'Assign Plan'}
               </Button>
             )}
           </Flex>

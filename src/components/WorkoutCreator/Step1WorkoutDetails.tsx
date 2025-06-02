@@ -14,8 +14,11 @@ import {
   Badge,
   Flex,
   useColorModeValue,
+  Checkbox,
+  Alert,
+  AlertIcon,
 } from '@chakra-ui/react';
-import { Target, Calendar, FileText, Dumbbell, Zap, Heart, Clock, User, MapPin } from 'lucide-react';
+import { Target, Calendar, FileText, Dumbbell, Zap, Heart, Clock, User, MapPin, BookOpen } from 'lucide-react';
 import { DateTimePicker } from '../DateTimePicker';
 
 interface Step1WorkoutDetailsProps {
@@ -33,6 +36,8 @@ interface Step1WorkoutDetailsProps {
   setDuration: (duration: string) => void;
   location: string;
   setLocation: (location: string) => void;
+  isTemplate?: boolean;
+  setIsTemplate?: (isTemplate: boolean) => void;
 }
 
 const TEMPLATE_TYPES = [
@@ -62,7 +67,9 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
   duration,
   setDuration,
   location,
-  setLocation
+  setLocation,
+  isTemplate,
+  setIsTemplate
 }) => {
   // Add state for time selection
   const [startTime, setStartTime] = React.useState<string>('');
@@ -251,6 +258,21 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
                         </Card>
                       ))}
                     </VStack>
+                    
+                    {/* Template Checkbox - Show only for Weekly Training Plan */}
+                    {templateType === 'weekly' && setIsTemplate && (
+                      <Box mt={4} p={3} bg={useColorModeValue('blue.50', 'blue.900')} borderRadius="md" borderWidth="1px" borderColor={useColorModeValue('blue.200', 'blue.700')}>
+                        <Checkbox
+                          isChecked={isTemplate}
+                          onChange={(e) => setIsTemplate(e.target.checked)}
+                          colorScheme="blue"
+                        >
+                          <Text fontSize="sm" color={useColorModeValue('blue.700', 'blue.200')}>
+                            Save as template for monthly plans
+                          </Text>
+                        </Checkbox>
+                      </Box>
+                    )}
                   </VStack>
                 </CardBody>
               </Card>
@@ -477,6 +499,21 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
                         </Card>
                       ))}
                     </VStack>
+                    
+                    {/* Template Checkbox - Show only for Weekly Training Plan */}
+                    {templateType === 'weekly' && setIsTemplate && (
+                      <Box mt={4} p={4} bg={useColorModeValue('blue.50', 'blue.900')} borderRadius="md" borderWidth="1px" borderColor={useColorModeValue('blue.200', 'blue.700')}>
+                        <Checkbox
+                          isChecked={isTemplate}
+                          onChange={(e) => setIsTemplate(e.target.checked)}
+                          colorScheme="blue"
+                        >
+                          <Text fontSize="sm" color={useColorModeValue('blue.700', 'blue.200')}>
+                            Save as template for monthly plans
+                          </Text>
+                        </Checkbox>
+                      </Box>
+                    )}
                   </VStack>
                 </CardBody>
               </Card>
