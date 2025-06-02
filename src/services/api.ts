@@ -227,10 +227,25 @@ export const api = {
           console.log('Added', uniqueCreatedWorkouts.length, 'unique created workouts');
         }
         
-        // Sort all workouts by created_at date (most recent first)
+        // Create a map of workout IDs to assignment dates for proper sorting
+        const assignmentDateMap = new Map();
+        if (assignments) {
+          assignments.forEach(assignment => {
+            assignmentDateMap.set(assignment.workout_id, assignment.assigned_at);
+          });
+        }
+        
+        // Helper function to get the relevant date for sorting
+        const getRelevantDate = (workout: any) => {
+          // For assigned workouts, prefer assigned_at over created_at for sorting
+          // For created workouts, use created_at
+          return assignmentDateMap.get(workout.id) || workout.created_at || new Date(0);
+        };
+        
+        // Sort all workouts by most relevant date (most recent first)
         allWorkouts.sort((a, b) => {
-          const dateA = new Date(a.created_at || a.assigned_at || 0).getTime();
-          const dateB = new Date(b.created_at || b.assigned_at || 0).getTime();
+          const dateA = new Date(getRelevantDate(a)).getTime();
+          const dateB = new Date(getRelevantDate(b)).getTime();
           return dateB - dateA; // Most recent first
         });
         
