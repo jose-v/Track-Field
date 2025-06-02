@@ -1,7 +1,7 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import {
   Box, Card, CardBody, Heading, Text, Icon, Flex, HStack, VStack, 
-  Button, Badge, IconButton, useColorModeValue, Tooltip, useDisclosure, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter
+  Button, Badge, IconButton, useColorModeValue, Tooltip
 } from '@chakra-ui/react';
 import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaEdit, FaTrash, FaPlayCircle, FaCalendarAlt, FaClock, FaMapMarkerAlt, FaUsers, FaTasks, FaUndo } from 'react-icons/fa';
 import type { Workout, Exercise } from '../services/api';
@@ -102,17 +102,6 @@ export function WorkoutCard({
   
   // Log the raw date to help with debugging
   console.log(`WorkoutCard - Raw date: ${workout.date}, Formatted: ${formattedScheduleDate}`);
-  
-  // For reset confirmation dialog
-  const { isOpen: isResetOpen, onOpen: onResetOpen, onClose: onResetClose } = useDisclosure();
-  const cancelRef = useRef<HTMLButtonElement>(null);
-
-  const handleResetConfirm = () => {
-    if (onReset) {
-      onReset();
-    }
-    onResetClose();
-  };
 
   return (
     <Card 
@@ -378,7 +367,7 @@ export function WorkoutCard({
                     variant="outline"
                     colorScheme="orange"
                     leftIcon={<FaUndo />} 
-                    onClick={onResetOpen}
+                    onClick={onReset}
                     size="sm"
                   >
                     Reset Progress
@@ -389,46 +378,6 @@ export function WorkoutCard({
           </VStack>
         </VStack>
       </CardBody>
-      
-      {/* Reset Confirmation Dialog */}
-      <AlertDialog
-        isOpen={isResetOpen}
-        leastDestructiveRef={cancelRef}
-        onClose={onResetClose}
-      >
-        <AlertDialogOverlay bg="blackAlpha.600">
-          <AlertDialogContent bg={useColorModeValue('white', 'gray.800')} color={useColorModeValue('gray.800', 'white')}>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold" color={useColorModeValue('gray.800', 'white')}>
-              Reset Workout Progress
-            </AlertDialogHeader>
-
-            <AlertDialogBody color={useColorModeValue('gray.600', 'gray.200')}>
-              Are you sure you want to reset your progress on "{workout.name}"? 
-              This will clear all completed exercises and you'll start from the beginning.
-              This action cannot be undone.
-            </AlertDialogBody>
-
-            <AlertDialogFooter>
-              <Button 
-                ref={cancelRef} 
-                onClick={onResetClose}
-                variant="ghost"
-                colorScheme="gray"
-              >
-                Cancel
-              </Button>
-              <Button 
-                colorScheme="orange" 
-                onClick={handleResetConfirm} 
-                ml={3}
-                variant="solid"
-              >
-                Reset Progress
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialogOverlay>
-      </AlertDialog>
     </Card>
   );
 } 

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import {
   Box, Container, Flex, Heading, Text, VStack, Grid, GridItem, Icon, Badge, Card, CardHeader, CardBody, Image, Tag,
   Button, SimpleGrid, Progress, HStack, Stack, Spinner, Divider, Stat, StatLabel, StatNumber, StatHelpText, useToast,
-  useColorModeValue, Skeleton, SkeletonText, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, IconButton
+  useColorModeValue, Skeleton, SkeletonText, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, IconButton, useDisclosure, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter
 } from '@chakra-ui/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { dateUtils } from '../utils/date'
@@ -151,6 +151,11 @@ export function Dashboard() {
     description: 'Fetching current conditions'
   })
   const navigate = useNavigate()
+
+  // State for reset confirmation modal
+  const { isOpen: isResetOpen, onOpen: onResetOpen, onClose: onResetClose } = useDisclosure();
+  const [workoutToReset, setWorkoutToReset] = useState<{ id: string; name: string } | null>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
 
   // Official USPS state codes mapping
   const STATE_ABBR: Record<string, string> = {
@@ -409,17 +414,25 @@ export function Dashboard() {
 
   // Function to handle resetting workout progress
   const handleResetProgress = async (workoutId: string, workoutName: string) => {
+    // Set the workout to reset and open confirmation modal
+    setWorkoutToReset({ id: workoutId, name: workoutName });
+    onResetOpen();
+  };
+
+  const handleResetConfirm = async () => {
+    if (!workoutToReset) return;
+    
     try {
-      console.log(`Resetting progress for workout ${workoutId}`);
+      console.log(`Resetting progress for workout ${workoutToReset.id}`);
       
       // Reset progress in the workout store
-      workoutStore.resetProgress(workoutId);
+      workoutStore.resetProgress(workoutToReset.id);
       
       // Also reset in the database if the user has an assignment
       if (user?.id) {
         try {
-          await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutId, 'assigned');
-          console.log(`Workout ${workoutId} status reset to 'assigned' in database`);
+          await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutToReset.id, 'assigned');
+          console.log(`Workout ${workoutToReset.id} status reset to 'assigned' in database`);
         } catch (error) {
           console.error('Error resetting workout status in database:', error);
         }
@@ -427,7 +440,7 @@ export function Dashboard() {
       
       toast({
         title: 'Progress Reset',
-        description: `"${workoutName}" progress has been reset. You can start from the beginning.`,
+        description: `"${workoutToReset.name}" progress has been reset. You can start from the beginning.`,
         status: 'success',
         duration: 3000,
         isClosable: true
@@ -441,6 +454,9 @@ export function Dashboard() {
         duration: 3000,
         isClosable: true
       });
+    } finally {
+      onResetClose();
+      setWorkoutToReset(null);
     }
   };
 
@@ -720,6 +736,50 @@ export function Dashboard() {
             onClose={() => setIsAIModalOpen(false)} 
           />
         </Box>
+
+        {/* Reset Confirmation Modal */}
+        <AlertDialog
+          isOpen={isResetOpen}
+          leastDestructiveRef={cancelRef}
+          onClose={onResetClose}
+          size="lg"
+        >
+          <AlertDialogOverlay>
+            <AlertDialogContent minHeight="220px">
+              <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                Reset Workout Progress
+              </AlertDialogHeader>
+
+              <AlertDialogBody>
+                <VStack spacing={4} minHeight="100px">
+                  <Text>
+                    Are you sure you want to reset your progress on <strong>{workoutToReset?.name}</strong>? 
+                    This will clear all completed exercises and you'll start from the beginning.
+                    This action cannot be undone.
+                  </Text>
+                </VStack>
+                {/* Action buttons styled as a footer */}
+                <HStack width="100%" justifyContent="flex-end" pt={4} spacing={4}>
+                  <Button 
+                    ref={cancelRef} 
+                    onClick={onResetClose}
+                    variant="ghost"
+                    colorScheme="gray"
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    colorScheme="orange" 
+                    onClick={handleResetConfirm} 
+                    variant="solid"
+                  >
+                    Reset Progress
+                  </Button>
+                </HStack>
+              </AlertDialogBody>
+            </AlertDialogContent>
+          </AlertDialogOverlay>
+        </AlertDialog>
 
       </Box>
     </Box>
