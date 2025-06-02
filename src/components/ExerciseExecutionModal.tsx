@@ -230,9 +230,9 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
         bg={cardBg}
         mx={{ base: 0, md: 4 }}
         w={{ base: '100vw', md: undefined }}
-        h={{ base: '100vh', md: undefined }}
-        maxW={{ base: '100vw', md: undefined }}
-        maxH={{ base: '100vh', md: undefined }}
+        h={{ base: '100vh', md: 'auto' }}
+        maxW={{ base: '100vw', md: '500px' }}
+        maxH={{ base: '100vh', md: '85vh' }}
         p={0}
       >
         {/* Hero Header with Gradient */}
@@ -316,7 +316,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
         </Box>
 
         {/* Modal Body */}
-        <ModalBody p={8}>
+        <ModalBody p={8} overflowY={{ base: 'auto', md: 'auto' }} flex="1">
           <VStack spacing={6} align="center">
             {/* Exercise Details Card - 3 columns including Exercise progress */}
             <Box 
