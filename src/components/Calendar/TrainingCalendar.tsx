@@ -128,7 +128,7 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
         const assignedWorkouts = await api.workouts.getAssignedToAthlete(targetUserId);
         
         if (assignedWorkouts && assignedWorkouts.length > 0) {
-          console.log('Found assigned workouts:', assignedWorkouts.length);
+          console.log('Found assigned and created workouts:', assignedWorkouts.length);
           
           // Transform and filter workouts for the current year
           workouts = assignedWorkouts

@@ -163,7 +163,7 @@ export const api = {
 
     async getAssignedToAthlete(athleteId: string) {
       try {
-        console.log('Getting assigned workouts for athlete:', athleteId);
+        console.log('Getting assigned AND created workouts for athlete:', athleteId);
         
         // Get all workout_ids assigned to this athlete, ordered by most recently assigned first
         const { data: assignments, error: assignError } = await supabase
@@ -177,77 +177,65 @@ export const api = {
           throw assignError;
         }
         
-        if (!assignments || assignments.length === 0) {
-          console.log('No workouts assigned to athlete:', athleteId);
-          return [];
+        // Get workouts created by this athlete (their own workouts)
+        const { data: createdWorkouts, error: createdError } = await supabase
+          .from('workouts')
+          .select('*')
+          .eq('user_id', athleteId)
+          .order('created_at', { ascending: false });
+          
+        if (createdError) {
+          console.error('Error fetching athlete created workouts:', createdError);
+          throw createdError;
         }
         
-        const workoutIds = assignments.map(a => a.workout_id);
-        console.log('Found', workoutIds.length, 'workout assignments for athlete');
+        console.log(`Found ${assignments?.length || 0} assigned workouts and ${createdWorkouts?.length || 0} created workouts`);
         
-        if (workoutIds.length === 0) return [];
+        let allWorkouts = [];
         
-        // Add a small delay to ensure database consistency (sometimes needed for Supabase)
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Alternative query approach - query one by one if the IN clause is failing
-        let workouts = [];
-        
-        // Try the IN clause first
-        try {
-          const { data, error } = await supabase
-            .from('workouts')
-            .select('*')
-            .in('id', workoutIds);
-            
-          if (error) {
-            console.error('Error with IN query, falling back to individual queries:', error);
-          } else if (data && data.length > 0) {
-            console.log('Successfully retrieved', data.length, 'workouts with IN query');
-            workouts = data;
-          }
-        } catch (inError) {
-          console.error('Exception with IN query:', inError);
-        }
-        
-        // If the IN query failed or returned no results, try individual queries
-        if (workouts.length === 0) {
-          console.log('Falling back to individual workout queries');
-          for (const workoutId of workoutIds) {
-            try {
-              const { data, error } = await supabase
-                .from('workouts')
-                .select('*')
-                .eq('id', workoutId)
-                .single();
-                
-              if (error) {
-                console.error(`Error fetching workout ${workoutId}:`, error);
-              } else if (data) {
-                workouts.push(data);
-              }
-            } catch (err) {
-              console.error(`Exception fetching workout ${workoutId}:`, err);
+        // Handle assigned workouts
+        if (assignments && assignments.length > 0) {
+          const workoutIds = assignments.map(a => a.workout_id);
+          
+          // Add a small delay to ensure database consistency (sometimes needed for Supabase)
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Try to get assigned workouts
+          try {
+            const { data, error } = await supabase
+              .from('workouts')
+              .select('*')
+              .in('id', workoutIds);
+              
+            if (error) {
+              console.error('Error with IN query for assigned workouts:', error);
+            } else if (data && data.length > 0) {
+              console.log('Successfully retrieved', data.length, 'assigned workouts');
+              allWorkouts.push(...data);
             }
+          } catch (inError) {
+            console.error('Exception with IN query:', inError);
           }
         }
         
-        // Sort workouts based on assignment order (most recently assigned first)
-        // Create a map of workout_id to assignment order
-        const assignmentOrder = new Map();
-        assignments.forEach((assignment, index) => {
-          assignmentOrder.set(assignment.workout_id, index);
-        });
+        // Add created workouts to the list
+        if (createdWorkouts && createdWorkouts.length > 0) {
+          // Filter out duplicates (in case an athlete is assigned to their own workout)
+          const existingIds = new Set(allWorkouts.map(w => w.id));
+          const uniqueCreatedWorkouts = createdWorkouts.filter(w => !existingIds.has(w.id));
+          allWorkouts.push(...uniqueCreatedWorkouts);
+          console.log('Added', uniqueCreatedWorkouts.length, 'unique created workouts');
+        }
         
-        // Sort workouts to match the assignment order
-        workouts.sort((a, b) => {
-          const orderA = assignmentOrder.get(a.id) ?? 999;
-          const orderB = assignmentOrder.get(b.id) ?? 999;
-          return orderA - orderB;
+        // Sort all workouts by created_at date (most recent first)
+        allWorkouts.sort((a, b) => {
+          const dateA = new Date(a.created_at || a.assigned_at || 0).getTime();
+          const dateB = new Date(b.created_at || b.assigned_at || 0).getTime();
+          return dateB - dateA; // Most recent first
         });
         
         // Ensure exercises is always an array (even if null/undefined in database)
-        const workoutsWithExercises = workouts.map(workout => {
+        const workoutsWithExercises = allWorkouts.map(workout => {
           // Check exercises property
           let exercises = [];
           
@@ -286,7 +274,7 @@ export const api = {
           };
         });
         
-        console.log('Returning', workoutsWithExercises.length, 'workouts to athlete (ordered by most recent assignment)');
+        console.log('Returning', workoutsWithExercises.length, 'total workouts (assigned + created)');
         return workoutsWithExercises;
       } catch (error) {
         console.error('Error in getAssignedToAthlete:', error);

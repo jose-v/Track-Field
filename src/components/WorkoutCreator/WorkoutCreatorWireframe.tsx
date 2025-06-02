@@ -583,6 +583,12 @@ const WorkoutCreatorWireframe: React.FC = () => {
         // Create new workout with atomic assignment
         const newWorkout = await api.workouts.createEnhanced(workoutData);
         
+        // For athletes creating their own workouts, automatically assign to themselves
+        if (userProfile?.role === 'athlete' && newWorkout?.id) {
+          console.log('Auto-assigning workout to athlete creator:', userProfile.id);
+          await api.athleteWorkouts.assign(newWorkout.id, [userProfile.id]);
+        }
+        
         // Assign athletes in the same operation context
         if (athleteIds.length > 0) {
           await api.athleteWorkouts.assign(newWorkout.id, athleteIds);
@@ -652,43 +658,39 @@ const WorkoutCreatorWireframe: React.FC = () => {
     }
   };
 
-  // Load user profile and athletes on component mount
+  // Load user profile and athletes when component mounts
   useEffect(() => {
-    const loadUserDataAndAthletes = async () => {
-      if (!user) return;
-      
+    const loadUserAndAthletes = async () => {
       try {
-        // Get user profile to determine role
-        const profile = await api.profile.get();
-        setUserProfile(profile);
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
         
-        if (profile.role === 'coach') {
-          // Load athletes assigned to this coach
+        // Get user profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+          
+        if (profile) {
+          setUserProfile({ ...profile, id: user.id });
+        }
+
+        // Load athletes based on user role
+        if (profile?.role === 'coach') {
           await loadCoachAthletes(user.id);
-        } else if (profile.role === 'team_manager') {
-          // Load all athletes for team managers
+        } else if (profile?.role === 'team_manager') {
           await loadAllAthletes();
         }
-        // For athletes, they typically can't assign workouts to others
+        // Athletes don't need to load other athletes since they create workouts for themselves
       } catch (error) {
-        console.error('Error loading user profile:', error);
-        // Only show warning for actual profile loading errors, not athlete loading errors
-        // since those are handled in their respective functions with fallback logic
-        if (error instanceof Error && error.message.includes('Profile not found')) {
-          toast({
-            title: 'Profile Loading Error',
-            description: 'Could not load your profile data. Please try refreshing the page.',
-            status: 'warning',
-            duration: 3000,
-            isClosable: true,
-          });
-        }
-        // Don't show a toast for database view/relation errors as they're handled elsewhere
+        console.error('Error loading user and athletes:', error);
       }
     };
 
-    loadUserDataAndAthletes();
-  }, [user, toast]);
+    loadUserAndAthletes();
+  }, []);
 
   const loadCoachAthletes = async (coachId: string) => {
     setIsLoadingAthletes(true);
