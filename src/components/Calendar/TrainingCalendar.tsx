@@ -403,6 +403,8 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
             console.log('No event assignments found for user:', targetUserId);
             
             // If no events in athlete_meet_events, try track_meets directly
+            // Commenting out this fallback to prevent duplicates - athlete_meet_events should be the primary source
+            /*
             const { data: trackMeets, error: meetsError } = await supabase
               .from('track_meets')
               .select('*')
@@ -425,6 +427,7 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
                 event_name: meet.meet_type || 'Track Meet'
               }));
             }
+            */
           }
         }
       } catch (err) {
@@ -436,7 +439,28 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
       // Organize events by month
       const byMonth: Record<number, EventData[]> = {};
       
-      events.forEach(event => {
+      // Log the raw events to debug duplicates
+      console.log('Raw events before deduplication:', events);
+      
+      // For the year view, we want to deduplicate by meet_date and meet_name only 
+      // (not event_name) since we're showing meets, not individual events
+      const uniqueEvents = events.filter((event, index, arr) => {
+        const isDuplicate = arr.findIndex(e => 
+          e.meet_date === event.meet_date && 
+          e.meet_name === event.meet_name
+        ) !== index;
+        
+        if (isDuplicate) {
+          console.log('Found duplicate meet:', event);
+        }
+        
+        return !isDuplicate;
+      });
+      
+      console.log(`Removed ${events.length - uniqueEvents.length} duplicate meets`);
+      console.log('Unique meets after deduplication:', uniqueEvents);
+      
+      uniqueEvents.forEach(event => {
         if (event && event.meet_date) {
           const eventDate = new Date(event.meet_date);
           const month = eventDate.getMonth();
@@ -451,7 +475,7 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
       
       setMonthlyEvents(byMonth);
       
-      return events;
+      return uniqueEvents;
     } catch (error) {
       console.error('Error fetching events:', error);
       setMonthlyEvents({});
@@ -1045,7 +1069,21 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
                 transition: 'all 0.2s'
               }}
             >
-              <Heading as="h3" size="md" mb={4}>{month}</Heading>
+              <Flex justify="space-between" align="center" mb={4}>
+                <Heading as="h3" size="md">{month}</Heading>
+                
+                {!loading && (
+                  <Text fontSize="sm" color={statLabelColor}>
+                    {getMonthActivityCount(index) > 0 ? (
+                      <>
+                        <Text as="span" fontWeight="bold">{getMonthActivityCount(index)}</Text> activities
+                      </>
+                    ) : (
+                      <Text as="span" color={noActivitiesColor}>No activities</Text>
+                    )}
+                  </Text>
+                )}
+              </Flex>
               
               <Box height="150px" position="relative">
                 {loading ? (
@@ -1054,64 +1092,54 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
                   </Text>
                 ) : (
                   <>
-                    <Text fontSize="sm" color={statLabelColor} mb={2}>
-                      {getMonthActivityCount(index) > 0 ? (
+                    {/* Show a preview of activities with priority-based display */}
+                    {(() => {
+                      const workouts = monthlyWorkouts[index] || [];
+                      const events = monthlyEvents[index] || [];
+                      const workoutCount = workouts.length;
+                      
+                      return (
                         <>
-                          <Text as="span" fontWeight="bold">{getMonthActivityCount(index)}</Text> activities
+                          {/* Priority 1: Show all meets/events with full names */}
+                          {events.map((event, idx) => (
+                            <Box 
+                              key={`event-${idx}`} 
+                              bg={eventBgColor} 
+                              borderRadius="md" 
+                              p={1} 
+                              mb={1} 
+                              fontSize="sm"
+                              whiteSpace="nowrap"
+                              overflow="hidden"
+                              textOverflow="ellipsis"
+                              borderLeft="3px solid"
+                              borderLeftColor="purple.500"
+                              color={barTextColor}
+                            >
+                              <Text color={barTextColor}>
+                                {new Date(event.meet_date).getDate()} - {event.meet_name}
+                              </Text>
+                            </Box>
+                          ))}
+                          
+                          {/* Priority 2: Show workout count if any workouts exist */}
+                          {workoutCount > 0 && (
+                            <Box 
+                              bg={workoutBgColor} 
+                              borderRadius="md" 
+                              p={1} 
+                              mb={1} 
+                              fontSize="sm"
+                              color={barTextColor}
+                            >
+                              <Text color={barTextColor}>
+                                {workoutCount} workout{workoutCount === 1 ? '' : 's'}
+                              </Text>
+                            </Box>
+                          )}
                         </>
-                      ) : (
-                        <Text as="span" color={noActivitiesColor}>No activities scheduled</Text>
-                      )}
-                    </Text>
-                    
-                    {/* Show a preview of workouts */}
-                    {monthlyWorkouts[index]?.slice(0, 3).map((workout, idx) => (
-                      <Box 
-                        key={idx} 
-                        bg={workoutBgColor} 
-                        borderRadius="md" 
-                        p={1} 
-                        mb={1} 
-                        fontSize="xs"
-                        whiteSpace="nowrap"
-                        overflow="hidden"
-                        textOverflow="ellipsis"
-                        color={barTextColor}
-                      >
-                        {new Date(workout.date).getDate()} - {workout.name}
-                      </Box>
-                    ))}
-                    
-                    {/* Show a preview of events */}
-                    {monthlyEvents[index]?.slice(0, 2).map((event, idx) => (
-                      <Box 
-                        key={idx} 
-                        bg={eventBgColor} 
-                        borderRadius="md" 
-                        p={1} 
-                        mb={1} 
-                        fontSize="xs"
-                        whiteSpace="nowrap"
-                        overflow="hidden"
-                        textOverflow="ellipsis"
-                        borderLeft="3px solid"
-                        borderLeftColor="purple.500"
-                        color={barTextColor}
-                      >
-                        <Flex align="center">
-                          <Text color={barTextColor}>{new Date(event.meet_date).getDate()}</Text>
-                          <Text mx={1} color={barTextColor}>-</Text>
-                          <Text fontWeight="bold" color={barTextColor}>{event.meet_name}</Text>
-                        </Flex>
-                      </Box>
-                    ))}
-                    
-                    {/* If there are more activities than shown in preview */}
-                    {getMonthActivityCount(index) > 5 && (
-                      <Text fontSize="xs" color="gray.500" textAlign="center" mt={1}>
-                        + {getMonthActivityCount(index) - 5} more
-                      </Text>
-                    )}
+                      );
+                    })()}
                   </>
                 )}
               </Box>
