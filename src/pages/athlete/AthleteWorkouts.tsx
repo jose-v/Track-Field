@@ -337,6 +337,42 @@ export function AthleteWorkouts() {
     });
   };
 
+  const handleResetProgress = async (workoutId: string, workoutName: string) => {
+    try {
+      console.log(`Resetting progress for workout ${workoutId}`);
+      
+      // Reset progress in the workout store
+      workoutStore.resetProgress(workoutId);
+      
+      // Also reset in the database if the user has an assignment
+      if (user?.id) {
+        try {
+          await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutId, 'assigned');
+          console.log(`Workout ${workoutId} status reset to 'assigned' in database`);
+        } catch (error) {
+          console.error('Error resetting workout status in database:', error);
+        }
+      }
+      
+      toast({
+        title: 'Progress Reset',
+        description: `"${workoutName}" progress has been reset. You can start from the beginning.`,
+        status: 'success',
+        duration: 3000,
+        isClosable: true
+      });
+    } catch (error) {
+      console.error('Error resetting workout progress:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to reset workout progress. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true
+      });
+    }
+  };
+
   const renderWorkoutCards = (workouts: Workout[]) => {
     if (!workouts || workouts.length === 0) {
       return (
@@ -408,6 +444,7 @@ export function AthleteWorkouts() {
               onStart={() => handleGo(workout, nextExerciseIndex)}
               onRefresh={() => forceRefreshWorkoutProgress(workout.id)}
               showRefresh={true}
+              onReset={() => handleResetProgress(workout.id, workout.name)}
             />
           );
         })}

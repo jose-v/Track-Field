@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   Box, Card, CardBody, Heading, Text, Icon, Flex, HStack, VStack, 
-  Button, Badge, IconButton, useColorModeValue, Tooltip
+  Button, Badge, IconButton, useColorModeValue, Tooltip, useDisclosure, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter
 } from '@chakra-ui/react';
-import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaEdit, FaTrash, FaPlayCircle, FaCalendarAlt, FaClock, FaMapMarkerAlt, FaUsers, FaTasks } from 'react-icons/fa';
+import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaEdit, FaTrash, FaPlayCircle, FaCalendarAlt, FaClock, FaMapMarkerAlt, FaUsers, FaTasks, FaUndo } from 'react-icons/fa';
 import type { Workout, Exercise } from '../services/api';
 import { dateUtils } from '../utils/date';
 import { ProgressBar } from './ProgressBar';
@@ -64,6 +64,7 @@ interface WorkoutCardProps {
   showRefresh?: boolean;
   statsLoading?: boolean;
   detailedProgress?: boolean;
+  onReset?: () => void;
 }
 
 export function WorkoutCard({
@@ -77,7 +78,8 @@ export function WorkoutCard({
   onRefresh,
   showRefresh = false,
   statsLoading = false,
-  detailedProgress = false
+  detailedProgress = false,
+  onReset
 }: WorkoutCardProps) {
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const iconBgColor = useColorModeValue('white', 'gray.800');
@@ -101,6 +103,17 @@ export function WorkoutCard({
   // Log the raw date to help with debugging
   console.log(`WorkoutCard - Raw date: ${workout.date}, Formatted: ${formattedScheduleDate}`);
   
+  // For reset confirmation dialog
+  const { isOpen: isResetOpen, onOpen: onResetOpen, onClose: onResetClose } = useDisclosure();
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
+  const handleResetConfirm = () => {
+    if (onReset) {
+      onReset();
+    }
+    onResetClose();
+  };
+
   return (
     <Card 
       borderRadius="xl" 
@@ -343,23 +356,69 @@ export function WorkoutCard({
             
             {/* Action button */}
             {onStart && (
-              <Button 
-                width="100%" 
-                variant="primary"
-                leftIcon={<FaPlayCircle />} 
-                onClick={onStart}
-                size="md"
-              >
-                {!isCoach && progress.completed === progress.total && progress.total > 0 
-                  ? "Start Again" 
-                  : !isCoach && progress.completed > 0 
-                    ? "Continue Workout" 
-                    : "Start Workout"}
-              </Button>
+              <VStack width="100%" spacing={2}>
+                <Button 
+                  width="100%" 
+                  variant="primary"
+                  leftIcon={<FaPlayCircle />} 
+                  onClick={onStart}
+                  size="md"
+                >
+                  {!isCoach && progress.completed === progress.total && progress.total > 0 
+                    ? "Start Again" 
+                    : !isCoach && progress.completed > 0 
+                      ? "Continue Workout" 
+                      : "Start Workout"}
+                </Button>
+                
+                {/* Reset Progress Button - Only show for athletes with started but incomplete workouts */}
+                {!isCoach && onReset && progress.completed > 0 && progress.completed < progress.total && (
+                  <Button 
+                    width="100%" 
+                    variant="outline"
+                    colorScheme="orange"
+                    leftIcon={<FaUndo />} 
+                    onClick={onResetOpen}
+                    size="sm"
+                  >
+                    Reset Progress
+                  </Button>
+                )}
+              </VStack>
             )}
           </VStack>
         </VStack>
       </CardBody>
+      
+      {/* Reset Confirmation Dialog */}
+      <AlertDialog
+        isOpen={isResetOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onResetClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Reset Workout Progress
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              Are you sure you want to reset your progress on "{workout.name}"? 
+              This will clear all completed exercises and you'll start from the beginning.
+              This action cannot be undone.
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onResetClose}>
+                Cancel
+              </Button>
+              <Button colorScheme="orange" onClick={handleResetConfirm} ml={3}>
+                Reset Progress
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Card>
   );
 } 
