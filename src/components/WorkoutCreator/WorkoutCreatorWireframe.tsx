@@ -24,7 +24,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api, type EnhancedWorkoutData } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { useScrollDirection } from '../../hooks/useScrollDirection';
+import WorkoutCreatorNavigation from '../WorkoutCreatorNavigation';
 
 // Lazy load step components to improve initial load time
 const Step1WorkoutDetails = lazy(() => import('./Step1WorkoutDetails').then(module => ({ default: module.default })));
@@ -98,7 +98,6 @@ const WorkoutCreatorWireframe: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isHeaderVisible } = useScrollDirection(10);
   
   // Check if we're editing a workout
   const editWorkoutId = searchParams.get('edit');
@@ -524,7 +523,6 @@ const WorkoutCreatorWireframe: React.FC = () => {
   };
 
   const currentStepInfo = WORKOUT_CREATION_STEPS[currentStep - 1];
-  const progressPercentage = (currentStep / WORKOUT_CREATION_STEPS.length) * 100;
 
   // Handle saving workout to database
   const handleSaveWorkout = async () => {
@@ -824,66 +822,16 @@ const WorkoutCreatorWireframe: React.FC = () => {
 
   const renderStepHeader = () => (
     <VStack spacing={0} align="stretch" mb={3}>
-      {/* Progress Bar - Fixed under top navigation */}
-      <Box 
-        position="fixed"
-        top={isHeaderVisible ? "65px" : "0px"}
-        left={`${sidebarWidth}px`}
-        right="0"
-        zIndex="998"
-        bg={navBg}
-        borderBottom="1px solid"
-        borderBottomColor={borderColor}
-        data-testid="workout-creator-progress"
-        transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+      {/* Step Header Card - with fixed top margin to account for always-visible progress bar */}
+      <Card 
+        variant="outline" 
+        shadow="none" 
+        mb={2} 
+        mt="76px" // Adjusted for always-visible progress bar (64px nav + 8px progress + 4px padding)
+        mx={6} 
+        bg={cardBg} 
+        borderColor={borderColor}
       >
-        <Progress 
-          value={progressPercentage} 
-          colorScheme="blue" 
-          size="md" 
-          borderRadius="0"
-          height="8px"
-        />
-        
-        {/* Step Labels */}
-        <Box px={8} py={2}>
-          <HStack justify="space-between" spacing={2}>
-            {WORKOUT_CREATION_STEPS.map((step, index) => {
-              const isCompleted = step.id < currentStep;
-              const isCurrent = step.id === currentStep;
-              const isAccessible = step.id <= currentStep;
-              
-              return (
-                <Button
-                  key={step.id}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => isAccessible && goToStep(step.id)}
-                  isDisabled={!isAccessible}
-                  color={isCurrent ? 'blue.500' : isCompleted ? 'green.500' : 'gray.500'}
-                  fontWeight={isCurrent ? 'bold' : 'normal'}
-                  _hover={isAccessible ? { bg: 'blue.100' } : {}}
-                  cursor={isAccessible ? 'pointer' : 'default'}
-                  flex="1"
-                  minW="0"
-                >
-                  <HStack spacing={1} minW="0">
-                    <Text fontSize="xs">{step.id}</Text>
-                    <Text fontSize="xs" isTruncated>{step.shortTitle}</Text>
-                    {isCompleted && <Text fontSize="xs" color="green.500">✓</Text>}
-                    {index < WORKOUT_CREATION_STEPS.length - 1 && (
-                      <Text fontSize="xs" color="gray.400">→</Text>
-                    )}
-                  </HStack>
-                </Button>
-              );
-            })}
-          </HStack>
-        </Box>
-      </Box>
-
-      {/* Step Header Card - with top margin to account for fixed progress bar */}
-      <Card variant="outline" shadow="none" mb={2} mt={isHeaderVisible ? "80px" : "20px"} mx={6} bg={cardBg} borderColor={borderColor}>
         <CardBody p={4}>
           <VStack spacing={4} align="stretch" w="100%">
             <HStack justify="space-between" align="center" w="100%">
@@ -1284,6 +1232,15 @@ const WorkoutCreatorWireframe: React.FC = () => {
 
   return (
     <Box w="100%" position="relative" bg={bgColor} minH="100vh">
+      {/* Unified Navigation Component */}
+      <WorkoutCreatorNavigation
+        currentStep={currentStep}
+        totalSteps={WORKOUT_CREATION_STEPS.length}
+        steps={WORKOUT_CREATION_STEPS}
+        onStepClick={goToStep}
+        sidebarWidth={sidebarWidth}
+      />
+      
       {renderStepHeader()}
       
       {/* Step Content - with bottom padding to account for fixed bottom nav */}

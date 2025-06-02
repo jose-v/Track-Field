@@ -26,25 +26,27 @@ export const formatMeetDate = (dateString: string | Date, includeYear = true): s
 };
 
 /**
- * Format event time with 12-hour format and enhanced validation
+ * Format event time for display with enhanced validation for both HH:MM and HH:MM:SS formats
  */
 export const formatEventTime = (timeString: string): string => {
   try {
-    // Tighter validation to avoid hidden NaNs
-    if (!timeString || typeof timeString !== 'string' || timeString.trim() === '') {
+    // Handle empty/null input gracefully
+    if (!timeString || typeof timeString !== 'string') {
       return 'Time TBD';
     }
     
-    // Validate time format (HH:MM or H:MM)
-    const timePattern = /^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/;
+    // Validate time format (HH:MM or HH:MM:SS)
+    const timePattern = /^([0-1]?[0-9]|2[0-3]):([0-5][0-9])(?::([0-5][0-9]))?$/;
     if (!timePattern.test(timeString.trim())) {
       console.warn('Invalid time format provided:', timeString);
       return 'Invalid Time';
     }
     
-    const [hoursStr, minutesStr] = timeString.trim().split(':');
-    const hours = parseInt(hoursStr, 10);
-    const minutes = parseInt(minutesStr, 10);
+    // Split and parse time components
+    const timeParts = timeString.trim().split(':');
+    const hours = parseInt(timeParts[0], 10);
+    const minutes = parseInt(timeParts[1], 10);
+    // Ignore seconds if present - we only need hours and minutes for display
     
     // Explicit NaN checks to avoid hidden NaNs
     if (Number.isNaN(hours) || Number.isNaN(minutes)) {

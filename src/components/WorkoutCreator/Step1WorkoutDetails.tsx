@@ -110,6 +110,16 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
     setEndTime(end || '');
   };
 
+  // Handle template type change and reset template selection if switching to single
+  const handleTemplateTypeChange = (newType: 'single' | 'weekly') => {
+    setTemplateType(newType);
+    
+    // Reset template selection if switching to single day workout
+    if (newType === 'single' && setIsTemplate) {
+      setIsTemplate(false);
+    }
+  };
+
   // Theme-aware colors
   const bgColor = useColorModeValue('white', 'gray.800');
   const cardBg = useColorModeValue('white', 'gray.700');
@@ -212,7 +222,7 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
                           variant="outline"
                           shadow="none"
                           cursor="pointer"
-                          onClick={() => setTemplateType(type.value as 'single' | 'weekly')}
+                          onClick={() => handleTemplateTypeChange(type.value as 'single' | 'weekly')}
                           bg={templateType === type.value ? selectedBg : cardBg}
                           borderColor={templateType === type.value ? selectedBorderColor : borderColor}
                           borderWidth="2px"
@@ -430,45 +440,67 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
                         </Heading>
                       </HStack>
                       <Text fontSize="sm" color={subtitleColor}>
-                        Date & time
+                        {isTemplate ? "Optional for templates" : "Date & time"}
                       </Text>
                     </VStack>
 
-                    {/* Date & Time Picker - Compact for wide layout */}
-                    <Box w="100%">
-                      <DateTimePicker
-                        selectedDates={templateType === 'weekly' ? selectedDateRange : selectedDates}
-                        selectedStartTime={startTime}
-                        selectedEndTime={endTime}
-                        isMultiSelect={templateType === 'weekly'}
-                        onDateSelect={templateType === 'weekly' ? handleWeeklyDateSelect : handleSingleDateSelect}
-                        onTimeSelect={handleTimeSelect}
-                      />
-                    </Box>
+                    {/* Show date/time picker only if not creating a template */}
+                    {!isTemplate && (
+                      <>
+                        {/* Date & Time Picker - Compact for wide layout */}
+                        <Box w="100%">
+                          <DateTimePicker
+                            selectedDates={templateType === 'weekly' ? selectedDateRange : selectedDates}
+                            selectedStartTime={startTime}
+                            selectedEndTime={endTime}
+                            isMultiSelect={templateType === 'weekly'}
+                            onDateSelect={templateType === 'weekly' ? handleWeeklyDateSelect : handleSingleDateSelect}
+                            onTimeSelect={handleTimeSelect}
+                          />
+                        </Box>
 
-                    {/* Location Input - Compact */}
-                    <VStack spacing={2} w="100%" align="start">
-                      <HStack spacing={2} align="start">
-                        <MapPin size={14} color="var(--chakra-colors-green-500)" />
-                        <Text fontSize="xs" fontWeight="semibold" color={textColor}>
-                          Location
-                        </Text>
-                      </HStack>
-                      <FormControl>
-                        <Input
-                          value={location}
-                          onChange={(e) => setLocation(e.target.value)}
-                          placeholder="Training location"
-                          size="sm"
-                          borderWidth="1px"
-                          bg={inputBg}
-                          borderColor={borderColor}
-                          color={textColor}
-                          _placeholder={{ color: placeholderColor }}
-                          _focus={{ borderColor: "green.400" }}
-                        />
-                      </FormControl>
-                    </VStack>
+                        {/* Location Input - Compact */}
+                        <VStack spacing={2} w="100%" align="start">
+                          <HStack spacing={2} align="start">
+                            <MapPin size={14} color="var(--chakra-colors-green-500)" />
+                            <Text fontSize="xs" fontWeight="semibold" color={textColor}>
+                              Location
+                            </Text>
+                          </HStack>
+                          <FormControl>
+                            <Input
+                              value={location}
+                              onChange={(e) => setLocation(e.target.value)}
+                              placeholder="Training location"
+                              size="sm"
+                              borderWidth="1px"
+                              bg={inputBg}
+                              borderColor={borderColor}
+                              color={textColor}
+                              _placeholder={{ color: placeholderColor }}
+                              _focus={{ borderColor: "green.400" }}
+                            />
+                          </FormControl>
+                        </VStack>
+                      </>
+                    )}
+
+                    {/* Show message when creating template */}
+                    {isTemplate && (
+                      <VStack spacing={4} align="center" py={8}>
+                        <Box color="blue.500">
+                          <BookOpen size={48} />
+                        </Box>
+                        <VStack spacing={2} align="center">
+                          <Heading size="sm" color="blue.700" textAlign="center">
+                            Creating Template
+                          </Heading>
+                          <Text fontSize="sm" color={subtitleColor} textAlign="center">
+                            Templates don't require specific dates or times
+                          </Text>
+                        </VStack>
+                      </VStack>
+                    )}
                   </VStack>
                 </CardBody>
               </Card>
@@ -502,7 +534,7 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
                           variant="outline"
                           shadow="none"
                           cursor="pointer"
-                          onClick={() => setTemplateType(type.value as 'single' | 'weekly')}
+                          onClick={() => handleTemplateTypeChange(type.value as 'single' | 'weekly')}
                           bg={templateType === type.value ? selectedBg : cardBg}
                           borderColor={templateType === type.value ? selectedBorderColor : borderColor}
                           borderWidth="2px"
@@ -711,62 +743,85 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
             </HStack>
 
             {/* Date, Time & Location Selection - Full Width Card */}
-            <Card variant="outline" shadow="none" bg={cardBg} borderColor={borderColor} w="100%">
-              <CardBody p={6}>
-                <VStack spacing={6} align="stretch" w="100%">
-                  <VStack spacing={2} align="center">
-                    <HStack>
-                      <Calendar size={24} color="var(--chakra-colors-purple-500)" />
-                      <Heading size="md" color={textColor}>
-                        {templateType === 'single' ? 'Schedule Your Workout' : 'Set Training Period'}
-                      </Heading>
-                    </HStack>
-                    <Text fontSize="sm" color={subtitleColor} textAlign="center">
-                      {templateType === 'single' 
-                        ? 'Choose the date and time for your workout session'
-                        : 'Select the start and end dates for your weekly training plan'
-                      }
-                    </Text>
-                  </VStack>
-
-                  {/* Date & Time Picker - Centered */}
-                  <Flex justify="center" w="100%">
-                    <DateTimePicker
-                      selectedDates={templateType === 'weekly' ? selectedDateRange : selectedDates}
-                      selectedStartTime={startTime}
-                      selectedEndTime={endTime}
-                      isMultiSelect={templateType === 'weekly'}
-                      onDateSelect={templateType === 'weekly' ? handleWeeklyDateSelect : handleSingleDateSelect}
-                      onTimeSelect={handleTimeSelect}
-                    />
-                  </Flex>
-
-                  {/* Location Input */}
-                  <VStack spacing={2} w="100%" align="start">
-                    <HStack spacing={2} align="start">
-                      <MapPin size={16} color="var(--chakra-colors-green-500)" />
-                      <Text fontSize="sm" fontWeight="semibold" color={textColor}>
-                        Location (Optional)
+            {!isTemplate && (
+              <Card variant="outline" shadow="none" bg={cardBg} borderColor={borderColor} w="100%">
+                <CardBody p={6}>
+                  <VStack spacing={6} align="stretch" w="100%">
+                    <VStack spacing={2} align="center">
+                      <HStack>
+                        <Calendar size={24} color="var(--chakra-colors-purple-500)" />
+                        <Heading size="md" color={textColor}>
+                          {templateType === 'single' ? 'Schedule Your Workout' : 'Set Training Period'}
+                        </Heading>
+                      </HStack>
+                      <Text fontSize="sm" color={subtitleColor} textAlign="center">
+                        {templateType === 'single' 
+                          ? 'Choose the date and time for your workout session'
+                          : 'Select the start and end dates for your weekly training plan'
+                        }
                       </Text>
-                    </HStack>
-                    <FormControl>
-                      <Input
-                        value={location}
-                        onChange={(e) => setLocation(e.target.value)}
-                        placeholder={templateType === 'single' ? "Workout location (e.g., Main Gym, Track Field)" : "Training location (e.g., Athletic Center, School Gym)"}
-                        size="md"
-                        borderWidth="1px"
-                        bg={inputBg}
-                        borderColor={borderColor}
-                        color={textColor}
-                        _placeholder={{ color: placeholderColor }}
-                        _focus={{ borderColor: "green.400" }}
+                    </VStack>
+
+                    {/* Date & Time Picker - Centered */}
+                    <Flex justify="center" w="100%">
+                      <DateTimePicker
+                        selectedDates={templateType === 'weekly' ? selectedDateRange : selectedDates}
+                        selectedStartTime={startTime}
+                        selectedEndTime={endTime}
+                        isMultiSelect={templateType === 'weekly'}
+                        onDateSelect={templateType === 'weekly' ? handleWeeklyDateSelect : handleSingleDateSelect}
+                        onTimeSelect={handleTimeSelect}
                       />
-                    </FormControl>
+                    </Flex>
+
+                    {/* Location Input */}
+                    <VStack spacing={2} w="100%" align="start">
+                      <HStack spacing={2} align="start">
+                        <MapPin size={16} color="var(--chakra-colors-green-500)" />
+                        <Text fontSize="sm" fontWeight="semibold" color={textColor}>
+                          Location (Optional)
+                        </Text>
+                      </HStack>
+                      <FormControl>
+                        <Input
+                          value={location}
+                          onChange={(e) => setLocation(e.target.value)}
+                          placeholder={templateType === 'single' ? "Workout location (e.g., Main Gym, Track Field)" : "Training location (e.g., Athletic Center, School Gym)"}
+                          size="md"
+                          borderWidth="1px"
+                          bg={inputBg}
+                          borderColor={borderColor}
+                          color={textColor}
+                          _placeholder={{ color: placeholderColor }}
+                          _focus={{ borderColor: "green.400" }}
+                        />
+                      </FormControl>
+                    </VStack>
                   </VStack>
-                </VStack>
-              </CardBody>
-            </Card>
+                </CardBody>
+              </Card>
+            )}
+
+            {/* Show template message when creating template */}
+            {isTemplate && (
+              <Card variant="outline" shadow="none" bg={cardBg} borderColor={borderColor} w="100%">
+                <CardBody p={6}>
+                  <VStack spacing={6} align="center" py={8}>
+                    <Box color="blue.500">
+                      <BookOpen size={64} />
+                    </Box>
+                    <VStack spacing={2} align="center">
+                      <Heading size="md" color="blue.700" textAlign="center">
+                        Creating Template
+                      </Heading>
+                      <Text fontSize="sm" color={subtitleColor} textAlign="center">
+                        Templates don't require specific dates or times. You can add exercises and save this as a reusable template for monthly plans.
+                      </Text>
+                    </VStack>
+                  </VStack>
+                </CardBody>
+              </Card>
+            )}
           </Box>
         </Box>
       </VStack>

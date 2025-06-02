@@ -43,7 +43,7 @@ const Navigation = () => {
   const { profile, isLoading: profileLoading } = useProfile()
   const location = useLocation()
   const { showFeedbackModal } = useFeedback()
-  const { isHeaderVisible } = useScrollDirection(10)
+  const { isHeaderVisible } = useScrollDirection(15)
   
   // Use more subtle colors for public navigation
   const isHome = location.pathname === '/'

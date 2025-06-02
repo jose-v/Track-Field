@@ -30,6 +30,7 @@ export { PWARefreshButton } from './PWARefreshButton';
 export { PWAStartupHandler } from './PWAStartupHandler';
 export { RunTimeInput } from './RunTimeInput';
 export { ExerciseExecutionModal } from './ExerciseExecutionModal';
+export { default as WorkoutCreatorNavigation } from './WorkoutCreatorNavigation';
 
 // Quick Log Components
 export { default as SleepQuickLogCard } from './SleepQuickLogCard';

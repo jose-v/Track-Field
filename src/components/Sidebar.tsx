@@ -275,7 +275,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
 
   // Mobile hamburger trigger (visible on mobile, hidden on desktop)
   const MobileHamburgerTrigger = () => {
-    const { isHeaderVisible } = useScrollDirection(10);
+    const { isHeaderVisible } = useScrollDirection(15);
     
     return (
       <IconButton

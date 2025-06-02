@@ -15,7 +15,7 @@ import {
   HStack,
   Button
 } from '@chakra-ui/react';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../hooks/useProfile';
 import { LuBellRing, LuMessageCircleMore } from 'react-icons/lu';
@@ -48,10 +48,12 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
   isPublicPage,
   onOpen
 }) => {
+  const location = useLocation();
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
   const { showFeedbackModal } = useFeedback();
-  const { isHeaderVisible } = useScrollDirection(10);
+  const { isHeaderVisible } = useScrollDirection(15);
+
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     // Check localStorage for the saved sidebar state
     const savedSidebarState = localStorage.getItem('sidebarCollapsed');
@@ -69,6 +71,9 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
   
   // State for notifications
   const [notificationCount, setNotificationCount] = useState(0);
+
+  // Don't render on workout creator routes - those use the unified navigation
+  const isWorkoutCreatorRoute = location.pathname.includes('/workout-creator');
   
   // Listen for sidebar toggle events
   useEffect(() => {
@@ -130,7 +135,12 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
   const fullName = profile ? 
     `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 
     (user?.email || '');
-  
+
+  // Return null after all hooks are called
+  if (isWorkoutCreatorRoute) {
+    return null;
+  }
+
   return (
     <Box
       bg={bgColor}

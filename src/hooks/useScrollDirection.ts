@@ -16,6 +16,7 @@ export const useScrollDirection = (threshold: number = 10) => {
   useEffect(() => {
     let lastScrollY = 0;
     let ticking = false;
+    let hideHeaderScrollY = 0; // Track when we started hiding the header
 
     const updateScrollDirection = () => {
       // Try multiple ways to get scroll position
@@ -40,14 +41,47 @@ export const useScrollDirection = (threshold: number = 10) => {
         return;
       }
 
-      // Show header when scrolling up or at top of page
-      const isHeaderVisible = direction === 'up' || scrollY < 50;
+      // Use hysteresis: different thresholds for showing vs hiding header
+      let isHeaderVisible: boolean;
+      
+      if (scrollY < 30) {
+        // Always show header at top of page
+        isHeaderVisible = true;
+        hideHeaderScrollY = 0;
+      } else if (direction === 'down') {
+        // Hide header when scrolling down, but only if we've scrolled enough
+        if (scrollY > 80) {
+          isHeaderVisible = false;
+          hideHeaderScrollY = scrollY;
+        } else {
+          isHeaderVisible = scrollState.isHeaderVisible; // Keep current state
+        }
+      } else if (direction === 'up') {
+        // Show header when scrolling up, with hysteresis
+        // Only show if we've scrolled up by at least 20px from where we hid it
+        // OR if we've scrolled up significantly (30px+ difference)
+        const scrollUpFromHide = hideHeaderScrollY > 0 ? hideHeaderScrollY - scrollY : 0;
+        if (scrollUpFromHide > 20 || scrollDifference > 30) {
+          isHeaderVisible = true;
+        } else {
+          isHeaderVisible = scrollState.isHeaderVisible; // Keep current state
+        }
+      } else {
+        isHeaderVisible = scrollState.isHeaderVisible; // Keep current state
+      }
 
-      setScrollState({
-        scrollDirection: direction,
-        scrollY,
-        isHeaderVisible,
-      });
+      // Only update state if something actually changed
+      if (
+        scrollState.scrollDirection !== direction ||
+        scrollState.scrollY !== scrollY ||
+        scrollState.isHeaderVisible !== isHeaderVisible
+      ) {
+        setScrollState({
+          scrollDirection: direction,
+          scrollY,
+          isHeaderVisible,
+        });
+      }
 
       lastScrollY = scrollY > 0 ? scrollY : 0;
       ticking = false;

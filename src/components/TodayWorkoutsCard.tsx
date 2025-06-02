@@ -23,7 +23,7 @@ import {
   Tag,
   useToast
 } from '@chakra-ui/react';
-import { FaRunning, FaCalendarAlt, FaArrowRight, FaClock, FaFire, FaCheck, FaBed } from 'react-icons/fa';
+import { FaRunning, FaCalendarAlt, FaArrowRight, FaClock, FaFire, FaCheck, FaBed, FaPlus } from 'react-icons/fa';
 import { Link as RouterLink } from 'react-router-dom';
 import { WorkoutCard } from './WorkoutCard';
 import { api } from '../services/api';
@@ -57,6 +57,11 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
   const [dailyWorkout, setDailyWorkout] = useState<any>(null);
   const [dailyWorkoutLoading, setDailyWorkoutLoading] = useState(false);
   const [dailyWorkoutError, setDailyWorkoutError] = useState<string | null>(null);
+
+  // State for controlling workout display
+  const [showAllTodayWorkouts, setShowAllTodayWorkouts] = useState(false);
+  const [showAllUpcomingWorkouts, setShowAllUpcomingWorkouts] = useState(false);
+  const INITIAL_WORKOUT_COUNT = 3;
 
   // Color mode values matching quick-log cards
   const cardBg = useColorModeValue('white', 'gray.800');
@@ -131,6 +136,10 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
       return progress.percentage === 100;
     }).length;
   };
+
+  // Calculate how many workouts to display
+  const todayWorkoutsToShow = showAllTodayWorkouts ? todayWorkouts : todayWorkouts.slice(0, INITIAL_WORKOUT_COUNT);
+  const upcomingWorkoutsToShow = showAllUpcomingWorkouts ? upcomingWorkouts : upcomingWorkouts.slice(0, INITIAL_WORKOUT_COUNT);
 
   return (
     <Box
@@ -373,7 +382,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
         {todayWorkouts.length > 0 ? (
           <Box>
             <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
-              {todayWorkouts.map((workout, idx) => (
+              {todayWorkoutsToShow.map((workout, idx) => (
                 <WorkoutCard
                   key={workout.id || idx}
                   workout={workout}
@@ -424,12 +433,12 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                 px={2}
                 py={1}
               >
-                Next {Math.min(upcomingWorkouts.length, 3)}
+                {showAllUpcomingWorkouts ? upcomingWorkouts.length : Math.min(upcomingWorkouts.length, INITIAL_WORKOUT_COUNT)} of {upcomingWorkouts.length}
               </Badge>
             </HStack>
             
             <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
-              {upcomingWorkouts.slice(0, 3).map((workout, idx) => (
+              {upcomingWorkoutsToShow.map((workout, idx) => (
                 <WorkoutCard
                   key={workout.id || idx}
                   workout={workout}
@@ -459,7 +468,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
 
         {/* Quick Actions for when there are workouts */}
         {(todayWorkouts.length > 0 || upcomingWorkouts.length > 0) && (
-          <HStack spacing={3} justify="center">
+          <HStack spacing={3} justify="center" flexWrap="wrap">
             <Button
               as={RouterLink}
               to={profile?.role === 'coach' ? "/coach/workouts" : "/athlete/workouts"}
@@ -470,12 +479,39 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
             >
               View All Workouts
             </Button>
+
+            {/* Load More Today's Workouts Button */}
+            {todayWorkouts.length > INITIAL_WORKOUT_COUNT && (
+              <Button
+                variant="outline"
+                colorScheme="blue"
+                size="sm"
+                leftIcon={<Icon as={FaPlus} />}
+                onClick={() => setShowAllTodayWorkouts(!showAllTodayWorkouts)}
+              >
+                {showAllTodayWorkouts ? 'Show Less' : `Load More Today (${todayWorkouts.length - INITIAL_WORKOUT_COUNT})`}
+              </Button>
+            )}
+
+            {/* Load More Upcoming Workouts Button */}
+            {upcomingWorkouts.length > INITIAL_WORKOUT_COUNT && (
+              <Button
+                variant="outline"
+                colorScheme="orange"
+                size="sm"
+                leftIcon={<Icon as={FaPlus} />}
+                onClick={() => setShowAllUpcomingWorkouts(!showAllUpcomingWorkouts)}
+              >
+                {showAllUpcomingWorkouts ? 'Show Less' : `Load More Upcoming (${upcomingWorkouts.length - INITIAL_WORKOUT_COUNT})`}
+              </Button>
+            )}
+            
             {profile?.role === 'coach' && (
               <Button
                 as={RouterLink}
                 to="/coach/workouts"
                 variant="outline"
-                colorScheme="blue"
+                colorScheme="purple"
                 size="sm"
                 leftIcon={<Icon as={FaRunning} />}
               >

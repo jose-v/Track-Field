@@ -141,7 +141,7 @@ export function Dashboard() {
   const { workouts, isLoading: workoutsLoading } = useWorkouts()
   const { stats: sleepStats, isLoading: sleepLoading } = useSleepStats()
   const { stats: nutritionStats, isLoading: nutritionLoading } = useNutritionStats()
-  const { isHeaderVisible } = useScrollDirection(15)
+  const { isHeaderVisible } = useScrollDirection(20)
   const [teamInfo, setTeamInfo] = useState<any>(null)
   const [isLoadingTeam, setIsLoadingTeam] = useState(false)
   const [isAIModalOpen, setIsAIModalOpen] = useState(false)
