@@ -96,13 +96,19 @@ export const useWorkoutStore = create<WorkoutStore>()(
       },
       
       markExerciseCompleted: (workoutId, exerciseIndex) => {
-        if (!workoutId) return;
+        if (!workoutId || exerciseIndex < 0) return;
         
         set((state) => {
           // Get existing workout progress or return
           const existingProgress = state.workoutProgress[workoutId];
           if (!existingProgress) {
             console.warn(`[WorkoutStore] Tried to mark exercise ${exerciseIndex} completed for workout ${workoutId}, but no progress record exists`);
+            return state;
+          }
+          
+          // Validate exercise index is within bounds
+          if (exerciseIndex >= existingProgress.totalExercises) {
+            console.warn(`[WorkoutStore] Exercise index ${exerciseIndex} is out of bounds for workout ${workoutId} (total: ${existingProgress.totalExercises})`);
             return state;
           }
           
@@ -153,13 +159,34 @@ export const useWorkoutStore = create<WorkoutStore>()(
         const progress = get().workoutProgress[workoutId];
         if (!progress) return null;
         
+        // Validate and clean up the completed exercises array
+        let cleanedCompleted = progress.completed.filter((idx, pos, arr) => 
+          // Remove duplicates and out-of-bounds indices
+          arr.indexOf(idx) === pos && idx >= 0 && idx < progress.totalExercises
+        );
+        
+        // If we cleaned up any data, update the store
+        if (cleanedCompleted.length !== progress.completed.length) {
+          console.log(`[WorkoutStore] Cleaned up invalid progress for ${workoutId}: ${progress.completed.length} -> ${cleanedCompleted.length}`);
+          set((state) => ({
+            workoutProgress: {
+              ...state.workoutProgress,
+              [workoutId]: {
+                ...progress,
+                completed: cleanedCompleted,
+                lastUpdated: Date.now()
+              }
+            }
+          }));
+        }
+        
         return {
           currentExerciseIndex: progress.currentExerciseIndex,
           totalExercises: progress.totalExercises,
           completionPercentage: progress.totalExercises > 0 
-            ? (progress.completed.length / progress.totalExercises) * 100 
+            ? (cleanedCompleted.length / progress.totalExercises) * 100 
             : 0,
-          completedExercises: progress.completed
+          completedExercises: cleanedCompleted
         };
       },
       

@@ -226,9 +226,46 @@ export function Dashboard() {
     }
   };
 
-  const handleFinishWorkout = () => {
-    // Workout completed
-    workoutStore.updateProgress(execModal.workout.id, execModal.workout.exercises.length, execModal.workout.exercises.length);
+  const handleFinishWorkout = async () => {
+    if (!execModal.workout) return;
+    
+    const workoutId = execModal.workout.id;
+    const totalExercises = execModal.workout.exercises.length;
+    const finalExerciseIdx = execModal.exerciseIdx;
+    
+    // Mark the final exercise as completed if it hasn't been marked yet
+    workoutStore.markExerciseCompleted(workoutId, finalExerciseIdx);
+    
+    // Check current progress to ensure all exercises are actually completed
+    const currentProgress = workoutStore.getProgress(workoutId);
+    const completedCount = currentProgress?.completedExercises?.length || 0;
+    
+    // Only mark as fully completed if all exercises are actually done
+    if (completedCount >= totalExercises) {
+      // Mark workout as completed in store
+      workoutStore.updateProgress(workoutId, totalExercises, totalExercises, true);
+      
+      // Update database assignment status
+      if (user?.id) {
+        try {
+          await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutId, 'completed');
+          console.log(`Workout ${workoutId} marked as completed in database`);
+        } catch (error) {
+          console.error('Error updating workout completion status:', error);
+        }
+      }
+    } else {
+      console.warn(`Workout ${workoutId} not fully completed: ${completedCount}/${totalExercises} exercises done`);
+      // Mark as in_progress instead
+      if (user?.id) {
+        try {
+          await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutId, 'in_progress');
+          console.log(`Workout ${workoutId} marked as in_progress in database`);
+        } catch (error) {
+          console.error('Error updating workout progress status:', error);
+        }
+      }
+    }
     
     // Close modal
     setExecModal({

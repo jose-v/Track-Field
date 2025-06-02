@@ -360,8 +360,8 @@ export function WorkoutCard({
                       : "Start Workout"}
                 </Button>
                 
-                {/* Reset Progress Button - Only show for athletes with started but incomplete workouts */}
-                {!isCoach && onReset && progress.completed > 0 && progress.completed < progress.total && (
+                {/* Reset Progress Button - Show for athletes with any progress */}
+                {!isCoach && onReset && progress.completed > 0 && (
                   <Button 
                     width="100%" 
                     variant="outline"

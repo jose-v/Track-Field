@@ -294,19 +294,51 @@ export function AthleteWorkouts() {
     // Mark the final exercise as completed if it hasn't been marked yet
     workoutStore.markExerciseCompleted(workoutId, finalExerciseIdx);
     
-    // Check if we need to trigger first workout completion feedback
-    const needsFirstWorkoutFeedback = !hasCompletedFirstWorkout;
+    // Check current progress to ensure all exercises are actually completed
+    const currentProgress = workoutStore.getProgress(workoutId);
+    const completedCount = currentProgress?.completedExercises?.length || 0;
     
-    // Mark workout as completed in store
-    workoutStore.updateProgress(workoutId, totalExercises, totalExercises, true);
-    
-    // Update database assignment status
-    if (user?.id) {
+    // Only mark as fully completed if all exercises are actually done
+    if (completedCount >= totalExercises) {
+      // Check if we need to trigger first workout completion feedback
+      const needsFirstWorkoutFeedback = !hasCompletedFirstWorkout;
+      
+      // Mark workout as completed in store
+      workoutStore.updateProgress(workoutId, totalExercises, totalExercises, true);
+      
+      // Update database assignment status
+      if (user?.id) {
+        try {
+          await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutId, 'completed');
+          console.log(`Workout ${workoutId} marked as completed in database`);
+        } catch (error) {
+          console.error('Error updating workout completion status:', error);
+        }
+      }
+      
+      // Trigger feedback if first workout
+      if (needsFirstWorkoutFeedback) {
+        setHasCompletedFirstWorkout(true);
+        localStorage.setItem('hasCompletedFirstWorkout', 'true');
+        triggerFeedback('first_success'); // Use correct FeedbackTrigger type
+      }
+      
+      // Handle integration service completion
       try {
-        await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutId, 'completed');
-        console.log(`Workout ${workoutId} marked as completed in database`);
+        await handleWorkoutCompletion(workoutId, user?.id!);
       } catch (error) {
-        console.error('Error updating workout completion status:', error);
+        console.error('Error handling workout completion:', error);
+      }
+    } else {
+      console.warn(`Workout ${workoutId} not fully completed: ${completedCount}/${totalExercises} exercises done`);
+      // Mark as in_progress instead
+      if (user?.id) {
+        try {
+          await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutId, 'in_progress');
+          console.log(`Workout ${workoutId} marked as in_progress in database`);
+        } catch (error) {
+          console.error('Error updating workout progress status:', error);
+        }
       }
     }
     
@@ -318,20 +350,6 @@ export function AthleteWorkouts() {
       timer: 0,
       running: false,
     });
-    
-    // Trigger feedback if first workout
-    if (needsFirstWorkoutFeedback) {
-      setHasCompletedFirstWorkout(true);
-      localStorage.setItem('hasCompletedFirstWorkout', 'true');
-      triggerFeedback('first_success'); // Use correct FeedbackTrigger type
-    }
-    
-    // Handle integration service completion
-    try {
-      await handleWorkoutCompletion(workoutId, user?.id!);
-    } catch (error) {
-      console.error('Error handling workout completion:', error);
-    }
   };
 
   const handleShowVideo = (exerciseName: string, videoUrl: string) => {

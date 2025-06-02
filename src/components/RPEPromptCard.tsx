@@ -60,27 +60,96 @@ export const RPEPromptCard: React.FC<RPEPromptCardProps> = ({ onLogComplete }) =
 
     setIsLoading(true);
     try {
-      // First, get athlete_workouts assignments (simplified query without embed)
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      // First, let's debug what athlete_workouts we have for this user
+      const { data: allAssignments, error: debugError } = await supabase
+        .from('athlete_workouts')
+        .select('id, athlete_id, workout_id, assigned_at, status, updated_at')
+        .eq('athlete_id', user.id)
+        .order('assigned_at', { ascending: false });
 
+      console.log('RPEPromptCard DEBUG: All user assignments:', allAssignments);
+
+      // Get completed workouts that don't have RPE ratings yet
       const { data: assignments, error: assignmentError } = await supabase
         .from('athlete_workouts')
-        .select('id, athlete_id, workout_id, assigned_at, status')
+        .select('id, athlete_id, workout_id, assigned_at, status, updated_at')
         .eq('athlete_id', user.id)
         .eq('status', 'completed') // Only get completed workouts
-        .gte('assigned_at', sevenDaysAgo.toISOString())
-        .order('assigned_at', { ascending: false })
-        .limit(5);
+        .order('updated_at', { ascending: false }) // Order by most recently updated
+        .limit(10); // Get more to filter for unrated ones
 
       if (assignmentError) throw assignmentError;
 
+      console.log('RPEPromptCard: Found completed workouts:', assignments?.length || 0, assignments);
+
       if (!assignments || assignments.length === 0) {
+        console.log('RPEPromptCard: No completed workouts found, checking if any exist with other statuses...');
+        
+        // Let's also check for any workouts that might be marked as in_progress but actually need rating
+        const { data: inProgressAssignments } = await supabase
+          .from('athlete_workouts')
+          .select('id, athlete_id, workout_id, assigned_at, status, updated_at')
+          .eq('athlete_id', user.id)
+          .eq('status', 'in_progress')
+          .limit(5);
+          
+        console.log('RPEPromptCard: In progress assignments:', inProgressAssignments);
+        
+        // TEMPORARY: If no completed workouts, let's try to show in_progress ones that might need rating
+        if (inProgressAssignments && inProgressAssignments.length > 0) {
+          console.log('RPEPromptCard: Using in_progress workouts as fallback');
+          
+          // Get workout details for in_progress workouts
+          const workoutIds = inProgressAssignments.map(a => a.workout_id);
+          const { data: workouts, error: workoutError } = await supabase
+            .from('workouts')
+            .select('id, name')
+            .in('id', workoutIds);
+
+          if (!workoutError && workouts) {
+            // Check which already have RPE ratings
+            const { data: existingRatings } = await supabase
+              .from('exercise_results')
+              .select('workout_id')
+              .in('workout_id', workoutIds)
+              .eq('athlete_id', user.id)
+              .eq('exercise_name', 'Workout RPE');
+
+            const ratedWorkoutIds = new Set(existingRatings?.map(r => r.workout_id) || []);
+            const workoutMap = new Map();
+            workouts.forEach(workout => {
+              workoutMap.set(workout.id, workout);
+            });
+
+            const fallbackWorkouts = inProgressAssignments
+              .filter(assignment => 
+                workoutMap.has(assignment.workout_id) && 
+                !ratedWorkoutIds.has(assignment.workout_id)
+              )
+              .map(assignment => ({
+                id: assignment.id,
+                scheduled_date: assignment.updated_at || assignment.assigned_at, // Use updated_at or assigned_at as date
+                completed_at: assignment.updated_at, // Use updated_at as completion indicator
+                workouts: workoutMap.get(assignment.workout_id)
+              }))
+              .slice(0, 3);
+              
+            if (fallbackWorkouts.length > 0) {
+              console.log('RPEPromptCard: Using fallback in_progress workouts:', fallbackWorkouts);
+              setPendingWorkouts(fallbackWorkouts);
+              setSelectedWorkout(fallbackWorkouts[0]);
+              setIsLoading(false);
+              return;
+            }
+          }
+        }
+        
         setPendingWorkouts([]);
+        setIsLoading(false);
         return;
       }
 
-      // Then get workout details separately to avoid relationship issues
+      // Get workout details
       const workoutIds = assignments.map(a => a.workout_id);
       const { data: workouts, error: workoutError } = await supabase
         .from('workouts')
@@ -88,6 +157,36 @@ export const RPEPromptCard: React.FC<RPEPromptCardProps> = ({ onLogComplete }) =
         .in('id', workoutIds);
 
       if (workoutError) throw workoutError;
+
+      // Check which assignments already have RPE ratings
+      const assignmentIds = assignments.map(a => a.id);
+      
+      console.log('RPEPromptCard: Checking for existing RPE ratings for workout IDs:', workoutIds);
+      
+      const { data: existingRatings, error: ratingsError } = await supabase
+        .from('exercise_results')
+        .select('workout_id, exercise_name, rpe_rating, created_at')
+        .in('workout_id', workoutIds)
+        .eq('athlete_id', user.id)
+        .eq('exercise_name', 'Workout RPE');
+
+      if (ratingsError) {
+        console.warn('Could not check for existing RPE ratings:', ratingsError);
+      }
+
+      console.log('RPEPromptCard: Existing RPE ratings found:', existingRatings?.length || 0, existingRatings);
+
+      // Create set of workout IDs that already have RPE ratings
+      const ratedWorkoutIds = new Set(existingRatings?.map(r => r.workout_id) || []);
+      console.log('RPEPromptCard: Rated workout IDs set:', Array.from(ratedWorkoutIds));
+
+      // Also check if there are ANY exercise_results for this user (debugging)
+      const { data: allResults } = await supabase
+        .from('exercise_results')
+        .select('workout_id, exercise_name, rpe_rating')
+        .eq('athlete_id', user.id)
+        .limit(10);
+      console.log('RPEPromptCard: All exercise_results for user:', allResults);
 
       // Create a map of workouts for quick lookup
       const workoutMap = new Map();
@@ -97,20 +196,27 @@ export const RPEPromptCard: React.FC<RPEPromptCardProps> = ({ onLogComplete }) =
         });
       }
 
-      // Combine the data manually
+      // Filter out workouts that already have RPE ratings and combine the data
       const pendingWorkoutsData = assignments
-        .filter(assignment => workoutMap.has(assignment.workout_id))
+        .filter(assignment => {
+          const hasWorkout = workoutMap.has(assignment.workout_id);
+          const hasRating = ratedWorkoutIds.has(assignment.workout_id);
+          console.log(`RPEPromptCard: Workout ${assignment.workout_id} - hasWorkout: ${hasWorkout}, hasRating: ${hasRating}`);
+          return hasWorkout && !hasRating;
+        })
         .map(assignment => ({
           id: assignment.id,
-          scheduled_date: assignment.assigned_at, // Use assigned_at as the date
-          completed_at: assignment.assigned_at, // Since status is 'completed'
+          scheduled_date: assignment.updated_at || assignment.assigned_at, // Use updated_at or assigned_at as date
+          completed_at: assignment.updated_at, // Use updated_at as completion indicator  
           workouts: workoutMap.get(assignment.workout_id)
         }))
-        .slice(0, 3); // Limit to 3 most recent
+        .slice(0, 3); // Limit to 3 most recent unrated
+
+      console.log('RPEPromptCard: Final unrated completed workouts:', pendingWorkoutsData.length, pendingWorkoutsData);
 
       setPendingWorkouts(pendingWorkoutsData);
       
-      // Auto-select the most recent workout
+      // Auto-select the first/most recent unrated workout
       if (pendingWorkoutsData.length > 0) {
         setSelectedWorkout(pendingWorkoutsData[0]);
       }
@@ -128,48 +234,53 @@ export const RPEPromptCard: React.FC<RPEPromptCardProps> = ({ onLogComplete }) =
 
     setIsLogging(true);
     try {
-      // Update the athlete_workouts record with RPE and notes
-      // Use notes field to store RPE since rpe_rating column may not exist
-      const { error } = await supabase
-        .from('athlete_workouts')
-        .update({ 
-          status: 'completed', // Ensure it's marked as completed
-          // Store RPE in a field that exists - using a JSON structure in notes for now
-        })
-        .eq('id', selectedWorkout.id);
+      console.log('RPEPromptCard: Logging RPE', selectedRPE, 'for workout', selectedWorkout.workouts?.id);
+      
+      const insertData = {
+        athlete_id: user.id,
+        workout_id: selectedWorkout.workouts?.id,
+        exercise_index: 0,
+        exercise_name: 'Workout RPE',
+        rpe_rating: selectedRPE,
+        notes: `Overall workout RPE: ${selectedRPE}/10`,
+        completed_at: new Date().toISOString()
+      };
+      
+      console.log('RPEPromptCard: Inserting data:', insertData);
+      
+      // Log the RPE rating in exercise_results table
+      const { data: insertedData, error: rpeError } = await supabase
+        .from('exercise_results')
+        .insert(insertData)
+        .select(); // Return the inserted data
 
-      if (error) {
-        console.warn('Could not update athlete_workouts directly, trying alternative approach:', error);
-        
-        // Alternative: Create a separate RPE log entry if the main update fails
-        const { error: rpeError } = await supabase
-          .from('exercise_results')
-          .insert({
-            athlete_id: user.id,
-            workout_id: selectedWorkout.workouts?.id,
-            exercise_index: 0,
-            exercise_name: 'Workout RPE',
-            rpe_rating: selectedRPE,
-            notes: `Overall workout RPE: ${selectedRPE}/10`,
-            completed_at: new Date().toISOString()
-          });
-
-        if (rpeError) {
-          throw new Error('Failed to log RPE using alternative method');
-        }
+      if (rpeError) {
+        console.error('RPEPromptCard: Error inserting RPE:', rpeError);
+        throw new Error('Failed to log RPE rating');
       }
 
+      console.log('RPEPromptCard: Successfully logged RPE rating, inserted data:', insertedData);
+
       toast({
-        title: 'RPE logged successfully!',
-        description: `${selectedWorkout.workouts?.name}: ${selectedRPE}/10`,
+        title: 'RPE rating logged successfully!',
+        description: `${selectedWorkout.workouts?.name}: ${selectedRPE}/10 RPE`,
         status: 'success',
         duration: 3000,
         isClosable: true,
       });
 
-      // Refresh pending workouts
-      fetchPendingWorkouts();
+      // Clear selected workout and RPE before refreshing
+      setSelectedWorkout(null);
       setSelectedRPE(null);
+      
+      // Add a small delay to ensure the database transaction is committed
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Refresh to remove the rated workout from the list
+      console.log('RPEPromptCard: Refreshing workout list after RPE log...');
+      await fetchPendingWorkouts();
+      
+      // Call completion callback if provided
       onLogComplete?.();
     } catch (error) {
       console.error('Error logging RPE:', error);
@@ -245,7 +356,7 @@ export const RPEPromptCard: React.FC<RPEPromptCardProps> = ({ onLogComplete }) =
             All caught up!
           </Text>
           <Text fontSize="sm" color={statLabelColor}>
-            No pending RPE ratings
+            No completed workouts need RPE ratings
           </Text>
         </VStack>
       </Box>
@@ -289,7 +400,7 @@ export const RPEPromptCard: React.FC<RPEPromptCardProps> = ({ onLogComplete }) =
         {/* Workout Selection */}
         <Box>
           <Text fontSize="sm" fontWeight="medium" color={statNumberColor} mb={2}>
-            Select Workout:
+            Select Completed Workout:
           </Text>
           <VStack spacing={2}>
             {pendingWorkouts.map((workout) => (
@@ -317,7 +428,7 @@ export const RPEPromptCard: React.FC<RPEPromptCardProps> = ({ onLogComplete }) =
                   <HStack spacing={1}>
                     <Icon as={FaClock} fontSize="xs" color={statLabelColor} />
                     <Text fontSize="xs" color={statLabelColor}>
-                      {workout.completed_at ? 'Completed' : 'Recent'}
+                      Completed
                     </Text>
                   </HStack>
                 </HStack>
