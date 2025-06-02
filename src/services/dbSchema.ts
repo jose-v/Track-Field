@@ -131,4 +131,30 @@ export interface CoachWithProfile extends Coach {
 
 export interface TeamManagerWithProfile extends TeamManager {
   profile: Profile;
+}
+
+// Monthly Plan types
+export interface MonthlyPlan {
+  id: string;
+  name: string;
+  description?: string;
+  coach_id: string;
+  month: number; // 1-12
+  year: number;
+  weeks: {
+    week_number: number;
+    workout_id: string;
+    is_rest_week: boolean;
+  }[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MonthlyPlanAssignment {
+  id: string;
+  monthly_plan_id: string;
+  athlete_id: string;
+  assigned_at: string;
+  status: 'assigned' | 'in_progress' | 'completed';
+  assigned_by: string;
 } 

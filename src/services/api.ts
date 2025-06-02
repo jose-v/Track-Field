@@ -32,6 +32,9 @@ export interface Workout {
   exercises?: Exercise[]
   location?: string
   template_type?: 'single' | 'weekly'
+  is_template?: boolean
+  template_category?: string
+  template_tags?: string[]
 }
 
 interface TeamPost {
@@ -198,99 +201,66 @@ export const api = {
           const workoutIds = assignments.map(a => a.workout_id);
           
           // Add a small delay to ensure database consistency (sometimes needed for Supabase)
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise(resolve => setTimeout(resolve, 100));
           
-          // Try to get assigned workouts
-          try {
-            const { data, error } = await supabase
-              .from('workouts')
-              .select('*')
-              .in('id', workoutIds);
-              
-            if (error) {
-              console.error('Error with IN query for assigned workouts:', error);
-            } else if (data && data.length > 0) {
-              console.log('Successfully retrieved', data.length, 'assigned workouts');
-              allWorkouts.push(...data);
-            }
-          } catch (inError) {
-            console.error('Exception with IN query:', inError);
+          const { data: assignedWorkouts, error: fetchError } = await supabase
+            .from('workouts')
+            .select('*')
+            .in('id', workoutIds);
+            
+          if (fetchError) {
+            console.error('Error fetching assigned workout details:', fetchError);
+            throw fetchError;
           }
-        }
-        
-        // Add created workouts to the list
-        if (createdWorkouts && createdWorkouts.length > 0) {
-          // Filter out duplicates (in case an athlete is assigned to their own workout)
-          const existingIds = new Set(allWorkouts.map(w => w.id));
-          const uniqueCreatedWorkouts = createdWorkouts.filter(w => !existingIds.has(w.id));
-          allWorkouts.push(...uniqueCreatedWorkouts);
-          console.log('Added', uniqueCreatedWorkouts.length, 'unique created workouts');
-        }
-        
-        // Create a map of workout IDs to assignment dates for proper sorting
-        const assignmentDateMap = new Map();
-        if (assignments) {
-          assignments.forEach(assignment => {
-            assignmentDateMap.set(assignment.workout_id, assignment.assigned_at);
+          
+          console.log(`Fetched ${assignedWorkouts?.length || 0} assigned workout details`);
+          
+          // Map assigned workouts with assignment dates and sort them
+          const workoutsWithAssignmentDate = (assignedWorkouts || []).map(workout => {
+            const assignment = assignments.find(a => a.workout_id === workout.id);
+            return {
+              ...workout,
+              assignedDate: assignment?.assigned_at || null
+            };
+          }).sort((a, b) => {
+            const getRelevantDate = (workout: any) => {
+              // For assigned workouts, use assignment date first, then creation date
+              return workout.assignedDate || workout.created_at;
+            };
+            
+            const dateA = new Date(getRelevantDate(a)).getTime();
+            const dateB = new Date(getRelevantDate(b)).getTime();
+            return dateB - dateA; // Most recent first
           });
+          
+          allWorkouts.push(...workoutsWithAssignmentDate);
         }
         
-        // Helper function to get the relevant date for sorting
-        const getRelevantDate = (workout: any) => {
-          // For assigned workouts, prefer assigned_at over created_at for sorting
-          // For created workouts, use created_at
-          return assignmentDateMap.get(workout.id) || workout.created_at || new Date(0);
-        };
+        // Handle created workouts (filter out any that were already included as assigned)
+        if (createdWorkouts && createdWorkouts.length > 0) {
+          const assignedWorkoutIds = new Set((assignments || []).map(a => a.workout_id));
+          const uniqueCreatedWorkouts = createdWorkouts.filter(workout => 
+            !assignedWorkoutIds.has(workout.id)
+          );
+          
+          console.log(`Found ${uniqueCreatedWorkouts.length} unique created workouts (not already assigned)`);
+          allWorkouts.push(...uniqueCreatedWorkouts);
+        }
         
-        // Sort all workouts by most relevant date (most recent first)
+        // Sort all workouts by most relevant date
         allWorkouts.sort((a, b) => {
+          const getRelevantDate = (workout: any) => {
+            // For assigned workouts, use assignment date first, then creation date
+            return workout.assignedDate || workout.created_at;
+          };
+          
           const dateA = new Date(getRelevantDate(a)).getTime();
           const dateB = new Date(getRelevantDate(b)).getTime();
           return dateB - dateA; // Most recent first
         });
         
-        // Ensure exercises is always an array (even if null/undefined in database)
-        const workoutsWithExercises = allWorkouts.map(workout => {
-          // Check exercises property
-          let exercises = [];
-          
-          if (workout.exercises) {
-            if (Array.isArray(workout.exercises)) {
-              exercises = workout.exercises;
-            } else if (typeof workout.exercises === 'object') {
-              // Try to convert object to array if it has values
-              const objValues = Object.values(workout.exercises);
-              if (objValues.length > 0) {
-                exercises = objValues;
-              }
-            } else if (typeof workout.exercises === 'string') {
-              // Try to parse JSON string
-              try {
-                const parsed = JSON.parse(workout.exercises);
-                if (Array.isArray(parsed)) {
-                  exercises = parsed;
-                } else if (typeof parsed === 'object') {
-                  const objValues = Object.values(parsed);
-                  if (objValues.length > 0) {
-                    exercises = objValues;
-                  }
-                }
-              } catch (e) {
-                console.error('Error parsing exercises JSON string:', e);
-              }
-            }
-          }
-          
-          console.log(`Workout ${workout.id} exercises:`, exercises);
-          
-          return {
-            ...workout,
-            exercises
-          };
-        });
-        
-        console.log('Returning', workoutsWithExercises.length, 'total workouts (assigned + created)');
-        return workoutsWithExercises;
+        console.log(`Returning ${allWorkouts.length} total workouts`);
+        return allWorkouts;
       } catch (error) {
         console.error('Error in getAssignedToAthlete:', error);
         throw error;
@@ -367,6 +337,92 @@ export const api = {
         console.error('Error in createEnhanced workout:', err);
         throw err;
       }
+    },
+
+    // Get template workouts for a specific coach
+    async getTemplates(coachId: string, templateType?: 'single' | 'weekly') {
+      let query = supabase
+        .from('workouts')
+        .select('*')
+        .eq('user_id', coachId)
+        .eq('is_template', true)
+        .order('created_at', { ascending: false });
+
+      if (templateType) {
+        query = query.eq('template_type', templateType);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+
+    // Convert workout to template
+    async convertToTemplate(workoutId: string, templateData: {
+      template_category?: string;
+      template_tags?: string[];
+    }) {
+      const { data, error } = await supabase
+        .from('workouts')
+        .update({
+          is_template: true,
+          template_category: templateData.template_category,
+          template_tags: templateData.template_tags
+        })
+        .eq('id', workoutId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    // Create workout from template
+    async createFromTemplate(templateId: string, workoutData: {
+      name?: string;
+      date?: string;
+      time?: string;
+      location?: string;
+      notes?: string;
+    }) {
+      // First get the template
+      const { data: template, error: templateError } = await supabase
+        .from('workouts')
+        .select('*')
+        .eq('id', templateId)
+        .eq('is_template', true)
+        .single();
+
+      if (templateError) throw templateError;
+      if (!template) throw new Error('Template not found');
+
+      // Create new workout from template
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const newWorkout = {
+        name: workoutData.name || `${template.name} - Copy`,
+        description: workoutData.notes || template.description,
+        user_id: user.id,
+        created_by: user.id,
+        exercises: template.exercises,
+        type: template.type,
+        template_type: template.template_type,
+        location: workoutData.location || template.location,
+        date: workoutData.date,
+        time: workoutData.time,
+        duration: template.duration,
+        is_template: false // This is not a template, it's a real workout
+      };
+
+      const { data, error } = await supabase
+        .from('workouts')
+        .insert([newWorkout])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
     },
   },
 
@@ -1630,6 +1686,185 @@ export const api = {
 
       if (error) throw error;
       return data || [];
+    }
+  },
+
+  monthlyPlans: {
+    // Get all monthly plans for a coach
+    async getByCoach(coachId: string) {
+      const { data, error } = await supabase
+        .from('monthly_plans')
+        .select('*')
+        .eq('coach_id', coachId)
+        .order('year', { ascending: false })
+        .order('month', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+
+    // Get a specific monthly plan by ID
+    async getById(monthlyPlanId: string) {
+      const { data, error } = await supabase
+        .from('monthly_plans')
+        .select('*')
+        .eq('id', monthlyPlanId)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    // Create a new monthly plan
+    async create(planData: {
+      name: string;
+      description?: string;
+      month: number;
+      year: number;
+      weeks: {
+        week_number: number;
+        workout_id: string;
+        is_rest_week: boolean;
+      }[];
+    }) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { data, error } = await supabase
+        .from('monthly_plans')
+        .insert([{
+          ...planData,
+          coach_id: user.id
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    // Update a monthly plan
+    async update(monthlyPlanId: string, updateData: any) {
+      const { data, error } = await supabase
+        .from('monthly_plans')
+        .update(updateData)
+        .eq('id', monthlyPlanId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    // Delete a monthly plan
+    async delete(monthlyPlanId: string) {
+      const { error } = await supabase
+        .from('monthly_plans')
+        .delete()
+        .eq('id', monthlyPlanId);
+
+      if (error) throw error;
+    },
+
+    // Get template workouts for monthly plan creation
+    async getTemplateWorkouts(coachId: string) {
+      const { data, error } = await supabase
+        .from('workouts')
+        .select('*')
+        .eq('user_id', coachId)
+        .eq('is_template', true)
+        .eq('template_type', 'weekly')
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    }
+  },
+
+  monthlyPlanAssignments: {
+    // Assign monthly plan to athletes
+    async assign(monthlyPlanId: string, athleteIds: string[]) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const assignments = athleteIds.map(athleteId => ({
+        monthly_plan_id: monthlyPlanId,
+        athlete_id: athleteId,
+        assigned_by: user.id,
+        status: 'assigned' as const
+      }));
+
+      const { data, error } = await supabase
+        .from('monthly_plan_assignments')
+        .insert(assignments)
+        .select();
+
+      if (error) throw error;
+      return data || [];
+    },
+
+    // Get assignments for a monthly plan
+    async getByPlan(monthlyPlanId: string) {
+      const { data, error } = await supabase
+        .from('monthly_plan_assignments')
+        .select(`
+          *,
+          profiles!athlete_id (
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        `)
+        .eq('monthly_plan_id', monthlyPlanId);
+
+      if (error) throw error;
+      return data || [];
+    },
+
+    // Get assignments for an athlete
+    async getByAthlete(athleteId: string) {
+      const { data, error } = await supabase
+        .from('monthly_plan_assignments')
+        .select(`
+          *,
+          monthly_plans (
+            id,
+            name,
+            description,
+            month,
+            year,
+            weeks
+          )
+        `)
+        .eq('athlete_id', athleteId)
+        .order('assigned_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+
+    // Update assignment status
+    async updateStatus(assignmentId: string, status: 'assigned' | 'in_progress' | 'completed') {
+      const { data, error } = await supabase
+        .from('monthly_plan_assignments')
+        .update({ status })
+        .eq('id', assignmentId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    // Remove assignment
+    async remove(assignmentId: string) {
+      const { error } = await supabase
+        .from('monthly_plan_assignments')
+        .delete()
+        .eq('id', assignmentId);
+
+      if (error) throw error;
     }
   }
 } 

@@ -1,0 +1,336 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton,
+  VStack, HStack, FormControl, FormLabel, Input, Textarea, Select, Button,
+  Text, useToast, useColorModeValue, Divider, Box, Alert, AlertIcon,
+  FormErrorMessage, Badge, Icon
+} from '@chakra-ui/react';
+import { FaCalendarAlt, FaSave, FaTimes } from 'react-icons/fa';
+import { WeeklyWorkoutSelector } from './WeeklyWorkoutSelector';
+import { api } from '../services/api';
+import type { Workout } from '../services/api';
+
+interface MonthlyPlanCreatorProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess?: () => void;
+  editingPlan?: any; // For future editing functionality
+}
+
+const CURRENT_YEAR = new Date().getFullYear();
+const MONTHS = [
+  { value: 1, name: 'January' },
+  { value: 2, name: 'February' },
+  { value: 3, name: 'March' },
+  { value: 4, name: 'April' },
+  { value: 5, name: 'May' },
+  { value: 6, name: 'June' },
+  { value: 7, name: 'July' },
+  { value: 8, name: 'August' },
+  { value: 9, name: 'September' },
+  { value: 10, name: 'October' },
+  { value: 11, name: 'November' },
+  { value: 12, name: 'December' }
+];
+
+export function MonthlyPlanCreator({
+  isOpen,
+  onClose,
+  onSuccess,
+  editingPlan
+}: MonthlyPlanCreatorProps) {
+  const toast = useToast();
+  const titleColor = useColorModeValue('gray.800', 'gray.100');
+  const infoColor = useColorModeValue('gray.600', 'gray.200');
+
+  // Form state
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    month: new Date().getMonth() + 1, // Current month
+    year: CURRENT_YEAR,
+    weeks: [
+      { week_number: 1, workout_id: '', is_rest_week: false },
+      { week_number: 2, workout_id: '', is_rest_week: false },
+      { week_number: 3, workout_id: '', is_rest_week: false },
+      { week_number: 4, workout_id: '', is_rest_week: false }
+    ]
+  });
+
+  // UI state
+  const [loading, setLoading] = useState(false);
+  const [availableWorkouts, setAvailableWorkouts] = useState<Workout[]>([]);
+  const [workoutsLoading, setWorkoutsLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Load available weekly workout templates
+  useEffect(() => {
+    if (isOpen) {
+      loadAvailableWorkouts();
+      resetForm();
+    }
+  }, [isOpen]);
+
+  const loadAvailableWorkouts = async () => {
+    try {
+      setWorkoutsLoading(true);
+      const profile = await api.profile.get();
+      const workouts = await api.workouts.getTemplates(profile.id, 'weekly');
+      setAvailableWorkouts(workouts);
+    } catch (error) {
+      console.error('Error loading workout templates:', error);
+      toast({
+        title: 'Error loading workout templates',
+        description: 'Please try again later.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true
+      });
+    } finally {
+      setWorkoutsLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    if (!editingPlan) {
+      setFormData({
+        name: '',
+        description: '',
+        month: new Date().getMonth() + 1,
+        year: CURRENT_YEAR,
+        weeks: [
+          { week_number: 1, workout_id: '', is_rest_week: false },
+          { week_number: 2, workout_id: '', is_rest_week: false },
+          { week_number: 3, workout_id: '', is_rest_week: false },
+          { week_number: 4, workout_id: '', is_rest_week: false }
+        ]
+      });
+    }
+    setErrors({});
+  };
+
+  // Validation
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'Plan name is required';
+    }
+
+    if (formData.month < 1 || formData.month > 12) {
+      newErrors.month = 'Please select a valid month';
+    }
+
+    if (formData.year < CURRENT_YEAR) {
+      newErrors.year = 'Year cannot be in the past';
+    }
+
+    // Check that non-rest weeks have workouts selected
+    const trainingWeeks = formData.weeks.filter(w => !w.is_rest_week);
+    const incompleteWeeks = trainingWeeks.filter(w => !w.workout_id);
+    
+    if (incompleteWeeks.length > 0) {
+      newErrors.weeks = `Please select workouts for all training weeks (Week${incompleteWeeks.length > 1 ? 's' : ''} ${incompleteWeeks.map(w => w.week_number).join(', ')})`;
+    }
+
+    if (formData.weeks.length === 0) {
+      newErrors.weeks = 'At least one week is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Handle form submission
+  const handleSubmit = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const planData = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        month: formData.month,
+        year: formData.year,
+        weeks: formData.weeks.map(week => ({
+          week_number: week.week_number,
+          workout_id: week.is_rest_week ? '' : week.workout_id,
+          is_rest_week: week.is_rest_week
+        }))
+      };
+
+      const result = await api.monthlyPlans.create(planData);
+
+      toast({
+        title: 'Monthly plan created successfully!',
+        description: `"${planData.name}" has been created for ${MONTHS.find(m => m.value === planData.month)?.name} ${planData.year}`,
+        status: 'success',
+        duration: 5000,
+        isClosable: true
+      });
+
+      onSuccess?.();
+      onClose();
+    } catch (error) {
+      console.error('Error creating monthly plan:', error);
+      toast({
+        title: 'Error creating monthly plan',
+        description: error instanceof Error ? error.message : 'Please try again later.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (!loading) {
+      onClose();
+    }
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={handleClose} size="4xl" scrollBehavior="inside">
+      <ModalOverlay />
+      <ModalContent>
+        <ModalHeader>
+          <HStack spacing={3}>
+            <Icon as={FaCalendarAlt} color="teal.500" boxSize={6} />
+            <Text color={titleColor}>
+              {editingPlan ? 'Edit Monthly Plan' : 'Create Monthly Plan'}
+            </Text>
+          </HStack>
+        </ModalHeader>
+        <ModalCloseButton isDisabled={loading} />
+
+        <ModalBody>
+          <VStack spacing={6} align="stretch">
+            {/* Basic Information */}
+            <Box>
+              <Text fontSize="lg" fontWeight="semibold" color={titleColor} mb={4}>
+                Plan Details
+              </Text>
+              
+              <VStack spacing={4} align="stretch">
+                <FormControl isInvalid={!!errors.name}>
+                  <FormLabel>Plan Name</FormLabel>
+                  <Input
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g., January Training Block"
+                    disabled={loading}
+                  />
+                  <FormErrorMessage>{errors.name}</FormErrorMessage>
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel>Description (Optional)</FormLabel>
+                  <Textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Describe the goals and focus of this monthly plan..."
+                    rows={3}
+                    disabled={loading}
+                  />
+                </FormControl>
+
+                <HStack spacing={4}>
+                  <FormControl isInvalid={!!errors.month}>
+                    <FormLabel>Month</FormLabel>
+                    <Select
+                      value={formData.month}
+                      onChange={(e) => setFormData({ ...formData, month: parseInt(e.target.value) })}
+                      disabled={loading}
+                    >
+                      {MONTHS.map(month => (
+                        <option key={month.value} value={month.value}>
+                          {month.name}
+                        </option>
+                      ))}
+                    </Select>
+                    <FormErrorMessage>{errors.month}</FormErrorMessage>
+                  </FormControl>
+
+                  <FormControl isInvalid={!!errors.year}>
+                    <FormLabel>Year</FormLabel>
+                    <Select
+                      value={formData.year}
+                      onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) })}
+                      disabled={loading}
+                    >
+                      {[CURRENT_YEAR, CURRENT_YEAR + 1, CURRENT_YEAR + 2].map(year => (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      ))}
+                    </Select>
+                    <FormErrorMessage>{errors.year}</FormErrorMessage>
+                  </FormControl>
+                </HStack>
+              </VStack>
+            </Box>
+
+            <Divider />
+
+            {/* Weekly Schedule */}
+            <Box>
+              <VStack align="stretch" spacing={4}>
+                <HStack justify="space-between" align="center">
+                  <Text fontSize="lg" fontWeight="semibold" color={titleColor}>
+                    Weekly Schedule
+                  </Text>
+                  <Badge colorScheme="teal" px={3} py={1} borderRadius="md">
+                    {MONTHS.find(m => m.value === formData.month)?.name} {formData.year}
+                  </Badge>
+                </HStack>
+
+                {errors.weeks && (
+                  <Alert status="error" borderRadius="md">
+                    <AlertIcon />
+                    {errors.weeks}
+                  </Alert>
+                )}
+
+                <WeeklyWorkoutSelector
+                  weeks={formData.weeks}
+                  availableWorkouts={availableWorkouts}
+                  loading={workoutsLoading}
+                  onChange={(weeks) => setFormData({ ...formData, weeks })}
+                  maxWeeks={6}
+                />
+              </VStack>
+            </Box>
+          </VStack>
+        </ModalBody>
+
+        <ModalFooter>
+          <HStack spacing={3}>
+            <Button
+              variant="ghost"
+              onClick={handleClose}
+              disabled={loading}
+            >
+              <Icon as={FaTimes} mr={2} />
+              Cancel
+            </Button>
+            <Button
+              colorScheme="teal"
+              onClick={handleSubmit}
+              isLoading={loading}
+              loadingText="Creating..."
+              disabled={loading}
+            >
+              <Icon as={FaSave} mr={2} />
+              {editingPlan ? 'Update Plan' : 'Create Plan'}
+            </Button>
+          </HStack>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+} 
