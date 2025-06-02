@@ -348,7 +348,7 @@ export const api = {
             .from('workouts')
             .update({ 
               exercises: workoutData.weekly_plan,
-              description: `${workoutData.description || ''}\n\n[WEEKLY_PLAN_DATA]` 
+              description: workoutData.description
             })
             .eq('id', createdWorkout.id);
             

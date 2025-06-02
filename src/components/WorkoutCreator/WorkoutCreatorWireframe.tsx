@@ -545,7 +545,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
         time: time,
         duration: duration,
         location: location,
-        description: `${templateType === 'weekly' ? 'Weekly training plan' : 'Single day workout'} created with Workout Creator`,
+        description: templateType === 'weekly' ? 'Weekly Training Plan' : 'Single Day Workout',
         exercises: templateType === 'single' ? (selectedExercises.monday || []) : [],
         weekly_plan: templateType === 'weekly' ? Object.keys(selectedExercises).map(day => ({
           day,

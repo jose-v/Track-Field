@@ -31,12 +31,11 @@ export function getTypeColor(type: string | undefined) {
 }
 
 export function getTypeName(type: string | undefined) {
-  return type || 'General';
+  return type || 'Workout';
 }
 
 export function formatDate(dateStr: string | undefined) {
-  if (!dateStr) return 'N/A';
-  
+  if (!dateStr) return 'No date set';
   try {
     // Use our date utilities to properly handle timezone issues
     return dateUtils.format(dateUtils.parseLocalDate(dateStr), 'MMM d, yyyy');
@@ -44,6 +43,32 @@ export function formatDate(dateStr: string | undefined) {
     console.error(`Error formatting date: ${dateStr}`, e);
     return 'Error';
   }
+}
+
+// Helper function to extract exercises from weekly workout
+function getExercisesFromWorkout(workout: Workout): Exercise[] {
+  // If it's a regular workout with exercises array
+  if (workout.exercises && Array.isArray(workout.exercises)) {
+    // Check if it's a weekly plan structure (array of day objects)
+    if (workout.exercises.length > 0 && 
+        typeof workout.exercises[0] === 'object' && 
+        'day' in workout.exercises[0] && 
+        'exercises' in workout.exercises[0]) {
+      // It's a weekly plan structure - flatten all exercises from all days
+      const weeklyPlan = workout.exercises as any[];
+      return weeklyPlan.reduce((allExercises: Exercise[], dayPlan: any) => {
+        if (dayPlan.exercises && Array.isArray(dayPlan.exercises) && !dayPlan.isRestDay) {
+          return [...allExercises, ...dayPlan.exercises];
+        }
+        return allExercises;
+      }, []);
+    } else {
+      // It's a regular exercise array
+      return workout.exercises;
+    }
+  }
+  
+  return [];
 }
 
 interface WorkoutCardProps {
@@ -100,8 +125,12 @@ export function WorkoutCard({
   // Get formatted date
   const formattedScheduleDate = formatDate(workout.date);
   
+  // Extract exercises properly (handles both regular and weekly workouts)
+  const displayExercises = getExercisesFromWorkout(workout);
+  
   // Log the raw date to help with debugging
   console.log(`WorkoutCard - Raw date: ${workout.date}, Formatted: ${formattedScheduleDate}`);
+  console.log(`WorkoutCard - Exercises:`, displayExercises);
 
   return (
     <Card 
@@ -246,18 +275,18 @@ export function WorkoutCard({
               <Flex align="center" mb={2}>
                 <Icon as={FaTasks} mr={2} color={typeColor} boxSize={4} />
                 <Text fontSize="md" fontWeight="medium" color={exerciseTextColor}>
-                  Exercises: {workout.exercises?.length || 0}
+                  Exercises: {displayExercises.length}
                 </Text>
               </Flex>
-              {workout.exercises && workout.exercises.length > 0 && (
+              {displayExercises.length > 0 && (
                 <Box maxH="100px" overflowY="auto" fontSize="sm" color={infoColor} pl={6}>
-                  {workout.exercises.slice(0, 3).map((ex, idx) => (
+                  {displayExercises.slice(0, 3).map((ex, idx) => (
                     <Text key={idx} noOfLines={1} mb={1} color={exerciseTextColor}>
                       • {ex.name} ({ex.sets}×{ex.reps})
                     </Text>
                   ))}
-                  {workout.exercises.length > 3 && (
-                    <Text fontStyle="italic" color={exerciseTextColor}>+{workout.exercises.length - 3} more...</Text>
+                  {displayExercises.length > 3 && (
+                    <Text fontStyle="italic" color={exerciseTextColor}>+{displayExercises.length - 3} more...</Text>
                   )}
                 </Box>
               )}
