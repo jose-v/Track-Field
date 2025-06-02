@@ -263,6 +263,22 @@ export function AthleteWorkouts() {
     }));
   };
 
+  const handlePreviousExercise = () => {
+    const workoutId = execModal.workout!.id;
+    const exIdx = execModal.exerciseIdx;
+    
+    // Only allow going back if not on the first exercise
+    if (exIdx > 0) {
+      // Reset run time for previous exercise
+      setExecModal(prev => ({
+        ...prev,
+        exerciseIdx: exIdx - 1,
+        timer: 0,
+        running: false, // Pause when going back
+      }));
+    }
+  };
+
   const handleFinishWorkout = async () => {
     if (!execModal.workout) return;
     
@@ -655,6 +671,7 @@ export function AthleteWorkouts() {
           onUpdateTimer={handleUpdateTimer}
           onUpdateRunning={handleUpdateRunning}
           onNextExercise={handleNextExercise}
+          onPreviousExercise={handlePreviousExercise}
           onFinishWorkout={handleFinishWorkout}
           onShowVideo={handleShowVideo}
         />

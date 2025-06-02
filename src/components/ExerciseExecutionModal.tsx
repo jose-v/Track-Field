@@ -18,7 +18,7 @@ import {
   useToast
 } from '@chakra-ui/react';
 import { FaRegClock, FaRunning, FaPlayCircle } from 'react-icons/fa';
-import { CheckIcon } from '@chakra-ui/icons';
+import { CheckIcon, ChevronLeftIcon } from '@chakra-ui/icons';
 import { RunTimeInput } from './RunTimeInput';
 import { isRunExercise, validateTime } from '../utils/exerciseUtils';
 import { api } from '../services/api';
@@ -50,6 +50,7 @@ interface ExerciseExecutionModalProps {
   onUpdateTimer: (timer: number) => void;
   onUpdateRunning: (running: boolean) => void;
   onNextExercise: () => void;
+  onPreviousExercise: () => void;
   onFinishWorkout: () => void;
   onShowVideo: (exerciseName: string, videoUrl: string) => void;
 }
@@ -83,6 +84,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
   onUpdateTimer,
   onUpdateRunning,
   onNextExercise,
+  onPreviousExercise,
   onFinishWorkout,
   onShowVideo
 }) => {
@@ -466,6 +468,25 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
             {/* Action Buttons */}
             <VStack spacing={4} width="100%">
               <HStack spacing={3} width="100%" justify="center">
+                {/* Previous Button - Only show if not on first exercise */}
+                {exerciseIdx > 0 && (
+                  <Button 
+                    colorScheme="gray" 
+                    size="lg"
+                    leftIcon={<Icon as={ChevronLeftIcon} />} 
+                    onClick={onPreviousExercise}
+                    borderRadius="xl"
+                    px={6}
+                    py={6}
+                    fontWeight="semibold"
+                    boxShadow="lg"
+                    _hover={{ transform: 'translateY(-2px)', boxShadow: 'xl' }}
+                    transition="all 0.2s"
+                  >
+                    Previous
+                  </Button>
+                )}
+
                 {running ? (
                   <Button 
                     colorScheme="yellow" 

@@ -205,6 +205,21 @@ export function Dashboard() {
     }));
   };
 
+  const handlePreviousExercise = () => {
+    const exIdx = execModal.exerciseIdx;
+    
+    // Only allow going back if not on the first exercise
+    if (exIdx > 0) {
+      // Reset timer and pause when going back
+      setExecModal(prev => ({
+        ...prev,
+        exerciseIdx: exIdx - 1,
+        timer: 0,
+        running: false, // Pause when going back
+      }));
+    }
+  };
+
   const handleFinishWorkout = () => {
     // Workout completed
     workoutStore.updateProgress(execModal.workout.id, execModal.workout.exercises.length, execModal.workout.exercises.length);
@@ -626,6 +641,7 @@ export function Dashboard() {
           onUpdateTimer={handleUpdateTimer}
           onUpdateRunning={handleUpdateRunning}
           onNextExercise={handleNextExercise}
+          onPreviousExercise={handlePreviousExercise}
           onFinishWorkout={handleFinishWorkout}
           onShowVideo={handleShowVideo}
         />
