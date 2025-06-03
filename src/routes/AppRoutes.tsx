@@ -14,8 +14,8 @@ import RoleDashboardRouter from '../pages/RoleDashboardRouter';
 import Loop from '../pages/Loop';
 import LoopRouteWrapper from '../pages/LoopRouteWrapper';
 import WorkoutCreatorDemo from '../pages/WorkoutCreatorDemo';
-import Account from '../pages/Account';
 import { Meets } from '../pages/Meets';
+import Account from '../pages/Account';
 
 // Coach pages
 import { CoachDashboard } from '../pages/coach/Dashboard';
@@ -27,7 +27,6 @@ import { ImportWorkout } from '../pages/coach/ImportWorkout';
 import { EditWorkout } from '../pages/coach/EditWorkout';
 import { Calendar as CoachCalendar } from '../pages/coach/Calendar';
 import CoachProfile from "../pages/coach/Profile";
-import { CoachMeets } from '../pages/coach/Meets';
 import { CoachMonthlyPlans } from '../pages/coach/MonthlyPlans';
 
 // Athlete pages
@@ -41,7 +40,6 @@ import { Sleep } from '../pages/athlete/Sleep';
 import { Calendar as AthleteCalendar } from '../pages/athlete/Calendar';
 import AthleteProfile from "../pages/athlete/Profile";
 import Analytics from '../pages/Analytics';
-import { AthleteMeets } from '../pages/athlete/Meets';
 
 // Features
 import { GamificationTestPage } from '../features/gamification';
@@ -103,7 +101,7 @@ export default function AppRoutes() {
         <Route path="/coach/workout-creator" element={<PrivateRoute><WorkoutCreatorDemo /></PrivateRoute>} />
         <Route path="/coach/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
         <Route path="/account" element={<PrivateRoute><Account /></PrivateRoute>} />
-        <Route path="/coach/meets" element={<PrivateRoute><CoachMeets /></PrivateRoute>} />
+        <Route path="/coach/meets" element={<PrivateRoute><Meets /></PrivateRoute>} />
         <Route path="/coach/monthly-plans" element={<PrivateRoute><CoachMonthlyPlans /></PrivateRoute>} />
       </Route>
 
@@ -123,7 +121,7 @@ export default function AppRoutes() {
         <Route path="/athlete/workout-creator" element={<PrivateRoute><WorkoutCreatorDemo /></PrivateRoute>} />
         <Route path="/athlete/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
         <Route path="/account" element={<PrivateRoute><Account /></PrivateRoute>} />
-        <Route path="/athlete/meets" element={<PrivateRoute><AthleteMeets /></PrivateRoute>} />
+        <Route path="/athlete/meets" element={<PrivateRoute><Meets /></PrivateRoute>} />
       </Route>
 
       {/* Loop Feature Routes (Accessible to both coaches and athletes) */}

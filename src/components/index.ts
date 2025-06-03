@@ -32,6 +32,9 @@ export { RunTimeInput } from './RunTimeInput';
 export { ExerciseExecutionModal } from './ExerciseExecutionModal';
 export { default as WorkoutCreatorNavigation } from './WorkoutCreatorNavigation';
 
+// Meets components
+export { MinimalistMeetsView } from './meets/MinimalistMeetsView';
+
 // Quick Log Components
 export { default as SleepQuickLogCard } from './SleepQuickLogCard';
 export { default as WellnessQuickLogCard } from './WellnessQuickLogCard';

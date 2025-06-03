@@ -1,5 +1,5 @@
 import { ReactNode, useState, useEffect } from 'react'
-import { ChakraProvider, useColorMode } from '@chakra-ui/react'
+import { ChakraProvider, useColorMode, Box, Spinner } from '@chakra-ui/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth } from '../contexts/AuthContext'
 import { GamificationProvider } from '../contexts/GamificationContext'
@@ -44,12 +44,29 @@ const ColorModeManager = ({ children }: { children: ReactNode }) => {
     }
   }, [user, loading, setColorMode, hasInitialized])
 
-  // Don't render children until auth state is determined to avoid flicker
-  if (loading) {
-    return null
-  }
-
-  return <>{children}</>
+  // Render children with loading overlay instead of conditional mounting
+  // This prevents the component tree from unmounting/remounting which causes hooks order violations
+  return (
+    <>
+      {children}
+      {loading && (
+        <Box
+          position="fixed"
+          top={0}
+          left={0}
+          right={0}
+          bottom={0}
+          bg="rgba(0, 0, 0, 0.5)"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          zIndex={9999}
+        >
+          <Spinner size="xl" color="blue.500" />
+        </Box>
+      )}
+    </>
+  )
 }
 
 export const RootProviders = ({ children }: { children: ReactNode }) => (

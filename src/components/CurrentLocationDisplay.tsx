@@ -1,11 +1,47 @@
 import React, { useState, useEffect } from 'react';
 import { Text, Spinner } from '@chakra-ui/react';
-import { useUserHomeLocation } from '../services/travelTime';
 
 export const CurrentLocationDisplay: React.FC = () => {
-  const homeLocation = useUserHomeLocation();
+  const [homeLocation, setHomeLocation] = useState<any>(null);
   const [locationText, setLocationText] = useState<string>('');
   const [loading, setLoading] = useState(false);
+
+  // Get home location directly from localStorage instead of using the hook
+  useEffect(() => {
+    const getHomeLocation = () => {
+      try {
+        const stored = localStorage.getItem('userHomeLocation');
+        return stored ? JSON.parse(stored) : null;
+      } catch (error) {
+        console.warn('Failed to get home location:', error);
+        return null;
+      }
+    };
+
+    // Initial load
+    setHomeLocation(getHomeLocation());
+
+    // Listen for storage changes from other tabs/windows
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'userHomeLocation') {
+        const newLocation = e.newValue ? JSON.parse(e.newValue) : null;
+        setHomeLocation(newLocation);
+      }
+    };
+
+    // Custom event listener for same-tab updates
+    const handleLocationUpdate = (e: CustomEvent) => {
+      setHomeLocation(e.detail);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('userHomeLocationChanged', handleLocationUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userHomeLocationChanged', handleLocationUpdate as EventListener);
+    };
+  }, []);
 
   useEffect(() => {
     if (!homeLocation) {

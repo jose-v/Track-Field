@@ -8,7 +8,7 @@ import {
   Box
 } from '@chakra-ui/react';
 import { FaCar, FaPlane } from 'react-icons/fa';
-import { calculateTravelTimes, getUserLocation, geocodeLocation, geocodeLocationFallback, useUserHomeLocation, setUserHomeLocation } from '../services/travelTime';
+import { calculateTravelTimes, getUserLocation, geocodeLocation, geocodeLocationFallback, setUserHomeLocation } from '../services/travelTime';
 
 // Check if we're in development mode - more browser compatible
 const isDev = import.meta.env.DEV;
@@ -35,11 +35,48 @@ export const TravelTimeDisplay: React.FC<TravelTimeDisplayProps> = ({
   const [travelTimes, setTravelTimes] = useState<TravelTimeData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const homeLocation = useUserHomeLocation();
+  const [homeLocation, setHomeLocation] = useState<any>(null);
   
   const textColor = useColorModeValue('gray.600', 'gray.400');
   const iconSize = size === 'sm' ? '12px' : '16px';
   const fontSize = size === 'sm' ? 'xs' : 'sm';
+
+  // Get home location directly from localStorage instead of using the hook
+  useEffect(() => {
+    const getHomeLocation = () => {
+      try {
+        const stored = localStorage.getItem('userHomeLocation');
+        return stored ? JSON.parse(stored) : null;
+      } catch (error) {
+        console.warn('Failed to get home location:', error);
+        return null;
+      }
+    };
+
+    // Initial load
+    setHomeLocation(getHomeLocation());
+
+    // Listen for storage changes from other tabs/windows
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'userHomeLocation') {
+        const newLocation = e.newValue ? JSON.parse(e.newValue) : null;
+        setHomeLocation(newLocation);
+      }
+    };
+
+    // Custom event listener for same-tab updates
+    const handleLocationUpdate = (e: CustomEvent) => {
+      setHomeLocation(e.detail);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('userHomeLocationChanged', handleLocationUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userHomeLocationChanged', handleLocationUpdate as EventListener);
+    };
+  }, []);
 
   useEffect(() => {
     const calculateTimes = async () => {
@@ -145,19 +182,35 @@ export const TravelTimeDisplay: React.FC<TravelTimeDisplayProps> = ({
     return null;
   }
 
+  const showFlight = travelTimes.distance > 100;
+
   return (
     <HStack spacing={3} fontSize={fontSize} color={textColor}>
-      <Tooltip label={`Driving distance: ${travelTimes.distance} miles`}>
-        <HStack spacing={1}>
-          <Box as={FaCar} color="blue.500" boxSize={iconSize} />
+      {/* Driving Time */}
+      <Tooltip 
+        label={`Estimated driving time: ${travelTimes.driving}`}
+        placement="top"
+        openDelay={500}
+      >
+        <HStack spacing={1} cursor="pointer">
+          <Box w={iconSize} h={iconSize} color="blue.500">
+            <FaCar size={iconSize} />
+          </Box>
           <Text fontWeight="medium">{travelTimes.driving}</Text>
         </HStack>
       </Tooltip>
       
-      {travelTimes.distance > 100 && ( // Only show flying time for longer distances
-        <Tooltip label={`Flying time (including airport time)`}>
-          <HStack spacing={1}>
-            <Box as={FaPlane} color="green.500" boxSize={iconSize} />
+      {/* Flying Time (only if >100 miles) */}
+      {showFlight && (
+        <Tooltip 
+          label={`Estimated flight time: ${travelTimes.flying}`}
+          placement="top"
+          openDelay={500}
+        >
+          <HStack spacing={1} cursor="pointer">
+            <Box w={iconSize} h={iconSize} color="green.500">
+              <FaPlane size={iconSize} />
+            </Box>
             <Text fontWeight="medium">{travelTimes.flying}</Text>
           </HStack>
         </Tooltip>
