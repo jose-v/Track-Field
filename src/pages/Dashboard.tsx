@@ -62,7 +62,7 @@ function formatDateForComparison(dateStr: string | undefined): string {
 
 // Function to get meal type text for nutrition records
 function getMealTypeText(mealType: string): string {
-  switch (mealType) {
+  switch (mealType?.toLowerCase()) {
     case 'breakfast': return 'Breakfast';
     case 'lunch': return 'Lunch';
     case 'dinner': return 'Dinner';
@@ -72,22 +72,36 @@ function getMealTypeText(mealType: string): string {
 }
 
 // Create a skeleton card component for loading states
-const SkeletonCard = ({ height = "330px" }: { height?: string }) => (
+const SkeletonCard = ({ 
+  height = "330px",
+  cardBg,
+  borderColor, 
+  cardShadow,
+  skeletonStartColor,
+  skeletonEndColor
+}: { 
+  height?: string;
+  cardBg: string;
+  borderColor: string;
+  cardShadow: string;
+  skeletonStartColor: string;
+  skeletonEndColor: string;
+}) => (
   <Box
-    bg={useColorModeValue('white', 'gray.800')}
+    bg={cardBg}
     borderRadius="xl"
     p={6}
     border="1px solid"
-    borderColor={useColorModeValue('gray.200', 'gray.700')}
-    boxShadow={useColorModeValue('none', 'lg')}
+    borderColor={borderColor}
+    boxShadow={cardShadow}
     h={height}
   >
     <Skeleton 
       height="80px" 
       borderRadius="lg"
       mb={4}
-      startColor={useColorModeValue('gray.200', 'gray.700')}
-      endColor={useColorModeValue('gray.300', 'gray.600')}
+      startColor={skeletonStartColor}
+      endColor={skeletonEndColor}
     />
     <VStack spacing={4} align="stretch">
       <SkeletonText 
@@ -96,30 +110,30 @@ const SkeletonCard = ({ height = "330px" }: { height?: string }) => (
         spacing="2" 
         skeletonHeight="4" 
         width="60%" 
-        startColor={useColorModeValue('gray.200', 'gray.700')}
-        endColor={useColorModeValue('gray.300', 'gray.600')}
+        startColor={skeletonStartColor}
+        endColor={skeletonEndColor}
       />
       <VStack spacing={3} align="stretch">
         <Skeleton 
           height="16px" 
           width="100%" 
           borderRadius="md"
-          startColor={useColorModeValue('gray.200', 'gray.700')}
-          endColor={useColorModeValue('gray.300', 'gray.600')}
+          startColor={skeletonStartColor}
+          endColor={skeletonEndColor}
         />
         <Skeleton 
           height="16px" 
           width="90%" 
           borderRadius="md"
-          startColor={useColorModeValue('gray.200', 'gray.700')}
-          endColor={useColorModeValue('gray.300', 'gray.600')}
+          startColor={skeletonStartColor}
+          endColor={skeletonEndColor}
         />
         <Skeleton 
           height="16px" 
           width="75%" 
           borderRadius="md"
-          startColor={useColorModeValue('gray.200', 'gray.700')}
-          endColor={useColorModeValue('gray.300', 'gray.600')}
+          startColor={skeletonStartColor}
+          endColor={skeletonEndColor}
         />
         <Skeleton 
           height="40px" 
@@ -127,8 +141,8 @@ const SkeletonCard = ({ height = "330px" }: { height?: string }) => (
           borderRadius="lg"
           mx="auto"
           mt={4}
-          startColor={useColorModeValue('gray.200', 'gray.700')}
-          endColor={useColorModeValue('gray.300', 'gray.600')}
+          startColor={skeletonStartColor}
+          endColor={skeletonEndColor}
         />
       </VStack>
     </VStack>
@@ -435,6 +449,14 @@ export function Dashboard() {
   const cardShadow = useColorModeValue('none', 'md')
   const cardShadowLg = useColorModeValue('none', 'lg')
   const cardShadowSm = useColorModeValue('none', 'sm')
+  const skeletonStartColor = useColorModeValue('gray.200', 'gray.700')
+  const skeletonEndColor = useColorModeValue('gray.300', 'gray.600')
+  const dashboardBg = useColorModeValue('gray.50', 'gray.900')
+  const textColor = useColorModeValue('gray.800', 'white')
+  const subtextColor = useColorModeValue('gray.600', 'gray.200')
+  const headingColor = useColorModeValue('gray.800', 'gray.100')
+  const cardTextColor = useColorModeValue('gray.900', 'gray.100')
+  const cardSubtextColor = useColorModeValue('gray.600', 'gray.300')
 
   // Add timeout for loading states to prevent infinite loading
   useEffect(() => {
@@ -502,7 +524,7 @@ export function Dashboard() {
     <Box 
       pt={0} 
       pb={10} 
-      bg={useColorModeValue('gray.50', 'gray.900')} 
+      bg={dashboardBg} 
       w="100%"
       maxW="100%"
       overflowX="hidden"
@@ -543,14 +565,14 @@ export function Dashboard() {
                       as="h1" 
                       size="xl"
                       mb={1}
-                      color={useColorModeValue('gray.800', 'white')}
+                      color={textColor}
                     >
                       Welcome back, {profile?.first_name || user?.email?.split('@')[0] || 'Athlete'}
                     </Heading>
                   </Skeleton>
                   <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
                     <Text 
-                      color={useColorModeValue('gray.600', 'gray.200')}
+                      color={subtextColor}
                       fontSize="md"
                     >
                       {profile?.role === 'athlete' ? 'Athlete Dashboard' : 'Dashboard'}
@@ -639,20 +661,6 @@ export function Dashboard() {
         {/* Today's Check-in Section */}
         <TodaysCheckInSection onDataUpdate={handleDataUpdate} />
 
-        {/* Monthly Plan Assignments - Only for Athletes */}
-        {profile?.role === 'athlete' && (
-          <Box my={{ base: 6, md: 10 }}>
-            <Heading 
-              size="lg" 
-              mb={{ base: 4, md: 6 }} 
-              color={useColorModeValue('gray.800', 'gray.100')}
-            >
-              My Monthly Plans
-            </Heading>
-            <MonthlyPlanAssignments />
-          </Box>
-        )}
-
         {/* Analytics & Info Cards */}
         <SimpleGrid 
           columns={{ base: 1, md: 2, lg: 3 }} 
@@ -665,14 +673,28 @@ export function Dashboard() {
 
           {/* Sleep Card */}
           {profileLoading ? (
-            <SkeletonCard />
+            <SkeletonCard
+              height="330px"
+              cardBg={cardBg}
+              borderColor={borderColor}
+              cardShadow={cardShadow}
+              skeletonStartColor={skeletonStartColor}
+              skeletonEndColor={skeletonEndColor}
+            />
           ) : (
             <SleepStatsCard />
           )}
 
           {/* Nutrition Card */}
           {(profileLoading || nutritionLoading) ? (
-            <SkeletonCard />
+            <SkeletonCard
+              height="330px"
+              cardBg={cardBg}
+              borderColor={borderColor}
+              cardShadow={cardShadow}
+              skeletonStartColor={skeletonStartColor}
+              skeletonEndColor={skeletonEndColor}
+            />
           ) : (
             <NutritionStatsCard
               nutritionStats={nutritionStats}
@@ -698,10 +720,10 @@ export function Dashboard() {
                 <HStack spacing={3}>
                   <Icon as={FaMedal} boxSize={6} color="purple.500" />
                   <VStack align="start" spacing={0}>
-                    <Text fontSize="lg" fontWeight="bold" color={useColorModeValue('gray.900', 'gray.100')}>
+                    <Text fontSize="lg" fontWeight="bold" color={cardTextColor}>
                       Gamification Preview
                     </Text>
-                    <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>
+                    <Text fontSize="sm" color={cardSubtextColor}>
                       Track your progress and achievements
                     </Text>
                   </VStack>
@@ -718,7 +740,7 @@ export function Dashboard() {
               </HStack>
 
               {/* Content */}
-              <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>
+              <Text fontSize="sm" color={cardSubtextColor}>
                 View your points, badges, streaks, and leaderboard position
               </Text>
 
