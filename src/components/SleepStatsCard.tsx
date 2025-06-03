@@ -26,7 +26,7 @@ interface SleepStatsCardProps {
 export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({ 
   viewAllLink = "/athlete/sleep"
 }) => {
-  // Fetch sleep stats directly from the database
+  // Fetch sleep stats using React Query
   const { stats: sleepStats, isLoading, error } = useSleepStats();
   
   // Color mode values matching quick-log cards - MUST be at the top before any conditional logic

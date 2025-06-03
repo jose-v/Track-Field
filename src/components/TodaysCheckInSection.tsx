@@ -9,6 +9,7 @@ import {
   useColorModeValue,
 } from '@chakra-ui/react';
 import { FaCheckCircle } from 'react-icons/fa';
+import { useQueryClient } from '@tanstack/react-query';
 import SleepQuickLogCard from './SleepQuickLogCard';
 import WellnessQuickLogCard from './WellnessQuickLogCard';
 import RPEPromptCard from './RPEPromptCard';
@@ -19,6 +20,7 @@ interface TodaysCheckInSectionProps {
 
 export const TodaysCheckInSection: React.FC<TodaysCheckInSectionProps> = ({ onDataUpdate }) => {
   const [refreshKey, setRefreshKey] = useState(0);
+  const queryClient = useQueryClient();
   const statLabelColor = useColorModeValue('gray.600', 'gray.300');
   const statNumberColor = useColorModeValue('gray.900', 'gray.100');
   const cardBg = useColorModeValue('white', 'gray.800');
@@ -28,6 +30,19 @@ export const TodaysCheckInSection: React.FC<TodaysCheckInSectionProps> = ({ onDa
   const handleLogComplete = () => {
     // Trigger refresh of components
     setRefreshKey(prev => prev + 1);
+    
+    // Force refetch of sleep and wellness data using predicates
+    queryClient.refetchQueries({
+      predicate: (query) => {
+        return query.queryKey[0] === 'sleepRecords';
+      }
+    });
+    queryClient.refetchQueries({
+      predicate: (query) => {
+        return query.queryKey[0] === 'wellnessRecords';
+      }
+    });
+    
     onDataUpdate?.();
   };
 

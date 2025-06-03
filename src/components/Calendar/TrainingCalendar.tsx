@@ -1,4 +1,4 @@
-import { Box, Heading, Flex, Text, Grid, GridItem, useColorModeValue, Button, Tooltip, Select } from '@chakra-ui/react';
+import { Box, Heading, Flex, Text, Grid, GridItem, useColorModeValue, Button, Tooltip, Select, HStack } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
@@ -78,6 +78,11 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
   const statValueColor = useColorModeValue('gray.600', 'gray.300');
   const noActivitiesColor = useColorModeValue('gray.700', 'gray.200');
   const activitiesCountColor = useColorModeValue('gray.600', 'gray.300');
+  
+  // Year view text colors
+  const yearViewTextColor = useColorModeValue('white', 'white');
+  const yearViewHeadingColor = useColorModeValue('white', 'white');
+  const yearViewActivityColor = useColorModeValue('white', 'white');
   
   // Month data
   const months = [
@@ -665,6 +670,20 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
     const events = monthlyEvents[month] || [];
     return workouts.length + events.length;
   };
+
+  // Check if a date is today
+  const isToday = (year: number, month: number, day: number): boolean => {
+    const today = new Date();
+    return today.getFullYear() === year && 
+           today.getMonth() === month && 
+           today.getDate() === day;
+  };
+
+  // Check if a month is the current month
+  const isCurrentMonth = (year: number, month: number): boolean => {
+    const today = new Date();
+    return today.getFullYear() === year && today.getMonth() === month;
+  };
   
   // Update the useEffect hook to properly handle async operations and cleanup
   useEffect(() => {
@@ -879,15 +898,31 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
                 >
                   {/* Create an inner container for content that's positioned absolutely */}
                   <Box position="absolute" top={0} left={0} right={0} bottom={0} p={2}>
-                    <Text 
-                      position="absolute" 
-                      top={2} 
-                      right={2} 
-                      fontSize="sm" 
-                      fontWeight={dateObj.isCurrentMonth ? "bold" : "normal"}
-                    >
-                      {dateObj.day}
-                    </Text>
+                    <Box position="relative">
+                      <Text 
+                        position="absolute" 
+                        top={0} 
+                        right={0} 
+                        fontSize="sm" 
+                        fontWeight={dateObj.isCurrentMonth ? "bold" : "normal"}
+                      >
+                        {dateObj.day}
+                      </Text>
+                      
+                      {/* Orange dot for current day */}
+                      {dateObj.isCurrentMonth && isToday(currentYear, selectedMonth, dateObj.day) && (
+                        <Box
+                          position="absolute"
+                          top="21px"
+                          right="-1px"
+                          width="6px"
+                          height="6px"
+                          borderRadius="50%"
+                          bg="orange.500"
+                          transform="translateX(-50%)"
+                        />
+                      )}
+                    </Box>
                     
                     {/* Workouts for this day */}
                     <Flex 
@@ -1070,16 +1105,28 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
               }}
             >
               <Flex justify="space-between" align="center" mb={4}>
-                <Heading as="h3" size="md">{month}</Heading>
+                <HStack spacing={2}>
+                  <Heading as="h3" size="md" color={yearViewHeadingColor}>{month}</Heading>
+                  {/* Orange dot for current month */}
+                  {isCurrentMonth(currentYear, index) && (
+                    <Box
+                      width="6px"
+                      height="6px"
+                      borderRadius="50%"
+                      bg="orange.500"
+                      mt={1}
+                    />
+                  )}
+                </HStack>
                 
                 {!loading && (
-                  <Text fontSize="sm" color={statLabelColor}>
+                  <Text fontSize="sm" color={yearViewActivityColor}>
                     {getMonthActivityCount(index) > 0 ? (
                       <>
                         <Text as="span" fontWeight="bold">{getMonthActivityCount(index)}</Text> activities
                       </>
                     ) : (
-                      <Text as="span" color={noActivitiesColor}>No activities</Text>
+                      <Text as="span">No activities</Text>
                     )}
                   </Text>
                 )}
@@ -1114,9 +1161,9 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
                               textOverflow="ellipsis"
                               borderLeft="3px solid"
                               borderLeftColor="purple.500"
-                              color={barTextColor}
+                              color={yearViewTextColor}
                             >
-                              <Text color={barTextColor}>
+                              <Text color={yearViewTextColor}>
                                 {new Date(event.meet_date).getDate()} - {event.meet_name}
                               </Text>
                             </Box>
@@ -1130,9 +1177,9 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
                               p={1} 
                               mb={1} 
                               fontSize="sm"
-                              color={barTextColor}
+                              color={yearViewTextColor}
                             >
-                              <Text color={barTextColor}>
+                              <Text color={yearViewTextColor}>
                                 {workoutCount} workout{workoutCount === 1 ? '' : 's'}
                               </Text>
                             </Box>

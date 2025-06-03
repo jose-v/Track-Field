@@ -74,6 +74,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
   const emptyStateBg = useColorModeValue('gray.50', 'gray.700');
   const dailyWorkoutBg = useColorModeValue('teal.50', 'teal.900');
   const dailyWorkoutBorder = useColorModeValue('teal.200', 'teal.700');
+  const exerciseBg = useColorModeValue('gray.50', 'gray.700');
 
   // Fetch today's daily workout from monthly plans
   useEffect(() => {
@@ -272,7 +273,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                             </Text>
                             <VStack spacing={1} align="stretch" maxH="120px" overflowY="auto">
                               {dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises.slice(0, 4).map((exercise: any, index: number) => (
-                                <HStack key={index} spacing={3} p={2} bg={useColorModeValue('gray.50', 'gray.700')} borderRadius="md">
+                                <HStack key={index} spacing={3} p={2} bg={exerciseBg} borderRadius="md">
                                   <Badge 
                                     colorScheme="teal" 
                                     variant="solid" 

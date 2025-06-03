@@ -33,10 +33,12 @@ import {
   AlertDialogContent,
   AlertDialogOverlay,
   useDisclosure,
+  Icon,
 } from '@chakra-ui/react';
 import { FaTrash, FaBed, FaPlus, FaEdit } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { useQueryClient } from '@tanstack/react-query';
 import { handleSleepLog } from '../../services/gamificationIntegration';
 import { 
   calculateSleepDuration, 
@@ -44,13 +46,17 @@ import {
   getSleepQualityText,
   SLEEP_QUALITY_MAPPING
 } from '../../utils/analytics/performance';
-import { SleepRecord } from '../../hooks/useSleepRecords';
+import { useSleepRecords, SleepRecord } from '../../hooks/useSleepRecords';
 import { MobileHeader } from '../../components';
 
 export function Sleep() {
   const { user } = useAuth();
   const toast = useToast();
-  const [records, setRecords] = useState<SleepRecord[]>([]);
+  const queryClient = useQueryClient();
+  
+  // Use React Query hook instead of local state
+  const { data: records = [], isLoading: recordsLoading, error: recordsError, refetch: refetchRecords } = useSleepRecords();
+  
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     sleep_date: new Date().toISOString().split('T')[0],
@@ -65,29 +71,18 @@ export function Sleep() {
   const cardBg = useColorModeValue('white', 'gray.800');
   const cardShadow = useColorModeValue('none', 'sm');
 
+  // Show error toast if there's an error fetching records
   useEffect(() => {
-    fetchRecords();
-  }, []);
-
-  const fetchRecords = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('sleep_records')
-        .select('*')
-        .order('sleep_date', { ascending: false });
-
-      if (error) throw error;
-      setRecords(data || []);
-    } catch (error) {
+    if (recordsError) {
       toast({
         title: 'Error fetching records',
-        description: 'Please try again later',
+        description: 'Please refresh the page to try again',
         status: 'error',
         duration: 5000,
         isClosable: true,
       });
     }
-  };
+  }, [recordsError, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,6 +129,16 @@ export function Sleep() {
         throw error;
       }
 
+      // Force refetch of all sleep-related queries
+      queryClient.removeQueries({
+        predicate: (query) => {
+          return query.queryKey[0] === 'sleepRecords';
+        }
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      await refetchRecords();
+
       // Integrate with gamification system
       if (user?.id) {
         try {
@@ -160,8 +165,6 @@ export function Sleep() {
         quality: 3,
         notes: '',
       });
-
-      fetchRecords();
     } catch (error) {
       toast({
         title: 'Error saving record',
@@ -192,7 +195,13 @@ export function Sleep() {
         isClosable: true,
       });
 
-      fetchRecords();
+      // Force refetch of all sleep-related queries
+      queryClient.removeQueries({
+        predicate: (query) => {
+          return query.queryKey[0] === 'sleepRecords';
+        }
+      });
+      await refetchRecords();
     } catch (error) {
       toast({
         title: 'Error deleting record',
@@ -326,6 +335,21 @@ export function Sleep() {
             shadow={cardShadow}
             overflowX="auto"
           >
+            <HStack justify="space-between" align="center" mb={4}>
+              <Text fontSize="lg" fontWeight="semibold">
+                Sleep Records ({records.length})
+              </Text>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => refetchRecords()}
+                isLoading={recordsLoading}
+                leftIcon={<Icon as={FaBed} />}
+              >
+                Refresh
+              </Button>
+            </HStack>
+            
             <Table variant="simple">
               <Thead>
                 <Tr>

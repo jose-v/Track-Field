@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Text,
@@ -14,11 +14,15 @@ import {
   useColorModeValue,
   useToast,
   Flex,
+  Alert,
+  AlertIcon,
 } from '@chakra-ui/react';
-import { FaMoon, FaStar, FaBed, FaClock } from 'react-icons/fa';
+import { FaMoon, FaStar, FaBed, FaClock, FaCheckCircle } from 'react-icons/fa';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { getSleepQualityText } from '../utils/analytics/performance';
+import { useSleepRecords } from '../hooks/useSleepRecords';
 
 interface SleepQuickLogCardProps {
   onLogComplete?: () => void;
@@ -30,22 +34,56 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
   const [isLogging, setIsLogging] = useState(false);
   const { user } = useAuth();
   const toast = useToast();
+  const queryClient = useQueryClient();
+  
+  // Get recent sleep records to check for today's logs
+  const { data: recentRecords = [] } = useSleepRecords(7);
 
   // Color mode values
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const statLabelColor = useColorModeValue('gray.600', 'gray.300');
   const statNumberColor = useColorModeValue('gray.900', 'gray.100');
+  const alertTextColor = useColorModeValue('gray.800', 'white');
+
+  // Check if there are any sleep logs for today or yesterday
+  const existingLogs = useMemo(() => {
+    const today = new Date();
+    const todayStr = today.getFullYear() + '-' + 
+      String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+      String(today.getDate()).padStart(2, '0');
+    
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.getFullYear() + '-' + 
+      String(yesterday.getMonth() + 1).padStart(2, '0') + '-' + 
+      String(yesterday.getDate()).padStart(2, '0');
+    
+    const todayLogs = recentRecords.filter(record => record.sleep_date === todayStr);
+    const yesterdayLogs = recentRecords.filter(record => record.sleep_date === yesterdayStr);
+    
+    return {
+      today: todayLogs,
+      yesterday: yesterdayLogs,
+      hasTodayLogs: todayLogs.length > 0,
+      hasYesterdayLogs: yesterdayLogs.length > 0
+    };
+  }, [recentRecords]);
 
   const handleQuickLog = async () => {
     if (!user) return;
 
     setIsLogging(true);
     try {
-      // Log yesterday's sleep by default (since most people log previous night's sleep)
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const sleepDate = yesterday.toISOString().split('T')[0];
+      // Use local timezone to avoid date shifting issues
+      const today = new Date();
+      const targetDate = new Date(today);
+      targetDate.setDate(targetDate.getDate() - 1); // Set to yesterday
+      
+      // Format date as YYYY-MM-DD in local timezone
+      const sleepDate = targetDate.getFullYear() + '-' + 
+        String(targetDate.getMonth() + 1).padStart(2, '0') + '-' + 
+        String(targetDate.getDate()).padStart(2, '0');
       
       // Calculate start and end times based on duration
       // Assume they woke up at current time and calculate backwards
@@ -55,18 +93,70 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
       const startTime = sleepTime.toTimeString().slice(0, 5); // HH:MM format
       const endTime = wakeTime.toTimeString().slice(0, 5); // HH:MM format
 
-      const { error } = await supabase
+      const recordData = {
+        athlete_id: user.id,
+        sleep_date: sleepDate,
+        start_time: startTime,
+        end_time: endTime,
+        quality: quality, // Numeric value as per database schema
+        notes: 'Quick log from dashboard'
+      };
+
+      const { data: insertedData, error } = await supabase
         .from('sleep_records')
-        .insert({
-          athlete_id: user.id,
-          sleep_date: sleepDate,
-          start_time: startTime,
-          end_time: endTime,
-          quality: quality, // Numeric value as per database schema
-          notes: 'Quick log from dashboard'
-        });
+        .insert(recordData)
+        .select(); // Add select to return the inserted data
 
       if (error) throw error;
+
+      // Verify the data was saved by checking the database
+      const { data: verifyData, error: verifyError } = await supabase
+        .from('sleep_records')
+        .select('*')
+        .eq('athlete_id', user.id)
+        .eq('sleep_date', sleepDate)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (verifyError) {
+        console.error('Error verifying saved record:', verifyError);
+      }
+
+      // Completely clear and refetch sleep data
+      try {
+        // Method 1: Remove all sleepRecords queries from cache completely
+        queryClient.removeQueries({
+          predicate: (query) => {
+            return query.queryKey[0] === 'sleepRecords';
+          }
+        });
+        
+        // Method 2: Wait a moment then force fresh fetch
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Method 3: Trigger fresh fetch of all sleep data
+        await queryClient.fetchQuery({
+          queryKey: ['sleepRecords', user?.id],
+          queryFn: async () => {
+            const { data, error } = await supabase
+              .from('sleep_records')
+              .select('*')
+              .eq('athlete_id', user?.id)
+              .order('sleep_date', { ascending: false });
+            
+            if (error) throw error;
+            return data || [];
+          },
+          staleTime: 0,
+        });
+        
+        // Method 4: Force reload the page if we're on the sleep page
+        if (window.location.pathname.includes('/athlete/sleep')) {
+          setTimeout(() => window.location.reload(), 500);
+        }
+      } catch (cacheError) {
+        console.error('Error refreshing cache:', cacheError);
+      }
 
       toast({
         title: 'Sleep logged successfully!',
@@ -134,6 +224,16 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
             Quick Log
           </Badge>
         </HStack>
+
+        {/* Existing Logs Alert */}
+        {existingLogs.hasYesterdayLogs && (
+          <Alert status="info" borderRadius="md" py={2}>
+            <AlertIcon as={FaCheckCircle} />
+            <Text fontSize="sm" color={alertTextColor}>
+              You already logged sleep for yesterday ({existingLogs.yesterday[0]?.quality && getSleepQualityText(existingLogs.yesterday[0].quality)} quality)
+            </Text>
+          </Alert>
+        )}
 
         {/* Duration Slider */}
         <Box>
@@ -207,8 +307,9 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
           isLoading={isLogging}
           loadingText="Logging..."
           leftIcon={<Icon as={FaBed} />}
+          variant={existingLogs.hasYesterdayLogs ? "outline" : "solid"}
         >
-          Log Sleep
+          {existingLogs.hasYesterdayLogs ? "Log Again" : "Log Sleep"}
         </Button>
       </VStack>
     </Box>

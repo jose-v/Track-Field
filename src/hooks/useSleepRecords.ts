@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { 
@@ -27,48 +27,37 @@ export const getQualityText = getSleepQualityText;
 
 export function useSleepRecords(limit?: number) {
   const { user } = useAuth();
-  const [data, setData] = useState<SleepRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchSleepRecords() {
+  return useQuery<SleepRecord[], Error>({
+    queryKey: ['sleepRecords', user?.id, limit],
+    queryFn: async () => {
       if (!user?.id) {
-        setIsLoading(false);
-        return;
+        throw new Error('No user ID available');
       }
 
-      try {
-        setIsLoading(true);
-        let query = supabase
-          .from('sleep_records')
-          .select('*')
-          .eq('athlete_id', user.id)
-          .order('sleep_date', { ascending: false });
+      let query = supabase
+        .from('sleep_records')
+        .select('*')
+        .eq('athlete_id', user.id)
+        .order('sleep_date', { ascending: false });
 
-        if (limit) {
-          query = query.limit(limit);
-        }
-
-        const { data: records, error } = await query;
-
-        if (error) throw error;
-
-        setData(records || []);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching sleep records:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch sleep records');
-        setData([]);
-      } finally {
-        setIsLoading(false);
+      if (limit) {
+        query = query.limit(limit);
       }
-    }
 
-    fetchSleepRecords();
-  }, [user?.id, limit]);
+      const { data: records, error } = await query;
 
-  return { data, isLoading, error };
+      if (error) {
+        throw error;
+      }
+
+      return records || [];
+    },
+    enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+  });
 }
 
 // Get sleep stats using centralized analytics
@@ -133,8 +122,11 @@ export function useSleepStats() {
       }
     }
     stats.bestQuality = bestQuality;
-    console.log(`Best sleep quality: ${stats.bestQuality}`);
-    console.log("Sleep quality counts:", stats.countByQuality);
+
+    // Get latest bedtime from most recent record
+    if (stats.recentRecord) {
+      stats.latestBedtime = stats.recentRecord.start_time;
+    }
   }
 
   return { stats, isLoading, error };
