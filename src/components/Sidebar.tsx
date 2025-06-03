@@ -210,14 +210,16 @@ const Sidebar = ({ userType }: SidebarProps) => {
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const drawerBg = useColorModeValue('white', 'gray.900');
   
+  // Dispatch width change event whenever isCollapsed changes
+  useEffect(() => {
+    const width = isCollapsed ? 70 : 200;
+    window.dispatchEvent(new CustomEvent('sidebarToggle', { detail: { width } }));
+  }, [isCollapsed]);
+
   const toggleSidebar = () => {
     const newCollapsed = !isCollapsed;
     setIsCollapsed(newCollapsed);
     localStorage.setItem('sidebarCollapsed', newCollapsed.toString());
-    
-    // Dispatch custom event with the new width
-    const width = newCollapsed ? 70 : 200;
-    window.dispatchEvent(new CustomEvent('sidebarToggle', { detail: { width } }));
   };
 
   const getNavItems = () => {
@@ -610,7 +612,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
                   minW="auto"
                   px={2}
                   justifyContent="center"
-                  onClick={() => setIsCollapsed(!isCollapsed)}
+                  onClick={toggleSidebar}
                 >
                   <Icon as={FaChevronRight} />
                 </Button>
@@ -625,7 +627,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
                 variant="ghost"
                 flex="1"
                 justifyContent="flex-start"
-                onClick={() => setIsCollapsed(!isCollapsed)}
+                onClick={toggleSidebar}
               >
                 HIDE MENU
               </Button>

@@ -18,7 +18,8 @@ export function CoachLayout({ children }: { children: React.ReactNode }) {
   // Listen for sidebar toggle events
   useEffect(() => {
     const handleSidebarToggle = (event: CustomEvent) => {
-      setSidebarWidth(event.detail.width);
+      const newWidth = event.detail.width;
+      setSidebarWidth(newWidth);
     };
     
     window.addEventListener('sidebarToggle', handleSidebarToggle as EventListener);
