@@ -130,10 +130,9 @@ export function WorkoutCard({
     ? format(new Date(workout.date), 'MMM d, yyyy')
     : 'No date set';
 
-  // Ensure exercises is always an array and get first few for display
-  const displayExercises = Array.isArray(workout.exercises) 
-    ? workout.exercises.slice(0, 3) 
-    : [];
+  // Get exercises using the helper function that handles both regular and weekly plan structures
+  const allExercises = getExercisesFromWorkout(workout);
+  const displayExercises = allExercises.slice(0, 3);
 
   return (
     <Card 
@@ -284,18 +283,18 @@ export function WorkoutCard({
               <Flex align="center" mb={2}>
                 <Icon as={FaTasks} mr={2} color={typeColor} boxSize={4} />
                 <Text fontSize="md" fontWeight="medium" color={exerciseTextColor}>
-                  Exercises: {displayExercises.length}
+                  Exercises: {allExercises.length}
                 </Text>
               </Flex>
               {displayExercises.length > 0 && (
                 <Box maxH="100px" overflowY="auto" fontSize="sm" color={infoColor} pl={6}>
                   {displayExercises.slice(0, 3).map((ex, idx) => (
                     <Text key={idx} noOfLines={1} mb={1} color={exerciseTextColor}>
-                      • {ex.name} ({ex.sets}×{ex.reps})
+                      • {ex.name} {ex.sets && ex.reps ? `(${ex.sets}×${ex.reps})` : ''}
                     </Text>
                   ))}
-                  {displayExercises.length > 3 && (
-                    <Text fontStyle="italic" color={exerciseTextColor}>+{displayExercises.length - 3} more...</Text>
+                  {allExercises.length > 3 && (
+                    <Text fontStyle="italic" color={exerciseTextColor}>+{allExercises.length - 3} more...</Text>
                   )}
                 </Box>
               )}
