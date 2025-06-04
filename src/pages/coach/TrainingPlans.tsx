@@ -940,8 +940,8 @@ export function CoachTrainingPlans() {
       <Box maxW="1400px" mx="auto" px={{ base: 4, md: 6, lg: 8 }} py={8}>
         <VStack spacing={8} align="stretch">
           {/* Header */}
-          <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
-            <VStack align="start" spacing={1}>
+          <Flex justify="flex-end" align="center" wrap="wrap" gap={4}>
+            <VStack align="start" spacing={1} flex="1">
               <Heading size="xl" color={useColorModeValue('gray.800', 'white')}>
                 Training Plans
               </Heading>
@@ -950,7 +950,7 @@ export function CoachTrainingPlans() {
               </Text>
             </VStack>
             
-            <HStack spacing={3} wrap="wrap">
+            <HStack spacing={4} wrap="wrap" justify="flex-end">
               <Button
                 leftIcon={<AddIcon />}
                 colorScheme="blue"
