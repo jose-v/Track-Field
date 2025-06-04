@@ -197,10 +197,15 @@ export function CoachTrainingPlans() {
   const [deletedLoading, setDeletedLoading] = useState(false);
   const [deletedRefreshing, setDeletedRefreshing] = useState(false);
 
-  // Theme colors
+  // Move all useColorModeValue calls to the top level
   const bgColor = useColorModeValue('gray.50', 'gray.900');
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const headerTextColor = useColorModeValue('gray.800', 'white');
+  const headerSubtextColor = useColorModeValue('gray.600', 'gray.300');
+  const iconColor = useColorModeValue('#4A5568', '#A0AEC0');
+  const selectBg = useColorModeValue('white', 'gray.700');
+  const selectBorderColor = useColorModeValue('gray.300', 'gray.600');
 
   // Load data when component mounts
   useEffect(() => {
@@ -942,10 +947,10 @@ export function CoachTrainingPlans() {
           {/* Header */}
           <Flex justify="flex-end" align="center" wrap="wrap" gap={4}>
             <VStack align="start" spacing={1} flex="1">
-              <Heading size="xl" color={useColorModeValue('gray.800', 'white')}>
+              <Heading size="xl" color={headerTextColor}>
                 Training Plans
               </Heading>
-              <Text color={useColorModeValue('gray.600', 'gray.300')}>
+              <Text color={headerSubtextColor}>
                 Create and manage workouts and training plans for your athletes
               </Text>
             </VStack>
@@ -1033,9 +1038,10 @@ export function CoachTrainingPlans() {
               {/* Workouts Tab */}
               <TabPanel px={0}>
                 <VStack spacing={6} align="stretch">
-                  {/* Stats and Actions */}
-                  <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
-                    <HStack spacing={4} wrap="wrap">
+                  {/* Stats and Actions - Restructured for better responsive behavior */}
+                  <VStack spacing={4} align="stretch">
+                    {/* Stats Badges Row */}
+                    <Flex justify="flex-start" align="center" wrap="wrap" gap={2}>
                       <Badge colorScheme="blue" fontSize="sm" px={3} py={1}>
                         {workouts?.filter(w => !w.is_draft).length || 0} Workouts Created
                       </Badge>
@@ -1045,7 +1051,7 @@ export function CoachTrainingPlans() {
                         </Badge>
                       )}
                       {selectedAthlete !== 'all' && (
-                        <Badge colorScheme="purple" fontSize="sm" px={3} py={1}>
+                        <Badge colorScheme="purple" fontSize="sm" px={3} py={1} maxW="300px" isTruncated>
                           Filtered by: {athletes?.find(a => a.id === selectedAthlete)?.first_name} {athletes?.find(a => a.id === selectedAthlete)?.last_name}
                         </Badge>
                       )}
@@ -1059,9 +1065,10 @@ export function CoachTrainingPlans() {
                           Clear Filters
                         </Button>
                       )}
-                    </HStack>
+                    </Flex>
                     
-                    <HStack spacing={3}>
+                    {/* Filter Controls Row */}
+                    <Flex justify="flex-start" align="center" wrap="wrap" gap={3}>
                       {/* Workout Type Filter Buttons */}
                       <HStack spacing={2}>
                         <Button
@@ -1092,14 +1099,14 @@ export function CoachTrainingPlans() {
 
                       {/* Athlete Filter Dropdown */}
                       <HStack spacing={2} align="center">
-                        <FaUserFriends style={{ color: useColorModeValue('#4A5568', '#A0AEC0') }} />
+                        <FaUserFriends style={{ color: iconColor }} />
                         <Select
                           value={selectedAthlete}
                           onChange={(e) => setSelectedAthlete(e.target.value)}
                           size="sm"
-                          width="200px"
-                          bg={useColorModeValue('white', 'gray.700')}
-                          borderColor={useColorModeValue('gray.300', 'gray.600')}
+                          width={{ base: "180px", md: "200px" }}
+                          bg={selectBg}
+                          borderColor={selectBorderColor}
                         >
                           <option value="all">All Athletes</option>
                           {athletes?.map((athlete) => (
@@ -1119,8 +1126,8 @@ export function CoachTrainingPlans() {
                       >
                         Refresh
                       </Button>
-                    </HStack>
-                  </Flex>
+                    </Flex>
+                  </VStack>
 
                   {/* Workouts Grid */}
                   {renderWorkouts()}
@@ -1200,10 +1207,10 @@ export function CoachTrainingPlans() {
                   {/* Stats and Actions */}
                   <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
                     <VStack align="start" spacing={1}>
-                      <Text fontSize="lg" fontWeight="semibold" color={useColorModeValue('gray.800', 'gray.100')}>
+                      <Text fontSize="lg" fontWeight="semibold" color={headerTextColor}>
                         Template Workouts
                       </Text>
-                      <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>
+                      <Text fontSize="sm" color={headerSubtextColor}>
                         Workouts saved as templates for creating training plans
                       </Text>
                     </VStack>
@@ -1230,10 +1237,10 @@ export function CoachTrainingPlans() {
                   {/* Stats and Actions */}
                   <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
                     <VStack align="start" spacing={1}>
-                      <Text fontSize="lg" fontWeight="semibold" color={useColorModeValue('gray.800', 'gray.100')}>
+                      <Text fontSize="lg" fontWeight="semibold" color={headerTextColor}>
                         Draft Workouts
                       </Text>
-                      <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>
+                      <Text fontSize="sm" color={headerSubtextColor}>
                         Workouts saved as drafts for future use
                       </Text>
                     </VStack>
@@ -1260,10 +1267,10 @@ export function CoachTrainingPlans() {
                   {/* Stats and Actions */}
                   <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
                     <VStack align="start" spacing={1}>
-                      <Text fontSize="lg" fontWeight="semibold" color={useColorModeValue('gray.800', 'gray.100')}>
+                      <Text fontSize="lg" fontWeight="semibold" color={headerTextColor}>
                         Deleted Items
                       </Text>
-                      <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>
+                      <Text fontSize="sm" color={headerSubtextColor}>
                         Workouts and training plans that have been deleted
                       </Text>
                     </VStack>

@@ -21,20 +21,19 @@ interface RPEPromptCardProps {
   onLogComplete?: () => void;
 }
 
-interface PendingWorkout {
+interface CompletedWorkout {
   id: string;
-  scheduled_date: string;
-  completed_at?: string;
-  workouts?: {
-    id: string;
-    name: string;
-  };
+  athlete_id: string;
+  workout_name: string;
+  assigned_at: string; // Changed from scheduled_date to assigned_at
+  rpe_rating?: number;
+  notes?: string;
 }
 
 export const RPEPromptCard: React.FC<RPEPromptCardProps> = ({ onLogComplete }) => {
-  const [pendingWorkouts, setPendingWorkouts] = useState<PendingWorkout[]>([]);
+  const [pendingWorkouts, setPendingWorkouts] = useState<CompletedWorkout[]>([]);
   const [selectedRPE, setSelectedRPE] = useState<number | null>(null);
-  const [selectedWorkout, setSelectedWorkout] = useState<PendingWorkout | null>(null);
+  const [selectedWorkout, setSelectedWorkout] = useState<CompletedWorkout | null>(null);
   const [isLogging, setIsLogging] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
@@ -128,9 +127,11 @@ export const RPEPromptCard: React.FC<RPEPromptCardProps> = ({ onLogComplete }) =
               )
               .map(assignment => ({
                 id: assignment.id,
-                scheduled_date: assignment.updated_at || assignment.assigned_at, // Use updated_at or assigned_at as date
-                completed_at: assignment.updated_at, // Use updated_at as completion indicator
-                workouts: workoutMap.get(assignment.workout_id)
+                athlete_id: user.id,
+                workout_name: workoutMap.get(assignment.workout_id)?.name || '',
+                assigned_at: assignment.updated_at || assignment.assigned_at, // Use updated_at or assigned_at as date
+                rpe_rating: undefined,
+                notes: undefined
               }))
               .slice(0, 3);
               
@@ -206,9 +207,11 @@ export const RPEPromptCard: React.FC<RPEPromptCardProps> = ({ onLogComplete }) =
         })
         .map(assignment => ({
           id: assignment.id,
-          scheduled_date: assignment.updated_at || assignment.assigned_at, // Use updated_at or assigned_at as date
-          completed_at: assignment.updated_at, // Use updated_at as completion indicator  
-          workouts: workoutMap.get(assignment.workout_id)
+          athlete_id: user.id,
+          workout_name: workoutMap.get(assignment.workout_id)?.name || '',
+          assigned_at: assignment.updated_at || assignment.assigned_at, // Use updated_at or assigned_at as date
+          rpe_rating: undefined,
+          notes: undefined
         }))
         .slice(0, 3); // Limit to 3 most recent unrated
 
@@ -234,11 +237,11 @@ export const RPEPromptCard: React.FC<RPEPromptCardProps> = ({ onLogComplete }) =
 
     setIsLogging(true);
     try {
-      console.log('RPEPromptCard: Logging RPE', selectedRPE, 'for workout', selectedWorkout.workouts?.id);
+      console.log('RPEPromptCard: Logging RPE', selectedRPE, 'for workout', selectedWorkout.workout_name);
       
       const insertData = {
         athlete_id: user.id,
-        workout_id: selectedWorkout.workouts?.id,
+        workout_id: selectedWorkout.id,
         exercise_index: 0,
         exercise_name: 'Workout RPE',
         rpe_rating: selectedRPE,
@@ -263,7 +266,7 @@ export const RPEPromptCard: React.FC<RPEPromptCardProps> = ({ onLogComplete }) =
 
       toast({
         title: 'RPE rating logged successfully!',
-        description: `${selectedWorkout.workouts?.name}: ${selectedRPE}/10 RPE`,
+        description: `${selectedWorkout.workout_name}: ${selectedRPE}/10 RPE`,
         status: 'success',
         duration: 3000,
         isClosable: true,
@@ -419,10 +422,10 @@ export const RPEPromptCard: React.FC<RPEPromptCardProps> = ({ onLogComplete }) =
                 <HStack justify="space-between">
                   <VStack align="start" spacing={0}>
                     <Text fontSize="sm" fontWeight="medium" color={statNumberColor}>
-                      {workout.workouts?.name}
+                      {workout.workout_name}
                     </Text>
                     <Text fontSize="xs" color={statLabelColor}>
-                      {formatDate(workout.scheduled_date)}
+                      {formatDate(workout.assigned_at)}
                     </Text>
                   </VStack>
                   <HStack spacing={1}>

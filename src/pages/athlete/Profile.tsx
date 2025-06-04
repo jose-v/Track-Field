@@ -22,6 +22,8 @@ const AthleteProfile = () => {
   const inputBg = useColorModeValue('white', 'gray.700');
   const errorText = useColorModeValue('red.500', 'red.300');
   const headerTextColor = useColorModeValue('gray.800', 'white');
+  const pageBackgroundColor = useColorModeValue('gray.50', 'gray.900');
+  const headerSubtextColor = useColorModeValue('gray.600', 'gray.300');
 
   React.useEffect(() => {
     if (profile) {
@@ -116,7 +118,7 @@ const AthleteProfile = () => {
     <Box 
       pt={0} 
       pb={10} 
-      bg={useColorModeValue('gray.50', 'gray.900')} 
+      bg={pageBackgroundColor} 
       minH="100vh"
       w="100%"
       maxW="100%"
@@ -134,7 +136,7 @@ const AthleteProfile = () => {
         <Heading size="lg" mb={2}>
           My Profile
         </Heading>
-        <Text color={useColorModeValue('gray.600', 'gray.300')}>
+        <Text color={headerSubtextColor}>
           Personal Information
         </Text>
       </Box>

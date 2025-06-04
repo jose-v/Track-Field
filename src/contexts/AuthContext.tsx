@@ -50,6 +50,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (data?.session) {
           console.log('Session found during initialization');
+          console.log('🔍 AuthContext: User data during initialization:', {
+            userId: data.session.user.id,
+            email: data.session.user.email,
+            userMetadata: data.session.user.user_metadata,
+            appMetadata: data.session.user.app_metadata,
+            identities: data.session.user.identities,
+            // Full user object structure
+            fullUser: data.session.user,
+            // Try to access any name fields
+            name: (data.session.user as any).name,
+            fullName: (data.session.user as any).full_name,
+            firstName: (data.session.user as any).first_name,
+            lastName: (data.session.user as any).last_name,
+            // Keys available on user object
+            userKeys: Object.keys(data.session.user),
+            // Check raw metadata
+            rawMetadata: JSON.stringify(data.session.user.user_metadata),
+            rawIdentities: JSON.stringify(data.session.user.identities)
+          });
           setUser(data.session.user);
           setSession(data.session);
         } else {
@@ -72,6 +91,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (newSession) {
         console.log('New session available');
+        console.log('🔍 AuthContext: User data during state change:', {
+          event: _event,
+          userId: newSession.user.id,
+          email: newSession.user.email,
+          userMetadata: newSession.user.user_metadata,
+          appMetadata: newSession.user.app_metadata,
+          identities: newSession.user.identities,
+          // Full user object structure
+          fullUser: newSession.user,
+          // Try to access any name fields
+          name: (newSession.user as any).name,
+          fullName: (newSession.user as any).full_name,
+          firstName: (newSession.user as any).first_name,
+          lastName: (newSession.user as any).last_name,
+          // Keys available on user object
+          userKeys: Object.keys(newSession.user),
+          // Check raw metadata
+          rawMetadata: JSON.stringify(newSession.user.user_metadata),
+          rawIdentities: JSON.stringify(newSession.user.identities)
+        });
         setUser(newSession.user);
         setSession(newSession);
       } else {

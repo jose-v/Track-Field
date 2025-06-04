@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Text,
@@ -43,7 +43,7 @@ const AlertsNotificationsCard: React.FC<AlertsNotificationsCardProps> = ({ onAle
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Color mode values
+  // Color mode values - moved to ensure hooks are called in consistent order
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const textColor = useColorModeValue('gray.800', 'gray.100');
@@ -51,160 +51,141 @@ const AlertsNotificationsCard: React.FC<AlertsNotificationsCardProps> = ({ onAle
   const cardShadow = useColorModeValue('none', 'lg');
   const statLabelColor = useColorModeValue('gray.600', 'gray.300');
   const statNumberColor = useColorModeValue('gray.900', 'gray.100');
+  const successBoxBg = useColorModeValue('green.50', 'green.900');
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchAlerts();
-    }
-  }, [user?.id]);
-
-  const fetchAlerts = async () => {
+  const fetchAlerts = useCallback(async () => {
     if (!user?.id) return;
 
     try {
       setIsLoading(true);
       const alerts: AlertItem[] = [];
 
-      // 1. Check for athletes with high injury risk (missed recent workouts)
+      // 1. Check for athletes with missed workouts using simple joins
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
+      // Get missed workouts with athlete info using separate queries to avoid complex joins
       const { data: missedWorkouts, error: missedError } = await supabase
         .from('athlete_workouts')
         .select(`
           athlete_id,
-          workout_name,
-          scheduled_date,
-          profiles!athlete_workouts_athlete_id_fkey(first_name, last_name)
+          workout_id,
+          assigned_at,
+          status
         `)
-        .is('completed_at', null)
-        .gte('scheduled_date', sevenDaysAgo.toISOString().split('T')[0])
-        .lte('scheduled_date', new Date().toISOString().split('T')[0]);
+        .eq('status', 'assigned')
+        .gte('assigned_at', sevenDaysAgo.toISOString());
 
-      if (missedError) throw missedError;
+      if (missedError) {
+        console.warn('Error fetching missed workouts:', missedError);
+      } else if (missedWorkouts && missedWorkouts.length > 0) {
+        // Get athlete names separately
+        const athleteIds = [...new Set(missedWorkouts.map(w => w.athlete_id))];
+        const { data: athletes, error: athleteError } = await supabase
+          .from('athletes')
+          .select(`
+            id,
+            profiles!inner(first_name, last_name)
+          `)
+          .in('id', athleteIds);
 
-      // Group by athlete and count missed workouts
-      const missedByAthlete = new Map();
-      (missedWorkouts || []).forEach(workout => {
-        const key = workout.athlete_id;
-        if (!missedByAthlete.has(key)) {
-          missedByAthlete.set(key, {
-            athleteId: workout.athlete_id,
-            athleteName: `${workout.profiles?.first_name} ${workout.profiles?.last_name}`,
-            count: 0,
-            workouts: []
+        if (!athleteError && athletes) {
+          // Group by athlete and count missed workouts
+          const missedByAthlete = new Map();
+          missedWorkouts.forEach(workout => {
+            const athlete = athletes.find(a => a.id === workout.athlete_id);
+            if (athlete) {
+              const key = workout.athlete_id;
+              if (!missedByAthlete.has(key)) {
+                missedByAthlete.set(key, {
+                  athleteId: workout.athlete_id,
+                  athleteName: `${(athlete.profiles as any)?.first_name || ''} ${(athlete.profiles as any)?.last_name || ''}`.trim(),
+                  count: 0,
+                  workouts: []
+                });
+              }
+              const athleteData = missedByAthlete.get(key);
+              athleteData.count++;
+              athleteData.workouts.push(workout);
+            }
           });
-        }
-        const athleteData = missedByAthlete.get(key);
-        athleteData.count++;
-        athleteData.workouts.push(workout);
-      });
 
-      // Add alerts for athletes with 3+ missed workouts
-      for (const [_, athleteData] of missedByAthlete) {
-        if (athleteData.count >= 3) {
-          alerts.push({
-            id: `missed-${athleteData.athleteId}`,
-            type: 'missed_workout',
-            athleteId: athleteData.athleteId,
-            athleteName: athleteData.athleteName,
-            title: 'Multiple Missed Workouts',
-            description: `${athleteData.athleteName} has missed ${athleteData.count} workouts in the past week`,
-            severity: 'high',
-            actionLink: `/coach/athletes/${athleteData.athleteId}`,
-            timestamp: new Date()
-          });
-        } else if (athleteData.count >= 2) {
-          alerts.push({
-            id: `missed-${athleteData.athleteId}`,
-            type: 'missed_workout',
-            athleteId: athleteData.athleteId,
-            athleteName: athleteData.athleteName,
-            title: 'Missed Workouts',
-            description: `${athleteData.athleteName} has missed ${athleteData.count} workouts recently`,
-            severity: 'medium',
-            actionLink: `/coach/athletes/${athleteData.athleteId}`,
-            timestamp: new Date()
-          });
-        }
-      }
-
-      // 2. Check for low RPE completion rates (if athlete has been logging very high RPE consistently)
-      const { data: rpeData, error: rpeError } = await supabase
-        .from('athlete_workouts')
-        .select(`
-          athlete_id,
-          rpe_rating,
-          profiles!athlete_workouts_athlete_id_fkey(first_name, last_name)
-        `)
-        .not('rpe_rating', 'is', null)
-        .gte('scheduled_date', sevenDaysAgo.toISOString().split('T')[0])
-        .order('scheduled_date', { ascending: false });
-
-      if (rpeError) throw rpeError;
-
-      // Group RPE by athlete and check for consistently high ratings
-      const rpeByAthlete = new Map();
-      (rpeData || []).forEach(workout => {
-        const key = workout.athlete_id;
-        if (!rpeByAthlete.has(key)) {
-          rpeByAthlete.set(key, {
-            athleteId: workout.athlete_id,
-            athleteName: `${workout.profiles?.first_name} ${workout.profiles?.last_name}`,
-            ratings: []
-          });
-        }
-        rpeByAthlete.get(key).ratings.push(workout.rpe_rating);
-      });
-
-      // Add alerts for athletes with consistently high RPE (risk of overtraining)
-      for (const [_, athleteData] of rpeByAthlete) {
-        if (athleteData.ratings.length >= 3) {
-          const avgRPE = athleteData.ratings.reduce((sum: number, rating: number) => sum + rating, 0) / athleteData.ratings.length;
-          if (avgRPE >= 8.5) {
-            alerts.push({
-              id: `high-rpe-${athleteData.athleteId}`,
-              type: 'injury_risk',
-              athleteId: athleteData.athleteId,
-              athleteName: athleteData.athleteName,
-              title: 'High Training Load Risk',
-              description: `${athleteData.athleteName} has been reporting consistently high RPE (avg: ${avgRPE.toFixed(1)})`,
-              severity: 'high',
-              actionLink: `/coach/athletes/${athleteData.athleteId}`,
-              timestamp: new Date()
-            });
+          // Add alerts for athletes with missed workouts
+          for (const [_, athleteData] of missedByAthlete) {
+            if (athleteData.count >= 3) {
+              alerts.push({
+                id: `missed-${athleteData.athleteId}`,
+                type: 'missed_workout',
+                athleteId: athleteData.athleteId,
+                athleteName: athleteData.athleteName,
+                title: 'Multiple Missed Workouts',
+                description: `${athleteData.athleteName} has missed ${athleteData.count} workouts in the past week`,
+                severity: 'high',
+                actionLink: `/coach/athletes/${athleteData.athleteId}`,
+                timestamp: new Date()
+              });
+            } else if (athleteData.count >= 2) {
+              alerts.push({
+                id: `missed-${athleteData.athleteId}`,
+                type: 'missed_workout',
+                athleteId: athleteData.athleteId,
+                athleteName: athleteData.athleteName,
+                title: 'Missed Workouts',
+                description: `${athleteData.athleteName} has missed ${athleteData.count} workouts recently`,
+                severity: 'medium',
+                actionLink: `/coach/athletes/${athleteData.athleteId}`,
+                timestamp: new Date()
+              });
+            }
           }
         }
       }
 
-      // 3. Check for pending coach-athlete relationship requests
+      // 2. Check for pending coach-athlete relationships
       const { data: pendingRequests, error: requestError } = await supabase
-        .from('coach_athlete_requests')
+        .from('coach_athletes')
         .select(`
           id,
           athlete_id,
-          status,
-          created_at,
-          profiles!coach_athlete_requests_athlete_id_fkey(first_name, last_name)
+          approval_status,
+          created_at
         `)
         .eq('coach_id', user.id)
-        .eq('status', 'pending');
+        .eq('approval_status', 'pending');
 
-      if (requestError) throw requestError;
+      if (requestError) {
+        console.warn('Error fetching pending requests:', requestError);
+      } else if (pendingRequests && pendingRequests.length > 0) {
+        // Get athlete names for pending requests
+        const pendingAthleteIds = pendingRequests.map(r => r.athlete_id);
+        const { data: pendingAthletes, error: pendingAthleteError } = await supabase
+          .from('athletes')
+          .select(`
+            id,
+            profiles!inner(first_name, last_name)
+          `)
+          .in('id', pendingAthleteIds);
 
-      (pendingRequests || []).forEach(request => {
-        alerts.push({
-          id: `request-${request.id}`,
-          type: 'pending_request',
-          athleteId: request.athlete_id,
-          athleteName: `${request.profiles?.first_name} ${request.profiles?.last_name}`,
-          title: 'Pending Team Request',
-          description: `${request.profiles?.first_name} ${request.profiles?.last_name} wants to join your team`,
-          severity: 'medium',
-          actionLink: '/coach/athletes',
-          timestamp: new Date(request.created_at)
-        });
-      });
+        if (!pendingAthleteError && pendingAthletes) {
+          pendingRequests.forEach(request => {
+            const athlete = pendingAthletes.find(a => a.id === request.athlete_id);
+            if (athlete) {
+              const athleteName = `${(athlete.profiles as any)?.first_name || ''} ${(athlete.profiles as any)?.last_name || ''}`.trim();
+              alerts.push({
+                id: `request-${request.id}`,
+                type: 'pending_request',
+                athleteId: request.athlete_id,
+                athleteName: athleteName,
+                title: 'Pending Team Request',
+                description: `${athleteName} wants to join your team`,
+                severity: 'medium',
+                actionLink: '/coach/athletes',
+                timestamp: new Date(request.created_at)
+              });
+            }
+          });
+        }
+      }
 
       // Sort alerts by severity and timestamp
       const severityOrder = { high: 3, medium: 2, low: 1 };
@@ -228,7 +209,13 @@ const AlertsNotificationsCard: React.FC<AlertsNotificationsCardProps> = ({ onAle
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.id, toast]);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchAlerts();
+    }
+  }, [user?.id, fetchAlerts]);
 
   const getAlertIcon = (type: AlertItem['type']) => {
     switch (type) {
@@ -309,7 +296,7 @@ const AlertsNotificationsCard: React.FC<AlertsNotificationsCardProps> = ({ onAle
 
       {alerts.length === 0 ? (
         <Box
-          bg={useColorModeValue('green.50', 'green.900')}
+          bg={successBoxBg}
           p={4}
           borderRadius="lg"
           textAlign="center"

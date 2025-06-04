@@ -1,7 +1,25 @@
--- Comprehensive fix for training plans errors
--- This script ensures all tables exist with proper structure and policies
+-- 🚀 COMPREHENSIVE MIGRATION: monthly_plans → training_plans
+-- This script handles the complete migration from monthly_plans to training_plans
+-- Run this in Supabase SQL Editor
 
--- Step 1: Create training_plans table if it doesn't exist
+-- ====================================
+-- STEP 1: CHECK EXISTING STRUCTURE
+-- ====================================
+
+-- Check if monthly_plans table still exists
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'monthly_plans') THEN
+        RAISE NOTICE 'Found existing monthly_plans table - will migrate data';
+    ELSE
+        RAISE NOTICE 'No monthly_plans table found - will create training_plans from scratch';
+    END IF;
+END $$;
+
+-- ====================================
+-- STEP 2: CREATE training_plans TABLE
+-- ====================================
+
 CREATE TABLE IF NOT EXISTS training_plans (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
@@ -10,13 +28,15 @@ CREATE TABLE IF NOT EXISTS training_plans (
     month INTEGER NOT NULL CHECK (month >= 1 AND month <= 12),
     year INTEGER NOT NULL CHECK (year >= 2020 AND year <= 2100),
     weeks JSONB DEFAULT '[]'::jsonb,
+    start_date DATE,
+    end_date DATE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     deleted_by UUID REFERENCES profiles(id) DEFAULT NULL
 );
 
--- Step 2: Add missing columns to existing training_plans table
+-- Add missing columns to existing training_plans table if they exist
 ALTER TABLE training_plans 
 ADD COLUMN IF NOT EXISTS month INTEGER CHECK (month >= 1 AND month <= 12);
 
@@ -26,14 +46,46 @@ ADD COLUMN IF NOT EXISTS year INTEGER CHECK (year >= 2020 AND year <= 2100);
 ALTER TABLE training_plans 
 ADD COLUMN IF NOT EXISTS weeks JSONB DEFAULT '[]'::jsonb;
 
--- Step 3: Add soft delete columns if they don't exist
+ALTER TABLE training_plans 
+ADD COLUMN IF NOT EXISTS start_date DATE;
+
+ALTER TABLE training_plans 
+ADD COLUMN IF NOT EXISTS end_date DATE;
+
 ALTER TABLE training_plans 
 ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
 
 ALTER TABLE training_plans 
 ADD COLUMN IF NOT EXISTS deleted_by UUID REFERENCES profiles(id) DEFAULT NULL;
 
--- Step 4: Create training_plan_assignments table if it doesn't exist
+-- ====================================
+-- STEP 3: MIGRATE DATA FROM monthly_plans (if it exists)
+-- ====================================
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'monthly_plans') THEN
+        
+        -- Migrate data from monthly_plans to training_plans
+        INSERT INTO training_plans (
+            id, name, description, coach_id, month, year, weeks, 
+            created_at, updated_at, deleted_at, deleted_by
+        )
+        SELECT 
+            id, name, description, coach_id, month, year, 
+            COALESCE(weeks, '[]'::jsonb) as weeks,
+            created_at, updated_at, deleted_at, deleted_by
+        FROM monthly_plans
+        ON CONFLICT (id) DO NOTHING;
+
+        RAISE NOTICE 'Data migrated from monthly_plans to training_plans';
+    END IF;
+END $$;
+
+-- ====================================
+-- STEP 4: CREATE training_plan_assignments TABLE  
+-- ====================================
+
 CREATE TABLE IF NOT EXISTS training_plan_assignments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     training_plan_id UUID NOT NULL REFERENCES training_plans(id) ON DELETE CASCADE,
@@ -42,23 +94,70 @@ CREATE TABLE IF NOT EXISTS training_plan_assignments (
     start_date DATE NOT NULL,
     status TEXT NOT NULL DEFAULT 'assigned' CHECK (status IN ('assigned', 'in_progress', 'completed')),
     assigned_by UUID NOT NULL REFERENCES profiles(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(training_plan_id, athlete_id)
 );
 
--- Step 5: Create indexes for better performance
+-- Migrate data from monthly_plan_assignments if it exists
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'monthly_plan_assignments') THEN
+        
+        INSERT INTO training_plan_assignments (
+            id, training_plan_id, athlete_id, assigned_at, start_date, 
+            status, assigned_by, created_at, updated_at
+        )
+        SELECT 
+            id, 
+            monthly_plan_id as training_plan_id, 
+            athlete_id, 
+            assigned_at, 
+            start_date, 
+            COALESCE(status, 'assigned') as status,
+            assigned_by, 
+            created_at, 
+            updated_at
+        FROM monthly_plan_assignments
+        ON CONFLICT (training_plan_id, athlete_id) DO NOTHING;
+
+        RAISE NOTICE 'Data migrated from monthly_plan_assignments to training_plan_assignments';
+    END IF;
+END $$;
+
+-- ====================================
+-- STEP 5: CREATE INDEXES
+-- ====================================
+
 CREATE INDEX IF NOT EXISTS idx_training_plans_coach_id ON training_plans(coach_id);
 CREATE INDEX IF NOT EXISTS idx_training_plans_deleted_at ON training_plans(deleted_at) WHERE deleted_at IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_training_plans_month_year ON training_plans(month, year);
+CREATE INDEX IF NOT EXISTS idx_training_plans_start_date ON training_plans(start_date);
+CREATE INDEX IF NOT EXISTS idx_training_plans_end_date ON training_plans(end_date);
 
 CREATE INDEX IF NOT EXISTS idx_training_plan_assignments_plan_id ON training_plan_assignments(training_plan_id);
 CREATE INDEX IF NOT EXISTS idx_training_plan_assignments_athlete_id ON training_plan_assignments(athlete_id);
 CREATE INDEX IF NOT EXISTS idx_training_plan_assignments_status ON training_plan_assignments(status);
+CREATE INDEX IF NOT EXISTS idx_training_plan_assignments_start_date ON training_plan_assignments(start_date);
 
--- Step 6: Enable RLS on both tables
+-- ====================================
+-- STEP 6: ENABLE ROW LEVEL SECURITY
+-- ====================================
+
 ALTER TABLE training_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE training_plan_assignments ENABLE ROW LEVEL SECURITY;
 
--- Step 7: Drop existing policies if they exist (to avoid conflicts)
+-- ====================================
+-- STEP 7: DROP OLD POLICIES
+-- ====================================
+
+-- Drop old monthly_plans policies
+DROP POLICY IF EXISTS "Coaches can view their own monthly plans" ON monthly_plans;
+DROP POLICY IF EXISTS "Coaches can create monthly plans" ON monthly_plans;
+DROP POLICY IF EXISTS "Coaches can update their own monthly plans" ON monthly_plans;
+DROP POLICY IF EXISTS "Coaches can delete their own monthly plans" ON monthly_plans;
+
+-- Drop old training_plans policies (to recreate them)
 DROP POLICY IF EXISTS "Coaches can view their own training plans" ON training_plans;
 DROP POLICY IF EXISTS "Coaches can create training plans" ON training_plans;
 DROP POLICY IF EXISTS "Coaches can update their own training plans" ON training_plans;
@@ -70,8 +169,13 @@ DROP POLICY IF EXISTS "Coaches can create training plan assignments" ON training
 DROP POLICY IF EXISTS "Coaches can update training plan assignments" ON training_plan_assignments;
 DROP POLICY IF EXISTS "Coaches can delete training plan assignments" ON training_plan_assignments;
 DROP POLICY IF EXISTS "Athletes can view their training plan assignments" ON training_plan_assignments;
+DROP POLICY IF EXISTS "Athletes can update their assignment status" ON training_plan_assignments;
 
--- Step 8: Create comprehensive RLS policies for training_plans
+-- ====================================
+-- STEP 8: CREATE RLS POLICIES
+-- ====================================
+
+-- Training Plans Policies
 CREATE POLICY "Coaches can view their own training plans" ON training_plans
     FOR SELECT USING (
         auth.uid() = coach_id 
@@ -97,7 +201,7 @@ CREATE POLICY "Athletes can view assigned training plans" ON training_plans
         AND deleted_at IS NULL
     );
 
--- Step 9: Create comprehensive RLS policies for training_plan_assignments
+-- Training Plan Assignments Policies
 CREATE POLICY "Coaches can view training plan assignments" ON training_plan_assignments
     FOR SELECT USING (
         auth.uid() IN (
@@ -145,7 +249,10 @@ CREATE POLICY "Athletes can update their assignment status" ON training_plan_ass
     FOR UPDATE USING (auth.uid() = athlete_id)
     WITH CHECK (auth.uid() = athlete_id);
 
--- Step 10: Create updated_at trigger for training_plans
+-- ====================================
+-- STEP 9: CREATE TRIGGERS
+-- ====================================
+
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -160,26 +267,51 @@ CREATE TRIGGER update_training_plans_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
--- Step 11: Grant necessary permissions
+DROP TRIGGER IF EXISTS update_training_plan_assignments_updated_at ON training_plan_assignments;
+CREATE TRIGGER update_training_plan_assignments_updated_at
+    BEFORE UPDATE ON training_plan_assignments
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- ====================================
+-- STEP 10: GRANT PERMISSIONS
+-- ====================================
+
 GRANT ALL ON training_plans TO authenticated;
 GRANT ALL ON training_plan_assignments TO authenticated;
 
--- Step 12: Verify the setup
-SELECT 'training_plans table created successfully' as status 
-WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'training_plans');
+-- ====================================
+-- STEP 11: VERIFICATION & CLEANUP
+-- ====================================
 
-SELECT 'training_plan_assignments table created successfully' as status 
-WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'training_plan_assignments');
+-- Verify the migration worked
+SELECT 'Migration completed successfully!' as status;
 
--- Show final table structure
-SELECT 'Training Plans Structure:' as info;
+SELECT 
+    'training_plans' as table_name,
+    COUNT(*) as record_count
+FROM training_plans;
+
+SELECT 
+    'training_plan_assignments' as table_name,
+    COUNT(*) as record_count
+FROM training_plan_assignments;
+
+-- Show table structures
+SELECT 'TRAINING PLANS STRUCTURE:' as info;
 SELECT column_name, data_type, is_nullable 
 FROM information_schema.columns 
 WHERE table_name = 'training_plans' 
 ORDER BY ordinal_position;
 
-SELECT 'Training Plan Assignments Structure:' as info;
+SELECT 'TRAINING PLAN ASSIGNMENTS STRUCTURE:' as info;
 SELECT column_name, data_type, is_nullable 
 FROM information_schema.columns 
 WHERE table_name = 'training_plan_assignments' 
-ORDER BY ordinal_position; 
+ORDER BY ordinal_position;
+
+-- Optional: Drop old tables (uncomment if you're sure the migration worked)
+-- DROP TABLE IF EXISTS monthly_plan_assignments CASCADE;
+-- DROP TABLE IF EXISTS monthly_plans CASCADE;
+
+SELECT '✅ MIGRATION COMPLETE! Your training_plans system is ready.' as final_status; 

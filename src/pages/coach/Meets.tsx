@@ -121,6 +121,7 @@ export function CoachMeets() {
   const menuDeleteHoverBg = useColorModeValue('red.50', 'red.900');
   const grayHoverBg = useColorModeValue('gray.100', 'gray.700');
   const grayHoverBorderColor = useColorModeValue('gray.300', 'gray.500');
+  const descriptionBoxBg = useColorModeValue('gray.50', 'gray.700');
   
   // Form handling setup for meet creation/editing
   // These will be used when we implement the form modals
@@ -305,13 +306,17 @@ export function CoachMeets() {
         
         const meetAthletes = assignments
           ?.filter(a => meetEventIds.includes(a.meet_event_id))
-          .map(a => ({
-            id: a.athletes?.id,
-            profiles: a.athletes?.profiles
-          }))
+          .map(a => {
+            // Properly type the athlete data
+            const athleteData = a.athletes as any;
+            return {
+              id: athleteData?.id,
+              profiles: athleteData?.profiles
+            };
+          })
           .filter((athlete, index, self) => 
             // Remove duplicates based on athlete ID
-            index === self.findIndex(a => a?.id === athlete?.id)
+            athlete?.id && index === self.findIndex(a => a?.id === athlete?.id)
           ) || [];
         
         athletesByMeet[meetId] = meetAthletes;
@@ -854,7 +859,7 @@ export function CoachMeets() {
                     {meet.description && (
                       <Box 
                         p={3} 
-                        bg={useColorModeValue('gray.50', 'gray.700')} 
+                        bg={descriptionBoxBg} 
                         borderRadius="md" 
                         borderLeft="4px solid" 
                         borderLeftColor="blue.400"

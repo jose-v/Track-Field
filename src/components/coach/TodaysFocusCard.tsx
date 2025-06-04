@@ -75,51 +75,67 @@ const TodaysFocusCard: React.FC<TodaysFocusCardProps> = ({ onTaskClick }) => {
       const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
       const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
 
-      // 1. Get today's scheduled workouts
+      // 1. Get today's scheduled workouts - fixed relationship chain
       const { data: todayWorkouts, error: workoutsError } = await supabase
         .from('athlete_workouts')
         .select(`
           id,
-          workout_name,
-          scheduled_date,
-          completed_at,
           athlete_id,
-          profiles!athlete_workouts_athlete_id_fkey(first_name, last_name)
+          assigned_at,
+          status
         `)
-        .eq('scheduled_date', today)
-        .is('completed_at', null);
+        .eq('status', 'assigned')
+        .order('assigned_at', { ascending: true });
 
-      if (workoutsError) throw workoutsError;
+      if (workoutsError) {
+        console.warn('Error fetching today\'s workouts:', workoutsError);
+      } else if (todayWorkouts && todayWorkouts.length > 0) {
+        // Get athlete names separately to avoid complex joins
+        const athleteIds = [...new Set(todayWorkouts.map(w => w.athlete_id))];
+        const { data: athleteProfiles, error: profileError } = await supabase
+          .from('athletes')
+          .select(`
+            id,
+            profiles!inner(first_name, last_name)
+          `)
+          .in('id', athleteIds);
 
-      // Group workouts by name/type for cleaner display
-      const workoutGroups = new Map();
-      (todayWorkouts || []).forEach(workout => {
-        const key = workout.workout_name;
-        if (!workoutGroups.has(key)) {
-          workoutGroups.set(key, {
-            name: workout.workout_name,
-            athletes: [],
-            ids: []
+        if (!profileError && athleteProfiles) {
+          // Group workouts for cleaner display
+          const workoutGroups = new Map();
+          todayWorkouts.forEach(workout => {
+            const athlete = athleteProfiles.find(a => a.id === workout.athlete_id);
+            if (athlete) {
+              const key = 'assigned-workouts'; // Simplified grouping
+              if (!workoutGroups.has(key)) {
+                workoutGroups.set(key, {
+                  name: 'Assigned Workouts',
+                  athletes: [],
+                  ids: []
+                });
+              }
+              const group = workoutGroups.get(key);
+              const athleteName = `${(athlete.profiles as any)?.first_name || ''} ${(athlete.profiles as any)?.last_name || ''}`.trim();
+              group.athletes.push(athleteName);
+              group.ids.push(workout.id);
+            }
           });
-        }
-        const group = workoutGroups.get(key);
-        group.athletes.push(`${workout.profiles?.first_name} ${workout.profiles?.last_name}`);
-        group.ids.push(workout.id);
-      });
 
-      // Add today's workout tasks
-      for (const [_, group] of workoutGroups) {
-        todayTasks.push({
-          id: `workout-${group.ids.join('-')}`,
-          type: 'workout',
-          title: `${group.name}`,
-          description: `Assigned to ${group.athletes.length} athlete${group.athletes.length !== 1 ? 's' : ''}`,
-          priority: 'high',
-          dueTime: 'Today',
-          athleteCount: group.athletes.length,
-          actionLink: '/coach/workout-creator',
-          status: 'pending'
-        });
+          // Add today's workout tasks
+          for (const [_, group] of workoutGroups) {
+            todayTasks.push({
+              id: `workout-${group.ids.join('-')}`,
+              type: 'workout',
+              title: `${group.name}`,
+              description: `Assigned to ${group.athletes.length} athlete${group.athletes.length !== 1 ? 's' : ''}`,
+              priority: 'high',
+              dueTime: 'Today',
+              athleteCount: group.athletes.length,
+              actionLink: '/coach/workout-creator',
+              status: 'pending'
+            });
+          }
+        }
       }
 
       // 2. Get upcoming track meets/events for this week
@@ -157,73 +173,62 @@ const TodaysFocusCard: React.FC<TodaysFocusCardProps> = ({ onTaskClick }) => {
         }
       });
 
-      // 3. Check for athletes needing workout planning (no workouts scheduled for next 3 days)
-      const threeDaysAhead = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0];
-      
+      // 3. Check for athletes needing workout planning - fixed relationship
       const { data: coachAthletes, error: athletesError } = await supabase
         .from('coach_athletes')
         .select(`
-          athlete_id,
-          profiles!coach_athletes_athlete_id_fkey(first_name, last_name)
+          athlete_id
         `)
-        .eq('coach_id', user.id);
+        .eq('coach_id', user.id)
+        .eq('approval_status', 'approved');
 
-      if (athletesError) throw athletesError;
-
-      if (coachAthletes && coachAthletes.length > 0) {
+      if (athletesError) {
+        console.warn('Error fetching coach athletes:', athletesError);
+      } else if (coachAthletes && coachAthletes.length > 0) {
         const athleteIds = coachAthletes.map(ca => ca.athlete_id);
         
         const { data: futureWorkouts, error: futureError } = await supabase
           .from('athlete_workouts')
           .select('athlete_id')
           .in('athlete_id', athleteIds)
-          .gte('scheduled_date', tomorrow)
-          .lte('scheduled_date', threeDaysAhead);
+          .eq('status', 'assigned');
 
-        if (futureError) throw futureError;
+        if (!futureError) {
+          const athletesWithWorkouts = new Set((futureWorkouts || []).map(w => w.athlete_id));
+          const athletesNeedingWorkouts = coachAthletes.filter(ca => !athletesWithWorkouts.has(ca.athlete_id));
 
-        const athletesWithWorkouts = new Set((futureWorkouts || []).map(w => w.athlete_id));
-        const athletesNeedingWorkouts = coachAthletes.filter(ca => !athletesWithWorkouts.has(ca.athlete_id));
-
-        if (athletesNeedingWorkouts.length > 0) {
-          weekTasks.push({
-            id: 'planning-workouts',
-            type: 'planning',
-            title: 'Plan Upcoming Workouts',
-            description: `${athletesNeedingWorkouts.length} athlete${athletesNeedingWorkouts.length !== 1 ? 's' : ''} need workouts scheduled`,
-            priority: 'medium',
-            athleteCount: athletesNeedingWorkouts.length,
-            actionLink: '/coach/workouts/new',
-            status: 'pending'
-          });
+          if (athletesNeedingWorkouts.length > 0) {
+            weekTasks.push({
+              id: 'planning-workouts',
+              type: 'planning',
+              title: 'Plan Upcoming Workouts',
+              description: `${athletesNeedingWorkouts.length} athlete${athletesNeedingWorkouts.length !== 1 ? 's' : ''} need workouts scheduled`,
+              priority: 'medium',
+              athleteCount: athletesNeedingWorkouts.length,
+              actionLink: '/coach/workouts/new',
+              status: 'pending'
+            });
+          }
         }
       }
 
-      // 4. Check for completed workouts needing review (RPE analysis)
+      // 4. Check for completed workouts needing review - simplified query
       const { data: completedWorkouts, error: completedError } = await supabase
         .from('athlete_workouts')
         .select(`
           id,
-          workout_name,
           athlete_id,
-          rpe_rating,
-          completed_at,
-          profiles!athlete_workouts_athlete_id_fkey(first_name, last_name)
+          status
         `)
-        .not('completed_at', 'is', null)
-        .gte('completed_at', new Date(Date.now() - 7 * 86400000).toISOString())
-        .not('rpe_rating', 'is', null);
+        .eq('status', 'completed')
+        .gte('assigned_at', new Date(Date.now() - 7 * 86400000).toISOString());
 
-      if (completedError) throw completedError;
-
-      // Group high RPE workouts for review
-      const highRPEWorkouts = (completedWorkouts || []).filter(w => w.rpe_rating >= 8);
-      if (highRPEWorkouts.length > 0) {
+      if (!completedError && completedWorkouts && completedWorkouts.length > 0) {
         weekTasks.push({
-          id: 'review-high-rpe',
+          id: 'review-completed',
           type: 'review',
-          title: 'Review High RPE Workouts',
-          description: `${highRPEWorkouts.length} workout${highRPEWorkouts.length !== 1 ? 's' : ''} reported RPE ≥ 8`,
+          title: 'Review Completed Workouts',
+          description: `${completedWorkouts.length} workout${completedWorkouts.length !== 1 ? 's' : ''} completed this week`,
           priority: 'medium',
           actionLink: '/coach/analytics',
           status: 'pending'

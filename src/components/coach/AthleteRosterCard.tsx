@@ -77,7 +77,7 @@ const AthleteRosterCard: React.FC<AthleteRosterCardProps> = ({ onAthleteClick })
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
 
-  // Color mode values
+  // Color mode values - ALL HOOKS MUST BE AT THE TOP
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const textColor = useColorModeValue('gray.800', 'gray.100');
@@ -87,6 +87,7 @@ const AthleteRosterCard: React.FC<AthleteRosterCardProps> = ({ onAthleteClick })
   const statNumberColor = useColorModeValue('gray.900', 'gray.100');
   const athleteCardBg = useColorModeValue('gray.50', 'gray.700');
   const athleteItemHoverBg = useColorModeValue('gray.50', 'gray.700');
+  const progressBg = useColorModeValue('gray.200', 'gray.600'); // Moved from conditional JSX
 
   useEffect(() => {
     if (user?.id && coachAthletes.length >= 0) { // Include case where array is empty but loaded
@@ -115,10 +116,10 @@ const AthleteRosterCard: React.FC<AthleteRosterCardProps> = ({ onAthleteClick })
 
       const { data: workoutData, error: workoutError } = await supabase
         .from('athlete_workouts')
-        .select('athlete_id, scheduled_date, completed_at, rpe_rating')
+        .select('athlete_id, assigned_at, status')
         .in('athlete_id', athleteIds)
-        .gte('scheduled_date', thirtyDaysAgo.toISOString().split('T')[0])
-        .order('scheduled_date', { ascending: false });
+        .gte('assigned_at', thirtyDaysAgo.toISOString())
+        .order('assigned_at', { ascending: false });
 
       if (workoutError) throw workoutError;
 
@@ -128,34 +129,25 @@ const AthleteRosterCard: React.FC<AthleteRosterCardProps> = ({ onAthleteClick })
         
         // Calculate compliance (completed vs assigned workouts)
         const totalWorkouts = athleteWorkouts.length;
-        const completedWorkouts = athleteWorkouts.filter(w => w.completed_at).length;
+        const completedWorkouts = athleteWorkouts.filter(w => w.status === 'completed').length;
         const compliance = totalWorkouts > 0 ? Math.round((completedWorkouts / totalWorkouts) * 100) : 0;
         const missedWorkouts = totalWorkouts - completedWorkouts;
 
-        // Calculate recent RPE average for injury risk assessment
-        const recentWorkouts = athleteWorkouts
-          .filter(w => w.rpe_rating && w.completed_at)
-          .slice(0, 5); // Last 5 completed workouts
-
-        const recentRPE = recentWorkouts.length > 0
-          ? recentWorkouts.reduce((sum, w) => sum + (w.rpe_rating || 0), 0) / recentWorkouts.length
-          : undefined;
-
-        // Determine injury risk
+        // Determine injury risk based on simple metrics
         let injuryRisk: 'low' | 'medium' | 'high' = 'low';
-        if (missedWorkouts >= 3 || (recentRPE && recentRPE >= 8.5)) {
+        if (missedWorkouts >= 3) {
           injuryRisk = 'high';
-        } else if (missedWorkouts >= 2 || (recentRPE && recentRPE >= 7.5) || compliance < 60) {
+        } else if (missedWorkouts >= 2 || compliance < 60) {
           injuryRisk = 'medium';
         }
 
         // Get last activity
         const lastCompletedWorkout = athleteWorkouts
-          .filter(w => w.completed_at)
-          .sort((a, b) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime())[0];
+          .filter(w => w.status === 'completed')
+          .sort((a, b) => new Date(b.assigned_at).getTime() - new Date(a.assigned_at).getTime())[0];
         
         const lastActivity = lastCompletedWorkout 
-          ? new Date(lastCompletedWorkout.completed_at).toLocaleDateString()
+          ? new Date(lastCompletedWorkout.assigned_at).toLocaleDateString()
           : 'No recent activity';
 
         return {
@@ -165,7 +157,7 @@ const AthleteRosterCard: React.FC<AthleteRosterCardProps> = ({ onAthleteClick })
           injuryRisk,
           compliance,
           lastActivity,
-          recentRPE,
+          recentRPE: undefined, // Not available in current schema
           missedWorkouts,
           totalWorkouts
         };
@@ -460,11 +452,24 @@ const AthleteRosterCard: React.FC<AthleteRosterCardProps> = ({ onAthleteClick })
                           {athlete.name}
                         </Text>
                         <Tooltip label={`${athlete.injuryRisk.charAt(0).toUpperCase() + athlete.injuryRisk.slice(1)} risk`}>
-                          <Icon
-                            as={getRiskIcon(athlete.injuryRisk)}
-                            color={`${getRiskColor(athlete.injuryRisk)}.500`}
-                            boxSize={4}
-                          />
+                          <Box as="span" display="inline-flex" alignItems="center">
+                            {athlete.injuryRisk === 'high' ? (
+                              <FaExclamationTriangle 
+                                color={`var(--chakra-colors-${getRiskColor(athlete.injuryRisk)}-500)`}
+                                size="16px"
+                              />
+                            ) : athlete.injuryRisk === 'medium' ? (
+                              <FaExclamationTriangle 
+                                color={`var(--chakra-colors-${getRiskColor(athlete.injuryRisk)}-500)`}
+                                size="16px"
+                              />
+                            ) : (
+                              <FaCheckCircle 
+                                color={`var(--chakra-colors-${getRiskColor(athlete.injuryRisk)}-500)`}
+                                size="16px"
+                              />
+                            )}
+                          </Box>
                         </Tooltip>
                       </HStack>
                       
@@ -476,15 +481,6 @@ const AthleteRosterCard: React.FC<AthleteRosterCardProps> = ({ onAthleteClick })
                         >
                           {athlete.compliance}% compliance
                         </Badge>
-                        {athlete.recentRPE && (
-                          <Badge
-                            colorScheme={athlete.recentRPE >= 8 ? 'red' : athlete.recentRPE >= 7 ? 'orange' : 'green'}
-                            variant="subtle"
-                            fontSize="xs"
-                          >
-                            RPE {athlete.recentRPE.toFixed(1)}
-                          </Badge>
-                        )}
                       </HStack>
 
                       <Progress
@@ -492,7 +488,7 @@ const AthleteRosterCard: React.FC<AthleteRosterCardProps> = ({ onAthleteClick })
                         size="xs"
                         colorScheme={getComplianceColor(athlete.compliance)}
                         w="100%"
-                        bg={useColorModeValue('gray.200', 'gray.600')}
+                        bg={progressBg}
                       />
 
                       <HStack spacing={4} w="100%">

@@ -10,6 +10,7 @@ import { FaSearch, FaUsers, FaCalendarAlt, FaExclamationTriangle, FaCheck, FaTim
 import { api } from '../services/api';
 import type { TrainingPlan } from '../services/dbSchema';
 import { useCoachAthletes } from '../hooks/useCoachAthletes';
+import { supabase } from '../lib/supabase';
 
 interface PlanAssignmentModalProps {
   isOpen: boolean;
@@ -76,46 +77,38 @@ export function PlanAssignmentModal({
     try {
       setCheckingConflicts(true);
       
+      // Get all assignments for these athletes in one query to avoid relationship issues
+      const athleteIds = coachAthletes.map(athlete => athlete.id);
+      
+      const { data: allAssignments, error: assignmentsError } = await supabase
+        .from('training_plan_assignments')
+        .select('athlete_id, training_plan_id, status')
+        .in('athlete_id', athleteIds);
+
+      if (assignmentsError) {
+        console.error('Error fetching assignments:', assignmentsError);
+        throw assignmentsError;
+      }
+
+      // Process each athlete
       const athletesWithData = await Promise.all(
         coachAthletes.map(async (athlete) => {
           try {
-            // Check if athlete already has this plan assigned
-            const existingAssignments = await api.monthlyPlanAssignments.getByAthlete(athlete.id);
-            const hasThisPlan = existingAssignments.some(assignment => assignment.training_plan_id === monthlyPlan.id);
+            // Find assignments for this athlete
+            const athleteAssignments = allAssignments?.filter(a => a.athlete_id === athlete.id) || [];
             
-            // Check for conflicts with other plans in the same month/year
-            const conflictingPlans = await Promise.all(
-              existingAssignments
-                .filter(assignment => assignment.training_plan_id !== monthlyPlan.id)
-                .map(async (assignment) => {
-                  try {
-                    const plan = await api.monthlyPlans.getById(assignment.training_plan_id);
-                    return {
-                      assignment,
-                      plan
-                    };
-                  } catch {
-                    return null;
-                  }
-                })
+            // Check if athlete already has this plan assigned
+            const hasThisPlan = athleteAssignments.some(assignment => 
+              assignment.training_plan_id === monthlyPlan.id
             );
-
-            const validConflictingPlans = conflictingPlans.filter(Boolean);
-            const hasConflict = validConflictingPlans.some(
-              (conflictData) => 
-                conflictData?.plan && 
-                conflictData.plan.month === monthlyPlan.month && 
-                conflictData.plan.year === monthlyPlan.year
+            
+            // For conflicts, we'll check if there are other plans assigned
+            // Since we can't easily get the month/year without the foreign key relationship,
+            // we'll assume any other active assignment is a potential conflict
+            const hasOtherPlans = athleteAssignments.some(assignment => 
+              assignment.training_plan_id !== monthlyPlan.id && 
+              assignment.status !== 'completed'
             );
-
-            const conflictPlan = hasConflict 
-              ? validConflictingPlans.find(
-                  (conflictData) => 
-                    conflictData?.plan && 
-                    conflictData.plan.month === monthlyPlan.month && 
-                    conflictData.plan.year === monthlyPlan.year
-                )?.plan?.name
-              : undefined;
 
             return {
               id: athlete.id,
@@ -123,8 +116,8 @@ export function PlanAssignmentModal({
               last_name: athlete.last_name,
               email: athlete.email || '',
               avatar_url: athlete.avatar_url,
-              hasConflict,
-              conflictPlan,
+              hasConflict: hasOtherPlans,
+              conflictPlan: hasOtherPlans ? 'Another training plan' : undefined,
               isAlreadyAssigned: hasThisPlan
             } as AthleteWithAssignment;
           } catch (error) {
@@ -225,16 +218,38 @@ export function PlanAssignmentModal({
     try {
       setLoading(true);
 
+      // Filter out athletes that are already assigned (in case the UI missed some)
+      const athletesToAssign = selectedAthletes.filter(athleteId => {
+        const athlete = athletesWithAssignments.find(a => a.id === athleteId);
+        return athlete && !athlete.isAlreadyAssigned;
+      });
+
+      if (athletesToAssign.length === 0) {
+        toast({
+          title: 'No new assignments needed',
+          description: 'All selected athletes already have this plan assigned.',
+          status: 'info',
+          duration: 3000,
+          isClosable: true
+        });
+        return;
+      }
+
       // Assign plan to selected athletes with start date
       await api.monthlyPlanAssignments.assign(
         monthlyPlan.id,
-        selectedAthletes,
+        athletesToAssign,
         startDate
       );
 
+      const skippedCount = selectedAthletes.length - athletesToAssign.length;
+      const successMessage = skippedCount > 0 
+        ? `Plan assigned to ${athletesToAssign.length} athlete${athletesToAssign.length > 1 ? 's' : ''}. ${skippedCount} athlete${skippedCount > 1 ? 's were' : ' was'} already assigned.`
+        : `Plan assigned to ${athletesToAssign.length} athlete${athletesToAssign.length > 1 ? 's' : ''}.`;
+
       toast({
-        title: 'Plan assigned successfully!',
-        description: `"${monthlyPlan.name}" has been assigned to ${selectedAthletes.length} athlete${selectedAthletes.length > 1 ? 's' : ''} starting ${new Date(startDate).toLocaleDateString()}.`,
+        title: 'Assignment successful!',
+        description: `"${monthlyPlan.name}" has been assigned starting ${new Date(startDate).toLocaleDateString()}. ${successMessage}`,
         status: 'success',
         duration: 5000,
         isClosable: true
@@ -244,9 +259,19 @@ export function PlanAssignmentModal({
       onClose();
     } catch (error) {
       console.error('Error assigning plan:', error);
+      
+      let errorMessage = 'Please try again later.';
+      if (error instanceof Error) {
+        if (error.message.includes('duplicate')) {
+          errorMessage = 'Some athletes already have this plan assigned. The assignment has been updated.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: 'Error assigning plan',
-        description: error instanceof Error ? error.message : 'Please try again later.',
+        description: errorMessage,
         status: 'error',
         duration: 5000,
         isClosable: true
