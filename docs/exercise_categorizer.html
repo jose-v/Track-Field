@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exercise Categorizer Tool</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .progress-bar {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            height: 20px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            background: #10b981;
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        
+        .progress-text {
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            padding: 30px;
+        }
+        
+        .category-panel {
+            background: #f8fafc;
+            border-radius: 15px;
+            padding: 25px;
+            height: fit-content;
+        }
+        
+        .exercise-panel {
+            background: #f8fafc;
+            border-radius: 15px;
+            padding: 25px;
+        }
+        
+        .panel-title {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #4f46e5;
+            padding-bottom: 10px;
+        }
+        
+        .category-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .category-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+        
+        .btn-primary {
+            background: #4f46e5;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #4338ca;
+            transform: translateY(-1px);
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        .category-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .category-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            border-left: 4px solid #4f46e5;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .category-name {
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .category-count {
+            background: #4f46e5;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .search-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        .filter-select {
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            min-width: 150px;
+        }
+        
+        .bulk-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .exercise-list {
+            max-height: 600px;
+            overflow-y: auto;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            background: white;
+        }
+        
+        .exercise-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #f1f5f9;
+            transition: background-color 0.2s ease;
+        }
+        
+        .exercise-item:hover {
+            background: #f8fafc;
+        }
+        
+        .exercise-item.selected {
+            background: #ede9fe;
+            border-left: 4px solid #7c3aed;
+        }
+        
+        .exercise-checkbox {
+            margin-right: 15px;
+            transform: scale(1.2);
+        }
+        
+        .exercise-info {
+            flex: 1;
+        }
+        
+        .exercise-name {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 5px;
+        }
+        
+        .exercise-description {
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        .exercise-category {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 15px;
+        }
+        
+        .category-uncategorized {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .category-drill { background: #dbeafe; color: #1e40af; }
+        .category-plyometric { background: #dcfce7; color: #166534; }
+        .category-strength { background: #fee2e2; color: #991b1b; }
+        .category-flexibility { background: #f3e8ff; color: #7c2d12; }
+        .category-warm_up { background: #fef3c7; color: #92400e; }
+        .category-running { background: #ecfdf5; color: #065f46; }
+        .category-recovery { background: #e0f2fe; color: #0c4a6e; }
+        .category-cool_down { background: #f1f5f9; color: #334155; }
+        .category-rest_interval { background: #fafafa; color: #525252; }
+        
+        .export-section {
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8fafc;
+            border-radius: 15px;
+            text-align: center;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .stat-number {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #4f46e5;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #64748b;
+            margin-top: 5px;
+        }
+        
+        .sql-output {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .search-controls {
+                flex-direction: column;
+            }
+            
+            .bulk-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏃‍♂️ Exercise Categorizer</h1>
+            <p>Organize and categorize track & field exercises for your training library</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">0 of 334 exercises categorized (0%)</div>
+        </div>
+        
+        <div class="main-content">
+            <div class="category-panel">
+                <h2 class="panel-title">📁 Categories</h2>
+                
+                <div class="category-form">
+                    <input type="text" id="newCategoryInput" class="category-input" placeholder="New category name">
+                    <button onclick="addCategory()" class="btn btn-primary">Add</button>
+                </div>
+                
+                <div class="category-list" id="categoryList">
+                    <!-- Categories will be populated here -->
+                </div>
+            </div>
+            
+            <div class="exercise-panel">
+                <h2 class="panel-title">💪 Exercises</h2>
+                
+                <div class="search-controls">
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search exercises...">
+                    <select id="categoryFilter" class="filter-select">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                
+                <div class="bulk-actions">
+                    <button onclick="selectAll()" class="btn btn-secondary">Select All</button>
+                    <button onclick="selectNone()" class="btn btn-secondary">Select None</button>
+                    <select id="bulkCategorySelect" class="filter-select">
+                        <option value="">Assign Category...</option>
+                    </select>
+                    <button onclick="assignBulkCategory()" class="btn btn-success">Assign</button>
+                </div>
+                
+                <div class="exercise-list" id="exerciseList">
+                    <!-- Exercises will be populated here -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="export-section">
+            <h2 class="panel-title">📊 Progress & Export</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number" id="totalExercises">334</div>
+                    <div class="stat-label">Total Exercises</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="categorizedCount">0</div>
+                    <div class="stat-label">Categorized</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="uncategorizedCount">334</div>
+                    <div class="stat-label">Remaining</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="categoryCount">0</div>
+                    <div class="stat-label">Categories</div>
+                </div>
+            </div>
+            
+            <button onclick="generateSQL()" class="btn btn-success">🔄 Generate SQL Export</button>
+            <button onclick="downloadSQL()" class="btn btn-primary">💾 Download SQL File</button>
+            
+            <div class="sql-output" id="sqlOutput"></div>
+        </div>
+    </div>
+    
+    <script>
+        // All 403 exercises extracted from the SQL file with their pre-assigned categories
+        const exercises = [
+          {name: "10-5-5 (Drill)", description: "Track and field drill", category: "drill"},
+          {name: "180 Degree Jumps (180s)", description: "Rotational jumping exercise", category: "plyometric"},
+          {name: "3 Pt. Stance Acceleration R/L", description: "Three-point stance acceleration drill", category: "drill"},
+          {name: "3 Pt. Stance", description: "Three-point starting stance", category: "drill"},
+          {name: "4 Bounds into strides", description: "Bounding exercise transitioning to strides", category: "plyometric"},
+          {name: "4 way cable (Cable 4-way hips)", description: "Hip strengthening with cable machine", category: "strength"},
+          {name: "90/90 Hip Switches", description: "Hip mobility exercise", category: "flexibility"},
+          {name: "A Skip w-Clap (Backward Alternating)", description: "A-skip variation with clapping", category: "drill"},
+          {name: "A Skips / A-Switches", description: "Fundamental running drill", category: "drill"},
+          {name: "Accelerations (General, e.g., 2 pt. Standing, 3 pt. Standing, Kneeling)", description: "Various acceleration techniques", category: "running"},
+          {name: "Adductor Stretch", description: "Inner thigh stretching", category: "flexibility"},
+          {name: "Alternate Dynamic Walkovers", description: "Dynamic leg swing exercise", category: "flexibility"},
+          {name: "Alt Highland Leg Swings", description: "Alternating leg swing warm-up", category: "warm_up"},
+          {name: "Ankle Bounce", description: "Ankle mobility exercise", category: "warm_up"},
+          {name: "Ankle Rotation", description: "Ankle mobility and strengthening", category: "warm_up"},
+          {name: "Ankling", description: "Foot and ankle running drill", category: "drill"},
+          {name: "Arm Across Skips", description: "Skipping with arm movement", category: "drill"},
+          {name: "Arm Circle Skips", description: "Skipping with arm circles", category: "drill"},
+          {name: "Arm circles (backwards and forward)", description: "Shoulder warm-up exercise", category: "warm_up"},
+          {name: "Around the world on tape", description: "Agility drill on line/tape", category: "drill"},
+          {name: "B Skips", description: "Running drill progression", category: "drill"},
+          {name: "Back Extensions (Hypers)", description: "Lower back strengthening", category: "strength"},
+          {name: "Back Pedal", description: "Backward running drill", category: "drill"},
+          {name: "Back Plank Hip Arch", description: "Core strengthening exercise", category: "strength"},
+          {name: "Back Plank Leg Lifts", description: "Core and glute strengthening", category: "strength"},
+          {name: "Back rolls", description: "Spinal mobility exercise", category: "flexibility"},
+          {name: "Back Squats", description: "Compound leg strengthening exercise", category: "strength"},
+          {name: "Backward A Switches", description: "Reverse A-skip drill", category: "drill"},
+          {name: "Backward Lunges", description: "Reverse lunge exercise", category: "strength"},
+          {name: "Backward pogos", description: "Backward hopping exercise", category: "plyometric"},
+          {name: "Backward Skips", description: "Backward skipping drill", category: "drill"},
+          {name: "Backward Squat Walk", description: "Squat walking backward", category: "strength"},
+          {name: "Band internal and external rotation", description: "Shoulder rotation with resistance band", category: "strength"},
+          {name: "Banded squat Jumps", description: "Jump squats with resistance band", category: "plyometric"},
+          {name: "Barbell Hang Clean", description: "Olympic lifting movement", category: "strength"},
+          {name: "Barbell Single Leg Clean", description: "Single leg Olympic lift variation", category: "strength"},
+          {name: "Bear crawl pull throughs", description: "Full body crawling exercise", category: "strength"},
+          {name: "Bench Press", description: "Upper body pushing exercise", category: "strength"},
+          {name: "Bentover Rows", description: "Back strengthening exercise", category: "strength"},
+          {name: "Between the Legs forward (throw)", description: "Medicine ball throw", category: "plyometric"},
+          {name: "Bicycle with Rollover", description: "Core exercise variation", category: "strength"},
+          {name: "Bikes (core exercise)", description: "Abdominal exercise", category: "strength"},
+          {name: "Bird dog", description: "Core stability exercise", category: "strength"},
+          {name: "Bleachers (running)", description: "Stadium stair running", category: "running"},
+          {name: "Block Thigh Parallel (part of Frontside Mechanics cue)", description: "Running form drill", category: "drill"},
+          {name: "Body rotations", description: "Torso rotation warm-up", category: "warm_up"},
+          {name: "Bounds for Distance", description: "Horizontal bounding", category: "plyometric"},
+          {name: "Bounds for Height", description: "Vertical bounding", category: "plyometric"},
+          {name: "Bounds", description: "General bounding exercise", category: "plyometric"},
+          {name: "Box - Between Legs Forward", description: "Medicine ball throw variation", category: "plyometric"},
+          {name: "Box - Overhead Back", description: "Overhead medicine ball throw", category: "plyometric"},
+          {name: "Box Jumps", description: "Jumping onto elevated platform", category: "plyometric"},
+          {name: "Bridges to Pike", description: "Hip bridge to pike movement", category: "strength"},
+          {name: "Broad Jump (Standing Long Jump / SLJ)", description: "Horizontal jumping exercise", category: "plyometric"},
+          {name: "Bulgarian split squat", description: "Single leg squat variation", category: "strength"},
+          {name: "Bunny hops", description: "Double leg hopping", category: "plyometric"},
+          {name: "Burpee Pull Up", description: "Compound burpee with pull-up", category: "strength"},
+          {name: "Burpees", description: "Full body exercise", category: "strength"},
+          {name: "Butt Kick Jumps", description: "Jumping butt kicks", category: "plyometric"},
+          {name: "Butt Kicks", description: "Running drill", category: "drill"},
+          {name: "Butterfly (stretch)", description: "Hip flexibility stretch", category: "flexibility"},
+          {name: "C Skips", description: "Advanced running drill", category: "drill"},
+          {name: "Calf raises on slant board", description: "Calf strengthening on incline", category: "strength"},
+          {name: "Calf raises with lax ball", description: "Calf raises with lacrosse ball", category: "strength"},
+          {name: "Calf stretch in push up position", description: "Calf stretching variation", category: "flexibility"},
+          {name: "Calf Stretch (Standing R/L)", description: "Standing calf stretch", category: "flexibility"},
+          {name: "Chair drill (for LJ/TJ)", description: "Long jump/Triple jump drill", category: "drill"},
+          {name: "Chess passes (Medicine Ball)", description: "Medicine ball passing drill", category: "plyometric"},
+          {name: "Chest Hang (stretch)", description: "Chest stretching exercise", category: "flexibility"},
+          {name: "Chest Over Thigh (part of Frontside Mechanics cue)", description: "Running form cue", category: "drill"},
+          {name: "Chin ups", description: "Upper body pulling exercise", category: "strength"},
+          {name: "Circle Drill (HJ - pushing off the curve)", description: "High jump technique drill", category: "drill"},
+          {name: "Circuit Paired Run", description: "Partnered running drill", category: "running"},
+          {name: "Clams / Clamshells", description: "Hip strengthening exercise", category: "strength"},
+          {name: "Clean (floor, knee, thigh)", description: "Olympic lifting variations", category: "strength"},
+          {name: "Clean & Jerk", description: "Olympic lifting movement", category: "strength"},
+          {name: "Clean pulls", description: "Olympic lift pulling phase", category: "strength"},
+          {name: "Closed Everted Toe Squats", description: "Squat variation with foot position", category: "strength"},
+          {name: "Cocked Foot (part of Frontside Mechanics cue)", description: "Running form technique", category: "drill"},
+          {name: "Combo Bounds", description: "Combination bounding exercise", category: "plyometric"},
+          {name: "Continuous 3 steps pop-ups", description: "Continuous jumping drill", category: "plyometric"},
+          {name: "Cool-Down Stretches (general category, specific ones listed)", description: "General cool-down stretching", category: "cool_down"},
+          {name: "Core exercises (general)", description: "General abdominal strengthening", category: "strength"},
+          {name: "Cossack Extensions", description: "Deep lateral lunge stretch", category: "flexibility"},
+          {name: "Cossack squat", description: "Lateral squat movement", category: "strength"},
+          {name: "Cracks with med-ball", description: "Medicine ball exercise", category: "plyometric"},
+          {name: "Crossover hops", description: "Lateral hopping exercise", category: "plyometric"},
+          {name: "Crossover Runs", description: "Lateral running drill", category: "drill"},
+          {name: "Crossover Step-Ups", description: "Lateral step-up exercise", category: "strength"},
+          {name: "Crunches", description: "Abdominal exercise", category: "strength"},
+          {name: "Crunches w/ Twist", description: "Rotational abdominal exercise", category: "strength"},
+          {name: "Curtsy lunge", description: "Reverse diagonal lunge", category: "strength"},
+          {name: "Curve work (HJ drills)", description: "High jump curve running", category: "drill"},
+          {name: "DB Calf Raises", description: "Dumbbell calf raises", category: "strength"},
+          {name: "DB RDL", description: "Dumbbell Romanian deadlift", category: "strength"},
+          {name: "DB Seated Jumps", description: "Seated jump with dumbbells", category: "plyometric"},
+          {name: "DB Step Ups (keep toe dorsiflex)", description: "Dumbbell step-ups", category: "strength"},
+          {name: "Dead bug", description: "Core stability exercise", category: "strength"},
+          {name: "Dead lift", description: "Compound pulling exercise", category: "strength"},
+          {name: "Decline push up", description: "Elevated feet push-up", category: "strength"},
+          {name: "Deep Body Squats", description: "Deep squat movement", category: "strength"},
+          {name: "Deep Squat (stretch)", description: "Deep squat hold", category: "flexibility"},
+          {name: "Depth Drops / Depth Jumps", description: "Drop jumping exercise", category: "plyometric"},
+          {name: "Diagonal hops", description: "Multi-directional hopping", category: "plyometric"},
+          {name: "Dips", description: "Upper body pushing exercise", category: "strength"},
+          {name: "DL Lateral Hops", description: "Double leg lateral hops", category: "plyometric"},
+          {name: "Donkey kicks", description: "Glute strengthening exercise", category: "strength"},
+          {name: "Double A Switches", description: "Double A-skip drill", category: "drill"},
+          {name: "Double Double TJ / Double Double TJ Drill", description: "Triple jump technique drill", category: "drill"},
+          {name: "Double Knee Tucks", description: "Double knee jumping exercise", category: "plyometric"},
+          {name: "Double Leg Backward", description: "Backward double leg hops", category: "plyometric"},
+          {name: "Double Leg Bounds", description: "Double leg bounding", category: "plyometric"},
+          {name: "Double Leg Forward", description: "Forward double leg hops", category: "plyometric"},
+          {name: "Drop Jumps", description: "Drop and jump exercise", category: "plyometric"},
+          {name: "Dumbbell Hang Clean", description: "Dumbbell Olympic lift", category: "strength"},
+          {name: "Dumbbell Snatch", description: "Dumbbell Olympic lift", category: "strength"},
+          {name: "Dynamic Flexibility (general category of exercises)", description: "Dynamic warm-up movements", category: "warm_up"},
+          {name: "Dynamic Scissors", description: "Dynamic leg swinging", category: "flexibility"},
+          {name: "Eagles", description: "Stretching exercise", category: "flexibility"},
+          {name: "Eccentric pistol squats", description: "Single leg squat negative", category: "strength"},
+          {name: "Elbow to Knee Lunge", description: "Dynamic lunge stretch", category: "flexibility"},
+          {name: "Eversion with band", description: "Ankle strengthening with band", category: "strength"},
+          {name: "Fast A Switches Rotary (No Bounce / Two Bounces)", description: "Fast A-skip variations", category: "drill"},
+          {name: "Fast Five A Switches Rotary (Two Bounces)", description: "Fast A-skip drill", category: "drill"},
+          {name: "Fast leg", description: "Fast leg cycling drill", category: "drill"},
+          {name: "Fast Leg Continuous R/L", description: "Continuous fast leg drill", category: "drill"},
+          {name: "Fast Leg Rotary Cycle R/L Only", description: "Single leg fast cycling", category: "drill"},
+          {name: "Fast Leg Rotary Double R/L Only", description: "Double leg fast cycling", category: "drill"},
+          {name: "Figure 4 bridge", description: "Hip bridge variation", category: "strength"},
+          {name: "Figure-4 (stretch)", description: "Hip stretching position", category: "flexibility"},
+          {name: "Fire Hydrant", description: "Hip abduction exercise", category: "strength"},
+          {name: "Flutter Kicks", description: "Core strengthening exercise", category: "strength"},
+          {name: "Foam roll", description: "Self-myofascial release", category: "recovery"},
+          {name: "Foot Drills", description: "Foot and ankle drills", category: "drill"},
+          {name: "Forward lunge", description: "Forward stepping lunge", category: "strength"},
+          {name: "Forward Squat Walk", description: "Squat walking forward", category: "strength"},
+          {name: "Front Squat", description: "Front-loaded squat", category: "strength"},
+          {name: "Front straddle hops", description: "Forward straddle jumping", category: "plyometric"},
+          {name: "Frontal Leg Swings", description: "Forward and back leg swings", category: "warm_up"},
+          {name: "Full Squat on Ball of Feet", description: "Calf-raised squat", category: "strength"},
+          {name: "Gallops", description: "Galloping running drill", category: "drill"},
+          {name: "Glute bridge", description: "Hip extension exercise", category: "strength"},
+          {name: "Glute bridge hip flexion", description: "Glute bridge with leg movement", category: "strength"},
+          {name: "Glute Stretch", description: "Glute stretching", category: "flexibility"},
+          {name: "Glute wall press iso", description: "Isometric glute exercise", category: "strength"},
+          {name: "Good morning", description: "Hip hinge exercise", category: "strength"},
+          {name: "Gorilla curls", description: "Bicep exercise variation", category: "strength"},
+          {name: "Half Squats", description: "Partial range squat", category: "strength"},
+          {name: "Hammer Hip (I-R) (throw)", description: "Rotational throwing movement", category: "plyometric"},
+          {name: "Hamstring curl (Physio ball leg curls or machine)", description: "Hamstring strengthening", category: "strength"},
+          {name: "Hamstring Scoops", description: "Hamstring stretching movement", category: "flexibility"},
+          {name: "Hamstring series (lying on the back exercises and the SL pulls)", description: "Hamstring stretch series", category: "flexibility"},
+          {name: "Hamstring Stretch (Single Leg)", description: "Single leg hamstring stretch", category: "flexibility"},
+          {name: "Hanging leg raises", description: "Abdominal strengthening", category: "strength"},
+          {name: "Heel Sit (stretch)", description: "Heel sitting stretch", category: "flexibility"},
+          {name: "Hex bar jump squats", description: "Jump squats with hex bar", category: "plyometric"},
+          {name: "High Knee Circle Runs", description: "High knee running in circles", category: "drill"},
+          {name: "High Knees", description: "High knee running drill", category: "drill"},
+          {name: "Highland Leg Swing R/L", description: "Single leg swinging", category: "warm_up"},
+          {name: "Hill Sprints / Hills", description: "Uphill running", category: "running"},
+          {name: "Hip circles", description: "Hip mobility exercise", category: "warm_up"},
+          {name: "Hip Flexor Stretch (A, R/L)", description: "Hip flexor stretching", category: "flexibility"},
+          {name: "Hip Stretches A", description: "Hip stretching series", category: "flexibility"},
+          {name: "HM over under (Med-ball pop ups) and side drill", description: "Medicine ball drill", category: "plyometric"},
+          {name: "Hop-Bound Bound Combo", description: "Combination hopping and bounding", category: "plyometric"},
+          {name: "Hop-Hop - Between Legs Forward", description: "Double hop with ball", category: "plyometric"},
+          {name: "Hop-Hop - Overhead Back", description: "Double hop overhead throw", category: "plyometric"},
+          {name: "Hurdle drills", description: "Hurdle mobility drills", category: "drill"},
+          {name: "Hurdle Hops", description: "Hopping over hurdles", category: "plyometric"},
+          {name: "Hurdler Seat Switch", description: "Hurdler stretching position", category: "flexibility"},
+          {name: "Hypers w/ Twist", description: "Back extension with rotation", category: "strength"},
+          {name: "Hyper-Ups (Back Extensions)", description: "Back strengthening exercise", category: "strength"},
+          {name: "Impact jumps", description: "High impact jumping", category: "plyometric"},
+          {name: "In Place Pogo Hops", description: "Stationary hopping", category: "plyometric"},
+          {name: "Inch Worms / Walking Inch Worm", description: "Walking plank exercise", category: "strength"},
+          {name: "Incline push up", description: "Elevated hand push-up", category: "strength"},
+          {name: "Jog", description: "Easy running pace", category: "running"},
+          {name: "Jump from easy skip- with landing", description: "Skip to jump transition", category: "plyometric"},
+          {name: "Jump squats", description: "Explosive squat jumps", category: "plyometric"},
+          {name: "Jumping Jacks", description: "Full body warm-up exercise", category: "warm_up"},
+          {name: "Karaoke & Back", description: "Lateral running drill", category: "drill"},
+          {name: "KB tib raises", description: "Kettlebell tibialis raises", category: "strength"},
+          {name: "Knee Hug (stretch)", description: "Knee to chest stretch", category: "flexibility"},
+          {name: "Knee lift Jumps med-ball", description: "Knee lift jumps with medicine ball", category: "plyometric"},
+          {name: "Knee to Chest (Walking)", description: "Walking knee hugs", category: "flexibility"},
+          {name: "Kneeling Accelerations R/L", description: "Kneeling start acceleration", category: "drill"},
+          {name: "Kneeling Pogo Hops", description: "Kneeling hopping exercise", category: "plyometric"},
+          {name: "Kneeling Start R/L", description: "Kneeling starting position", category: "drill"},
+          {name: "Kneeling wood chop", description: "Rotational core exercise", category: "strength"},
+          {name: "L-overs", description: "Lateral stepping exercise", category: "plyometric"},
+          {name: "Lane hops", description: "Lane line hopping drill", category: "plyometric"},
+          {name: "Lat Pulldowns", description: "Latissimus dorsi exercise", category: "strength"},
+          {name: "Lateral Crossover Drill", description: "Lateral movement drill", category: "drill"},
+          {name: "Lateral hops with step up", description: "Combined lateral hop and step", category: "plyometric"},
+          {name: "Lateral lunge", description: "Side stepping lunge", category: "strength"},
+          {name: "Lateral Squat Stretches", description: "Side squat stretching", category: "flexibility"},
+          {name: "Lateral Squat walk", description: "Side stepping squat walk", category: "strength"},
+          {name: "Left Leg Continuous Fast Leg-Walk Back", description: "Single leg drill", category: "drill"},
+          {name: "Leg add ins", description: "Hip adduction exercise", category: "strength"},
+          {name: "Leg Curls", description: "Hamstring strengthening", category: "strength"},
+          {name: "Leg hug glutes stretch", description: "Glute stretching with leg hug", category: "flexibility"},
+          {name: "Leg Swings (Front, Side)", description: "Dynamic leg swinging", category: "warm_up"},
+          {name: "Leg Whips", description: "Fast leg movement drill", category: "drill"},
+          {name: "Lift (general category for weightlifting)", description: "General weightlifting", category: "strength"},
+          {name: "Line hops", description: "Line hopping drill", category: "plyometric"},
+          {name: "LJ continuous step&jump / Step & Jump", description: "Long jump drill", category: "drill"},
+          {name: "LJ Pop Up Drill", description: "Long jump takeoff drill", category: "drill"},
+          {name: "Load Ankle (part of Frontside Mechanics cue)", description: "Running form cue", category: "drill"},
+          {name: "Long Jump Drill Gallop", description: "Long jump approach drill", category: "drill"},
+          {name: "Low knee (drills)", description: "Low knee running drill", category: "drill"},
+          {name: "Low Reach Crunches with Feet Up", description: "Abdominal exercise variation", category: "strength"},
+          {name: "Low Reach Twist Crunches with Feet Up", description: "Rotational ab exercise", category: "strength"},
+          {name: "Lunge Chest (throw component)", description: "Lunge with chest throw", category: "plyometric"},
+          {name: "Lunge jump", description: "Explosive lunge jumps", category: "plyometric"},
+          {name: "Lunge knees over toes", description: "Deep lunge variation", category: "strength"},
+          {name: "Lunge side hip toss", description: "Lunge with lateral throw", category: "plyometric"},
+          {name: "Lunge wall toss", description: "Lunge with wall ball", category: "plyometric"},
+          {name: "Lunges (Walking)", description: "Walking lunge exercise", category: "strength"},
+          {name: "Maximums (Sprints at various %, e.g., 60%, 70%, 80%, 90%, 100%)", description: "Percentage-based sprints", category: "running"},
+          {name: "Med ball high knee march", description: "High knees with medicine ball", category: "strength"},
+          {name: "Med ball tosses from lunge on wobble board", description: "Balance and power exercise", category: "plyometric"},
+          {name: "Med-ball leg single full leg drops", description: "Single leg drop with ball", category: "plyometric"},
+          {name: "Med-ball slams", description: "Medicine ball slamming", category: "plyometric"},
+          {name: "Med-ball toss for distance", description: "Distance throwing with medicine ball", category: "plyometric"},
+          {name: "Medial Kicks", description: "Inside leg kicking drill", category: "drill"},
+          {name: "Mindful breaths", description: "Breathing exercise", category: "recovery"},
+          {name: "Monster walks", description: "Wide stance walking", category: "strength"},
+          {name: "Mountain Climbers", description: "Core and cardio exercise", category: "strength"},
+          {name: "Neck Rotation", description: "Neck mobility exercise", category: "warm_up"},
+          {name: "Overhead Back (throw)", description: "Overhead backward throw", category: "plyometric"},
+          {name: "Overhead Back Throw", description: "Overhead backward throwing", category: "plyometric"},
+          {name: "Overhead Medball Lateral Hops (L/R leg)", description: "Lateral hops with overhead ball", category: "plyometric"},
+          {name: "Overhead Noodle Drill", description: "Overhead arm drill", category: "drill"},
+          {name: "Overhead Step (throw component)", description: "Step with overhead throw", category: "plyometric"},
+          {name: "Overhead Toss to your Partner Step and THROW", description: "Partner overhead throwing", category: "plyometric"},
+          {name: "Overhead Walking Lunges", description: "Lunges with overhead weight", category: "strength"},
+          {name: "Overhead wall toss", description: "Overhead wall ball exercise", category: "plyometric"},
+          {name: "Partner lateral squat walks banded", description: "Partner squat walks with band", category: "strength"},
+          {name: "Partner pass seated med-ball side toss", description: "Seated partner ball toss", category: "plyometric"},
+          {name: "Pelvis Up (part of Frontside Mechanics cue)", description: "Running form cue", category: "drill"},
+          {name: "Physio ball leg curls", description: "Hamstring curls on exercise ball", category: "strength"},
+          {name: "Pistol squat (Eccentric)", description: "Single leg squat negative", category: "strength"},
+          {name: "Plank jacks", description: "Plank with jumping jack legs", category: "strength"},
+          {name: "Plank jump ins", description: "Plank to squat jumps", category: "strength"},
+          {name: "Plank knee in", description: "Plank with knee drives", category: "strength"},
+          {name: "Plank leg raise", description: "Plank with leg lifts", category: "strength"},
+          {name: "Plank roll out", description: "Rolling plank exercise", category: "strength"},
+          {name: "Plank rotation", description: "Rotating plank exercise", category: "strength"},
+          {name: "Plank step out", description: "Plank with step outs", category: "strength"},
+          {name: "Plank to a lunge", description: "Plank to lunge transition", category: "strength"},
+          {name: "Plank", description: "Core stabilization exercise", category: "strength"},
+          {name: "Pogo hops", description: "Bouncing hop exercise", category: "plyometric"},
+          {name: "Pop-ups (LJ)", description: "Long jump takeoff drill", category: "drill"},
+          {name: "Power Bounds", description: "Explosive bounding exercise", category: "plyometric"},
+          {name: "Pretzel Right/Left (stretch)", description: "Pretzel stretching position", category: "flexibility"},
+          {name: "Prisoner Squats", description: "Squats with hands behind head", category: "strength"},
+          {name: "Prone Overhead Back (throw)", description: "Prone overhead throw", category: "plyometric"},
+          {name: "Pull Ups", description: "Upper body pulling exercise", category: "strength"},
+          {name: "Pull overs", description: "Latissimus dorsi exercise", category: "strength"},
+          {name: "Push Press Barbell", description: "Overhead pressing with legs", category: "strength"},
+          {name: "Push Press Dumbbell", description: "Dumbbell overhead press", category: "strength"},
+          {name: "Push up crunch", description: "Combined push-up and crunch", category: "strength"},
+          {name: "Push Up Sky Dive", description: "Dynamic push-up variation", category: "strength"},
+          {name: "Push Ups", description: "Upper body pushing exercise", category: "strength"},
+          {name: "Pushup Stance Leg Lifts", description: "Leg lifts in push-up position", category: "strength"},
+          {name: "Pushup Walk", description: "Walking in push-up position", category: "strength"},
+          {name: "Quad Stretch (Walking, Static)", description: "Quadriceps stretching", category: "flexibility"},
+          {name: "Quick Feet", description: "Fast foot movement drill", category: "drill"},
+          {name: "Reactive Box Jumps", description: "Reactive jumping exercise", category: "plyometric"},
+          {name: "Rest (as part of interval workouts)", description: "Recovery interval", category: "rest_interval"},
+          {name: "Reverse crunch", description: "Reverse abdominal exercise", category: "strength"},
+          {name: "Reverse lunge", description: "Backward stepping lunge", category: "strength"},
+          {name: "Reverse Med Ball Toss", description: "Backward medicine ball throw", category: "plyometric"},
+          {name: "Right Leg Continuous Fast Leg-Walk Back", description: "Single leg drill", category: "drill"},
+          {name: "Rocket jumps", description: "Explosive vertical jumps", category: "plyometric"},
+          {name: "Roll on lax ball", description: "Lacrosse ball rolling", category: "recovery"},
+          {name: "Rotary A-Skips in Place R/L", description: "Stationary A-skip drill", category: "drill"},
+          {name: "Run (Interval, Sprint-Float-Sprint, various distances)", description: "Various running exercises", category: "running"},
+          {name: "Run Run Jump Drill (L-R)", description: "Run-run-jump drill", category: "drill"},
+          {name: "Russian Hamstring", description: "Eccentric hamstring exercise", category: "strength"},
+          {name: "Russian twist", description: "Rotational core exercise", category: "strength"},
+          {name: "Sagittal Leg Swings", description: "Forward-back leg swings", category: "warm_up"},
+          {name: "Scissor Jump / Scisscor jumps", description: "Alternating leg jumps", category: "plyometric"},
+          {name: "Scorpions", description: "Dynamic stretching exercise", category: "flexibility"},
+          {name: "Seated Arm Pull (stretch)", description: "Seated arm stretching", category: "flexibility"},
+          {name: "Seated figure 4 with rotations", description: "Seated hip stretch with rotation", category: "flexibility"},
+          {name: "Seated Hip (throw)", description: "Seated throwing exercise", category: "plyometric"},
+          {name: "Self hugs (open and close arms)", description: "Arm swinging warm-up", category: "warm_up"},
+          {name: "Side A-Skips", description: "Lateral A-skip drill", category: "drill"},
+          {name: "Side Foot Toe Raises", description: "Lateral foot strengthening", category: "strength"},
+          {name: "Side lying hip abduction", description: "Hip strengthening exercise", category: "strength"},
+          {name: "Side planks", description: "Lateral core strengthening", category: "strength"},
+          {name: "Side plank rotation", description: "Rotating side plank", category: "strength"},
+          {name: "Side plank Bottom Leg Lifts", description: "Side plank with bottom leg lift", category: "strength"},
+          {name: "Side Plank Hip Thrusts", description: "Side plank with hip movement", category: "strength"},
+          {name: "Side plank on Hand Bottom Leg Lifts", description: "Hand side plank with leg lift", category: "strength"},
+          {name: "Side Plank on Hand Top Leg Lifts", description: "Hand side plank top leg lift", category: "strength"},
+          {name: "Side Plank Top Leg Lifts", description: "Side plank with top leg lift", category: "strength"},
+          {name: "Side Shuffle", description: "Lateral shuffling drill", category: "drill"},
+          {name: "Side sled pulls", description: "Lateral sled pulling", category: "strength"},
+          {name: "Side star planks", description: "Side plank variation", category: "strength"},
+          {name: "Side step ups", description: "Lateral step-up exercise", category: "strength"},
+          {name: "Side straddle hops", description: "Lateral straddle jumping", category: "plyometric"},
+          {name: "Side to Side Arm Swings", description: "Lateral arm swinging", category: "warm_up"},
+          {name: "Single Leg Bounds", description: "Single leg bounding", category: "plyometric"},
+          {name: "Single Leg Curls", description: "Single leg hamstring curl", category: "strength"},
+          {name: "Single Leg Hamstring (stretch)", description: "Single leg hamstring stretch", category: "flexibility"},
+          {name: "Single Leg Hops (SL HOPS)", description: "Single leg hopping", category: "plyometric"},
+          {name: "Single Leg Skipovers", description: "Single leg skip over", category: "plyometric"},
+          {name: "Single Leg Squats", description: "Single leg squat", category: "strength"},
+          {name: "Single Leg Static/Dynamic Skipovers", description: "Single leg skip variations", category: "plyometric"},
+          {name: "Single Leg Tuck Jumps (SL Tuck Jumps)", description: "Single leg tuck jumps", category: "plyometric"},
+          {name: "Single leg wall sit", description: "Single leg wall sit", category: "strength"},
+          {name: "Sit ups tossing", description: "Sit-ups with ball toss", category: "strength"},
+          {name: "Ski jumps", description: "Lateral ski jumping", category: "plyometric"},
+          {name: "Skip Lunges (Forward, Backward)", description: "Skipping lunge variations", category: "plyometric"},
+          {name: "Skipovers Left Lead Leg", description: "Left leg skip over", category: "plyometric"},
+          {name: "Skipovers Right Lead Leg", description: "Right leg skip over", category: "plyometric"},
+          {name: "Skips for distance", description: "Distance skipping", category: "drill"},
+          {name: "Skips for height", description: "Height skipping", category: "drill"},
+          {name: "SL Butt Kicks", description: "Single leg butt kicks", category: "drill"},
+          {name: "SL Cycle Hops", description: "Single leg cycling hops", category: "plyometric"},
+          {name: "SL Lateral Hops", description: "Single leg lateral hops", category: "plyometric"},
+          {name: "SL Pogo Jumps", description: "Single leg pogo jumps", category: "plyometric"},
+          {name: "Sled push", description: "Sled pushing exercise", category: "strength"},
+          {name: "Sleds (forward, backward, sideways)", description: "Various sled exercises", category: "strength"},
+          {name: "Snatch (Dumbbell, Barbell, floor, knee, thigh)", description: "Olympic snatch variations", category: "strength"},
+          {name: "Snatch Pulls", description: "Snatch pulling phase", category: "strength"},
+          {name: "Spanish squat", description: "Squat variation", category: "strength"},
+          {name: "Speed Bounds", description: "Fast bounding exercise", category: "plyometric"},
+          {name: "Speed Skaters", description: "Lateral skating movement", category: "plyometric"},
+          {name: "Spinal Roll", description: "Spinal mobility exercise", category: "flexibility"},
+          {name: "Split Jumps", description: "Split position jumps", category: "plyometric"},
+          {name: "Split Snatch", description: "Split position snatch", category: "strength"},
+          {name: "Split Stretch", description: "Split position stretching", category: "flexibility"},
+          {name: "Sprint (Maximums, Full Approaches, etc.)", description: "Maximum speed running", category: "running"},
+          {name: "Squat Chest (throw)", description: "Squat with chest throw", category: "plyometric"},
+          {name: "Squat Jumps", description: "Explosive squat jumps", category: "plyometric"},
+          {name: "Squat pulses", description: "Pulsing squat exercise", category: "strength"},
+          {name: "Squat Toe Raises", description: "Squat with calf raise", category: "strength"},
+          {name: "Squats", description: "Basic squat exercise", category: "strength"},
+          {name: "Stadium Circuit / Stadium Stairs (Singles, Doubles etc.)", description: "Stadium stair exercises", category: "running"},
+          {name: "Standing Accelerations (2 pt., 3 pt.)", description: "Standing start accelerations", category: "drill"},
+          {name: "Standing Ankle Dorsi-Flexion", description: "Ankle dorsiflexion exercise", category: "strength"},
+          {name: "Standing Calf R/L (stretch)", description: "Standing calf stretch", category: "flexibility"},
+          {name: "Standing Good Mornings", description: "Standing hip hinge", category: "strength"},
+          {name: "Standing LJ / Broad Jump", description: "Standing long jump", category: "plyometric"},
+          {name: "Standing Overhead Forward (throw)", description: "Standing overhead throw", category: "plyometric"},
+          {name: "Standing Triple Jump", description: "Standing triple jump", category: "plyometric"},
+          {name: "Star Jumps", description: "Star position jumps", category: "plyometric"},
+          {name: "Stationary High knees", description: "Stationary high knee drill", category: "drill"},
+          {name: "Steering Drill", description: "Direction change drill", category: "drill"},
+          {name: "Step Over the Opposite Knee (part of Frontside Mechanics cue)", description: "Running form cue", category: "drill"},
+          {name: "Step ups", description: "Step-up exercise", category: "strength"},
+          {name: "Straddle jumps", description: "Straddle position jumps", category: "plyometric"},
+          {name: "Straddle Stretch Middle/Right/Left", description: "Straddle stretching positions", category: "flexibility"},
+          {name: "Straight Leg Bounds", description: "Straight leg bounding", category: "plyometric"},
+          {name: "Straight Leg Deadlifts", description: "Straight leg deadlift", category: "strength"},
+          {name: "Straight Leg Shuffle", description: "Straight leg shuffling", category: "drill"},
+          {name: "Stride", description: "Striding exercise", category: "running"},
+          {name: "Suitcase Carry", description: "Unilateral carry exercise", category: "strength"},
+          {name: "Suitcase crunches", description: "Suitcase position crunches", category: "strength"},
+          {name: "Sumo Squats", description: "Wide stance squat", category: "strength"},
+          {name: "Superman", description: "Back extension exercise", category: "strength"},
+          {name: "Superman w/ Twist", description: "Back extension with rotation", category: "strength"},
+          {name: "Swing Arms from the Shoulders (part of Frontside Mechanics cue)", description: "Running form cue", category: "drill"},
+          {name: "TJ 6 step Hop and Step", description: "Triple jump drill", category: "drill"},
+          {name: "TIB Raises / Tib raise", description: "Tibialis anterior strengthening", category: "strength"},
+          {name: "Tight High Knee's Rotary", description: "Tight high knee drill", category: "drill"},
+          {name: "Toe Touches", description: "Forward bending stretch", category: "flexibility"},
+          {name: "Toe-Up (part of Frontside Mechanics cue)", description: "Running form cue", category: "drill"},
+          {name: "Trail Leg Circles", description: "Hurdle trail leg drill", category: "drill"},
+          {name: "Tuck Jumps", description: "Knee tuck jumps", category: "plyometric"},
+          {name: "Turnarounds", description: "Direction change drill", category: "drill"},
+          {name: "Twist Lunges", description: "Rotational lunge exercise", category: "strength"},
+          {name: "Underhand tosses (Medicine Ball)", description: "Underhand medicine ball throw", category: "plyometric"},
+          {name: "Up down planks", description: "Plank up-down exercise", category: "strength"},
+          {name: "V Ups / v-ups", description: "V-position sit-ups", category: "strength"},
+          {name: "V-sit pass the ball", description: "V-sit with ball passing", category: "strength"},
+          {name: "Vertical Jump", description: "Maximum vertical jump", category: "plyometric"},
+          {name: "Walk on heels", description: "Heel walking drill", category: "drill"},
+          {name: "Walk on inside/outside of foot (forward/backward)", description: "Foot position walking", category: "drill"},
+          {name: "Walk on toes", description: "Toe walking drill", category: "drill"},
+          {name: "Walkovers Left/Right Lead Leg", description: "Dynamic leg walkovers", category: "flexibility"},
+          {name: "Walking Inch Worm (see Inch Worms)", description: "Walking plank exercise", category: "strength"},
+          {name: "Walking Knee to Chest", description: "Walking knee hugs", category: "flexibility"},
+          {name: "Walking Overhead Med Hurdles", description: "Walking with overhead ball", category: "plyometric"},
+          {name: "Walking opposite elbow to knee", description: "Cross-body walking stretch", category: "flexibility"},
+          {name: "Walking opposite elbow to knee with lunge", description: "Cross-body lunge stretch", category: "flexibility"},
+          {name: "Walking on heels (sprinting arms)", description: "Heel walk with arm action", category: "drill"},
+          {name: "Walking on toes (sprinting arms)", description: "Toe walk with arm action", category: "drill"},
+          {name: "Walking quad stretch", description: "Walking quadriceps stretch", category: "flexibility"},
+          {name: "Walking stretches - quads, hams, glutes", description: "Walking stretch series", category: "flexibility"},
+          {name: "Walking Lunges", description: "Walking lunge exercise", category: "strength"},
+          {name: "Wall drill calf raises", description: "Wall-supported calf raises", category: "strength"},
+          {name: "Wall toss", description: "Wall ball exercise", category: "plyometric"},
+          {name: "Water Break / Electrolyte Break (activity, not exercise)", description: "Hydration break", category: "rest_interval"},
+          {name: "Weave (running drill)", description: "Weaving running drill", category: "drill"},
+          {name: "Wharton rope stretches", description: "Rope-assisted stretching", category: "flexibility"},
+          {name: "Wicket Speed Dev (likely a drill series)", description: "Wicket speed development", category: "drill"},
+          {name: "Wideouts", description: "Wide step drill", category: "drill"},
+          {name: "Windmill", description: "Windmill stretching exercise", category: "flexibility"},
+          {name: "Ws (drill)", description: "W-position drill", category: "drill"}
+        ];
+        
+        // Get unique categories from the exercises
+        let categories = [...new Set(exercises.map(ex => ex.category))].sort();
+        let filteredExercises = [...exercises];
+        
+        // Initialize with progress text showing actual count
+        document.getElementById('progressText').textContent = `0 of ${exercises.length} exercises categorized (0%)`;
+        document.getElementById('totalExercises').textContent = exercises.length;
+        document.getElementById('uncategorizedCount').textContent = exercises.filter(ex => ex.category === 'uncategorized').length;
+        
+        // Initialize the application
+        function init() {
+            renderCategories();
+            renderExercises();
+            updateStats();
+            setupEventListeners();
+        }
+        
+        function setupEventListeners() {
+            document.getElementById('searchInput').addEventListener('input', filterExercises);
+            document.getElementById('categoryFilter').addEventListener('change', filterExercises);
+            document.getElementById('newCategoryInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') addCategory();
+            });
+        }
+        
+        function addCategory() {
+            const input = document.getElementById('newCategoryInput');
+            const categoryName = input.value.trim().toLowerCase().replace(/\s+/g, '_');
+            
+            if (categoryName && !categories.includes(categoryName)) {
+                categories.push(categoryName);
+                categories.sort();
+                input.value = '';
+                renderCategories();
+                updateSelects();
+                updateStats();
+            }
+        }
+        
+        function removeCategory(categoryName) {
+            if (confirm(`Remove category "${categoryName}"? Exercises will be moved to "uncategorized".`)) {
+                // Move exercises back to uncategorized
+                exercises.forEach(exercise => {
+                    if (exercise.category === categoryName) {
+                        exercise.category = 'uncategorized';
+                    }
+                });
+                
+                categories = categories.filter(cat => cat !== categoryName);
+                
+                // Add uncategorized if it doesn't exist
+                if (!categories.includes('uncategorized')) {
+                    categories.push('uncategorized');
+                    categories.sort();
+                }
+                
+                renderCategories();
+                renderExercises();
+                updateSelects();
+                updateStats();
+            }
+        }
+        
+        function renderCategories() {
+            const categoryList = document.getElementById('categoryList');
+            categoryList.innerHTML = '';
+            
+            categories.forEach(category => {
+                const count = exercises.filter(ex => ex.category === category).length;
+                const categoryItem = document.createElement('div');
+                categoryItem.className = 'category-item';
+                categoryItem.innerHTML = `
+                    <span class="category-name">${formatCategoryName(category)}</span>
+                    <div>
+                        <span class="category-count">${count}</span>
+                        ${category !== 'uncategorized' ? `<button onclick="removeCategory('${category}')" class="btn btn-danger" style="margin-left: 10px; padding: 4px 8px; font-size: 12px;">×</button>` : ''}
+                    </div>
+                `;
+                categoryList.appendChild(categoryItem);
+            });
+        }
+        
+        function formatCategoryName(category) {
+            return category.split('_').map(word => 
+                word.charAt(0).toUpperCase() + word.slice(1)
+            ).join(' ');
+        }
+        
+        function filterExercises() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            
+            filteredExercises = exercises.filter(exercise => {
+                const matchesSearch = exercise.name.toLowerCase().includes(searchTerm) || 
+                                    exercise.description.toLowerCase().includes(searchTerm);
+                const matchesCategory = !categoryFilter || exercise.category === categoryFilter;
+                
+                return matchesSearch && matchesCategory;
+            });
+            
+            renderExercises();
+        }
+        
+        function renderExercises() {
+            const exerciseList = document.getElementById('exerciseList');
+            exerciseList.innerHTML = '';
+            
+            filteredExercises.forEach((exercise, index) => {
+                const exerciseItem = document.createElement('div');
+                exerciseItem.className = 'exercise-item';
+                exerciseItem.innerHTML = `
+                    <input type="checkbox" class="exercise-checkbox" data-index="${index}">
+                    <div class="exercise-info">
+                        <div class="exercise-name">${exercise.name}</div>
+                        <div class="exercise-description">${exercise.description}</div>
+                    </div>
+                    <span class="exercise-category category-${exercise.category}">
+                        ${formatCategoryName(exercise.category)}
+                    </span>
+                `;
+                
+                // Add click handler to assign category
+                exerciseItem.addEventListener('click', (e) => {
+                    if (e.target.type !== 'checkbox') {
+                        showCategorySelector(exercise);
+                    }
+                });
+                
+                exerciseList.appendChild(exerciseItem);
+            });
+        }
+        
+        function showCategorySelector(exercise) {
+            const categoryOptions = categories.map(cat => `${cat}: ${formatCategoryName(cat)}`).join('\n');
+            const categoryName = prompt(`Assign category for "${exercise.name}":\n\nAvailable categories:\n${categoryOptions}\n\nEnter category name:`, exercise.category);
+            if (categoryName && categories.includes(categoryName)) {
+                exercise.category = categoryName;
+                renderExercises();
+                renderCategories();
+                updateStats();
+            }
+        }
+        
+        function selectAll() {
+            document.querySelectorAll('.exercise-checkbox').forEach(cb => cb.checked = true);
+        }
+        
+        function selectNone() {
+            document.querySelectorAll('.exercise-checkbox').forEach(cb => cb.checked = false);
+        }
+        
+        function assignBulkCategory() {
+            const selectedCategory = document.getElementById('bulkCategorySelect').value;
+            if (!selectedCategory) return;
+            
+            const selectedCheckboxes = document.querySelectorAll('.exercise-checkbox:checked');
+            selectedCheckboxes.forEach(checkbox => {
+                const index = parseInt(checkbox.dataset.index);
+                const exercise = filteredExercises[index];
+                exercise.category = selectedCategory;
+            });
+            
+            renderExercises();
+            renderCategories();
+            updateStats();
+            selectNone();
+        }
+        
+        function updateSelects() {
+            const categoryFilter = document.getElementById('categoryFilter');
+            const bulkCategorySelect = document.getElementById('bulkCategorySelect');
+            
+            // Update category filter
+            categoryFilter.innerHTML = '<option value="">All Categories</option>';
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = formatCategoryName(category);
+                categoryFilter.appendChild(option);
+            });
+            
+            // Update bulk category select
+            bulkCategorySelect.innerHTML = '<option value="">Assign Category...</option>';
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = formatCategoryName(category);
+                bulkCategorySelect.appendChild(option);
+            });
+        }
+        
+        function updateStats() {
+            const uncategorized = exercises.filter(ex => ex.category === 'uncategorized').length;
+            const categorized = exercises.length - uncategorized;
+            const percentage = Math.round((categorized / exercises.length) * 100);
+            
+            document.getElementById('categorizedCount').textContent = categorized;
+            document.getElementById('uncategorizedCount').textContent = uncategorized;
+            document.getElementById('categoryCount').textContent = categories.filter(cat => cat !== 'uncategorized').length;
+            document.getElementById('progressFill').style.width = percentage + '%';
+            document.getElementById('progressText').textContent = 
+                `${categorized} of ${exercises.length} exercises categorized (${percentage}%)`;
+        }
+        
+        function generateSQL() {
+            let sql = '-- Exercise Library with Categories\n';
+            sql += '-- Generated by Exercise Categorizer Tool\n';
+            sql += `-- Total exercises: ${exercises.length}\n\n`;
+            sql += 'INSERT INTO public.exercise_library (name, category, is_system_exercise, description) VALUES\n';
+            
+            const sqlValues = exercises.map(exercise => {
+                const name = exercise.name.replace(/'/g, "''");
+                const description = exercise.description.replace(/'/g, "''");
+                const category = exercise.category;
+                return `('${name}', '${category}', true, '${description}')`;
+            });
+            
+            sql += sqlValues.join(',\n');
+            sql += '\nON CONFLICT (name) DO UPDATE SET category = EXCLUDED.category, description = EXCLUDED.description;';
+            
+            const sqlOutput = document.getElementById('sqlOutput');
+            sqlOutput.textContent = sql;
+            sqlOutput.style.display = 'block';
+            
+            return sql;
+        }
+        
+        function downloadSQL() {
+            const sql = generateSQL();
+            const blob = new Blob([sql], { type: 'text/sql' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'exercise_library_categorized.sql';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+        
+        // Initialize the app when page loads
+        window.addEventListener('load', () => {
+            updateSelects();
+            init();
+        });
+    </script>
+</body>
+</html> 
