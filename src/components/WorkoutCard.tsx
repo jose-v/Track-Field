@@ -8,6 +8,7 @@ import type { Workout, Exercise } from '../services/api';
 import { dateUtils } from '../utils/date';
 import { ProgressBar } from './ProgressBar';
 import { Link as RouterLink } from 'react-router-dom';
+import { format } from 'date-fns';
 
 // Shared utility functions
 export function getTypeIcon(type: string | undefined) {
@@ -124,15 +125,15 @@ export function WorkoutCard({
   const exerciseTextColor = useColorModeValue('gray.700', 'gray.200');
   const cardShadow = useColorModeValue('none', 'lg');
   
-  // Get formatted date
-  const formattedScheduleDate = formatDate(workout.date);
-  
-  // Extract exercises properly (handles both regular and weekly workouts)
-  const displayExercises = getExercisesFromWorkout(workout);
-  
-  // Log the raw date to help with debugging
-  console.log(`WorkoutCard - Raw date: ${workout.date}, Formatted: ${formattedScheduleDate}`);
-  console.log(`WorkoutCard - Exercises:`, displayExercises);
+  // Format schedule date
+  const formattedScheduleDate = workout.date 
+    ? format(new Date(workout.date), 'MMM d, yyyy')
+    : 'No date set';
+
+  // Ensure exercises is always an array and get first few for display
+  const displayExercises = Array.isArray(workout.exercises) 
+    ? workout.exercises.slice(0, 3) 
+    : [];
 
   return (
     <Card 

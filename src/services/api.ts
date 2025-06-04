@@ -81,6 +81,7 @@ export const api = {
         .from('workouts')
         .select('*')
         .eq('user_id', userId)
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data || [];
@@ -119,8 +120,6 @@ export const api = {
         if (workout.time) workoutData.time = workout.time;
         if (workout.location) workoutData.location = workout.location;
         if (workout.template_type) workoutData.template_type = workout.template_type;
-        
-        console.log('Creating workout with data:', workoutData);
         
         const { data, error } = await supabase
           .from('workouts')
@@ -166,10 +165,62 @@ export const api = {
       if (error) throw error
     },
 
+    // Soft delete workout (move to deleted state)
+    async softDelete(id: string): Promise<void> {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { error } = await supabase
+        .from('workouts')
+        .update({
+          deleted_at: new Date().toISOString(),
+          deleted_by: user.id
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+
+    // Restore soft-deleted workout
+    async restore(id: string): Promise<void> {
+      const { error } = await supabase
+        .from('workouts')
+        .update({
+          deleted_at: null,
+          deleted_by: null
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+
+    // Get soft-deleted workouts
+    async getDeleted(userId: string): Promise<Workout[]> {
+      if (!userId) return [];
+      
+      const { data, error } = await supabase
+        .from('workouts')
+        .select('*')
+        .eq('user_id', userId)
+        .not('deleted_at', 'is', null)
+        .order('deleted_at', { ascending: false });
+        
+      if (error) throw error;
+      return data || [];
+    },
+
+    // Permanently delete workout (cannot be undone)
+    async permanentDelete(id: string): Promise<void> {
+      const { error } = await supabase
+        .from('workouts')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+
     async getAssignedToAthlete(athleteId: string) {
       try {
-        console.log('Getting assigned AND created workouts for athlete:', athleteId);
-        
         // Get all workout_ids assigned to this athlete, ordered by most recently assigned first
         const { data: assignments, error: assignError } = await supabase
           .from('athlete_workouts')
@@ -194,8 +245,6 @@ export const api = {
           throw createdError;
         }
         
-        console.log(`Found ${assignments?.length || 0} assigned workouts and ${createdWorkouts?.length || 0} created workouts`);
-        
         let allWorkouts = [];
         
         // Handle assigned workouts
@@ -214,8 +263,6 @@ export const api = {
             console.error('Error fetching assigned workout details:', fetchError);
             throw fetchError;
           }
-          
-          console.log(`Fetched ${assignedWorkouts?.length || 0} assigned workout details`);
           
           // Map assigned workouts with assignment dates and sort them
           const workoutsWithAssignmentDate = (assignedWorkouts || []).map(workout => {
@@ -245,7 +292,6 @@ export const api = {
             !assignedWorkoutIds.has(workout.id)
           );
           
-          console.log(`Found ${uniqueCreatedWorkouts.length} unique created workouts (not already assigned)`);
           allWorkouts.push(...uniqueCreatedWorkouts);
         }
         
@@ -261,7 +307,6 @@ export const api = {
           return dateB - dateA; // Most recent first
         });
         
-        console.log(`Returning ${allWorkouts.length} total workouts`);
         return allWorkouts;
       } catch (error) {
         console.error('Error in getAssignedToAthlete:', error);
@@ -473,6 +518,8 @@ export const api = {
 
     // Promote draft to final workout (coach functionality)
     async promoteDraft(draftId: string, finalWorkoutData: EnhancedWorkoutData) {
+      console.log('🚀 Promoting draft to final workout:', draftId);
+      
       // Get the draft first
       const { data: draft, error: fetchError } = await supabase
         .from('workouts')
@@ -483,6 +530,8 @@ export const api = {
 
       if (fetchError) throw fetchError;
       if (!draft) throw new Error('Draft not found');
+
+      console.log('📋 Draft data retrieved:', { id: draft.id, name: draft.name, is_draft: draft.is_draft });
 
       // Merge draft data with final workout data
       // Handle the fact that weekly_plan might be stored in exercises for drafts
@@ -497,14 +546,25 @@ export const api = {
         finalExercises = [];
       }
 
+      // Helper function to convert empty strings to null for date fields
+      const sanitizeValue = (value: any): any => {
+        if (value === '' || value === undefined) return null;
+        return value;
+      };
+
       const promotedData = {
         ...draft,
         ...finalWorkoutData,
         exercises: finalExercises,
         weekly_plan: finalWeeklyPlan,
-        is_draft: false,
+        is_draft: false, // This is the key change - promoting from draft to final
         is_template: finalWorkoutData.is_template || false,
-        updated_at: new Date().toISOString()
+        // Sanitize date fields that might be empty strings
+        date: sanitizeValue(finalWorkoutData.date),
+        time: sanitizeValue(finalWorkoutData.time),
+        duration: sanitizeValue(finalWorkoutData.duration),
+        location: sanitizeValue(finalWorkoutData.location)
+        // Removed updated_at since it's automatically handled by database triggers
       };
 
       // Remove weekly_plan if it shouldn't be stored (since column doesn't exist)
@@ -515,6 +575,16 @@ export const api = {
         dataToStore.exercises = weekly_plan;
       }
 
+      console.log('💾 Updating workout with data:', { 
+        id: draftId, 
+        is_draft: dataToStore.is_draft, 
+        is_template: dataToStore.is_template,
+        name: dataToStore.name,
+        date: dataToStore.date,
+        time: dataToStore.time,
+        duration: dataToStore.duration
+      });
+
       const { data, error } = await supabase
         .from('workouts')
         .update(dataToStore)
@@ -522,7 +592,12 @@ export const api = {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error promoting draft:', error);
+        throw error;
+      }
+      
+      console.log('✅ Draft successfully promoted:', { id: data.id, name: data.name, is_draft: data.is_draft });
       return data;
     },
 
@@ -1668,8 +1743,6 @@ export const api = {
           // Based on console output "Store completed = 3/4, Using: 3/4"
           const completedExerciseCount = 3;
           
-          console.log(`Stats for ${workoutId}: Total Exercises = ${exerciseCount}, Hard-coded Completed = ${completedExerciseCount}`);
-          
           return {
             workoutId,
             totalAssigned,
@@ -1814,33 +1887,30 @@ export const api = {
     }
   },
 
-  monthlyPlans: {
-    // Get all monthly plans for a coach
+  trainingPlans: {
     async getByCoach(coachId: string) {
       const { data, error } = await supabase
-        .from('monthly_plans')
+        .from('training_plans')
         .select('*')
         .eq('coach_id', coachId)
-        .order('year', { ascending: false })
-        .order('month', { ascending: false });
-
-      if (error) throw error;
-      return data || [];
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+      
+      if (error) throw error
+      return data
     },
 
-    // Get a specific monthly plan by ID
     async getById(monthlyPlanId: string) {
       const { data, error } = await supabase
-        .from('monthly_plans')
+        .from('training_plans')
         .select('*')
         .eq('id', monthlyPlanId)
-        .single();
-
-      if (error) throw error;
-      return data;
+        .single()
+      
+      if (error) throw error
+      return data
     },
 
-    // Create a new monthly plan
     async create(planData: {
       name: string;
       description?: string;
@@ -1852,290 +1922,285 @@ export const api = {
         is_rest_week: boolean;
       }[];
     }) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
-
-      // Calculate start_date and end_date from month and year
-      const start_date = new Date(planData.year, planData.month - 1, 1).toISOString().split('T')[0];
-      // Get last day of the month (0 as day gets the last day of previous month)
-      const end_date = new Date(planData.year, planData.month, 0).toISOString().split('T')[0];
-
-      // Extract workout IDs for weekly_workout_ids column
-      const weekly_workout_ids = planData.weeks
-        .filter(week => !week.is_rest_week && week.workout_id)
-        .map(week => week.workout_id);
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('No user found')
 
       const { data, error } = await supabase
-        .from('monthly_plans')
+        .from('training_plans')
         .insert([{
-          ...planData,
+          name: planData.name,
+          description: planData.description || '',
           coach_id: user.id,
-          start_date: start_date,
-          end_date: end_date,
-          weekly_workout_ids: weekly_workout_ids
+          month: planData.month,
+          year: planData.year,
+          weeks: planData.weeks,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         }])
         .select()
-        .single();
+        .single()
 
-      if (error) throw error;
-      return data;
+      if (error) throw error
+      return data
     },
 
-    // Update a monthly plan
     async update(id: string, updateData: any) {
       const { data, error } = await supabase
-        .from('monthly_plans')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-
-    // Delete a monthly plan
-    async delete(monthlyPlanId: string) {
-      const { error } = await supabase
-        .from('monthly_plans')
-        .delete()
-        .eq('id', monthlyPlanId);
-
-      if (error) throw error;
-    },
-
-    // Get template workouts for monthly plan creation
-    async getTemplateWorkouts(coachId: string) {
-      const { data, error } = await supabase
-        .from('workouts')
-        .select('*')
-        .eq('user_id', coachId)
-        .eq('is_template', true)
-        .eq('template_type', 'weekly')
-        .order('name', { ascending: true });
-
-      if (error) throw error;
-      return data || [];
-    },
-
-    // Update weekly structure of a monthly plan
-    async updateWeeks(id: string, weeks: { week_number: number; workout_id: string; is_rest_week: boolean }[]) {
-      const { data, error } = await supabase
-        .from('monthly_plans')
-        .update({ 
-          weeks: weeks,
+        .from('training_plans')
+        .update({
+          ...updateData,
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
         .select()
-        .single();
+        .single()
 
-      if (error) throw error;
-      return data;
+      if (error) throw error
+      return data
+    },
+
+    async delete(monthlyPlanId: string) {
+      const { error } = await supabase
+        .from('training_plans')
+        .delete()
+        .eq('id', monthlyPlanId)
+
+      if (error) throw error
+    },
+
+    async softDelete(id: string): Promise<void> {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('No user found')
+
+      const { error } = await supabase
+        .from('training_plans')
+        .update({
+          deleted_at: new Date().toISOString(),
+          deleted_by: user.id
+        })
+        .eq('id', id)
+
+      if (error) throw error
+    },
+
+    async restore(id: string): Promise<void> {
+      const { error } = await supabase
+        .from('training_plans')
+        .update({
+          deleted_at: null,
+          deleted_by: null
+        })
+        .eq('id', id)
+
+      if (error) throw error
+    },
+
+    async getDeleted(coachId: string) {
+      const { data, error } = await supabase
+        .from('training_plans')
+        .select('*')
+        .eq('coach_id', coachId)
+        .not('deleted_at', 'is', null)
+        .order('deleted_at', { ascending: false })
+      
+      if (error) throw error
+      return data
+    },
+
+    async permanentDelete(id: string): Promise<void> {
+      const { error } = await supabase
+        .from('training_plans')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+    },
+
+    async getTemplateWorkouts(coachId: string) {
+      const { data, error } = await supabase
+        .from('workouts')
+        .select('*')
+        .eq('created_by', coachId)
+        .eq('is_template', true)
+        .order('created_at', { ascending: false })
+      
+      if (error) throw error
+      return data
+    },
+
+    async updateWeeks(id: string, weeks: { week_number: number; workout_id: string; is_rest_week: boolean }[]) {
+      const { data, error } = await supabase
+        .from('training_plans')
+        .update({
+          weeks,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
     }
   },
 
-  monthlyPlanAssignments: {
-    // Assign monthly plan to athletes
+  trainingPlanAssignments: {
     async assign(monthlyPlanId: string, athleteIds: string[], startDate: string) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('No user found')
 
       const assignments = athleteIds.map(athleteId => ({
-        monthly_plan_id: monthlyPlanId,
+        training_plan_id: monthlyPlanId,
         athlete_id: athleteId,
         assigned_by: user.id,
         start_date: startDate,
-        status: 'assigned' as const
-      }));
+        status: 'assigned' as const,
+        assigned_at: new Date().toISOString()
+      }))
 
       const { data, error } = await supabase
-        .from('monthly_plan_assignments')
+        .from('training_plan_assignments')
         .insert(assignments)
-        .select();
+        .select()
 
-      if (error) throw error;
-      return data || [];
+      if (error) throw error
+      return data
     },
 
-    // Get assignments for a monthly plan
     async getByPlan(monthlyPlanId: string) {
-      try {
-        // First get the assignments
-        const { data: assignments, error: assignmentError } = await supabase
-          .from('monthly_plan_assignments')
-          .select('*')
-          .eq('monthly_plan_id', monthlyPlanId);
-
-        if (assignmentError) throw assignmentError;
-        
-        if (!assignments || assignments.length === 0) {
-          return [];
-        }
-
-        // Then get the athlete profiles separately
-        const athleteIds = assignments.map(a => a.athlete_id);
-        const { data: profiles, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name, email')
-          .in('id', athleteIds);
-
-        if (profileError) {
-          console.warn('Could not load athlete profiles, returning assignments without profile data:', profileError);
-          return assignments;
-        }
-
-        // Combine the data
-        const assignmentsWithProfiles = assignments.map(assignment => ({
-          ...assignment,
-          profiles: profiles?.find(p => p.id === assignment.athlete_id) || null
-        }));
-
-        return assignmentsWithProfiles;
-      } catch (error) {
-        console.error('Error in getByPlan:', error);
-        throw error;
-      }
-    },
-
-    // Get assignments for an athlete
-    async getByAthlete(athleteId: string) {
       const { data, error } = await supabase
-        .from('monthly_plan_assignments')
+        .from('training_plan_assignments')
         .select(`
           *,
-          monthly_plans (
+          profiles!training_plan_assignments_athlete_id_fkey (
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        `)
+        .eq('training_plan_id', monthlyPlanId)
+
+      if (error) throw error
+      return data
+    },
+
+    async getByAthlete(athleteId: string) {
+      const { data, error } = await supabase
+        .from('training_plan_assignments')
+        .select(`
+          *,
+          training_plans (
             id,
             name,
             description,
             month,
             year,
-            weeks
+            weeks,
+            coach_id
           )
         `)
         .eq('athlete_id', athleteId)
-        .order('assigned_at', { ascending: false });
+        .order('assigned_at', { ascending: false })
 
-      if (error) throw error;
-      return data || [];
+      if (error) throw error
+      return data
     },
 
-    // Update assignment status
     async updateStatus(assignmentId: string, status: 'assigned' | 'in_progress' | 'completed') {
       const { data, error } = await supabase
-        .from('monthly_plan_assignments')
+        .from('training_plan_assignments')
         .update({ status })
         .eq('id', assignmentId)
         .select()
-        .single();
+        .single()
 
-      if (error) throw error;
-      return data;
+      if (error) throw error
+      return data
     },
 
-    // Remove assignment (unassign athlete from plan)
     async remove(assignmentId: string) {
       const { error } = await supabase
-        .from('monthly_plan_assignments')
+        .from('training_plan_assignments')
         .delete()
-        .eq('id', assignmentId);
+        .eq('id', assignmentId)
 
-      if (error) throw error;
-      return true;
+      if (error) throw error
     },
 
-    // Remove assignment by plan and athlete
     async removeByPlanAndAthlete(planId: string, athleteId: string) {
       const { error } = await supabase
-        .from('monthly_plan_assignments')
+        .from('training_plan_assignments')
         .delete()
-        .eq('monthly_plan_id', planId)
-        .eq('athlete_id', athleteId);
+        .eq('training_plan_id', planId)
+        .eq('athlete_id', athleteId)
 
-      if (error) throw error;
-      return true;
+      if (error) throw error
     },
 
-    // Get today's daily workout for an athlete
     async getTodaysWorkout(athleteId: string) {
-      try {
-        // Import the calculator (dynamic import to avoid circular dependencies)
-        const { calculateDailyWorkout, getDailyWorkoutDescription, shouldShowWorkout, getWorkoutProgress } = 
-          await import('../utils/dailyWorkoutCalculator');
+      const today = new Date()
+      const currentWeek = Math.ceil(today.getDate() / 7)
+      
+      const { data, error } = await supabase
+        .from('training_plan_assignments')
+        .select(`
+          *,
+          training_plans!inner (
+            id,
+            name,
+            weeks,
+            month,
+            year
+          )
+        `)
+        .eq('athlete_id', athleteId)
+        .filter('status', 'in', '(assigned,in_progress)')
+        .filter('training_plans.month', 'eq', today.getMonth() + 1)
+        .filter('training_plans.year', 'eq', today.getFullYear())
 
-        // Get all active assignments for the athlete
-        const assignments = await this.getByAthlete(athleteId);
+      if (error) throw error
+      
+      // Find workout for current week
+      const assignment = data?.find(assignment => 
+        assignment.status !== 'completed' && assignment.training_plans
+      )
+      
+      if (!assignment || !assignment.training_plans) {
+        return null
+      }
+      
+      const trainingPlan = assignment.training_plans;
+      const currentWeekPlan = trainingPlan.weeks?.find((week: any) => week.week_number === currentWeek)
+      
+      if (!currentWeekPlan || currentWeekPlan.is_rest_week) {
+        return null
+      }
+      
+      // Get the actual workout
+      const { data: workout, error: workoutError } = await supabase
+        .from('workouts')
+        .select('*')
+        .eq('id', currentWeekPlan.workout_id)
+        .single()
         
-        // Filter to only current/active assignments (not completed)
-        const activeAssignments = assignments.filter(assignment => 
-          assignment.status !== 'completed' && assignment.monthly_plans
-        );
-
-        if (activeAssignments.length === 0) {
-          return {
-            hasWorkout: false,
-            message: 'No active training plans assigned',
-            assignments: []
-          };
-        }
-
-        // Calculate today's workout for each active assignment
-        const todaysWorkouts = await Promise.all(
-          activeAssignments.map(async (assignment) => {
-            const monthlyPlan = assignment.monthly_plans;
-            
-            // Get the current week's workout info
-            const today = new Date();
-            const startDate = new Date(assignment.start_date);
-            const daysSinceStart = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 3600 * 24));
-            const currentWeek = Math.floor(daysSinceStart / 7) + 1;
-            
-            // Find current week info
-            const weekInfo = monthlyPlan.weeks.find(w => w.week_number === currentWeek);
-            
-            let weeklyWorkout = null;
-            if (weekInfo && !weekInfo.is_rest_week && weekInfo.workout_id) {
-              try {
-                // Get all workouts and find the one we need
-                const allWorkouts = await api.workouts.getAll();
-                weeklyWorkout = allWorkouts.find(w => w.id === weekInfo.workout_id) || null;
-              } catch (error) {
-                console.error('Error loading weekly workout:', error);
-              }
-            }
-
-            // Calculate daily workout
-            const dailyResult = calculateDailyWorkout(assignment, monthlyPlan, weeklyWorkout);
-            const description = getDailyWorkoutDescription(dailyResult);
-            const hasWorkout = shouldShowWorkout(dailyResult);
-            const progress = getWorkoutProgress(dailyResult, monthlyPlan);
-
-            return {
-              assignment,
-              monthlyPlan,
-              dailyResult,
-              description,
-              hasWorkout,
-              progress,
-              weeklyWorkout
-            };
-          })
-        );
-
-        // Find the primary workout for today (first one with an actual workout)
-        const primaryWorkout = todaysWorkouts.find(tw => tw.hasWorkout) || todaysWorkouts[0];
-
-        return {
-          hasWorkout: todaysWorkouts.some(tw => tw.hasWorkout),
-          primaryWorkout,
-          allWorkouts: todaysWorkouts,
-          message: primaryWorkout?.description || 'No training scheduled for today'
-        };
-
-      } catch (error) {
-        console.error('Error getting today\'s workout:', error);
-        throw error;
+      if (workoutError) return null
+      
+      return {
+        workout,
+        assignment,
+        plan: trainingPlan,
+        week: currentWeek
       }
     }
+  },
+
+  // Legacy aliases for backward compatibility during migration
+  get monthlyPlans() {
+    return this.trainingPlans;
+  },
+  
+  get monthlyPlanAssignments() {
+    return this.trainingPlanAssignments;
   }
 } 

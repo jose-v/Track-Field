@@ -244,7 +244,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
         '/coach/athletes': FaUsers,
         '/coach/workouts': FaDumbbell,
         '/coach/workout-creator': FaCog,
-        '/coach/monthly-plans': FaClipboardList,
+        '/coach/training-plans': FaClipboardList,
         '/coach/calendar': FaCalendarAlt,
         '/coach/meets': BsCalendarCheck,
         '/coach/stats': FaChartBar,

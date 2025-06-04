@@ -74,7 +74,9 @@ CREATE TABLE IF NOT EXISTS public.workouts (
   description TEXT,
   created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+  deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+  deleted_by UUID REFERENCES public.profiles(id) DEFAULT NULL
 );
 
 -- Create Workout Assignments Table
@@ -229,4 +231,16 @@ CREATE POLICY "Users can update their own workouts"
 -- Allow users to delete their own workouts
 CREATE POLICY "Users can delete their own workouts"
   ON public.workouts FOR DELETE
-  USING (auth.uid() = user_id); 
+  USING (auth.uid() = user_id);
+
+-- Add soft delete support to workouts table
+ALTER TABLE workouts ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+ALTER TABLE workouts ADD COLUMN IF NOT EXISTS deleted_by UUID REFERENCES profiles(id) DEFAULT NULL;
+
+-- Add soft delete support to monthly_plans table  
+ALTER TABLE monthly_plans ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+ALTER TABLE monthly_plans ADD COLUMN IF NOT EXISTS deleted_by UUID REFERENCES profiles(id) DEFAULT NULL;
+
+-- Create index for better performance on soft delete queries
+CREATE INDEX IF NOT EXISTS idx_workouts_deleted_at ON workouts(deleted_at) WHERE deleted_at IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_monthly_plans_deleted_at ON monthly_plans(deleted_at) WHERE deleted_at IS NOT NULL; 

@@ -4,7 +4,7 @@ import {
   Button, Badge, IconButton, useColorModeValue, Tooltip, SimpleGrid, Skeleton
 } from '@chakra-ui/react';
 import { FaCalendarAlt, FaEdit, FaTrash, FaUsers, FaClock, FaPlayCircle, FaDumbbell, FaChartLine, FaListAlt } from 'react-icons/fa';
-import type { MonthlyPlan } from '../services/dbSchema';
+import type { TrainingPlan } from '../services/dbSchema';
 import { dateUtils } from '../utils/date';
 import { api } from '../services/api';
 import { supabase } from '../lib/supabase';
@@ -30,7 +30,7 @@ function getRestWeekCount(weeks: any[]): number {
 }
 
 interface MonthlyPlanCardProps {
-  monthlyPlan: MonthlyPlan;
+  monthlyPlan: TrainingPlan;
   isCoach?: boolean;
   assignmentCount?: number;
   completionStats?: {

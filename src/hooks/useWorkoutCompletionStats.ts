@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/api';
 import { useApiWithAuth } from '../utils/apiUtils';
 import { useAuth } from '../contexts/AuthContext';
+import { useCallback } from 'react';
 
 interface WorkoutCompletionStats {
   workoutId: string;
@@ -30,7 +31,6 @@ export function useWorkoutCompletionStats(workoutIds: string[]) {
       
       try {
         return await callApiWithAuth(async () => {
-          console.log('Fetching completion stats for workouts:', workoutIds);
           return api.athleteWorkouts.getCompletionStatsForMultipleWorkouts(workoutIds);
         }, { maxRetries: 2 });
       } catch (error) {
@@ -64,6 +64,19 @@ export function useWorkoutCompletionStats(workoutIds: string[]) {
     }
   };
 
+  const fetchStats = useCallback(async (workoutIds: string[]) => {
+    if (!workoutIds.length) {
+      return [];
+    }
+
+    try {
+      return await api.athleteWorkouts.getCompletionStatsForMultipleWorkouts(workoutIds);
+    } catch (error) {
+      console.error('Failed to fetch workout completion stats:', error);
+      return [];
+    }
+  }, []);
+
   return {
     completionStats: completionStats || [],
     isLoading,
@@ -79,6 +92,7 @@ export function useWorkoutCompletionStats(workoutIds: string[]) {
         exerciseCount: 0,
         inProgressCount: 0
       };
-    }
+    },
+    fetchStats
   };
 } 

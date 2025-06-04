@@ -233,7 +233,6 @@ const WorkoutCreatorWireframe: React.FC = () => {
         if (isDraft) {
           setCurrentDraftId(data.id);
           setIsDraftMode(true);
-          console.log('🔄 Loading draft for editing:', data.id);
         }
         
         // Populate form with workout data
@@ -250,7 +249,6 @@ const WorkoutCreatorWireframe: React.FC = () => {
         if (data.exercises && Array.isArray(data.exercises)) {
           // Check if this is weekly plan data stored in exercises (for drafts)
           if (data.template_type === 'weekly' && data.exercises.length > 0 && data.exercises[0].day) {
-            console.log('📅 Loading weekly plan data from exercises field');
             // This is weekly plan data stored in exercises field
             const weeklyExercises: Record<string, SelectedExercise[]> = {};
             const weeklyRestDays: Record<string, boolean> = {};
@@ -267,7 +265,6 @@ const WorkoutCreatorWireframe: React.FC = () => {
             setRestDays(prev => ({ ...prev, ...weeklyRestDays }));
           } else if (data.template_type === 'single') {
             // For single day workouts, put exercises in Monday
-            console.log('📝 Loading single day exercises');
             setSelectedExercises(prev => ({
               ...prev,
               monday: data.exercises.map((ex: any) => ({
@@ -280,7 +277,6 @@ const WorkoutCreatorWireframe: React.FC = () => {
         
         // Load weekly plan if exists (for non-draft workouts)
         if (data.weekly_plan && Array.isArray(data.weekly_plan)) {
-          console.log('📊 Loading weekly plan from weekly_plan field');
           const weeklyExercises: Record<string, SelectedExercise[]> = {};
           const weeklyRestDays: Record<string, boolean> = {};
           
@@ -729,11 +725,9 @@ const WorkoutCreatorWireframe: React.FC = () => {
       
       // If we have a draft (coaches only), promote it to a final workout
       if (currentDraftId && isDraftMode && userProfile?.role === 'coach') {
-        console.log('🚀 Promoting draft to final workout:', currentDraftId);
         savedWorkout = await api.workouts.promoteDraft(currentDraftId, workoutData);
       } else if (isEditing && editWorkoutId) {
         // Start a Supabase transaction for atomic updates
-        console.log('✏️ Updating existing workout:', editWorkoutId);
         const { data, error } = await supabase.rpc('update_workout_with_athletes', {
           p_workout_id: editWorkoutId,
           p_workout_data: {
@@ -754,19 +748,16 @@ const WorkoutCreatorWireframe: React.FC = () => {
         
         if (error) {
           // Fallback to manual transaction if RPC doesn't exist
-          console.log('🔄 Using manual update fallback');
           await updateWorkoutWithAthletesManually(editWorkoutId, workoutData, athleteIds);
         }
         savedWorkout = { id: editWorkoutId };
       } else {
         // Create new workout with atomic assignment
-        console.log('✨ Creating new workout');
         const newWorkout = await api.workouts.createEnhanced(workoutData);
         savedWorkout = newWorkout;
         
         // For athletes creating their own workouts, automatically assign to themselves
         if (userProfile?.role === 'athlete' && newWorkout?.id) {
-          console.log('Auto-assigning workout to athlete creator:', userProfile.id);
           await api.athleteWorkouts.assign(newWorkout.id, [userProfile.id]);
         }
         
@@ -799,8 +790,8 @@ const WorkoutCreatorWireframe: React.FC = () => {
             setCurrentStep(1);
             break;
           case 'save_done':
-            // Navigate to monthly plans for coaches
-            navigate('/coach/monthly-plans');
+            // Navigate to training plans for coaches
+            navigate('/coach/training-plans');
             break;
           default:
             // Regular save - navigate to workouts list

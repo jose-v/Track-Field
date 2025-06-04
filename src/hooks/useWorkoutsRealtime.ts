@@ -48,12 +48,16 @@ export function useWorkoutsRealtime({
 
     const setupSubscriptions = async () => {
       if (!session) {
-        console.log('No active session, skipping real-time subscriptions');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('No active session, skipping real-time subscriptions');
+        }
         return;
       }
 
       try {
-        console.log('Setting up real-time workout subscriptions');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Setting up real-time workout subscriptions');
+        }
 
         // 1. Subscribe to athlete_workouts table changes
         const athleteWorkoutsSubscription = supabase
@@ -71,7 +75,9 @@ export function useWorkoutsRealtime({
                   : undefined
             },
             (payload) => {
-              console.log('Real-time update received for athlete_workouts:', payload);
+              if (process.env.NODE_ENV === 'development') {
+                console.log('Real-time update received for athlete_workouts:', payload);
+              }
               setLastUpdate(new Date());
               
               // Invalidate relevant queries
@@ -103,7 +109,9 @@ export function useWorkoutsRealtime({
                 filter: `id=in.(${workoutIds.join(',')})`
               },
               (payload) => {
-                console.log('Real-time update received for workouts:', payload);
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('Real-time update received for workouts:', payload);
+                }
                 setLastUpdate(new Date());
                 
                 // Invalidate relevant queries
@@ -121,7 +129,9 @@ export function useWorkoutsRealtime({
         }
 
         setIsSubscribed(true);
-        console.log('Real-time subscriptions established successfully');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Real-time subscriptions established successfully');
+        }
       } catch (error) {
         console.error('Error setting up real-time subscriptions:', error);
       }
@@ -131,7 +141,9 @@ export function useWorkoutsRealtime({
 
     // Cleanup function to unsubscribe when component unmounts
     return () => {
-      console.log('Cleaning up real-time subscriptions');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Cleaning up real-time subscriptions');
+      }
       subscriptions.forEach(subscription => subscription.unsubscribe());
       setIsSubscribed(false);
     };

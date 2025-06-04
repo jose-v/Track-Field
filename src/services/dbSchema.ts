@@ -133,8 +133,8 @@ export interface TeamManagerWithProfile extends TeamManager {
   profile: Profile;
 }
 
-// Monthly Plan types
-export interface MonthlyPlan {
+// Training Plan types (renamed from Monthly Plan)
+export interface TrainingPlan {
   id: string;
   name: string;
   description?: string;
@@ -148,14 +148,20 @@ export interface MonthlyPlan {
   }[];
   created_at: string;
   updated_at: string;
+  deleted_at?: string;
+  deleted_by?: string;
 }
 
-export interface MonthlyPlanAssignment {
+export interface TrainingPlanAssignment {
   id: string;
-  monthly_plan_id: string;
+  training_plan_id: string; // Updated column name
   athlete_id: string;
   assigned_at: string;
   start_date: string;
   status: 'assigned' | 'in_progress' | 'completed';
   assigned_by: string;
-} 
+}
+
+// Legacy type aliases for backward compatibility during migration
+export type MonthlyPlan = TrainingPlan;
+export type MonthlyPlanAssignment = TrainingPlanAssignment; 

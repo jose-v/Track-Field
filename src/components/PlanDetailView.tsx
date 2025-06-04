@@ -15,11 +15,11 @@ import {
 } from 'react-icons/fa';
 import { api } from '../services/api';
 import { PlanAssignmentModal } from './PlanAssignmentModal';
-import type { MonthlyPlan, MonthlyPlanAssignment } from '../services/dbSchema';
+import type { TrainingPlan, TrainingPlanAssignment } from '../services/dbSchema';
 import type { Workout } from '../services/api';
 
 interface PlanDetailViewProps {
-  monthlyPlan: MonthlyPlan;
+  monthlyPlan: TrainingPlan;
   onBack: () => void;
   onEdit?: () => void;
   onAssign?: () => void;
@@ -32,7 +32,7 @@ interface AthleteWithProgress {
   last_name: string;
   email: string;
   avatar_url?: string;
-  assignment: MonthlyPlanAssignment;
+  assignment: TrainingPlanAssignment;
 }
 
 interface WeekWithWorkout {
@@ -40,6 +40,16 @@ interface WeekWithWorkout {
   workout_id: string;
   is_rest_week: boolean;
   workout?: Workout;
+}
+
+interface AssignedAthleteWithDetails {
+  assignment: TrainingPlanAssignment;
+  profile: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
 }
 
 export function PlanDetailView({
@@ -93,7 +103,7 @@ export function PlanDetailView({
       setLoading(true);
       
       // Load assigned athletes
-      const assignments = await api.monthlyPlanAssignments.getByPlan(monthlyPlan.id);
+      const assignments = await api.trainingPlanAssignments.getByPlan(monthlyPlan.id);
       
       // Get athlete details for each assignment
       const athletesWithProgress = await Promise.all(
@@ -202,7 +212,7 @@ export function PlanDetailView({
     
     try {
       setRemoving(true);
-      await api.monthlyPlanAssignments.remove(athleteToRemove.assignment.id);
+      await api.trainingPlanAssignments.remove(athleteToRemove.assignment.id);
       
       // Update local state
       setAssignedAthletes(prev => 
@@ -251,7 +261,7 @@ export function PlanDetailView({
           : w
       );
       
-      await api.monthlyPlans.updateWeeks(monthlyPlan.id, updatedWeeks);
+      await api.trainingPlans.updateWeeks(monthlyPlan.id, updatedWeeks);
       
       // Update local state
       setWeeksWithWorkouts(prev => 
@@ -298,7 +308,7 @@ export function PlanDetailView({
           : w
       );
       
-      await api.monthlyPlans.updateWeeks(monthlyPlan.id, updatedWeeks);
+      await api.trainingPlans.updateWeeks(monthlyPlan.id, updatedWeeks);
       
       // Update local state
       setWeeksWithWorkouts(prev => 

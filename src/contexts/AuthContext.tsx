@@ -90,12 +90,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Don't retry too frequently
     if (refreshAttempts > 0 && !refreshInProgress.current) {
-      console.log(`Auth refresh attempt ${refreshAttempts}`);
+      // Only log refresh attempts in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Auth refresh attempt ${refreshAttempts}`);
+      }
       
       // Check if we're trying to refresh too frequently
       const now = Date.now();
       if (now - lastRefreshAttempt.current < 5000) {
-        console.log('Throttling refresh attempts - too many requests');
+        // Only log throttling in development
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Throttling refresh attempts - too many requests');
+        }
         return;
       }
       
@@ -128,7 +134,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 .forEach(key => localStorage.removeItem(key));
             }
           } else if (data.session) {
-            console.log('Session refreshed successfully');
             setUser(data.session.user);
             setSession(data.session);
             setRefreshAttempts(0);
@@ -163,7 +168,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error('Sign in error:', error);
         throw error;
       }
-      console.log('Sign in successful');
       setUser(data.user);
       setSession(data.session);
     } catch (e) {
@@ -179,7 +183,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error('Sign up error:', error);
         throw error;
       }
-      console.log('Sign up successful');
     } catch (e) {
       console.error('Unexpected error during sign up:', e);
       throw e;
@@ -193,7 +196,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error('Sign out error:', error);
         throw error;
       }
-      console.log('Sign out successful');
       setUser(null);
       setSession(null);
       
@@ -210,14 +212,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshSession = async (): Promise<boolean> => {
     // Prevent concurrent refreshes
     if (refreshInProgress.current) {
-      console.log('Refresh already in progress, skipping');
       return false;
     }
     
     // Add rate limiting
     const now = Date.now();
     if (now - lastRefreshAttempt.current < 5000) {
-      console.log('Throttling refresh - too recent attempt');
+      // Only log throttling in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Throttling refresh - too recent attempt');
+      }
       return false;
     }
     
@@ -225,7 +229,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshInProgress.current = true;
     
     try {
-      console.log('Manually refreshing session...');
       const { data, error } = await supabase.auth.refreshSession();
       
       if (error) {
@@ -250,7 +253,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       if (data?.session) {
-        console.log('Session refreshed successfully');
         setUser(data.session.user);
         setSession(data.session);
         setRefreshAttempts(0);

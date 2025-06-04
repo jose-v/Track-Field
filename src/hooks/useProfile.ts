@@ -162,6 +162,21 @@ export function useProfile() {
     },
   })
 
+  // Only proceed if we have everything we need
+  if (!auth.loading && !!auth.user && !profileQuery.isLoading && !profileQuery.isError && profileQuery.data) {
+    // Only log in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Profile loading state:', {
+        authLoading: auth.loading,
+        hasUser: !!auth.user,
+        profileQueryLoading: profileQuery.isLoading,
+        profileError: !!profileQuery.isError,
+        profileData: !!profileQuery.data
+      });
+    }
+    return { data: profileQuery.data, loading: false, error: null };
+  }
+
   return {
     profile: profileQuery.data,
     // Simplified loading logic to prevent infinite loading states

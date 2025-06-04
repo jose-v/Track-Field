@@ -1,0 +1,32 @@
+// API Fix: Replace problematic .single() calls with .maybeSingle() in workout methods
+// This prevents PGRST116 errors when queries return 0 rows
+
+// In src/services/api.ts, around line 129:
+// CHANGE:
+.single();
+// TO:
+.maybeSingle();
+
+// In src/services/api.ts, around line 154:
+// CHANGE:  
+.single()
+// TO:
+.maybeSingle()
+
+// Also need to handle the null case when maybeSingle returns null:
+// Add after the API call:
+if (!data) {
+  throw new Error('Workout not found');
+}
+
+// The fix pattern should be:
+const { data, error } = await supabase
+  .from('workouts')
+  .select('*')
+  .eq('id', workoutId)
+  .maybeSingle();
+
+if (error) throw error;
+if (!data) throw new Error('Workout not found');
+
+return data; 

@@ -59,16 +59,17 @@ import {
 } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
-import type { MonthlyPlanAssignment } from '../../services/dbSchema';
+import type { TrainingPlanAssignment } from '../../services/dbSchema';
 
-interface AssignmentWithPlan extends MonthlyPlanAssignment {
-  monthly_plans: {
+interface AssignmentWithPlan extends TrainingPlanAssignment {
+  training_plans?: {
     id: string;
     name: string;
-    description: string;
+    description?: string;
     month: number;
     year: number;
     weeks: any[];
+    coach_id: string;
   };
 }
 
@@ -243,7 +244,7 @@ export function MonthlyPlanAssignments({ onViewPlan }: MonthlyPlanAssignmentsPro
     setSelectedAssignment(assignment);
     
     // Load detailed week information when opening the drawer
-    const detailedWeeks = await loadWeekDetails(assignment.monthly_plans.weeks);
+    const detailedWeeks = await loadWeekDetails(assignment.training_plans?.weeks || []);
     setWeeksWithDetails(detailedWeeks);
     
     if (onViewPlan) {
@@ -298,17 +299,17 @@ export function MonthlyPlanAssignments({ onViewPlan }: MonthlyPlanAssignmentsPro
 
   // Separate assignments into current, upcoming, and past
   const currentAssignments = assignments.filter(a => 
-    a.monthly_plans.month === currentMonth && a.monthly_plans.year === currentYear
+    a.training_plans?.month === currentMonth && a.training_plans?.year === currentYear
   );
   
   const upcomingAssignments = assignments.filter(a => 
-    (a.monthly_plans.year > currentYear) || 
-    (a.monthly_plans.year === currentYear && a.monthly_plans.month > currentMonth)
+    (a.training_plans?.year > currentYear) || 
+    (a.training_plans?.year === currentYear && a.training_plans?.month > currentMonth)
   );
   
   const pastAssignments = assignments.filter(a => 
-    (a.monthly_plans.year < currentYear) || 
-    (a.monthly_plans.year === currentYear && a.monthly_plans.month < currentMonth)
+    (a.training_plans?.year < currentYear) || 
+    (a.training_plans?.year === currentYear && a.training_plans?.month < currentMonth)
   );
 
   // Helper functions for detailed view
@@ -711,9 +712,9 @@ export function MonthlyPlanAssignments({ onViewPlan }: MonthlyPlanAssignmentsPro
   }
 
   const renderAssignmentCard = (assignment: AssignmentWithPlan) => {
-    const plan = assignment.monthly_plans;
-    const trainingWeeks = plan.weeks.filter(w => !w.is_rest_week).length;
-    const restWeeks = plan.weeks.filter(w => w.is_rest_week).length;
+    const plan = assignment.training_plans;
+    const trainingWeeks = plan?.weeks.filter(w => !w.is_rest_week).length;
+    const restWeeks = plan?.weeks.filter(w => w.is_rest_week).length;
     
     return (
       <Card 
@@ -736,29 +737,29 @@ export function MonthlyPlanAssignments({ onViewPlan }: MonthlyPlanAssignmentsPro
             <Flex justify="space-between" align="start">
               <VStack align="start" spacing={1} flex="1">
                 <Heading size="md" color={textPrimary}>
-                  {plan.name}
+                  {plan?.name}
                 </Heading>
                 <HStack spacing={2}>
                   <Icon as={FaCalendarAlt} color="blue.500" />
                   <Text fontSize="sm" color={textSecondary}>
-                    {getMonthName(plan.month)} {plan.year}
+                    {getMonthName(plan?.month || 0)} {plan?.year}
                   </Text>
                 </HStack>
               </VStack>
               
               <Badge 
-                colorScheme={getStatusColor(assignment.status)} 
+                colorScheme={getStatusColor(assignment.status || '')} 
                 px={3} 
                 py={1}
                 borderRadius="full"
               >
-                <Icon as={getStatusIcon(assignment.status)} mr={1} />
-                {assignment.status.replace('_', ' ').toUpperCase()}
+                <Icon as={getStatusIcon(assignment.status || '')} mr={1} />
+                {assignment.status?.replace('_', ' ').toUpperCase()}
               </Badge>
             </Flex>
 
             {/* Description */}
-            {plan.description && (
+            {plan?.description && (
               <Text fontSize="sm" color={textSecondary} noOfLines={2}>
                 {plan.description}
               </Text>
@@ -768,7 +769,7 @@ export function MonthlyPlanAssignments({ onViewPlan }: MonthlyPlanAssignmentsPro
             <SimpleGrid columns={3} spacing={4}>
               <Box textAlign="center">
                 <Text fontSize="xl" fontWeight="bold" color="blue.500">
-                  {plan.weeks.length}
+                  {plan?.weeks.length}
                 </Text>
                 <Text fontSize="xs" color={textSecondary}>Total Weeks</Text>
               </Box>
@@ -790,7 +791,7 @@ export function MonthlyPlanAssignments({ onViewPlan }: MonthlyPlanAssignmentsPro
             <Divider />
             <Flex justify="space-between" align="center">
               <Text fontSize="xs" color={textSecondary}>
-                Assigned {new Date(assignment.assigned_at).toLocaleDateString()}
+                Assigned {new Date(assignment.assigned_at || '').toLocaleDateString()}
               </Text>
               
               <HStack spacing={2}>
@@ -802,7 +803,7 @@ export function MonthlyPlanAssignments({ onViewPlan }: MonthlyPlanAssignmentsPro
                     leftIcon={<FaPlay />}
                     onClick={(e) => {
                       e.stopPropagation();
-                      updatePlanStatus(assignment.id, 'in_progress');
+                      updatePlanStatus(assignment.id || '', 'in_progress');
                     }}
                   >
                     Start
@@ -881,13 +882,13 @@ export function MonthlyPlanAssignments({ onViewPlan }: MonthlyPlanAssignmentsPro
               <HStack spacing={3}>
                 <Icon as={FaExpandArrowsAlt} color="blue.500" />
                 <Text fontSize="lg" fontWeight="bold" color={textPrimary}>
-                  {selectedAssignment?.monthly_plans.name}
+                  {selectedAssignment?.training_plans?.name}
                 </Text>
               </HStack>
               <HStack spacing={2}>
                 <Icon as={FaCalendarAlt} color="blue.400" boxSize={4} />
                 <Text fontSize="sm" color={textSecondary}>
-                  {selectedAssignment && getMonthName(selectedAssignment.monthly_plans.month)} {selectedAssignment?.monthly_plans.year}
+                  {selectedAssignment && getMonthName(selectedAssignment.training_plans?.month || 0)} {selectedAssignment?.training_plans?.year}
                 </Text>
                 <Badge 
                   colorScheme={getStatusColor(selectedAssignment?.status || '')} 
@@ -897,7 +898,7 @@ export function MonthlyPlanAssignments({ onViewPlan }: MonthlyPlanAssignmentsPro
                   fontSize="xs"
                 >
                   <Icon as={getStatusIcon(selectedAssignment?.status || '')} mr={1} />
-                  {selectedAssignment?.status.replace('_', ' ').toUpperCase()}
+                  {selectedAssignment?.status?.replace('_', ' ').toUpperCase()}
                 </Badge>
               </HStack>
             </VStack>
@@ -912,13 +913,13 @@ export function MonthlyPlanAssignments({ onViewPlan }: MonthlyPlanAssignmentsPro
                     <CardBody>
                       <VStack spacing={4} align="stretch">
                         {/* Plan Description */}
-                        {selectedAssignment.monthly_plans.description && (
+                        {selectedAssignment.training_plans?.description && (
                           <Box>
                             <Text fontSize="sm" fontWeight="medium" mb={2} color={textPrimary}>
                               📋 Plan Description:
                             </Text>
                             <Text fontSize="sm" color={textSecondary}>
-                              {selectedAssignment.monthly_plans.description}
+                              {selectedAssignment.training_plans.description}
                             </Text>
                           </Box>
                         )}
@@ -927,19 +928,19 @@ export function MonthlyPlanAssignments({ onViewPlan }: MonthlyPlanAssignmentsPro
                         <SimpleGrid columns={3} spacing={4}>
                           <Box textAlign="center" p={3} bg={cardBg} borderRadius="md">
                             <Text fontSize="xl" fontWeight="bold" color="blue.500">
-                              {selectedAssignment.monthly_plans.weeks.length}
+                              {selectedAssignment.training_plans?.weeks.length}
                             </Text>
                             <Text fontSize="xs" color={textSecondary}>Total Weeks</Text>
                           </Box>
                           <Box textAlign="center" p={3} bg={cardBg} borderRadius="md">
                             <Text fontSize="xl" fontWeight="bold" color="green.500">
-                              {selectedAssignment.monthly_plans.weeks.filter(w => !w.is_rest_week).length}
+                              {selectedAssignment.training_plans?.weeks.filter(w => !w.is_rest_week).length}
                             </Text>
                             <Text fontSize="xs" color={textSecondary}>Training Weeks</Text>
                           </Box>
                           <Box textAlign="center" p={3} bg={cardBg} borderRadius="md">
                             <Text fontSize="xl" fontWeight="bold" color="orange.500">
-                              {selectedAssignment.monthly_plans.weeks.filter(w => w.is_rest_week).length}
+                              {selectedAssignment.training_plans?.weeks.filter(w => w.is_rest_week).length}
                             </Text>
                             <Text fontSize="xs" color={textSecondary}>Rest Weeks</Text>
                           </Box>
@@ -949,7 +950,7 @@ export function MonthlyPlanAssignments({ onViewPlan }: MonthlyPlanAssignmentsPro
                         <Divider />
                         <VStack spacing={1} align="start">
                           <Text fontSize="sm" color={textSecondary}>
-                            📅 Assigned: {new Date(selectedAssignment.assigned_at).toLocaleDateString()}
+                            📅 Assigned: {new Date(selectedAssignment.assigned_at || '').toLocaleDateString()}
                           </Text>
                           {selectedAssignment.start_date && (
                             <Text fontSize="sm" color={textSecondary}>
@@ -975,22 +976,22 @@ export function MonthlyPlanAssignments({ onViewPlan }: MonthlyPlanAssignmentsPro
                           size="sm"
                           variant="outline"
                           onClick={() => {
-                            if (expandedWeeks.size === selectedAssignment.monthly_plans.weeks.length) {
+                            if (expandedWeeks.size === selectedAssignment.training_plans?.weeks.length) {
                               setExpandedWeeks(new Set());
                               setExpandedDays(new Set());
                             } else {
-                              setExpandedWeeks(new Set(Array.from({ length: selectedAssignment.monthly_plans.weeks.length }, (_, i) => i)));
+                              setExpandedWeeks(new Set(Array.from({ length: selectedAssignment.training_plans?.weeks.length }, (_, i) => i)));
                             }
                           }}
                         >
-                          {expandedWeeks.size === selectedAssignment.monthly_plans.weeks.length ? 'Collapse All' : 'Expand All'}
+                          {expandedWeeks.size === selectedAssignment.training_plans?.weeks.length ? 'Collapse All' : 'Expand All'}
                         </Button>
                       </HStack>
                     </HStack>
                     
                     {loadingWeekDetails ? (
                       <VStack spacing={3}>
-                        {[...Array(selectedAssignment.monthly_plans.weeks.length)].map((_, i) => (
+                        {[...Array(selectedAssignment.training_plans?.weeks.length)].map((_, i) => (
                           <Skeleton key={i} height="120px" borderRadius="md" />
                         ))}
                       </VStack>
@@ -998,7 +999,7 @@ export function MonthlyPlanAssignments({ onViewPlan }: MonthlyPlanAssignmentsPro
                       <VStack spacing={4} align="stretch">
                         {weeksWithDetails.length > 0 ? 
                           weeksWithDetails.map((week, index) => renderWeeklyPlan(week, index)) :
-                          selectedAssignment.monthly_plans.weeks.map((week, index) => renderWeeklyPlan(week, index))
+                          selectedAssignment.training_plans?.weeks.map((week, index) => renderWeeklyPlan(week, index))
                         }
                       </VStack>
                     )}

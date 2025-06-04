@@ -8,14 +8,14 @@ import {
 } from '@chakra-ui/react';
 import { FaSearch, FaUsers, FaCalendarAlt, FaExclamationTriangle, FaCheck, FaTimes, FaClock } from 'react-icons/fa';
 import { api } from '../services/api';
-import type { MonthlyPlan } from '../services/dbSchema';
+import type { TrainingPlan } from '../services/dbSchema';
 import { useCoachAthletes } from '../hooks/useCoachAthletes';
 
 interface PlanAssignmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
-  monthlyPlan: MonthlyPlan;
+  monthlyPlan: TrainingPlan;
 }
 
 interface AthleteWithAssignment {
@@ -81,15 +81,15 @@ export function PlanAssignmentModal({
           try {
             // Check if athlete already has this plan assigned
             const existingAssignments = await api.monthlyPlanAssignments.getByAthlete(athlete.id);
-            const hasThisPlan = existingAssignments.some(assignment => assignment.monthly_plan_id === monthlyPlan.id);
+            const hasThisPlan = existingAssignments.some(assignment => assignment.training_plan_id === monthlyPlan.id);
             
             // Check for conflicts with other plans in the same month/year
             const conflictingPlans = await Promise.all(
               existingAssignments
-                .filter(assignment => assignment.monthly_plan_id !== monthlyPlan.id)
+                .filter(assignment => assignment.training_plan_id !== monthlyPlan.id)
                 .map(async (assignment) => {
                   try {
-                    const plan = await api.monthlyPlans.getById(assignment.monthly_plan_id);
+                    const plan = await api.monthlyPlans.getById(assignment.training_plan_id);
                     return {
                       assignment,
                       plan
@@ -226,7 +226,11 @@ export function PlanAssignmentModal({
       setLoading(true);
 
       // Assign plan to selected athletes with start date
-      await api.monthlyPlanAssignments.assign(monthlyPlan.id, selectedAthletes, startDate);
+      await api.monthlyPlanAssignments.assign(
+        monthlyPlan.id,
+        selectedAthletes,
+        startDate
+      );
 
       toast({
         title: 'Plan assigned successfully!',

@@ -51,7 +51,7 @@ export function useCoachNavigation(): CoachNavConfig & { isCurrentPathActive: (p
     },
     {
       name: 'Training Plans',
-      path: '/coach/monthly-plans',
+      path: '/coach/training-plans',
       icon: <FaCalendarAlt />
     },
     {

@@ -122,28 +122,24 @@ export function CoachWorkouts() {
     enabled: !!user?.id
   });
   
-  // Log real-time status in development
+  // Only log status in development mode  
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       console.log(`Coach real-time status: ${isSubscribed ? 'Active' : 'Inactive'}`);
-      if (lastUpdate) {
-        console.log(`Coach last update: ${lastUpdate.toLocaleTimeString()}`);
-      }
     }
-  }, [isSubscribed, lastUpdate]);
+  }, [isSubscribed]);
   
-  // Set up automatic refresh for workout stats
+  // Set up automatic refresh for workout stats - reduce frequency
   useEffect(() => {
-    // Function to refresh data
     const refreshData = async () => {
-      console.log('Auto-refreshing coach workout data...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Auto-refreshing coach workout data...');
+      }
       try {
-        // Invalidate queries to force refetch
         await queryClient.invalidateQueries({ queryKey: ['workoutCompletionStats'] });
         await queryClient.invalidateQueries({ queryKey: ['workouts'] });
         await queryClient.invalidateQueries({ queryKey: ['athleteWorkouts'] });
         
-        // Refetch assignments directly
         if (workoutIds.length > 0) {
           const { data, error } = await supabase
             .from('athlete_workouts')
@@ -161,13 +157,10 @@ export function CoachWorkouts() {
       }
     };
     
-    // Set up interval for periodic refresh (every 10 seconds)
-    const intervalId = setInterval(refreshData, 10000);
-    
-    // Initial refresh on mount
+    // Reduced frequency from 10 seconds to 60 seconds to reduce performance impact
+    const intervalId = setInterval(refreshData, 60000);
     refreshData();
-    
-    // Clean up interval on unmount
+
     return () => clearInterval(intervalId);
   }, [queryClient, JSON.stringify(workoutIds)]);
   

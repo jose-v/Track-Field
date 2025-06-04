@@ -12,26 +12,31 @@ export function useWorkouts() {
   const queryClient = useQueryClient()
   const toast = useToast()
   const { user, refreshSession } = useAuth()
-  const { profile } = useProfile()
+  const { profile, isLoading: profileLoading } = useProfile()
   const { callApiWithAuth } = useApiWithAuth()
 
   const workoutsQuery = useQuery<Workout[], Error>({
     queryKey: ['workouts', user?.id, profile?.role],
     queryFn: async (): Promise<Workout[]> => {
-      console.log('Fetching workouts for user:', user?.id, 'role:', profile?.role);
-      if (!user?.id || !profile?.role) return [];
+      if (!user?.id) return [];
+      
+      // If profile is still loading, don't make the query yet
+      if (profileLoading) {
+        return [];
+      }
+      
+      // If no profile role, assume coach for now (most coach pages call this)
+      const userRole = profile?.role || 'coach';
       
       try {
-        if (profile.role === 'athlete') {
+        if (userRole === 'athlete') {
           return await callApiWithAuth(async () => {
             const data = await api.workouts.getAssignedToAthlete(user.id);
-            console.log('Assigned workouts for athlete', user.id, data?.length || 0);
             return data as Workout[];
           }, { maxRetries: 2 });
-        } else if (profile.role === 'coach') {
+        } else if (userRole === 'coach') {
           return await callApiWithAuth(async () => {
             const data = await api.workouts.getByCreator(user.id);
-            console.log('Workouts for coach', user.id, data?.length || 0);
             return data;
           }, { maxRetries: 2 });
         } else {
@@ -44,7 +49,7 @@ export function useWorkouts() {
         throw error;
       }
     },
-    enabled: !!user?.id && !!profile?.role,
+    enabled: !!user?.id && !profileLoading, // Don't run while profile is loading
     staleTime: 1000, // Reduce stale time for faster updates
     refetchOnMount: true,
     refetchOnWindowFocus: true,
@@ -127,14 +132,14 @@ export function useWorkouts() {
   >({
     mutationFn: async (id) => {
       return await callApiWithAuth(async () => {
-        return api.workouts.delete(id);
+        return api.workouts.softDelete(id);
       }, { maxRetries: 2 });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workouts'] })
       toast({
         title: 'Success',
-        description: 'Workout deleted successfully',
+        description: 'Workout moved to recycle bin',
         status: 'success',
         duration: 3000,
         isClosable: true,
