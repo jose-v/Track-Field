@@ -520,6 +520,45 @@ export function Dashboard() {
     }
   };
 
+  // Helper function to get the user's first name
+  const getFirstName = (): string => {
+    // If profile has first_name, use it
+    if (profile?.first_name) {
+      return profile.first_name;
+    }
+    
+    // Check for actual name in user object
+    if (user && (user as any).name) {
+      return (user as any).name.split(' ')[0];
+    }
+    
+    // Check user metadata
+    if (user?.user_metadata?.name) {
+      return user.user_metadata.name.split(' ')[0];
+    }
+    
+    // Check identity data
+    if (user?.identities?.[0]?.identity_data?.name) {
+      return user.identities[0].identity_data.name.split(' ')[0];
+    }
+    
+    // Otherwise try to extract from email, but skip common prefixes
+    if (user?.email) {
+      const emailUsername = user.email.split('@')[0];
+      const skipPrefixes = ['hello', 'contact', 'info', 'admin', 'support', 'team', 'user', 'test'];
+      
+      if (!skipPrefixes.includes(emailUsername.toLowerCase())) {
+        return emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1).toLowerCase();
+      } else {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔍 Skipping email prefix:', emailUsername);
+        }
+      }
+    }
+    
+    return 'Athlete';
+  };
+
   return (
     <Box 
       pt={0} 
@@ -543,43 +582,7 @@ export function Dashboard() {
         <Box w="100%" mb={8} pt={{ base: 4, md: 0 }}>
           {/* Mobile Header using reusable component */}
           <MobileHeader
-            title={`Welcome back, ${(() => {
-              // If profile has first_name, use it
-              if (profile?.first_name) {
-                return profile.first_name;
-              }
-              
-              // Check for actual name in user object
-              if (user && (user as any).name) {
-                return (user as any).name.split(' ')[0];
-              }
-              
-              // Check user metadata
-              if (user?.user_metadata?.name) {
-                return user.user_metadata.name.split(' ')[0];
-              }
-              
-              // Check identity data
-              if (user?.identities?.[0]?.identity_data?.name) {
-                return user.identities[0].identity_data.name.split(' ')[0];
-              }
-              
-              // Otherwise try to extract from email, but skip common prefixes
-              if (user?.email) {
-                const emailUsername = user.email.split('@')[0];
-                const skipPrefixes = ['hello', 'contact', 'info', 'admin', 'support', 'team', 'user', 'test'];
-                
-                if (!skipPrefixes.includes(emailUsername.toLowerCase())) {
-                  return emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1).toLowerCase();
-                } else {
-                  if (process.env.NODE_ENV === 'development') {
-                    console.log('🔍 Skipping email prefix:', emailUsername);
-                  }
-                }
-              }
-              
-              return 'Athlete';
-            })()}`}
+            title={`Welcome back, ${getFirstName()}`}
             subtitle={profile?.role === 'athlete' ? 'Athlete Dashboard' : 'Dashboard'}
             isLoading={profileLoading}
           />
@@ -603,43 +606,7 @@ export function Dashboard() {
                       mb={1}
                       color={textColor}
                     >
-                      Welcome back, {(() => {
-                        // If profile has first_name, use it
-                        if (profile?.first_name) {
-                          return profile.first_name;
-                        }
-                        
-                        // Check for actual name in user object
-                        if (user && (user as any).name) {
-                          return (user as any).name.split(' ')[0];
-                        }
-                        
-                        // Check user metadata
-                        if (user?.user_metadata?.name) {
-                          return user.user_metadata.name.split(' ')[0];
-                        }
-                        
-                        // Check identity data
-                        if (user?.identities?.[0]?.identity_data?.name) {
-                          return user.identities[0].identity_data.name.split(' ')[0];
-                        }
-                        
-                        // Otherwise try to extract from email, but skip common prefixes
-                        if (user?.email) {
-                          const emailUsername = user.email.split('@')[0];
-                          const skipPrefixes = ['hello', 'contact', 'info', 'admin', 'support', 'team', 'user', 'test'];
-                          
-                          if (!skipPrefixes.includes(emailUsername.toLowerCase())) {
-                            return emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1).toLowerCase();
-                          } else {
-                            if (process.env.NODE_ENV === 'development') {
-                              console.log('🔍 Skipping email prefix:', emailUsername);
-                            }
-                          }
-                        }
-                        
-                        return 'Athlete';
-                      })()}
+                      Welcome back, {getFirstName()}
                     </Heading>
                   </Skeleton>
                   <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
