@@ -16,18 +16,20 @@ export function useProfile() {
   // Create a comprehensive fallback profile creator
   const createFallbackProfile = (reason: string) => {
     console.log(`🚨 Creating fallback profile - Reason: ${reason}`);
-    console.log('🔍 Available auth user data:', {
-      id: auth.user?.id,
-      email: auth.user?.email,
-      user_metadata: auth.user?.user_metadata,
-      app_metadata: auth.user?.app_metadata,
-      identities: auth.user?.identities?.map(i => ({ 
-        provider: i.provider, 
-        identity_data: i.identity_data 
-      })),
-      // Check if there's actual name data in user object
-      rawUserData: auth.user
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Available auth user data:', {
+        id: auth.user?.id,
+        email: auth.user?.email,
+        user_metadata: auth.user?.user_metadata,
+        app_metadata: auth.user?.app_metadata,
+        identities: auth.user?.identities?.map(i => ({ 
+          provider: i.provider, 
+          identity_data: i.identity_data 
+        })),
+        // Check if there's actual name data in user object
+        rawUserData: auth.user
+      });
+    }
 
     // Enhanced name detection logic
     let firstName = 'User';
@@ -39,17 +41,19 @@ export function useProfile() {
       const userMetadataName = auth.user.user_metadata?.name || auth.user.user_metadata?.full_name;
       const identityName = auth.user.identities?.[0]?.identity_data?.name || auth.user.identities?.[0]?.identity_data?.full_name;
       
-      console.log('🔍 Name detection sources:', {
-        sessionName,
-        userMetadataName,
-        identityName,
-        firstName: auth.user.user_metadata?.first_name,
-        lastName: auth.user.user_metadata?.last_name,
-        // Check the raw user object for any name fields
-        rawUserKeys: Object.keys(auth.user),
-        // Try to find name in user object directly
-        userObjectName: (auth.user as any)?.name || (auth.user as any)?.full_name
-      });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 Name detection sources:', {
+          sessionName,
+          userMetadataName,
+          identityName,
+          firstName: auth.user.user_metadata?.first_name,
+          lastName: auth.user.user_metadata?.last_name,
+          // Check the raw user object for any name fields
+          rawUserKeys: Object.keys(auth.user),
+          // Try to find name in user object directly
+          userObjectName: (auth.user as any)?.name || (auth.user as any)?.full_name
+        });
+      }
       
       // Try multiple sources for first name with priority on actual names over metadata
       firstName = auth.user.user_metadata?.first_name || 

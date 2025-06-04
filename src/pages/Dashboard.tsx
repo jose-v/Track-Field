@@ -572,7 +572,9 @@ export function Dashboard() {
                 if (!skipPrefixes.includes(emailUsername.toLowerCase())) {
                   return emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1).toLowerCase();
                 } else {
-                  console.log('🔍 Skipping email prefix:', emailUsername);
+                  if (process.env.NODE_ENV === 'development') {
+                    console.log('🔍 Skipping email prefix:', emailUsername);
+                  }
                 }
               }
               
@@ -630,7 +632,9 @@ export function Dashboard() {
                           if (!skipPrefixes.includes(emailUsername.toLowerCase())) {
                             return emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1).toLowerCase();
                           } else {
-                            console.log('🔍 Skipping email prefix:', emailUsername);
+                            if (process.env.NODE_ENV === 'development') {
+                              console.log('🔍 Skipping email prefix:', emailUsername);
+                            }
                           }
                         }
                         
