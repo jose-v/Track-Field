@@ -85,6 +85,8 @@ const TodaysFocusCard: React.FC<TodaysFocusCardProps> = ({ onTaskClick }) => {
           status
         `)
         .eq('status', 'assigned')
+        .gte('assigned_at', today)
+        .lt('assigned_at', tomorrow)
         .order('assigned_at', { ascending: true });
 
       if (workoutsError) {
@@ -212,27 +214,32 @@ const TodaysFocusCard: React.FC<TodaysFocusCardProps> = ({ onTaskClick }) => {
         }
       }
 
-      // 4. Check for completed workouts needing review - simplified query
-      const { data: completedWorkouts, error: completedError } = await supabase
-        .from('athlete_workouts')
-        .select(`
-          id,
-          athlete_id,
-          status
-        `)
-        .eq('status', 'completed')
-        .gte('assigned_at', new Date(Date.now() - 7 * 86400000).toISOString());
+      // 4. Check for completed workouts needing review - scoped to coach's athletes
+      if (coachAthletes && coachAthletes.length > 0) {
+        const athleteIds = coachAthletes.map(ca => ca.athlete_id);
+        
+        const { data: completedWorkouts, error: completedError } = await supabase
+          .from('athlete_workouts')
+          .select(`
+            id,
+            athlete_id,
+            status
+          `)
+          .eq('status', 'completed')
+          .in('athlete_id', athleteIds)
+          .gte('assigned_at', new Date(Date.now() - 7 * 86400000).toISOString());
 
-      if (!completedError && completedWorkouts && completedWorkouts.length > 0) {
-        weekTasks.push({
-          id: 'review-completed',
-          type: 'review',
-          title: 'Review Completed Workouts',
-          description: `${completedWorkouts.length} workout${completedWorkouts.length !== 1 ? 's' : ''} completed this week`,
-          priority: 'medium',
-          actionLink: '/coach/analytics',
-          status: 'pending'
-        });
+        if (!completedError && completedWorkouts && completedWorkouts.length > 0) {
+          weekTasks.push({
+            id: 'review-completed',
+            type: 'review',
+            title: 'Review Completed Workouts',
+            description: `${completedWorkouts.length} workout${completedWorkouts.length !== 1 ? 's' : ''} completed this week`,
+            priority: 'medium',
+            actionLink: '/coach/analytics',
+            status: 'pending'
+          });
+        }
       }
 
       // Sort tasks by priority and time
