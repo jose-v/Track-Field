@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import {
   Box, Heading, Text, SimpleGrid, Button, HStack, VStack, useDisclosure,
   useToast, Skeleton, Card, CardBody, useColorModeValue, Flex, 
-  IconButton, Badge, Alert, AlertIcon, Spinner, Tabs, TabList, TabPanels, Tab, TabPanel
+  IconButton, Badge, Alert, AlertIcon, Spinner, Tabs, TabList, TabPanels, Tab, TabPanel,
+  Select
 } from '@chakra-ui/react';
-import { FaCalendarAlt, FaPlus, FaRedo, FaUsers, FaChartLine, FaLayerGroup, FaTrash, FaFileImport, FaDumbbell } from 'react-icons/fa';
+import { FaCalendarAlt, FaPlus, FaRedo, FaUsers, FaChartLine, FaLayerGroup, FaTrash, FaFileImport, FaDumbbell, FaUserFriends } from 'react-icons/fa';
 import { AddIcon, RepeatIcon } from '@chakra-ui/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -137,6 +138,7 @@ export function CoachTrainingPlans() {
   
   // Workout filter state
   const [workoutFilter, setWorkoutFilter] = useState<'all' | 'single' | 'weekly'>('all');
+  const [selectedAthlete, setSelectedAthlete] = useState<string>('all');
 
   // Update URL when tab changes
   const handleTabChange = (index: number) => {
@@ -422,6 +424,12 @@ export function CoachTrainingPlans() {
     return remaining > 0 ? `${nameString} +${remaining} more` : nameString;
   };
 
+  // Handle clearing all filters
+  const handleClearFilters = () => {
+    setWorkoutFilter('all');
+    setSelectedAthlete('all');
+  };
+
   // Handle refresh for monthly plans
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -697,13 +705,30 @@ export function CoachTrainingPlans() {
     }
     // 'all' shows everything (no additional filtering)
 
+    // Apply athlete filter
+    if (selectedAthlete !== 'all') {
+      filteredWorkouts = filteredWorkouts.filter(workout => {
+        const workoutAssignments = assignments?.filter(a => a.workout_id === workout.id) || [];
+        return workoutAssignments.some(assignment => assignment.athlete_id === selectedAthlete);
+      });
+    }
+
     if (filteredWorkouts.length === 0) {
-      const filterMessage = workoutFilter === 'all' 
-        ? 'No Workouts Created'
-        : `No ${workoutFilter === 'single' ? 'Single' : 'Weekly'} Workouts Created`;
-      const filterSubMessage = workoutFilter === 'all'
-        ? 'Create your first workout to get started.'
-        : `Create your first ${workoutFilter} workout to get started.`;
+      let filterMessage = 'No Workouts Found';
+      let filterSubMessage = 'Try adjusting your filters.';
+      
+      if (selectedAthlete !== 'all') {
+        const selectedAthleteData = athletes?.find(a => a.id === selectedAthlete);
+        const athleteName = selectedAthleteData ? `${selectedAthleteData.first_name} ${selectedAthleteData.last_name}` : 'selected athlete';
+        filterMessage = `No Workouts Assigned to ${athleteName}`;
+        filterSubMessage = 'Create and assign workouts to this athlete to get started.';
+      } else if (workoutFilter !== 'all') {
+        filterMessage = `No ${workoutFilter === 'single' ? 'Single' : 'Weekly'} Workouts Created`;
+        filterSubMessage = `Create your first ${workoutFilter} workout to get started.`;
+      } else {
+        filterMessage = 'No Workouts Created';
+        filterSubMessage = 'Create your first workout to get started.';
+      }
         
       return (
         <Alert status="info" borderRadius="md">
@@ -1010,7 +1035,7 @@ export function CoachTrainingPlans() {
                 <VStack spacing={6} align="stretch">
                   {/* Stats and Actions */}
                   <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
-                    <HStack spacing={4}>
+                    <HStack spacing={4} wrap="wrap">
                       <Badge colorScheme="blue" fontSize="sm" px={3} py={1}>
                         {workouts?.filter(w => !w.is_draft).length || 0} Workouts Created
                       </Badge>
@@ -1018,6 +1043,21 @@ export function CoachTrainingPlans() {
                         <Badge colorScheme="green" fontSize="sm" px={3} py={1}>
                           {athletes.length} Athletes
                         </Badge>
+                      )}
+                      {selectedAthlete !== 'all' && (
+                        <Badge colorScheme="purple" fontSize="sm" px={3} py={1}>
+                          Filtered by: {athletes?.find(a => a.id === selectedAthlete)?.first_name} {athletes?.find(a => a.id === selectedAthlete)?.last_name}
+                        </Badge>
+                      )}
+                      {(workoutFilter !== 'all' || selectedAthlete !== 'all') && (
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          colorScheme="gray"
+                          onClick={handleClearFilters}
+                        >
+                          Clear Filters
+                        </Button>
                       )}
                     </HStack>
                     
@@ -1048,6 +1088,26 @@ export function CoachTrainingPlans() {
                         >
                           Weekly
                         </Button>
+                      </HStack>
+
+                      {/* Athlete Filter Dropdown */}
+                      <HStack spacing={2} align="center">
+                        <FaUserFriends style={{ color: useColorModeValue('#4A5568', '#A0AEC0') }} />
+                        <Select
+                          value={selectedAthlete}
+                          onChange={(e) => setSelectedAthlete(e.target.value)}
+                          size="sm"
+                          width="200px"
+                          bg={useColorModeValue('white', 'gray.700')}
+                          borderColor={useColorModeValue('gray.300', 'gray.600')}
+                        >
+                          <option value="all">All Athletes</option>
+                          {athletes?.map((athlete) => (
+                            <option key={athlete.id} value={athlete.id}>
+                              {athlete.first_name} {athlete.last_name}
+                            </option>
+                          ))}
+                        </Select>
                       </HStack>
                       
                       <Button
