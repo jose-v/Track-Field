@@ -33,6 +33,7 @@ export interface Workout {
   location?: string
   template_type?: 'single' | 'weekly'
   is_template?: boolean
+  is_draft?: boolean
   template_category?: string
   template_tags?: string[]
 }
@@ -423,6 +424,130 @@ export const api = {
 
       if (error) throw error;
       return data;
+    },
+
+    // Save workout as draft (coach functionality)
+    async saveDraft(workoutData: Partial<EnhancedWorkoutData> & { user_id: string; id?: string }) {
+      // Handle weekly_plan data - store it in exercises field since weekly_plan column doesn't exist
+      let exercisesToStore: any[] = workoutData.exercises || [];
+      
+      // If this is a weekly template with weekly_plan data, store it in exercises as structured data
+      if (workoutData.template_type === 'weekly' && workoutData.weekly_plan) {
+        exercisesToStore = workoutData.weekly_plan;
+      }
+      
+      const draftData = {
+        user_id: workoutData.user_id,
+        name: workoutData.name || 'Draft Workout',
+        description: workoutData.description || 'Draft workout in progress',
+        type: workoutData.type || 'Strength',
+        template_type: workoutData.template_type || 'single',
+        location: workoutData.location || null,
+        date: workoutData.date || null,
+        time: workoutData.time || null,
+        duration: workoutData.duration || null,
+        is_template: workoutData.is_template || false,
+        is_draft: true,
+        exercises: exercisesToStore,
+        // Note: weekly_plan column doesn't exist, so we store weekly plan data in exercises
+      };
+
+      // If updating existing draft, include the ID
+      if (workoutData.id) {
+        (draftData as any).id = workoutData.id;
+      }
+
+      const { data, error } = await supabase
+        .from('workouts')
+        .upsert(draftData, { onConflict: 'id' })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Draft save error:', error);
+        throw error;
+      }
+      
+      return data;
+    },
+
+    // Promote draft to final workout (coach functionality)
+    async promoteDraft(draftId: string, finalWorkoutData: EnhancedWorkoutData) {
+      // Get the draft first
+      const { data: draft, error: fetchError } = await supabase
+        .from('workouts')
+        .select('*')
+        .eq('id', draftId)
+        .eq('is_draft', true)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (!draft) throw new Error('Draft not found');
+
+      // Merge draft data with final workout data
+      // Handle the fact that weekly_plan might be stored in exercises for drafts
+      let finalExercises = finalWorkoutData.exercises || [];
+      let finalWeeklyPlan = finalWorkoutData.weekly_plan;
+      
+      // If the draft stored weekly_plan data in exercises, extract it
+      if (draft.template_type === 'weekly' && Array.isArray(draft.exercises) && 
+          draft.exercises.length > 0 && draft.exercises[0].day) {
+        // This looks like weekly_plan data stored in exercises
+        finalWeeklyPlan = draft.exercises;
+        finalExercises = [];
+      }
+
+      const promotedData = {
+        ...draft,
+        ...finalWorkoutData,
+        exercises: finalExercises,
+        weekly_plan: finalWeeklyPlan,
+        is_draft: false,
+        is_template: finalWorkoutData.is_template || false,
+        updated_at: new Date().toISOString()
+      };
+
+      // Remove weekly_plan if it shouldn't be stored (since column doesn't exist)
+      const { weekly_plan, ...dataToStore } = promotedData;
+      
+      // Store weekly_plan back in exercises if needed
+      if (weekly_plan && promotedData.template_type === 'weekly') {
+        dataToStore.exercises = weekly_plan;
+      }
+
+      const { data, error } = await supabase
+        .from('workouts')
+        .update(dataToStore)
+        .eq('id', draftId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    // Get user's drafts (coach functionality)
+    async getDrafts(userId: string) {
+      const { data, error } = await supabase
+        .from('workouts')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_draft', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+
+    // Delete draft (coach functionality)
+    async deleteDraft(draftId: string) {
+      const { error } = await supabase
+        .from('workouts')
+        .delete()
+        .eq('id', draftId)
+        .eq('is_draft', true);
+
+      if (error) throw error;
     },
   },
 

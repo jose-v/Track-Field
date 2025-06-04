@@ -187,6 +187,12 @@ const WorkoutCreatorWireframe: React.FC = () => {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
 
+  // Add coach-specific draft functionality state
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
+  const [autoSaveTimer, setAutoSaveTimer] = useState<NodeJS.Timeout | null>(null);
+  const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null);
+  const [isDraftMode, setIsDraftMode] = useState(false);
+
   // Load workout data if editing
   useEffect(() => {
     if (editWorkoutId) {
@@ -220,6 +226,16 @@ const WorkoutCreatorWireframe: React.FC = () => {
       if (error) throw error;
       
       if (data) {
+        // Check if this is a draft
+        const isDraft = data.is_draft === true;
+        
+        // Set draft mode and ID if this is a draft
+        if (isDraft) {
+          setCurrentDraftId(data.id);
+          setIsDraftMode(true);
+          console.log('🔄 Loading draft for editing:', data.id);
+        }
+        
         // Populate form with workout data
         setWorkoutName(data.name || '');
         setWorkoutType(data.type || 'Strength');
@@ -228,15 +244,33 @@ const WorkoutCreatorWireframe: React.FC = () => {
         setTime(data.time || '');
         setDuration(data.duration || '');
         setLocation(data.location || '');
-        setIsTemplate(data.is_template || false); // Load is_template value
+        setIsTemplate(data.is_template || false);
         
-        // Load exercises
+        // Handle exercises and weekly plan data
         if (data.exercises && Array.isArray(data.exercises)) {
-          if (data.template_type === 'single') {
+          // Check if this is weekly plan data stored in exercises (for drafts)
+          if (data.template_type === 'weekly' && data.exercises.length > 0 && data.exercises[0].day) {
+            console.log('📅 Loading weekly plan data from exercises field');
+            // This is weekly plan data stored in exercises field
+            const weeklyExercises: Record<string, SelectedExercise[]> = {};
+            const weeklyRestDays: Record<string, boolean> = {};
+            
+            data.exercises.forEach((dayPlan: { day: string; exercises: any[]; isRestDay: boolean }) => {
+              weeklyExercises[dayPlan.day] = (dayPlan.exercises || []).map((ex: any) => ({
+                ...ex,
+                instanceId: `${ex.id || ex.name}-${Date.now()}-${Math.random()}`
+              }));
+              weeklyRestDays[dayPlan.day] = dayPlan.isRestDay || false;
+            });
+            
+            setSelectedExercises(prev => ({ ...prev, ...weeklyExercises }));
+            setRestDays(prev => ({ ...prev, ...weeklyRestDays }));
+          } else if (data.template_type === 'single') {
             // For single day workouts, put exercises in Monday
+            console.log('📝 Loading single day exercises');
             setSelectedExercises(prev => ({
               ...prev,
-              monday: data.exercises.map((ex: Exercise & { instanceId?: string }) => ({
+              monday: data.exercises.map((ex: any) => ({
                 ...ex,
                 instanceId: `${ex.id || ex.name}-${Date.now()}-${Math.random()}`
               }))
@@ -244,13 +278,14 @@ const WorkoutCreatorWireframe: React.FC = () => {
           }
         }
         
-        // Load weekly plan if exists
+        // Load weekly plan if exists (for non-draft workouts)
         if (data.weekly_plan && Array.isArray(data.weekly_plan)) {
+          console.log('📊 Loading weekly plan from weekly_plan field');
           const weeklyExercises: Record<string, SelectedExercise[]> = {};
           const weeklyRestDays: Record<string, boolean> = {};
           
-          data.weekly_plan.forEach((dayPlan: { day: string; exercises: Exercise[]; isRestDay: boolean }) => {
-            weeklyExercises[dayPlan.day] = (dayPlan.exercises || []).map((ex: Exercise & { instanceId?: string }) => ({
+          data.weekly_plan.forEach((dayPlan: { day: string; exercises: any[]; isRestDay: boolean }) => {
+            weeklyExercises[dayPlan.day] = (dayPlan.exercises || []).map((ex: any) => ({
               ...ex,
               instanceId: `${ex.id || ex.name}-${Date.now()}-${Math.random()}`
             }));
@@ -261,37 +296,39 @@ const WorkoutCreatorWireframe: React.FC = () => {
           setRestDays(prev => ({ ...prev, ...weeklyRestDays }));
         }
         
-        // Load athlete assignments
-        const { data: assignments } = await supabase
-          .from('athlete_workouts')
-          .select('athlete_id')
-          .eq('workout_id', workoutId);
-          
-        if (assignments && assignments.length > 0) {
-          const athleteIds = assignments.map(a => a.athlete_id);
-          // Load athlete details
-          const { data: athleteData } = await supabase
-            .from('athletes')
-            .select('id, first_name, last_name')
-            .in('id', athleteIds);
+        // Load athlete assignments (only for non-draft workouts)
+        if (!isDraft) {
+          const { data: assignments } = await supabase
+            .from('athlete_workouts')
+            .select('athlete_id')
+            .eq('workout_id', workoutId);
             
-          if (athleteData) {
-            const athleteMap: Record<string, Athlete> = {};
-            athleteData.forEach(athlete => {
-              athleteMap[athlete.id] = {
-                id: athlete.id,
-                name: `${athlete.first_name} ${athlete.last_name}`,
-                event: 'N/A', // We don't have event info in this context
-                avatar: '' // No avatar in this context
-              };
-            });
-            setSelectedAthletes(athleteMap);
+          if (assignments && assignments.length > 0) {
+            const athleteIds = assignments.map(a => a.athlete_id);
+            // Load athlete details
+            const { data: athleteData } = await supabase
+              .from('athletes')
+              .select('id, first_name, last_name')
+              .in('id', athleteIds);
+              
+            if (athleteData) {
+              const athleteMap: Record<string, Athlete> = {};
+              athleteData.forEach(athlete => {
+                athleteMap[athlete.id] = {
+                  id: athlete.id,
+                  name: `${athlete.first_name} ${athlete.last_name}`,
+                  event: 'N/A', // We don't have event info in this context
+                  avatar: '' // No avatar in this context
+                };
+              });
+              setSelectedAthletes(athleteMap);
+            }
           }
         }
         
         toast({
-          title: 'Workout Loaded',
-          description: `Editing "${data.name}"`,
+          title: isDraft ? 'Draft Loaded' : 'Workout Loaded',
+          description: `${isDraft ? 'Editing draft' : 'Editing'} "${data.name}"`,
           status: 'info',
           duration: 3000,
           isClosable: true,
@@ -342,6 +379,17 @@ const WorkoutCreatorWireframe: React.FC = () => {
     setCurrentStep(1);
     setIsEditing(false);
     setIsTemplate(false);
+    
+    // Clear draft-related state
+    setCurrentDraftId(null);
+    setIsDraftMode(false);
+    setLastSavedTime(null);
+    
+    // Clear any existing auto-save timer
+    if (autoSaveTimer) {
+      clearTimeout(autoSaveTimer);
+      setAutoSaveTimer(null);
+    }
   };
 
   // Handle cancel action - with confirmation for unsaved changes
@@ -513,9 +561,9 @@ const WorkoutCreatorWireframe: React.FC = () => {
       warnings.push('No exercises added to workout');
     }
     
-    // Only show athlete assignment warning for coaches and team managers
+    // Only show athlete assignment warning for coaches and team managers when NOT creating templates
     // Athletes are expected to create workouts for themselves
-    if (Object.keys(selectedAthletes).length === 0 && userProfile?.role !== 'athlete') {
+    if (Object.keys(selectedAthletes).length === 0 && userProfile?.role !== 'athlete' && !isTemplate) {
       warnings.push('No athletes assigned to this workout');
     }
     
@@ -524,8 +572,126 @@ const WorkoutCreatorWireframe: React.FC = () => {
 
   const currentStepInfo = WORKOUT_CREATION_STEPS[currentStep - 1];
 
-  // Handle saving workout to database
-  const handleSaveWorkout = async () => {
+  // Add coach-specific auto-save functionality
+  useEffect(() => {
+    // Only enable auto-save for coaches when in the workout creator
+    if (userProfile?.role === 'coach' && isDraftMode && !isEditing) {
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+      }
+      
+      const timer = setTimeout(() => {
+        handleSaveDraft();
+      }, 30000); // 30 seconds
+      
+      setAutoSaveTimer(timer);
+    }
+    
+    return () => {
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+      }
+    };
+  }, [workoutName, templateType, workoutType, selectedExercises, isDraftMode, userProfile?.role]);
+
+  // Cleanup auto-save timer when component unmounts
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+        setAutoSaveTimer(null);
+      }
+    };
+  }, []);
+
+  // Add coach-specific draft saving function
+  const handleSaveDraft = async () => {
+    // Only allow coaches to save drafts
+    if (userProfile?.role !== 'coach') {
+      toast({
+        title: 'Draft save unavailable',
+        description: 'Only coaches can save drafts.',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    
+    if (!user?.id) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please sign in to save drafts.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    
+    if (!workoutName.trim()) {
+      toast({
+        title: 'Workout name required',
+        description: 'Please enter a workout name before saving as draft.',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    
+    try {
+      const draftData = {
+        id: currentDraftId || undefined, // Include ID if updating existing draft
+        user_id: user.id,
+        name: workoutName,
+        description: `Draft workout - ${templateType === 'weekly' ? 'Weekly Training Plan' : 'Single Day Workout'}`,
+        type: workoutType,
+        template_type: templateType,
+        location: location,
+        date: date && date.trim() !== '' ? date : null,
+        time: time && time.trim() !== '' ? time : null,
+        duration: duration && duration.trim() !== '' ? duration : null,
+        is_template: isTemplate,
+        is_draft: true,
+        exercises: templateType === 'single' ? (selectedExercises.monday || []) : [],
+        weekly_plan: templateType === 'weekly' ? Object.keys(selectedExercises).map(day => ({
+          day,
+          exercises: selectedExercises[day] || [],
+          isRestDay: restDays[day] || false
+        })) : undefined
+      };
+      
+      const savedDraft = await api.workouts.saveDraft(draftData);
+      
+      // Update state to reflect that we're now working with this draft
+      setCurrentDraftId(savedDraft.id);
+      setLastSavedTime(new Date());
+      setIsDraftMode(true);
+      
+      toast({
+        title: currentDraftId ? 'Draft Updated' : 'Draft Saved',
+        description: currentDraftId 
+          ? 'Your workout draft has been updated.' 
+          : 'Your workout progress has been saved as a draft.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error('Failed to save draft:', error);
+      toast({
+        title: 'Error saving draft',
+        description: error instanceof Error ? error.message : 'Please try again later.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  // Enhanced save workout function with coach-specific Save + New and Save + Done options
+  const handleSaveWorkout = async (action: 'save' | 'save_new' | 'save_done' = 'save') => {
     if (!workoutName.trim()) {
       toast({
         title: 'Error',
@@ -556,11 +722,18 @@ const WorkoutCreatorWireframe: React.FC = () => {
         })) : undefined
       };
 
+      // Use atomic transaction for update operations
       const athleteIds = Object.keys(selectedAthletes);
       
-      // Use atomic transaction for update operations
-      if (isEditing && editWorkoutId) {
+      let savedWorkout;
+      
+      // If we have a draft (coaches only), promote it to a final workout
+      if (currentDraftId && isDraftMode && userProfile?.role === 'coach') {
+        console.log('🚀 Promoting draft to final workout:', currentDraftId);
+        savedWorkout = await api.workouts.promoteDraft(currentDraftId, workoutData);
+      } else if (isEditing && editWorkoutId) {
         // Start a Supabase transaction for atomic updates
+        console.log('✏️ Updating existing workout:', editWorkoutId);
         const { data, error } = await supabase.rpc('update_workout_with_athletes', {
           p_workout_id: editWorkoutId,
           p_workout_data: {
@@ -581,11 +754,15 @@ const WorkoutCreatorWireframe: React.FC = () => {
         
         if (error) {
           // Fallback to manual transaction if RPC doesn't exist
+          console.log('🔄 Using manual update fallback');
           await updateWorkoutWithAthletesManually(editWorkoutId, workoutData, athleteIds);
         }
+        savedWorkout = { id: editWorkoutId };
       } else {
         // Create new workout with atomic assignment
+        console.log('✨ Creating new workout');
         const newWorkout = await api.workouts.createEnhanced(workoutData);
+        savedWorkout = newWorkout;
         
         // For athletes creating their own workouts, automatically assign to themselves
         if (userProfile?.role === 'athlete' && newWorkout?.id) {
@@ -599,6 +776,12 @@ const WorkoutCreatorWireframe: React.FC = () => {
         }
       }
 
+      // Clear draft state since workout is now finalized (coaches only)
+      if (currentDraftId && userProfile?.role === 'coach') {
+        setCurrentDraftId(null);
+        setIsDraftMode(false);
+      }
+
       toast({
         title: isEditing ? 'Workout Updated Successfully!' : 'Workout Saved Successfully!',
         description: `"${workoutName}" has been ${isEditing ? 'updated' : 'created'} and ${athleteIds.length > 0 ? `assigned to ${athleteIds.length} athlete(s)` : 'is ready to be assigned'}.`,
@@ -607,8 +790,27 @@ const WorkoutCreatorWireframe: React.FC = () => {
         isClosable: true,
       });
 
-      // Navigate back to workouts list
-      navigate(getWorkoutsRoute());
+      // Handle different save actions (coach-specific)
+      if (userProfile?.role === 'coach') {
+        switch (action) {
+          case 'save_new':
+            // Reset form and start new workout
+            resetFormState();
+            setCurrentStep(1);
+            break;
+          case 'save_done':
+            // Navigate to monthly plans for coaches
+            navigate('/coach/monthly-plans');
+            break;
+          default:
+            // Regular save - navigate to workouts list
+            navigate(getWorkoutsRoute());
+            break;
+        }
+      } else {
+        // For non-coaches, always navigate back to workouts list
+        navigate(getWorkoutsRoute());
+      }
 
     } catch (error) {
       console.error('Error saving workout:', error);
@@ -628,6 +830,14 @@ const WorkoutCreatorWireframe: React.FC = () => {
     workoutData: EnhancedWorkoutData, 
     athleteIds: string[]
   ) => {
+    // Prepare the data to store based on whether we're dealing with a draft or regular workout
+    let exercisesToStore: any[] = workoutData.exercises || [];
+    
+    // For weekly workouts, store weekly_plan data in exercises field (since weekly_plan column doesn't exist)
+    if (workoutData.template_type === 'weekly' && workoutData.weekly_plan) {
+      exercisesToStore = workoutData.weekly_plan;
+    }
+    
     // Use Supabase transaction pattern
     const { error: updateError } = await supabase
       .from('workouts')
@@ -641,14 +851,14 @@ const WorkoutCreatorWireframe: React.FC = () => {
         location: workoutData.location,
         description: workoutData.description,
         is_template: workoutData.is_template,
-        exercises: workoutData.exercises,
-        weekly_plan: workoutData.weekly_plan
+        exercises: exercisesToStore, // Store exercises or weekly plan data
+        // Note: not storing weekly_plan since that column doesn't exist
       })
       .eq('id', workoutId);
       
     if (updateError) throw updateError;
     
-    // Only proceed with athlete assignment if workout update succeeded
+    // Only proceed with athlete assignment if workout update succeeded and this isn't a draft
     if (athleteIds.length > 0) {
       // Clear existing assignments first
       const { error: deleteError } = await supabase
@@ -906,19 +1116,59 @@ const WorkoutCreatorWireframe: React.FC = () => {
       transition="left 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
     >
       <HStack justify="space-between" align="center" maxW="100%" mx="auto">
-        <Button
-          leftIcon={<ChevronLeft size={20} />}
-          variant="outline"
-          size="lg"
-          onClick={goToPreviousStep}
-          isDisabled={currentStep === 1}
-          borderWidth="2px"
-          borderColor={borderColor}
-          color={textColor}
-          _hover={{ bg: 'blue.100', borderColor: 'blue.300' }}
-        >
-          Previous
-        </Button>
+        <HStack spacing={3}>
+          <Button
+            leftIcon={<ChevronLeft size={20} />}
+            variant="outline"
+            size="lg"
+            onClick={goToPreviousStep}
+            isDisabled={currentStep === 1}
+            borderWidth="2px"
+            borderColor={borderColor}
+            color={textColor}
+            _hover={{ bg: 'blue.100', borderColor: 'blue.300' }}
+          >
+            Previous
+          </Button>
+          
+          {/* Coach-specific draft controls */}
+          {userProfile?.role === 'coach' && (
+            <Tooltip
+              label="Please enter a workout name to save draft"
+              isDisabled={workoutName.trim() !== ''}
+              placement="top"
+              hasArrow
+              bg="orange.500"
+              color="white"
+            >
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={handleSaveDraft}
+                colorScheme="teal"
+                borderWidth="2px"
+                isDisabled={workoutName.trim() === ''}
+                _hover={{ 
+                  transform: workoutName.trim() === '' ? "none" : "scale(1.05)"
+                }}
+                transition="all 0.2s"
+                fontWeight="bold"
+                px={6}
+                opacity={workoutName.trim() === '' ? 0.4 : 1}
+                cursor={workoutName.trim() === '' ? 'not-allowed' : 'pointer'}
+              >
+                Save Draft
+              </Button>
+            </Tooltip>
+          )}
+        </HStack>
+        
+        {/* Coach-specific draft status (moved to center if needed) */}
+        {userProfile?.role === 'coach' && isDraftMode && lastSavedTime && (
+          <Text fontSize="xs" color="gray.500">
+            Draft saved {lastSavedTime.toLocaleTimeString()}
+          </Text>
+        )}
         
         {/* Progress Dots */}
         <HStack spacing={4}>
@@ -1073,21 +1323,63 @@ const WorkoutCreatorWireframe: React.FC = () => {
                 Cancel
               </Button>
             )}
-            <Button
-              rightIcon={<Save size={20} />}
-              colorScheme="green"
-              size="lg"
-              onClick={handleSaveWorkout}
-              borderWidth="2px"
-              _hover={{ 
-                transform: "scale(1.05)"
-              }}
-              transition="all 0.2s"
-              fontWeight="bold"
-              px={8}
-            >
-              {isEditing ? 'Update Workout' : 'Save Workout'}
-            </Button>
+            
+            {/* Coach-specific save buttons */}
+            {userProfile?.role === 'coach' ? (
+              <>
+                {/* Save + New Button */}
+                <Button
+                  rightIcon={<Target size={20} />}
+                  colorScheme="blue"
+                  variant="outline"
+                  size="lg"
+                  onClick={() => handleSaveWorkout('save_new')}
+                  borderWidth="2px"
+                  _hover={{ 
+                    transform: "scale(1.05)"
+                  }}
+                  transition="all 0.2s"
+                  fontWeight="bold"
+                  px={6}
+                >
+                  Save + New
+                </Button>
+                
+                {/* Save + Done Button */}
+                <Button
+                  rightIcon={<Save size={20} />}
+                  colorScheme="green"
+                  size="lg"
+                  onClick={() => handleSaveWorkout('save_done')}
+                  borderWidth="2px"
+                  _hover={{ 
+                    transform: "scale(1.05)"
+                  }}
+                  transition="all 0.2s"
+                  fontWeight="bold"
+                  px={8}
+                >
+                  Save + Done
+                </Button>
+              </>
+            ) : (
+              /* Regular save button for non-coaches */
+              <Button
+                rightIcon={<Save size={20} />}
+                colorScheme="green"
+                size="lg"
+                onClick={() => handleSaveWorkout()}
+                borderWidth="2px"
+                _hover={{ 
+                  transform: "scale(1.05)"
+                }}
+                transition="all 0.2s"
+                fontWeight="bold"
+                px={8}
+              >
+                {isEditing ? 'Update Workout' : 'Save Workout'}
+              </Button>
+            )}
           </HStack>
         )}
       </HStack>
@@ -1155,7 +1447,17 @@ const WorkoutCreatorWireframe: React.FC = () => {
       case 3:
         return (
           <Suspense fallback={<LoadingFallback />}>
-            {isLoadingAthletes ? (
+            {/* Check if coach is creating a template - if so, show disabled message */}
+            {isTemplate && userProfile?.role === 'coach' ? (
+              <Center h="400px">
+                <VStack spacing={4}>
+                  <Text color={textColor} fontSize="lg" fontWeight="semibold">Templates Don't Need Athletes</Text>
+                  <Text color={subtitleColor} textAlign="center" maxW="400px">
+                    You cannot assign athletes when creating a template. Templates are saved for future use and can be assigned to athletes later.
+                  </Text>
+                </VStack>
+              </Center>
+            ) : isLoadingAthletes ? (
               <Center h="400px">
                 <VStack spacing={4}>
                   <Spinner size="xl" color="blue.500" thickness="4px" />
@@ -1208,6 +1510,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
               startDate={date}
               endDate={duration}
               onUpdateWeeklyPlan={handleUpdateWeeklyPlan}
+              isTemplate={isTemplate}
             />
           </Suspense>
         );

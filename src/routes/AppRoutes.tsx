@@ -1,4 +1,4 @@
-import { Routes, Route, Outlet } from 'react-router-dom';
+import { Routes, Route, Outlet, Navigate } from 'react-router-dom';
 import Home from '../pages/Home';
 import HomeAlt from '../pages/HomeAlt';
 import { Login } from '../pages/Login';
@@ -19,7 +19,6 @@ import Account from '../pages/Account';
 
 // Coach pages
 import { CoachDashboard } from '../pages/coach/Dashboard';
-import { CoachWorkouts } from '../pages/coach/Workouts';
 import { CoachStats } from '../pages/coach/Stats';
 import { CoachAthletes } from '../pages/coach/Athletes';
 import { CreateWorkout } from '../pages/coach/CreateWorkout';
@@ -27,7 +26,7 @@ import { ImportWorkout } from '../pages/coach/ImportWorkout';
 import { EditWorkout } from '../pages/coach/EditWorkout';
 import { Calendar as CoachCalendar } from '../pages/coach/Calendar';
 import CoachProfile from "../pages/coach/Profile";
-import { CoachMonthlyPlans } from '../pages/coach/MonthlyPlans';
+import { CoachTrainingPlans } from '../pages/coach/MonthlyPlans';
 
 // Athlete pages
 import { Dashboard as AthleteDashboard } from '../pages/Dashboard';
@@ -89,7 +88,7 @@ export default function AppRoutes() {
       <Route element={<CoachLayoutWithFeedback />}> 
         <Route path="/coach/dashboard" element={<PrivateRoute><CoachDashboard /></PrivateRoute>} />
         <Route path="/coach/athletes" element={<PrivateRoute><CoachAthletes /></PrivateRoute>} />
-        <Route path="/coach/workouts" element={<PrivateRoute><CoachWorkouts /></PrivateRoute>} />
+        <Route path="/coach/workouts" element={<PrivateRoute><CoachTrainingPlans /></PrivateRoute>} />
         <Route path="/coach/workouts/new" element={<PrivateRoute><CreateWorkout /></PrivateRoute>} />
         <Route path="/coach/workouts/import" element={<PrivateRoute><ImportWorkout /></PrivateRoute>} />
         <Route path="/coach/workouts/edit/:id" element={<PrivateRoute><EditWorkout /></PrivateRoute>} />
@@ -102,7 +101,7 @@ export default function AppRoutes() {
         <Route path="/coach/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
         <Route path="/account" element={<PrivateRoute><Account /></PrivateRoute>} />
         <Route path="/coach/meets" element={<PrivateRoute><Meets /></PrivateRoute>} />
-        <Route path="/coach/monthly-plans" element={<PrivateRoute><CoachMonthlyPlans /></PrivateRoute>} />
+        <Route path="/coach/monthly-plans" element={<PrivateRoute><CoachTrainingPlans /></PrivateRoute>} />
       </Route>
 
       {/* Athlete Routes - With Feedback */}

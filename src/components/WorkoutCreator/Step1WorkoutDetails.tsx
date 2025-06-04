@@ -74,6 +74,36 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
   // Add state for time selection
   const [startTime, setStartTime] = React.useState<string>('');
   const [endTime, setEndTime] = React.useState<string>('');
+  
+  // Track if we're in the initial loading phase to prevent unwanted resets
+  const [isInitialLoad, setIsInitialLoad] = React.useState(true);
+  
+  // Add state to track if field has been focused
+  const [hasBeenFocused, setHasBeenFocused] = React.useState(false);
+  
+  // Monitor changes to detect when initial data loading is complete
+  React.useEffect(() => {
+    // Use isTemplate prop changes to detect when loading is complete
+    // If isTemplate is defined (true or false), we're likely done with initial loading
+    if (isTemplate !== undefined) {
+      const timer = setTimeout(() => {
+        setIsInitialLoad(false);
+      }, 200); // Small delay to ensure all state updates are complete
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isTemplate]);
+
+  // Also check for workout name for additional safety
+  React.useEffect(() => {
+    if (workoutName.trim() && workoutName.toLowerCase() !== 'my new workout') {
+      const timer = setTimeout(() => {
+        setIsInitialLoad(false);
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [workoutName]);
 
   // Convert single date to array for DateTimePicker
   const selectedDates = date ? [date] : [];
@@ -114,8 +144,8 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
   const handleTemplateTypeChange = (newType: 'single' | 'weekly') => {
     setTemplateType(newType);
     
-    // Reset template selection if switching to single day workout
-    if (newType === 'single' && setIsTemplate) {
+    // Only reset template selection if we're not in initial load phase and switching to single
+    if (!isInitialLoad && newType === 'single' && setIsTemplate) {
       setIsTemplate(false);
     }
   };
@@ -180,14 +210,37 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
               value={workoutName} 
               onChange={(e) => setWorkoutName(e.target.value)}
               onFocus={(e) => {
-                // Clear the field if it contains the placeholder text (case-insensitive)
-                if (workoutName.toLowerCase().trim() === 'my new workout') {
+                setHasBeenFocused(true);
+                
+                // Clear the field if it's empty, contains placeholder text, or hasn't been properly set
+                if (!workoutName || 
+                    workoutName.trim() === '' || 
+                    workoutName.toLowerCase().trim() === 'my new workout' ||
+                    workoutName === 'My New Workout') {
                   setWorkoutName('');
+                  // Force the input to clear immediately
+                  e.target.value = '';
                 }
-                // Select all text when focusing (standard UX behavior)
-                e.target.select();
+                
+                // Select all text after a brief delay to ensure state updates
+                setTimeout(() => {
+                  if (e.target && workoutName && workoutName.trim() !== '') {
+                    e.target.select();
+                  }
+                }, 10);
               }}
-              placeholder="My New Workout"
+              onClick={(e) => {
+                // Handle click to clear placeholder-like text
+                if (!workoutName || 
+                    workoutName.trim() === '' || 
+                    workoutName.toLowerCase().trim() === 'my new workout' ||
+                    workoutName === 'My New Workout') {
+                  setWorkoutName('');
+                  // Force the input to clear immediately
+                  (e.target as HTMLInputElement).value = '';
+                }
+              }}
+              placeholder={hasBeenFocused ? "Enter workout name..." : "My New Workout"}
               size="lg"
               fontSize="lg"
               py={6}

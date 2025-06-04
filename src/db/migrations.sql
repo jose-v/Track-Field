@@ -219,14 +219,14 @@ CREATE POLICY "Workouts are viewable by authenticated users"
 -- Allow users to create their own workouts
 CREATE POLICY "Users can create their own workouts"
   ON public.workouts FOR INSERT
-  WITH CHECK (auth.uid() = user_id OR auth.uid()::text = created_by::text);
+  WITH CHECK (auth.uid() = user_id);
 
 -- Allow users to update their own workouts
 CREATE POLICY "Users can update their own workouts"
   ON public.workouts FOR UPDATE
-  USING (auth.uid() = user_id OR auth.uid()::text = created_by::text);
+  USING (auth.uid() = user_id);
 
 -- Allow users to delete their own workouts
 CREATE POLICY "Users can delete their own workouts"
   ON public.workouts FOR DELETE
-  USING (auth.uid() = user_id OR auth.uid()::text = created_by::text); 
+  USING (auth.uid() = user_id); 

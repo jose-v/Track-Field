@@ -50,19 +50,14 @@ export function useCoachNavigation(): CoachNavConfig & { isCurrentPathActive: (p
       icon: <LuUsers />
     },
     {
-      name: 'Workouts',
-      path: '/coach/workouts',
-      icon: <IoFitnessOutline />
+      name: 'Training Plans',
+      path: '/coach/monthly-plans',
+      icon: <FaCalendarAlt />
     },
     {
       name: 'Workout Creator',
       path: '/coach/workout-creator',
-      icon: <FaTachometerAlt />
-    },
-    {
-      name: 'Training Plans',
-      path: '/coach/monthly-plans',
-      icon: <FaCalendarAlt />
+      icon: <IoFitnessOutline />
     },
     {
       name: 'Calendar',

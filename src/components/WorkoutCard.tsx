@@ -395,21 +395,46 @@ export function WorkoutCard({
             {/* Action button */}
             {onStart && (
               <VStack width="100%" spacing={2}>
-                <Button 
-                  width="100%" 
-                  variant="primary"
-                  leftIcon={isTemplate ? <FaEdit /> : <FaPlayCircle />} 
-                  onClick={onStart}
-                  size="md"
-                >
-                  {isTemplate 
-                    ? "Use Template" 
-                    : !isCoach && progress.completed === progress.total && progress.total > 0 
+                {isTemplate ? (
+                  /* Template-specific buttons: Edit and Delete */
+                  <HStack width="100%" spacing={2}>
+                    <Button 
+                      width="50%" 
+                      variant="outline"
+                      colorScheme="blue"
+                      leftIcon={<FaEdit />} 
+                      onClick={onEdit}
+                      size="md"
+                    >
+                      Edit
+                    </Button>
+                    <Button 
+                      width="50%" 
+                      variant="outline"
+                      colorScheme="red"
+                      leftIcon={<FaTrash />} 
+                      onClick={onDelete}
+                      size="md"
+                    >
+                      Delete
+                    </Button>
+                  </HStack>
+                ) : (
+                  /* Regular workout button */
+                  <Button 
+                    width="100%" 
+                    variant="primary"
+                    leftIcon={<FaPlayCircle />} 
+                    onClick={onStart}
+                    size="md"
+                  >
+                    {!isCoach && progress.completed === progress.total && progress.total > 0 
                       ? "Start Again" 
                       : !isCoach && progress.completed > 0 
                         ? "Continue Workout" 
                         : "Start Workout"}
-                </Button>
+                  </Button>
+                )}
                 
                 {/* Reset Progress Button - Hide for templates */}
                 {!isTemplate && !isCoach && onReset && progress.completed > 0 && (

@@ -97,6 +97,7 @@ interface Step4ReviewSaveProps {
   startDate?: string;
   endDate?: string;
   location?: string;
+  isTemplate?: boolean;
 }
 
 const DAYS_OF_WEEK = [
@@ -481,6 +482,7 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
   startDate,
   endDate,
   location,
+  isTemplate,
 }) => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [copyExercise, setCopyExercise] = useState<{exercise: SelectedExercise, fromDay: string} | null>(null);
