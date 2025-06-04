@@ -179,6 +179,14 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
             <Input 
               value={workoutName} 
               onChange={(e) => setWorkoutName(e.target.value)}
+              onFocus={(e) => {
+                // Clear the field if it contains the placeholder text (case-insensitive)
+                if (workoutName.toLowerCase().trim() === 'my new workout') {
+                  setWorkoutName('');
+                }
+                // Select all text when focusing (standard UX behavior)
+                e.target.select();
+              }}
               placeholder="My New Workout"
               size="lg"
               fontSize="lg"

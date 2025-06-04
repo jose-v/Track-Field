@@ -281,13 +281,12 @@ export const api = {
           name: workoutData.name,
           description: workoutData.description || '',
           user_id: user.id,
-          created_by: user.id,
           type: workoutData.type,
           template_type: workoutData.template_type,
           location: workoutData.location,
-          date: workoutData.date,
-          time: workoutData.time,
-          duration: workoutData.duration,
+          date: workoutData.date && workoutData.date.trim() !== '' ? workoutData.date : null,
+          time: workoutData.time && workoutData.time.trim() !== '' ? workoutData.time : null,
+          duration: workoutData.duration && workoutData.duration.trim() !== '' ? workoutData.duration : null,
           is_template: workoutData.is_template || false,
           exercises: workoutData.template_type === 'single' ? (workoutData.exercises || []) : []
         };
@@ -406,13 +405,12 @@ export const api = {
         name: workoutData.name || `${template.name} - Copy`,
         description: workoutData.notes || template.description,
         user_id: user.id,
-        created_by: user.id,
         exercises: template.exercises,
         type: template.type,
         template_type: template.template_type,
         location: workoutData.location || template.location,
-        date: workoutData.date,
-        time: workoutData.time,
+        date: workoutData.date && workoutData.date.trim() !== '' ? workoutData.date : null,
+        time: workoutData.time && workoutData.time.trim() !== '' ? workoutData.time : null,
         duration: template.duration,
         is_template: false // This is not a template, it's a real workout
       };
