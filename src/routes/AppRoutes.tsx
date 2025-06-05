@@ -13,6 +13,7 @@ import { About } from '../pages/About';
 import { Contact } from '../pages/Contact';
 import { Layout as GeneralLayout } from '../components/Layout';
 import { PrivateRoute } from '../components/PrivateRoute';
+import { RoleProtectedRoute } from '../components/RoleProtectedRoute';
 import { NotFound } from '../pages/NotFound';
 import RoleDashboardRouter from '../pages/RoleDashboardRouter';
 import Loop from '../pages/Loop';
@@ -98,44 +99,44 @@ export default function AppRoutes() {
         <Route path="coach-invitation" element={<CoachInvitation />} />
       </Route>
 
-      {/* Coach Routes - With Feedback */}
+      {/* Coach Routes - With Role Protection */}
       <Route element={<CoachLayoutWithFeedback />}> 
-        <Route path="/coach/dashboard" element={<PrivateRoute><CoachDashboard /></PrivateRoute>} />
-        <Route path="/coach/athletes" element={<PrivateRoute><CoachAthletes /></PrivateRoute>} />
-        <Route path="/coach/manage-athletes" element={<PrivateRoute><ManageAthletesPage /></PrivateRoute>} />
-        <Route path="/coach/workouts" element={<PrivateRoute><CoachTrainingPlans /></PrivateRoute>} />
-        <Route path="/coach/workouts/new" element={<PrivateRoute><CreateWorkout /></PrivateRoute>} />
-        <Route path="/coach/workouts/import" element={<PrivateRoute><ImportWorkout /></PrivateRoute>} />
-        <Route path="/coach/workouts/edit/:id" element={<PrivateRoute><EditWorkout /></PrivateRoute>} />
-        <Route path="/coach/stats" element={<PrivateRoute><CoachStats /></PrivateRoute>} />
-        <Route path="/coach/profile" element={<PrivateRoute><CoachProfile /></PrivateRoute>} />
-        <Route path="/coach/calendar" element={<PrivateRoute><CoachCalendar /></PrivateRoute>} />
-        <Route path="/coach/notifications" element={<PrivateRoute><NotificationsPage /></PrivateRoute>} />
-        <Route path="/coach/loop" element={<PrivateRoute><Loop /></PrivateRoute>} />
-        <Route path="/coach/workout-creator" element={<PrivateRoute><WorkoutCreatorDemo /></PrivateRoute>} />
-        <Route path="/coach/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
-        <Route path="/account" element={<PrivateRoute><Account /></PrivateRoute>} />
-        <Route path="/coach/meets" element={<PrivateRoute><Meets /></PrivateRoute>} />
-        <Route path="/coach/training-plans" element={<PrivateRoute><CoachTrainingPlans /></PrivateRoute>} />
+        <Route path="/coach/dashboard" element={<RoleProtectedRoute allowedRoles={['coach', 'team_manager']}><CoachDashboard /></RoleProtectedRoute>} />
+        <Route path="/coach/athletes" element={<RoleProtectedRoute allowedRoles={['coach', 'team_manager']}><CoachAthletes /></RoleProtectedRoute>} />
+        <Route path="/coach/manage-athletes" element={<RoleProtectedRoute allowedRoles={['coach', 'team_manager']}><ManageAthletesPage /></RoleProtectedRoute>} />
+        <Route path="/coach/workouts" element={<RoleProtectedRoute allowedRoles={['coach', 'team_manager']}><CoachTrainingPlans /></RoleProtectedRoute>} />
+        <Route path="/coach/workouts/new" element={<RoleProtectedRoute allowedRoles={['coach', 'team_manager']}><CreateWorkout /></RoleProtectedRoute>} />
+        <Route path="/coach/workouts/import" element={<RoleProtectedRoute allowedRoles={['coach', 'team_manager']}><ImportWorkout /></RoleProtectedRoute>} />
+        <Route path="/coach/workouts/edit/:id" element={<RoleProtectedRoute allowedRoles={['coach', 'team_manager']}><EditWorkout /></RoleProtectedRoute>} />
+        <Route path="/coach/stats" element={<RoleProtectedRoute allowedRoles={['coach', 'team_manager']}><CoachStats /></RoleProtectedRoute>} />
+        <Route path="/coach/profile" element={<RoleProtectedRoute allowedRoles={['coach', 'team_manager']}><CoachProfile /></RoleProtectedRoute>} />
+        <Route path="/coach/calendar" element={<RoleProtectedRoute allowedRoles={['coach', 'team_manager']}><CoachCalendar /></RoleProtectedRoute>} />
+        <Route path="/coach/notifications" element={<RoleProtectedRoute allowedRoles={['coach', 'team_manager']}><NotificationsPage /></RoleProtectedRoute>} />
+        <Route path="/coach/loop" element={<RoleProtectedRoute allowedRoles={['coach', 'team_manager']}><Loop /></RoleProtectedRoute>} />
+        <Route path="/coach/workout-creator" element={<RoleProtectedRoute allowedRoles={['coach', 'team_manager']}><WorkoutCreatorDemo /></RoleProtectedRoute>} />
+        <Route path="/coach/analytics" element={<RoleProtectedRoute allowedRoles={['coach', 'team_manager']}><Analytics /></RoleProtectedRoute>} />
+        <Route path="/account" element={<RoleProtectedRoute allowedRoles={['coach', 'team_manager']}><Account /></RoleProtectedRoute>} />
+        <Route path="/coach/meets" element={<RoleProtectedRoute allowedRoles={['coach', 'team_manager']}><Meets /></RoleProtectedRoute>} />
+        <Route path="/coach/training-plans" element={<RoleProtectedRoute allowedRoles={['coach', 'team_manager']}><CoachTrainingPlans /></RoleProtectedRoute>} />
       </Route>
 
-      {/* Athlete Routes - With Feedback */}
+      {/* Athlete Routes - With Role Protection */}
       <Route element={<AthleteLayoutWithFeedback />}> 
-        <Route path="/athlete/dashboard" element={<PrivateRoute><AthleteDashboard /></PrivateRoute>} />
-        <Route path="/athlete/profile" element={<PrivateRoute><AthleteProfile /></PrivateRoute>} />
-        <Route path="/athlete/workouts" element={<PrivateRoute><AthleteWorkouts /></PrivateRoute>} />
-        <Route path="/athlete/workouts/edit/:id" element={<PrivateRoute><EditWorkout /></PrivateRoute>} />
-        <Route path="/athlete/calendar" element={<PrivateRoute><AthleteCalendar /></PrivateRoute>} />
-        <Route path="/athlete/stats" element={<PrivateRoute><NotFound /></PrivateRoute>} />
-        <Route path="/athlete/nutrition" element={<PrivateRoute><Nutrition /></PrivateRoute>} />
-        <Route path="/athlete/sleep" element={<PrivateRoute><Sleep /></PrivateRoute>} />
-        <Route path="/athlete/notifications" element={<PrivateRoute><NotificationsPage /></PrivateRoute>} />
-        <Route path="/athlete/loop" element={<PrivateRoute><Loop /></PrivateRoute>} />
-        <Route path="/gamification" element={<PrivateRoute><GamificationTestPage /></PrivateRoute>} />
-        <Route path="/athlete/workout-creator" element={<PrivateRoute><WorkoutCreatorDemo /></PrivateRoute>} />
-        <Route path="/athlete/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
-        <Route path="/account" element={<PrivateRoute><Account /></PrivateRoute>} />
-        <Route path="/athlete/meets" element={<PrivateRoute><Meets /></PrivateRoute>} />
+        <Route path="/athlete/dashboard" element={<RoleProtectedRoute allowedRoles={['athlete']}><AthleteDashboard /></RoleProtectedRoute>} />
+        <Route path="/athlete/profile" element={<RoleProtectedRoute allowedRoles={['athlete']}><AthleteProfile /></RoleProtectedRoute>} />
+        <Route path="/athlete/workouts" element={<RoleProtectedRoute allowedRoles={['athlete']}><AthleteWorkouts /></RoleProtectedRoute>} />
+        <Route path="/athlete/workouts/edit/:id" element={<RoleProtectedRoute allowedRoles={['athlete']}><EditWorkout /></RoleProtectedRoute>} />
+        <Route path="/athlete/calendar" element={<RoleProtectedRoute allowedRoles={['athlete']}><AthleteCalendar /></RoleProtectedRoute>} />
+        <Route path="/athlete/stats" element={<RoleProtectedRoute allowedRoles={['athlete']}><NotFound /></RoleProtectedRoute>} />
+        <Route path="/athlete/nutrition" element={<RoleProtectedRoute allowedRoles={['athlete']}><Nutrition /></RoleProtectedRoute>} />
+        <Route path="/athlete/sleep" element={<RoleProtectedRoute allowedRoles={['athlete']}><Sleep /></RoleProtectedRoute>} />
+        <Route path="/athlete/notifications" element={<RoleProtectedRoute allowedRoles={['athlete']}><NotificationsPage /></RoleProtectedRoute>} />
+        <Route path="/athlete/loop" element={<RoleProtectedRoute allowedRoles={['athlete']}><Loop /></RoleProtectedRoute>} />
+        <Route path="/gamification" element={<RoleProtectedRoute allowedRoles={['athlete']}><GamificationTestPage /></RoleProtectedRoute>} />
+        <Route path="/athlete/workout-creator" element={<RoleProtectedRoute allowedRoles={['athlete']}><WorkoutCreatorDemo /></RoleProtectedRoute>} />
+        <Route path="/athlete/analytics" element={<RoleProtectedRoute allowedRoles={['athlete']}><Analytics /></RoleProtectedRoute>} />
+        <Route path="/account" element={<RoleProtectedRoute allowedRoles={['athlete']}><Account /></RoleProtectedRoute>} />
+        <Route path="/athlete/meets" element={<RoleProtectedRoute allowedRoles={['athlete']}><Meets /></RoleProtectedRoute>} />
       </Route>
 
       {/* Loop Feature Routes (Accessible to both coaches and athletes) */}
