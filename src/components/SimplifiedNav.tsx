@@ -18,10 +18,9 @@ import {
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfileDisplay } from '../hooks/useProfileDisplay';
-import { LuBellRing, LuMessageCircleMore } from 'react-icons/lu';
+import { LuBellRing, LuMessageSquare, LuMenu } from 'react-icons/lu';
 import { useFeedback } from './FeedbackProvider';
 import { ShareComponent } from './ShareComponent';
-import { HamburgerIcon } from '@chakra-ui/icons';
 import { useScrollDirection } from '../hooks/useScrollDirection';
 
 interface SimplifiedNavProps {
@@ -88,12 +87,18 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
     };
   }, []);
   
-  // Icon styles
+  // Icon styles - standardized for all 3 icons
   const iconStyle = {
     color: useColorModeValue('gray.600', 'gray.400'),
     _hover: {
       color: 'blue.500',
-    }
+    },
+    // Ensure consistent sizing and remove any borders
+    width: '32px',
+    height: '32px',
+    borderRadius: 'md',
+    _focus: { boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' },
+    _active: { boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' },
   };
   
   // Badge styles
@@ -102,10 +107,16 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
     top: '-2px',
     right: '-2px',
     fontSize: 'xs',
-    size: 'sm',
     colorScheme: 'red',
+    variant: 'solid',
+    minWidth: '18px',
+    height: '18px',
     borderRadius: 'full',
-    variant: 'solid'
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: 'bold',
+    lineHeight: '1'
   };
   
   // Get notifications from localStorage
@@ -159,23 +170,18 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
         {/* Left side - App title & role badge (removed) */}
         <Box />
         {/* Right side - action icons and user menu (no avatar for portals) */}
-        <Flex align="center" gap={4}>
+        <Flex align="center" gap={3}>
           {/* Feedback Button */}
           <Tooltip label="Give Feedback" hasArrow>
             <IconButton
               aria-label="Give Feedback"
               variant="ghost"
               size="sm"
-              sx={{
-                ...iconStyle,
-                _focus: { boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' },
-                _active: { boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' },
-                _hover: { ...iconStyle._hover, boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' },
-              }}
+              sx={iconStyle}
               onClick={showFeedbackModal}
               onFocus={e => e.preventDefault()}
             >
-              <LuMessageCircleMore size="20px" />
+              <LuMessageSquare size="18px" />
             </IconButton>
           </Tooltip>
           {/* Share Button */}
@@ -184,11 +190,31 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
             description={shareDescription} 
             iconStyle={{
               ...iconStyle,
-              _focus: { boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' },
-              _active: { boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' },
-              _hover: { ...iconStyle._hover, boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' },
+              variant: 'ghost',
+              size: 'sm'
             }} 
           />
+          {/* Notifications Button */}
+          <Box position="relative">
+            <Tooltip label="Notifications" hasArrow>
+              <IconButton
+                aria-label="Notifications"
+                variant="ghost"
+                size="sm"
+                sx={iconStyle}
+                onClick={handleViewNotifications}
+                onFocus={e => e.preventDefault()}
+              >
+                <LuBellRing size="18px" />
+              </IconButton>
+            </Tooltip>
+            {/* Notification Badge */}
+            {notificationCount > 0 && (
+              <Badge {...badgeProps}>
+                {notificationCount}
+              </Badge>
+            )}
+          </Box>
           {/* Only show avatar on public pages */}
           {isPublicPage && (
             <Avatar
@@ -204,19 +230,13 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
           {!isPublicPage && (
             <Menu>
               <MenuButton
-                as={Button}
-                rounded="full"
-                variant="unstyled"
-                cursor="pointer"
-                minW={0}
-                border="none"
-                borderWidth="0px"
-                _focus={{ boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' }}
-                _hover={{ boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' }}
-                _active={{ boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' }}
-              >
-                <HamburgerIcon boxSize={6} color="gray.600" />
-              </MenuButton>
+                as={IconButton}
+                aria-label="Open Menu"
+                variant="ghost"
+                size="sm"
+                sx={iconStyle}
+                icon={<LuMenu size="18px" />}
+              />
               <MenuList zIndex={9999}>
                 <MenuItem as={RouterLink} 
                   to={displayProfile?.role === 'coach' ? '/coach/profile' : displayProfile?.role === 'athlete' ? '/athlete/profile' : '/profile'}

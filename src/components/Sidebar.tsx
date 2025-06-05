@@ -47,7 +47,7 @@ import { MdLoop, MdRestaurantMenu, MdOutlineBedtime, MdOutlineReport, MdOutlineF
 import { LuUsers, LuCalendarClock, LuClipboardList, LuBell } from 'react-icons/lu';
 import { IoFitnessOutline } from 'react-icons/io5';
 import { HamburgerIcon } from '@chakra-ui/icons';
-import { LuHouse, LuMessageCircleMore, LuBellRing, LuShare } from 'react-icons/lu';
+import { LuHouse, LuMessageSquare, LuBellRing, LuShare, LuMenu } from 'react-icons/lu';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfileDisplay } from '../hooks/useProfileDisplay';
 import { ThemeToggle } from './ThemeToggle';
@@ -278,7 +278,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
     return (
       <IconButton
         aria-label="Open Menu"
-        icon={<HamburgerIcon boxSize={6} />}
+        icon={<LuMenu size="24px" />}
         position="fixed"
         top={isHeaderVisible ? 4 : "-48px"}
         left={4}
@@ -462,7 +462,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
                   
                   <VStack spacing={1} align="stretch">
                     <Button
-                      leftIcon={<Icon as={LuMessageCircleMore} />}
+                      leftIcon={<Icon as={LuMessageSquare} />}
                       variant="ghost"
                       justifyContent="flex-start"
                       p={4}

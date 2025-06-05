@@ -177,12 +177,12 @@ export function ShareComponent({
           <IconButton
             aria-label="Share App"
             variant="ghost"
-            size="md"
+            size="sm"
             sx={finalIconStyle}
             onClick={onOpen}
             onFocus={e => e.preventDefault()}
           >
-            <LuShare size="24px" />
+            <LuShare size="18px" />
           </IconButton>
         </Tooltip>
       </Box>

@@ -14,15 +14,15 @@ import {
   HStack,
   Button,
   Progress,
-  VStack
+  VStack,
+  Badge
 } from '@chakra-ui/react';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfileDisplay } from '../hooks/useProfileDisplay';
-import { LuMessageCircleMore } from 'react-icons/lu';
+import { LuMessageSquare, LuMenu, LuBellRing } from 'react-icons/lu';
 import { useFeedback } from './FeedbackProvider';
 import { ShareComponent } from './ShareComponent';
-import { HamburgerIcon } from '@chakra-ui/icons';
 import { useScrollDirection } from '../hooks/useScrollDirection';
 
 interface WorkoutCreatorNavigationProps {
@@ -59,6 +59,32 @@ const WorkoutCreatorNavigation: React.FC<WorkoutCreatorNavigationProps> = ({
   const menuItemHoverBg = useColorModeValue('blue.50', 'blue.700');
   const menuItemHoverColor = useColorModeValue('blue.500', 'blue.300');
 
+  // State for notifications
+  const [notificationCount, setNotificationCount] = useState(0);
+  
+  // Get notifications from localStorage based on user role
+  useEffect(() => {
+    const storageKey = displayProfile?.role === 'coach' ? 'coachNotificationCount' : 'athleteNotificationCount';
+    const storedCount = localStorage.getItem(storageKey);
+    if (storedCount) {
+      setNotificationCount(parseInt(storedCount, 10));
+    } else {
+      // Default notifications
+      const defaultCount = 3;
+      setNotificationCount(defaultCount);
+      localStorage.setItem(storageKey, defaultCount.toString());
+    }
+  }, [displayProfile?.role]);
+  
+  // Handle viewing notifications
+  const handleViewNotifications = () => {
+    const notificationsPath = displayProfile?.role === 'coach' ? '/coach/notifications' : '/athlete/notifications';
+    window.location.href = notificationsPath;
+    setNotificationCount(0);
+    const storageKey = displayProfile?.role === 'coach' ? 'coachNotificationCount' : 'athleteNotificationCount';
+    localStorage.setItem(storageKey, '0');
+  };
+
   // Calculate progress percentage
   const progressPercentage = (currentStep / totalSteps) * 100;
 
@@ -68,6 +94,25 @@ const WorkoutCreatorNavigation: React.FC<WorkoutCreatorNavigationProps> = ({
     _hover: {
       color: 'blue.500',
     }
+  };
+
+  // Notification badge props
+  const notificationBadgeProps = {
+    position: 'absolute' as const,
+    top: '-6px',
+    right: '-6px',
+    minWidth: '18px',
+    height: '18px',
+    borderRadius: 'full',
+    bg: 'red.500',
+    color: 'white',
+    fontSize: '10px',
+    fontWeight: 'bold',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '2px solid',
+    borderColor: useColorModeValue('white', 'gray.800'),
   };
 
   // Only render on workout creator routes
@@ -116,7 +161,7 @@ const WorkoutCreatorNavigation: React.FC<WorkoutCreatorNavigationProps> = ({
                 onClick={showFeedbackModal}
                 onFocus={e => e.preventDefault()}
               >
-                <LuMessageCircleMore size="20px" />
+                <LuMessageSquare size="18px" />
               </IconButton>
             </Tooltip>
             
@@ -132,6 +177,34 @@ const WorkoutCreatorNavigation: React.FC<WorkoutCreatorNavigationProps> = ({
               }} 
             />
             
+            {/* Notification Bell */}
+            <Box position="relative">
+              <Tooltip label="Notifications" hasArrow>
+                <IconButton
+                  aria-label="Notifications"
+                  variant="ghost"
+                  size="sm"
+                  sx={{
+                    ...iconStyle,
+                    _focus: { boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' },
+                    _active: { boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' },
+                    _hover: { ...iconStyle._hover, boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' },
+                  }}
+                  onClick={handleViewNotifications}
+                  onFocus={e => e.preventDefault()}
+                >
+                  <LuBellRing size="18px" />
+                </IconButton>
+              </Tooltip>
+              
+              {/* Notification Badge */}
+              {notificationCount > 0 && (
+                <Badge {...notificationBadgeProps}>
+                  {notificationCount}
+                </Badge>
+              )}
+            </Box>
+            
             {/* User Menu */}
             <Menu>
               <MenuButton
@@ -146,7 +219,7 @@ const WorkoutCreatorNavigation: React.FC<WorkoutCreatorNavigationProps> = ({
                 _hover={{ boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' }}
                 _active={{ boxShadow: 'none', outline: 'none', border: 'none', borderWidth: '0px' }}
               >
-                <HamburgerIcon boxSize={6} color="gray.600" />
+                <LuMenu size="18px" color="gray.600" />
               </MenuButton>
               <MenuList zIndex={9999}>
                 <MenuItem as={RouterLink} 

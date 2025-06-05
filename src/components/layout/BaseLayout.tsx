@@ -20,7 +20,7 @@ import { HamburgerIcon, CloseIcon } from '@chakra-ui/icons';
 import { Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useProfileDisplay } from '../../hooks/useProfileDisplay';
-import { LuShare, LuBellRing, LuHouse, LuMessageCircleMore } from 'react-icons/lu';
+import { LuShare, LuBellRing, LuHouse, LuMessageSquare } from 'react-icons/lu';
 import { useState, useEffect, ReactNode } from 'react';
 import { useFeedback } from '../FeedbackProvider';
 import { ShareComponent } from '../ShareComponent';
@@ -194,7 +194,7 @@ export function BaseLayout({
               {/* Feedback Button */}
               <Tooltip label="Give Feedback" hasArrow>
                 <IconButton
-                  icon={<LuMessageCircleMore size="24px" />}
+                  icon={<LuMessageSquare size="18px" />}
                   aria-label="Give Feedback"
                   variant="unstyled"
                   sx={utilityIconStyle}
@@ -272,7 +272,7 @@ export function BaseLayout({
                 
                 {/* Mobile Feedback Link */}
                 <Button
-                  leftIcon={<LuMessageCircleMore size="20px" />}
+                  leftIcon={<LuMessageSquare size="18px" />}
                   onClick={showFeedbackModal}
                   variant="unstyled"
                   sx={utilityIconStyle}
