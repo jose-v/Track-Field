@@ -13,9 +13,11 @@ export function useProfile() {
   const [loadingTimeout, setLoadingTimeout] = useState(false)
   const [timeoutFallback, setTimeoutFallback] = useState<any>(null)
 
-  // Create a comprehensive fallback profile creator
+  // Create a comprehensive fallback profile creator - only use when database is truly unavailable
   const createFallbackProfile = (reason: string) => {
     console.log(`🚨 Creating fallback profile - Reason: ${reason}`);
+    console.log('🔍 This should only happen when database is completely unavailable');
+    
     if (process.env.NODE_ENV === 'development') {
       console.log('🔍 Available auth user data:', {
         id: auth.user?.id,
@@ -26,12 +28,11 @@ export function useProfile() {
           provider: i.provider, 
           identity_data: i.identity_data 
         })),
-        // Check if there's actual name data in user object
         rawUserData: auth.user
       });
     }
 
-    // Enhanced name detection logic
+    // Enhanced name detection logic - try to get real names from auth data
     let firstName = 'User';
     let lastName = '';
 
@@ -41,19 +42,13 @@ export function useProfile() {
       const userMetadataName = auth.user.user_metadata?.name || auth.user.user_metadata?.full_name;
       const identityName = auth.user.identities?.[0]?.identity_data?.name || auth.user.identities?.[0]?.identity_data?.full_name;
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔍 Name detection sources:', {
-          sessionName,
-          userMetadataName,
-          identityName,
-          firstName: auth.user.user_metadata?.first_name,
-          lastName: auth.user.user_metadata?.last_name,
-          // Check the raw user object for any name fields
-          rawUserKeys: Object.keys(auth.user),
-          // Try to find name in user object directly
-          userObjectName: (auth.user as any)?.name || (auth.user as any)?.full_name
-        });
-      }
+      console.log('🔍 Name detection sources:', {
+        sessionName,
+        userMetadataName,
+        identityName,
+        firstName: auth.user.user_metadata?.first_name,
+        lastName: auth.user.user_metadata?.last_name,
+      });
       
       // Try multiple sources for first name with priority on actual names over metadata
       firstName = auth.user.user_metadata?.first_name || 
@@ -89,9 +84,6 @@ export function useProfile() {
             // Single word email like "john@domain.com"
             firstName = emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1).toLowerCase();
           }
-        } else {
-          // Use a more generic name for common email prefixes
-          firstName = 'Athlete';
         }
       }
 
@@ -115,8 +107,9 @@ export function useProfile() {
       id: auth.user?.id || '',
       email: auth.user?.email || '',
       role: 'athlete' as const,
-      first_name: auth.user?.email === 'hello@josev.co' ? 'Ataja' : (firstName === 'Athlete' ? 'Ataja' : firstName),
-      last_name: auth.user?.email === 'hello@josev.co' ? 'Stephane-Vazquez' : (lastName || (firstName === 'Athlete' ? 'Stephane-Vazquez' : '')),
+      // Use actual extracted names instead of hardcoded ones
+      first_name: firstName,
+      last_name: lastName,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       roleData: null
@@ -136,86 +129,84 @@ export function useProfile() {
       try {
         console.log(`useProfile: Fetching profile for user ${auth.user.id}`)
         
-        // Add a timeout to the API call itself
+        // Increase timeout for better reliability
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('API timeout after 5 seconds')), 5000);
+          setTimeout(() => reject(new Error('API timeout after 15 seconds')), 15000);
         });
         
         const apiPromise = api.profile.get();
         
         const profile = await Promise.race([apiPromise, timeoutPromise]);
         
-        // Auto-fix the name for the known user if it's set incorrectly
-        if (auth.user?.email === 'hello@josev.co' && profile && 
-            (profile.first_name === 'Athlete' || profile.first_name === 'User' || !profile.first_name)) {
-          console.log('🔧 Auto-fixing profile name for hello@josev.co user');
-          try {
-            const updatedProfile = await api.profile.update({
-              ...profile,
-              first_name: 'Ataja',
-              last_name: 'Stephane-Vazquez'
-            });
-            console.log('✅ Profile name updated successfully');
-            return updatedProfile;
-          } catch (updateError) {
-            console.error('❌ Failed to update profile name:', updateError);
-            // Return the original profile if update fails
-            return profile;
-          }
-        }
-        
+        console.log('✅ Successfully fetched profile from database:', profile);
         return profile;
         
       } catch (error: any) {
         console.error('useProfile: Profile fetch error:', error)
         
-        // ALWAYS use fallback in development mode during infrastructure issues
-        if (process.env.NODE_ENV === 'development') {
-          return createFallbackProfile(`Development mode - API error: ${error.message}`);
-        }
-        
-        // Handle timeout errors specifically
+        // Only use fallback for genuine database connectivity issues
         if (error.code === '57014' || 
             error.message?.includes('timeout') || 
             error.message?.includes('Query timeout') ||
             error.message?.includes('canceling statement due to statement timeout') ||
-            error.message?.includes('API timeout')) {
-          return createFallbackProfile(`Timeout error: ${error.message}`);
+            error.message?.includes('API timeout') ||
+            error.message?.includes('Failed to fetch') ||
+            error.message?.includes('NetworkError') ||
+            error.message?.includes('connection')) {
+          console.warn('🚨 Database connectivity issue detected, using fallback');
+          return createFallbackProfile(`Database connectivity error: ${error.message}`);
         }
         
         if (error.message === 'Profile not found' || error.status === 404) {
-          return createFallbackProfile('Profile not found - creating new');
+          console.warn('🚨 Profile not found in database, using fallback');
+          return createFallbackProfile('Profile not found - creating temporary profile');
         }
         
-        // For any other error, also use fallback in development
-        if (process.env.NODE_ENV === 'development') {
-          return createFallbackProfile(`Unexpected error: ${error.message}`);
-        }
-        
+        // For other errors, re-throw to trigger React Query error handling
         throw error
       }
     },
     enabled: !!auth.user && !auth.loading,
-    retry: false, // Disable retries to let fallback work immediately
+    retry: (failureCount, error: any) => {
+      // Retry network/timeout errors up to 2 times
+      if (failureCount < 2) {
+        if (error?.message?.includes('timeout') || 
+            error?.message?.includes('Failed to fetch') ||
+            error?.message?.includes('NetworkError')) {
+          console.log(`Retrying profile fetch (attempt ${failureCount + 1}/3)`);
+          return true;
+        }
+      }
+      return false;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   })
 
-  // Add a timeout-based fallback for when query gets stuck loading
+  // Increase timeout for loading state fallback
   useEffect(() => {
     if (auth.user && !auth.loading && profileQuery.isLoading && !profileQuery.data && !timeoutFallback) {
       const timer = setTimeout(() => {
-        console.warn('🚨 useProfile: Query stuck loading for 3 seconds, creating timeout fallback');
-        const fallback = createFallbackProfile('Query loading timeout');
+        console.warn('🚨 useProfile: Query stuck loading for 10 seconds, creating timeout fallback');
+        const fallback = createFallbackProfile('Query loading timeout after 10 seconds');
         setTimeoutFallback(fallback);
-      }, 3000); // Reduced from 5 to 3 seconds
+      }, 10000); // Increased from 3 to 10 seconds
       
       return () => clearTimeout(timer);
     }
   }, [auth.user, auth.loading, profileQuery.isLoading, profileQuery.data, timeoutFallback]);
 
   // Use timeout fallback if available, otherwise use query data
-  const effectiveProfile = timeoutFallback || profileQuery.data;
+  const effectiveProfile = profileQuery.data || timeoutFallback;
+
+  // Clear timeout fallback when real data is available
+  useEffect(() => {
+    if (profileQuery.data && timeoutFallback) {
+      console.log('🔄 Real profile data received, clearing timeout fallback');
+      setTimeoutFallback(null);
+    }
+  }, [profileQuery.data, timeoutFallback]);
 
   // Add timeout for loading states to prevent infinite loading
   useEffect(() => {
@@ -230,7 +221,7 @@ export function useProfile() {
       const timer = setTimeout(() => {
         console.warn('Profile loading taking too long, this may indicate an issue');
         setLoadingTimeout(true)
-      }, 10000); // 10 second timeout
+      }, 15000); // Increased from 10 to 15 seconds
       
       return () => clearTimeout(timer);
     } else {

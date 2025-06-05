@@ -16,11 +16,11 @@ import {
 } from '@chakra-ui/react';
 import { CalendarIcon, EmailIcon, AtSignIcon } from '@chakra-ui/icons';
 import { useAuth } from '../../contexts/AuthContext';
-import { useProfile } from '../../hooks/useProfile';
+import { useProfileDisplay } from '../../hooks/useProfileDisplay';
 
 const AccountDetails: React.FC = () => {
   const { user } = useAuth();
-  const { profile } = useProfile();
+  const { profile: displayProfile, displayName } = useProfileDisplay();
   const cardBg = useColorModeValue('white', 'gray.800');
   const textColor = useColorModeValue('gray.600', 'gray.300');
   const iconColor = useColorModeValue('blue.500', 'blue.300');
@@ -31,12 +31,9 @@ const AccountDetails: React.FC = () => {
     day: 'numeric'
   }) : 'Unknown';
 
-  const fullName = profile ? 
-    `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 
-    'User';
-
+  const fullName = displayName || 'User';
   const email = user?.email || '';
-  const role = profile?.role || 'user';
+  const role = displayProfile?.role || 'user';
 
   return (
     <Card bg={cardBg} shadow="sm">
@@ -50,7 +47,7 @@ const AccountDetails: React.FC = () => {
             <Avatar
               size="lg"
               name={fullName}
-              src={profile?.avatar_url}
+              src={displayProfile?.avatar_url}
               bg="blue.500"
             />
             <VStack align="start" spacing={1}>

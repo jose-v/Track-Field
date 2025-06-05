@@ -19,7 +19,6 @@ import {
 } from '@chakra-ui/react';
 import { FaPaperPlane, FaUser, FaTimes } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
-import { useProfile } from '../hooks/useProfile';
 import { SparkleIcon } from './SparkleIcon';
 
 interface AIModalProps {
@@ -29,7 +28,6 @@ interface AIModalProps {
 
 export const AIModal: React.FC<AIModalProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
-  const { profile } = useProfile();
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<Array<{ type: 'user' | 'ai'; content: string }>>([]);
 

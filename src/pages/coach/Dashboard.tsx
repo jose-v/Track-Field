@@ -26,6 +26,7 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useCoachAthletes } from '../../hooks/useCoachAthletes';
 import { useState, useEffect } from 'react';
 import { useProfile } from '../../hooks/useProfile';
+import { useProfileDisplay } from '../../hooks/useProfileDisplay';
 import { useQueryClient } from '@tanstack/react-query';
 import { WeatherCard, TrackMeetsCard, AlertsNotificationsCard, TodaysFocusCard } from '../../components';
 import { useQuery } from '@tanstack/react-query';
@@ -215,7 +216,8 @@ function useCoachAthleteEvents() {
 export function CoachDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { profile, isLoading: profileLoading } = useProfile(); // Get the profile
+  const { profile, isLoading: profileLoading } = useProfile(); // Keep for weather widget and other full data needs
+  const { displayName } = useProfileDisplay(); // Add lightweight hook for welcome message
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const cardShadow = useColorModeValue('none', 'base');
@@ -335,6 +337,15 @@ export function CoachDashboard() {
     }
   };
 
+  // Extract last name from display name for welcome message
+  const getLastNameFromDisplayName = (fullName: string): string => {
+    if (!fullName) return '';
+    const parts = fullName.trim().split(' ');
+    return parts.length > 1 ? parts[parts.length - 1] : '';
+  };
+
+  const welcomeName = displayName ? getLastNameFromDisplayName(displayName) : (profile?.last_name || '');
+
   return (
     <Box py={8}>
       {/* Header Section */}
@@ -342,7 +353,7 @@ export function CoachDashboard() {
         <Box flex={1}>
           <Heading mb={2}>Coach Dashboard</Heading>
           <Text color={subtitleColor} mb={4}>
-            Welcome back, Coach {profile?.last_name || ''}! Here's your mission control.
+            Welcome back, Coach {welcomeName}! Here's your mission control.
           </Text>
           
           {/* Quick Actions integrated into header */}

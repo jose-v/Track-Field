@@ -32,6 +32,7 @@ import {
   ExerciseExecutionModal,
   MonthlyPlanAssignments
 } from '../components'
+import { ProfileDebugger } from '../components/ProfileDebugger'
 import { supabase } from '../lib/supabase'
 import TodayWorkoutsCard from '../components/TodayWorkoutsCard'
 import usePageClass from '../hooks/usePageClass'

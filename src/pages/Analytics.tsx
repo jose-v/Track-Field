@@ -41,7 +41,7 @@ import {
   FaExclamationTriangle
 } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
-import { useProfile } from '../hooks/useProfile';
+import { useProfileDisplay } from '../hooks/useProfileDisplay';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { CoachAnalyticsDashboard } from '../components/analytics/CoachAnalyticsDashboard';
 import { MobileHeader } from '../components';
@@ -61,7 +61,7 @@ import { TeamOverviewCard } from '../components/analytics/TeamOverviewCard';
 
 export function Analytics() {
   const { user } = useAuth();
-  const { profile } = useProfile();
+  const { profile: displayProfile } = useProfileDisplay();
   const [selectedTab, setSelectedTab] = useState(0);
 
   // All useColorModeValue calls moved to top level to fix Rules of Hooks violations
@@ -80,8 +80,8 @@ export function Analytics() {
   const footerHeadingColor = useColorModeValue('gray.700', 'gray.300');
   const footerTextColor = useColorModeValue('gray.600', 'gray.400');
 
-  const isCoach = profile?.role === 'coach';
-  const isAthlete = profile?.role === 'athlete';
+  const isCoach = displayProfile?.role === 'coach';
+  const isAthlete = displayProfile?.role === 'athlete';
 
   // If user is a coach, show the comprehensive coach analytics dashboard
   if (isCoach) {

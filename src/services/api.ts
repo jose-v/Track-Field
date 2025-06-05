@@ -660,8 +660,8 @@ export const api = {
 
   profile: {
     async get() {
-      const maxRetries = 2; // Reduced from 3 to 2
-      const retryDelay = 2000; // Increased from 1000 to 2000ms
+      const maxRetries = 3; // Increased from 2 to 3
+      const retryDelay = 1500; // Reduced delay for faster retries
       
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
@@ -673,9 +673,9 @@ export const api = {
 
           console.log(`Fetching profile for user: ${user.id} (attempt ${attempt}/${maxRetries})`)
 
-          // Add timeout to the query - increased timeout
+          // Increase timeout significantly to handle slow database responses
           const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Query timeout after 15 seconds - database performance issue')), 15000); // Increased from 10 to 15 seconds
+            setTimeout(() => reject(new Error('Query timeout after 30 seconds - database performance issue')), 30000); // Increased from 15 to 30 seconds
           });
 
           const queryPromise = supabase
@@ -687,13 +687,35 @@ export const api = {
           const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
           if (error) {
+            // Log detailed error information
+            console.error('Profile fetch error details:', {
+              code: error.code,
+              message: error.message,
+              details: error.details,
+              hint: error.hint,
+              attempt: attempt
+            });
+            
             // If it's a timeout error and we have retries left, try again
             if ((error.code === '57014' || error.message?.includes('timeout')) && attempt < maxRetries) {
-              console.warn(`Profile fetch timeout on attempt ${attempt}, retrying in ${retryDelay}ms...`);
+              console.warn(`Profile fetch timeout on attempt ${attempt}, retrying in ${retryDelay * attempt}ms...`);
               await new Promise(resolve => setTimeout(resolve, retryDelay * attempt));
               continue;
             }
-            console.error('Error fetching profile:', error)
+            
+            // For other database errors, also retry if we have attempts left
+            if (attempt < maxRetries && (
+              error.code?.startsWith('P') || // Postgres errors
+              error.message?.includes('connection') ||
+              error.message?.includes('network') ||
+              error.message?.includes('timeout')
+            )) {
+              console.warn(`Database error on attempt ${attempt}, retrying: ${error.message}`);
+              await new Promise(resolve => setTimeout(resolve, retryDelay * attempt));
+              continue;
+            }
+            
+            console.error('Final error after retries:', error)
             throw error
           }
           
@@ -702,17 +724,18 @@ export const api = {
             throw new Error('Profile not found')
           }
 
-          console.log('Found profile:', data)
+          console.log('✅ Successfully found profile in database:', data)
           
+          // Fetch role-specific data if profile has a role
           let roleData = null
-          if (data) {
+          if (data.role) {
+            console.log(`Fetching role-specific data for role: ${data.role}`)
+            
             switch (data.role) {
               case 'athlete': {
-                console.log('Fetching athlete data for:', user.id)
-                
                 try {
                   const athleteTimeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error('Athlete query timeout')), 5000);
+                    setTimeout(() => reject(new Error('Athlete query timeout')), 10000); // Increased timeout
                   });
 
                   const athleteQueryPromise = supabase
@@ -726,11 +749,11 @@ export const api = {
                     athleteTimeoutPromise
                   ]) as any;
                   
-                  if (athleteError && !athleteError.message?.includes('timeout')) {
-                    console.error('Error fetching athlete data:', athleteError)
-                  } else if (!athleteError) {
-                    console.log('Found athlete data:', athleteData)
-                    roleData = athleteData
+                  if (!athleteError && athleteData) {
+                    roleData = athleteData;
+                    console.log('✅ Found athlete role data:', athleteData);
+                  } else if (athleteError) {
+                    console.warn('Athlete data fetch warning:', athleteError.message);
                   }
                 } catch (athleteErr) {
                   console.warn('Athlete data fetch failed, continuing without roleData:', athleteErr);
@@ -740,7 +763,7 @@ export const api = {
               case 'coach': {
                 try {
                   const coachTimeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error('Coach query timeout')), 5000);
+                    setTimeout(() => reject(new Error('Coach query timeout')), 10000); // Increased timeout
                   });
 
                   const coachQueryPromise = supabase
@@ -754,7 +777,12 @@ export const api = {
                     coachTimeoutPromise
                   ]) as any;
                   
-                  if (!coachError) roleData = coachData
+                  if (!coachError && coachData) {
+                    roleData = coachData;
+                    console.log('✅ Found coach role data:', coachData);
+                  } else if (coachError) {
+                    console.warn('Coach data fetch warning:', coachError.message);
+                  }
                 } catch (coachErr) {
                   console.warn('Coach data fetch failed, continuing without roleData:', coachErr);
                 }
@@ -763,7 +791,7 @@ export const api = {
               case 'team_manager': {
                 try {
                   const managerTimeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error('Manager query timeout')), 5000);
+                    setTimeout(() => reject(new Error('Manager query timeout')), 10000); // Increased timeout
                   });
 
                   const managerQueryPromise = supabase
@@ -777,7 +805,12 @@ export const api = {
                     managerTimeoutPromise
                   ]) as any;
                   
-                  if (!managerError) roleData = managerData
+                  if (!managerError && managerData) {
+                    roleData = managerData;
+                    console.log('✅ Found team manager role data:', managerData);
+                  } else if (managerError) {
+                    console.warn('Team manager data fetch warning:', managerError.message);
+                  }
                 } catch (managerErr) {
                   console.warn('Manager data fetch failed, continuing without roleData:', managerErr);
                 }
@@ -786,16 +819,27 @@ export const api = {
             }
           }
 
-          // Return updated profile data directly without making another DB call
-          console.log('Returning updated profile with role data');
-          return { ...data, roleData }
+          // Return the complete profile with role data
+          const completeProfile = { ...data, roleData };
+          console.log('✅ Returning complete profile:', completeProfile);
+          return completeProfile;
           
         } catch (err: any) {
-          console.error(`Profile fetch attempt ${attempt} failed:`, err);
+          console.error(`Profile fetch attempt ${attempt} failed:`, {
+            error: err.message,
+            code: err.code,
+            stack: err.stack
+          });
           
-          // If it's a timeout and we have retries left, continue
-          if ((err.code === '57014' || err.message?.includes('timeout')) && attempt < maxRetries) {
-            console.warn(`Retrying profile fetch in ${retryDelay * attempt}ms...`);
+          // If it's a timeout or network error and we have retries left, continue
+          if (attempt < maxRetries && (
+            err.code === '57014' || 
+            err.message?.includes('timeout') ||
+            err.message?.includes('Failed to fetch') ||
+            err.message?.includes('NetworkError') ||
+            err.message?.includes('connection')
+          )) {
+            console.warn(`Retrying profile fetch in ${retryDelay * attempt}ms... (attempt ${attempt + 1}/${maxRetries})`);
             await new Promise(resolve => setTimeout(resolve, retryDelay * attempt));
             continue;
           }
@@ -807,6 +851,36 @@ export const api = {
       
       // This should never be reached, but just in case
       throw new Error('Profile fetch failed after all retry attempts');
+    },
+
+    // Add lightweight version for quick profile display (sidebar, avatars, etc.)
+    async getLightweight() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('No user found')
+
+      console.log('🚀 Fast profile fetch: Getting essential fields only')
+      const start = performance.now()
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, first_name, last_name, avatar_url, role')
+        .eq('id', user.id)
+        .single()
+
+      const duration = performance.now() - start
+      console.log(`🚀 Fast profile fetch completed in ${duration.toFixed(2)}ms`)
+
+      if (error) {
+        console.error('Fast profile fetch error:', error)
+        throw error
+      }
+      
+      if (!data) {
+        throw new Error('Profile not found')
+      }
+
+      console.log('✅ Fast profile data:', data)
+      return data
     },
 
     async update(profile: Partial<Profile>) {

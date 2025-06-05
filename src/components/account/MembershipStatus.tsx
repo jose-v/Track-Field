@@ -19,10 +19,8 @@ import {
   StatHelpText,
 } from '@chakra-ui/react';
 import { CheckCircleIcon, TimeIcon, WarningIcon } from '@chakra-ui/icons';
-import { useProfile } from '../../hooks/useProfile';
 
 const MembershipStatus: React.FC = () => {
-  const { profile } = useProfile();
   const cardBg = useColorModeValue('white', 'gray.800');
   const textColor = useColorModeValue('gray.600', 'gray.300');
   const iconColor = useColorModeValue('green.500', 'green.300');

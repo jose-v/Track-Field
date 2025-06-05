@@ -19,7 +19,7 @@ import {
 import { HamburgerIcon, CloseIcon } from '@chakra-ui/icons';
 import { Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { useProfile } from '../../hooks/useProfile';
+import { useProfileDisplay } from '../../hooks/useProfileDisplay';
 import { LuShare, LuBellRing, LuHouse, LuMessageCircleMore } from 'react-icons/lu';
 import { useState, useEffect, ReactNode } from 'react';
 import { useFeedback } from '../FeedbackProvider';
@@ -102,7 +102,7 @@ export function BaseLayout({
 }: BaseLayoutProps) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { user, signOut } = useAuth();
-  const { profile } = useProfile();
+  const { profile: displayProfile, displayName, initials } = useProfileDisplay();
   const { showFeedbackModal } = useFeedback();
   
   // Background colors
@@ -133,13 +133,11 @@ export function BaseLayout({
     localStorage.setItem(storageKey, '0');
   };
   
-  // Get full name for avatar or fallback to email if profile not loaded yet
-  const fullName = profile ? 
-    `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 
-    (user?.email || '');
+  // Get full name for avatar or fallback to email if profile not loaded yet - now using lightweight profile data
+  const fullName = displayProfile ? displayName : (user?.email || '');
   
-  // Avatar URL from profile
-  const avatarUrl = profile?.avatar_url;
+  // Avatar URL from lightweight profile
+  const avatarUrl = displayProfile?.avatar_url;
 
   return (
     <Box bg={pageBgColor}> 

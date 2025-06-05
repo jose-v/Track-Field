@@ -49,7 +49,7 @@ import { IoFitnessOutline } from 'react-icons/io5';
 import { HamburgerIcon } from '@chakra-ui/icons';
 import { LuHouse, LuMessageCircleMore, LuBellRing, LuShare } from 'react-icons/lu';
 import { useAuth } from '../contexts/AuthContext';
-import { useProfile } from '../hooks/useProfile';
+import { useProfileDisplay } from '../hooks/useProfileDisplay';
 import { ThemeToggle } from './ThemeToggle';
 import { useFeedback } from './FeedbackProvider';
 import { useScrollDirection } from '../hooks/useScrollDirection';
@@ -199,7 +199,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
   
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const { profile } = useProfile();
+  const { profile, displayName, initials } = useProfileDisplay();
   const { showFeedbackModal } = useFeedback();
   
   // Get coach navigation configuration
@@ -266,14 +266,10 @@ const Sidebar = ({ userType }: SidebarProps) => {
 
   const navItems = getNavItems();
   
-  // Get user display info
-  const userInitials = profile?.first_name && profile?.last_name 
-    ? `${profile.first_name[0]}${profile.last_name[0]}`.toUpperCase()
-    : user?.email?.[0]?.toUpperCase() || 'U';
+  // Use the optimized display helpers from the hook
+  const userInitials = initials;
   const roleName = userType === 'athlete' ? 'Athlete' : 'Coach';
-  const fullName = profile?.first_name && profile?.last_name 
-    ? `${profile.first_name} ${profile.last_name}`
-    : user?.email || 'User';
+  const fullName = displayName;
 
   // Mobile hamburger trigger (visible on mobile, hidden on desktop)
   const MobileHamburgerTrigger = () => {
@@ -371,7 +367,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
                     bg="blue.500" 
                     color="white"
                     name={userInitials}
-                    src={profile?.avatar_url}
+                    src={profile.avatar_url}
                   />
                   <VStack align="start" spacing={0} flex="1">
                     <Text fontWeight="semibold" fontSize="md" color={useColorModeValue('gray.800', 'white')}>
@@ -569,7 +565,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
             bg="blue.500" 
             color="white"
             name={userInitials}
-            src={profile?.avatar_url}
+            src={profile.avatar_url}
             mb={isCollapsed ? 0 : 2}
           />
           

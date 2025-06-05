@@ -9,11 +9,11 @@ import {
 import { Link as RouterLink } from 'react-router-dom';
 import { FaChevronRight, FaTrophy, FaChartLine } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
-import { useProfile } from '../../hooks/useProfile';
+import { useProfileDisplay } from '../../hooks/useProfileDisplay';
 
 const CTASection = () => {
   const { user } = useAuth();
-  const { profile } = useProfile();
+  const { profile: displayProfile } = useProfileDisplay();
 
   // Get contextual heading and buttons based on user role
   const getContent = () => {
@@ -45,7 +45,7 @@ const CTASection = () => {
     }
 
     // For athletes
-    if (profile?.role === 'athlete') {
+    if (displayProfile?.role === 'athlete') {
       return {
         heading: "Ready to Push Your Limits Today?",
         text: "Continue your training journey and set new personal records.",
@@ -72,7 +72,7 @@ const CTASection = () => {
     }
 
     // For coaches
-    if (profile?.role === 'coach') {
+    if (displayProfile?.role === 'coach') {
       return {
         heading: "Ready to Take Your Team to the Next Level?",
         text: "Access advanced coaching tools and track your athletes' progress.",

@@ -16,6 +16,7 @@ import { useEffect, useState } from 'react';
 import { FaChevronRight, FaRunning, FaUsers, FaClipboardList, FaCalendarAlt, FaTrophy } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { useProfile } from '../../hooks/useProfile';
+import { useProfileDisplay } from '../../hooks/useProfileDisplay';
 import { supabase } from '../../lib/supabase';
 import { format } from 'date-fns';
 
@@ -33,7 +34,8 @@ const HeroSection = () => {
   ];
   const [wordIndex, setWordIndex] = useState(0);
   const { user } = useAuth();
-  const { profile, isLoading: profileLoading } = useProfile();
+  const { profile } = useProfile(); // Keep this for role checking in stats
+  const { displayName } = useProfileDisplay(); // Use this for display
   
   // State for contextual statistics
   const [upcomingMeets, setUpcomingMeets] = useState<any[]>([]);
@@ -555,7 +557,7 @@ const HeroSection = () => {
               lineHeight="1.8"
             >
               {user 
-                ? `Welcome back${profile?.first_name ? `, ${profile.first_name}` : ''}! Continue your journey to athletic excellence.`
+                ? `Welcome back${displayName !== 'User' ? `, ${displayName.split(' ')[0]}` : ''}! Continue your journey to athletic excellence.`
                 : 'Join the ultimate platform for track and field athletes. Track your progress, connect with coaches, and transform your training into championship performance.'}
             </Text>
             <Stack 

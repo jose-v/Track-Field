@@ -21,7 +21,7 @@ import {
 import { HamburgerIcon, CloseIcon } from '@chakra-ui/icons'
 import { Link as RouterLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { useProfile } from '../hooks/useProfile'
+import { useProfileDisplay } from '../hooks/useProfileDisplay'
 import { FaBell, FaHome, FaCommentDots, FaExpand, FaDownload, FaCompress, FaTachometerAlt } from 'react-icons/fa'
 import { useState, useEffect } from 'react'
 import { useFeedback } from './FeedbackProvider'
@@ -40,7 +40,7 @@ import {
 const Navigation = () => {
   const { isOpen, onToggle } = useDisclosure()
   const { user, signOut } = useAuth()
-  const { profile, isLoading: profileLoading } = useProfile()
+  const { profile: displayProfile, displayName, initials, isLoading: profileLoading } = useProfileDisplay()
   const location = useLocation()
   const { showFeedbackModal } = useFeedback()
   const { isHeaderVisible } = useScrollDirection(15)
@@ -80,9 +80,9 @@ const Navigation = () => {
   // Handle viewing notifications
   const handleViewNotifications = () => {
     // Navigate to notifications based on user role
-    if (profile?.role === 'coach') {
+    if (displayProfile?.role === 'coach') {
       window.location.href = '/coach/notifications'
-    } else if (profile?.role === 'athlete') {
+    } else if (displayProfile?.role === 'athlete') {
       window.location.href = '/athlete/notifications'
     } else {
       window.location.href = '/meets'
@@ -107,18 +107,14 @@ const Navigation = () => {
     return `${parts[0][0] || ''}${parts[parts.length-1][0] || ''}`.toUpperCase();
   };
   
-  // Get user initials for avatar
-  const userInitials = profile && profile.first_name ? 
-    getInitials(`${profile.first_name} ${profile.last_name || ''}`) : 
-    user?.email ? getInitials(user.email) : 'U';
+  // Get user initials for avatar - now using lightweight profile display data
+  const userInitials = displayProfile ? initials : (user?.email ? getInitials(user.email) : 'U');
 
   // Get full name for avatar or fallback to email if profile not loaded yet
-  const fullName = profile ? 
-    `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 
-    (user?.email?.split('@')[0] || 'User')
+  const fullName = displayProfile ? displayName : (user?.email?.split('@')[0] || 'User')
   
-  // Avatar URL from profile
-  const avatarUrl = profile?.avatar_url
+  // Avatar URL from lightweight profile
+  const avatarUrl = displayProfile?.avatar_url
   
   const navItems = [
     { label: 'Home', path: '/' },
@@ -242,7 +238,7 @@ const Navigation = () => {
                     <MenuItem as={RouterLink} to="/" color={menuTextColor} _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}>Home</MenuItem>
                     <MenuItem as={RouterLink} to="/dashboard" color={menuTextColor} _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}>Dashboard</MenuItem>
                     <MenuItem as={RouterLink} 
-                      to={profile?.role === 'coach' ? '/coach/profile' : profile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
+                      to={displayProfile?.role === 'coach' ? '/coach/profile' : displayProfile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
                       color={menuTextColor}
                       _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
                     >
@@ -388,7 +384,7 @@ const Navigation = () => {
                     <MenuItem as={RouterLink} to="/" color={menuTextColor} _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}>Home</MenuItem>
                     <MenuItem as={RouterLink} to="/dashboard" color={menuTextColor} _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}>Dashboard</MenuItem>
                     <MenuItem as={RouterLink} 
-                      to={profile?.role === 'coach' ? '/coach/profile' : profile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
+                      to={displayProfile?.role === 'coach' ? '/coach/profile' : displayProfile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
                       color={menuTextColor}
                       _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
                     >
@@ -456,7 +452,7 @@ const Navigation = () => {
                     size="sm"
                     onClick={onToggle}
                     as={RouterLink} 
-                    to={profile?.role === 'coach' ? '/coach/profile' : profile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
+                    to={displayProfile?.role === 'coach' ? '/coach/profile' : displayProfile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
                     w="100%"
                     justifyContent="flex-start"
                   >
@@ -542,7 +538,7 @@ const Navigation = () => {
                   size="sm"
                   onClick={onToggle}
                   as={RouterLink} 
-                  to={profile?.role === 'coach' ? '/coach/profile' : profile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
+                  to={displayProfile?.role === 'coach' ? '/coach/profile' : displayProfile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
                   w="100%"
                   justifyContent="flex-start"
                 >

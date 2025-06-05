@@ -18,7 +18,7 @@ import {
 } from '@chakra-ui/react';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useProfile } from '../hooks/useProfile';
+import { useProfileDisplay } from '../hooks/useProfileDisplay';
 import { LuMessageCircleMore } from 'react-icons/lu';
 import { useFeedback } from './FeedbackProvider';
 import { ShareComponent } from './ShareComponent';
@@ -48,7 +48,7 @@ const WorkoutCreatorNavigation: React.FC<WorkoutCreatorNavigationProps> = ({
 }) => {
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const { profile } = useProfile();
+  const { profile: displayProfile } = useProfileDisplay();
   const { showFeedbackModal } = useFeedback();
   const { isHeaderVisible } = useScrollDirection(15);
 
@@ -150,7 +150,7 @@ const WorkoutCreatorNavigation: React.FC<WorkoutCreatorNavigationProps> = ({
               </MenuButton>
               <MenuList zIndex={9999}>
                 <MenuItem as={RouterLink} 
-                  to={profile?.role === 'coach' ? '/coach/profile' : profile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
+                  to={displayProfile?.role === 'coach' ? '/coach/profile' : displayProfile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
                   color={menuTextColor}
                   _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
                   _focus={{ bg: menuItemHoverBg, color: menuItemHoverColor }}

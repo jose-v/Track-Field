@@ -17,7 +17,7 @@ import {
 } from '@chakra-ui/react';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useProfile } from '../hooks/useProfile';
+import { useProfileDisplay } from '../hooks/useProfileDisplay';
 import { LuBellRing, LuMessageCircleMore } from 'react-icons/lu';
 import { useFeedback } from './FeedbackProvider';
 import { ShareComponent } from './ShareComponent';
@@ -50,7 +50,7 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
 }) => {
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const { profile } = useProfile();
+  const { profile: displayProfile, displayName, initials } = useProfileDisplay();
   const { showFeedbackModal } = useFeedback();
   const { isHeaderVisible } = useScrollDirection(15);
 
@@ -130,11 +130,9 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
     localStorage.setItem(storageKey, '0');
   };
   
-  // Avatar details
-  const avatarUrl = profile?.avatar_url;
-  const fullName = profile ? 
-    `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 
-    (user?.email || '');
+  // Avatar details - now using lightweight profile data
+  const avatarUrl = displayProfile?.avatar_url;
+  const fullName = displayProfile ? displayName : (user?.email || '');
 
   // Return null after all hooks are called
   if (isWorkoutCreatorRoute) {
@@ -221,7 +219,7 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
               </MenuButton>
               <MenuList zIndex={9999}>
                 <MenuItem as={RouterLink} 
-                  to={profile?.role === 'coach' ? '/coach/profile' : profile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
+                  to={displayProfile?.role === 'coach' ? '/coach/profile' : displayProfile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
                   color={menuTextColor}
                   _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
                   _focus={{ bg: menuItemHoverBg, color: menuItemHoverColor }}

@@ -1,7 +1,6 @@
 import { Box } from '@chakra-ui/react';
 import { TrainingCalendar } from '../../components/Calendar';
 import { useAuth } from '../../contexts/AuthContext';
-import { useProfile } from '../../hooks/useProfile';
 
 /**
  * Athlete Calendar Page
@@ -9,7 +8,6 @@ import { useProfile } from '../../hooks/useProfile';
  */
 export function Calendar() {
   const { user } = useAuth();
-  const { profile } = useProfile();
   
   return (
     <Box>
