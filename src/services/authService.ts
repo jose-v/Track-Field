@@ -302,13 +302,20 @@ export async function handleOAuthUserProfile(user: any, role?: UserRole): Promis
     
     // If profile doesn't exist, create it
     if (!existingProfile) {
+      // Check if we're in a signup context (no role provided means we're in signup flow)
+      const isSignupContext = !role;
+      
       const profileData: Partial<Profile> = {
         id: userId,
         email: email,
         first_name: firstName,
         last_name: lastName,
-        role: role || 'athlete', // Default to athlete if no role specified
       };
+      
+      // Only set role if we're not in signup context
+      if (!isSignupContext) {
+        profileData.role = role || 'athlete';
+      }
 
       const { error: profileError } = await supabase
         .from('profiles')
@@ -319,18 +326,20 @@ export async function handleOAuthUserProfile(user: any, role?: UserRole): Promis
         throw profileError;
       }
 
-      // Create role-specific entry based on the role
-      const userRole = role || 'athlete';
-      switch (userRole) {
-        case 'athlete':
-          await createAthleteProfile(userId);
-          break;
-        case 'coach':
-          await createCoachProfile(userId);
-          break;
-        case 'team_manager':
-          await createTeamManagerProfile(userId);
-          break;
+      // Only create role-specific entry if we're not in signup context
+      if (!isSignupContext) {
+        const userRole = role || 'athlete';
+        switch (userRole) {
+          case 'athlete':
+            await createAthleteProfile(userId);
+            break;
+          case 'coach':
+            await createCoachProfile(userId);
+            break;
+          case 'team_manager':
+            await createTeamManagerProfile(userId);
+            break;
+        }
       }
     }
 
@@ -401,5 +410,93 @@ export async function checkEmailExists(email: string) {
   } catch (error) {
     console.error('Email check error:', error);
     return { emailExists: false, error };
+  }
+}
+
+/**
+ * Update Google OAuth user profile with role and personal information
+ */
+export async function updateOAuthUserProfile(user: any, profileData: {
+  role: UserRole;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+}): Promise<{ error: any }> {
+  try {
+    const userId = user.id;
+    
+    // Update the base profile
+    const updateData: Partial<Profile> = {
+      role: profileData.role,
+    };
+    
+    if (profileData.firstName) {
+      updateData.first_name = profileData.firstName;
+    }
+    
+    if (profileData.lastName) {
+      updateData.last_name = profileData.lastName;
+    }
+    
+    if (profileData.phone) {
+      updateData.phone = profileData.phone;
+    }
+    
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update(updateData)
+      .eq('id', userId);
+
+    if (profileError) {
+      console.error('Profile update error:', profileError);
+      throw profileError;
+    }
+
+    // Create role-specific entry if it doesn't exist
+    switch (profileData.role) {
+      case 'athlete':
+        // Check if athlete profile exists
+        const { data: athleteExists } = await supabase
+          .from('athletes')
+          .select('id')
+          .eq('id', userId)
+          .single();
+        
+        if (!athleteExists) {
+          await createAthleteProfile(userId);
+        }
+        break;
+        
+      case 'coach':
+        // Check if coach profile exists
+        const { data: coachExists } = await supabase
+          .from('coaches')
+          .select('id')
+          .eq('id', userId)
+          .single();
+        
+        if (!coachExists) {
+          await createCoachProfile(userId);
+        }
+        break;
+        
+      case 'team_manager':
+        // Check if team manager profile exists
+        const { data: tmExists } = await supabase
+          .from('team_managers')
+          .select('id')
+          .eq('id', userId)
+          .single();
+        
+        if (!tmExists) {
+          await createTeamManagerProfile(userId);
+        }
+        break;
+    }
+
+    return { error: null };
+  } catch (error) {
+    console.error('OAuth profile update error:', error);
+    return { error };
   }
 } 

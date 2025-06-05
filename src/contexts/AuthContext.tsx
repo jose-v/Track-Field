@@ -9,7 +9,7 @@ interface AuthContextType {
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
   signUp: (email: string, password: string) => Promise<void>
-  signInWithGoogle: () => Promise<void>
+  signInWithGoogle: (redirectTo?: string) => Promise<void>
   signOut: () => Promise<void>
   refreshSession: () => Promise<boolean>
 }
@@ -122,8 +122,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           if (hasOAuthIdentity) {
             console.log('OAuth user detected, ensuring profile exists');
+            
+            // Check if we're in a signup context by looking for role in localStorage
+            let selectedRole: any = null;
+            try {
+              const signupDataStr = localStorage.getItem('signup-data');
+              if (signupDataStr) {
+                const signupData = JSON.parse(signupDataStr);
+                selectedRole = signupData.role;
+              }
+            } catch (error) {
+              console.log('No signup context found');
+            }
+            
+            // Only pass role if we have one from signup context
+            // If no role, handleOAuthUserProfile will know we're in signup flow
+            const roleToPass = selectedRole || undefined;
+            
             // Don't block the auth flow if profile creation fails
-            handleOAuthUserProfile(newSession.user).catch(error => {
+            handleOAuthUserProfile(newSession.user, roleToPass).catch(error => {
               console.error('Failed to create OAuth user profile:', error);
             });
           }
@@ -327,7 +344,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (redirectTo?: string) => {
     try {
       // Clear any existing authentication data first
       await supabase.auth.signOut();
@@ -340,14 +357,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Wait a moment for cleanup
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Get the current origin for the redirect URL
-      const redirectTo = `${window.location.origin}/dashboard`;
+      // Determine redirect URL based on context
+      let finalRedirectTo: string;
+      
+      if (redirectTo) {
+        finalRedirectTo = redirectTo;
+      } else {
+        // Check if we're in a signup context by looking at the current URL
+        const currentPath = window.location.pathname;
+        if (currentPath === '/signup' || currentPath.includes('signup')) {
+          // For signup context, redirect to a special signup completion page
+          finalRedirectTo = `${window.location.origin}/signup?oauth_return=true`;
+        } else {
+          // For login context, redirect to dashboard
+          finalRedirectTo = `${window.location.origin}/dashboard`;
+        }
+      }
       
       // Sign in with Google OAuth
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: redirectTo,
+          redirectTo: finalRedirectTo,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
