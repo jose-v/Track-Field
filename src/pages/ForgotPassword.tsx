@@ -78,12 +78,91 @@ export function ForgotPassword() {
   if (emailSent) {
     return (
       <Box
-        minH="100vh"
+        bg={useColorModeValue('gray.50', 'gray.900')}
+      >
+        <Box
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          minHeight={{ 
+            base: "calc(100vh - 140px)", // Mobile: smaller header/footer
+            md: "calc(100vh - 160px)",   // Tablet: medium spacing
+            lg: "calc(100vh - 356px)"    // Desktop: larger footer space
+          }}
+          py={{ base: 4, md: 6, lg: 8 }}
+          px={4}
+        >
+          <Card
+            maxW="md"
+            w="full"
+            bg={cardBg}
+            borderColor={borderColor}
+            borderWidth={1}
+          >
+            <CardBody p={8}>
+              <VStack spacing={6} align="stretch">
+                <VStack spacing={2} textAlign="center">
+                  <Heading size="lg" color={headingColor}>
+                    Check Your Email
+                  </Heading>
+                  <Text color={textColor}>
+                    We've sent password reset instructions to:
+                  </Text>
+                  <Text fontWeight="semibold" color={headingColor}>
+                    {email}
+                  </Text>
+                </VStack>
+                
+                <Alert status="info" borderRadius="md">
+                  <AlertIcon />
+                  <Text fontSize="sm">
+                    If you don't see the email in a few minutes, check your spam folder.
+                  </Text>
+                </Alert>
+                
+                <VStack spacing={3}>
+                  <Button
+                    as={RouterLink}
+                    to="/login"
+                    variant="outline"
+                    width="full"
+                    size="lg"
+                  >
+                    Back to Login
+                  </Button>
+                  
+                  <Button
+                    onClick={() => setEmailSent(false)}
+                    variant="ghost"
+                    size="sm"
+                    color={textColor}
+                  >
+                    Use different email
+                  </Button>
+                </VStack>
+              </VStack>
+            </CardBody>
+          </Card>
+        </Box>
+      </Box>
+    );
+  }
+  
+  return (
+    <Box
+      bg={useColorModeValue('gray.50', 'gray.900')}
+    >
+      <Box
         display="flex"
         alignItems="center"
         justifyContent="center"
-        bg={useColorModeValue('gray.50', 'gray.900')}
-        p={4}
+        minHeight={{ 
+          base: "calc(100vh - 140px)", // Mobile: smaller header/footer
+          md: "calc(100vh - 160px)",   // Tablet: medium spacing
+          lg: "calc(100vh - 356px)"    // Desktop: larger footer space
+        }}
+        py={{ base: 4, md: 6, lg: 8 }}
+        px={4}
       >
         <Card
           maxW="md"
@@ -96,122 +175,59 @@ export function ForgotPassword() {
             <VStack spacing={6} align="stretch">
               <VStack spacing={2} textAlign="center">
                 <Heading size="lg" color={headingColor}>
-                  Check Your Email
+                  Reset Your Password
                 </Heading>
                 <Text color={textColor}>
-                  We've sent password reset instructions to:
-                </Text>
-                <Text fontWeight="semibold" color={headingColor}>
-                  {email}
+                  Enter your email address and we'll send you a link to reset your password.
                 </Text>
               </VStack>
               
-              <Alert status="info" borderRadius="md">
-                <AlertIcon />
-                <Text fontSize="sm">
-                  If you don't see the email in a few minutes, check your spam folder.
-                </Text>
-              </Alert>
+              <form onSubmit={handleSubmit}>
+                <VStack spacing={4}>
+                  <FormControl isRequired>
+                    <FormLabel>Email Address</FormLabel>
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Enter your email"
+                      size="lg"
+                      bg={useColorModeValue('white', 'gray.700')}
+                    />
+                  </FormControl>
+                  
+                  <Button
+                    type="submit"
+                    colorScheme="blue"
+                    size="lg"
+                    width="full"
+                    isLoading={loading}
+                    loadingText="Sending..."
+                  >
+                    Send Reset Link
+                  </Button>
+                </VStack>
+              </form>
               
-              <VStack spacing={3}>
-                <Button
-                  as={RouterLink}
-                  to="/login"
-                  variant="outline"
-                  width="full"
-                  size="lg"
-                >
-                  Back to Login
-                </Button>
+              <VStack spacing={3} pt={4}>
+                <Text fontSize="sm" color={textColor}>
+                  Remember your password?{' '}
+                  <Link as={RouterLink} to="/login" color="blue.500" fontWeight="medium">
+                    Sign in
+                  </Link>
+                </Text>
                 
-                <Button
-                  onClick={() => setEmailSent(false)}
-                  variant="ghost"
-                  size="sm"
-                  color={textColor}
-                >
-                  Use different email
-                </Button>
+                <Text fontSize="sm" color={textColor}>
+                  Don't have an account?{' '}
+                  <Link as={RouterLink} to="/signup" color="blue.500" fontWeight="medium">
+                    Sign up
+                  </Link>
+                </Text>
               </VStack>
             </VStack>
           </CardBody>
         </Card>
       </Box>
-    );
-  }
-  
-  return (
-    <Box
-      minH="100vh"
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-      bg={useColorModeValue('gray.50', 'gray.900')}
-      p={4}
-    >
-      <Card
-        maxW="md"
-        w="full"
-        bg={cardBg}
-        borderColor={borderColor}
-        borderWidth={1}
-      >
-        <CardBody p={8}>
-          <VStack spacing={6} align="stretch">
-            <VStack spacing={2} textAlign="center">
-              <Heading size="lg" color={headingColor}>
-                Reset Your Password
-              </Heading>
-              <Text color={textColor}>
-                Enter your email address and we'll send you a link to reset your password.
-              </Text>
-            </VStack>
-            
-            <form onSubmit={handleSubmit}>
-              <VStack spacing={4}>
-                <FormControl isRequired>
-                  <FormLabel>Email Address</FormLabel>
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email"
-                    size="lg"
-                    bg={useColorModeValue('white', 'gray.700')}
-                  />
-                </FormControl>
-                
-                <Button
-                  type="submit"
-                  colorScheme="blue"
-                  size="lg"
-                  width="full"
-                  isLoading={loading}
-                  loadingText="Sending..."
-                >
-                  Send Reset Link
-                </Button>
-              </VStack>
-            </form>
-            
-            <VStack spacing={3} pt={4}>
-              <Text fontSize="sm" color={textColor}>
-                Remember your password?{' '}
-                <Link as={RouterLink} to="/login" color="blue.500" fontWeight="medium">
-                  Sign in
-                </Link>
-              </Text>
-              
-              <Text fontSize="sm" color={textColor}>
-                Don't have an account?{' '}
-                <Link as={RouterLink} to="/signup" color="blue.500" fontWeight="medium">
-                  Sign up
-                </Link>
-              </Text>
-            </VStack>
-          </VStack>
-        </CardBody>
-      </Card>
     </Box>
   );
 } 

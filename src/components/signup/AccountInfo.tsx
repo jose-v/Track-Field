@@ -14,10 +14,15 @@ import {
   useColorModeValue,
   Heading,
   Icon,
+  Spinner,
+  FormHelperText,
+  Link,
 } from '@chakra-ui/react';
-import { useState } from 'react';
-import { FaCheckCircle } from 'react-icons/fa';
+import { useState, useEffect, useCallback } from 'react';
+import { FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { Link as RouterLink } from 'react-router-dom';
 import { useSignup } from '../../contexts/SignupContext';
+import { checkEmailExists } from '../../services/authService';
 
 export function AccountInfo() {
   const { signupData, updateSignupData } = useSignup();
@@ -28,6 +33,12 @@ export function AccountInfo() {
     confirmPassword: '',
   });
   const [confirmPassword, setConfirmPassword] = useState('');
+  
+  // Email checking states
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [emailExists, setEmailExists] = useState(false);
+  const [emailCheckCompleted, setEmailCheckCompleted] = useState(false);
+  const [emailCheckTimeout, setEmailCheckTimeout] = useState<NodeJS.Timeout | null>(null);
   
   // Password strength states
   const [passwordStrength, setPasswordStrength] = useState(0);
@@ -42,6 +53,52 @@ export function AccountInfo() {
   const placeholderColor = useColorModeValue('gray.500', 'gray.400');
   const headingColor = useColorModeValue('gray.800', 'gray.100');
   const descriptionColor = useColorModeValue('gray.600', 'gray.300');
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (emailCheckTimeout) {
+        clearTimeout(emailCheckTimeout);
+      }
+    };
+  }, [emailCheckTimeout]);
+
+  // Debounced email existence check
+  const checkEmailExistence = useCallback(async (email: string) => {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return;
+    }
+    
+    setCheckingEmail(true);
+    
+    try {
+      const { emailExists: exists, error } = await checkEmailExists(email);
+      
+      if (error) {
+        console.error('Email check error:', error);
+        return;
+      }
+      
+      setEmailExists(exists);
+      
+      if (exists) {
+        setErrors((prev) => ({ 
+          ...prev, 
+          email: 'This email is already registered.' 
+        }));
+        updateSignupData({ emailValid: false });
+      } else {
+        setErrors((prev) => ({ ...prev, email: '' }));
+        updateSignupData({ emailValid: true });
+      }
+      
+      setEmailCheckCompleted(true);
+    } catch (error) {
+      console.error('Email existence check failed:', error);
+    } finally {
+      setCheckingEmail(false);
+    }
+  }, []);
 
   // If user chose Google OAuth, show confirmation instead of form
   if (signupData.signupMethod === 'google') {
@@ -68,16 +125,40 @@ export function AccountInfo() {
   // Toggle password visibility
   const handleTogglePassword = () => setShowPassword(!showPassword);
   
-  // Update email in context
+  // Update email in context with debounced checking
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const email = e.target.value;
     updateSignupData({ email });
     
+    // Clear previous timeout
+    if (emailCheckTimeout) {
+      clearTimeout(emailCheckTimeout);
+    }
+    
+    // Reset states
+    setEmailExists(false);
+    setCheckingEmail(false);
+    setEmailCheckCompleted(false);
+    
     // Simple email validation
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setErrors((prev) => ({ ...prev, email: 'Please enter a valid email address' }));
+      updateSignupData({ emailValid: false });
+      return;
     } else {
       setErrors((prev) => ({ ...prev, email: '' }));
+      // Don't set emailValid to true here - wait for existence check
+      if (!email) {
+        updateSignupData({ emailValid: false });
+      }
+    }
+    
+    // Debounce email existence check (wait 800ms after user stops typing)
+    if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      const timeout = setTimeout(() => {
+        checkEmailExistence(email);
+      }, 800);
+      setEmailCheckTimeout(timeout);
     }
   };
   
@@ -173,21 +254,60 @@ export function AccountInfo() {
       </VStack>
       
       <VStack spacing={6} align="stretch" width="100%">
-        <FormControl isRequired isInvalid={!!errors.email}>
+        <FormControl isRequired isInvalid={!!errors.email || emailExists}>
           <FormLabel color={labelColor}>Email</FormLabel>
-          <Input
-            type="email"
-            value={signupData.email}
-            onChange={handleEmailChange}
-            placeholder="Enter your email address"
-            bg={inputBg}
-            borderColor={inputBorderColor}
-            color={textColor}
-            _placeholder={{ color: placeholderColor }}
-            _hover={{ borderColor: 'blue.300' }}
-            _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px blue.500' }}
-          />
+          <InputGroup>
+            <Input
+              type="email"
+              value={signupData.email}
+              onChange={handleEmailChange}
+              placeholder="Enter your email address"
+              bg={inputBg}
+              borderColor={inputBorderColor}
+              color={textColor}
+              _placeholder={{ color: placeholderColor }}
+              _hover={{ borderColor: 'blue.300' }}
+              _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px blue.500' }}
+            />
+            <InputRightElement>
+              {checkingEmail ? (
+                <Spinner size="sm" color="blue.500" />
+              ) : signupData.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupData.email) && !errors.email ? (
+                emailExists ? (
+                  <Icon as={FaTimesCircle} color="red.500" />
+                ) : (
+                  <Icon as={FaCheckCircle} color="green.500" />
+                )
+              ) : null}
+            </InputRightElement>
+          </InputGroup>
           <FormErrorMessage>{errors.email}</FormErrorMessage>
+          {signupData.email && 
+           /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupData.email) && 
+           !errors.email && 
+           !emailExists && 
+           !checkingEmail && 
+           emailCheckCompleted && (
+            <FormHelperText color="green.500">
+              <Icon as={FaCheckCircle} mr={1} />
+              Email is available
+            </FormHelperText>
+          )}
+          {emailExists && !checkingEmail && (
+            <Box mt={2} p={3} bg={useColorModeValue('gray.300', 'gray.600')} borderRadius="md" borderWidth="1px" borderColor={useColorModeValue('gray.400', 'gray.500')}>
+              <Text fontSize="sm" color={useColorModeValue('white', 'white')} mb={2}>
+                Already have an account? Choose an option below:
+              </Text>
+              <HStack spacing={4}>
+                <Link as={RouterLink} to="/login" color={useColorModeValue('black', 'black')} fontWeight="medium" fontSize="sm">
+                  Sign In
+                </Link>
+                <Link as={RouterLink} to="/forgot-password" color={useColorModeValue('black', 'black')} fontWeight="medium" fontSize="sm">
+                  Reset Password
+                </Link>
+              </HStack>
+            </Box>
+          )}
         </FormControl>
         
         <FormControl isRequired isInvalid={!!errors.password}>
