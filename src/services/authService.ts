@@ -160,6 +160,27 @@ export async function signIn(email: string, password: string) {
 }
 
 /**
+ * Sign in with magic link
+ */
+export async function signInWithMagicLink(email: string) {
+  try {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+      }
+    });
+    
+    if (error) throw error;
+    
+    return { error: null };
+  } catch (error) {
+    console.error('Magic link sign-in error:', error);
+    return { error };
+  }
+}
+
+/**
  * Sign out the current user
  */
 export async function signOut() {

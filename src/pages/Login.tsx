@@ -24,12 +24,16 @@ import {
   HStack
 } from '@chakra-ui/react'
 import { useAuth } from '../contexts/AuthContext'
-import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaGoogle } from 'react-icons/fa'
+import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaGoogle, FaMagic } from 'react-icons/fa'
+import { signInWithMagicLink } from '../services/authService'
 
 export function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [magicLinkEmail, setMagicLinkEmail] = useState('')
   const [loading, setLoading] = useState(false)
+  const [magicLinkLoading, setMagicLinkLoading] = useState(false)
+  const [magicLinkSent, setMagicLinkSent] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const { signIn, signInWithGoogle } = useAuth()
   const navigate = useNavigate()
@@ -84,6 +88,48 @@ export function Login() {
         isClosable: true,
       })
       setLoading(false)
+    }
+  }
+
+  const handleMagicLinkSubmit = async (e) => {
+    e.preventDefault()
+    if (!magicLinkEmail) {
+      toast({
+        title: 'Email Required',
+        description: 'Please enter your email address.',
+        status: 'warning',
+        duration: 5000,
+        isClosable: true,
+      })
+      return
+    }
+
+    setMagicLinkLoading(true)
+    try {
+      const { error } = await signInWithMagicLink(magicLinkEmail)
+      
+      if (error) {
+        throw error
+      }
+      
+      setMagicLinkSent(true)
+      toast({
+        title: 'Magic Link Sent!',
+        description: `Check your email (${magicLinkEmail}) for a sign-in link.`,
+        status: 'success',
+        duration: 8000,
+        isClosable: true,
+      })
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to send magic link. Please try again.',
+        status: 'error',
+        duration: 7000,
+        isClosable: true,
+      })
+    } finally {
+      setMagicLinkLoading(false)
     }
   }
 
@@ -244,16 +290,85 @@ export function Login() {
                 </VStack>
               </form>
 
-              {/* Divider */}
+              {/* Magic Link Section */}
               <Box px={4}>
                 <HStack>
                   <Divider />
                   <Text fontSize="sm" color={placeholderColor} whiteSpace="nowrap">
-                    or continue with
+                    or sign in with magic link
                   </Text>
                   <Divider />
                 </HStack>
               </Box>
+
+              {magicLinkSent ? (
+                <Box p={4} bg={useColorModeValue('green.50', 'green.900')} borderRadius="md" borderWidth="1px" borderColor={useColorModeValue('green.200', 'green.700')}>
+                  <VStack spacing={2}>
+                    <Icon as={FaMagic} color="green.500" boxSize={5} />
+                    <Text fontSize="sm" fontWeight="medium" color={useColorModeValue('green.800', 'green.200')}>
+                      Magic link sent!
+                    </Text>
+                    <Text fontSize="xs" color={useColorModeValue('green.700', 'green.300')} textAlign="center">
+                      Check your email ({magicLinkEmail}) and click the link to sign in
+                    </Text>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setMagicLinkSent(false)}
+                      color={useColorModeValue('green.700', 'green.300')}
+                    >
+                      Send another link
+                    </Button>
+                  </VStack>
+                </Box>
+              ) : (
+                <form onSubmit={handleMagicLinkSubmit}>
+                  <VStack spacing={3}>
+                    <FormControl>
+                      <Flex align="center">
+                        <Flex
+                          align="center"
+                          justify="center"
+                          h="40px"
+                          w="40px"
+                          bg={iconBg}
+                          borderRadius="md"
+                          mr={2}
+                          borderWidth={1}
+                          borderColor={borderColor}
+                        >
+                          <Icon as={FaMagic} color="purple.500" />
+                        </Flex>
+                        <Input
+                          type="email"
+                          value={magicLinkEmail}
+                          onChange={(e) => setMagicLinkEmail(e.target.value)}
+                          placeholder="Enter your email for magic link"
+                          bg={inputBg}
+                          borderColor={inputBorderColor}
+                          color={textColor}
+                          _placeholder={{ color: placeholderColor }}
+                          _hover={{ borderColor: 'purple.300' }}
+                          _focus={{ borderColor: 'purple.500', boxShadow: '0 0 0 1px purple.500' }}
+                          autoComplete="email"
+                          aria-label="Email for magic link"
+                        />
+                      </Flex>
+                    </FormControl>
+                    <Button
+                      type="submit"
+                      colorScheme="purple"
+                      width="full"
+                      isLoading={magicLinkLoading}
+                      loadingText="Sending..."
+                      leftIcon={<Icon as={FaMagic} />}
+                      size="lg"
+                    >
+                      Send Magic Link
+                    </Button>
+                  </VStack>
+                </form>
+              )}
 
               {/* Google Sign In Button */}
               <Button
