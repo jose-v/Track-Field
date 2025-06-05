@@ -12,8 +12,11 @@ import {
   Progress,
   HStack,
   useColorModeValue,
+  Heading,
+  Icon,
 } from '@chakra-ui/react';
 import { useState } from 'react';
+import { FaCheckCircle } from 'react-icons/fa';
 import { useSignup } from '../../contexts/SignupContext';
 
 export function AccountInfo() {
@@ -37,6 +40,30 @@ export function AccountInfo() {
   const inputBorderColor = useColorModeValue('gray.200', 'gray.600');
   const textColor = useColorModeValue('gray.700', 'gray.100');
   const placeholderColor = useColorModeValue('gray.500', 'gray.400');
+  const headingColor = useColorModeValue('gray.800', 'gray.100');
+  const descriptionColor = useColorModeValue('gray.600', 'gray.300');
+
+  // If user chose Google OAuth, show confirmation instead of form
+  if (signupData.signupMethod === 'google') {
+    return (
+      <Box width="100%">
+        <VStack spacing={6} align="center" textAlign="center">
+          <Icon as={FaCheckCircle} color="green.500" boxSize={12} />
+          <Box>
+            <Heading size="md" mb={2} color={headingColor}>
+              Authentication Method Set
+            </Heading>
+            <Text color={descriptionColor} fontSize="sm">
+              You'll sign in using your Google account. No additional account setup needed.
+            </Text>
+          </Box>
+          <Text fontSize="xs" color={descriptionColor} maxW="400px">
+            After completing your profile, you'll be able to sign in with your Google account.
+          </Text>
+        </VStack>
+      </Box>
+    );
+  }
   
   // Toggle password visibility
   const handleTogglePassword = () => setShowPassword(!showPassword);
@@ -134,6 +161,17 @@ export function AccountInfo() {
   
   return (
     <Box width="100%">
+      <VStack spacing={6} align="center" textAlign="center" mb={6}>
+        <Box>
+          <Heading size="md" mb={2} color={headingColor}>
+            Create Your Account
+          </Heading>
+          <Text color={descriptionColor} fontSize="sm">
+            Set up your email and password to secure your account
+          </Text>
+        </Box>
+      </VStack>
+      
       <VStack spacing={6} align="stretch" width="100%">
         <FormControl isRequired isInvalid={!!errors.email}>
           <FormLabel color={labelColor}>Email</FormLabel>

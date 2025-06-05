@@ -3,31 +3,25 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StepIndicator } from '../components/StepIndicator';
 import { SignupProvider, useSignup } from '../contexts/SignupContext';
+import { SignupMethodSelection } from '../components/signup/SignupMethodSelection';
 import { RoleSelection } from '../components/signup/RoleSelection';
 import { AccountInfo } from '../components/signup/AccountInfo';
 import { PersonalInfo } from '../components/signup/PersonalInfo';
-import { AthleteSelection } from '../components/signup/AthleteSelection';
 import { useAuth } from '../contexts/AuthContext';
 import { FaUserPlus } from 'react-icons/fa';
 import { signUp as signUpWithProfile } from '../services/authService';
 
-// Step labels for the progress indicator
-const getStepLabels = (totalSteps: number) => {
-  const baseLabels = [
-    'Choose Role',
-    'Account Information',
-    'Personal Information'
-  ];
-  
-  // Add the athlete selection step if there are 4 steps
-  return totalSteps === 4 
-    ? [...baseLabels, 'Select Athletes'] 
-    : baseLabels;
-};
+// Step labels for the new 4-step flow
+const stepLabels = [
+  'Signup Method',
+  'Choose Role', 
+  'Account Information',
+  'Personal Information'
+];
 
 // Wrapper component to access context
 function SignupContent() {
-  const { currentStep, setCurrentStep, totalSteps, signupData, updateSignupData } = useSignup();
+  const { currentStep, setCurrentStep, totalSteps, signupData, updateSignupData, resetSignupData } = useSignup();
   const { signUp } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
@@ -38,17 +32,6 @@ function SignupContent() {
   const headerBg = useColorModeValue('#ecc94b', 'blue.600');
   const headerTextColor = useColorModeValue('gray.800', 'white');
   const pageBg = useColorModeValue('gray.50', 'gray.900');
-  
-  // Get step labels based on total steps
-  const stepLabels = getStepLabels(totalSteps);
-  
-  // Update total steps when role changes
-  useEffect(() => {
-    // Adjust the current step if higher than total steps
-    if (currentStep > totalSteps) {
-      setCurrentStep(totalSteps);
-    }
-  }, [totalSteps, currentStep, setCurrentStep]);
   
   // Navigate to previous step
   const handlePrevStep = () => {
@@ -64,11 +47,32 @@ function SignupContent() {
     }
   };
   
-  // Handle final submission
+  // Handle final submission (only for email signup)
   const handleSubmit = async () => {
+    // Google OAuth users are already authenticated, so redirect them
+    if (signupData.signupMethod === 'google') {
+      toast({
+        title: 'Setup Complete!',
+        description: 'Your profile has been configured. You can now access your dashboard.',
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      });
+      navigate('/dashboard');
+      return;
+    }
+
+    // For email signup, create the account
     try {
-      // Register the user and create their profile
-      const { user, error } = await signUpWithProfile(signupData);
+      const { user, error } = await signUpWithProfile({
+        role: signupData.role!,
+        email: signupData.email,
+        password: signupData.password,
+        firstName: signupData.firstName,
+        lastName: signupData.lastName,
+        phone: signupData.phone,
+      });
+      
       if (error) {
         console.error('Signup failed with error:', error);
         throw error;
@@ -83,7 +87,8 @@ function SignupContent() {
         isClosable: true,
       });
       
-      // Navigate to login page
+      // Reset signup data and navigate to login page
+      resetSignupData();
       navigate('/login');
     } catch (error: any) {
       // Show more specific error message
@@ -98,17 +103,38 @@ function SignupContent() {
     }
   };
   
+  // Check if current step is valid to proceed
+  const canProceedToNext = () => {
+    switch (currentStep) {
+      case 1:
+        return signupData.signupMethod !== null;
+      case 2:
+        return signupData.role !== null;
+      case 3:
+        // For Google OAuth, always allow proceeding (they don't need to fill account info)
+        if (signupData.signupMethod === 'google') {
+          return true;
+        }
+        // For email signup, require email and password
+        return signupData.email && signupData.password;
+      case 4:
+        return signupData.firstName && signupData.lastName;
+      default:
+        return false;
+    }
+  };
+  
   // Render current step
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return <RoleSelection />;
+        return <SignupMethodSelection />;
       case 2:
-        return <AccountInfo />;
+        return <RoleSelection />;
       case 3:
-        return <PersonalInfo />;
+        return <AccountInfo />;
       case 4:
-        return <AthleteSelection />;
+        return <PersonalInfo />;
       default:
         return null;
     }
@@ -194,11 +220,9 @@ function SignupContent() {
                 <Button 
                   colorScheme="purple" 
                   onClick={handleNextStep}
-                  isDisabled={
-                    (currentStep === 1 && !signupData.role) || 
-                    (currentStep === 2 && (!signupData.email || !signupData.password))
-                  }
+                  isDisabled={!canProceedToNext()}
                   size={{ base: "md", md: "lg" }}
+                  visibility={currentStep === 1 ? 'hidden' : 'visible'}
                 >
                   Next
                 </Button>
@@ -206,9 +230,10 @@ function SignupContent() {
                 <Button 
                   colorScheme="purple" 
                   onClick={handleSubmit}
+                  isDisabled={!canProceedToNext()}
                   size={{ base: "md", md: "lg" }}
                 >
-                  Complete Signup
+                  {signupData.signupMethod === 'google' ? 'Complete Setup' : 'Create Account'}
                 </Button>
               )}
             </Flex>

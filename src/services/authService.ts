@@ -9,7 +9,8 @@ export interface SignupData {
   firstName: string;
   lastName: string;
   phone?: string;
-  selectedAthletes?: string[];
+  termsAccepted?: boolean;
+  termsAcceptedAt?: string;
 }
 
 /**
@@ -27,6 +28,8 @@ export async function signUp(data: SignupData): Promise<{ user: any; error: any 
           first_name: data.firstName,
           last_name: data.lastName,
           full_name: `${data.firstName} ${data.lastName}`,
+          terms_accepted: data.termsAccepted,
+          terms_accepted_at: data.termsAcceptedAt,
         }
       }
     });
@@ -36,7 +39,7 @@ export async function signUp(data: SignupData): Promise<{ user: any; error: any 
 
     const userId = authData.user.id;
 
-    // 2. Create the base profile
+    // 2. Create the base profile with terms acceptance data
     const profileData: Partial<Profile> = {
       id: userId,
       email: data.email,
@@ -62,15 +65,10 @@ export async function signUp(data: SignupData): Promise<{ user: any; error: any 
           await createAthleteProfile(userId);
           break;
         case 'coach':
-          // Only pass selectedAthletes if explicitly chosen by the coach
-          if (Array.isArray(data.selectedAthletes) && data.selectedAthletes.length > 0) {
-            await createCoachProfile(userId, data.selectedAthletes);
-          } else {
-            await createCoachProfile(userId);
-          }
+          await createCoachProfile(userId);
           break;
         case 'team_manager':
-          await createTeamManagerProfile(userId, data.selectedAthletes);
+          await createTeamManagerProfile(userId);
           break;
       }
 
@@ -113,10 +111,7 @@ async function createAthleteProfile(userId: string): Promise<void> {
 /**
  * Create a coach profile
  */
-async function createCoachProfile(
-  userId: string, 
-  selectedAthletes?: string[]
-): Promise<void> {
+async function createCoachProfile(userId: string): Promise<void> {
   // 1. Insert into coaches table
   const coachData: Partial<Coach> = {
     id: userId,
@@ -132,55 +127,12 @@ async function createCoachProfile(
     .insert([coachData]);
 
   if (error) throw error;
-
-  // 2. If coach has selected athletes, create relationships
-  if (selectedAthletes && selectedAthletes.length > 0) {
-    try {
-      // First verify athletes exist
-      const { data: existingAthletes, error: athletesError } = await supabase
-        .from('athletes')
-        .select('id')
-        .in('id', selectedAthletes);
-
-      if (athletesError || !existingAthletes || existingAthletes.length === 0) {
-        // Log the error but don't throw - this part is optional
-        console.warn('No valid athletes found or error:', athletesError);
-        return; // Exit early, since we have no valid athletes
-      }
-
-      // Only create relationships for existing athletes
-      const validAthleteIds = existingAthletes.map(a => a.id);
-      
-      if (validAthleteIds.length > 0) {
-        // Create coach-athlete relationships
-        const relationshipData = validAthleteIds.map(athleteId => ({
-          coach_id: userId,
-          athlete_id: athleteId,
-        }));
-
-        const { error: relationError } = await supabase
-          .from('coach_athletes')
-          .insert(relationshipData);
-
-        if (relationError) {
-          // Log the error but don't throw - this part is optional
-          console.warn('Error creating coach-athlete relationships:', relationError);
-        }
-      }
-    } catch (error) {
-      // Log the error but don't throw - athlete linking is optional
-      console.error('Error linking athletes to coach:', error);
-    }
-  }
 }
 
 /**
  * Create a team manager profile
  */
-async function createTeamManagerProfile(
-  userId: string,
-  selectedAthletes?: string[]
-): Promise<void> {
+async function createTeamManagerProfile(userId: string): Promise<void> {
   // 1. Insert into team_managers table
   const managerData: Partial<TeamManager> = {
     id: userId,
@@ -274,5 +226,131 @@ export async function getCurrentUserProfile() {
   } catch (error) {
     console.error('Error getting user profile:', error);
     throw error;
+  }
+}
+
+/**
+ * Handle Google OAuth user profile creation
+ */
+export async function handleOAuthUserProfile(user: any, role?: UserRole): Promise<{ error: any }> {
+  try {
+    const userId = user.id;
+    const email = user.email;
+    
+    // Extract name from user metadata or identities
+    let firstName = '';
+    let lastName = '';
+    let fullName = '';
+    
+    // Try to get name from user metadata first
+    if (user.user_metadata?.full_name) {
+      fullName = user.user_metadata.full_name;
+      const nameParts = fullName.split(' ');
+      firstName = nameParts[0] || '';
+      lastName = nameParts.slice(1).join(' ') || '';
+    } else if (user.user_metadata?.name) {
+      fullName = user.user_metadata.name;
+      const nameParts = fullName.split(' ');
+      firstName = nameParts[0] || '';
+      lastName = nameParts.slice(1).join(' ') || '';
+    }
+    
+    // If no name from metadata, try from identities (Google provider)
+    if (!firstName && user.identities && user.identities.length > 0) {
+      const googleIdentity = user.identities.find((identity: any) => identity.provider === 'google');
+      if (googleIdentity?.identity_data) {
+        firstName = googleIdentity.identity_data.given_name || '';
+        lastName = googleIdentity.identity_data.family_name || '';
+        fullName = googleIdentity.identity_data.full_name || `${firstName} ${lastName}`.trim();
+      }
+    }
+    
+    // Check if profile already exists
+    const { data: existingProfile, error: profileCheckError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (profileCheckError && profileCheckError.code !== 'PGRST116') {
+      // PGRST116 is "not found" error, which is expected for new users
+      console.error('Error checking existing profile:', profileCheckError);
+      throw profileCheckError;
+    }
+    
+    // If profile doesn't exist, create it
+    if (!existingProfile) {
+      const profileData: Partial<Profile> = {
+        id: userId,
+        email: email,
+        first_name: firstName,
+        last_name: lastName,
+        role: role || 'athlete', // Default to athlete if no role specified
+      };
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert([profileData]);
+
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        throw profileError;
+      }
+
+      // Create role-specific entry based on the role
+      const userRole = role || 'athlete';
+      switch (userRole) {
+        case 'athlete':
+          await createAthleteProfile(userId);
+          break;
+        case 'coach':
+          await createCoachProfile(userId);
+          break;
+        case 'team_manager':
+          await createTeamManagerProfile(userId);
+          break;
+      }
+    }
+
+    return { error: null };
+  } catch (error) {
+    console.error('OAuth profile handling error:', error);
+    return { error };
+  }
+}
+
+/**
+ * Send password reset email
+ */
+export async function sendPasswordResetEmail(email: string) {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/update-password`,
+    });
+    
+    if (error) throw error;
+    
+    return { error: null };
+  } catch (error) {
+    console.error('Password reset email error:', error);
+    return { error };
+  }
+}
+
+/**
+ * Update user password
+ */
+export async function updateUserPassword(newPassword: string) {
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+    
+    if (error) throw error;
+    
+    return { error: null };
+  } catch (error) {
+    console.error('Password update error:', error);
+    return { error };
   }
 } 

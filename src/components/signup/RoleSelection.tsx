@@ -4,7 +4,7 @@ import {
   Heading, 
   Text, 
   VStack,  
-  useColorModeValue 
+  useColorModeValue
 } from '@chakra-ui/react';
 import { FaRunning, FaChalkboardTeacher, FaUsers } from 'react-icons/fa';
 import { useSignup } from '../../contexts/SignupContext';
@@ -70,6 +70,7 @@ export function RoleSelection() {
   
   // Dark mode adaptive colors
   const headingColor = useColorModeValue('gray.800', 'gray.100');
+  const descriptionColor = useColorModeValue('gray.600', 'gray.300');
   
   const handleRoleSelection = (role: UserRole) => {
     updateSignupData({ role });
@@ -77,38 +78,45 @@ export function RoleSelection() {
   
   return (
     <Box width="100%">
-      <Heading size="md" mb={6} textAlign="center" color={headingColor}>
-        I am joining as a...
-      </Heading>
-      
-      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={{ base: 6, md: 4 }} width="100%">
-        <RoleCard
-          role="athlete"
-          title="Athlete"
-          description="Track your workouts, view your progress, and connect with your coaches."
-          iconElement={<FaRunning />}
-          isSelected={signupData.role === 'athlete'}
-          onClick={() => handleRoleSelection('athlete')}
-        />
+      <VStack spacing={6} align="center">
+        <Box textAlign="center">
+          <Heading size="md" mb={2} color={headingColor}>
+            What's your role?
+          </Heading>
+          <Text color={descriptionColor} fontSize="sm">
+            Select the role that best describes you
+          </Text>
+        </Box>
         
-        <RoleCard
-          role="coach"
-          title="Coach"
-          description="Create workouts, track athlete progress, and manage your team."
-          iconElement={<FaChalkboardTeacher />}
-          isSelected={signupData.role === 'coach'}
-          onClick={() => handleRoleSelection('coach')}
-        />
-        
-        <RoleCard
-          role="team_manager"
-          title="Team Manager"
-          description="Oversee multiple coaches and athletes, manage events and team logistics."
-          iconElement={<FaUsers />}
-          isSelected={signupData.role === 'team_manager'}
-          onClick={() => handleRoleSelection('team_manager')}
-        />
-      </SimpleGrid>
+        <SimpleGrid columns={{ base: 1, md: 3 }} spacing={{ base: 6, md: 4 }} width="100%">
+          <RoleCard
+            role="athlete"
+            title="Athlete"
+            description="Track your workouts, view your progress, and connect with your coaches."
+            iconElement={<FaRunning />}
+            isSelected={signupData.role === 'athlete'}
+            onClick={() => handleRoleSelection('athlete')}
+          />
+          
+          <RoleCard
+            role="coach"
+            title="Coach"
+            description="Create workouts, track athlete progress, and manage your team."
+            iconElement={<FaChalkboardTeacher />}
+            isSelected={signupData.role === 'coach'}
+            onClick={() => handleRoleSelection('coach')}
+          />
+          
+          <RoleCard
+            role="team_manager"
+            title="Team Manager"
+            description="Oversee multiple coaches and athletes, manage events and team logistics."
+            iconElement={<FaUsers />}
+            isSelected={signupData.role === 'team_manager'}
+            onClick={() => handleRoleSelection('team_manager')}
+          />
+        </SimpleGrid>
+      </VStack>
     </Box>
   );
 } 

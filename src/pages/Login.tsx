@@ -19,17 +19,19 @@ import {
   AlertDescription,
   InputGroup,
   InputRightElement,
-  IconButton
+  IconButton,
+  Divider,
+  HStack
 } from '@chakra-ui/react'
 import { useAuth } from '../contexts/AuthContext'
-import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa'
+import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaGoogle } from 'react-icons/fa'
 
 export function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const { signIn } = useAuth()
+  const { signIn, signInWithGoogle } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const toast = useToast()
@@ -63,6 +65,24 @@ export function Login() {
         isClosable: true,
       })
     } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true)
+    try {
+      await signInWithGoogle()
+      // Note: The user will be redirected to Google's OAuth flow
+      // and then back to the dashboard upon successful authentication
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to sign in with Google. Please try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
       setLoading(false)
     }
   }
@@ -198,6 +218,19 @@ export function Login() {
                     </Flex>
                   </FormControl>
 
+                  {/* Forgot Password Link */}
+                  <Box textAlign="right" width="full">
+                    <Button
+                      variant="link"
+                      size="sm"
+                      colorScheme="blue"
+                      onClick={() => navigate('/forgot-password')}
+                      fontSize="sm"
+                    >
+                      Forgot Password?
+                    </Button>
+                  </Box>
+
                   <Button
                     type="submit"
                     colorScheme="blue"
@@ -210,6 +243,31 @@ export function Login() {
                   </Button>
                 </VStack>
               </form>
+
+              {/* Divider */}
+              <Box px={4}>
+                <HStack>
+                  <Divider />
+                  <Text fontSize="sm" color={placeholderColor} whiteSpace="nowrap">
+                    or continue with
+                  </Text>
+                  <Divider />
+                </HStack>
+              </Box>
+
+              {/* Google Sign In Button */}
+              <Button
+                onClick={handleGoogleSignIn}
+                isLoading={loading}
+                variant="outline"
+                size="lg"
+                width="full"
+                leftIcon={<Icon as={FaGoogle} color="red.500" />}
+                _hover={{ bg: useColorModeValue('gray.50', 'gray.700') }}
+                borderColor={borderColor}
+              >
+                Sign in with Google
+              </Button>
 
               <Text textAlign="center" mt={4} color={linkTextColor}>
                 Don't have an account?{' '}

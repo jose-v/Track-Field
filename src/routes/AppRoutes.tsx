@@ -3,6 +3,8 @@ import Home from '../pages/Home';
 import HomeAlt from '../pages/HomeAlt';
 import { Login } from '../pages/Login';
 import { Signup } from '../pages/Signup';
+import { ForgotPassword } from '../pages/ForgotPassword';
+import { UpdatePassword } from '../pages/UpdatePassword';
 import { Pricing } from '../pages/Pricing';
 import { Features } from '../pages/Features';
 import { About } from '../pages/About';
@@ -17,6 +19,7 @@ import WorkoutCreatorDemo from '../pages/WorkoutCreatorDemo';
 import { Meets } from '../pages/Meets';
 import Events from '../pages/Events';
 import Account from '../pages/Account';
+import SpinnerTest from '../pages/SpinnerTest';
 
 // Coach pages
 import { CoachDashboard } from '../pages/coach/Dashboard';
@@ -83,6 +86,9 @@ export default function AppRoutes() {
         <Route path="meets" element={<Events />} />
         <Route path="login" element={<Login />} />
         <Route path="signup" element={<Signup />} />
+        <Route path="forgot-password" element={<ForgotPassword />} />
+        <Route path="update-password" element={<UpdatePassword />} />
+        <Route path="spinner-test" element={<SpinnerTest />} />
       </Route>
 
       {/* Coach Routes - With Feedback */}

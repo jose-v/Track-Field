@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { handleOAuthUserProfile } from '../services/authService'
 
 interface AuthContextType {
   user: User | null
@@ -8,6 +9,7 @@ interface AuthContextType {
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
   signUp: (email: string, password: string) => Promise<void>
+  signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
   refreshSession: () => Promise<boolean>
 }
@@ -86,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initializeAuth();
 
     // Listen for changes on auth state
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       console.log('Auth state changed:', _event);
       
       if (newSession) {
@@ -111,6 +113,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           rawMetadata: JSON.stringify(newSession.user.user_metadata),
           rawIdentities: JSON.stringify(newSession.user.identities)
         });
+        
+        // Handle OAuth profile creation for new users
+        if (_event === 'SIGNED_IN' && newSession.user.identities) {
+          const hasOAuthIdentity = newSession.user.identities.some(
+            (identity: any) => identity.provider === 'google'
+          );
+          
+          if (hasOAuthIdentity) {
+            console.log('OAuth user detected, ensuring profile exists');
+            // Don't block the auth flow if profile creation fails
+            handleOAuthUserProfile(newSession.user).catch(error => {
+              console.error('Failed to create OAuth user profile:', error);
+            });
+          }
+        }
+        
         setUser(newSession.user);
         setSession(newSession);
       } else {
@@ -309,8 +327,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const signInWithGoogle = async () => {
+    try {
+      // Clear any existing authentication data first
+      await supabase.auth.signOut();
+      
+      // Clear localStorage for Supabase
+      Object.keys(localStorage)
+        .filter(key => key.startsWith('sb-'))
+        .forEach(key => localStorage.removeItem(key));
+      
+      // Wait a moment for cleanup
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Get the current origin for the redirect URL
+      const redirectTo = `${window.location.origin}/dashboard`;
+      
+      // Sign in with Google OAuth
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectTo,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        }
+      });
+      
+      if (error) {
+        console.error('Google OAuth error:', error);
+        throw error;
+      }
+      
+      // Note: The actual auth state change will be handled by the onAuthStateChange listener
+      // when the user returns from Google's OAuth flow
+    } catch (e) {
+      console.error('Unexpected error during Google sign in:', e);
+      throw e;
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut, refreshSession }}>
+    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signInWithGoogle, signOut, refreshSession }}>
       {children}
     </AuthContext.Provider>
   )

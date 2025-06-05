@@ -1,0 +1,415 @@
+/* Olympic Loading Spinner Variations */
+
+/* === VARIATION 1: Sliding Rings === */
+.olympic-loader-sliding {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  position: relative;
+}
+
+.olympic-ring-sliding {
+  width: 32px; 
+  height: 32px;
+  border: 4px solid;
+  border-radius: 50%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  animation: olympic-slide 2s infinite;
+}
+
+.olympic-ring-sliding:nth-child(1) { 
+  border-color: #0081C8; 
+  animation-delay: 0s; 
+}
+
+.olympic-ring-sliding:nth-child(2) { 
+  border-color: #F4C300; 
+  animation-delay: 0.2s; 
+}
+
+.olympic-ring-sliding:nth-child(3) { 
+  border-color: #009F3D; 
+  animation-delay: 0.4s; 
+}
+
+.olympic-ring-sliding:nth-child(4) { 
+  border-color: #DF0024; 
+  animation-delay: 0.6s; 
+}
+
+.olympic-ring-sliding:nth-child(5) { 
+  border-color: #000000; 
+  animation-delay: 0.8s; 
+}
+
+@keyframes olympic-slide {
+  0% { 
+    transform: translate(-50%, -50%); 
+    opacity: 1;
+  }
+  20% { 
+    transform: translate(-50%, -50%); 
+    opacity: 1;
+  }
+  40% { 
+    transform: translate(-90px, -50%); 
+    opacity: 0.8;
+  }
+  60% { 
+    transform: translate(40px, -50%); 
+    opacity: 0.8;
+  }
+  80% { 
+    transform: translate(-50%, -50%); 
+    opacity: 1;
+  }
+  100% { 
+    transform: translate(-50%, -50%); 
+    opacity: 1;
+  }
+}
+
+/* === VARIATION 2: Olympic Logo Formation === */
+.olympic-loader-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  position: relative;
+  width: 200px;
+  margin: 0 auto;
+}
+
+.olympic-ring-logo {
+  width: 40px; 
+  height: 40px;
+  border: 5px solid;
+  border-radius: 50%;
+  position: absolute;
+  animation: olympic-form-logo 3s infinite;
+}
+
+/* Olympic Logo Positioning */
+.olympic-ring-logo:nth-child(1) { 
+  border-color: #0081C8; 
+  animation-delay: 0s;
+}
+
+.olympic-ring-logo:nth-child(2) { 
+  border-color: #F4C300; 
+  animation-delay: 0.3s;
+}
+
+.olympic-ring-logo:nth-child(3) { 
+  border-color: #000000; 
+  animation-delay: 0.6s;
+}
+
+.olympic-ring-logo:nth-child(4) { 
+  border-color: #009F3D; 
+  animation-delay: 0.9s;
+}
+
+.olympic-ring-logo:nth-child(5) { 
+  border-color: #DF0024; 
+  animation-delay: 1.2s;
+}
+
+@keyframes olympic-form-logo {
+  0% { 
+    left: 50%; 
+    top: 50%; 
+    transform: translate(-50%, -50%) scale(0.2);
+    opacity: 0;
+  }
+  20% { 
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  40%, 60% {
+    opacity: 1;
+  }
+  80% { 
+    opacity: 1;
+  }
+  100% { 
+    opacity: 1;
+  }
+}
+
+/* Final positions for Olympic logo */
+.olympic-ring-logo:nth-child(1) { /* Blue - top left */
+  animation-name: olympic-form-logo-blue;
+}
+
+.olympic-ring-logo:nth-child(2) { /* Yellow - top right */
+  animation-name: olympic-form-logo-yellow;
+}
+
+.olympic-ring-logo:nth-child(3) { /* Black - center */
+  animation-name: olympic-form-logo-black;
+}
+
+.olympic-ring-logo:nth-child(4) { /* Green - bottom left */
+  animation-name: olympic-form-logo-green;
+}
+
+.olympic-ring-logo:nth-child(5) { /* Red - bottom right */
+  animation-name: olympic-form-logo-red;
+}
+
+@keyframes olympic-form-logo-blue {
+  0% { left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+  20%, 100% { left: 20%; top: 25%; transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+@keyframes olympic-form-logo-yellow {
+  0% { left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+  20%, 100% { left: 80%; top: 25%; transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+@keyframes olympic-form-logo-black {
+  0% { left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+  20%, 100% { left: 50%; top: 40%; transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+@keyframes olympic-form-logo-green {
+  0% { left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+  20%, 100% { left: 35%; top: 65%; transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+@keyframes olympic-form-logo-red {
+  0% { left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+  20%, 100% { left: 65%; top: 65%; transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+/* === VARIATION 3: Rotating Rings === */
+.olympic-loader-rotation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  position: relative;
+}
+
+.olympic-ring-rotation {
+  width: 32px; 
+  height: 32px;
+  border: 4px solid;
+  border-radius: 50%;
+  position: absolute;
+  animation: olympic-rotate 2s infinite linear;
+}
+
+.olympic-ring-rotation:nth-child(1) { 
+  border-color: #0081C8; 
+  animation-delay: 0s; 
+}
+
+.olympic-ring-rotation:nth-child(2) { 
+  border-color: #F4C300; 
+  animation-delay: 0.4s; 
+}
+
+.olympic-ring-rotation:nth-child(3) { 
+  border-color: #009F3D; 
+  animation-delay: 0.8s; 
+}
+
+.olympic-ring-rotation:nth-child(4) { 
+  border-color: #DF0024; 
+  animation-delay: 1.2s; 
+}
+
+.olympic-ring-rotation:nth-child(5) { 
+  border-color: #000000; 
+  animation-delay: 1.6s; 
+}
+
+@keyframes olympic-rotate {
+  0% { 
+    transform: rotate(0deg) translateX(50px) rotate(0deg);
+  }
+  100% { 
+    transform: rotate(360deg) translateX(50px) rotate(-360deg);
+  }
+}
+
+/* === VARIATION 4: Pulsing Wave === */
+.olympic-loader-pulse {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  gap: 8px;
+}
+
+.olympic-ring-pulse {
+  width: 32px; 
+  height: 32px;
+  border: 4px solid;
+  border-radius: 50%;
+  animation: olympic-pulse 1.5s infinite;
+}
+
+.olympic-ring-pulse:nth-child(1) { 
+  border-color: #0081C8; 
+  animation-delay: 0s; 
+}
+
+.olympic-ring-pulse:nth-child(2) { 
+  border-color: #F4C300; 
+  animation-delay: 0.2s; 
+}
+
+.olympic-ring-pulse:nth-child(3) { 
+  border-color: #009F3D; 
+  animation-delay: 0.4s; 
+}
+
+.olympic-ring-pulse:nth-child(4) { 
+  border-color: #DF0024; 
+  animation-delay: 0.6s; 
+}
+
+.olympic-ring-pulse:nth-child(5) { 
+  border-color: #000000; 
+  animation-delay: 0.8s; 
+}
+
+@keyframes olympic-pulse {
+  0%, 100% { 
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% { 
+    transform: scale(1.3);
+    opacity: 0.7;
+  }
+}
+
+/* === VARIATION 5: Bounce (Original) === */
+.olympic-loader-bounce {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  gap: 8px;
+}
+
+.olympic-ring-bounce {
+  width: 32px; 
+  height: 32px;
+  border: 4px solid;
+  border-radius: 50%;
+  animation: olympic-bounce 1.4s infinite;
+}
+
+.olympic-ring-bounce:nth-child(1) { 
+  border-color: #0081C8; 
+  animation-delay: 0s; 
+}
+
+.olympic-ring-bounce:nth-child(2) { 
+  border-color: #F4C300; 
+  animation-delay: 0.2s; 
+}
+
+.olympic-ring-bounce:nth-child(3) { 
+  border-color: #009F3D; 
+  animation-delay: 0.4s; 
+}
+
+.olympic-ring-bounce:nth-child(4) { 
+  border-color: #DF0024; 
+  animation-delay: 0.6s; 
+}
+
+.olympic-ring-bounce:nth-child(5) { 
+  border-color: #000000; 
+  animation-delay: 0.8s; 
+}
+
+@keyframes olympic-bounce {
+  0%, 100% { 
+    transform: translateY(0); 
+  }
+  40% { 
+    transform: translateY(-14px); 
+  }
+  60% { 
+    transform: translateY(-7px); 
+  }
+}
+
+/* === VARIATION 6: Morphing Circle === */
+.olympic-loader-morph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  position: relative;
+}
+
+.olympic-ring-morph {
+  width: 32px; 
+  height: 32px;
+  border: 4px solid;
+  border-radius: 50%;
+  position: absolute;
+  animation: olympic-morph 2.5s infinite;
+}
+
+.olympic-ring-morph:nth-child(1) { 
+  border-color: #0081C8; 
+  animation-delay: 0s; 
+}
+
+.olympic-ring-morph:nth-child(2) { 
+  border-color: #F4C300; 
+  animation-delay: 0.5s; 
+}
+
+.olympic-ring-morph:nth-child(3) { 
+  border-color: #009F3D; 
+  animation-delay: 1s; 
+}
+
+.olympic-ring-morph:nth-child(4) { 
+  border-color: #DF0024; 
+  animation-delay: 1.5s; 
+}
+
+.olympic-ring-morph:nth-child(5) { 
+  border-color: #000000; 
+  animation-delay: 2s; 
+}
+
+@keyframes olympic-morph {
+  0% { 
+    transform: translate(-50%, -50%) scale(0) rotate(0deg);
+    left: 50%;
+    top: 50%;
+    opacity: 0;
+  }
+  25% { 
+    transform: translate(-50%, -50%) scale(1) rotate(90deg);
+    opacity: 1;
+  }
+  50% { 
+    transform: translate(-50%, -50%) scale(1.2) rotate(180deg);
+    opacity: 0.8;
+  }
+  75% { 
+    transform: translate(-50%, -50%) scale(1) rotate(270deg);
+    opacity: 1;
+  }
+  100% { 
+    transform: translate(-50%, -50%) scale(0) rotate(360deg);
+    opacity: 0;
+  }
+} 
