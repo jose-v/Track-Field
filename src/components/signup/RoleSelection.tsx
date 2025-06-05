@@ -21,9 +21,15 @@ interface RoleCardProps {
 }
 
 function RoleCard({ role, title, description, iconElement, isSelected, onClick }: RoleCardProps) {
-  const bgColor = useColorModeValue('white', 'gray.800');
+  const bgColor = useColorModeValue('white', 'gray.700');
   const selectedBorderColor = useColorModeValue('blue.500', 'blue.300');
-  const hoverBg = useColorModeValue('gray.50', 'gray.700');
+  const hoverBg = useColorModeValue('gray.50', 'gray.600');
+  const titleColor = useColorModeValue('gray.800', 'gray.100');
+  const descriptionColor = useColorModeValue('gray.600', 'gray.300');
+  const iconColor = useColorModeValue(
+    isSelected ? 'blue.500' : 'gray.500',
+    isSelected ? 'blue.300' : 'gray.400'
+  );
   
   return (
     <Box
@@ -43,11 +49,15 @@ function RoleCard({ role, title, description, iconElement, isSelected, onClick }
       justifyContent="center"
     >
       <VStack spacing={3} align="center">
-        <Box fontSize={{ base: "2rem", md: "2.5rem" }} color={isSelected ? selectedBorderColor : 'gray.500'}>
+        <Box fontSize={{ base: "2rem", md: "2.5rem" }} color={iconColor}>
           {iconElement}
         </Box>
-        <Heading size="md">{title}</Heading>
-        <Text textAlign="center" color="gray.500" fontSize={{ base: "sm", md: "md" }}>
+        <Heading size="md" color={titleColor}>{title}</Heading>
+        <Text 
+          textAlign="center" 
+          color={descriptionColor} 
+          fontSize={{ base: "sm", md: "md" }}
+        >
           {description}
         </Text>
       </VStack>
@@ -58,13 +68,16 @@ function RoleCard({ role, title, description, iconElement, isSelected, onClick }
 export function RoleSelection() {
   const { signupData, updateSignupData } = useSignup();
   
+  // Dark mode adaptive colors
+  const headingColor = useColorModeValue('gray.800', 'gray.100');
+  
   const handleRoleSelection = (role: UserRole) => {
     updateSignupData({ role });
   };
   
   return (
     <Box width="100%">
-      <Heading size="md" mb={6} textAlign="center">
+      <Heading size="md" mb={6} textAlign="center" color={headingColor}>
         I am joining as a...
       </Heading>
       

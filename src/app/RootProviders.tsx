@@ -36,7 +36,7 @@ const ColorModeManager = ({ children }: { children: ReactNode }) => {
       
       // Only auto-set color mode if user hasn't set a manual preference
       if (!userColorModePreference) {
-        const targetMode = isAuthenticated ? 'dark' : 'light'
+        const targetMode = 'dark' // Default to dark mode for all users
         setColorMode(targetMode)
       }
       

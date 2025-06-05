@@ -367,7 +367,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
                     bg="blue.500" 
                     color="white"
                     name={userInitials}
-                    src={profile.avatar_url}
+                    src={profile?.avatar_url}
                   />
                   <VStack align="start" spacing={0} flex="1">
                     <Text fontWeight="semibold" fontSize="md" color={useColorModeValue('gray.800', 'white')}>
@@ -565,7 +565,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
             bg="blue.500" 
             color="white"
             name={userInitials}
-            src={profile.avatar_url}
+            src={profile?.avatar_url}
             mb={isCollapsed ? 0 : 2}
           />
           

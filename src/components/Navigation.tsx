@@ -254,10 +254,14 @@ const Navigation = () => {
                     as={RouterLink} 
                     to="/login" 
                     size="sm" 
-                    colorScheme="blue" 
-                    variant="ghost"
+                    bg="purple.800"
+                    color="white"
+                    variant="solid"
                     fontSize="sm"
                     fontWeight="medium"
+                    _hover={{
+                      bg: "purple.900"
+                    }}
                     _focus={{
                       boxShadow: "none",
                       outline: "none"
@@ -485,13 +489,18 @@ const Navigation = () => {
               ) : (
                 <>
                   <Button 
-                    variant="ghost"
+                    variant="solid"
                     size="sm"
                     onClick={onToggle}
                     as={RouterLink} 
                     to="/login"
                     w="100%"
                     justifyContent="flex-start"
+                    bg="purple.800"
+                    color="white"
+                    _hover={{
+                      bg: "purple.900"
+                    }}
                   >
                     Sign In
                   </Button>

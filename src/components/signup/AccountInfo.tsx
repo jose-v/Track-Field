@@ -11,6 +11,7 @@ import {
   Text,
   Progress,
   HStack,
+  useColorModeValue,
 } from '@chakra-ui/react';
 import { useState } from 'react';
 import { useSignup } from '../../contexts/SignupContext';
@@ -29,6 +30,13 @@ export function AccountInfo() {
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [strengthColor, setStrengthColor] = useState('red.500');
   const [strengthLabel, setStrengthLabel] = useState('Weak');
+  
+  // Dark mode adaptive colors
+  const labelColor = useColorModeValue('gray.700', 'gray.200');
+  const inputBg = useColorModeValue('white', 'gray.700');
+  const inputBorderColor = useColorModeValue('gray.200', 'gray.600');
+  const textColor = useColorModeValue('gray.700', 'gray.100');
+  const placeholderColor = useColorModeValue('gray.500', 'gray.400');
   
   // Toggle password visibility
   const handleTogglePassword = () => setShowPassword(!showPassword);
@@ -128,27 +136,46 @@ export function AccountInfo() {
     <Box width="100%">
       <VStack spacing={6} align="stretch" width="100%">
         <FormControl isRequired isInvalid={!!errors.email}>
-          <FormLabel>Email</FormLabel>
+          <FormLabel color={labelColor}>Email</FormLabel>
           <Input
             type="email"
             value={signupData.email}
             onChange={handleEmailChange}
             placeholder="Enter your email address"
+            bg={inputBg}
+            borderColor={inputBorderColor}
+            color={textColor}
+            _placeholder={{ color: placeholderColor }}
+            _hover={{ borderColor: 'blue.300' }}
+            _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px blue.500' }}
           />
           <FormErrorMessage>{errors.email}</FormErrorMessage>
         </FormControl>
         
         <FormControl isRequired isInvalid={!!errors.password}>
-          <FormLabel>Password</FormLabel>
+          <FormLabel color={labelColor}>Password</FormLabel>
           <InputGroup>
             <Input
               type={showPassword ? 'text' : 'password'}
               value={signupData.password}
               onChange={handlePasswordChange}
               placeholder="Create a password"
+              bg={inputBg}
+              borderColor={inputBorderColor}
+              color={textColor}
+              _placeholder={{ color: placeholderColor }}
+              _hover={{ borderColor: 'blue.300' }}
+              _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px blue.500' }}
             />
             <InputRightElement width="4.5rem">
-              <Button h="1.75rem" size="sm" onClick={handleTogglePassword}>
+              <Button 
+                h="1.75rem" 
+                size="sm" 
+                onClick={handleTogglePassword}
+                variant="ghost"
+                color={textColor}
+                _hover={{ bg: useColorModeValue('gray.100', 'gray.600') }}
+              >
                 {showPassword ? 'Hide' : 'Show'}
               </Button>
             </InputRightElement>
@@ -158,7 +185,7 @@ export function AccountInfo() {
           {signupData.password && (
             <Box mt={2}>
               <HStack justify="space-between" mb={1}>
-                <Text fontSize="sm">Password Strength:</Text>
+                <Text fontSize="sm" color={textColor}>Password Strength:</Text>
                 <Text fontSize="sm" color={strengthColor} fontWeight="medium">
                   {strengthLabel}
                 </Text>
@@ -182,12 +209,18 @@ export function AccountInfo() {
         </FormControl>
         
         <FormControl isRequired isInvalid={!!errors.confirmPassword}>
-          <FormLabel>Confirm Password</FormLabel>
+          <FormLabel color={labelColor}>Confirm Password</FormLabel>
           <Input
             type={showPassword ? 'text' : 'password'}
             value={confirmPassword}
             onChange={handleConfirmPasswordChange}
             placeholder="Confirm your password"
+            bg={inputBg}
+            borderColor={inputBorderColor}
+            color={textColor}
+            _placeholder={{ color: placeholderColor }}
+            _hover={{ borderColor: 'blue.300' }}
+            _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px blue.500' }}
           />
           <FormErrorMessage>{errors.confirmPassword}</FormErrorMessage>
         </FormControl>

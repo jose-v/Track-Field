@@ -27,7 +27,14 @@ export function PersonalInfo() {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const avatarBg = useColorModeValue('gray.200', 'gray.700');
+  // Dark mode adaptive colors
+  const avatarBg = useColorModeValue('gray.200', 'gray.600');
+  const labelColor = useColorModeValue('gray.700', 'gray.200');
+  const inputBg = useColorModeValue('white', 'gray.700');
+  const inputBorderColor = useColorModeValue('gray.200', 'gray.600');
+  const textColor = useColorModeValue('gray.700', 'gray.100');
+  const placeholderColor = useColorModeValue('gray.500', 'gray.400');
+  const instructionTextColor = useColorModeValue('gray.600', 'gray.300');
   
   // Handle first name change
   const handleFirstNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,31 +73,29 @@ export function PersonalInfo() {
     }
   };
   
-  // Trigger file input click
-  const handleAvatarClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+  // Handle profile image selection
+  const handleImageSelect = () => {
+    fileInputRef.current?.click();
   };
   
-  // Handle profile image upload
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle file input change
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        if (event.target?.result) {
-          setProfileImage(event.target.result as string);
-        }
+        const result = event.target?.result as string;
+        setProfileImage(result);
+        updateSignupData({ profileImage: result });
       };
       reader.readAsDataURL(file);
     }
   };
   
-  // Remove profile image
-  const handleRemoveImage = () => {
+  // Handle image removal
+  const handleImageRemove = () => {
     setProfileImage(null);
+    updateSignupData({ profileImage: undefined });
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -99,80 +104,92 @@ export function PersonalInfo() {
   return (
     <Box width="100%">
       <VStack spacing={6} align="stretch" width="100%">
-        {/* Profile Image */}
+        {/* Profile Image Section */}
         <FormControl>
-          <FormLabel textAlign="center">Profile Picture</FormLabel>
-          <Center mb={4}>
+          <FormLabel color={labelColor}>Profile Picture (Optional)</FormLabel>
+          <Center>
             <Box position="relative">
-              <Avatar 
-                size="xl" 
-                src={profileImage || undefined} 
-                name={signupData.firstName && signupData.lastName 
-                  ? `${signupData.firstName} ${signupData.lastName}` 
-                  : undefined} 
+              <Avatar
+                size="xl"
                 bg={avatarBg}
-                cursor="pointer"
-                onClick={handleAvatarClick}
+                src={profileImage || undefined}
+                name={`${signupData.firstName} ${signupData.lastName}`}
               />
               
+              {/* Camera icon button */}
               <IconButton
                 aria-label="Upload photo"
                 icon={<FaCamera />}
                 size="sm"
                 colorScheme="blue"
-                rounded="full"
+                borderRadius="full"
                 position="absolute"
-                bottom="0"
-                right="0"
-                onClick={handleAvatarClick}
+                bottom={0}
+                right={0}
+                onClick={handleImageSelect}
               />
               
+              {/* Remove image button */}
               {profileImage && (
                 <IconButton
                   aria-label="Remove photo"
                   icon={<FaTrash />}
-                  size="xs"
+                  size="sm"
                   colorScheme="red"
-                  rounded="full"
+                  borderRadius="full"
                   position="absolute"
-                  top="0"
-                  right="0"
-                  onClick={handleRemoveImage}
+                  top={0}
+                  right={0}
+                  onClick={handleImageRemove}
                 />
               )}
-              
-              <input
-                type="file"
-                hidden
-                ref={fileInputRef}
-                accept="image/*"
-                onChange={handleImageChange}
-              />
             </Box>
           </Center>
-          <Text fontSize="sm" textAlign="center" color="gray.500">
-            Click to upload a profile picture
+          
+          <Text fontSize="sm" textAlign="center" color={instructionTextColor} mt={2}>
+            Click the camera icon to upload a profile picture
           </Text>
+          
+          {/* Hidden file input */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept="image/*"
+            style={{ display: 'none' }}
+          />
         </FormControl>
         
         {/* Name Fields */}
         <HStack spacing={4}>
           <FormControl isRequired isInvalid={!!errors.firstName}>
-            <FormLabel>First Name</FormLabel>
+            <FormLabel color={labelColor}>First Name</FormLabel>
             <Input
               value={signupData.firstName}
               onChange={handleFirstNameChange}
               placeholder="Enter your first name"
+              bg={inputBg}
+              borderColor={inputBorderColor}
+              color={textColor}
+              _placeholder={{ color: placeholderColor }}
+              _hover={{ borderColor: 'blue.300' }}
+              _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px blue.500' }}
             />
             <FormErrorMessage>{errors.firstName}</FormErrorMessage>
           </FormControl>
           
           <FormControl isRequired isInvalid={!!errors.lastName}>
-            <FormLabel>Last Name</FormLabel>
+            <FormLabel color={labelColor}>Last Name</FormLabel>
             <Input
               value={signupData.lastName}
               onChange={handleLastNameChange}
               placeholder="Enter your last name"
+              bg={inputBg}
+              borderColor={inputBorderColor}
+              color={textColor}
+              _placeholder={{ color: placeholderColor }}
+              _hover={{ borderColor: 'blue.300' }}
+              _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px blue.500' }}
             />
             <FormErrorMessage>{errors.lastName}</FormErrorMessage>
           </FormControl>
@@ -180,11 +197,17 @@ export function PersonalInfo() {
         
         {/* Phone Number */}
         <FormControl isInvalid={!!errors.phone}>
-          <FormLabel>Phone Number</FormLabel>
+          <FormLabel color={labelColor}>Phone Number</FormLabel>
           <Input
             value={signupData.phone}
             onChange={handlePhoneChange}
             placeholder="Enter your phone number"
+            bg={inputBg}
+            borderColor={inputBorderColor}
+            color={textColor}
+            _placeholder={{ color: placeholderColor }}
+            _hover={{ borderColor: 'blue.300' }}
+            _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px blue.500' }}
           />
           <FormErrorMessage>{errors.phone}</FormErrorMessage>
         </FormControl>

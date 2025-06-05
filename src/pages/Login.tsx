@@ -34,10 +34,18 @@ export function Login() {
   const location = useLocation()
   const toast = useToast()
 
+  // Dark mode adaptive colors
   const cardBg = useColorModeValue('white', 'gray.800')
   const iconBg = useColorModeValue('white', 'gray.700')
   const borderColor = useColorModeValue('gray.200', 'gray.600')
   const textColor = useColorModeValue('gray.700', 'gray.100')
+  const placeholderColor = useColorModeValue('gray.500', 'gray.400')
+  const inputBg = useColorModeValue('white', 'gray.700')
+  const inputBorderColor = useColorModeValue('gray.200', 'gray.600')
+  const headerBg = useColorModeValue('#ecc94b', 'blue.600')
+  const headerTextColor = useColorModeValue('gray.800', 'white')
+  const linkTextColor = useColorModeValue('gray.600', 'gray.300')
+  const pageBg = useColorModeValue('gray.50', 'gray.900')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -60,123 +68,164 @@ export function Login() {
   }
 
   return (
-    <Flex 
-      direction="column" 
-      align="center" 
-      justify="center" 
-      minHeight="80vh"
-      marginTop="-80px"
-      px={4}
+    <Box
+      bg={pageBg}
     >
-      <Card maxW="md" w="100%" borderRadius="lg" overflow="hidden" p={0}>
-        {/* Full-width Hero Header */}
-        <Box 
-          w="full"
-          h="150px" 
-          bg="#ecc94b" 
-          display="flex"
-          flexDirection="column"
-          alignItems="center"
-          justifyContent="center"
+      <Flex 
+        direction="column" 
+        align="center" 
+        justify="center" 
+        minHeight={{ 
+          base: "calc(100vh - 140px)", // Mobile: smaller header/footer
+          md: "calc(100vh - 160px)",   // Tablet: medium spacing
+          lg: "calc(100vh - 356px)"    // Desktop: larger footer space
+        }}
+        py={{ base: 4, md: 6, lg: 8 }}
+        px={4}
+      >
+        <Card 
+          maxW="md" 
+          w="100%" 
+          borderRadius="lg" 
+          overflow="hidden" 
           p={0}
-          m={0}
+          bg={cardBg}
+          borderColor={borderColor}
+          borderWidth={1}
         >
-          <Heading size="md" color="gray.800" fontWeight="bold" letterSpacing="wide" textAlign="center" textTransform="uppercase">
-            Sign In
-          </Heading>
-        </Box>
-        <CardBody pt={8} px={8}>
-          <VStack spacing={6} align="stretch">
-            <form onSubmit={handleSubmit}>
-              <VStack spacing={4}>
-                <FormControl>
-                  <Flex align="center">
-                    <Flex
-                      align="center"
-                      justify="center"
-                      h="40px"
-                      w="40px"
-                      bg={iconBg}
-                      borderRadius="md"
-                      mr={2}
-                    >
-                      <Icon as={FaEnvelope} color="blue.500" />
-                    </Flex>
-                    <Input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Enter your email"
-                      bg={cardBg}
-                      autoComplete="email"
-                      aria-label="Email"
-                    />
-                  </Flex>
-                </FormControl>
-
-                <FormControl>
-                  <Flex align="center">
-                    <Flex
-                      align="center"
-                      justify="center"
-                      h="40px"
-                      w="40px"
-                      bg={iconBg}
-                      borderRadius="md"
-                      mr={2}
-                    >
-                      <Icon as={FaLock} color="blue.500" />
-                    </Flex>
-                    <InputGroup>
+          {/* Full-width Hero Header */}
+          <Box 
+            w="full"
+            h="150px" 
+            bg={headerBg}
+            display="flex"
+            flexDirection="column"
+            alignItems="center"
+            justifyContent="center"
+            p={0}
+            m={0}
+          >
+            <Heading 
+              size="md" 
+              color={headerTextColor} 
+              fontWeight="bold" 
+              letterSpacing="wide" 
+              textAlign="center" 
+              textTransform="uppercase"
+            >
+              Sign In
+            </Heading>
+          </Box>
+          <CardBody pt={8} px={8}>
+            <VStack spacing={6} align="stretch">
+              <form onSubmit={handleSubmit}>
+                <VStack spacing={4}>
+                  <FormControl>
+                    <Flex align="center">
+                      <Flex
+                        align="center"
+                        justify="center"
+                        h="40px"
+                        w="40px"
+                        bg={iconBg}
+                        borderRadius="md"
+                        mr={2}
+                        borderWidth={1}
+                        borderColor={borderColor}
+                      >
+                        <Icon as={FaEnvelope} color="blue.500" />
+                      </Flex>
                       <Input
-                        type={showPassword ? 'text' : 'password'}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter your password"
-                        bg={cardBg}
-                        autoComplete="current-password"
-                        aria-label="Password"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Enter your email"
+                        bg={inputBg}
+                        borderColor={inputBorderColor}
+                        color={textColor}
+                        _placeholder={{ color: placeholderColor }}
+                        _hover={{ borderColor: 'blue.300' }}
+                        _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px blue.500' }}
+                        autoComplete="email"
+                        aria-label="Email"
                       />
-                      <InputRightElement width="4.5rem">
-                        <IconButton
-                          h="1.75rem"
-                          size="sm"
-                          onClick={() => setShowPassword(!showPassword)}
-                          icon={<Icon as={showPassword ? FaEyeSlash : FaEye} />}
-                          variant="ghost"
-                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    </Flex>
+                  </FormControl>
+
+                  <FormControl>
+                    <Flex align="center">
+                      <Flex
+                        align="center"
+                        justify="center"
+                        h="40px"
+                        w="40px"
+                        bg={iconBg}
+                        borderRadius="md"
+                        mr={2}
+                        borderWidth={1}
+                        borderColor={borderColor}
+                      >
+                        <Icon as={FaLock} color="blue.500" />
+                      </Flex>
+                      <InputGroup>
+                        <Input
+                          type={showPassword ? 'text' : 'password'}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="Enter your password"
+                          bg={inputBg}
+                          borderColor={inputBorderColor}
+                          color={textColor}
+                          _placeholder={{ color: placeholderColor }}
+                          _hover={{ borderColor: 'blue.300' }}
+                          _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px blue.500' }}
+                          autoComplete="current-password"
+                          aria-label="Password"
                         />
-                      </InputRightElement>
-                    </InputGroup>
-                  </Flex>
-                </FormControl>
+                        <InputRightElement width="4.5rem">
+                          <IconButton
+                            h="1.75rem"
+                            size="sm"
+                            onClick={() => setShowPassword(!showPassword)}
+                            icon={<Icon as={showPassword ? FaEyeSlash : FaEye} />}
+                            variant="ghost"
+                            color={textColor}
+                            _hover={{ bg: useColorModeValue('gray.100', 'gray.600') }}
+                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                          />
+                        </InputRightElement>
+                      </InputGroup>
+                    </Flex>
+                  </FormControl>
 
+                  <Button
+                    type="submit"
+                    colorScheme="blue"
+                    width="full"
+                    isLoading={loading}
+                    mt={2}
+                    size="lg"
+                  >
+                    Sign In
+                  </Button>
+                </VStack>
+              </form>
+
+              <Text textAlign="center" mt={4} color={linkTextColor}>
+                Don't have an account?{' '}
                 <Button
-                  type="submit"
+                  variant="link"
                   colorScheme="blue"
-                  width="full"
-                  isLoading={loading}
-                  mt={2}
-                  size="lg"
+                  onClick={() => navigate('/signup')}
+                  fontSize="md"
                 >
-                  Sign In
+                  Sign Up
                 </Button>
-              </VStack>
-            </form>
-
-            <Text textAlign="center" mt={4}>
-              Don't have an account?{' '}
-              <Button
-                variant="link"
-                colorScheme="blue"
-                onClick={() => navigate('/signup')}
-              >
-                Sign Up
-              </Button>
-            </Text>
-          </VStack>
-        </CardBody>
-      </Card>
-    </Flex>
+              </Text>
+            </VStack>
+          </CardBody>
+        </Card>
+      </Flex>
+    </Box>
   )
 }

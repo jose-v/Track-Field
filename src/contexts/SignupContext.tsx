@@ -13,6 +13,7 @@ export interface SignupData {
   lastName: string;
   phone: string;
   selectedAthletes: string[]; // IDs of selected athletes for coaches/team managers
+  profileImage?: string; // Base64 encoded profile image
 }
 
 // The context type

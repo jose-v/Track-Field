@@ -5,7 +5,7 @@ import { mode } from '@chakra-ui/theme-tools'
  * Theme configuration from brand-guidelines.html
  */
 const config: ThemeConfig = {
-  initialColorMode: 'light',
+  initialColorMode: 'dark',
   useSystemColorMode: false,
 }
 

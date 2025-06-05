@@ -32,8 +32,12 @@ function SignupContent() {
   const navigate = useNavigate();
   const toast = useToast();
   
-  // Color mode values
-  const iconBg = useColorModeValue('white', 'gray.700');
+  // Dark mode adaptive colors
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const headerBg = useColorModeValue('#ecc94b', 'blue.600');
+  const headerTextColor = useColorModeValue('gray.800', 'white');
+  const pageBg = useColorModeValue('gray.50', 'gray.900');
   
   // Get step labels based on total steps
   const stepLabels = getStepLabels(totalSteps);
@@ -111,88 +115,107 @@ function SignupContent() {
   };
   
   return (
-    <Flex
-      direction="column"
-      align="center"
-      justify="center"
-      minHeight="80vh"
-      marginTop="-80px"
-      px={4}
+    <Box
+      bg={pageBg}
     >
-      <Card 
-        maxW="850px"
-        w="100%"
-        borderRadius="lg" 
-        overflow="hidden" 
-        p={0}
+      <Flex
+        direction="column"
+        align="center"
+        justify="center"
+        minHeight={{ 
+          base: "calc(100vh - 140px)", // Mobile: smaller header/footer
+          md: "calc(100vh - 160px)",   // Tablet: medium spacing
+          lg: "calc(100vh - 356px)"    // Desktop: larger footer space
+        }}
+        py={{ base: 4, md: 6, lg: 8 }}
+        px={4}
       >
-        {/* Full-width Hero Header */}
-        <Box 
-          w="full"
-          h="150px" 
-          bg="#ecc94b" 
-          position="relative"
-          display="flex"
-          flexDirection="column"
-          alignItems="center"
-          justifyContent="center"
+        <Card 
+          maxW="850px"
+          w="100%"
+          borderRadius="lg" 
+          overflow="hidden" 
           p={0}
-          m={0}
+          bg={cardBg}
+          borderColor={borderColor}
+          borderWidth={1}
         >
-          <Heading size="md" color="gray.800" fontWeight="bold" letterSpacing="wide" textAlign="center" textTransform="uppercase">
-            Sign Up
-          </Heading>
-        </Box>
-        <CardBody pt={8} px={8}>
-          {/* Step indicator */}
-          <Box px={{ base: 2, md: 6 }}>
-            <StepIndicator 
-              currentStep={currentStep} 
-              totalSteps={totalSteps} 
-              stepLabels={stepLabels} 
-            />
-          </Box>
-          
-          {/* Step content */}
-          <Box mb={8} mt={6}>
-            {renderStep()}
-          </Box>
-          
-          {/* Navigation buttons */}
-          <Flex justify="space-between" mt={6}>
-            <Button 
-              onClick={handlePrevStep} 
-              visibility={currentStep === 1 ? 'hidden' : 'visible'}
-              size={{ base: "md", md: "lg" }}
+          {/* Full-width Hero Header */}
+          <Box 
+            w="full"
+            h="150px" 
+            bg={headerBg}
+            position="relative"
+            display="flex"
+            flexDirection="column"
+            alignItems="center"
+            justifyContent="center"
+            p={0}
+            m={0}
+          >
+            <Heading 
+              size="md" 
+              color={headerTextColor} 
+              fontWeight="bold" 
+              letterSpacing="wide" 
+              textAlign="center" 
+              textTransform="uppercase"
             >
-              Previous
-            </Button>
+              Sign Up
+            </Heading>
+          </Box>
+          <CardBody pt={8} px={8}>
+            {/* Step indicator */}
+            <Box px={{ base: 2, md: 6 }}>
+              <StepIndicator 
+                currentStep={currentStep} 
+                totalSteps={totalSteps} 
+                stepLabels={stepLabels} 
+              />
+            </Box>
             
-            {currentStep < totalSteps ? (
+            {/* Step content */}
+            <Box mb={8} mt={6}>
+              {renderStep()}
+            </Box>
+            
+            {/* Navigation buttons */}
+            <Flex justify="space-between" mt={6}>
               <Button 
-                colorScheme="purple" 
-                onClick={handleNextStep}
-                isDisabled={
-                  (currentStep === 1 && !signupData.role) || 
-                  (currentStep === 2 && (!signupData.email || !signupData.password))
-                }
+                onClick={handlePrevStep} 
+                visibility={currentStep === 1 ? 'hidden' : 'visible'}
                 size={{ base: "md", md: "lg" }}
+                variant="outline"
               >
-                Next
+                Previous
               </Button>
-            ) : (
-              <Button 
-                colorScheme="purple" 
-                onClick={handleSubmit}
-                size={{ base: "md", md: "lg" }}
-              >
-                Complete Signup
-              </Button>
-            )}
-          </Flex>
-        </CardBody>
-      </Card>
-    </Flex>
+              
+              {currentStep < totalSteps ? (
+                <Button 
+                  colorScheme="purple" 
+                  onClick={handleNextStep}
+                  isDisabled={
+                    (currentStep === 1 && !signupData.role) || 
+                    (currentStep === 2 && (!signupData.email || !signupData.password))
+                  }
+                  size={{ base: "md", md: "lg" }}
+                >
+                  Next
+                </Button>
+              ) : (
+                <Button 
+                  colorScheme="purple" 
+                  onClick={handleSubmit}
+                  size={{ base: "md", md: "lg" }}
+                >
+                  Complete Signup
+                </Button>
+              )}
+            </Flex>
+          </CardBody>
+        </Card>
+      </Flex>
+    </Box>
   );
 }
 
