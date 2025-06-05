@@ -427,7 +427,6 @@ export function CoachDashboard() {
               description: "scattered clouds"
             }}
             isLoading={profileLoading}
-            fixedDate="Tuesday, May 20"
           />
         </Box>
       </Flex>

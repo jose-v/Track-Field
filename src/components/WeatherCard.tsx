@@ -7,17 +7,31 @@ import {
   Tag,
   Text,
   VStack,
+  HStack,
   Skeleton,
   useToast,
-  useColorModeValue
+  useColorModeValue,
+  Button,
+  Divider,
+  SimpleGrid
 } from '@chakra-ui/react'
-import { FaCloudSun, FaCloudRain, FaSnowflake, FaSun, FaCloudMeatball, FaBolt, FaMapMarkerAlt } from 'react-icons/fa'
+import { FaCloudSun, FaCloudRain, FaSnowflake, FaSun, FaCloudMeatball, FaBolt, FaMapMarkerAlt, FaCalendarDay, FaChevronRight } from 'react-icons/fa'
 import React, { useState, useEffect } from 'react'
 
 // OpenWeather API configuration
 const OPENWEATHER_API_KEY = 'd52188171339c7c268d503e4e1122c12'
 // Using the One Call API 3.0 endpoint format
 const OPENWEATHER_API_ONECALL = 'https://api.openweathermap.org/data/3.0/onecall'
+
+interface ForecastDay {
+  date: string;
+  dayName: string;
+  high: number;
+  low: number;
+  condition: string;
+  description: string;
+  icon: string;
+}
 
 interface WeatherCardProps {
   city?: string;
@@ -42,8 +56,10 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
   fixedDate
 }) => {
   const [weather, setWeather] = useState(initialWeather)
+  const [forecast, setForecast] = useState<ForecastDay[]>([])
   const [isLoading, setIsLoading] = useState(initialLoading)
   const [hasError, setHasError] = useState(false)
+  const [showForecast, setShowForecast] = useState(false)
   const toast = useToast()
 
   const headerGradient = useColorModeValue(
@@ -146,14 +162,31 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
         
         const data = await response.json();
         
-        // One Call API 3.0 returns data in a different format
+        // Set current weather
         setWeather({
           temp: Math.round(data.current.temp).toString(),
           condition: data.current.weather[0].main,
           description: data.current.weather[0].description
         });
         
-        console.log('Weather fetched successfully for', city);
+        // Process forecast data (next 5 days)
+        if (data.daily && data.daily.length > 0) {
+          const forecastData = data.daily.slice(0, 5).map((day: any, index: number) => {
+            const date = new Date(day.dt * 1000);
+            return {
+              date: date.toISOString().split('T')[0],
+              dayName: index === 0 ? 'Today' : date.toLocaleDateString('en-US', { weekday: 'short' }),
+              high: Math.round(day.temp.max),
+              low: Math.round(day.temp.min),
+              condition: day.weather[0].main,
+              description: day.weather[0].description,
+              icon: day.weather[0].icon
+            };
+          });
+          setForecast(forecastData);
+        }
+        
+        console.log('Weather and forecast fetched successfully for', city);
       } catch (error) {
         console.error('Error fetching weather:', error);
         setHasError(true);
@@ -202,6 +235,7 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
         borderColor={borderColor}
         m={0}
         p={0}
+        minH={showForecast ? "400px" : "auto"}
       >
         <Box
           h={{ base: "100px", md: "120px" }} 
@@ -259,6 +293,61 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
             </Flex>
           </Box>
         </Box>
+
+        {/* Forecast Toggle Section */}
+        {forecast.length > 0 && (
+          <CardBody pt={4} pb={2}>
+            <Button
+              size="sm"
+              variant="ghost"
+              leftIcon={<Icon as={FaCalendarDay} />}
+              rightIcon={<Icon as={FaChevronRight} transform={showForecast ? 'rotate(90deg)' : 'rotate(0deg)'} transition="transform 0.2s" />}
+              onClick={() => setShowForecast(!showForecast)}
+              width="full"
+              justifyContent="space-between"
+              fontWeight="medium"
+              color={textColor}
+              _hover={{ bg: useColorModeValue('gray.50', 'gray.700') }}
+            >
+              {showForecast ? 'Hide Forecast' : '5-Day Forecast'}
+            </Button>
+            
+            {showForecast && (
+              <>
+                <Divider my={3} />
+                <VStack spacing={3} align="stretch">
+                  {forecast.map((day, index) => (
+                    <HStack key={day.date} justify="space-between" py={2}>
+                      <HStack spacing={3} flex={1}>
+                        <Icon 
+                          as={getWeatherIcon(day.condition)} 
+                          boxSize={5} 
+                          color={useColorModeValue('gray.600', 'gray.400')}
+                        />
+                        <VStack align="start" spacing={0}>
+                          <Text fontSize="sm" fontWeight="medium" color={textColor}>
+                            {day.dayName}
+                          </Text>
+                          <Text fontSize="xs" color={subtitleColor} textTransform="capitalize">
+                            {day.description}
+                          </Text>
+                        </VStack>
+                      </HStack>
+                      <HStack spacing={2}>
+                        <Text fontSize="sm" fontWeight="bold" color={textColor}>
+                          {day.high}°
+                        </Text>
+                        <Text fontSize="sm" color={subtitleColor}>
+                          {day.low}°
+                        </Text>
+                      </HStack>
+                    </HStack>
+                  ))}
+                </VStack>
+              </>
+            )}
+          </CardBody>
+        )}
       </Card>
     </Skeleton>
   )

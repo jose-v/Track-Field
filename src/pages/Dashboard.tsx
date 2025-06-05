@@ -608,61 +608,36 @@ export function Dashboard() {
 
           {/* Desktop Header Row */}
           <Flex 
-            display={{ base: "none", lg: "flex" }}
-            direction="row"
-            align="center" 
-            justify="space-between" 
-            gap={6}
+            direction={{ base: "column", lg: "row" }} 
+            gap={{ base: 4, lg: 6 }}
+            align={{ base: "center", lg: "flex-start" }}
+            justify={{ base: "center", lg: "space-between" }}
             w="100%"
           >
-            <Box flex="1">
-              <HStack spacing={4} align="center">
-                <VStack spacing={1} align="start" flex="1">
-                  <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
-                    <Heading 
-                      as="h1" 
-                      size="xl"
-                      mb={1}
-                      color={textColor}
-                    >
-                      {getWelcomeMessage()}
-                    </Heading>
-                  </Skeleton>
-                  <Skeleton isLoaded={!profileLoading} fadeDuration={1}>
-                    <Text 
-                      color={subtextColor}
-                      fontSize="md"
-                    >
-                      {profile?.role === 'athlete' ? 'Athlete Dashboard' : 'Dashboard'}
-                    </Text>
-                  </Skeleton>
-                </VStack>
-                
-                {/* Desktop AI Assistant Button */}
-                <IconButton
-                  aria-label="AI Assistant"
-                  icon={<SparkleIcon boxSize={6} />}
-                  size="lg"
-                  colorScheme="purple"
-                  variant="solid"
-                  borderRadius="full"
-                  onClick={() => setIsAIModalOpen(true)}
-                  boxShadow="lg"
-                  _hover={{ 
-                    transform: 'scale(1.05)',
-                    boxShadow: 'xl'
-                  }}
-                  transition="all 0.2s"
-                  bg="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-                  color="white"
-                  _active={{
-                    transform: 'scale(0.95)'
-                  }}
-                />
-              </HStack>
-            </Box>
-            
-            {/* Weather Info - Desktop only initially, mobile below */}
+            {/* Main Welcome Content */}
+            <VStack 
+              align={{ base: "center", lg: "start" }} 
+              spacing={2} 
+              flex="1"
+              minW={0}
+            >
+              <Heading 
+                fontSize={{ base: "3xl", lg: "4xl" }} 
+                mb={2}
+                textAlign={{ base: "center", lg: "left" }}
+              >
+                {getWelcomeMessage()}
+              </Heading>
+              <Text 
+                fontSize="xl" 
+                color="gray.500" 
+                textAlign={{ base: "center", lg: "left" }}
+              >
+                {profile?.first_name || user?.email || 'Athlete'}, ready to crush your goals today?
+              </Text>
+            </VStack>
+
+            {/* Desktop Weather Card */}
             <Box 
               w="400px"
               minW="390px" 
@@ -679,7 +654,6 @@ export function Dashboard() {
                   description: "scattered clouds"
                 }}
                 isLoading={profileLoading}
-                fixedDate="Tuesday, May 20"
               />
             </Box>
           </Flex>
@@ -699,7 +673,6 @@ export function Dashboard() {
                 description: "scattered clouds"
               }}
               isLoading={profileLoading}
-              fixedDate="Tuesday, May 20"
             />
           </Box>
         </Box>
