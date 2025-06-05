@@ -17,5 +17,11 @@ export function PrivateRoute({ children }: PrivateRouteProps) {
     return <Navigate to="/login" />
   }
 
+  // Check if user's email is verified
+  // Note: email_confirmed_at will be null for unverified emails
+  if (!user.email_confirmed_at) {
+    return <Navigate to="/verify-email" />
+  }
+
   return <>{children}</>
 } 

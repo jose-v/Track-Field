@@ -5,6 +5,8 @@ import { Login } from '../pages/Login';
 import { Signup } from '../pages/Signup';
 import { ForgotPassword } from '../pages/ForgotPassword';
 import { UpdatePassword } from '../pages/UpdatePassword';
+import { VerifyEmail } from '../pages/VerifyEmail';
+import { EmailVerified } from '../pages/EmailVerified';
 import { Pricing } from '../pages/Pricing';
 import { Features } from '../pages/Features';
 import { About } from '../pages/About';
@@ -88,6 +90,8 @@ export default function AppRoutes() {
         <Route path="signup" element={<Signup />} />
         <Route path="forgot-password" element={<ForgotPassword />} />
         <Route path="update-password" element={<UpdatePassword />} />
+        <Route path="verify-email" element={<VerifyEmail />} />
+        <Route path="email-verified" element={<EmailVerified />} />
         <Route path="spinner-test" element={<SpinnerTest />} />
       </Route>
 

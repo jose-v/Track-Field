@@ -19,6 +19,7 @@ export interface SignupData {
   profileImage?: string; // Base64 encoded profile image
   termsAccepted?: boolean; // Whether user accepted terms and conditions
   termsAcceptedAt?: string; // ISO timestamp of when terms were accepted
+  emailValid?: boolean; // Whether email format is valid and available
 }
 
 // The context type
@@ -45,6 +46,7 @@ const initialSignupData: SignupData = {
   phone: '',
   termsAccepted: false,
   termsAcceptedAt: undefined,
+  emailValid: false,
 };
 
 // Provider component

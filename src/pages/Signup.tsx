@@ -80,10 +80,10 @@ function SignupContent() {
       
       // Show success message
       toast({
-        title: 'Account created!',
-        description: 'Please check your email to verify your account before logging in.',
+        title: 'Sign-up successful!',
+        description: `Please check your email (${signupData.email}) to verify your account before logging in.`,
         status: 'success',
-        duration: 7000,
+        duration: 10000,
         isClosable: true,
       });
       
@@ -115,8 +115,8 @@ function SignupContent() {
         if (signupData.signupMethod === 'google') {
           return true;
         }
-        // For email signup, require email and password
-        return signupData.email && signupData.password;
+        // For email signup, require email, password, and email to be valid (not already taken)
+        return signupData.email && signupData.password && signupData.emailValid;
       case 4:
         return signupData.firstName && signupData.lastName;
       default:

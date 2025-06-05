@@ -23,6 +23,7 @@ export async function signUp(data: SignupData): Promise<{ user: any; error: any 
       email: data.email,
       password: data.password,
       options: {
+        emailRedirectTo: `${window.location.origin}/email-verified`,
         data: {
           role: data.role,
           first_name: data.firstName,
@@ -352,5 +353,32 @@ export async function updateUserPassword(newPassword: string) {
   } catch (error) {
     console.error('Password update error:', error);
     return { error };
+  }
+}
+
+/**
+ * Check if email already exists in the system
+ */
+export async function checkEmailExists(email: string) {
+  try {
+    // Check in profiles table for existing email
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('email', email.toLowerCase())
+      .single();
+    
+    if (error && error.code !== 'PGRST116') {
+      // PGRST116 is "not found" error, which means email doesn't exist (good)
+      throw error;
+    }
+    
+    // If data exists, email is taken
+    const emailExists = !!data;
+    
+    return { emailExists, error: null };
+  } catch (error) {
+    console.error('Email check error:', error);
+    return { emailExists: false, error };
   }
 } 
