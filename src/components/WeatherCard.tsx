@@ -75,6 +75,10 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
   const textColor = useColorModeValue('gray.700', 'gray.200');
   const subtitleColor = useColorModeValue('gray.500', 'gray.400');
   const cardShadow = useColorModeValue('none', 'md');
+  const hoverBg = useColorModeValue('gray.50', 'gray.700');
+  const borderColorOutline = useColorModeValue('gray.300', 'gray.600');
+  const forecastShadow = useColorModeValue('lg', 'dark-lg');
+  const iconColor = useColorModeValue('gray.600', 'gray.400');
 
   // Helper function to convert Fahrenheit to Celsius
   const convertTemp = (tempF: number): number => {
@@ -149,7 +153,12 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
 
   // Fetch real weather data when city or state changes
   useEffect(() => {
-    if (!city) return;
+    console.log('WeatherCard useEffect triggered. City:', city, 'State:', state);
+    
+    if (!city) {
+      console.log('No city provided, skipping weather fetch');
+      return;
+    }
     
     const fetchRealWeather = async () => {
       try {
@@ -208,6 +217,7 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
             };
           });
           setForecast(forecastData);
+          console.log('Forecast data set:', forecastData);
         }
         
         console.log('Weather and forecast fetched successfully for', city);
@@ -232,9 +242,8 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
     };
     
     // Only fetch if we have a city
-    if (city) {
-      fetchRealWeather();
-    }
+    console.log('About to call fetchRealWeather for city:', city);
+    fetchRealWeather();
   }, [city, state, toast])
 
   const WeatherIcon = getWeatherIcon(weather.condition)
@@ -318,36 +327,27 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
             </Box>
           </Box>
 
-          {/* Forecast Toggle Button */}
+          {/* Forecast Toggle and Temperature Toggle Section */}
           {forecast.length > 0 && (
             <CardBody pt={4} pb={4}>
               <Button
                 size="sm"
                 variant="ghost"
-                leftIcon={
-                  <Tooltip label={`Switch to ${isCelsius ? 'Fahrenheit' : 'Celsius'}`}>
-                    <Box
-                      as="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsCelsius(!isCelsius);
-                      }}
-                      p={1}
-                      borderRadius="md"
-                      _hover={{ bg: useColorModeValue('gray.100', 'gray.600') }}
-                      transition="background 0.2s"
-                    >
-                      <Icon as={FaThermometerHalf} />
-                    </Box>
-                  </Tooltip>
-                }
+                leftIcon={<Icon as={FaThermometerHalf} onClick={(e) => {
+                  e.stopPropagation();
+                  setIsCelsius(!isCelsius);
+                }} cursor="pointer" />}
                 rightIcon={<Icon as={FaChevronRight} transform={showForecast ? 'rotate(90deg)' : 'rotate(0deg)'} transition="transform 0.2s" />}
-                onClick={() => setShowForecast(!showForecast)}
+                onClick={() => {
+                  console.log('Forecast button clicked. Current showForecast:', showForecast);
+                  console.log('Forecast data length:', forecast.length);
+                  setShowForecast(!showForecast);
+                }}
                 width="full"
                 justifyContent="space-between"
                 fontWeight="medium"
                 color={textColor}
-                _hover={{ bg: useColorModeValue('gray.50', 'gray.700') }}
+                _hover={{ bg: hoverBg }}
               >
                 {showForecast ? 'Hide Forecast' : '5-Day Forecast'}
               </Button>
@@ -358,19 +358,19 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
         {/* Floating Forecast Overlay */}
         {forecast.length > 0 && showForecast && (
           <Box
-            position="absolute"
-            top="100%"
-            left={0}
-            right={0}
-            zIndex={1000}
-            mt={2}
+            position="fixed"
+            top="270px"
+            right="48px"
+            zIndex={9999}
+            width={{ base: "90vw", md: "400px" }}
+            maxWidth="500px"
           >
             <Card
               bg={cardBg}
               borderColor={borderColor}
               borderWidth="1px"
               borderRadius="lg"
-              boxShadow={useColorModeValue('lg', 'dark-lg')}
+              boxShadow={forecastShadow}
               overflow="hidden"
             >
               <CardBody p={4}>
@@ -395,7 +395,7 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
                         <Icon 
                           as={getWeatherIcon(day.condition)} 
                           boxSize={5} 
-                          color={useColorModeValue('gray.600', 'gray.400')}
+                          color={iconColor}
                         />
                         <VStack align="start" spacing={0}>
                           <Text fontSize="sm" fontWeight="medium" color={textColor}>
