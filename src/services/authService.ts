@@ -256,6 +256,8 @@ export async function getCurrentUserProfile() {
  */
 export async function handleOAuthUserProfile(user: any, role?: UserRole): Promise<{ error: any }> {
   try {
+    console.log('🔍 handleOAuthUserProfile called with:', { user: user.id, email: user.email, role });
+    
     const userId = user.id;
     const email = user.email;
     
@@ -287,7 +289,10 @@ export async function handleOAuthUserProfile(user: any, role?: UserRole): Promis
       }
     }
     
+    console.log('🔍 Extracted name data:', { firstName, lastName, fullName });
+    
     // Check if profile already exists
+    console.log('🔍 Checking if profile exists for user:', userId);
     const { data: existingProfile, error: profileCheckError } = await supabase
       .from('profiles')
       .select('*')
@@ -296,14 +301,19 @@ export async function handleOAuthUserProfile(user: any, role?: UserRole): Promis
     
     if (profileCheckError && profileCheckError.code !== 'PGRST116') {
       // PGRST116 is "not found" error, which is expected for new users
-      console.error('Error checking existing profile:', profileCheckError);
+      console.error('❌ Error checking existing profile:', profileCheckError);
       throw profileCheckError;
     }
     
-    // If profile doesn't exist, create it
+    console.log('🔍 Existing profile check result:', { existingProfile, profileCheckError });
+    
+    // Check if we're in a signup context (no role provided means we're in signup flow)
+    const isSignupContext = !role;
+    console.log('🔍 Signup context detected:', isSignupContext);
+    
+    // If profile doesn't exist, create it using upsert to handle race conditions
     if (!existingProfile) {
-      // Check if we're in a signup context (no role provided means we're in signup flow)
-      const isSignupContext = !role;
+      console.log('🔍 No existing profile found, creating new profile with upsert');
       
       const profileData: Partial<Profile> = {
         id: userId,
@@ -317,35 +327,105 @@ export async function handleOAuthUserProfile(user: any, role?: UserRole): Promis
         profileData.role = role || 'athlete';
       }
 
+      console.log('🔍 Profile data to upsert:', profileData);
+
+      // Use upsert to handle race conditions and existing auth users without profiles
       const { error: profileError } = await supabase
         .from('profiles')
-        .insert([profileData]);
+        .upsert([profileData], { 
+          onConflict: 'id',
+          ignoreDuplicates: false 
+        });
 
       if (profileError) {
-        console.error('Profile creation error:', profileError);
+        console.error('❌ Profile creation error details:', profileError);
         throw profileError;
       }
+      
+      console.log('✅ Profile created/updated successfully');
 
       // Only create role-specific entry if we're not in signup context
       if (!isSignupContext) {
+        console.log('🔍 Creating role-specific profile for role:', role);
         const userRole = role || 'athlete';
-        switch (userRole) {
-          case 'athlete':
-            await createAthleteProfile(userId);
-            break;
-          case 'coach':
-            await createCoachProfile(userId);
-            break;
-          case 'team_manager':
-            await createTeamManagerProfile(userId);
-            break;
+        
+        // Check if role-specific profile already exists first
+        let roleProfileExists = false;
+        try {
+          switch (userRole) {
+            case 'athlete':
+              const { data: athleteData } = await supabase
+                .from('athletes')
+                .select('id')
+                .eq('id', userId)
+                .single();
+              roleProfileExists = !!athleteData;
+              break;
+            case 'coach':
+              const { data: coachData } = await supabase
+                .from('coaches')
+                .select('id')
+                .eq('id', userId)
+                .single();
+              roleProfileExists = !!coachData;
+              break;
+            case 'team_manager':
+              const { data: managerData } = await supabase
+                .from('team_managers')
+                .select('id')
+                .eq('id', userId)
+                .single();
+              roleProfileExists = !!managerData;
+              break;
+          }
+        } catch (error) {
+          // Ignore errors from checking role profiles - they likely don't exist
+          console.log('🔍 Role profile check error (expected for new users):', error);
+        }
+        
+        if (!roleProfileExists) {
+          switch (userRole) {
+            case 'athlete':
+              await createAthleteProfile(userId);
+              break;
+            case 'coach':
+              await createCoachProfile(userId);
+              break;
+            case 'team_manager':
+              await createTeamManagerProfile(userId);
+              break;
+          }
+          console.log('✅ Role-specific profile created');
+        } else {
+          console.log('🔍 Role-specific profile already exists, skipping creation');
+        }
+      } else {
+        console.log('🔍 Skipping role-specific profile creation (signup context)');
+      }
+    } else {
+      console.log('🔍 Profile already exists, skipping creation');
+      
+      // If profile exists but has no role and we're not in signup context, 
+      // this might be a returning user who was deleted and needs role assignment
+      if (!existingProfile.role && !isSignupContext) {
+        console.log('🔍 Existing profile has no role, updating with provided role');
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ role: role || 'athlete' })
+          .eq('id', userId);
+          
+        if (updateError) {
+          console.error('❌ Error updating profile role:', updateError);
+        } else {
+          console.log('✅ Profile role updated successfully');
         }
       }
     }
 
+    console.log('✅ handleOAuthUserProfile completed successfully');
     return { error: null };
   } catch (error) {
-    console.error('OAuth profile handling error:', error);
+    console.error('❌ OAuth profile handling error details:', error);
     return { error };
   }
 }

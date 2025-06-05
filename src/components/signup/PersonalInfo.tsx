@@ -1,24 +1,25 @@
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Box,
+  VStack,
+  HStack,
   FormControl,
   FormLabel,
   Input,
-  VStack,
-  HStack,
   FormErrorMessage,
   Avatar,
-  Button,
   IconButton,
   Center,
-  useColorModeValue,
   Text,
+  useColorModeValue
 } from '@chakra-ui/react';
-import { useState, useRef } from 'react';
 import { FaCamera, FaTrash } from 'react-icons/fa';
 import { useSignup } from '../../contexts/SignupContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 export function PersonalInfo() {
   const { signupData, updateSignupData } = useSignup();
+  const { user } = useAuth();
   const [errors, setErrors] = useState({
     firstName: '',
     lastName: '',
@@ -35,6 +36,42 @@ export function PersonalInfo() {
   const textColor = useColorModeValue('gray.700', 'gray.100');
   const placeholderColor = useColorModeValue('gray.500', 'gray.400');
   const instructionTextColor = useColorModeValue('gray.600', 'gray.300');
+  
+  // Pre-populate name fields for Google OAuth users
+  useEffect(() => {
+    if (signupData.signupMethod === 'google' && user && (!signupData.firstName || !signupData.lastName)) {
+      let firstName = '';
+      let lastName = '';
+      
+      // Try to get name from user metadata first
+      if (user.user_metadata?.full_name) {
+        const nameParts = user.user_metadata.full_name.split(' ');
+        firstName = nameParts[0] || '';
+        lastName = nameParts.slice(1).join(' ') || '';
+      } else if (user.user_metadata?.name) {
+        const nameParts = user.user_metadata.name.split(' ');
+        firstName = nameParts[0] || '';
+        lastName = nameParts.slice(1).join(' ') || '';
+      }
+      
+      // If no name from metadata, try from identities (Google provider)
+      if (!firstName && user.identities && user.identities.length > 0) {
+        const googleIdentity = user.identities.find((identity: any) => identity.provider === 'google');
+        if (googleIdentity?.identity_data) {
+          firstName = googleIdentity.identity_data.given_name || '';
+          lastName = googleIdentity.identity_data.family_name || '';
+        }
+      }
+      
+      // Update signup data with extracted names
+      if (firstName || lastName) {
+        updateSignupData({
+          firstName: firstName || signupData.firstName,
+          lastName: lastName || signupData.lastName,
+        });
+      }
+    }
+  }, [signupData.signupMethod, user, signupData.firstName, signupData.lastName, updateSignupData]);
   
   // Handle first name change
   const handleFirstNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {

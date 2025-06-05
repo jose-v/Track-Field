@@ -21,8 +21,48 @@ import { supabase } from '../../lib/supabase';
 import { format } from 'date-fns';
 
 const HeroSection = () => {
-  // Use theme accent color
-  const accentColor = '#FFD204';
+  const { user } = useAuth();
+  const { profile: displayProfile, displayName } = useProfileDisplay();
+  const [wordIndex, setWordIndex] = useState(0);
+  const [globalStats, setGlobalStats] = useState({
+    totalUsers: 0,
+    totalWorkouts: 0,
+    totalMeets: 0
+  });
+  const [coachStats, setCoachStats] = useState({
+    totalAthletes: 0,
+    upcomingMeets: []
+  });
+  const [athleteStats, setAthleteStats] = useState({
+    coachCount: null as number | null,
+    upcomingMeets: [] as any[]
+  });
+
+  // Colors
+  const accentColor = useColorModeValue('yellow.400', 'yellow.300');
+
+  // Helper function to determine if it's a first-time user
+  const isFirstTimeUser = (): boolean => {
+    if (!user?.created_at) return false;
+    
+    const createdAt = new Date(user.created_at);
+    const now = new Date();
+    const timeDiff = now.getTime() - createdAt.getTime();
+    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+    
+    // Consider it first-time if account was created within the last day
+    return daysDiff <= 1;
+  };
+
+  // Helper function to get the appropriate welcome message
+  const getWelcomeMessage = (): string => {
+    const firstName = displayName !== 'User' ? displayName.split(' ')[0] : '';
+    const firstTimeMessage = `Welcome${firstName ? `, ${firstName}` : ''}! Begin your journey to athletic excellence.`;
+    const returningMessage = `Welcome back${firstName ? `, ${firstName}` : ''}! Continue your journey to athletic excellence.`;
+    
+    return isFirstTimeUser() ? firstTimeMessage : returningMessage;
+  };
+
   // List of words for the rotating animation
   const rotatingWords = [
     "Athletic",
@@ -32,11 +72,7 @@ const HeroSection = () => {
     "Winning",
     "Elite"
   ];
-  const [wordIndex, setWordIndex] = useState(0);
-  const { user } = useAuth();
-  const { profile } = useProfile(); // Keep this for role checking in stats
-  const { displayName } = useProfileDisplay(); // Use this for display
-  
+
   // State for contextual statistics
   const [upcomingMeets, setUpcomingMeets] = useState<any[]>([]);
   const [athleteCount, setAthleteCount] = useState<number | null>(null);
@@ -63,14 +99,14 @@ const HeroSection = () => {
     if (!user) {
       // For logged-out users, fetch global statistics
       fetchGlobalStats();
-    } else if (profile?.role === 'coach') {
+    } else if (displayProfile?.role === 'coach') {
       // For coaches, fetch their athletes and upcoming meets
       fetchCoachStats();
-    } else if (profile?.role === 'athlete') {
+    } else if (displayProfile?.role === 'athlete') {
       // For athletes, fetch their upcoming meets and personal stats
       fetchAthleteStats();
     }
-  }, [user, profile]);
+  }, [user, displayProfile]);
 
   // Fetch global user statistics for logged-out users
   const fetchGlobalStats = async () => {
@@ -235,7 +271,7 @@ const HeroSection = () => {
     }
 
     // For athletes, show workout and stats focused actions
-    if (profile?.role === 'athlete') {
+    if (displayProfile?.role === 'athlete') {
       return (
         <>
           <Button
@@ -271,7 +307,7 @@ const HeroSection = () => {
     }
 
     // For coaches, show athlete and team management actions
-    if (profile?.role === 'coach') {
+    if (displayProfile?.role === 'coach') {
       return (
         <>
           <Button
@@ -362,7 +398,7 @@ const HeroSection = () => {
     }
 
     // For coaches, show athlete count and upcoming meets
-    if (profile?.role === 'coach') {
+    if (displayProfile?.role === 'coach') {
       return (
         <>
           <Box bg="whiteAlpha.200" px={6} py={3} borderRadius="lg" minW="180px">
@@ -396,7 +432,7 @@ const HeroSection = () => {
     }
 
     // For athletes, show coach count and upcoming meets
-    if (profile?.role === 'athlete') {
+    if (displayProfile?.role === 'athlete') {
       return (
         <>
           <Box bg="whiteAlpha.200" px={6} py={3} borderRadius="lg" minW="180px">
@@ -556,9 +592,7 @@ const HeroSection = () => {
               opacity="0"
               lineHeight="1.8"
             >
-              {user 
-                ? `Welcome back${displayName !== 'User' ? `, ${displayName.split(' ')[0]}` : ''}! Continue your journey to athletic excellence.`
-                : 'Join the ultimate platform for track and field athletes. Track your progress, connect with coaches, and transform your training into championship performance.'}
+              {getWelcomeMessage()}
             </Text>
             <Stack 
               direction={{ base: 'column', sm: 'row' }} 

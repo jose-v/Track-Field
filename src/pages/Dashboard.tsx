@@ -32,7 +32,6 @@ import {
   ExerciseExecutionModal,
   MonthlyPlanAssignments
 } from '../components'
-import { ProfileDebugger } from '../components/ProfileDebugger'
 import { supabase } from '../lib/supabase'
 import TodayWorkoutsCard from '../components/TodayWorkoutsCard'
 import usePageClass from '../hooks/usePageClass'
@@ -560,6 +559,25 @@ export function Dashboard() {
     return 'Athlete';
   };
 
+  // Helper function to determine if it's a first-time user
+  const isFirstTimeUser = (): boolean => {
+    if (!user?.created_at) return false;
+    
+    const createdAt = new Date(user.created_at);
+    const now = new Date();
+    const timeDiff = now.getTime() - createdAt.getTime();
+    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+    
+    // Consider it first-time if account was created within the last day
+    return daysDiff <= 1;
+  };
+
+  // Helper function to get the appropriate welcome message
+  const getWelcomeMessage = (): string => {
+    const firstName = getFirstName();
+    return isFirstTimeUser() ? `Welcome, ${firstName}` : `Welcome back, ${firstName}`;
+  };
+
   return (
     <Box 
       pt={0} 
@@ -583,7 +601,7 @@ export function Dashboard() {
         <Box w="100%" mb={8} pt={{ base: 4, md: 0 }}>
           {/* Mobile Header using reusable component */}
           <MobileHeader
-            title={`Welcome back, ${getFirstName()}`}
+            title={getWelcomeMessage()}
             subtitle={profile?.role === 'athlete' ? 'Athlete Dashboard' : 'Dashboard'}
             isLoading={profileLoading}
           />
@@ -607,7 +625,7 @@ export function Dashboard() {
                       mb={1}
                       color={textColor}
                     >
-                      Welcome back, {getFirstName()}
+                      {getWelcomeMessage()}
                     </Heading>
                   </Skeleton>
                   <Skeleton isLoaded={!profileLoading} fadeDuration={1}>

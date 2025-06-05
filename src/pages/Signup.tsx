@@ -22,7 +22,7 @@ const stepLabels = [
 // Wrapper component to access context
 function SignupContent() {
   const { currentStep, setCurrentStep, totalSteps, signupData, updateSignupData, resetSignupData } = useSignup();
-  const { signUp } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
   
@@ -32,6 +32,36 @@ function SignupContent() {
   const headerBg = useColorModeValue('#ecc94b', 'blue.600');
   const headerTextColor = useColorModeValue('gray.800', 'white');
   const pageBg = useColorModeValue('gray.50', 'gray.900');
+  
+  // Check for OAuth return and handle it
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isOAuthReturn = urlParams.has('oauth_return');
+    
+    if (isOAuthReturn && user) {
+      // User returned from Google OAuth, set them up for signup completion
+      updateSignupData({ 
+        signupMethod: 'google',
+        termsAccepted: true,
+        termsAcceptedAt: new Date().toISOString()
+      });
+      
+      // Move to role selection step (step 2)
+      setCurrentStep(2);
+      
+      // Clean up the URL
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+      
+      toast({
+        title: 'Google Sign-in Successful!',
+        description: 'Please complete your profile setup to continue.',
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  }, [user, updateSignupData, setCurrentStep, toast]);
   
   // Navigate to previous step
   const handlePrevStep = () => {
@@ -47,19 +77,48 @@ function SignupContent() {
     }
   };
   
-  // Handle final submission (only for email signup)
+  // Handle final submission
   const handleSubmit = async () => {
-    // Google OAuth users are already authenticated, so redirect them
+    // For Google OAuth users, update their profile with role and personal info
     if (signupData.signupMethod === 'google') {
-      toast({
-        title: 'Setup Complete!',
-        description: 'Your profile has been configured. You can now access your dashboard.',
-        status: 'success',
-        duration: 5000,
-        isClosable: true,
-      });
-      navigate('/dashboard');
-      return;
+      try {
+        // Import the function to update OAuth user profile
+        const { updateOAuthUserProfile } = await import('../services/authService');
+        
+        const { error } = await updateOAuthUserProfile(user!, {
+          role: signupData.role!,
+          firstName: signupData.firstName,
+          lastName: signupData.lastName,
+          phone: signupData.phone,
+        });
+        
+        if (error) {
+          console.error('Failed to update OAuth user profile:', error);
+          throw error;
+        }
+        
+        toast({
+          title: 'Setup Complete!',
+          description: 'Your profile has been configured. You can now access your dashboard.',
+          status: 'success',
+          duration: 5000,
+          isClosable: true,
+        });
+        
+        // Clear signup data and navigate to dashboard
+        resetSignupData();
+        navigate('/dashboard');
+        return;
+      } catch (error: any) {
+        toast({
+          title: 'Error Updating Profile',
+          description: error.message || 'Failed to update your profile. Please try again.',
+          status: 'error',
+          duration: 7000,
+          isClosable: true,
+        });
+        return;
+      }
     }
 
     // For email signup, create the account

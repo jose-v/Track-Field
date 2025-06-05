@@ -346,6 +346,26 @@ export function CoachDashboard() {
 
   const welcomeName = displayName ? getLastNameFromDisplayName(displayName) : (profile?.last_name || '');
 
+  // Helper function to determine if it's a first-time user
+  const isFirstTimeUser = (): boolean => {
+    if (!user?.created_at) return false;
+    
+    const createdAt = new Date(user.created_at);
+    const now = new Date();
+    const timeDiff = now.getTime() - createdAt.getTime();
+    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+    
+    // Consider it first-time if account was created within the last day
+    return daysDiff <= 1;
+  };
+
+  // Helper function to get the appropriate welcome message
+  const getWelcomeMessage = (): string => {
+    return isFirstTimeUser() 
+      ? `Welcome, Coach ${welcomeName}! Here's your mission control.`
+      : `Welcome back, Coach ${welcomeName}! Here's your mission control.`;
+  };
+
   return (
     <Box py={8}>
       {/* Header Section */}
@@ -353,7 +373,7 @@ export function CoachDashboard() {
         <Box flex={1}>
           <Heading mb={2}>Coach Dashboard</Heading>
           <Text color={subtitleColor} mb={4}>
-            Welcome back, Coach {welcomeName}! Here's your mission control.
+            {getWelcomeMessage()}
           </Text>
           
           {/* Quick Actions integrated into header */}
