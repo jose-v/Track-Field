@@ -13,9 +13,11 @@ import {
   useColorModeValue,
   Button,
   Divider,
-  SimpleGrid
+  SimpleGrid,
+  IconButton,
+  Tooltip
 } from '@chakra-ui/react'
-import { FaCloudSun, FaCloudRain, FaSnowflake, FaSun, FaCloudMeatball, FaBolt, FaMapMarkerAlt, FaCalendarDay, FaChevronRight } from 'react-icons/fa'
+import { FaCloudSun, FaCloudRain, FaSnowflake, FaSun, FaCloudMeatball, FaBolt, FaMapMarkerAlt, FaCalendarDay, FaChevronRight, FaThermometerHalf } from 'react-icons/fa'
 import React, { useState, useEffect } from 'react'
 
 // OpenWeather API configuration
@@ -31,6 +33,7 @@ interface ForecastDay {
   condition: string;
   description: string;
   icon: string;
+  rainProbability: number; // Rain probability as percentage
 }
 
 interface WeatherCardProps {
@@ -60,6 +63,7 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
   const [isLoading, setIsLoading] = useState(initialLoading)
   const [hasError, setHasError] = useState(false)
   const [showForecast, setShowForecast] = useState(false)
+  const [isCelsius, setIsCelsius] = useState(false) // Temperature unit toggle
   const toast = useToast()
 
   const headerGradient = useColorModeValue(
@@ -72,6 +76,17 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
   const subtitleColor = useColorModeValue('gray.500', 'gray.400');
   const cardShadow = useColorModeValue('none', 'md');
 
+  // Helper function to convert Fahrenheit to Celsius
+  const convertTemp = (tempF: number): number => {
+    return isCelsius ? Math.round((tempF - 32) * 5/9) : Math.round(tempF);
+  };
+
+  // Helper function to get temperature display
+  const getTempDisplay = (temp: string | number): string => {
+    const tempNum = typeof temp === 'string' ? parseFloat(temp) : temp;
+    return `${convertTemp(tempNum)}°${isCelsius ? 'C' : 'F'}`;
+  };
+
   // Helper function to get the appropriate weather icon based on condition code
   const getWeatherIcon = (condition: string) => {
     const c = (condition || '').toLowerCase();
@@ -81,6 +96,14 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
     if (c.includes('cloud')) return FaCloudSun;
     if (c.includes('thunder') || c.includes('storm')) return FaBolt;
     return FaCloudMeatball;
+  };
+
+  // Helper function to get rain probability color
+  const getRainColor = (probability: number) => {
+    if (probability >= 70) return 'blue.600';
+    if (probability >= 40) return 'blue.500';
+    if (probability >= 20) return 'blue.400';
+    return 'gray.400';
   };
 
   // Helper function to get coordinates for a city
@@ -180,7 +203,8 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
               low: Math.round(day.temp.min),
               condition: day.weather[0].main,
               description: day.weather[0].description,
-              icon: day.weather[0].icon
+              icon: day.weather[0].icon,
+              rainProbability: Math.round((day.pop || 0) * 100) // Convert to percentage
             };
           });
           setForecast(forecastData);
@@ -227,97 +251,146 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
 
   return (
     <Skeleton isLoaded={!isLoading}>
-      <Card 
-        borderRadius="lg" 
-        overflow="hidden" 
-        boxShadow={cardShadow}
-        bg={cardBg}
-        borderColor={borderColor}
-        m={0}
-        p={0}
-        minH={showForecast ? "400px" : "auto"}
-      >
-        <Box
-          h={{ base: "100px", md: "120px" }} 
-          bg={headerGradient}
-          position="relative"
-          overflow="hidden"
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          px={6}
+      <Box position="relative">
+        <Card 
+          borderRadius="lg" 
+          overflow="hidden" 
+          boxShadow={cardShadow}
+          bg={cardBg}
+          borderColor={borderColor}
+          m={0}
+          p={0}
         >
-          {/* Weather Icon - Left aligned */}
-          <Box display="flex" alignItems="center" justifyContent="flex-start">
-            <Icon 
-              as={WeatherIcon} 
-              color="white" 
-              boxSize={{ base: 14, md: 20 }}
-            />
-          </Box>
-          
-          {/* Weather Text Content - Right aligned */}
-          <Box textAlign="right">
-            <Text 
-              fontSize={{ base: "md", md: "xl" }} 
-              fontWeight="medium" 
-              textAlign="right" 
-              mb={-1}
-            >
-              {weather.condition}
-            </Text>
-            <Text 
-              fontSize={{ base: "2xl", md: "4xl" }} 
-              fontWeight="bold" 
-              textAlign="right" 
-              lineHeight="1"
-            >
-              {weather.temp}°
-            </Text>
-            <Flex direction="column" mt={1} alignItems="flex-end">
-              <Text 
-                fontWeight="medium" 
-                fontSize={{ base: "xs", md: "sm" }}
-                textAlign="right"
-              >
-                {location}
-              </Text>
-              <Text 
-                mt={1} 
-                color="blackAlpha.800" 
-                fontSize={{ base: "xs", md: "sm" }} 
-                textAlign="right"
-              >
-                {dateStr}
-              </Text>
-            </Flex>
-          </Box>
-        </Box>
-
-        {/* Forecast Toggle Section */}
-        {forecast.length > 0 && (
-          <CardBody pt={4} pb={2}>
-            <Button
-              size="sm"
-              variant="ghost"
-              leftIcon={<Icon as={FaCalendarDay} />}
-              rightIcon={<Icon as={FaChevronRight} transform={showForecast ? 'rotate(90deg)' : 'rotate(0deg)'} transition="transform 0.2s" />}
-              onClick={() => setShowForecast(!showForecast)}
-              width="full"
-              justifyContent="space-between"
-              fontWeight="medium"
-              color={textColor}
-              _hover={{ bg: useColorModeValue('gray.50', 'gray.700') }}
-            >
-              {showForecast ? 'Hide Forecast' : '5-Day Forecast'}
-            </Button>
+          <Box
+            h={{ base: "100px", md: "120px" }} 
+            bg={headerGradient}
+            position="relative"
+            overflow="hidden"
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            px={6}
+          >
+            {/* Weather Icon - Left aligned */}
+            <Box display="flex" alignItems="center" justifyContent="flex-start">
+              <Icon 
+                as={WeatherIcon} 
+                color="white" 
+                boxSize={{ base: 14, md: 20 }}
+              />
+            </Box>
             
-            {showForecast && (
-              <>
-                <Divider my={3} />
+            {/* Weather Text Content - Right aligned */}
+            <Box textAlign="right">
+              <Text 
+                fontSize={{ base: "md", md: "xl" }} 
+                fontWeight="medium" 
+                textAlign="right" 
+                mb={-1}
+              >
+                {weather.condition}
+              </Text>
+              <Text 
+                fontSize={{ base: "2xl", md: "4xl" }} 
+                fontWeight="bold" 
+                textAlign="right" 
+                lineHeight="1"
+              >
+                {getTempDisplay(weather.temp)}
+              </Text>
+              <Flex direction="column" mt={1} alignItems="flex-end">
+                <Text 
+                  fontWeight="medium" 
+                  fontSize={{ base: "xs", md: "sm" }}
+                  textAlign="right"
+                >
+                  {location}
+                </Text>
+                <Text 
+                  mt={1} 
+                  color="blackAlpha.800" 
+                  fontSize={{ base: "xs", md: "sm" }} 
+                  textAlign="right"
+                >
+                  {dateStr}
+                </Text>
+              </Flex>
+            </Box>
+          </Box>
+
+          {/* Forecast Toggle Button */}
+          {forecast.length > 0 && (
+            <CardBody pt={4} pb={4}>
+              <Button
+                size="sm"
+                variant="ghost"
+                leftIcon={
+                  <Tooltip label={`Switch to ${isCelsius ? 'Fahrenheit' : 'Celsius'}`}>
+                    <Box
+                      as="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsCelsius(!isCelsius);
+                      }}
+                      p={1}
+                      borderRadius="md"
+                      _hover={{ bg: useColorModeValue('gray.100', 'gray.600') }}
+                      transition="background 0.2s"
+                    >
+                      <Icon as={FaThermometerHalf} />
+                    </Box>
+                  </Tooltip>
+                }
+                rightIcon={<Icon as={FaChevronRight} transform={showForecast ? 'rotate(90deg)' : 'rotate(0deg)'} transition="transform 0.2s" />}
+                onClick={() => setShowForecast(!showForecast)}
+                width="full"
+                justifyContent="space-between"
+                fontWeight="medium"
+                color={textColor}
+                _hover={{ bg: useColorModeValue('gray.50', 'gray.700') }}
+              >
+                {showForecast ? 'Hide Forecast' : '5-Day Forecast'}
+              </Button>
+            </CardBody>
+          )}
+        </Card>
+
+        {/* Floating Forecast Overlay */}
+        {forecast.length > 0 && showForecast && (
+          <Box
+            position="absolute"
+            top="100%"
+            left={0}
+            right={0}
+            zIndex={1000}
+            mt={2}
+          >
+            <Card
+              bg={cardBg}
+              borderColor={borderColor}
+              borderWidth="1px"
+              borderRadius="lg"
+              boxShadow={useColorModeValue('lg', 'dark-lg')}
+              overflow="hidden"
+            >
+              <CardBody p={4}>
+                {/* Forecast Header */}
+                <HStack justify="space-between" mb={3} fontSize="xs" fontWeight="bold" color={subtitleColor} textTransform="uppercase">
+                  <Text flex={1}>Day</Text>
+                  <Text textAlign="center" minW="60px">Rain</Text>
+                  <VStack spacing={0} minW="80px">
+                    <HStack spacing={4}>
+                      <Text fontSize="xs">Max</Text>
+                      <Text fontSize="xs">Min</Text>
+                    </HStack>
+                  </VStack>
+                </HStack>
+                <Divider mb={3} />
+                
                 <VStack spacing={3} align="stretch">
                   {forecast.map((day, index) => (
                     <HStack key={day.date} justify="space-between" py={2}>
+                      {/* Day and Weather Info */}
                       <HStack spacing={3} flex={1}>
                         <Icon 
                           as={getWeatherIcon(day.condition)} 
@@ -333,22 +406,48 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
                           </Text>
                         </VStack>
                       </HStack>
-                      <HStack spacing={2}>
+                      
+                      {/* Rain Probability */}
+                      <Box textAlign="center" minW="60px">
+                        <Text 
+                          fontSize="sm" 
+                          fontWeight="medium" 
+                          color={getRainColor(day.rainProbability)}
+                        >
+                          {day.rainProbability}%
+                        </Text>
+                      </Box>
+                      
+                      {/* Temperature Range */}
+                      <HStack spacing={4} justify="flex-end" minW="80px">
                         <Text fontSize="sm" fontWeight="bold" color={textColor}>
-                          {day.high}°
+                          {getTempDisplay(day.high)}
                         </Text>
                         <Text fontSize="sm" color={subtitleColor}>
-                          {day.low}°
+                          {getTempDisplay(day.low)}
                         </Text>
                       </HStack>
                     </HStack>
                   ))}
                 </VStack>
-              </>
-            )}
-          </CardBody>
+              </CardBody>
+            </Card>
+          </Box>
         )}
-      </Card>
+
+        {/* Backdrop overlay to close forecast when clicking outside */}
+        {showForecast && (
+          <Box
+            position="fixed"
+            top={0}
+            left={0}
+            right={0}
+            bottom={0}
+            zIndex={999}
+            onClick={() => setShowForecast(false)}
+          />
+        )}
+      </Box>
     </Skeleton>
   )
 }
