@@ -1360,6 +1360,7 @@ export const api = {
           )
         `)
         .eq('coach_id', coachId)
+        .eq('approval_status', 'approved') // Only get approved relationships
       
       if (error) throw error
       
@@ -1432,6 +1433,7 @@ export const api = {
         .from('coach_athletes')
         .select('athlete_id')
         .eq('coach_id', coachId)
+        .eq('approval_status', 'approved') // Only get approved relationships
       
       if (error) throw error
       return data.map(row => row.athlete_id)

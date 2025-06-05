@@ -33,30 +33,31 @@ export function useCoachAthletes() {
         throw new Error('User not authenticated');
       }
 
-      console.log(`[useCoachAthletes] Fetching athletes for coach ${user.id}...`);
+      console.log(`[useCoachAthletes] Fetching APPROVED athletes for coach ${user.id}...`);
 
-      // First, get all athlete IDs for this coach from the coach_athletes table
+      // First, get all APPROVED athlete IDs for this coach from the coach_athletes table
       const { data: coachAthleteData, error: relationError } = await supabase
         .from('coach_athletes')
         .select('athlete_id, id')
-        .eq('coach_id', user.id);
+        .eq('coach_id', user.id)
+        .eq('approval_status', 'approved'); // Only get approved relationships
 
       if (relationError) {
         console.error('[useCoachAthletes] Error fetching coach-athlete relationships:', relationError);
         throw relationError;
       }
 
-      console.log('[useCoachAthletes] Coach-athlete relationships found:', coachAthleteData);
+      console.log('[useCoachAthletes] Approved coach-athlete relationships found:', coachAthleteData);
       
-      // If there are no athletes assigned to this coach, return empty array
+      // If there are no approved athletes assigned to this coach, return empty array
       if (!coachAthleteData || coachAthleteData.length === 0) {
-        console.log('[useCoachAthletes] No athletes found for this coach');
+        console.log('[useCoachAthletes] No approved athletes found for this coach');
         return [];
       }
 
       // Extract athlete IDs
       const athleteIds = coachAthleteData.map(relation => relation.athlete_id);
-      console.log('[useCoachAthletes] Athlete IDs to fetch:', athleteIds);
+      console.log('[useCoachAthletes] Approved athlete IDs to fetch:', athleteIds);
 
       // Get athlete data for these IDs
       const { data: athletesData, error: athletesError } = await supabase
@@ -140,7 +141,7 @@ export function useCoachAthletes() {
         };
       });
       
-      console.log('[useCoachAthletes] Final combined athlete data:', combinedData);
+      console.log('[useCoachAthletes] Final combined APPROVED athlete data:', combinedData);
       return combinedData;
     },
     enabled: !!user?.id,

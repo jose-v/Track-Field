@@ -87,11 +87,12 @@ export const useMyMeets = (): UseMyMeetsReturn => {
   // Fetch coaches for this athlete
   const fetchCoaches = async () => {
     try {
-      // First get the coach IDs for this athlete
+      // First get the coach IDs for this athlete (only approved relationships)
       const { data: athleteCoachData, error: relationError } = await supabase
         .from('coach_athletes')
         .select('coach_id')
-        .eq('athlete_id', user?.id);
+        .eq('athlete_id', user?.id)
+        .eq('approval_status', 'approved'); // Only get approved relationships
       
       if (relationError) throw relationError;
       

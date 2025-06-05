@@ -42,18 +42,19 @@ export const useCoachMeets = (): UseCoachMeetsReturn => {
       setRefreshing(true);
       console.log('Fetching coach meets for athlete:', user?.id);
       
-      // First get the athlete's coaches
+      // First get the athlete's coaches (only approved relationships)
       const { data: coachData, error: coachError } = await supabase
         .from('coach_athletes')
         .select('coach_id')
-        .eq('athlete_id', user?.id);
+        .eq('athlete_id', user?.id)
+        .eq('approval_status', 'approved'); // Only get approved relationships
       
       console.log('Coach data:', coachData, 'Error:', coachError);
       
       if (coachError) throw coachError;
       
       if (!coachData || coachData.length === 0) {
-        console.log('No coaches found for this athlete');
+        console.log('No approved coaches found for this athlete');
         setCoachMeets([]);
         setDebugInfo({ coachCount: 0, meetCount: 0, eventCount: 0, lastError: null });
         setLoading(false);

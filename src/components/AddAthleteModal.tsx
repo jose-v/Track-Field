@@ -11,36 +11,21 @@ import {
   FormLabel,
   Input,
   VStack,
-  InputGroup,
-  InputLeftElement,
-  Icon,
-  Checkbox,
-  HStack,
-  Avatar,
   Text,
-  Spinner,
   useToast,
   Box,
   Heading,
-  Divider,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
   FormErrorMessage,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
 } from '@chakra-ui/react';
-import { useState, useEffect } from 'react';
-import { FaSearch, FaPlus, FaUserPlus } from 'react-icons/fa';
+import { useState } from 'react';
+import { FaEnvelope } from 'react-icons/fa';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
-
-interface Athlete {
-  id: string;
-  name: string;
-  avatar_url?: string;
-}
 
 interface AddAthleteModalProps {
   isOpen: boolean;
@@ -49,134 +34,41 @@ interface AddAthleteModalProps {
 
 const AddAthleteModal = ({ isOpen, onClose }: AddAthleteModalProps) => {
   const { user } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [athletes, setAthletes] = useState<Athlete[]>([]);
-  const [filteredAthletes, setFilteredAthletes] = useState<Athlete[]>([]);
-  const [selectedAthletes, setSelectedAthletes] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [email, setEmail] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const toast = useToast();
   const queryClient = useQueryClient();
-  
-  // New athlete form fields
-  const [newAthleteFirstName, setNewAthleteFirstName] = useState('');
-  const [newAthleteLastName, setNewAthleteLastName] = useState('');
-  const [newAthleteEmail, setNewAthleteEmail] = useState('');
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [isCreatingAthlete, setIsCreatingAthlete] = useState(false);
 
-  // Fetch available athletes
-  useEffect(() => {
-    if (isOpen) {
-      fetchAvailableAthletes();
-    }
-  }, [isOpen]);
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
-  // Handle search filtering
-  useEffect(() => {
-    if (searchTerm.trim() === '') {
-      setFilteredAthletes(athletes);
-    } else {
-      const filtered = athletes.filter(athlete => 
-        athlete.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredAthletes(filtered);
-    }
-  }, [searchTerm, athletes]);
+  const handleReset = () => {
+    setEmail('');
+    setFormErrors({});
+  };
 
-  const fetchAvailableAthletes = async () => {
-    if (!user?.id) {
-      setErrorMessage('User not authenticated');
+  const handleClose = () => {
+    handleReset();
+    onClose();
+  };
+
+  const handleSendInvitation = async () => {
+    if (!user?.id || !email.trim()) return;
+    
+    // Validate email
+    if (!validateEmail(email.trim())) {
+      setFormErrors({ email: 'Please enter a valid email address' });
       return;
     }
     
     try {
-      setIsLoading(true);
-      setErrorMessage('');
+      setIsSending(true);
+      setFormErrors({});
       
-      console.log('Fetching athletes for coach ID:', user.id);
-      
-      // Get the IDs of athletes already coached by this coach
-      const { data: existingRelations, error: relationError } = await supabase
-        .from('coach_athletes')
-        .select('athlete_id')
-        .eq('coach_id', user.id);
-      
-      if (relationError) {
-        console.error('Error fetching coach-athlete relationships:', relationError);
-        setErrorMessage('Failed to fetch coach-athlete relationships');
-        throw relationError;
-      }
-      
-      console.log('Existing coach-athlete relationships:', existingRelations);
-      const existingAthleteIds = existingRelations?.map(rel => rel.athlete_id) || [];
-      console.log('Existing athlete IDs:', existingAthleteIds);
-      
-      // Get all athletes
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url, role');
-      
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-        setErrorMessage('Failed to fetch athlete profiles');
-        throw profilesError;
-      }
-      
-      console.log('All profiles fetched:', profilesData);
-      
-      // Find all athletes (even if role is not explicitly set to 'athlete')
-      const athleteProfiles = profilesData.filter(profile => profile.role === 'athlete' || !profile.role);
-      console.log('Filtered athlete profiles:', athleteProfiles);
-      
-      // Filter out athletes already coached by this coach
-      const availableAthletes = athleteProfiles
-        .filter(profile => !existingAthleteIds.includes(profile.id))
-        .map(profile => ({
-          id: profile.id,
-          name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unnamed Athlete',
-          avatar_url: profile.avatar_url
-        }));
-      
-      console.log('Available athletes to add:', availableAthletes);
-      
-      setAthletes(availableAthletes);
-      setFilteredAthletes(availableAthletes);
-      
-      // If no athletes are available, set an informative message
-      if (availableAthletes.length === 0) {
-        setErrorMessage('No new athletes available to add - you may have already added all athletes');
-      }
-    } catch (error) {
-      console.error('Error fetching available athletes:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load available athletes',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleToggleAthlete = (athleteId: string) => {
-    setSelectedAthletes(prev => {
-      if (prev.includes(athleteId)) {
-        return prev.filter(id => id !== athleteId);
-      } else {
-        return [...prev, athleteId];
-      }
-    });
-  };
-
-  const handleAddAthletes = async () => {
-    if (!user?.id || selectedAthletes.length === 0) return;
-    
-    try {
-      setIsSaving(true);
+      const athleteEmail = email.trim().toLowerCase();
       
       // Get coach info for notification
       const { data: coachData } = await supabase
@@ -189,362 +81,318 @@ const AddAthleteModal = ({ isOpen, onClose }: AddAthleteModalProps) => {
         ? `${coachData.first_name || ''} ${coachData.last_name || ''}`.trim() 
         : 'Your coach';
       
-      // Create coach-athlete relationship requests with pending status
-      const relationships = selectedAthletes.map(athleteId => ({
-        coach_id: user.id,
-        athlete_id: athleteId,
-        created_at: new Date().toISOString(),
-        requested_at: new Date().toISOString(),
-        approval_status: 'pending'
-      }));
+      // First check if an athlete with this email already exists
+      const { data: existingProfile, error: profileCheckError } = await supabase
+        .from('profiles')
+        .select('id, role')
+        .eq('email', athleteEmail)
+        .single();
       
-      const { error } = await supabase
-        .from('coach_athletes')
-        .insert(relationships);
+      if (profileCheckError && profileCheckError.code !== 'PGRST116') {
+        // PGRST116 means no rows found, which is fine
+        throw profileCheckError;
+      }
       
-      if (error) throw error;
+      let athleteId: string;
+      let isNewUser = false;
       
-      // Send notifications to athletes about the request
-      for (const athleteId of selectedAthletes) {
-        try {
-          // Get athlete's email or other contact info if needed
-          const { data: athleteData } = await supabase
-            .from('profiles')
-            .select('email, first_name, last_name')
-            .eq('id', athleteId)
-            .single();
-            
-          if (athleteData?.email) {
-            // Insert notification for the athlete
-            await supabase
-              .from('notifications')
-              .insert({
-                user_id: athleteId,
-                title: 'New Coach Request',
-                message: `Coach ${coachName} wants to add you to their team.`,
-                type: 'coach_request',
-                metadata: { coach_id: user.id },
-                created_at: new Date().toISOString(),
-                is_read: false
-              });
-              
-            // In a real app, you would send an email here if needed
-            console.log(`Notification sent to ${athleteData.email}`);
+      if (existingProfile) {
+        // Athlete already exists
+        athleteId = existingProfile.id;
+        
+        // Check if there's already a relationship (pending, approved, or declined)
+        const { data: existingRelation, error: relationCheckError } = await supabase
+          .from('coach_athletes')
+          .select('approval_status')
+          .eq('coach_id', user.id)
+          .eq('athlete_id', athleteId)
+          .single();
+        
+        if (relationCheckError && relationCheckError.code !== 'PGRST116') {
+          throw relationCheckError;
+        }
+        
+        if (existingRelation) {
+          // Relationship already exists
+          const status = existingRelation.approval_status;
+          if (status === 'pending') {
+            toast({
+              title: 'Invitation Already Sent',
+              description: `You already have a pending invitation to ${athleteEmail}. Please wait for them to respond.`,
+              status: 'warning',
+              duration: 5000,
+              isClosable: true,
+            });
+            return;
+          } else if (status === 'approved') {
+            toast({
+              title: 'Athlete Already on Team',
+              description: `${athleteEmail} is already on your team.`,
+              status: 'info',
+              duration: 5000,
+              isClosable: true,
+            });
+            return;
+          } else if (status === 'declined') {
+            toast({
+              title: 'Previous Invitation Declined',
+              description: `${athleteEmail} previously declined your invitation. You cannot send another invitation at this time.`,
+              status: 'warning',
+              duration: 5000,
+              isClosable: true,
+            });
+            return;
           }
-        } catch (notificationError) {
-          console.error('Error sending notification:', notificationError);
-          // Continue with other athletes even if one notification fails
+        }
+        
+        // Make sure they have athlete role
+        if (existingProfile.role !== 'athlete') {
+          await supabase
+            .from('profiles')
+            .update({ role: 'athlete' })
+            .eq('id', athleteId);
+        }
+        
+        // Check if athlete record exists, create if not
+        const { data: athleteRecord, error: athleteCheckError } = await supabase
+          .from('athletes')
+          .select('id')
+          .eq('id', athleteId)
+          .single();
+        
+        if (athleteCheckError && athleteCheckError.code === 'PGRST116') {
+          // Athlete record doesn't exist, create it
+          await supabase
+            .from('athletes')
+            .insert({
+              id: athleteId,
+              events: []
+            });
+        }
+      } else {
+        // User doesn't exist - send Supabase invitation email
+        isNewUser = true;
+        
+        // Use Supabase's built-in invitation system
+        const redirectTo = `${window.location.origin}/coach-invitation`;
+        
+        try {
+          // Try to send invitation using Supabase auth
+          const { data: inviteData, error: inviteError } = await supabase.auth.signUp({
+            email: athleteEmail,
+            password: crypto.randomUUID(), // Random password they'll reset
+            options: {
+              emailRedirectTo: redirectTo,
+              data: {
+                role: 'athlete',
+                invited_by_coach: user.id,
+                coach_name: coachName,
+                requires_password_reset: true
+              }
+            }
+          });
+
+          if (inviteError) {
+            // If user already exists in auth but not in profiles, handle gracefully
+            if (inviteError.message?.includes('already been registered')) {
+              // Try to handle the case where user exists in auth but not in our profiles table
+              console.warn('User exists in auth but not in profiles, handling manually');
+              
+              // Generate a new UUID for this case
+              athleteId = crypto.randomUUID();
+              
+              // Create the profile first
+              const { error: profileError } = await supabase
+                .from('profiles')
+                .insert({
+                  id: athleteId,
+                  email: athleteEmail,
+                  role: 'athlete',
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                });
+              
+              if (profileError) throw profileError;
+              
+              // Create the athlete record
+              const { error: athleteError } = await supabase
+                .from('athletes')
+                .insert({
+                  id: athleteId,
+                  events: []
+                });
+              
+              if (athleteError) throw athleteError;
+            } else {
+              throw inviteError;
+            }
+          } else {
+            // Successfully sent invitation
+            athleteId = inviteData.user?.id || crypto.randomUUID();
+            
+            // The user will be automatically created in the profiles table by our database triggers
+            // when they confirm their email, but we need to create the athlete record now
+            
+            // Wait a moment for potential triggers to run
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Create athlete record if it doesn't exist
+            const { error: athleteError } = await supabase
+              .from('athletes')
+              .upsert({
+                id: athleteId,
+                events: []
+              }, { 
+                onConflict: 'id',
+                ignoreDuplicates: true 
+              });
+            
+            if (athleteError) {
+              console.warn('Could not create athlete record immediately:', athleteError);
+              // This is not critical - the record can be created later when they sign up
+            }
+          }
+        } catch (inviteError) {
+          console.error('Invitation error:', inviteError);
+          throw new Error(`Failed to send invitation: ${inviteError.message}`);
         }
       }
       
-      // Invalidate the coach athletes query to refresh data
-      queryClient.invalidateQueries({ queryKey: ['coach-athletes', user.id] });
-      
-      toast({
-        title: 'Request Sent',
-        description: `Friend request sent to ${selectedAthletes.length} athlete(s). They will need to approve your request.`,
-        status: 'success',
-        duration: 5000,
-        isClosable: true,
-      });
-      
-      // Close the modal and reset state
-      onClose();
-      setSelectedAthletes([]);
-      setSearchTerm('');
-    } catch (error) {
-      console.error('Error sending athlete requests:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to send athlete requests',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-  
-  // Validate new athlete form
-  const validateNewAthleteForm = () => {
-    const errors: Record<string, string> = {};
-    
-    if (!newAthleteFirstName.trim()) {
-      errors.firstName = 'First name is required';
-    }
-    
-    if (!newAthleteLastName.trim()) {
-      errors.lastName = 'Last name is required';
-    }
-    
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-  
-  // Create a new athlete
-  const handleCreateAthlete = async () => {
-    if (!validateNewAthleteForm()) return;
-    if (!user?.id) {
-      toast({
-        title: 'Error',
-        description: 'You must be signed in to create an athlete',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-    
-    try {
-      setIsCreatingAthlete(true);
-      
-      // Create a UUID for the athlete
-      const athleteId = crypto.randomUUID();
-      
-      // First create the profile
-      const { error: profileError } = await supabase
-        .from('profiles')
+      // Create coach-athlete relationship with pending status
+      const { error: relationshipError } = await supabase
+        .from('coach_athletes')
         .insert({
-          id: athleteId,
-          first_name: newAthleteFirstName,
-          last_name: newAthleteLastName,
-          email: newAthleteEmail || null,
-          role: 'athlete',
+          coach_id: user.id,
+          athlete_id: athleteId,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          requested_at: new Date().toISOString(),
+          approval_status: 'pending'
         });
       
-      if (profileError) throw profileError;
+      if (relationshipError) throw relationshipError;
       
-      // Create the athlete record
-      const { error: athleteError } = await supabase
-        .from('athletes')
-        .insert({
-          id: athleteId,
-          events: []
-        });
-      
-      if (athleteError) throw athleteError;
-      
-      // Get coach info for the relationship
-      const { data: coachData } = await supabase
-        .from('profiles')
-        .select('first_name, last_name')
-        .eq('id', user.id)
-        .single();
-      
-      const coachName = coachData 
-        ? `${coachData.first_name || ''} ${coachData.last_name || ''}`.trim() 
-        : 'Your coach';
-      
-      // If email is provided, we'll send a request for approval
-      if (newAthleteEmail) {
-        // Create coach-athlete relationship with pending status
-        const { error: relationshipError } = await supabase
-          .from('coach_athletes')
-          .insert({
-            coach_id: user.id,
-            athlete_id: athleteId,
-            created_at: new Date().toISOString(),
-            requested_at: new Date().toISOString(),
-            approval_status: 'pending'
-          });
-        
-        if (relationshipError) throw relationshipError;
-        
-        // Create notification for the athlete
+      // Create notification for the athlete (only if they exist)
+      if (!isNewUser) {
         await supabase
           .from('notifications')
           .insert({
             user_id: athleteId,
             title: 'New Coach Request',
-            message: `Coach ${coachName} wants to add you to their team.`,
+            message: `${coachName} wants to add you to their team.`,
             type: 'coach_request',
             metadata: { coach_id: user.id },
             created_at: new Date().toISOString(),
             is_read: false
           });
-          
-        // Show success message with pending notice
-        toast({
-          title: 'Athlete Created',
-          description: `${newAthleteFirstName} ${newAthleteLastName} has been created and a request has been sent for them to approve you as their coach.`,
-          status: 'success',
-          duration: 5000,
-          isClosable: true,
-        });
-      } else {
-        // If no email, we'll auto-approve the relationship since this is likely a placeholder account
-        const { error: relationshipError } = await supabase
-          .from('coach_athletes')
-          .insert({
-            coach_id: user.id,
-            athlete_id: athleteId,
-            created_at: new Date().toISOString(),
-            requested_at: new Date().toISOString(),
-            approved_at: new Date().toISOString(),
-            approval_status: 'approved'
-          });
-        
-        if (relationshipError) throw relationshipError;
-        
-        // Show success message
-        toast({
-          title: 'Athlete Created',
-          description: `${newAthleteFirstName} ${newAthleteLastName} has been added to your team.`,
-          status: 'success',
-          duration: 3000,
-          isClosable: true,
-        });
       }
       
-      // Reset form and refetch
-      setNewAthleteFirstName('');
-      setNewAthleteLastName('');
-      setNewAthleteEmail('');
+      // Success message based on whether user exists or not
+      const successMessage = isNewUser 
+        ? `An invitation email has been sent to ${athleteEmail}. They will need to sign up and can then approve your coaching request.`
+        : `An invitation has been sent to ${athleteEmail}. They will receive a notification and can approve or decline your request.`;
       
-      // Invalidate the coach athletes query to refresh data
+      toast({
+        title: 'Invitation Sent Successfully',
+        description: successMessage,
+        status: 'success',
+        duration: 6000,
+        isClosable: true,
+      });
+      
+      // Refresh data
       queryClient.invalidateQueries({ queryKey: ['coach-athletes', user.id] });
       
-      // Close the modal
-      onClose();
+      // Close modal
+      handleClose();
+      
     } catch (error) {
-      console.error('Error creating athlete:', error);
+      console.error('Error sending invitation:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to create athlete',
+        title: 'Error Sending Invitation',
+        description: error instanceof Error ? error.message : 'Failed to send invitation. Please try again.',
         status: 'error',
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
     } finally {
-      setIsCreatingAthlete(false);
+      setIsSending(false);
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="lg">
+    <Modal isOpen={isOpen} onClose={handleClose} size="md">
       <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>Add Athlete to Your Team</ModalHeader>
-        <ModalCloseButton />
+      <ModalContent bg="gray.800" color="white">
+        <ModalHeader>
+          <VStack align="start" spacing={1}>
+            <Heading size="md" color="white">Invite Athlete to Your Team</Heading>
+            <Text fontSize="sm" color="gray.300" fontWeight="normal">
+              Enter the athlete's email address to send an invitation
+            </Text>
+          </VStack>
+        </ModalHeader>
+        <ModalCloseButton color="white" />
         <ModalBody>
-          <Tabs isFitted variant="enclosed">
-            <TabList mb="1em">
-              <Tab>Existing Athletes</Tab>
-              <Tab>Create New Athlete</Tab>
-            </TabList>
-            <TabPanels>
-              <TabPanel px={0}>
-                <VStack spacing={4}>
-                  <FormControl>
-                    <FormLabel>Search Athletes</FormLabel>
-                    <InputGroup>
-                      <InputLeftElement pointerEvents="none">
-                        <Icon as={FaSearch} color="gray.400" />
-                      </InputLeftElement>
-                      <Input 
-                        placeholder="Search by name"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                      />
-                    </InputGroup>
-                  </FormControl>
-                  
-                  {isLoading ? (
-                    <Box textAlign="center" py={4}>
-                      <Spinner size="md" />
-                      <Text mt={2}>Loading athletes...</Text>
-                    </Box>
-                  ) : filteredAthletes.length === 0 ? (
-                    <Box py={4} textAlign="center">
-                      <Text mb={4}>{errorMessage || 'No athletes available or matching your search'}</Text>
-                      <Text fontSize="sm" color="gray.500">Try creating a new athlete instead.</Text>
-                    </Box>
-                  ) : (
-                    <VStack align="stretch" maxH="300px" overflowY="auto" spacing={2} w="100%">
-                      {filteredAthletes.map(athlete => (
-                        <HStack 
-                          key={athlete.id} 
-                          p={2} 
-                          borderWidth="1px" 
-                          borderRadius="md"
-                          _hover={{ bg: 'gray.50' }}
-                        >
-                          <Checkbox
-                            isChecked={selectedAthletes.includes(athlete.id)}
-                            onChange={() => handleToggleAthlete(athlete.id)}
-                          />
-                          <Avatar size="sm" name={athlete.name} src={athlete.avatar_url} />
-                          <Text>{athlete.name}</Text>
-                        </HStack>
-                      ))}
-                    </VStack>
-                  )}
-                  
-                  <Button 
-                    colorScheme="brand" 
-                    isLoading={isSaving}
-                    isDisabled={selectedAthletes.length === 0 || isLoading}
-                    onClick={handleAddAthletes}
-                    leftIcon={<Icon as={FaUserPlus} />}
-                    w="full"
-                  >
-                    Add Selected Athletes
-                  </Button>
-                </VStack>
-              </TabPanel>
-              
-              <TabPanel px={0}>
-                <VStack spacing={4}>
-                  <FormControl isRequired isInvalid={!!formErrors.firstName}>
-                    <FormLabel>First Name</FormLabel>
-                    <Input 
-                      value={newAthleteFirstName}
-                      onChange={(e) => setNewAthleteFirstName(e.target.value)}
-                      placeholder="Enter first name"
-                    />
-                    {formErrors.firstName && <FormErrorMessage>{formErrors.firstName}</FormErrorMessage>}
-                  </FormControl>
-                  
-                  <FormControl isRequired isInvalid={!!formErrors.lastName}>
-                    <FormLabel>Last Name</FormLabel>
-                    <Input 
-                      value={newAthleteLastName}
-                      onChange={(e) => setNewAthleteLastName(e.target.value)}
-                      placeholder="Enter last name"
-                    />
-                    {formErrors.lastName && <FormErrorMessage>{formErrors.lastName}</FormErrorMessage>}
-                  </FormControl>
-                  
-                  <FormControl>
-                    <FormLabel>Email (Optional)</FormLabel>
-                    <Input 
-                      value={newAthleteEmail}
-                      onChange={(e) => setNewAthleteEmail(e.target.value)}
-                      placeholder="Enter email address"
-                      type="email"
-                    />
-                  </FormControl>
-                  
-                  <Button 
-                    colorScheme="brand" 
-                    leftIcon={<Icon as={FaPlus} />}
-                    isLoading={isCreatingAthlete}
-                    onClick={handleCreateAthlete}
-                    w="full"
-                  >
-                    Create & Add Athlete
-                  </Button>
-                </VStack>
-              </TabPanel>
-            </TabPanels>
-          </Tabs>
+          <VStack spacing={4}>
+            
+            <Alert status="info" borderRadius="md" bg="blue.900" borderColor="blue.600">
+              <AlertIcon color="blue.300" />
+              <Box>
+                <AlertTitle fontSize="sm" color="white">Secure Invitation Process</AlertTitle>
+                <AlertDescription fontSize="sm" color="gray.200">
+                  For privacy and security, you can only invite athletes by email. 
+                  They will receive an invitation and must approve your request before you can coach them.
+                </AlertDescription>
+              </Box>
+            </Alert>
+            
+            <FormControl isRequired isInvalid={!!formErrors.email}>
+              <FormLabel color="white">Athlete's Email Address</FormLabel>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter athlete's email (e.g., athlete@example.com)"
+                autoComplete="email"
+                autoFocus
+                bg="gray.700"
+                borderColor="gray.600"
+                color="white"
+                _placeholder={{ color: "gray.400" }}
+                _hover={{ borderColor: "gray.500" }}
+                _focus={{ borderColor: "blue.400", boxShadow: "0 0 0 1px blue.400" }}
+              />
+              {formErrors.email && <FormErrorMessage color="red.300">{formErrors.email}</FormErrorMessage>}
+            </FormControl>
+            
+            <Box w="100%" p={4} bg="gray.700" borderRadius="md" borderColor="gray.600" borderWidth="1px">
+              <Text fontSize="sm" color="white">
+                <Text as="span" fontWeight="bold" color="white">What happens next:</Text>
+                <br />
+                1. If the athlete has an account, they receive a notification about your invitation
+                <br />
+                2. If they don't have an account, they receive an invitation email to sign up
+                <br />
+                3. They can view your profile and approve or decline your request
+                <br />
+                4. Once approved, they appear in your athlete roster and you can coach them
+              </Text>
+            </Box>
+          </VStack>
         </ModalBody>
         <ModalFooter>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" mr={3} onClick={handleClose} color="white" _hover={{ bg: "gray.700" }}>
             Cancel
+          </Button>
+          <Button
+            colorScheme="blue"
+            onClick={handleSendInvitation}
+            isLoading={isSending}
+            loadingText="Sending Invitation..."
+            leftIcon={<FaEnvelope />}
+            isDisabled={!email.trim()}
+          >
+            Send Invitation
           </Button>
         </ModalFooter>
       </ModalContent>

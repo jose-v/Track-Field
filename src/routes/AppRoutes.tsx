@@ -22,6 +22,7 @@ import { Meets } from '../pages/Meets';
 import Events from '../pages/Events';
 import Account from '../pages/Account';
 import SpinnerTest from '../pages/SpinnerTest';
+import { CoachInvitation } from '../pages/auth/CoachInvitation';
 
 // Coach pages
 import { CoachDashboard } from '../pages/coach/Dashboard';
@@ -33,6 +34,7 @@ import { EditWorkout } from '../pages/coach/EditWorkout';
 import { Calendar as CoachCalendar } from '../pages/coach/Calendar';
 import CoachProfile from "../pages/coach/Profile";
 import { CoachTrainingPlans } from '../pages/coach/TrainingPlans';
+import { ManageAthletesPage } from '../pages/coach/ManageAthletesPage';
 
 // Athlete pages
 import { Dashboard as AthleteDashboard } from '../pages/Dashboard';
@@ -93,12 +95,14 @@ export default function AppRoutes() {
         <Route path="verify-email" element={<VerifyEmail />} />
         <Route path="email-verified" element={<EmailVerified />} />
         <Route path="spinner-test" element={<SpinnerTest />} />
+        <Route path="coach-invitation" element={<CoachInvitation />} />
       </Route>
 
       {/* Coach Routes - With Feedback */}
       <Route element={<CoachLayoutWithFeedback />}> 
         <Route path="/coach/dashboard" element={<PrivateRoute><CoachDashboard /></PrivateRoute>} />
         <Route path="/coach/athletes" element={<PrivateRoute><CoachAthletes /></PrivateRoute>} />
+        <Route path="/coach/manage-athletes" element={<PrivateRoute><ManageAthletesPage /></PrivateRoute>} />
         <Route path="/coach/workouts" element={<PrivateRoute><CoachTrainingPlans /></PrivateRoute>} />
         <Route path="/coach/workouts/new" element={<PrivateRoute><CreateWorkout /></PrivateRoute>} />
         <Route path="/coach/workouts/import" element={<PrivateRoute><ImportWorkout /></PrivateRoute>} />

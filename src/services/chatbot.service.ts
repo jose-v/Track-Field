@@ -342,15 +342,16 @@ export const fetchUserData = async (dataType: string, userId: string): Promise<U
       case 'athleteInfo':
         // For coaches querying athlete data
         if (userRole === 'coach') {
-          // Query coach's athletes through coach_athletes table
-          console.log('Querying coach_athletes table for coach-athlete relationships');
+          // Query coach's athletes through coach_athletes table (only approved relationships)
+          console.log('Querying coach_athletes table for approved coach-athlete relationships');
           const { data: relationships, error: relationshipError } = await supabase
             .from('coach_athletes')
             .select(`
               athlete_id,
               profiles!athletes(first_name, last_name)
             `)
-            .eq('coach_id', userIdToUse);
+            .eq('coach_id', userIdToUse)
+            .eq('approval_status', 'approved'); // Only get approved relationships
             
           if (relationshipError) {
             console.error('Error fetching coach athletes:', relationshipError);
@@ -385,7 +386,7 @@ export const fetchUserData = async (dataType: string, userId: string): Promise<U
             });
           }
           
-          console.log('No athlete relationships found for this coach');
+          console.log('No approved athlete relationships found for this coach');
           return null;
         }
         return null;
