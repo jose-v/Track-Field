@@ -15,6 +15,7 @@ import Loop from '../pages/Loop';
 import LoopRouteWrapper from '../pages/LoopRouteWrapper';
 import WorkoutCreatorDemo from '../pages/WorkoutCreatorDemo';
 import { Meets } from '../pages/Meets';
+import Events from '../pages/Events';
 import Account from '../pages/Account';
 
 // Coach pages
@@ -79,7 +80,7 @@ export default function AppRoutes() {
         <Route path="pricing" element={<Pricing />} />
         <Route path="about" element={<About />} />
         <Route path="contact" element={<Contact />} />
-        <Route path="meets" element={<Meets />} />
+        <Route path="meets" element={<Events />} />
         <Route path="login" element={<Login />} />
         <Route path="signup" element={<Signup />} />
       </Route>
