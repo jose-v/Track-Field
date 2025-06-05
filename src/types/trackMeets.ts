@@ -30,7 +30,32 @@ export interface TrackMeet {
   transportation_modes?: string[];
   transportation_info?: string;
   lodging_type?: string;
+  lodging_place_name?: string;
+  lodging_address?: string;
+  lodging_city?: string;
+  lodging_state?: string;
+  lodging_zip?: string;
+  lodging_phone?: string;
+  lodging_website?: string;
+  lodging_checkin_date?: string;
+  lodging_checkout_date?: string;
+  lodging_checkin_time?: string;
+  lodging_checkout_time?: string;
   lodging_details?: string;
+  // Assistant coaches
+  assistant_coach_1_name?: string;
+  assistant_coach_1_phone?: string;
+  assistant_coach_1_email?: string;
+  assistant_coach_2_name?: string;
+  assistant_coach_2_phone?: string;
+  assistant_coach_2_email?: string;
+  assistant_coach_3_name?: string;
+  assistant_coach_3_phone?: string;
+  assistant_coach_3_email?: string;
+  // Assistant coach IDs for existing coaches
+  assistant_coach_1_id?: string;
+  assistant_coach_2_id?: string;
+  assistant_coach_3_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -65,7 +90,32 @@ export interface TrackMeetFormData {
   transportation_modes?: string[];
   transportation_info?: string;
   lodging_type?: string;
+  lodging_place_name?: string;
+  lodging_address?: string;
+  lodging_city?: string;
+  lodging_state?: string;
+  lodging_zip?: string;
+  lodging_phone?: string;
+  lodging_website?: string;
+  lodging_checkin_date?: string;
+  lodging_checkout_date?: string;
+  lodging_checkin_time?: string;
+  lodging_checkout_time?: string;
   lodging_details?: string;
+  // Assistant coaches
+  assistant_coach_1_name?: string;
+  assistant_coach_1_phone?: string;
+  assistant_coach_1_email?: string;
+  assistant_coach_2_name?: string;
+  assistant_coach_2_phone?: string;
+  assistant_coach_2_email?: string;
+  assistant_coach_3_name?: string;
+  assistant_coach_3_phone?: string;
+  assistant_coach_3_email?: string;
+  // Assistant coach IDs for existing coaches
+  assistant_coach_1_id?: string;
+  assistant_coach_2_id?: string;
+  assistant_coach_3_id?: string;
 }
 
 // Meet Event Types

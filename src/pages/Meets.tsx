@@ -42,7 +42,8 @@ import {
   FormLabel,
   Input,
   Select,
-  FormErrorMessage
+  FormErrorMessage,
+  Icon
 } from '@chakra-ui/react';
 import { 
   FaArrowLeft, 
@@ -59,7 +60,13 @@ import {
   FaCog,
   FaEllipsisV,
   FaFileAlt,
-  FaPlus
+  FaPlus,
+  FaChalkboardTeacher,
+  FaPhoneAlt,
+  FaAt,
+  FaBed,
+  FaGlobe,
+  FaUserTie
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -205,6 +212,18 @@ interface MeetCardProps {
   athleteNames?: string[];
   myAssignedEvents?: Array<{ id: string; name: string; time: string | null }>;
   assignedByCoach?: string | null;
+  coachPhone?: string | null;
+  coachEmail?: string | null;
+  // Assistant coaches
+  assistantCoach1Name?: string | null;
+  assistantCoach1Phone?: string | null;
+  assistantCoach1Email?: string | null;
+  assistantCoach2Name?: string | null;
+  assistantCoach2Phone?: string | null;
+  assistantCoach2Email?: string | null;
+  assistantCoach3Name?: string | null;
+  assistantCoach3Phone?: string | null;
+  assistantCoach3Email?: string | null;
   distance?: string;
 }
 
@@ -221,6 +240,17 @@ const MeetCard: React.FC<MeetCardProps> = ({
   athleteNames = [], 
   myAssignedEvents = [],
   assignedByCoach = null,
+  coachPhone = null,
+  coachEmail = null,
+  assistantCoach1Name = null,
+  assistantCoach1Phone = null,
+  assistantCoach1Email = null,
+  assistantCoach2Name = null,
+  assistantCoach2Phone = null,
+  assistantCoach2Email = null,
+  assistantCoach3Name = null,
+  assistantCoach3Phone = null,
+  assistantCoach3Email = null,
   distance 
 }) => {
   const [showToolbar, setShowToolbar] = useState(false);
@@ -384,6 +414,77 @@ const MeetCard: React.FC<MeetCardProps> = ({
                     _hover={{ color: "red.300" }}
                     aria-label="Delete meet"
                     onClick={() => onDelete?.(meet)}
+                  />
+                </Tooltip>
+              </HStack>
+            </Box>
+          )}
+
+          {/* 3 Dots Button */}
+          <IconButton
+            icon={<FaEllipsisV size={18} />}
+            variant="ghost"
+            size="sm"
+            color="white"
+            bg="gray.700"
+            _hover={{ color: "white", bg: "gray.600" }}
+            aria-label="Options"
+          />
+        </Box>
+      )}
+
+      {/* Top Right: Athlete-only toolbar */}
+      {!isCoach && (
+        <Box 
+          position="absolute" 
+          top={6} 
+          right={6}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          {/* Invisible extended hover area */}
+          {showToolbar && (
+            <Box
+              position="absolute"
+              top="-60px"
+              right="-10px"
+              width="80px"
+              height="80px"
+              zIndex={999}
+            />
+          )}
+
+          {/* Hover Toolbar */}
+          {showToolbar && (
+            <Box
+              position="absolute"
+              bottom="100%"
+              right="0"
+              mb={3}
+              zIndex={1000}
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+            >
+              <HStack 
+                spacing={4}
+                bg="gray.600"
+                px={4}
+                py={3}
+                borderRadius="xl"
+                border="2px solid"
+                borderColor="gray.500"
+                shadow="xl"
+              >
+                {/* Edit */}
+                <Tooltip label="Edit meet details" placement="top" bg="gray.700" color="white" p={2}>
+                  <IconButton
+                    icon={<FaEdit size={22} color="currentColor" />}
+                    variant="ghost"
+                    size="lg"
+                    color="white"
+                    _hover={{ color: "gray.300" }}
+                    aria-label="Edit meet"
+                    onClick={() => onEdit?.(meet)}
                   />
                 </Tooltip>
               </HStack>
@@ -596,13 +697,357 @@ const MeetCard: React.FC<MeetCardProps> = ({
               ))}
             </VStack>
             
+            {/* Divider line between events and coach info */}
+            {assignedByCoach && (
+              <Box bg="gray.600" h="1px" w="full" my={3} />
+            )}
+            
             {/* Assigned by Coach info for athletes */}
             {assignedByCoach && (
-              <HStack spacing={2} color="white" pt={2}>
-                <FaUsers size={16} color="currentColor" />
-                <Text fontSize="sm" color="gray.300">Coach:</Text>
-                <Text fontSize="sm" fontWeight="medium" color="white">{assignedByCoach}</Text>
-              </HStack>
+              <VStack spacing={1} align="start" pt={2} w="full">
+                <HStack spacing={2} color="white">
+                  <FaChalkboardTeacher size={16} color="currentColor" />
+                  <Text fontSize="sm" color="gray.300">Coach:</Text>
+                  <Text fontSize="sm" fontWeight="medium" color="white">{assignedByCoach}</Text>
+                  
+                  {/* Coach Phone */}
+                  {coachPhone && (
+                    <>
+                      <Text fontSize="sm" color="gray.400">|</Text>
+                      <FaPhoneAlt size={14} color="currentColor" />
+                      <Text fontSize="sm" color="gray.300">
+                        {(() => {
+                          // Format phone as (999) 999-9999
+                          const phone = coachPhone.replace(/\D/g, '');
+                          if (phone.length === 10) {
+                            return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+                          }
+                          return coachPhone;
+                        })()}
+                      </Text>
+                    </>
+                  )}
+                  
+                  {/* Coach Email */}
+                  {coachEmail && (
+                    <>
+                      <Text fontSize="sm" color="gray.400">|</Text>
+                      <FaAt size={14} color="currentColor" />
+                      <Text 
+                        fontSize="sm" 
+                        color="blue.400"
+                        _hover={{ color: "blue.300" }}
+                        cursor="pointer"
+                        onClick={() => window.open(`mailto:${coachEmail}`, '_blank')}
+                      >
+                        {coachEmail}
+                      </Text>
+                    </>
+                  )}
+                </HStack>
+                
+                {/* Assistant Coaches */}
+                {(assistantCoach1Name || assistantCoach2Name || assistantCoach3Name) && (
+                  <VStack spacing={1} align="start" pt={2} w="full" mt={2}>
+                    {/* Assistant Coach 1 */}
+                    {assistantCoach1Name && (
+                      <HStack spacing={2} color="white">
+                        <FaUserTie size={16} color="currentColor" />
+                        <Text fontSize="sm" color="gray.400">Assistant:</Text>
+                        <Text fontSize="sm" color="gray.200">{assistantCoach1Name}</Text>
+                        
+                        {/* Assistant Coach 1 Phone */}
+                        {assistantCoach1Phone && (
+                          <>
+                            <Text fontSize="sm" color="gray.500">|</Text>
+                            <FaPhoneAlt size={14} color="currentColor" />
+                            <Text fontSize="sm" color="gray.300">
+                              {(() => {
+                                const phone = assistantCoach1Phone.replace(/\D/g, '');
+                                if (phone.length === 10) {
+                                  return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+                                }
+                                return assistantCoach1Phone;
+                              })()}
+                            </Text>
+                          </>
+                        )}
+                        
+                        {/* Assistant Coach 1 Email */}
+                        {assistantCoach1Email && (
+                          <>
+                            <Text fontSize="sm" color="gray.500">|</Text>
+                            <FaAt size={14} color="currentColor" />
+                            <Text 
+                              fontSize="sm" 
+                              color="blue.400"
+                              _hover={{ color: "blue.300" }}
+                              cursor="pointer"
+                              onClick={() => window.open(`mailto:${assistantCoach1Email}`, '_blank')}
+                            >
+                              {assistantCoach1Email}
+                            </Text>
+                          </>
+                        )}
+                      </HStack>
+                    )}
+                    
+                    {/* Assistant Coach 2 */}
+                    {assistantCoach2Name && (
+                      <HStack spacing={2} color="white">
+                        <FaUserTie size={16} color="currentColor" />
+                        <Text fontSize="sm" color="gray.400">Assistant:</Text>
+                        <Text fontSize="sm" color="gray.200">{assistantCoach2Name}</Text>
+                        
+                        {/* Assistant Coach 2 Phone */}
+                        {assistantCoach2Phone && (
+                          <>
+                            <Text fontSize="sm" color="gray.500">|</Text>
+                            <FaPhoneAlt size={14} color="currentColor" />
+                            <Text fontSize="sm" color="gray.300">
+                              {(() => {
+                                const phone = assistantCoach2Phone.replace(/\D/g, '');
+                                if (phone.length === 10) {
+                                  return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+                                }
+                                return assistantCoach2Phone;
+                              })()}
+                            </Text>
+                          </>
+                        )}
+                        
+                        {/* Assistant Coach 2 Email */}
+                        {assistantCoach2Email && (
+                          <>
+                            <Text fontSize="sm" color="gray.500">|</Text>
+                            <FaAt size={14} color="currentColor" />
+                            <Text 
+                              fontSize="sm" 
+                              color="blue.400"
+                              _hover={{ color: "blue.300" }}
+                              cursor="pointer"
+                              onClick={() => window.open(`mailto:${assistantCoach2Email}`, '_blank')}
+                            >
+                              {assistantCoach2Email}
+                            </Text>
+                          </>
+                        )}
+                      </HStack>
+                    )}
+                    
+                    {/* Assistant Coach 3 */}
+                    {assistantCoach3Name && (
+                      <HStack spacing={2} color="white">
+                        <FaUserTie size={16} color="currentColor" />
+                        <Text fontSize="sm" color="gray.400">Assistant:</Text>
+                        <Text fontSize="sm" color="gray.200">{assistantCoach3Name}</Text>
+                        
+                        {/* Assistant Coach 3 Phone */}
+                        {assistantCoach3Phone && (
+                          <>
+                            <Text fontSize="sm" color="gray.500">|</Text>
+                            <FaPhoneAlt size={14} color="currentColor" />
+                            <Text fontSize="sm" color="gray.300">
+                              {(() => {
+                                const phone = assistantCoach3Phone.replace(/\D/g, '');
+                                if (phone.length === 10) {
+                                  return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+                                }
+                                return assistantCoach3Phone;
+                              })()}
+                            </Text>
+                          </>
+                        )}
+                        
+                        {/* Assistant Coach 3 Email */}
+                        {assistantCoach3Email && (
+                          <>
+                            <Text fontSize="sm" color="gray.500">|</Text>
+                            <FaAt size={14} color="currentColor" />
+                            <Text 
+                              fontSize="sm" 
+                              color="blue.400"
+                              _hover={{ color: "blue.300" }}
+                              cursor="pointer"
+                              onClick={() => window.open(`mailto:${assistantCoach3Email}`, '_blank')}
+                            >
+                              {assistantCoach3Email}
+                            </Text>
+                          </>
+                        )}
+                      </HStack>
+                    )}
+                  </VStack>
+                )}
+              </VStack>
+            )}
+            
+            {/* Divider between coach and lodging */}
+            {meet.lodging_type && assignedByCoach && (
+              <Box bg="gray.600" h="1px" w="full" my={3} />
+            )}
+            
+            {/* Lodging information - display under coach */}
+            {meet.lodging_type && (
+              <VStack spacing={2} align="start" pt={assignedByCoach ? 0 : 2} w="full">
+                <HStack spacing={2} color="white">
+                  <FaBed size={16} color="currentColor" />
+                  <Text fontSize="sm" color="gray.300" fontWeight="medium">Lodging:</Text>
+                </HStack>
+                
+                {/* 3-Column Layout for Lodging */}
+                <Grid templateColumns="1fr 1fr 1fr" gap={4} w="full" pl={6}>
+                  {/* Column 1: Address Information */}
+                  <VStack align="start" spacing={1}>
+                    <Text fontSize="sm" color="gray.400" fontWeight="bold" textTransform="uppercase">
+                      Address
+                    </Text>
+                    
+                    {/* Place name and type */}
+                    <Text fontSize="sm" fontWeight="medium" color="white">
+                      {meet.lodging_place_name ? `${meet.lodging_place_name} (${meet.lodging_type})` : meet.lodging_type}
+                    </Text>
+                    
+                    {/* Complete address block */}
+                    <VStack align="start" spacing={0} w="full">
+                      {/* Street address */}
+                      {meet.lodging_address && (
+                        <Text fontSize="sm" color="gray.300">
+                          {meet.lodging_address}
+                        </Text>
+                      )}
+                      
+                      {/* City, State, Zip on one line */}
+                      {(meet.lodging_city || meet.lodging_state || meet.lodging_zip) && (
+                        <Text fontSize="sm" color="gray.300">
+                          {[meet.lodging_city, meet.lodging_state, meet.lodging_zip].filter(Boolean).join(', ')}
+                        </Text>
+                      )}
+                    </VStack>
+                    
+                    {/* Fallback if no address info */}
+                    {!meet.lodging_address && !meet.lodging_city && !meet.lodging_state && !meet.lodging_zip && (
+                      <Text fontSize="sm" color="gray.500">
+                        No address provided
+                      </Text>
+                    )}
+                  </VStack>
+                  
+                  {/* Column 2: Contact Information */}
+                  <VStack align="start" spacing={1}>
+                    <Text fontSize="sm" color="gray.400" fontWeight="bold" textTransform="uppercase">
+                      Contact
+                    </Text>
+                    {meet.lodging_phone && (
+                      <HStack spacing={2}>
+                        <FaPhoneAlt size={12} color="currentColor" />
+                        <Text fontSize="sm" color="gray.300">
+                          {(() => {
+                            // Format phone as (999) 999-9999
+                            const phone = meet.lodging_phone.replace(/\D/g, '');
+                            if (phone.length === 10) {
+                              return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+                            }
+                            return meet.lodging_phone;
+                          })()}
+                        </Text>
+                      </HStack>
+                    )}
+                    {meet.lodging_website && (
+                      <HStack 
+                        as="a" 
+                        href={meet.lodging_website} 
+                        target="_blank" 
+                        spacing={2}
+                        color="blue.400"
+                        _hover={{ color: "blue.300" }}
+                        cursor="pointer"
+                      >
+                        <FaGlobe size={12} color="currentColor" />
+                        <Text fontSize="sm">Website</Text>
+                      </HStack>
+                    )}
+                    {!meet.lodging_phone && !meet.lodging_website && (
+                      <Text fontSize="sm" color="gray.500">
+                        No contact info
+                      </Text>
+                    )}
+                  </VStack>
+                  
+                  {/* Column 3: Check-in/Check-out */}
+                  <VStack align="start" spacing={1}>
+                    <Text fontSize="sm" color="gray.400" fontWeight="bold" textTransform="uppercase">
+                      Schedule
+                    </Text>
+                    {meet.lodging_checkin_date && (
+                      <Text fontSize="sm" color="gray.300">
+                        Check-in: {(() => {
+                          try {
+                            const date = new Date(meet.lodging_checkin_date);
+                            const formattedDate = date.toLocaleDateString('en-US', { 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            });
+                            let result = formattedDate;
+                            if (meet.lodging_checkin_time) {
+                              const time = new Date(`2000-01-01T${meet.lodging_checkin_time}`);
+                              const formattedTime = time.toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true
+                              });
+                              result += ` at ${formattedTime}`;
+                            }
+                            return result;
+                          } catch (e) {
+                            return meet.lodging_checkin_date + (meet.lodging_checkin_time ? ` at ${meet.lodging_checkin_time}` : '');
+                          }
+                        })()}
+                      </Text>
+                    )}
+                    {meet.lodging_checkout_date && (
+                      <Text fontSize="sm" color="gray.300">
+                        Check-out: {(() => {
+                          try {
+                            const date = new Date(meet.lodging_checkout_date);
+                            const formattedDate = date.toLocaleDateString('en-US', { 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            });
+                            let result = formattedDate;
+                            if (meet.lodging_checkout_time) {
+                              const time = new Date(`2000-01-01T${meet.lodging_checkout_time}`);
+                              const formattedTime = time.toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true
+                              });
+                              result += ` at ${formattedTime}`;
+                            }
+                            return result;
+                          } catch (e) {
+                            return meet.lodging_checkout_date + (meet.lodging_checkout_time ? ` at ${meet.lodging_checkout_time}` : '');
+                          }
+                        })()}
+                      </Text>
+                    )}
+                    {!meet.lodging_checkin_date && !meet.lodging_checkout_date && (
+                      <Text fontSize="sm" color="gray.500">
+                        No schedule set
+                      </Text>
+                    )}
+                  </VStack>
+                </Grid>
+                
+                {/* Additional details - full width below columns */}
+                {meet.lodging_details && (
+                  <Text fontSize="sm" color="gray.400" fontStyle="italic" pl={6} pt={1}>
+                    {meet.lodging_details}
+                  </Text>
+                )}
+              </VStack>
             )}
           </VStack>
         </>
@@ -633,6 +1078,18 @@ export const Meets: React.FC = () => {
     athleteNames: string[]; 
     myAssignedEvents: Array<{ id: string; name: string; time: string | null }>;
     assignedByCoach: string | null;
+    coachPhone: string | null;
+    coachEmail: string | null;
+    // Assistant coaches
+    assistantCoach1Name: string | null;
+    assistantCoach1Phone: string | null;
+    assistantCoach1Email: string | null;
+    assistantCoach2Name: string | null;
+    assistantCoach2Phone: string | null;
+    assistantCoach2Email: string | null;
+    assistantCoach3Name: string | null;
+    assistantCoach3Phone: string | null;
+    assistantCoach3Email: string | null;
     distance?: string;
   }>>({});
   const [userIsCoach, setUserIsCoach] = useState(false);
@@ -701,7 +1158,15 @@ export const Meets: React.FC = () => {
         console.log('Fetching meets for coach:', user.id);
         const { data, error } = await supabase
           .from('track_meets')
-          .select('*')
+          .select(`
+            *, 
+            lodging_type, lodging_place_name, lodging_address, lodging_city, lodging_state, lodging_zip, 
+            lodging_phone, lodging_website, lodging_checkin_date, lodging_checkout_date, 
+            lodging_checkin_time, lodging_checkout_time, lodging_details,
+            assistant_coach_1_name, assistant_coach_1_phone, assistant_coach_1_email,
+            assistant_coach_2_name, assistant_coach_2_phone, assistant_coach_2_email,
+            assistant_coach_3_name, assistant_coach_3_phone, assistant_coach_3_email
+          `)
           .eq('coach_id', user.id)
           .order('meet_date', { ascending: true });
         
@@ -728,7 +1193,15 @@ export const Meets: React.FC = () => {
           if (meetIds.length > 0) {
             const { data, error } = await supabase
               .from('track_meets')
-              .select('*')
+              .select(`
+                *, 
+                lodging_type, lodging_place_name, lodging_address, lodging_city, lodging_state, lodging_zip, 
+                lodging_phone, lodging_website, lodging_checkin_date, lodging_checkout_date, 
+                lodging_checkin_time, lodging_checkout_time, lodging_details,
+                assistant_coach_1_name, assistant_coach_1_phone, assistant_coach_1_email,
+                assistant_coach_2_name, assistant_coach_2_phone, assistant_coach_2_email,
+                assistant_coach_3_name, assistant_coach_3_phone, assistant_coach_3_email
+              `)
               .in('id', meetIds)
               .order('meet_date', { ascending: true });
             
@@ -774,6 +1247,8 @@ export const Meets: React.FC = () => {
             let athleteNames: string[] = [];
             let myAssignedEvents: Array<{ id: string; name: string; time: string | null }> = [];
             let assignedByCoach: string | null = null;
+            let coachPhone: string | null = null;
+            let coachEmail: string | null = null;
             
             if (eventIds.length > 0) {
               if (isCoachUser) {
@@ -838,12 +1313,14 @@ export const Meets: React.FC = () => {
                       try {
                         const { data: coachProfile, error: coachError } = await supabase
                           .from('profiles')
-                          .select('first_name, last_name')
+                          .select('first_name, last_name, phone, email')
                           .eq('id', coachId)
                           .single();
                         
                         if (!coachError && coachProfile) {
                           assignedByCoach = `${coachProfile.first_name || ''} ${coachProfile.last_name || ''}`.trim();
+                          coachPhone = coachProfile.phone || null;
+                          coachEmail = coachProfile.email || null;
                         }
                       } catch (coachErr) {
                         console.warn('Coach profile query failed:', coachErr);
@@ -899,6 +1376,18 @@ export const Meets: React.FC = () => {
               athleteNames,
               myAssignedEvents,
               assignedByCoach,
+              coachPhone,
+              coachEmail,
+              // Assistant coaches from meet data
+              assistantCoach1Name: meet.assistant_coach_1_name || null,
+              assistantCoach1Phone: meet.assistant_coach_1_phone || null,
+              assistantCoach1Email: meet.assistant_coach_1_email || null,
+              assistantCoach2Name: meet.assistant_coach_2_name || null,
+              assistantCoach2Phone: meet.assistant_coach_2_phone || null,
+              assistantCoach2Email: meet.assistant_coach_2_email || null,
+              assistantCoach3Name: meet.assistant_coach_3_name || null,
+              assistantCoach3Phone: meet.assistant_coach_3_phone || null,
+              assistantCoach3Email: meet.assistant_coach_3_email || null,
               distance
             };
           } catch (error) {
@@ -910,6 +1399,18 @@ export const Meets: React.FC = () => {
               athleteNames: [],
               myAssignedEvents: [],
               assignedByCoach: null,
+              coachPhone: null,
+              coachEmail: null,
+              // Assistant coaches - null on error
+              assistantCoach1Name: null,
+              assistantCoach1Phone: null,
+              assistantCoach1Email: null,
+              assistantCoach2Name: null,
+              assistantCoach2Phone: null,
+              assistantCoach2Email: null,
+              assistantCoach3Name: null,
+              assistantCoach3Phone: null,
+              assistantCoach3Email: null,
               distance: "Distance TBD"
             };
           }
@@ -1421,6 +1922,17 @@ export const Meets: React.FC = () => {
                 athleteNames={meetData[meet.id]?.athleteNames || []}
                 myAssignedEvents={meetData[meet.id]?.myAssignedEvents || []}
                 assignedByCoach={meetData[meet.id]?.assignedByCoach}
+                coachPhone={meetData[meet.id]?.coachPhone}
+                coachEmail={meetData[meet.id]?.coachEmail}
+                assistantCoach1Name={meetData[meet.id]?.assistantCoach1Name}
+                assistantCoach1Phone={meetData[meet.id]?.assistantCoach1Phone}
+                assistantCoach1Email={meetData[meet.id]?.assistantCoach1Email}
+                assistantCoach2Name={meetData[meet.id]?.assistantCoach2Name}
+                assistantCoach2Phone={meetData[meet.id]?.assistantCoach2Phone}
+                assistantCoach2Email={meetData[meet.id]?.assistantCoach2Email}
+                assistantCoach3Name={meetData[meet.id]?.assistantCoach3Name}
+                assistantCoach3Phone={meetData[meet.id]?.assistantCoach3Phone}
+                assistantCoach3Email={meetData[meet.id]?.assistantCoach3Email}
                 distance={meetData[meet.id]?.distance}
               />
             ))

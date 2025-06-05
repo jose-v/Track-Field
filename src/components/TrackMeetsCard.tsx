@@ -50,6 +50,8 @@ interface TrackMeet {
   city?: string;
   state?: string;
   status?: string;
+  lodging_type?: string;
+  lodging_address?: string;
   meet_events?: MeetEvent[];
   assigned_events?: MeetEvent[];
   total_events?: number;
@@ -101,6 +103,8 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
           .from('track_meets')
           .select(`
             *,
+            lodging_type,
+            lodging_address,
             meet_events (
               id,
               event_name,
@@ -179,6 +183,8 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
           .from('track_meets')
           .select(`
             *,
+            lodging_type,
+            lodging_address,
             meet_events (
               id,
               event_name,
@@ -206,6 +212,8 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
             .from('track_meets')
             .select(`
               *,
+              lodging_type,
+              lodging_address,
               meet_events (
                 id,
                 event_name,
@@ -397,6 +405,11 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
                               {meet.city}, {meet.state}
                             </Text>
                           )}
+                          {meet.lodging_type && (
+                            <Text fontSize="xs" color={subtitleColor}>
+                              Lodging: {meet.lodging_type}{meet.lodging_address ? ` - ${meet.lodging_address}` : ''}
+                            </Text>
+                          )}
                         </VStack>
                         <Tag 
                           size="sm" 
@@ -492,6 +505,11 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
                           {meet.city && meet.state && (
                             <Text fontSize="xs" color={subtitleColor}>
                               {meet.city}, {meet.state}
+                            </Text>
+                          )}
+                          {meet.lodging_type && (
+                            <Text fontSize="xs" color={subtitleColor}>
+                              Lodging: {meet.lodging_type}{meet.lodging_address ? ` - ${meet.lodging_address}` : ''}
                             </Text>
                           )}
                         </VStack>
