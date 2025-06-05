@@ -221,6 +221,38 @@ export const api = {
 
     async getAssignedToAthlete(athleteId: string) {
       try {
+        // Get current user to check permissions
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user?.id) throw new Error('User not authenticated');
+
+        // Check if current user is the athlete themselves or has approved coach relationship
+        let canViewWorkouts = false;
+        
+        if (user.id === athleteId) {
+          // Athletes can always view their own workouts
+          canViewWorkouts = true;
+        } else {
+          // Check if current user is an approved coach for this athlete
+          const { data: coachRelation, error: relationError } = await supabase
+            .from('coach_athletes')
+            .select('id')
+            .eq('coach_id', user.id)
+            .eq('athlete_id', athleteId)
+            .eq('approval_status', 'approved')
+            .single();
+            
+          if (relationError && relationError.code !== 'PGRST116') { // PGRST116 is "not found"
+            console.error('Error checking coach-athlete relationship:', relationError);
+            throw relationError;
+          }
+          
+          canViewWorkouts = !!coachRelation;
+        }
+        
+        if (!canViewWorkouts) {
+          throw new Error('Unauthorized: You do not have permission to view this athlete\'s workouts');
+        }
+
         // Get all workout_ids assigned to this athlete, ordered by most recently assigned first
         const { data: assignments, error: assignError } = await supabase
           .from('athlete_workouts')
@@ -233,16 +265,21 @@ export const api = {
           throw assignError;
         }
         
-        // Get workouts created by this athlete (their own workouts)
-        const { data: createdWorkouts, error: createdError } = await supabase
-          .from('workouts')
-          .select('*')
-          .eq('user_id', athleteId)
-          .order('created_at', { ascending: false });
+        // Get workouts created by this athlete (their own workouts) - only if viewing own workouts
+        let createdWorkouts = [];
+        if (user.id === athleteId) {
+          const { data: ownWorkouts, error: createdError } = await supabase
+            .from('workouts')
+            .select('*')
+            .eq('user_id', athleteId)
+            .order('created_at', { ascending: false });
+            
+          if (createdError) {
+            console.error('Error fetching athlete created workouts:', createdError);
+            throw createdError;
+          }
           
-        if (createdError) {
-          console.error('Error fetching athlete created workouts:', createdError);
-          throw createdError;
+          createdWorkouts = ownWorkouts || [];
         }
         
         let allWorkouts = [];
@@ -2341,6 +2378,10 @@ export const api = {
     },
 
     async getByPlan(monthlyPlanId: string) {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       // First get the assignments
       const { data: assignments, error: assignmentError } = await supabase
         .from('training_plan_assignments')
@@ -2361,14 +2402,38 @@ export const api = {
         return [];
       }
       
-      // Get unique athlete IDs  
+      // SECURITY: Filter to only show athletes that have approved relationships with this coach
       const athleteIds = [...new Set(assignments.map(a => a.athlete_id))];
       
-      // Fetch athlete profiles separately to avoid relationship conflicts
+      // Check which athletes have approved relationships with the current coach
+      const { data: approvedRelations, error: relationsError } = await supabase
+        .from('coach_athletes')
+        .select('athlete_id')
+        .eq('coach_id', user.id)
+        .eq('approval_status', 'approved')
+        .in('athlete_id', athleteIds);
+        
+      if (relationsError) throw relationsError;
+      
+      const approvedAthleteIds = new Set(approvedRelations?.map(r => r.athlete_id) || []);
+      
+      // Filter assignments to only include approved athletes
+      const filteredAssignments = assignments.filter(assignment => 
+        approvedAthleteIds.has(assignment.athlete_id)
+      );
+      
+      if (filteredAssignments.length === 0) {
+        return [];
+      }
+      
+      // Get unique approved athlete IDs  
+      const approvedIds = [...new Set(filteredAssignments.map(a => a.athlete_id))];
+      
+      // Fetch athlete profiles for approved athletes only
       const { data: athleteProfiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, email')
-        .in('id', athleteIds);
+        .in('id', approvedIds);
         
       if (profilesError) throw profilesError;
       
@@ -2379,7 +2444,7 @@ export const api = {
       });
       
       // Transform the data to match expected format (keeping profiles field for compatibility)
-      return assignments.map(assignment => {
+      return filteredAssignments.map(assignment => {
         const profile = profilesMap.get(assignment.athlete_id);
         
         return {

@@ -102,30 +102,29 @@ export function PlanDetailView({
     try {
       setLoading(true);
       
-      // Load assigned athletes
+      // Load assigned athletes - this is already filtered to only show approved relationships
       const assignments = await api.trainingPlanAssignments.getByPlan(monthlyPlan.id);
       
-      // Get athlete details for each assignment
-      const athletesWithProgress = await Promise.all(
-        assignments.map(async (assignment) => {
-          try {
-            const athlete = await api.athletes.getById(assignment.athlete_id);
-            return {
-              id: athlete.id,
-              first_name: athlete.first_name,
-              last_name: athlete.last_name,
-              email: athlete.email,
-              avatar_url: athlete.avatar_url,
-              assignment
-            };
-          } catch (error) {
-            console.error(`Error loading athlete ${assignment.athlete_id}:`, error);
-            return null;
-          }
-        })
-      );
+      // Transform assignments to athlete data - no need to call api.athletes.getById() 
+      // since the assignments already contain the athlete profile data from approved relationships
+      const athletesWithProgress = assignments.map(assignment => {
+        const profile = assignment.athlete_profile || assignment.profiles;
+        if (!profile) {
+          console.warn(`No profile found for assignment ${assignment.id}`);
+          return null;
+        }
+        
+        return {
+          id: profile.id,
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          email: profile.email,
+          avatar_url: profile.avatar_url,
+          assignment
+        };
+      }).filter(Boolean) as AthleteWithProgress[];
 
-      setAssignedAthletes(athletesWithProgress.filter(Boolean) as AthleteWithProgress[]);
+      setAssignedAthletes(athletesWithProgress);
     } catch (error) {
       console.error('Error loading plan data:', error);
     } finally {
