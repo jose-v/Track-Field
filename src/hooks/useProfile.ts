@@ -246,7 +246,7 @@ export function useProfile() {
         isNull: variables.roleData === null,
         isUndefined: variables.roleData === undefined,
         hasGender: variables.roleData?.gender !== undefined,
-        hasBirthDate: variables.roleData?.birth_date !== undefined,
+        hasBirthDate: variables.roleData?.date_of_birth !== undefined,
         hasEvents: variables.roleData?.events !== undefined,
         eventsIsArray: Array.isArray(variables.roleData?.events)
       });
@@ -255,7 +255,7 @@ export function useProfile() {
       if (variables.profile.role === 'coach') {
         console.log('COACH PROFILE UPDATE DETAILS:');
         console.log('- Gender:', variables.roleData?.gender);
-        console.log('- Birth date:', variables.roleData?.birth_date);
+        console.log('- Birth date:', variables.roleData?.date_of_birth);
         console.log('- Events:', variables.roleData?.events);
         
         // Force fix any issues with events data

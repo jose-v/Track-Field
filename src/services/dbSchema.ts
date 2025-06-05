@@ -84,7 +84,7 @@ export interface Profile {
 // Athlete type
 export interface Athlete {
   id: string; // References profile id
-  birth_date?: string;
+  date_of_birth?: string;
   gender?: 'male' | 'female' | 'other';
   events: string[];
   team_id?: string;
@@ -96,7 +96,7 @@ export interface Coach {
   specialties: string[];
   certifications: string[];
   gender?: 'male' | 'female' | 'other';
-  birth_date?: string;
+  date_of_birth?: string;
   events: string[];
 }
 

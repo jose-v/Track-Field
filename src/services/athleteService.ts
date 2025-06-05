@@ -291,7 +291,7 @@ export async function createAthlete(
       .from('athletes')
       .insert([{
         id: athleteId,
-        birth_date: birthDate,
+        date_of_birth: birthDate,
         events: events
       }])
       .select()

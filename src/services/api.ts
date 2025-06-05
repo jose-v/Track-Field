@@ -970,7 +970,7 @@ export const api = {
       console.log('Role data fields check:', {
         type: typeof roleData,
         hasGender: roleData?.gender !== undefined,
-        hasBirthDate: roleData?.birth_date !== undefined,
+        hasBirthDate: roleData?.date_of_birth !== undefined,
         hasEvents: roleData?.events !== undefined,
         eventsIsArray: Array.isArray(roleData?.events)
       });
@@ -987,7 +987,7 @@ export const api = {
         if (userRole === 'athlete' && roleData) {
           console.log('Updating athlete data:', roleData);
           const athleteData = {
-            birth_date: roleData.birth_date,
+            date_of_birth: roleData.date_of_birth,
             gender: roleData.gender,
             events: roleData.events,
             team_id: roleData.team_id
@@ -1382,7 +1382,7 @@ export const api = {
           athlete_id,
           athletes!inner (
             id,
-            birth_date,
+            date_of_birth,
             gender,
             events,
             team_id
@@ -1409,7 +1409,7 @@ export const api = {
         email: item.profiles.email,
         phone: item.profiles.phone,
         avatar_url: item.profiles.avatar_url,
-        birth_date: item.athletes.birth_date,
+        date_of_birth: item.athletes.date_of_birth,
         gender: item.athletes.gender,
         events: item.athletes.events,
         team_id: item.athletes.team_id

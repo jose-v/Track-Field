@@ -119,7 +119,7 @@ async function createCoachProfile(userId: string): Promise<void> {
     specialties: [],
     certifications: [],
     gender: undefined,
-    birth_date: undefined,
+    date_of_birth: undefined,
     events: [],
   };
 
