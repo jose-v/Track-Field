@@ -12,6 +12,7 @@ interface AuthContextType {
   signInWithGoogle: (redirectTo?: string) => Promise<void>
   signOut: () => Promise<void>
   refreshSession: () => Promise<boolean>
+  showEmailVerifiedToast: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -399,8 +400,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const showEmailVerifiedToast = () => {
+    // Set a flag in localStorage to show the toast on next dashboard visit
+    localStorage.setItem('show-email-verified-toast', 'true')
+  }
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signInWithGoogle, signOut, refreshSession }}>
+    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signInWithGoogle, signOut, refreshSession, showEmailVerifiedToast }}>
       {children}
     </AuthContext.Provider>
   )

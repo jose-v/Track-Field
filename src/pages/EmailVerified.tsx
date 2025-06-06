@@ -15,7 +15,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export function EmailVerified() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, showEmailVerifiedToast } = useAuth();
   
   // Dark mode adaptive colors
   const cardBg = useColorModeValue('white', 'gray.800');
@@ -25,6 +25,9 @@ export function EmailVerified() {
   const iconBg = useColorModeValue('green.50', 'green.900');
   
   const handleContinue = () => {
+    // Set flag to show welcome toast on dashboard
+    showEmailVerifiedToast();
+    
     // Redirect to appropriate dashboard based on user verification status
     if (user && user.email_confirmed_at) {
       navigate('/dashboard');

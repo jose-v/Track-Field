@@ -14,16 +14,17 @@ import {
   Icon,
   HStack,
 } from '@chakra-ui/react';
-import { useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { FaEnvelope, FaCheck } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
 export function VerifyEmail() {
   const [loading, setLoading] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user, signOut, loading: authLoading } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
   
   // Dark mode adaptive colors
   const cardBg = useColorModeValue('white', 'gray.800');
@@ -31,6 +32,28 @@ export function VerifyEmail() {
   const textColor = useColorModeValue('gray.600', 'gray.300');
   const headingColor = useColorModeValue('gray.800', 'gray.100');
   const iconBg = useColorModeValue('blue.50', 'blue.900');
+
+  // Access control - redirect users who shouldn't be here
+  useEffect(() => {
+    if (authLoading) return; // Wait for auth to load
+
+    if (!user) {
+      // No user signed in - redirect to login
+      console.log('No user found, redirecting to login');
+      navigate('/login');
+      return;
+    }
+
+    if (user.email_confirmed_at) {
+      // User is already verified - redirect to dashboard
+      console.log('User already verified, redirecting to dashboard');
+      navigate('/dashboard');
+      return;
+    }
+
+    // User is signed in but not verified - this is the correct state for this page
+    console.log('User signed in but not verified - showing verification page');
+  }, [user, authLoading, navigate]);
   
   const handleResendVerification = async () => {
     if (!user?.email) {
@@ -80,6 +103,21 @@ export function VerifyEmail() {
   const handleSignOut = async () => {
     await signOut();
   };
+
+  // Show loading while checking authentication state
+  if (authLoading || !user || user.email_confirmed_at) {
+    return (
+      <Box
+        bg={useColorModeValue('gray.50', 'gray.900')}
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        minHeight="100vh"
+      >
+        <Text>Loading...</Text>
+      </Box>
+    );
+  }
   
   return (
     <Box

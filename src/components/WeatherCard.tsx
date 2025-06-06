@@ -15,10 +15,11 @@ import {
   Divider,
   SimpleGrid,
   IconButton,
-  Tooltip
+  Tooltip,
+  Portal
 } from '@chakra-ui/react'
 import { FaCloudSun, FaCloudRain, FaSnowflake, FaSun, FaCloudMeatball, FaBolt, FaMapMarkerAlt, FaCalendarDay, FaChevronRight, FaThermometerHalf } from 'react-icons/fa'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 
 // OpenWeather API configuration
 const OPENWEATHER_API_KEY = 'd52188171339c7c268d503e4e1122c12'
@@ -64,6 +65,8 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
   const [hasError, setHasError] = useState(false)
   const [showForecast, setShowForecast] = useState(false)
   const [isCelsius, setIsCelsius] = useState(false) // Temperature unit toggle
+  const [popupPosition, setPopupPosition] = useState({ top: 0, right: 0, width: 0 })
+  const weatherCardRef = useRef<HTMLDivElement>(null)
   const toast = useToast()
 
   const headerGradient = useColorModeValue(
@@ -246,6 +249,18 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
     fetchRealWeather();
   }, [city, state, toast])
 
+  // Handle window resize to recalculate popup position
+  useEffect(() => {
+    const handleResize = () => {
+      if (showForecast) {
+        calculatePopupPosition();
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [showForecast]);
+
   const WeatherIcon = getWeatherIcon(weather.condition)
   
   // Format the date - use fixedDate if provided (for testing), otherwise use today's date
@@ -258,9 +273,26 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
   
   const location = state ? `${city}, ${state}` : city;
 
+  // Calculate popup position based on weather card position
+  const calculatePopupPosition = () => {
+    if (!weatherCardRef.current) return;
+    
+    const rect = weatherCardRef.current.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const cardWidth = rect.width; // Use actual rendered card width
+    const isMobile = viewportWidth < 768;
+    
+    // Position popup below the card, aligned to the right edge
+    setPopupPosition({
+      top: rect.bottom + 8, // 8px margin below the card
+      right: Math.max(16, viewportWidth - (rect.right)), // Ensure 16px minimum margin from right edge
+      width: isMobile ? Math.min(viewportWidth * 0.9, 500) : cardWidth // Mobile: 90vw, Desktop: match card width
+    });
+  };
+
   return (
     <Skeleton isLoaded={!isLoading}>
-      <Box position="relative">
+      <Box position="relative" ref={weatherCardRef}>
         <Card 
           borderRadius="lg" 
           overflow="hidden" 
@@ -341,6 +373,9 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
                 onClick={() => {
                   console.log('Forecast button clicked. Current showForecast:', showForecast);
                   console.log('Forecast data length:', forecast.length);
+                  if (!showForecast) {
+                    calculatePopupPosition();
+                  }
                   setShowForecast(!showForecast);
                 }}
                 width="full"
@@ -357,82 +392,83 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
 
         {/* Floating Forecast Overlay */}
         {forecast.length > 0 && showForecast && (
-          <Box
-            position="fixed"
-            top="270px"
-            right="48px"
-            zIndex={9999}
-            width={{ base: "90vw", md: "400px" }}
-            maxWidth="500px"
-          >
-            <Card
-              bg={cardBg}
-              borderColor={borderColor}
-              borderWidth="1px"
-              borderRadius="lg"
-              boxShadow={forecastShadow}
-              overflow="hidden"
+          <Portal>
+            <Box
+              position="fixed"
+              top={`${popupPosition.top}px`}
+              right={`${popupPosition.right}px`}
+              zIndex={9999}
+              width={`${popupPosition.width}px`}
             >
-              <CardBody p={4}>
-                {/* Forecast Header */}
-                <HStack justify="space-between" mb={3} fontSize="xs" fontWeight="bold" color={subtitleColor} textTransform="uppercase">
-                  <Text flex={1}>Day</Text>
-                  <Text textAlign="center" minW="60px">Rain</Text>
-                  <VStack spacing={0} minW="80px">
-                    <HStack spacing={4}>
-                      <Text fontSize="xs">Max</Text>
-                      <Text fontSize="xs">Min</Text>
-                    </HStack>
+              <Card
+                bg={cardBg}
+                borderColor={borderColor}
+                borderWidth="1px"
+                borderRadius="lg"
+                boxShadow={forecastShadow}
+                overflow="hidden"
+              >
+                <CardBody p={4}>
+                  {/* Forecast Header */}
+                  <HStack justify="space-between" mb={3} fontSize="xs" fontWeight="bold" color={subtitleColor} textTransform="uppercase">
+                    <Text flex={1}>Day</Text>
+                    <Text textAlign="center" minW="60px">Rain</Text>
+                    <VStack spacing={0} minW="80px">
+                      <HStack spacing={4}>
+                        <Text fontSize="xs">Max</Text>
+                        <Text fontSize="xs">Min</Text>
+                      </HStack>
+                    </VStack>
+                  </HStack>
+                  <Divider mb={3} />
+                  
+                  <VStack spacing={3} align="stretch">
+                    {forecast.map((day, index) => (
+                      <HStack key={day.date} justify="space-between" py={2}>
+                        {/* Day and Weather Info */}
+                        <HStack spacing={3} flex={1}>
+                          <Icon 
+                            as={getWeatherIcon(day.condition)} 
+                            boxSize={5} 
+                            color={iconColor}
+                          />
+                          <VStack align="start" spacing={0}>
+                            <Text fontSize="sm" fontWeight="medium" color={textColor}>
+                              {day.dayName}
+                            </Text>
+                            <Text fontSize="xs" color={subtitleColor} textTransform="capitalize">
+                              {day.description}
+                            </Text>
+                          </VStack>
+                        </HStack>
+                        
+                        {/* Rain Probability */}
+                        <Box textAlign="center" minW="60px">
+                          <Text 
+                            fontSize="sm" 
+                            fontWeight="medium" 
+                            color={getRainColor(day.rainProbability)}
+                          >
+                            {day.rainProbability}%
+                          </Text>
+                        </Box>
+                        
+                        {/* Temperature Range */}
+                        <HStack spacing={4} justify="flex-end" minW="80px">
+                          <Text fontSize="sm" fontWeight="bold" color={textColor}>
+                            {getTempDisplay(day.high)}
+                          </Text>
+                          <Text fontSize="sm" color={subtitleColor}>
+                            {getTempDisplay(day.low)}
+                          </Text>
+                        </HStack>
+                      </HStack>
+                    ))}
                   </VStack>
-                </HStack>
-                <Divider mb={3} />
-                
-                <VStack spacing={3} align="stretch">
-                  {forecast.map((day, index) => (
-                    <HStack key={day.date} justify="space-between" py={2}>
-                      {/* Day and Weather Info */}
-                      <HStack spacing={3} flex={1}>
-                        <Icon 
-                          as={getWeatherIcon(day.condition)} 
-                          boxSize={5} 
-                          color={iconColor}
-                        />
-                        <VStack align="start" spacing={0}>
-                          <Text fontSize="sm" fontWeight="medium" color={textColor}>
-                            {day.dayName}
-                          </Text>
-                          <Text fontSize="xs" color={subtitleColor} textTransform="capitalize">
-                            {day.description}
-                          </Text>
-                        </VStack>
-                      </HStack>
-                      
-                      {/* Rain Probability */}
-                      <Box textAlign="center" minW="60px">
-                        <Text 
-                          fontSize="sm" 
-                          fontWeight="medium" 
-                          color={getRainColor(day.rainProbability)}
-                        >
-                          {day.rainProbability}%
-                        </Text>
-                      </Box>
-                      
-                      {/* Temperature Range */}
-                      <HStack spacing={4} justify="flex-end" minW="80px">
-                        <Text fontSize="sm" fontWeight="bold" color={textColor}>
-                          {getTempDisplay(day.high)}
-                        </Text>
-                        <Text fontSize="sm" color={subtitleColor}>
-                          {getTempDisplay(day.low)}
-                        </Text>
-                      </HStack>
-                    </HStack>
-                  ))}
-                </VStack>
-              </CardBody>
-            </Card>
-          </Box>
+                </CardBody>
+              </Card>
+            </Box>
+          </Portal>
         )}
 
         {/* Backdrop overlay to close forecast when clicking outside */}

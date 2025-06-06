@@ -166,6 +166,7 @@ export function Dashboard() {
     description: 'Fetching current conditions'
   })
   const navigate = useNavigate()
+  const toast = useToast()
 
   // State for reset confirmation modal
   const { isOpen: isResetOpen, onOpen: onResetOpen, onClose: onResetClose } = useDisclosure();
@@ -381,7 +382,6 @@ export function Dashboard() {
   }, [user, profile]);
 
   const workoutStore = useWorkoutStore();
-  const toast = useToast();
 
   // Function to get completion count for a workout
   const getCompletionCount = (workoutId: string): number => {
@@ -577,6 +577,25 @@ export function Dashboard() {
     const firstName = getFirstName();
     return isFirstTimeUser() ? `Welcome, ${firstName}` : `Welcome back, ${firstName}`;
   };
+
+  // Check for email verification success toast
+  useEffect(() => {
+    const shouldShowToast = localStorage.getItem('show-email-verified-toast')
+    if (shouldShowToast === 'true' && user?.email_confirmed_at) {
+      // Show success toast
+      toast({
+        title: '🎉 Email Verified Successfully!',
+        description: `Welcome to Track & Field, ${profile?.first_name || user?.email?.split('@')[0] || 'Athlete'}! Your account is now fully activated.`,
+        status: 'success',
+        duration: 8000,
+        isClosable: true,
+        position: 'top'
+      })
+      
+      // Clear the flag so it doesn't show again
+      localStorage.removeItem('show-email-verified-toast')
+    }
+  }, [user, profile, toast])
 
   return (
     <Box 

@@ -33,6 +33,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import AthleteRosterCard from '../../components/coach/AthleteRosterCard';
 import { MeetFormDrawer, type TrackMeetFormData, type TrackMeetData } from '../../components/meets/MeetFormDrawer';
+import { useWorkouts } from '../../hooks/useWorkouts';
 
   
 // Mock data that's still needed for the exercises dropdown
@@ -216,18 +217,10 @@ function useCoachAthleteEvents() {
 export function CoachDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { profile, isLoading: profileLoading } = useProfile(); // Keep for weather widget and other full data needs
-  const { displayName } = useProfileDisplay(); // Add lightweight hook for welcome message
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.700');
-  const cardShadow = useColorModeValue('none', 'base');
-  const cardShadowMd = useColorModeValue('none', 'md');
-  const athleteItemHoverBg = useColorModeValue('gray.50', 'gray.700');
-  const subtitleColor = useColorModeValue('gray.600', 'gray.200');
-  const eventDateColor = useColorModeValue('gray.500', 'gray.200');
-  const noEventsColor = useColorModeValue('gray.400', 'gray.200');
-  const statHelpTextColor = useColorModeValue('gray.500', 'gray.200');
-  const statLabelColor = useColorModeValue('gray.600', 'gray.200');
+  const { profile, isLoading: profileLoading } = useProfile();
+  const { workouts, isLoading: workoutsLoading } = useWorkouts();
+  const [activeAlerts, setActiveAlerts] = useState<any[]>([]);
+  const [showMonthlyPlanModal, setShowMonthlyPlanModal] = useState(false);
   const toast = useToast();
   const queryClient = useQueryClient();
   
@@ -238,6 +231,18 @@ export function CoachDashboard() {
 
   // Log the user object to see its structure
   console.log('Coach dashboard user object:', user);
+
+  // Color mode styles
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const cardShadow = useColorModeValue('none', 'base');
+  const cardShadowMd = useColorModeValue('none', 'md');
+  const athleteItemHoverBg = useColorModeValue('gray.50', 'gray.700');
+  const subtitleColor = useColorModeValue('gray.600', 'gray.200');
+  const eventDateColor = useColorModeValue('gray.500', 'gray.200');
+  const noEventsColor = useColorModeValue('gray.400', 'gray.200');
+  const statHelpTextColor = useColorModeValue('gray.500', 'gray.200');
+  const statLabelColor = useColorModeValue('gray.600', 'gray.200');
 
   const getCompletionColor = (rate: number) => {
     if (rate >= 80) return 'green';
@@ -344,7 +349,7 @@ export function CoachDashboard() {
     return parts.length > 1 ? parts[parts.length - 1] : '';
   };
 
-  const welcomeName = displayName ? getLastNameFromDisplayName(displayName) : (profile?.last_name || '');
+  const welcomeName = profile?.displayName ? getLastNameFromDisplayName(profile.displayName) : (profile?.last_name || '');
 
   // Helper function to determine if it's a first-time user
   const isFirstTimeUser = (): boolean => {
@@ -365,6 +370,25 @@ export function CoachDashboard() {
       ? `Welcome, Coach ${welcomeName}! Here's your mission control.`
       : `Welcome back, Coach ${welcomeName}! Here's your mission control.`;
   };
+
+  // Check for email verification success toast
+  useEffect(() => {
+    const shouldShowToast = localStorage.getItem('show-email-verified-toast')
+    if (shouldShowToast === 'true' && user?.email_confirmed_at) {
+      // Show success toast
+      toast({
+        title: '🎉 Email Verified Successfully!',
+        description: `Welcome to Track & Field, ${profile?.first_name || user?.email?.split('@')[0] || 'Coach'}! Your account is now fully activated.`,
+        status: 'success',
+        duration: 8000,
+        isClosable: true,
+        position: 'top'
+      })
+      
+      // Clear the flag so it doesn't show again
+      localStorage.removeItem('show-email-verified-toast')
+    }
+  }, [user, profile, toast])
 
   return (
     <Box py={8}>
