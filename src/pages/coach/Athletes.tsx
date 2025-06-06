@@ -52,12 +52,14 @@ import {
 import { FaSearch, FaUserPlus, FaEnvelope, FaPhone, FaCalendarAlt, FaTrophy, FaRunning, FaEllipsisV, FaFilter } from 'react-icons/fa'
 import { useState, useEffect } from 'react'
 import { useCoachAthletes } from '../../hooks/useCoachAthletes'
+import AddAthleteModal from '../../components/AddAthleteModal'
 
 export function CoachAthletes() {
   const { data: athletes = [], isLoading, isError, error } = useCoachAthletes();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAthlete, setSelectedAthlete] = useState<any>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isAddAthleteOpen, onOpen: onAddAthleteOpen, onClose: onAddAthleteClose } = useDisclosure();
   
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
@@ -96,6 +98,7 @@ export function CoachAthletes() {
           variant="solid" 
           colorScheme="blue" 
           leftIcon={<Icon as={FaUserPlus} />}
+          onClick={onAddAthleteOpen}
         >
           Add Athlete
         </Button>
@@ -362,6 +365,9 @@ export function CoachAthletes() {
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      {/* Add Athlete Modal */}
+      <AddAthleteModal isOpen={isAddAthleteOpen} onClose={onAddAthleteClose} />
     </Box>
   );
 } 
