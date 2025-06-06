@@ -81,22 +81,20 @@ const Step3AthleteAssignment: React.FC<Step3AthleteAssignmentProps> = ({
       <HStack spacing={4} align="start" w="100%" h="100%">
         {/* Left Panel: Available Athletes */}
         <Card flex="1" h="100%" variant="outline" shadow="none" maxW="50%" bg={cardBg} borderColor={borderColor}>
-          <CardHeader pb={3}>
-            <VStack spacing={4} align="stretch">
-              <HStack spacing={3} align="baseline">
-                <Box display="flex" alignItems="center">
-                  <Users size={29} color="var(--chakra-colors-blue-500)" />
-                </Box>
-                <Heading size="lg" color={headingColor}>Available Athletes</Heading>
-              </HStack>
+          <CardHeader pb={0} pt={1} minH="40px" display="flex" alignItems="center">
+            <HStack spacing={2} align="center" w="100%">
+              <Box display="flex" alignItems="center">
+                <Users size={20} color="var(--chakra-colors-blue-500)" />
+              </Box>
+              <Heading size="lg" color={headingColor}>Available Athletes</Heading>
               
-              {/* Search */}
-              <InputGroup size="lg">
+              {/* Search moved to same line */}
+              <InputGroup size="sm" maxW="280px" ml="auto">
                 <InputLeftElement pointerEvents="none">
-                  <Search size={20} color={searchIconColor} />
+                  <Search size={14} color={searchIconColor} />
                 </InputLeftElement>
                 <Input
-                  placeholder="Search athletes by name or event..."
+                  placeholder="Search athletes..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   borderWidth="1px"
@@ -104,9 +102,10 @@ const Step3AthleteAssignment: React.FC<Step3AthleteAssignmentProps> = ({
                   bg={cardBg}
                   borderColor={borderColor}
                   color={textColor}
+                  size="sm"
                 />
               </InputGroup>
-            </VStack>
+            </HStack>
           </CardHeader>
           
           <CardBody pt={0} flex="1" overflow="hidden" display="flex" flexDirection="column">
@@ -203,25 +202,23 @@ const Step3AthleteAssignment: React.FC<Step3AthleteAssignmentProps> = ({
 
         {/* Right Panel: Selected Athletes */}
         <Card flex="1" h="100%" variant="outline" shadow="none" maxW="50%" bg={cardBg} borderColor={borderColor}>
-          <CardHeader pb={3}>
-            <VStack spacing={4} align="stretch">
-              <HStack spacing={3} align="baseline">
+          <CardHeader pb={0} pt={1} minH="40px" display="flex" alignItems="center">
+            <HStack justify="space-between" align="center" w="100%">
+              <HStack spacing={2} align="center">
                 <Box display="flex" alignItems="center">
-                  <UserCheck size={29} color="var(--chakra-colors-green-500)" />
+                  <UserCheck size={20} color="var(--chakra-colors-green-500)" />
                 </Box>
                 <Heading size="lg" color={headingColor}>Selected Athletes</Heading>
-              </HStack>
-              <HStack justify="space-between">
-                <Badge colorScheme="green" variant="solid" fontSize="md" px={3} py={1}>
+                <Badge colorScheme="green" variant="solid" fontSize="xs" px={2} py={1}>
                   {selectedCount} SELECTED
                 </Badge>
-                {selectedCount > 0 && (
-                  <Button size="sm" variant="outline" colorScheme="red" onClick={onClearAllAthletes}>
-                    Clear All
-                  </Button>
-                )}
               </HStack>
-            </VStack>
+              {selectedCount > 0 && (
+                <Button size="xs" variant="outline" colorScheme="red" onClick={onClearAllAthletes}>
+                  Clear All
+                </Button>
+              )}
+            </HStack>
           </CardHeader>
           
           <CardBody pt={0} flex="1" overflow="hidden" display="flex" flexDirection="column">

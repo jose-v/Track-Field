@@ -198,62 +198,89 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
   };
 
   return (
-    <Box w="100%" minH="calc(100vh - 400px)" bg={bgColor}>
+    <Box w="100%" minH="calc(100vh - 400px)">
       <VStack spacing={6} align="stretch" w="100%">
-        {/* Workout Name */}
-        <Box>
-          <FormControl isRequired>
-            <FormLabel fontSize="lg" fontWeight="semibold" color={labelColor}>
-              Workout Name
-            </FormLabel>
-            <Input 
-              value={workoutName} 
-              onChange={(e) => setWorkoutName(e.target.value)}
-              onFocus={(e) => {
-                setHasBeenFocused(true);
-                
-                // Clear the field if it's empty, contains placeholder text, or hasn't been properly set
-                if (!workoutName || 
-                    workoutName.trim() === '' || 
-                    workoutName.toLowerCase().trim() === 'my new workout' ||
-                    workoutName === 'My New Workout') {
-                  setWorkoutName('');
-                  // Force the input to clear immediately
-                  e.target.value = '';
-                }
-                
-                // Select all text after a brief delay to ensure state updates
-                setTimeout(() => {
-                  if (e.target && workoutName && workoutName.trim() !== '') {
-                    e.target.select();
+        {/* Workout Name and Location */}
+        <HStack spacing={4} align="start" w="100%">
+          {/* Workout Name - Left Side */}
+          <Box flex="2">
+            <FormControl isRequired>
+              <FormLabel fontSize="lg" fontWeight="semibold" color={labelColor}>
+                Workout Name
+              </FormLabel>
+              <Input 
+                value={workoutName} 
+                onChange={(e) => setWorkoutName(e.target.value)}
+                onFocus={(e) => {
+                  setHasBeenFocused(true);
+                  
+                  // Clear the field if it's empty, contains placeholder text, or hasn't been properly set
+                  if (!workoutName || 
+                      workoutName.trim() === '' || 
+                      workoutName.toLowerCase().trim() === 'my new workout' ||
+                      workoutName === 'My New Workout') {
+                    setWorkoutName('');
+                    // Force the input to clear immediately
+                    e.target.value = '';
                   }
-                }, 10);
-              }}
-              onClick={(e) => {
-                // Handle click to clear placeholder-like text
-                if (!workoutName || 
-                    workoutName.trim() === '' || 
-                    workoutName.toLowerCase().trim() === 'my new workout' ||
-                    workoutName === 'My New Workout') {
-                  setWorkoutName('');
-                  // Force the input to clear immediately
-                  (e.target as HTMLInputElement).value = '';
-                }
-              }}
-              placeholder={hasBeenFocused ? "Enter workout name..." : "My New Workout"}
-              size="lg"
-              fontSize="lg"
-              py={6}
-              borderWidth="2px"
-              bg={inputBg}
-              borderColor={borderColor}
-              color={textColor}
-              _placeholder={{ color: placeholderColor }}
-              _focus={{ borderColor: "blue.400" }}
-              _hover={{ borderColor: inputHoverBorderColor }}
-            />
-          </FormControl>
-        </Box>
+                  
+                  // Select all text after a brief delay to ensure state updates
+                  setTimeout(() => {
+                    if (e.target && workoutName && workoutName.trim() !== '') {
+                      e.target.select();
+                    }
+                  }, 10);
+                }}
+                onClick={(e) => {
+                  // Handle click to clear placeholder-like text
+                  if (!workoutName || 
+                      workoutName.trim() === '' || 
+                      workoutName.toLowerCase().trim() === 'my new workout' ||
+                      workoutName === 'My New Workout') {
+                    setWorkoutName('');
+                    // Force the input to clear immediately
+                    (e.target as HTMLInputElement).value = '';
+                  }
+                }}
+                placeholder={hasBeenFocused ? "Enter workout name..." : "My New Workout"}
+                size="lg"
+                fontSize="lg"
+                py={6}
+                borderWidth="2px"
+                bg={inputBg}
+                borderColor={borderColor}
+                color={textColor}
+                _placeholder={{ color: placeholderColor }}
+                _focus={{ borderColor: "blue.400" }}
+                _hover={{ borderColor: inputHoverBorderColor }}
+              />
+            </FormControl>
+          </Box>
+
+          {/* Location - Right Side */}
+          <Box flex="1">
+            <FormControl>
+              <FormLabel fontSize="lg" fontWeight="semibold" color={labelColor}>
+                Location
+              </FormLabel>
+              <Input
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Training location"
+                size="lg"
+                fontSize="lg"
+                py={6}
+                borderWidth="2px"
+                bg={inputBg}
+                borderColor={borderColor}
+                color={textColor}
+                _placeholder={{ color: placeholderColor }}
+                _focus={{ borderColor: "green.400" }}
+                _hover={{ borderColor: inputHoverBorderColor }}
+              />
+            </FormControl>
+          </Box>
+        </HStack>
 
         {/* Template Type, Focus, and Training Period - Responsive Layout */}
         <Box w="100%">
@@ -508,8 +535,8 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
                     {/* Show date/time picker only if not creating a template */}
                     {!isTemplate && (
                       <>
-                        {/* Date & Time Picker - Compact for wide layout */}
-                        <Box w="100%">
+                        {/* Date & Time Picker - Centered */}
+                        <Flex justify="center" w="100%">
                           <DateTimePicker
                             selectedDates={templateType === 'weekly' ? selectedDateRange : selectedDates}
                             selectedStartTime={startTime}
@@ -518,31 +545,7 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
                             onDateSelect={templateType === 'weekly' ? handleWeeklyDateSelect : handleSingleDateSelect}
                             onTimeSelect={handleTimeSelect}
                           />
-                        </Box>
-
-                        {/* Location Input - Compact */}
-                        <VStack spacing={2} w="100%" align="start">
-                          <HStack spacing={2} align="start">
-                            <MapPin size={14} color="var(--chakra-colors-green-500)" />
-                            <Text fontSize="xs" fontWeight="semibold" color={textColor}>
-                              Location
-                            </Text>
-                          </HStack>
-                          <FormControl>
-                            <Input
-                              value={location}
-                              onChange={(e) => setLocation(e.target.value)}
-                              placeholder="Training location"
-                              size="sm"
-                              borderWidth="1px"
-                              bg={inputBg}
-                              borderColor={borderColor}
-                              color={textColor}
-                              _placeholder={{ color: placeholderColor }}
-                              _focus={{ borderColor: "green.400" }}
-                            />
-                          </FormControl>
-                        </VStack>
+                        </Flex>
                       </>
                     )}
 
@@ -834,30 +837,6 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
                         onTimeSelect={handleTimeSelect}
                       />
                     </Flex>
-
-                    {/* Location Input */}
-                    <VStack spacing={2} w="100%" align="start">
-                      <HStack spacing={2} align="start">
-                        <MapPin size={16} color="var(--chakra-colors-green-500)" />
-                        <Text fontSize="sm" fontWeight="semibold" color={textColor}>
-                          Location (Optional)
-                        </Text>
-                      </HStack>
-                      <FormControl>
-                        <Input
-                          value={location}
-                          onChange={(e) => setLocation(e.target.value)}
-                          placeholder={templateType === 'single' ? "Workout location (e.g., Main Gym, Track Field)" : "Training location (e.g., Athletic Center, School Gym)"}
-                          size="md"
-                          borderWidth="1px"
-                          bg={inputBg}
-                          borderColor={borderColor}
-                          color={textColor}
-                          _placeholder={{ color: placeholderColor }}
-                          _focus={{ borderColor: "green.400" }}
-                        />
-                      </FormControl>
-                    </VStack>
                   </VStack>
                 </CardBody>
               </Card>

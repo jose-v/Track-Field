@@ -175,8 +175,8 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
   const workoutHeading = templateType === 'weekly' ? `${currentDayName} Exercises` : 'Workout Exercises';
 
   return (
-    <Box w="100%" mb={0} bg={cardBg}>
-      <HStack spacing={4} align="start" w="100%" height="calc(100vh - 400px)">
+    <Box w="100%" mb={0}>
+      <HStack spacing={4} align="start" w="100%" height="calc(100vh - 170px)">
         {/* Left Panel: Exercise Library */}
         <Card flex="1" height="100%" variant="outline" shadow="none" bg={cardBg} borderColor={borderColor}>
           <CardHeader pb={3}>
@@ -267,11 +267,11 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
                         transition="all 0.2s"
                         size="sm"
                       >
-                        <CardBody px={4} pt={4} pb={2}>
+                        <CardBody px={4} pt={2} pb={1}>
                           <HStack justify="space-between" align="start">
-                            <VStack align="start" spacing={2} flex="1">
+                            <VStack align="start" spacing={1} flex="1">
                               <HStack flexWrap="wrap">
-                                <Text fontWeight="bold" fontSize="md" color={libraryExerciseNameColor}>
+                                <Text fontWeight="bold" fontSize="sm" color={libraryExerciseNameColor}>
                                   {exercise.name}
                                 </Text>
                                 <Tag size="sm" colorScheme="teal" variant="subtle">
@@ -283,20 +283,20 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
                                   </Tag>
                                 )}
                               </HStack>
-                              <Text fontSize="sm" color={libraryExerciseDescColor} lineHeight="short">
+                              <Text fontSize="xs" color={libraryExerciseDescColor} lineHeight="short" noOfLines={1}>
                                 {exercise.description}
                               </Text>
                             </VStack>
                             {!isAlreadyAdded && (
                               <Button
-                                size="sm"
+                                size="xs"
                                 colorScheme="gray"
                                 variant="outline"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   onAddExercise(exercise);
                                 }}
-                                leftIcon={<PlusCircle size={14} />}
+                                leftIcon={<PlusCircle size={12} />}
                               >
                                 Add
                               </Button>

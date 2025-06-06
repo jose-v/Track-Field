@@ -1033,60 +1033,56 @@ const WorkoutCreatorWireframe: React.FC = () => {
         bg={cardBg} 
         borderColor={borderColor}
       >
-        <CardBody p={4}>
-          <VStack spacing={4} align="stretch" w="100%">
-            <HStack justify="space-between" align="center" w="100%">
-              <HStack spacing={4}>
-                <IconButton
-                  icon={<ArrowLeft size={18} />}
-                  variant="ghost"
-                  aria-label={isEditing ? "Cancel editing" : "Back to list"}
-                  onClick={handleCancel}
-                  color={textColor}
-                  _hover={{ bg: 'blue.100' }}
-                />
-                <VStack align="start" spacing={1}>
-                  <Heading size="md" color="blue.600">
-                    {isEditing ? `Edit: ${currentStepInfo.title}` : currentStepInfo.title}
-                  </Heading>
-                  <Text fontSize="sm" color={subtitleColor}>
-                    {isEditing ? `Editing "${workoutName}" - ${currentStepInfo.description}` : currentStepInfo.description}
-                  </Text>
-                </VStack>
-              </HStack>
-              
-              {/* Center spacer to maintain layout consistency */}
-              <Box flex="1" />
-              
-              {/* Workout Stats */}
-              <HStack spacing={8} justify="center" p={4} bg={statsBg} borderRadius="md">
-                <VStack spacing={0} align="center">
-                  <Text fontSize="xl" fontWeight="bold" color="blue.600">
-                    {Object.values(selectedExercises).flat().length}
-                  </Text>
-                  <Text fontSize="xs" color={subtitleColor}>
-                    Total Exercises
-                  </Text>
-                </VStack>
-                <VStack spacing={0} align="center">
-                  <Text fontSize="xl" fontWeight="bold" color="blue.600">
-                    {Object.values(selectedExercises).flat().reduce((sum, ex) => sum + (parseInt(ex.sets || '0') || 0), 0)}
-                  </Text>
-                  <Text fontSize="xs" color={subtitleColor}>
-                    Total Sets
-                  </Text>
-                </VStack>
-                <VStack spacing={0} align="center">
-                  <Text fontSize="xl" fontWeight="bold" color="blue.600">
-                    ~{Object.values(selectedExercises).flat().length * 3}
-                  </Text>
-                  <Text fontSize="xs" color={subtitleColor}>
-                    Minutes
-                  </Text>
-                </VStack>
-              </HStack>
+        <CardBody p={1} minH="40px" display="flex" alignItems="center">
+          <HStack justify="space-between" align="center" w="100%" spacing={3}>
+            <HStack spacing={2}>
+              <IconButton
+                icon={<ArrowLeft size={16} />}
+                variant="ghost"
+                aria-label={isEditing ? "Cancel editing" : "Back to list"}
+                onClick={handleCancel}
+                color={textColor}
+                _hover={{ bg: 'blue.100' }}
+                size="xs"
+              />
+              <VStack align="start" spacing={0}>
+                <Heading size="md" color="blue.600">
+                  {isEditing ? `Edit: ${currentStepInfo.title}` : currentStepInfo.title}
+                </Heading>
+                <Text fontSize="sm" color={subtitleColor}>
+                  {isEditing ? `Editing "${workoutName}" - ${currentStepInfo.description}` : currentStepInfo.description}
+                </Text>
+              </VStack>
             </HStack>
-          </VStack>
+            
+            {/* Workout Stats */}
+            <HStack spacing={4} p={1} bg={statsBg} borderRadius="md">
+              <VStack spacing={0} align="center">
+                <Text fontSize="md" fontWeight="bold" color="blue.600">
+                  {Object.values(selectedExercises).flat().length}
+                </Text>
+                <Text fontSize="xs" color={subtitleColor}>
+                  Total Exercises
+                </Text>
+              </VStack>
+              <VStack spacing={0} align="center">
+                <Text fontSize="md" fontWeight="bold" color="blue.600">
+                  {Object.values(selectedExercises).flat().reduce((sum, ex) => sum + (parseInt(ex.sets || '0') || 0), 0)}
+                </Text>
+                <Text fontSize="xs" color={subtitleColor}>
+                  Total Sets
+                </Text>
+              </VStack>
+              <VStack spacing={0} align="center">
+                <Text fontSize="md" fontWeight="bold" color="blue.600">
+                  ~{Object.values(selectedExercises).flat().length * 3}
+                </Text>
+                <Text fontSize="xs" color={subtitleColor}>
+                  Minutes
+                </Text>
+              </VStack>
+            </HStack>
+          </HStack>
         </CardBody>
       </Card>
     </VStack>
