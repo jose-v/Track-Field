@@ -43,7 +43,14 @@ import {
   Input,
   Select,
   FormErrorMessage,
-  Icon
+  Icon,
+  Tabs,
+  TabList,
+  Tab,
+  TabPanels,
+  TabPanel,
+  Card,
+  CardBody
 } from '@chakra-ui/react';
 import { 
   FaArrowLeft, 
@@ -69,7 +76,11 @@ import {
   FaUserTie,
   FaDownload,
   FaShare,
-  FaUserFriends
+  FaUserFriends,
+  FaFire,
+  FaClock,
+  FaHistory,
+  FaClipboardList
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -1268,6 +1279,122 @@ export const Meets: React.FC = () => {
   const assignDrawerHeaderBg = useColorModeValue('green.50', 'green.900');
   const assignDrawerHeaderColor = useColorModeValue('green.700', 'green.200');
 
+  // Meet filtering logic
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Start of today
+
+  const filteredMeets = useMemo(() => {
+    // Sort meets by date
+    const sortedMeets = [...meets].sort((a, b) => 
+      new Date(a.meet_date).getTime() - new Date(b.meet_date).getTime()
+    );
+
+    const nextMeet = sortedMeets.find(meet => 
+      new Date(meet.meet_date) >= today
+    );
+
+    const upcomingMeets = sortedMeets.filter(meet => 
+      new Date(meet.meet_date) >= today
+    );
+
+    const pastMeets = sortedMeets.filter(meet => 
+      new Date(meet.meet_date) < today
+    );
+
+    return {
+      nextMeet: nextMeet ? [nextMeet] : [],
+      upcoming: upcomingMeets,
+      past: pastMeets,
+      all: sortedMeets
+    };
+  }, [meets, today]);
+
+  // Helper function to render meets with badges
+  const renderMeets = (meetsToRender: TrackMeet[], showBadges = false) => {
+    if (meetsToRender.length === 0) {
+      return (
+        <Box
+          bg="gray.800"
+          borderRadius="2xl"
+          p={16}
+          textAlign="center"
+          border="1px solid"
+          borderColor="gray.700"
+        >
+          <FaCalendarAlt size={48} color="gray.600" style={{ margin: '0 auto 16px' }} />
+          <Heading size="md" color="gray.400" mb={2}>No meets found</Heading>
+          <Text color="gray.500" mb={6}>
+            {userIsCoach ? "Create your first track meet to get started." : "No meets have been assigned to you yet."}
+          </Text>
+          {userIsCoach && (
+            <Button
+              leftIcon={<FaPlus />}
+              colorScheme="blue"
+              onClick={handleCreateMeet}
+            >
+              Create First Meet
+            </Button>
+          )}
+        </Box>
+      );
+    }
+
+    return (
+      <VStack spacing={4} align="stretch">
+        {meetsToRender.map((meet) => {
+          const meetDate = new Date(meet.meet_date);
+          const isUpcoming = meetDate >= today;
+          const isPast = meetDate < today;
+          
+          return (
+            <Box key={meet.id} position="relative">
+              {showBadges && (
+                <HStack spacing={2} mb={2} justify="flex-end">
+                  {isUpcoming && (
+                    <Badge colorScheme="blue" variant="solid" fontSize="xs">
+                      Upcoming
+                    </Badge>
+                  )}
+                  {isPast && meetData[meet.id]?.myAssignedEvents?.some(event => !event.time) && (
+                    <Badge colorScheme="orange" variant="solid" fontSize="xs">
+                      Results Pending
+                    </Badge>
+                  )}
+                </HStack>
+              )}
+              <MeetCard
+                meet={meet}
+                isCoach={userIsCoach}
+                onEdit={handleEditMeet}
+                onDelete={handleDeleteMeet}
+                onAssignAthletes={handleAssignAthletes}
+                onManageEvents={handleManageEvents}
+                onOpenRunTimeModal={openRunTimeModal}
+                athleteCount={meetData[meet.id]?.athleteCount || 0}
+                eventCount={meetData[meet.id]?.eventCount || 0}
+                athleteNames={meetData[meet.id]?.athleteNames || []}
+                myAssignedEvents={meetData[meet.id]?.myAssignedEvents || []}
+                assignedByCoach={meetData[meet.id]?.assignedByCoach}
+                coachPhone={meetData[meet.id]?.coachPhone}
+                coachEmail={meetData[meet.id]?.coachEmail}
+                assistantCoach1Name={meetData[meet.id]?.assistantCoach1Name}
+                assistantCoach1Phone={meetData[meet.id]?.assistantCoach1Phone}
+                assistantCoach1Email={meetData[meet.id]?.assistantCoach1Email}
+                assistantCoach2Name={meetData[meet.id]?.assistantCoach2Name}
+                assistantCoach2Phone={meetData[meet.id]?.assistantCoach2Phone}
+                assistantCoach2Email={meetData[meet.id]?.assistantCoach2Email}
+                assistantCoach3Name={meetData[meet.id]?.assistantCoach3Name}
+                assistantCoach3Phone={meetData[meet.id]?.assistantCoach3Phone}
+                assistantCoach3Email={meetData[meet.id]?.assistantCoach3Email}
+                distance={meetData[meet.id]?.distance}
+              />
+            </Box>
+          );
+        })}
+      </VStack>
+    );
+  };
+
   // Fetch meets and related data
   const fetchMeets = useCallback(async () => {
     if (!user) return;
@@ -2017,7 +2144,7 @@ export const Meets: React.FC = () => {
         p={6}
         color="gray.100"
       >
-        {/* Meets List */}
+        {/* Meets Tabs */}
         <Box w="full" maxW="4xl">
           {meets.length === 0 ? (
             <Box
@@ -2044,35 +2171,80 @@ export const Meets: React.FC = () => {
               )}
             </Box>
           ) : (
-            meets.map((meet) => (
-              <MeetCard
-                key={meet.id}
-                meet={meet}
-                isCoach={userIsCoach}
-                onEdit={handleEditMeet}
-                onDelete={handleDeleteMeet}
-                onAssignAthletes={handleAssignAthletes}
-                onManageEvents={handleManageEvents}
-                onOpenRunTimeModal={openRunTimeModal}
-                athleteCount={meetData[meet.id]?.athleteCount || 0}
-                eventCount={meetData[meet.id]?.eventCount || 0}
-                athleteNames={meetData[meet.id]?.athleteNames || []}
-                myAssignedEvents={meetData[meet.id]?.myAssignedEvents || []}
-                assignedByCoach={meetData[meet.id]?.assignedByCoach}
-                coachPhone={meetData[meet.id]?.coachPhone}
-                coachEmail={meetData[meet.id]?.coachEmail}
-                assistantCoach1Name={meetData[meet.id]?.assistantCoach1Name}
-                assistantCoach1Phone={meetData[meet.id]?.assistantCoach1Phone}
-                assistantCoach1Email={meetData[meet.id]?.assistantCoach1Email}
-                assistantCoach2Name={meetData[meet.id]?.assistantCoach2Name}
-                assistantCoach2Phone={meetData[meet.id]?.assistantCoach2Phone}
-                assistantCoach2Email={meetData[meet.id]?.assistantCoach2Email}
-                assistantCoach3Name={meetData[meet.id]?.assistantCoach3Name}
-                assistantCoach3Phone={meetData[meet.id]?.assistantCoach3Phone}
-                assistantCoach3Email={meetData[meet.id]?.assistantCoach3Email}
-                distance={meetData[meet.id]?.distance}
-              />
-            ))
+            <Tabs variant="enclosed" colorScheme="blue">
+              <TabList>
+                <Tab>
+                  <Icon as={FaFire} mr={2} />
+                  Next Meet
+                  <Badge ml={2} colorScheme="red" variant="solid">
+                    {filteredMeets.nextMeet.length}
+                  </Badge>
+                </Tab>
+                <Tab>
+                  <Icon as={FaClock} mr={2} />
+                  Upcoming
+                  <Badge ml={2} colorScheme="blue" variant="solid">
+                    {filteredMeets.upcoming.length}
+                  </Badge>
+                </Tab>
+                <Tab>
+                  <Icon as={FaHistory} mr={2} />
+                  Past
+                  <Badge ml={2} colorScheme="gray" variant="solid">
+                    {filteredMeets.past.length}
+                  </Badge>
+                </Tab>
+                <Tab>
+                  <Icon as={FaClipboardList} mr={2} />
+                  All
+                  <Badge ml={2} colorScheme="purple" variant="solid">
+                    {filteredMeets.all.length}
+                  </Badge>
+                </Tab>
+              </TabList>
+
+              <TabPanels>
+                {/* Next Meet Tab */}
+                <TabPanel px={0}>
+                  {filteredMeets.nextMeet.length > 0 && (
+                    <Box 
+                      bg="gray.800" 
+                      borderLeft="4px solid" 
+                      borderColor="blue.400" 
+                      p={3} 
+                      mb={4}
+                      borderRadius="md"
+                    >
+                      <HStack spacing={2}>
+                        <Icon as={FaCalendarAlt} color="blue.400" size="sm" />
+                        <Text fontSize="sm" fontWeight="medium" color="blue.300">
+                          Next Meet:
+                        </Text>
+                        <Text fontSize="sm" color="gray.300">
+                          {format(parseISO(filteredMeets.nextMeet[0].meet_date), 'MMM d, yyyy')}
+                        </Text>
+                      </HStack>
+                    </Box>
+                  )}
+                  {renderMeets(filteredMeets.nextMeet, true)}
+                </TabPanel>
+
+                {/* Upcoming Meets Tab */}
+                <TabPanel px={0}>
+                  {renderMeets(filteredMeets.upcoming, true)}
+                </TabPanel>
+
+                {/* Past Meets Tab */}
+                <TabPanel px={0}>
+                  {renderMeets(filteredMeets.past, true)}
+                </TabPanel>
+
+                {/* All Meets Tab */}
+                <TabPanel px={0}>
+                  {renderMeets(filteredMeets.all, false)}
+                </TabPanel>
+              </TabPanels>
+            </Tabs>
           )}
         </Box>
       </Flex>
