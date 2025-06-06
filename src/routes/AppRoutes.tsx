@@ -35,7 +35,7 @@ import { EditWorkout } from '../pages/coach/EditWorkout';
 import { Calendar as CoachCalendar } from '../pages/coach/Calendar';
 import CoachProfile from "../pages/coach/Profile";
 import { CoachTrainingPlans } from '../pages/coach/TrainingPlans';
-import { ManageAthletesPage } from '../pages/coach/ManageAthletesPage';
+
 
 // Athlete pages
 import { Dashboard as AthleteDashboard } from '../pages/Dashboard';
@@ -103,7 +103,7 @@ export default function AppRoutes() {
       <Route element={<CoachLayoutWithFeedback />}> 
         <Route path="/coach/dashboard" element={<RoleProtectedRoute allowedRoles={['coach', 'team_manager']}><CoachDashboard /></RoleProtectedRoute>} />
         <Route path="/coach/athletes" element={<RoleProtectedRoute allowedRoles={['coach', 'team_manager']}><CoachAthletes /></RoleProtectedRoute>} />
-        <Route path="/coach/manage-athletes" element={<RoleProtectedRoute allowedRoles={['coach', 'team_manager']}><ManageAthletesPage /></RoleProtectedRoute>} />
+
         <Route path="/coach/workouts" element={<RoleProtectedRoute allowedRoles={['coach', 'team_manager']}><CoachTrainingPlans /></RoleProtectedRoute>} />
         <Route path="/coach/workouts/new" element={<RoleProtectedRoute allowedRoles={['coach', 'team_manager']}><CreateWorkout /></RoleProtectedRoute>} />
         <Route path="/coach/workouts/import" element={<RoleProtectedRoute allowedRoles={['coach', 'team_manager']}><ImportWorkout /></RoleProtectedRoute>} />

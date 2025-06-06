@@ -50,11 +50,6 @@ export function useCoachNavigation(): CoachNavConfig & { isCurrentPathActive: (p
       icon: <LuUsers />
     },
     {
-      name: 'Manage Athletes',
-      path: '/coach/manage-athletes',
-      icon: <LuUsers />
-    },
-    {
       name: 'Training Plans',
       path: '/coach/training-plans',
       icon: <FaCalendarAlt />
