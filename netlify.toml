@@ -10,7 +10,7 @@
   for = "/*"
   [headers.values]
     # Content Security Policy for Opera compatibility
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://api.dicebear.com https://nominatim.openstreetmap.org https://photon.komoot.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://vdfqhhfirorqdjldmyzc.supabase.co wss://vdfqhhfirorqdjldmyzc.supabase.co https://nominatim.openstreetmap.org https://photon.komoot.io https://api.dicebear.com; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'self'; media-src 'self' blob: data:;"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://api.dicebear.com https://nominatim.openstreetmap.org https://photon.komoot.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://vdfqhhfirorqdjldmyzc.supabase.co wss://vdfqhhfirorqdjldmyzc.supabase.co https://nominatim.openstreetmap.org https://photon.komoot.io https://api.dicebear.com https://api.openweathermap.org; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'self'; media-src 'self' blob: data:;"
     
     # Other security headers
     X-Frame-Options = "DENY"
