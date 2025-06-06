@@ -72,7 +72,7 @@ const HeroSection = () => {
     "Winning",
     "Elite"
   ];
-
+  
   // State for contextual statistics
   const [upcomingMeets, setUpcomingMeets] = useState<any[]>([]);
   const [athleteCount, setAthleteCount] = useState<number | null>(null);

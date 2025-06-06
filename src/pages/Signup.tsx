@@ -97,18 +97,18 @@ function SignupContent() {
           throw error;
         }
         
-        toast({
-          title: 'Setup Complete!',
-          description: 'Your profile has been configured. You can now access your dashboard.',
-          status: 'success',
-          duration: 5000,
-          isClosable: true,
-        });
+      toast({
+        title: 'Setup Complete!',
+        description: 'Your profile has been configured. You can now access your dashboard.',
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      });
         
         // Clear signup data and navigate to dashboard
         resetSignupData();
-        navigate('/dashboard');
-        return;
+      navigate('/dashboard');
+      return;
       } catch (error: any) {
         toast({
           title: 'Error Updating Profile',
