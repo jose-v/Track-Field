@@ -84,6 +84,8 @@ export interface Profile {
 // Athlete type
 export interface Athlete {
   id: string; // References profile id
+  first_name?: string; // Synced from profiles table
+  last_name?: string;  // Synced from profiles table
   date_of_birth?: string;
   gender?: 'male' | 'female' | 'other';
   events: string[];
@@ -93,6 +95,8 @@ export interface Athlete {
 // Coach type
 export interface Coach {
   id: string; // References profile id
+  first_name?: string; // Synced from profiles table
+  last_name?: string;  // Synced from profiles table
   specialties: string[];
   certifications: string[];
   gender?: 'male' | 'female' | 'other';

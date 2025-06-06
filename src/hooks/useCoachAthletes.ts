@@ -7,8 +7,8 @@ export interface Athlete {
   gender?: string;
   events?: string[];
   team_id?: string;
-  first_name: string;
-  last_name: string;
+  first_name: string; // From athletes table
+  last_name: string;  // From athletes table
   date_of_birth?: string;
   created_at: string;
   created_by?: string;
@@ -78,17 +78,6 @@ export function useCoachAthletes() {
       if (!athletesData || athletesData.length === 0) {
         console.log('[useCoachAthletes] WARNING: No athlete records found for IDs:', athleteIds);
         console.log('[useCoachAthletes] This might indicate that the athletes exist in coach_athletes but not in the athletes table');
-
-        // Try querying each athlete ID individually to see if any exist
-        for (const athleteId of athleteIds) {
-          const { data: singleAthlete, error: singleError } = await supabase
-            .from('athletes')
-            .select('id, first_name, last_name')
-            .eq('id', athleteId)
-            .single();
-            
-          console.log(`[useCoachAthletes] Checking athlete ID ${athleteId}:`, singleAthlete || 'Not found', singleError || 'No error');
-        }
         
         return [];
       }

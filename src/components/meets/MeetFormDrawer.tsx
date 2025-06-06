@@ -25,7 +25,7 @@ import {
   Badge
 } from '@chakra-ui/react';
 import { useForm } from 'react-hook-form';
-import { FaHotel, FaChevronDown, FaChevronUp, FaUserTie } from 'react-icons/fa';
+import { FaHotel, FaChevronDown, FaChevronUp, FaUserTie, FaCalendarAlt } from 'react-icons/fa';
 
 export interface TrackMeetFormData {
   name: string;
@@ -160,6 +160,7 @@ export function MeetFormDrawer({
   const labelColor = useColorModeValue('gray.800', 'gray.100');
 
   // State for toggling sections
+  const [showMeetInfo, setShowMeetInfo] = useState(false);
   const [showLodging, setShowLodging] = useState(false);
   const [showAssistantCoaches, setShowAssistantCoaches] = useState(false);
   
@@ -393,359 +394,379 @@ export function MeetFormDrawer({
         
         <DrawerBody py={6}>
           <VStack spacing={5}>
-            <FormControl isInvalid={!!errors.name} isRequired>
-              <FormLabel 
-                fontSize="md" 
-                fontWeight="semibold"
-                color={labelColor}
-              >
-                Meet Name
-              </FormLabel>
-              <Input 
-                {...register('name', { required: 'Name is required' })} 
+            {/* Meet Information Section */}
+            <Box w="full">
+              <Button
+                variant="outline"
+                colorScheme="blue"
+                leftIcon={showMeetInfo ? <FaChevronUp /> : <FaChevronDown />}
+                rightIcon={<FaCalendarAlt />}
+                onClick={() => setShowMeetInfo(!showMeetInfo)}
+                w="full"
+                justifyContent="space-between"
                 size="lg"
                 borderWidth="2px"
-                borderColor={inputBorderColor}
                 _hover={{ borderColor: inputHoverBorderColor }}
-                _focus={{ 
-                  borderColor: inputFocusBorderColor, 
-                  boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
-                  bg: inputBg
-                }}
-                bg={inputBg}
-                color={inputTextColor}
-                _placeholder={{ color: placeholderColor }}
-                placeholder="e.g., State Championships"
-                shadow="sm"
-              />
-              <FormErrorMessage color="red.500" fontWeight="medium">
-                {errors.name?.message}
-              </FormErrorMessage>
-            </FormControl>
-            
-            <HStack spacing={4} w="full">
-              <FormControl isInvalid={!!errors.meet_date} isRequired flex="1">
-                <FormLabel 
-                  fontSize="md" 
-                  fontWeight="semibold"
-                  color={labelColor}
-                >
-                  Start Date
-                </FormLabel>
-                <Input 
-                  type="date" 
-                  {...register('meet_date', { required: 'Start date is required' })} 
-                  size="lg"
-                  borderWidth="2px"
-                  borderColor={inputBorderColor}
-                  _hover={{ borderColor: inputHoverBorderColor }}
-                  _focus={{ 
-                    borderColor: inputFocusBorderColor, 
-                    boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
-                    bg: inputBg
-                  }}
-                  bg={inputBg}
-                  color={inputTextColor}
-                  shadow="sm"
-                />
-                <FormErrorMessage color="red.500" fontWeight="medium">
-                  {errors.meet_date?.message}
-                </FormErrorMessage>
-              </FormControl>
+              >
+                Meet Information
+              </Button>
               
-              <FormControl isInvalid={!!errors.end_date} flex="1">
-                <FormLabel 
-                  fontSize="md" 
-                  fontWeight="semibold"
-                  color={labelColor}
-                >
-                  End Date (Multi-Day)
-                </FormLabel>
-                <Input 
-                  type="date" 
-                  {...register('end_date')} 
-                  placeholder="Leave empty for single-day meet"
-                  size="lg"
-                  borderWidth="2px"
-                  borderColor={inputBorderColor}
-                  _hover={{ borderColor: inputHoverBorderColor }}
-                  _focus={{ 
-                    borderColor: inputFocusBorderColor, 
-                    boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
-                    bg: inputBg
-                  }}
-                  bg={inputBg}
-                  color={inputTextColor}
-                  _placeholder={{ color: placeholderColor }}
-                  shadow="sm"
-                />
-                <FormErrorMessage color="red.500" fontWeight="medium">
-                  {errors.end_date?.message}
-                </FormErrorMessage>
-              </FormControl>
-            </HStack>
-            
-            <HStack spacing={4} w="full">
-              <FormControl isInvalid={!!errors.venue_type} flex="1">
-                <FormLabel 
-                  fontSize="md" 
-                  fontWeight="semibold"
-                  color={labelColor}
-                >
-                  Venue Type
-                </FormLabel>
-                <Select 
-                  {...register('venue_type')} 
-                  placeholder="Select venue type"
-                  size="lg"
-                  borderWidth="2px"
-                  borderColor={inputBorderColor}
-                  _hover={{ borderColor: inputHoverBorderColor }}
-                  _focus={{ 
-                    borderColor: inputFocusBorderColor, 
-                    boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
-                    bg: inputBg
-                  }}
-                  bg={inputBg}
-                  color={inputTextColor}
-                  shadow="sm"
-                >
-                  <option value="Indoor">Indoor</option>
-                  <option value="Outdoor">Outdoor</option>
-                </Select>
-                <FormErrorMessage color="red.500" fontWeight="medium">
-                  {errors.venue_type?.message}
-                </FormErrorMessage>
-              </FormControl>
-              
-              <FormControl isInvalid={!!errors.venue_name} flex="1">
-                <FormLabel 
-                  fontSize="md" 
-                  fontWeight="semibold"
-                  color={labelColor}
-                >
-                  Venue/Stadium Name
-                </FormLabel>
-                <Input 
-                  {...register('venue_name')} 
-                  placeholder="e.g. Lincoln High School Track"
-                  size="lg"
-                  borderWidth="2px"
-                  borderColor={inputBorderColor}
-                  _hover={{ borderColor: inputHoverBorderColor }}
-                  _focus={{ 
-                    borderColor: inputFocusBorderColor, 
-                    boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
-                    bg: inputBg
-                  }}
-                  bg={inputBg}
-                  color={inputTextColor}
-                  _placeholder={{ color: placeholderColor }}
-                  shadow="sm"
-                />
-                <FormErrorMessage color="red.500" fontWeight="medium">
-                  {errors.venue_name?.message}
-                </FormErrorMessage>
-              </FormControl>
-            </HStack>
-            
-            <HStack spacing={4} w="full">
-              <FormControl isInvalid={!!errors.city} flex="1">
-                <FormLabel 
-                  fontSize="md" 
-                  fontWeight="semibold"
-                  color={labelColor}
-                >
-                  City
-                </FormLabel>
-                <Input 
-                  {...register('city')} 
-                  placeholder="e.g. Boston"
-                  size="lg"
-                  borderWidth="2px"
-                  borderColor={inputBorderColor}
-                  _hover={{ borderColor: inputHoverBorderColor }}
-                  _focus={{ 
-                    borderColor: inputFocusBorderColor, 
-                    boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
-                    bg: inputBg
-                  }}
-                  bg={inputBg}
-                  color={inputTextColor}
-                  _placeholder={{ color: placeholderColor }}
-                  shadow="sm"
-                />
-                <FormErrorMessage color="red.500" fontWeight="medium">
-                  {errors.city?.message}
-                </FormErrorMessage>
-              </FormControl>
-              
-              <FormControl isInvalid={!!errors.state} flex="1">
-                <FormLabel 
-                  fontSize="md" 
-                  fontWeight="semibold"
-                  color={labelColor}
-                >
-                  State
-                </FormLabel>
-                <Input 
-                  {...register('state')} 
-                  placeholder="e.g. MA"
-                  size="lg"
-                  borderWidth="2px"
-                  borderColor={inputBorderColor}
-                  _hover={{ borderColor: inputHoverBorderColor }}
-                  _focus={{ 
-                    borderColor: inputFocusBorderColor, 
-                    boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
-                    bg: inputBg
-                  }}
-                  bg={inputBg}
-                  color={inputTextColor}
-                  _placeholder={{ color: placeholderColor }}
-                  shadow="sm"
-                />
-                <FormErrorMessage color="red.500" fontWeight="medium">
-                  {errors.state?.message}
-                </FormErrorMessage>
-              </FormControl>
-            </HStack>
-            
-            <FormControl isInvalid={!!errors.join_link}>
-              <FormLabel 
-                fontSize="md" 
-                fontWeight="semibold"
-                color={labelColor}
-              >
-                Join Link (Optional)
-              </FormLabel>
-              <Input 
-                {...register('join_link')} 
-                placeholder="https://example.com/meet-registration"
-                size="lg"
-                borderWidth="2px"
-                borderColor={inputBorderColor}
-                _hover={{ borderColor: inputHoverBorderColor }}
-                _focus={{ 
-                  borderColor: inputFocusBorderColor, 
-                  boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
-                  bg: inputBg
-                }}
-                bg={inputBg}
-                color={inputTextColor}
-                _placeholder={{ color: placeholderColor }}
-                shadow="sm"
-              />
-              <FormErrorMessage color="red.500" fontWeight="medium">
-                {errors.join_link?.message}
-              </FormErrorMessage>
-            </FormControl>
-            
-            <FormControl isInvalid={!!errors.status}>
-              <FormLabel 
-                fontSize="md" 
-                fontWeight="semibold"
-                color={labelColor}
-              >
-                Status
-              </FormLabel>
-              <Select 
-                {...register('status')} 
-                size="lg"
-                borderWidth="2px"
-                borderColor={inputBorderColor}
-                _hover={{ borderColor: inputHoverBorderColor }}
-                _focus={{ 
-                  borderColor: inputFocusBorderColor, 
-                  boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
-                  bg: inputBg
-                }}
-                bg={inputBg}
-                color={inputTextColor}
-                shadow="sm"
-              >
-                <option value="Planned">Planned</option>
-                <option value="Completed">Completed</option>
-                <option value="Cancelled">Cancelled</option>
-              </Select>
-              <FormErrorMessage color="red.500" fontWeight="medium">
-                {errors.status?.message}
-              </FormErrorMessage>
-            </FormControl>
-            
-            <FormControl isInvalid={!!errors.description}>
-              <FormLabel 
-                fontSize="md" 
-                fontWeight="semibold"
-                color={labelColor}
-              >
-                Description
-              </FormLabel>
-              <Textarea 
-                {...register('description')} 
-                placeholder="Add any details about this meet..."
-                size="lg"
-                borderWidth="2px"
-                borderColor={inputBorderColor}
-                _hover={{ borderColor: inputHoverBorderColor }}
-                _focus={{ 
-                  borderColor: inputFocusBorderColor, 
-                  boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
-                  bg: inputBg
-                }}
-                bg={inputBg}
-                color={inputTextColor}
-                _placeholder={{ color: placeholderColor }}
-                rows={3}
-                shadow="sm"
-              />
-              <FormErrorMessage color="red.500" fontWeight="medium">
-                {errors.description?.message}
-              </FormErrorMessage>
-            </FormControl>
-            
-            {showCoachSelection && !isEditing && (
-              <FormControl isInvalid={!!errors.coach_id}>
-                <FormLabel 
-                  fontSize="md" 
-                  fontWeight="semibold"
-                  color={labelColor}
-                >
-                  Assign Coach (Optional)
-                </FormLabel>
-                <Select 
-                  {...register('coach_id')} 
-                  placeholder="Select a coach"
-                  size="lg"
-                  borderWidth="2px"
-                  borderColor={inputBorderColor}
-                  _hover={{ borderColor: inputHoverBorderColor }}
-                  _focus={{ 
-                    borderColor: inputFocusBorderColor, 
-                    boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
-                    bg: inputBg
-                  }}
-                  bg={inputBg}
-                  color={inputTextColor}
-                  shadow="sm"
-                >
-                  {coaches.map(coach => (
-                    <option key={coach.id} value={coach.id}>{coach.name}</option>
-                  ))}
-                </Select>
-                <Text fontSize="sm" color="gray.500" mt={1}>
-                  If you select a coach, they will be able to manage this meet and assign events.
-                </Text>
-                <FormErrorMessage color="red.500" fontWeight="medium">
-                  {errors.coach_id?.message}
-                </FormErrorMessage>
-              </FormControl>
-            )}
+              <Collapse in={showMeetInfo} animateOpacity>
+                <VStack spacing={5} mt={4} p={4} borderWidth="1px" borderColor={borderColor} borderRadius="md" bg={whiteGrayBg}>
+                  <FormControl isInvalid={!!errors.name} isRequired>
+                    <FormLabel 
+                      fontSize="md" 
+                      fontWeight="semibold"
+                      color={labelColor}
+                    >
+                      Meet Name
+                    </FormLabel>
+                    <Input 
+                      {...register('name', { required: 'Name is required' })} 
+                      size="lg"
+                      borderWidth="2px"
+                      borderColor={inputBorderColor}
+                      _hover={{ borderColor: inputHoverBorderColor }}
+                      _focus={{ 
+                        borderColor: inputFocusBorderColor, 
+                        boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
+                        bg: inputBg
+                      }}
+                      bg={inputBg}
+                      color={inputTextColor}
+                      _placeholder={{ color: placeholderColor }}
+                      placeholder="e.g., State Championships"
+                      shadow="sm"
+                    />
+                    <FormErrorMessage color="red.500" fontWeight="medium">
+                      {errors.name?.message}
+                    </FormErrorMessage>
+                  </FormControl>
+                  
+                  <HStack spacing={4} w="full">
+                    <FormControl isInvalid={!!errors.meet_date} isRequired flex="1">
+                      <FormLabel 
+                        fontSize="md" 
+                        fontWeight="semibold"
+                        color={labelColor}
+                      >
+                        Start Date
+                      </FormLabel>
+                      <Input 
+                        type="date" 
+                        {...register('meet_date', { required: 'Start date is required' })} 
+                        size="lg"
+                        borderWidth="2px"
+                        borderColor={inputBorderColor}
+                        _hover={{ borderColor: inputHoverBorderColor }}
+                        _focus={{ 
+                          borderColor: inputFocusBorderColor, 
+                          boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
+                          bg: inputBg
+                        }}
+                        bg={inputBg}
+                        color={inputTextColor}
+                        shadow="sm"
+                      />
+                      <FormErrorMessage color="red.500" fontWeight="medium">
+                        {errors.meet_date?.message}
+                      </FormErrorMessage>
+                    </FormControl>
+                    
+                    <FormControl isInvalid={!!errors.end_date} flex="1">
+                      <FormLabel 
+                        fontSize="md" 
+                        fontWeight="semibold"
+                        color={labelColor}
+                      >
+                        End Date (Multi-Day)
+                      </FormLabel>
+                      <Input 
+                        type="date" 
+                        {...register('end_date')} 
+                        placeholder="Leave empty for single-day meet"
+                        size="lg"
+                        borderWidth="2px"
+                        borderColor={inputBorderColor}
+                        _hover={{ borderColor: inputHoverBorderColor }}
+                        _focus={{ 
+                          borderColor: inputFocusBorderColor, 
+                          boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
+                          bg: inputBg
+                        }}
+                        bg={inputBg}
+                        color={inputTextColor}
+                        _placeholder={{ color: placeholderColor }}
+                        shadow="sm"
+                      />
+                      <FormErrorMessage color="red.500" fontWeight="medium">
+                        {errors.end_date?.message}
+                      </FormErrorMessage>
+                    </FormControl>
+                  </HStack>
+                  
+                  <HStack spacing={4} w="full">
+                    <FormControl isInvalid={!!errors.venue_type} flex="1">
+                      <FormLabel 
+                        fontSize="md" 
+                        fontWeight="semibold"
+                        color={labelColor}
+                      >
+                        Venue Type
+                      </FormLabel>
+                      <Select 
+                        {...register('venue_type')} 
+                        placeholder="Select venue type"
+                        size="lg"
+                        borderWidth="2px"
+                        borderColor={inputBorderColor}
+                        _hover={{ borderColor: inputHoverBorderColor }}
+                        _focus={{ 
+                          borderColor: inputFocusBorderColor, 
+                          boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
+                          bg: inputBg
+                        }}
+                        bg={inputBg}
+                        color={inputTextColor}
+                        shadow="sm"
+                      >
+                        <option value="Indoor">Indoor</option>
+                        <option value="Outdoor">Outdoor</option>
+                      </Select>
+                      <FormErrorMessage color="red.500" fontWeight="medium">
+                        {errors.venue_type?.message}
+                      </FormErrorMessage>
+                    </FormControl>
+                    
+                    <FormControl isInvalid={!!errors.venue_name} flex="1">
+                      <FormLabel 
+                        fontSize="md" 
+                        fontWeight="semibold"
+                        color={labelColor}
+                      >
+                        Venue/Stadium Name
+                      </FormLabel>
+                      <Input 
+                        {...register('venue_name')} 
+                        placeholder="e.g. Lincoln High School Track"
+                        size="lg"
+                        borderWidth="2px"
+                        borderColor={inputBorderColor}
+                        _hover={{ borderColor: inputHoverBorderColor }}
+                        _focus={{ 
+                          borderColor: inputFocusBorderColor, 
+                          boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
+                          bg: inputBg
+                        }}
+                        bg={inputBg}
+                        color={inputTextColor}
+                        _placeholder={{ color: placeholderColor }}
+                        shadow="sm"
+                      />
+                      <FormErrorMessage color="red.500" fontWeight="medium">
+                        {errors.venue_name?.message}
+                      </FormErrorMessage>
+                    </FormControl>
+                  </HStack>
+                  
+                  <HStack spacing={4} w="full">
+                    <FormControl isInvalid={!!errors.city} flex="1">
+                      <FormLabel 
+                        fontSize="md" 
+                        fontWeight="semibold"
+                        color={labelColor}
+                      >
+                        City
+                      </FormLabel>
+                      <Input 
+                        {...register('city')} 
+                        placeholder="e.g. Boston"
+                        size="lg"
+                        borderWidth="2px"
+                        borderColor={inputBorderColor}
+                        _hover={{ borderColor: inputHoverBorderColor }}
+                        _focus={{ 
+                          borderColor: inputFocusBorderColor, 
+                          boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
+                          bg: inputBg
+                        }}
+                        bg={inputBg}
+                        color={inputTextColor}
+                        _placeholder={{ color: placeholderColor }}
+                        shadow="sm"
+                      />
+                      <FormErrorMessage color="red.500" fontWeight="medium">
+                        {errors.city?.message}
+                      </FormErrorMessage>
+                    </FormControl>
+                    
+                    <FormControl isInvalid={!!errors.state} flex="1">
+                      <FormLabel 
+                        fontSize="md" 
+                        fontWeight="semibold"
+                        color={labelColor}
+                      >
+                        State
+                      </FormLabel>
+                      <Input 
+                        {...register('state')} 
+                        placeholder="e.g. MA"
+                        size="lg"
+                        borderWidth="2px"
+                        borderColor={inputBorderColor}
+                        _hover={{ borderColor: inputHoverBorderColor }}
+                        _focus={{ 
+                          borderColor: inputFocusBorderColor, 
+                          boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
+                          bg: inputBg
+                        }}
+                        bg={inputBg}
+                        color={inputTextColor}
+                        _placeholder={{ color: placeholderColor }}
+                        shadow="sm"
+                      />
+                      <FormErrorMessage color="red.500" fontWeight="medium">
+                        {errors.state?.message}
+                      </FormErrorMessage>
+                    </FormControl>
+                  </HStack>
+                  
+                  <FormControl isInvalid={!!errors.join_link}>
+                    <FormLabel 
+                      fontSize="md" 
+                      fontWeight="semibold"
+                      color={labelColor}
+                    >
+                      Join Link (Optional)
+                    </FormLabel>
+                    <Input 
+                      {...register('join_link')} 
+                      placeholder="https://example.com/meet-registration"
+                      size="lg"
+                      borderWidth="2px"
+                      borderColor={inputBorderColor}
+                      _hover={{ borderColor: inputHoverBorderColor }}
+                      _focus={{ 
+                        borderColor: inputFocusBorderColor, 
+                        boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
+                        bg: inputBg
+                      }}
+                      bg={inputBg}
+                      color={inputTextColor}
+                      _placeholder={{ color: placeholderColor }}
+                      shadow="sm"
+                    />
+                    <FormErrorMessage color="red.500" fontWeight="medium">
+                      {errors.join_link?.message}
+                    </FormErrorMessage>
+                  </FormControl>
+                  
+                  <FormControl isInvalid={!!errors.status}>
+                    <FormLabel 
+                      fontSize="md" 
+                      fontWeight="semibold"
+                      color={labelColor}
+                    >
+                      Status
+                    </FormLabel>
+                    <Select 
+                      {...register('status')} 
+                      size="lg"
+                      borderWidth="2px"
+                      borderColor={inputBorderColor}
+                      _hover={{ borderColor: inputHoverBorderColor }}
+                      _focus={{ 
+                        borderColor: inputFocusBorderColor, 
+                        boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
+                        bg: inputBg
+                      }}
+                      bg={inputBg}
+                      color={inputTextColor}
+                      shadow="sm"
+                    >
+                      <option value="Planned">Planned</option>
+                      <option value="Completed">Completed</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </Select>
+                    <FormErrorMessage color="red.500" fontWeight="medium">
+                      {errors.status?.message}
+                    </FormErrorMessage>
+                  </FormControl>
+                  
+                  <FormControl isInvalid={!!errors.description}>
+                    <FormLabel 
+                      fontSize="md" 
+                      fontWeight="semibold"
+                      color={labelColor}
+                    >
+                      Description
+                    </FormLabel>
+                    <Textarea 
+                      {...register('description')} 
+                      placeholder="Add any details about this meet..."
+                      size="lg"
+                      borderWidth="2px"
+                      borderColor={inputBorderColor}
+                      _hover={{ borderColor: inputHoverBorderColor }}
+                      _focus={{ 
+                        borderColor: inputFocusBorderColor, 
+                        boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
+                        bg: inputBg
+                      }}
+                      bg={inputBg}
+                      color={inputTextColor}
+                      _placeholder={{ color: placeholderColor }}
+                      rows={3}
+                      shadow="sm"
+                    />
+                    <FormErrorMessage color="red.500" fontWeight="medium">
+                      {errors.description?.message}
+                    </FormErrorMessage>
+                  </FormControl>
+                  
+                  {showCoachSelection && !isEditing && (
+                    <FormControl isInvalid={!!errors.coach_id}>
+                      <FormLabel 
+                        fontSize="md" 
+                        fontWeight="semibold"
+                        color={labelColor}
+                      >
+                        Assign Coach (Optional)
+                      </FormLabel>
+                      <Select 
+                        {...register('coach_id')} 
+                        placeholder="Select a coach"
+                        size="lg"
+                        borderWidth="2px"
+                        borderColor={inputBorderColor}
+                        _hover={{ borderColor: inputHoverBorderColor }}
+                        _focus={{ 
+                          borderColor: inputFocusBorderColor, 
+                          boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
+                          bg: inputBg
+                        }}
+                        bg={inputBg}
+                        color={inputTextColor}
+                        shadow="sm"
+                      >
+                        {coaches.map(coach => (
+                          <option key={coach.id} value={coach.id}>{coach.name}</option>
+                        ))}
+                      </Select>
+                      <Text fontSize="sm" color="gray.500" mt={1}>
+                        If you select a coach, they will be able to manage this meet and assign events.
+                      </Text>
+                      <FormErrorMessage color="red.500" fontWeight="medium">
+                        {errors.coach_id?.message}
+                      </FormErrorMessage>
+                    </FormControl>
+                  )}
+                </VStack>
+              </Collapse>
+            </Box>
             
             {/* Lodging Section */}
             <Box w="full">
-              <Divider my={4} />
-              
               <Button
                 variant="outline"
                 colorScheme="blue"
@@ -1144,11 +1165,9 @@ export function MeetFormDrawer({
 
             {/* Assistant Coaches Section */}
             <Box w="full">
-              <Divider my={4} />
-              
               <Button
                 variant="outline"
-                colorScheme="green"
+                colorScheme="blue"
                 leftIcon={showAssistantCoaches ? <FaChevronUp /> : <FaChevronDown />}
                 rightIcon={<FaUserTie />}
                 onClick={() => setShowAssistantCoaches(!showAssistantCoaches)}

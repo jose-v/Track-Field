@@ -66,7 +66,9 @@ import {
   FaAt,
   FaBed,
   FaGlobe,
-  FaUserTie
+  FaUserTie,
+  FaDownload,
+  FaShare
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -80,6 +82,7 @@ import { calculateTravelTimes, getUserLocation, geocodeLocation, geocodeLocation
 import { LocationSetup } from '../components/LocationSetup';
 import { CurrentLocationDisplay } from '../components/CurrentLocationDisplay';
 import { RunTimeModal } from '../components/meets/RunTimeModal';
+import { useMeetPDFGenerator } from '../components/meets/MeetPDFGenerator';
 
 // Info Badge Component - Shows database stats
 const InfoBadge: React.FC<{ children: React.ReactNode; count?: number }> = ({ children, count }) => (
@@ -256,6 +259,18 @@ const MeetCard: React.FC<MeetCardProps> = ({
   const [showToolbar, setShowToolbar] = useState(false);
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
 
+  // PDF Generator hook
+  const { generatePDF, shareViaMail, EmailModal } = useMeetPDFGenerator({
+    meet,
+    athleteNames,
+    eventCount,
+    assistantCoaches: [
+      { name: assistantCoach1Name, phone: assistantCoach1Phone, email: assistantCoach1Email },
+      { name: assistantCoach2Name, phone: assistantCoach2Phone, email: assistantCoach2Email },
+      { name: assistantCoach3Name, phone: assistantCoach3Phone, email: assistantCoach3Email }
+    ]
+  });
+
   // Handle hover with delay
   const handleMouseEnter = () => {
     if (hoverTimeout) {
@@ -385,6 +400,35 @@ const MeetCard: React.FC<MeetCardProps> = ({
                     _hover={{ color: "gray.300" }}
                     aria-label="Manage events"
                     onClick={() => onManageEvents?.(meet)}
+                  />
+                </Tooltip>
+
+                {/* Divider */}
+                <Box w="1px" h="6" bg="gray.400" />
+
+                {/* Download PDF */}
+                <Tooltip label="Download meet information" placement="top" bg="gray.700" color="white" p={2}>
+                  <IconButton
+                    icon={<FaDownload size={22} color="currentColor" />}
+                    variant="ghost"
+                    size="lg"
+                    color="white"
+                    _hover={{ color: "gray.300" }}
+                    aria-label="Download meet info"
+                    onClick={generatePDF}
+                  />
+                </Tooltip>
+
+                {/* Share via Email */}
+                <Tooltip label="Share via email" placement="top" bg="gray.700" color="white" p={2}>
+                  <IconButton
+                    icon={<FaShare size={22} color="currentColor" />}
+                    variant="ghost"
+                    size="lg"
+                    color="white"
+                    _hover={{ color: "gray.300" }}
+                    aria-label="Share meet info"
+                    onClick={shareViaMail}
                   />
                 </Tooltip>
 
@@ -1052,6 +1096,9 @@ const MeetCard: React.FC<MeetCardProps> = ({
           </VStack>
         </>
       )}
+
+      {/* Email Share Modal */}
+      <EmailModal />
     </Box>
   );
 };

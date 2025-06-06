@@ -97,8 +97,22 @@ export async function signUp(data: SignupData): Promise<{ user: any; error: any 
  * Create an athlete profile
  */
 async function createAthleteProfile(userId: string): Promise<void> {
+  // First get the profile names to copy them to the athletes table
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('first_name, last_name')
+    .eq('id', userId)
+    .single();
+
+  if (profileError) {
+    console.error('Error fetching profile for athlete creation:', profileError);
+    throw profileError;
+  }
+
   const athleteData: Partial<Athlete> = {
     id: userId,
+    first_name: profile?.first_name || null,
+    last_name: profile?.last_name || null,
     events: [],
   };
 
@@ -113,9 +127,23 @@ async function createAthleteProfile(userId: string): Promise<void> {
  * Create a coach profile
  */
 async function createCoachProfile(userId: string): Promise<void> {
+  // First get the profile names to copy them to the coaches table
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('first_name, last_name')
+    .eq('id', userId)
+    .single();
+
+  if (profileError) {
+    console.error('Error fetching profile for coach creation:', profileError);
+    throw profileError;
+  }
+
   // 1. Insert into coaches table
   const coachData: Partial<Coach> = {
     id: userId,
+    first_name: profile?.first_name || null,
+    last_name: profile?.last_name || null,
     specialties: [],
     certifications: [],
     gender: undefined,
