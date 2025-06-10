@@ -472,4 +472,38 @@ export async function getTeamCoaches(team_id: string): Promise<any[]> {
     console.error('Error fetching team coaches:', error);
     throw error;
   }
+}
+
+/**
+ * Get athletes assigned to a team (for team managers)
+ */
+export async function getTeamAthletes(team_id: string): Promise<any[]> {
+  try {
+    const { data, error } = await supabase
+      .from('athletes')
+      .select(`
+        id,
+        gender,
+        events,
+        date_of_birth,
+        created_at,
+        profiles!inner (
+          id,
+          first_name,
+          last_name,
+          email,
+          avatar_url
+        )
+      `)
+      .eq('team_id', team_id);
+
+    if (error) {
+      throw new Error(`Failed to fetch team athletes: ${error.message}`);
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching team athletes:', error);
+    throw error;
+  }
 } 

@@ -26,6 +26,7 @@ import { getTeamsByManager, Team } from '../../services/teamService';
 import { TeamSetupModal } from '../../components/TeamSetupModal';
 import { SendTeamInviteModal } from '../../components/SendTeamInviteModal';
 import { TeamCoachesSection } from '../../components/TeamCoachesSection';
+import { TeamAthletesSection } from '../../components/TeamAthletesSection';
 
 export function Teams() {
   const { user } = useAuth();
@@ -40,6 +41,7 @@ export function Teams() {
   } = useDisclosure();
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
+  const [expandedSection, setExpandedSection] = useState<{ [teamId: string]: 'coaches' | 'athletes' | null }>({});
 
   // Dark mode color values
   const headingColor = useColorModeValue('orange.600', 'orange.300');
@@ -128,16 +130,11 @@ export function Teams() {
     fetchTeams();
   };
 
-  const toggleTeamExpansion = (teamId: string) => {
-    setExpandedTeams(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(teamId)) {
-        newSet.delete(teamId);
-      } else {
-        newSet.add(teamId);
-      }
-      return newSet;
-    });
+  const toggleTeamSection = (teamId: string, section: 'coaches' | 'athletes') => {
+    setExpandedSection(prev => ({
+      ...prev,
+      [teamId]: prev[teamId] === section ? null : section
+    }));
   };
 
   if (isLoading) {
@@ -295,56 +292,64 @@ export function Teams() {
                         </HStack>
                       </Box>
 
-                      {/* Coaches Section Toggle */}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        colorScheme="gray"
-                        rightIcon={expandedTeams.has(team.id) ? <FiChevronUp /> : <FiChevronDown />}
-                        onClick={() => toggleTeamExpansion(team.id)}
-                        w="full"
-                      >
-                        {expandedTeams.has(team.id) ? 'Hide' : 'Show'} Coaches
-                      </Button>
-
-                      {/* Expanded Coaches Section */}
-                      {expandedTeams.has(team.id) && (
-                        <Box
-                          p={3}
-                          bg={useColorModeValue('gray.50', 'gray.700')}
-                          borderRadius="md"
-                          borderWidth="1px"
-                          borderColor={cardBorder}
-                        >
-                          <Text fontSize="sm" fontWeight="medium" mb={3}>
-                            Team Coaches
-                          </Text>
-                          <TeamCoachesSection teamId={team.id} teamName={team.name} />
-                        </Box>
-                      )}
-
-                      {/* Quick Actions */}
+                      {/* Team Management Sections */}
                       <VStack spacing={2}>
                         <HStack spacing={2}>
                           <Button
                             size="sm"
-                            leftIcon={<FiUsers />}
                             variant="outline"
-                            colorScheme="orange"
+                            colorScheme="blue"
+                            rightIcon={expandedSection[team.id] === 'coaches' ? <FiChevronUp /> : <FiChevronDown />}
+                            onClick={() => toggleTeamSection(team.id, 'coaches')}
                             flex={1}
                           >
-                            Manage
+                            Coaches
                           </Button>
                           <Button
                             size="sm"
-                            leftIcon={<FiCalendar />}
                             variant="outline"
-                            colorScheme="orange"
+                            colorScheme="green"
+                            rightIcon={expandedSection[team.id] === 'athletes' ? <FiChevronUp /> : <FiChevronDown />}
+                            onClick={() => toggleTeamSection(team.id, 'athletes')}
                             flex={1}
                           >
-                            Schedule
+                            Athletes
                           </Button>
                         </HStack>
+
+                        {/* Expanded Sections */}
+                        {expandedSection[team.id] === 'coaches' && (
+                          <Box
+                            p={3}
+                            bg={useColorModeValue('blue.50', 'blue.900')}
+                            borderRadius="md"
+                            borderWidth="1px"
+                            borderColor={useColorModeValue('blue.200', 'blue.700')}
+                            w="full"
+                          >
+                            <Text fontSize="sm" fontWeight="medium" mb={3}>
+                              Team Coaches
+                            </Text>
+                            <TeamCoachesSection teamId={team.id} teamName={team.name} />
+                          </Box>
+                        )}
+
+                        {expandedSection[team.id] === 'athletes' && (
+                          <Box
+                            p={3}
+                            bg={useColorModeValue('green.50', 'green.900')}
+                            borderRadius="md"
+                            borderWidth="1px"
+                            borderColor={useColorModeValue('green.200', 'green.700')}
+                            w="full"
+                          >
+                            <Text fontSize="sm" fontWeight="medium" mb={3}>
+                              Team Athletes
+                            </Text>
+                            <TeamAthletesSection teamId={team.id} teamName={team.name} />
+                          </Box>
+                        )}
+
                         <Button
                           size="sm"
                           leftIcon={<FiMail />}
