@@ -18,13 +18,19 @@ import {
 } from '@chakra-ui/react';
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { createTeam, createIndependentCoachTeam, type CreateTeamRequest, type CreateIndependentCoachTeamRequest } from '../services/teamService';
 import { supabase } from '../lib/supabase';
 
 interface TeamSetupModalProps {
   isOpen: boolean;
   onClose: () => void;
   userRole: string;
+}
+
+// Define types locally to avoid import issues
+interface CreateTeamRequest {
+  name: string;
+  description?: string;
+  team_type: 'school' | 'club' | 'independent' | 'other';
 }
 
 export function TeamSetupModal({ isOpen, onClose, userRole }: TeamSetupModalProps) {
@@ -79,6 +85,32 @@ export function TeamSetupModal({ isOpen, onClose, userRole }: TeamSetupModalProp
     }
   };
 
+  // Create team function
+  const createTeam = async (request: CreateTeamRequest, created_by: string) => {
+    try {
+      // Create the team
+      const { data: teamData, error: teamError } = await supabase
+        .from('teams')
+        .insert({
+          name: request.name,
+          description: request.description,
+          created_by: created_by,
+          team_type: request.team_type
+        })
+        .select()
+        .single();
+
+      if (teamError) {
+        throw new Error(`Failed to create team: ${teamError.message}`);
+      }
+
+      return teamData;
+    } catch (error) {
+      console.error('Error creating team:', error);
+      throw error;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -112,31 +144,20 @@ export function TeamSetupModal({ isOpen, onClose, userRole }: TeamSetupModalProp
         await ensureTeamManagerProfile(user.id);
       }
 
-      // Check if this is an independent coach setup
-      const isIndependentCoach = userRole === 'coach' && formData.teamType === 'independent';
-      
-      if (isIndependentCoach) {
-        // Create independent coach team
-        const request: CreateIndependentCoachTeamRequest = {
-          team_name: formData.teamName,
-          team_description: formData.description || undefined
-        };
-        await createIndependentCoachTeam(request, user.id);
-      } else {
-        // Create regular team
-        const request: CreateTeamRequest = {
-          name: formData.teamName,
-          description: formData.description || undefined,
-          team_type: formData.teamType as 'school' | 'club' | 'independent' | 'other'
-        };
-        await createTeam(request, user.id);
-      }
+      // Create the team
+      const request: CreateTeamRequest = {
+        name: formData.teamName,
+        description: formData.description || undefined,
+        team_type: formData.teamType as 'school' | 'club' | 'independent' | 'other'
+      };
+
+      const teamData = await createTeam(request, user.id);
       
       toast({
         title: 'Success',
-        description: `Team "${formData.teamName}" created successfully!`,
+        description: `Team "${formData.teamName}" created successfully! Invite code: ${teamData.invite_code}`,
         status: 'success',
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
       
