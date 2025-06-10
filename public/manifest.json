@@ -1,6 +1,6 @@
 {
-  "name": "Track & Field Training App",
-  "short_name": "Track & Field",
+  "name": "Olympr",
+  "short_name": "Olympr",
   "description": "Professional track and field training management app for coaches and athletes",
   "start_url": "/dashboard?pwa=true",
   "display": "standalone",
