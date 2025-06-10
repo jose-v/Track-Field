@@ -172,4 +172,137 @@ export async function getTeamByInviteCode(invite_code: string): Promise<Team | n
     console.error('Error fetching team by invite code:', error);
     return null;
   }
+}
+
+/**
+ * Join a team using invite code
+ */
+export async function joinTeamByInviteCode(
+  invite_code: string, 
+  user_id: string, 
+  user_role: 'athlete' | 'coach' | 'team_manager'
+): Promise<{ success: boolean; team?: Team; error?: string }> {
+  try {
+    // First, verify the invite code exists and get team info
+    const team = await getTeamByInviteCode(invite_code);
+    if (!team) {
+      return { success: false, error: 'Invalid invite code' };
+    }
+
+    // Check if user is already part of this team
+    if (user_role === 'athlete') {
+      const { data: existingAthlete } = await supabase
+        .from('athletes')
+        .select('id')
+        .eq('id', user_id)
+        .eq('team_id', team.id)
+        .single();
+      
+      if (existingAthlete) {
+        return { success: false, error: 'You are already a member of this team' };
+      }
+
+      // Add athlete to team
+      const { error: updateError } = await supabase
+        .from('athletes')
+        .update({ team_id: team.id })
+        .eq('id', user_id);
+
+      if (updateError) {
+        throw updateError;
+      }
+    } else if (user_role === 'coach') {
+      // Check if coach is already assigned to this team
+      const { data: existingCoach } = await supabase
+        .from('team_coaches')
+        .select('id')
+        .eq('coach_id', user_id)
+        .eq('team_id', team.id)
+        .single();
+      
+      if (existingCoach) {
+        return { success: false, error: 'You are already a coach for this team' };
+      }
+
+      // Add coach to team
+      const { error: insertError } = await supabase
+        .from('team_coaches')
+        .insert({
+          team_id: team.id,
+          coach_id: user_id,
+          assigned_by: team.created_by,
+          role: 'assistant_coach'
+        });
+
+      if (insertError) {
+        throw insertError;
+      }
+    } else {
+      return { success: false, error: 'Team managers cannot join teams using invite codes' };
+    }
+
+    return { success: true, team };
+  } catch (error) {
+    console.error('Error joining team:', error);
+    return { success: false, error: 'Failed to join team. Please try again.' };
+  }
+}
+
+/**
+ * Send email invitation to join team
+ */
+export async function sendTeamInvitation(
+  team_id: string,
+  invitee_email: string,
+  invitee_role: 'athlete' | 'coach' | 'team_manager',
+  invited_by: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Get team info for the invite code
+    const { data: team, error: teamError } = await supabase
+      .from('teams')
+      .select('*')
+      .eq('id', team_id)
+      .single();
+
+    if (teamError || !team) {
+      return { success: false, error: 'Team not found' };
+    }
+
+    // Check if invitation already exists and is pending
+    const { data: existingInvite } = await supabase
+      .from('team_invitations')
+      .select('id')
+      .eq('team_id', team_id)
+      .eq('invitee_email', invitee_email)
+      .eq('status', 'pending')
+      .single();
+
+    if (existingInvite) {
+      return { success: false, error: 'An invitation has already been sent to this email' };
+    }
+
+    // Create the invitation
+    const { error: insertError } = await supabase
+      .from('team_invitations')
+      .insert({
+        team_id,
+        invited_by,
+        invitee_email,
+        invitee_role,
+        invite_code: team.invite_code
+      });
+
+    if (insertError) {
+      throw insertError;
+    }
+
+    // TODO: Send actual email notification
+    // For now, we'll just create the database record
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending team invitation:', error);
+    return { success: false, error: 'Failed to send invitation. Please try again.' };
+  }
 } 

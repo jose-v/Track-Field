@@ -53,6 +53,9 @@ import { Calendar as AthleteCalendar } from '../pages/athlete/Calendar';
 import AthleteProfile from "../pages/athlete/Profile";
 import Analytics from '../pages/Analytics';
 
+// Team-related pages
+import JoinTeam from '../pages/JoinTeam';
+
 // Features
 import { GamificationTestPage } from '../features/gamification';
 
@@ -81,6 +84,7 @@ export default function AppRoutes() {
       <Route element={<GeneralLayout><Outlet /></GeneralLayout>}>
         <Route path="/workouts" element={<PrivateRoute><Workouts /></PrivateRoute>} />
         <Route path="/team" element={<PrivateRoute><Team /></PrivateRoute>} />
+        <Route path="/join-team" element={<PrivateRoute><JoinTeam /></PrivateRoute>} />
         <Route path="/private-meets" element={<PrivateRoute><Meets /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
       </Route>

@@ -49,6 +49,11 @@ export function useAthleteNavigation(): AthleteNavConfig & { isCurrentPathActive
       icon: <BiRun />
     },
     {
+      name: 'Join Team',
+      path: '/join-team',
+      icon: <BiUser />
+    },
+    {
       name: 'Events',
       path: '/athlete/meets',
       icon: <BiCalendar />

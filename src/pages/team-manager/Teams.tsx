@@ -20,10 +20,11 @@ import {
   useColorModeValue
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
-import { FiPlus, FiUsers, FiCalendar, FiCopy, FiSettings, FiEye } from 'react-icons/fi';
+import { FiPlus, FiUsers, FiCalendar, FiCopy, FiSettings, FiEye, FiMail } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import { getTeamsByManager, Team } from '../../services/teamService';
 import { TeamSetupModal } from '../../components/TeamSetupModal';
+import { SendTeamInviteModal } from '../../components/SendTeamInviteModal';
 
 export function Teams() {
   const { user } = useAuth();
@@ -31,6 +32,12 @@ export function Teams() {
   const [isLoading, setIsLoading] = useState(true);
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { 
+    isOpen: isInviteOpen, 
+    onOpen: onInviteOpen, 
+    onClose: onInviteClose 
+  } = useDisclosure();
+  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
 
   // Dark mode color values
   const headingColor = useColorModeValue('orange.600', 'orange.300');
@@ -105,6 +112,18 @@ export function Teams() {
   const handleTeamCreated = () => {
     onClose();
     fetchTeams(); // Refresh the teams list
+  };
+
+  const handleInviteClick = (team: Team) => {
+    setSelectedTeam(team);
+    onInviteOpen();
+  };
+
+  const handleInviteSuccess = () => {
+    onInviteClose();
+    setSelectedTeam(null);
+    // Optionally refresh teams to update pending invite counts
+    fetchTeams();
   };
 
   if (isLoading) {
@@ -263,26 +282,37 @@ export function Teams() {
                       </Box>
 
                       {/* Quick Actions */}
-                      <HStack spacing={2}>
+                      <VStack spacing={2}>
+                        <HStack spacing={2}>
+                          <Button
+                            size="sm"
+                            leftIcon={<FiUsers />}
+                            variant="outline"
+                            colorScheme="orange"
+                            flex={1}
+                          >
+                            Manage
+                          </Button>
+                          <Button
+                            size="sm"
+                            leftIcon={<FiCalendar />}
+                            variant="outline"
+                            colorScheme="orange"
+                            flex={1}
+                          >
+                            Schedule
+                          </Button>
+                        </HStack>
                         <Button
                           size="sm"
-                          leftIcon={<FiUsers />}
-                          variant="outline"
-                          colorScheme="orange"
-                          flex={1}
+                          leftIcon={<FiMail />}
+                          colorScheme="blue"
+                          onClick={() => handleInviteClick(team)}
+                          w="full"
                         >
-                          Manage
+                          Send Invitation
                         </Button>
-                        <Button
-                          size="sm"
-                          leftIcon={<FiCalendar />}
-                          variant="outline"
-                          colorScheme="orange"
-                          flex={1}
-                        >
-                          Schedule
-                        </Button>
-                      </HStack>
+                      </VStack>
                     </VStack>
                   </CardBody>
                 </Card>
@@ -298,6 +328,17 @@ export function Teams() {
         onClose={handleTeamCreated}
         userRole="team_manager"
       />
+
+      {/* Send Invitation Modal */}
+      {selectedTeam && (
+        <SendTeamInviteModal
+          isOpen={isInviteOpen}
+          onClose={onInviteClose}
+          teamId={selectedTeam.id}
+          teamName={selectedTeam.name}
+          onSuccess={handleInviteSuccess}
+        />
+      )}
     </>
   );
 } 
