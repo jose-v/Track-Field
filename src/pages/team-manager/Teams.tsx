@@ -35,6 +35,8 @@ export function Teams() {
   // Dark mode color values
   const headingColor = useColorModeValue('orange.600', 'orange.300');
   const subtitleColor = useColorModeValue('gray.600', 'gray.400');
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const cardBorder = useColorModeValue('gray.200', 'gray.600');
   const teamNameColor = useColorModeValue('gray.800', 'white');
   const descriptionColor = useColorModeValue('gray.600', 'gray.300');
   const labelColor = useColorModeValue('gray.500', 'gray.400');
@@ -145,7 +147,7 @@ export function Teams() {
 
           {/* Teams Grid */}
           {teams.length === 0 ? (
-            <Card>
+            <Card bg={cardBg} borderColor={cardBorder}>
               <CardBody textAlign="center" py={12}>
                 <Box color={emptyStateIconColor}>
                   <FiUsers size="48" />
@@ -168,7 +170,7 @@ export function Teams() {
           ) : (
             <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
               {teams.map((team) => (
-                <Card key={team.id} _hover={{ shadow: 'lg' }} transition="all 0.2s">
+                <Card key={team.id} bg={cardBg} borderColor={cardBorder} _hover={{ shadow: 'lg' }} transition="all 0.2s">
                   <CardBody>
                     <VStack align="stretch" spacing={4}>
                       {/* Team Header */}
