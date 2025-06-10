@@ -17,6 +17,9 @@ import {
   HStack
 } from '@chakra-ui/react';
 import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { createTeam, createIndependentCoachTeam, type CreateTeamRequest, type CreateIndependentCoachTeamRequest } from '../services/teamService';
+import { supabase } from '../lib/supabase';
 
 interface TeamSetupModalProps {
   isOpen: boolean;
@@ -25,12 +28,14 @@ interface TeamSetupModalProps {
 }
 
 export function TeamSetupModal({ isOpen, onClose, userRole }: TeamSetupModalProps) {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     teamName: '',
     sport: 'track_and_field',
     division: 'varsity',
     season: 'spring',
-    description: ''
+    description: '',
+    teamType: 'school'
   });
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
@@ -41,6 +46,37 @@ export function TeamSetupModal({ isOpen, onClose, userRole }: TeamSetupModalProp
       ...prev,
       [name]: value
     }));
+  };
+
+  // Ensure user has team manager profile
+  const ensureTeamManagerProfile = async (userId: string) => {
+    try {
+      // Check if team manager profile exists
+      const { data: existingManager, error: checkError } = await supabase
+        .from('team_managers')
+        .select('id')
+        .eq('id', userId)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
+        throw checkError;
+      }
+
+      // If no team manager profile exists, create one
+      if (!existingManager) {
+        const { error: createError } = await supabase
+          .from('team_managers')
+          .insert([{ id: userId }]);
+
+        if (createError) {
+          throw createError;
+        }
+        console.log('Team manager profile created for user:', userId);
+      }
+    } catch (error) {
+      console.error('Error ensuring team manager profile:', error);
+      throw error;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,14 +93,44 @@ export function TeamSetupModal({ isOpen, onClose, userRole }: TeamSetupModalProp
       return;
     }
 
+    if (!user?.id) {
+      toast({
+        title: 'Error',
+        description: 'You must be logged in to create a team',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     try {
-      // TODO: Implement actual team creation API call
-      console.log('Creating team:', formData);
+      // Ensure user has team manager profile first
+      if (userRole === 'team_manager') {
+        await ensureTeamManagerProfile(user.id);
+      }
+
+      // Check if this is an independent coach setup
+      const isIndependentCoach = userRole === 'coach' && formData.teamType === 'independent';
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (isIndependentCoach) {
+        // Create independent coach team
+        const request: CreateIndependentCoachTeamRequest = {
+          team_name: formData.teamName,
+          team_description: formData.description || undefined
+        };
+        await createIndependentCoachTeam(request, user.id);
+      } else {
+        // Create regular team
+        const request: CreateTeamRequest = {
+          name: formData.teamName,
+          description: formData.description || undefined,
+          team_type: formData.teamType as 'school' | 'club' | 'independent' | 'other'
+        };
+        await createTeam(request, user.id);
+      }
       
       toast({
         title: 'Success',
@@ -80,17 +146,21 @@ export function TeamSetupModal({ isOpen, onClose, userRole }: TeamSetupModalProp
         sport: 'track_and_field',
         division: 'varsity',
         season: 'spring',
-        description: ''
+        description: '',
+        teamType: 'school'
       });
       onClose();
+      
+      // Refresh the page to show the new team
+      window.location.reload();
       
     } catch (error) {
       console.error('Error creating team:', error);
       toast({
         title: 'Error',
-        description: 'Failed to create team. Please try again.',
+        description: `Failed to create team: ${error instanceof Error ? error.message : 'Unknown error'}`,
         status: 'error',
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
     } finally {
@@ -105,7 +175,8 @@ export function TeamSetupModal({ isOpen, onClose, userRole }: TeamSetupModalProp
       sport: 'track_and_field',
       division: 'varsity',
       season: 'spring',
-      description: ''
+      description: '',
+      teamType: 'school'
     });
     onClose();
   };
@@ -128,6 +199,20 @@ export function TeamSetupModal({ isOpen, onClose, userRole }: TeamSetupModalProp
                   onChange={handleInputChange}
                   placeholder="e.g., Varsity Track & Field"
                 />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Team Type</FormLabel>
+                <Select
+                  name="teamType"
+                  value={formData.teamType}
+                  onChange={handleInputChange}
+                >
+                  <option value="school">School Team</option>
+                  <option value="club">Club Team</option>
+                  <option value="independent">Independent Coach</option>
+                  <option value="other">Other</option>
+                </Select>
               </FormControl>
 
               <FormControl>
