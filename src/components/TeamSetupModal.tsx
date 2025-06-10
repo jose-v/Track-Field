@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
 import {
   Modal,
   ModalOverlay,
   ModalContent,
   ModalHeader,
-  ModalFooter,
   ModalBody,
+  ModalFooter,
   ModalCloseButton,
   Button,
   FormControl,
@@ -14,25 +13,10 @@ import {
   Textarea,
   Select,
   VStack,
-  HStack,
-  Alert,
-  AlertIcon,
-  AlertTitle,
-  AlertDescription,
-  Text,
-  Box,
-  Badge,
   useToast,
-  Spinner
+  HStack
 } from '@chakra-ui/react';
-import { useAuth } from '../contexts/AuthContext';
-import { 
-  createTeam, 
-  createIndependentCoachTeam,
-  type CreateTeamRequest,
-  type CreateIndependentCoachTeamRequest,
-  type TeamCreationResponse
-} from '../services/teamService';
+import { useState } from 'react';
 
 interface TeamSetupModalProps {
   isOpen: boolean;
@@ -40,17 +24,7 @@ interface TeamSetupModalProps {
   userRole: string;
 }
 
-const TEAM_TYPES = [
-  { value: 'school', label: 'School Team', description: 'High school or college team' },
-  { value: 'club', label: 'Club Team', description: 'Local running club or track club' },
-  { value: 'independent', label: 'Independent Coach', description: 'Private coaching business' },
-  { value: 'other', label: 'Other', description: 'Other type of organization' }
-];
-
 export function TeamSetupModal({ isOpen, onClose, userRole }: TeamSetupModalProps) {
-  const { user } = useAuth();
-  const toast = useToast();
-  
   const [formData, setFormData] = useState({
     teamName: '',
     sport: 'track_and_field',
@@ -59,8 +33,7 @@ export function TeamSetupModal({ isOpen, onClose, userRole }: TeamSetupModalProp
     description: ''
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [teamType, setTeamType] = useState<string>('school');
-  const [createdTeam, setCreatedTeam] = useState<TeamCreationResponse | null>(null);
+  const toast = useToast();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -87,27 +60,12 @@ export function TeamSetupModal({ isOpen, onClose, userRole }: TeamSetupModalProp
     setIsLoading(true);
     
     try {
-      let response: TeamCreationResponse;
-
-      if (userRole === 'coach' && teamType === 'independent') {
-        // Create independent coach team
-        const request: CreateIndependentCoachTeamRequest = {
-          team_name: formData.teamName,
-          team_description: formData.description || undefined
-        };
-        response = await createIndependentCoachTeam(request, user.id);
-      } else {
-        // Create regular team
-        const request: CreateTeamRequest = {
-          name: formData.teamName,
-          description: formData.description || undefined,
-          team_type: teamType as any
-        };
-        response = await createTeam(request, user.id);
-      }
-
-      setCreatedTeam(response);
-
+      // TODO: Implement actual team creation API call
+      console.log('Creating team:', formData);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       toast({
         title: 'Success',
         description: `Team "${formData.teamName}" created successfully!`,
@@ -152,10 +110,8 @@ export function TeamSetupModal({ isOpen, onClose, userRole }: TeamSetupModalProp
     onClose();
   };
 
-  const isIndependentCoach = userRole === 'coach' && teamType === 'independent';
-
   return (
-    <Modal isOpen={isOpen} onClose={handleCancel} size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalOverlay />
       <ModalContent>
         <ModalHeader>Create New Team</ModalHeader>
