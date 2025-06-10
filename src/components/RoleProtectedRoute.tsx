@@ -48,8 +48,9 @@ export function RoleProtectedRoute({
     // Otherwise, redirect to the appropriate dashboard based on user's role
     switch (profile.role) {
       case 'coach':
-      case 'team_manager':
         return <Navigate to="/coach/dashboard" />
+      case 'team_manager':
+        return <Navigate to="/team-manager/dashboard" />
       case 'athlete':
         return <Navigate to="/athlete/dashboard" />
       default:

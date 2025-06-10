@@ -37,6 +37,7 @@ import {
   bellIconStyle,
   navNotificationBadgeStyle
 } from '../styles/navIconStyles'
+import { getProfilePathForRole, getNotificationsPathForRole } from '../utils/roleUtils'
 
 const Navigation = () => {
   const { isOpen, onToggle } = useDisclosure()

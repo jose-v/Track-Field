@@ -64,7 +64,13 @@ const WorkoutCreatorNavigation: React.FC<WorkoutCreatorNavigationProps> = ({
   
   // Get notifications from localStorage based on user role
   useEffect(() => {
-    const storageKey = displayProfile?.role === 'coach' ? 'coachNotificationCount' : 'athleteNotificationCount';
+    let storageKey = 'athleteNotificationCount'; // default
+    if (displayProfile?.role === 'coach') {
+      storageKey = 'coachNotificationCount';
+    } else if (displayProfile?.role === 'team_manager') {
+      storageKey = 'teamManagerNotificationCount';
+    }
+    
     const storedCount = localStorage.getItem(storageKey);
     if (storedCount) {
       setNotificationCount(parseInt(storedCount, 10));
@@ -78,10 +84,19 @@ const WorkoutCreatorNavigation: React.FC<WorkoutCreatorNavigationProps> = ({
   
   // Handle viewing notifications
   const handleViewNotifications = () => {
-    const notificationsPath = displayProfile?.role === 'coach' ? '/coach/notifications' : '/athlete/notifications';
+    let notificationsPath = '/athlete/notifications'; // default
+    let storageKey = 'athleteNotificationCount'; // default
+    
+    if (displayProfile?.role === 'coach') {
+      notificationsPath = '/coach/notifications';
+      storageKey = 'coachNotificationCount';
+    } else if (displayProfile?.role === 'team_manager') {
+      notificationsPath = '/team-manager/notifications';
+      storageKey = 'teamManagerNotificationCount';
+    }
+    
     window.location.href = notificationsPath;
     setNotificationCount(0);
-    const storageKey = displayProfile?.role === 'coach' ? 'coachNotificationCount' : 'athleteNotificationCount';
     localStorage.setItem(storageKey, '0');
   };
 
@@ -223,7 +238,11 @@ const WorkoutCreatorNavigation: React.FC<WorkoutCreatorNavigationProps> = ({
               </MenuButton>
               <MenuList zIndex={9999}>
                 <MenuItem as={RouterLink} 
-                  to={displayProfile?.role === 'coach' ? '/coach/profile' : displayProfile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
+                  to={
+                    displayProfile?.role === 'coach' ? '/coach/profile' : 
+                    displayProfile?.role === 'athlete' ? '/athlete/profile' : 
+                    displayProfile?.role === 'team_manager' ? '/team-manager/account' : '/profile'
+                  }
                   color={menuTextColor}
                   _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
                   _focus={{ bg: menuItemHoverBg, color: menuItemHoverColor }}

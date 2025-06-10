@@ -16,7 +16,8 @@ import {
   Tooltip,
   Flex,
   Spacer,
-  useDisclosure
+  useDisclosure,
+  useColorModeValue
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
 import { FiPlus, FiUsers, FiCalendar, FiCopy, FiSettings, FiEye } from 'react-icons/fi';
@@ -30,6 +31,21 @@ export function Teams() {
   const [isLoading, setIsLoading] = useState(true);
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
+
+  // Dark mode color values
+  const headingColor = useColorModeValue('orange.600', 'orange.300');
+  const subtitleColor = useColorModeValue('gray.600', 'gray.400');
+  const teamNameColor = useColorModeValue('gray.800', 'white');
+  const descriptionColor = useColorModeValue('gray.600', 'gray.300');
+  const labelColor = useColorModeValue('gray.500', 'gray.400');
+  const valueColor = useColorModeValue('gray.800', 'white');
+  const inviteCodeBg = useColorModeValue('orange.50', 'orange.900');
+  const inviteCodeBorder = useColorModeValue('orange.200', 'orange.700');
+  const inviteCodeLabelColor = useColorModeValue('orange.600', 'orange.300');
+  const inviteCodeValueColor = useColorModeValue('orange.700', 'orange.200');
+  const emptyStateIconColor = useColorModeValue('gray.400', 'gray.500');
+  const emptyStateHeadingColor = useColorModeValue('gray.500', 'gray.400');
+  const emptyStateTextColor = useColorModeValue('gray.500', 'gray.400');
 
   const fetchTeams = async () => {
     if (!user?.id) return;
@@ -93,7 +109,7 @@ export function Teams() {
     return (
       <Container maxW="7xl" py={8}>
         <VStack spacing={6} align="stretch">
-          <Skeleton height="60px" />
+          <Skeleton height="60px" borderRadius="md" />
           <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
             {[...Array(3)].map((_, i) => (
               <Skeleton key={i} height="200px" borderRadius="lg" />
@@ -111,8 +127,8 @@ export function Teams() {
           {/* Header */}
           <Flex align="center">
             <Box>
-              <Heading size="lg" color="orange.600">My Teams</Heading>
-              <Text color="gray.600" mt={1}>
+              <Heading size="lg" color={headingColor}>My Teams</Heading>
+              <Text color={subtitleColor} mt={1}>
                 Manage and oversee your teams
               </Text>
             </Box>
@@ -131,11 +147,13 @@ export function Teams() {
           {teams.length === 0 ? (
             <Card>
               <CardBody textAlign="center" py={12}>
-                <FiUsers size="48" color="gray.400" />
-                <Heading size="md" color="gray.500" mt={4} mb={2}>
+                <Box color={emptyStateIconColor}>
+                  <FiUsers size="48" />
+                </Box>
+                <Heading size="md" color={emptyStateHeadingColor} mt={4} mb={2}>
                   No Teams Yet
                 </Heading>
-                <Text color="gray.500" mb={6}>
+                <Text color={emptyStateTextColor} mb={6}>
                   Create your first team to start managing athletes and coaches
                 </Text>
                 <Button
@@ -156,7 +174,7 @@ export function Teams() {
                       {/* Team Header */}
                       <HStack justify="space-between" align="start">
                         <Box flex={1}>
-                          <Heading size="md" color="gray.800" noOfLines={1}>
+                          <Heading size="md" color={teamNameColor} noOfLines={1}>
                             {team.name}
                           </Heading>
                           <Badge
@@ -191,7 +209,7 @@ export function Teams() {
 
                       {/* Description */}
                       {team.description && (
-                        <Text fontSize="sm" color="gray.600" noOfLines={2}>
+                        <Text fontSize="sm" color={descriptionColor} noOfLines={2}>
                           {team.description}
                         </Text>
                       )}
@@ -199,14 +217,14 @@ export function Teams() {
                       {/* Stats */}
                       <HStack spacing={4}>
                         <VStack spacing={0} align="start">
-                          <Text fontSize="xs" color="gray.500">Created</Text>
-                          <Text fontSize="sm" fontWeight="medium">
+                          <Text fontSize="xs" color={labelColor}>Created</Text>
+                          <Text fontSize="sm" fontWeight="medium" color={valueColor}>
                             {formatDate(team.created_at)}
                           </Text>
                         </VStack>
                         <VStack spacing={0} align="start">
-                          <Text fontSize="xs" color="gray.500">Members</Text>
-                          <Text fontSize="sm" fontWeight="medium">
+                          <Text fontSize="xs" color={labelColor}>Members</Text>
+                          <Text fontSize="sm" fontWeight="medium" color={valueColor}>
                             0 {/* TODO: Add member count */}
                           </Text>
                         </VStack>
@@ -214,18 +232,18 @@ export function Teams() {
 
                       {/* Invite Code */}
                       <Box
-                        bg="orange.50"
+                        bg={inviteCodeBg}
                         border="1px"
-                        borderColor="orange.200"
+                        borderColor={inviteCodeBorder}
                         borderRadius="md"
                         p={3}
                       >
                         <HStack justify="space-between">
                           <Box>
-                            <Text fontSize="xs" color="orange.600" fontWeight="medium">
+                            <Text fontSize="xs" color={inviteCodeLabelColor} fontWeight="medium">
                               Invite Code
                             </Text>
-                            <Text fontSize="lg" fontWeight="bold" color="orange.700" fontFamily="mono">
+                            <Text fontSize="lg" fontWeight="bold" color={inviteCodeValueColor} fontFamily="mono">
                               {team.invite_code}
                             </Text>
                           </Box>

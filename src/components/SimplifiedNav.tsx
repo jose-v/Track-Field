@@ -239,7 +239,11 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
               />
               <MenuList zIndex={9999}>
                 <MenuItem as={RouterLink} 
-                  to={displayProfile?.role === 'coach' ? '/coach/profile' : displayProfile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
+                  to={
+                    displayProfile?.role === 'coach' ? '/coach/profile' : 
+                    displayProfile?.role === 'athlete' ? '/athlete/profile' : 
+                    displayProfile?.role === 'team_manager' ? '/team-manager/account' : '/profile'
+                  }
                   color={menuTextColor}
                   _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
                   _focus={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
