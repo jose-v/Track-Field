@@ -1,5 +1,5 @@
 TABLE: profiles
-  - id: UUID [PRIMARY KEY]
+  - id: UUID [PRIMARY KEY, REFERENCES auth.users ON DELETE CASCADE]
   - created_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW(), NOT NULL]
   - updated_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW(), NOT NULL]
   - email: TEXT [UNIQUE]
@@ -10,6 +10,8 @@ TABLE: profiles
   - avatar_url: TEXT
   - bio: TEXT
 PRIMARY KEY: id
+FOREIGN KEYS:
+  - id -> auth.users(id) ON DELETE CASCADE
 RLS POLICIES:
   - Public profiles are viewable by everyone: SELECT USING (true)
   - Users can update their own profile: UPDATE USING (auth.uid() = id)
@@ -21,11 +23,17 @@ TABLE: teams
   - description: TEXT
   - created_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW(), NOT NULL]
   - updated_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW(), NOT NULL]
+  - invite_code: TEXT [UNIQUE, DEFAULT substring(md5(random()::text), 1, 8)]
+  - created_by: UUID [FOREIGN KEY -> team_managers(id) ON DELETE SET NULL]
+  - team_type: TEXT [CHECK (team_type IN ('school', 'club', 'independent', 'other')), DEFAULT 'school']
+  - is_active: BOOLEAN [DEFAULT true]
 PRIMARY KEY: id
+FOREIGN KEYS:
+  - created_by -> team_managers(id) ON DELETE SET NULL
 
 TABLE: athletes
   - id: UUID [PRIMARY KEY, FOREIGN KEY -> profiles(id) ON DELETE CASCADE]
-  - date_of_birth: DATE
+  - birth_date: DATE
   - gender: TEXT [CHECK (gender IN ('male', 'female', 'other'))]
   - events: TEXT[]
   - team_id: UUID [FOREIGN KEY -> teams(id) ON DELETE SET NULL]
@@ -64,34 +72,62 @@ TABLE: coach_athletes
   - approval_status: TEXT [CHECK (approval_status IN ('pending', 'approved', 'declined')), DEFAULT 'pending']
   - requested_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW(), NOT NULL]
   - approved_at: TIMESTAMP WITH TIME ZONE
+  - notes: TEXT
+  - assigned_by: UUID [FOREIGN KEY -> profiles(id) ON DELETE SET NULL]
   - UNIQUE(coach_id, athlete_id)
 PRIMARY KEY: id
 FOREIGN KEYS:
   - coach_id -> coaches(id) ON DELETE CASCADE
   - athlete_id -> athletes(id) ON DELETE CASCADE
+  - assigned_by -> profiles(id) ON DELETE SET NULL
+
+TABLE: team_coaches
+  - id: UUID [PRIMARY KEY, DEFAULT uuid_generate_v4()]
+  - team_id: UUID [NOT NULL, FOREIGN KEY -> teams(id) ON DELETE CASCADE]
+  - coach_id: UUID [NOT NULL, FOREIGN KEY -> coaches(id) ON DELETE CASCADE]
+  - assigned_by: UUID [FOREIGN KEY -> team_managers(id) ON DELETE SET NULL]
+  - role: TEXT [CHECK (role IN ('head_coach', 'assistant_coach', 'specialist', 'volunteer')), DEFAULT 'assistant_coach']
+  - specialties: TEXT[]
+  - created_at: TIMESTAMPTZ [DEFAULT NOW()]
+  - updated_at: TIMESTAMPTZ [DEFAULT NOW()]
+  - is_active: BOOLEAN [DEFAULT true]
+  - UNIQUE(team_id, coach_id)
+PRIMARY KEY: id
+FOREIGN KEYS:
+  - team_id -> teams(id) ON DELETE CASCADE
+  - coach_id -> coaches(id) ON DELETE CASCADE
+  - assigned_by -> team_managers(id) ON DELETE SET NULL
+
+TABLE: team_invitations
+  - id: UUID [PRIMARY KEY, DEFAULT uuid_generate_v4()]
+  - team_id: UUID [NOT NULL, FOREIGN KEY -> teams(id) ON DELETE CASCADE]
+  - invited_by: UUID [NOT NULL, FOREIGN KEY -> profiles(id) ON DELETE CASCADE]
+  - invitee_email: TEXT [NOT NULL]
+  - invitee_role: TEXT [CHECK (invitee_role IN ('athlete', 'coach', 'team_manager')), NOT NULL]
+  - invite_code: TEXT [NOT NULL]
+  - status: TEXT [CHECK (status IN ('pending', 'accepted', 'declined', 'expired')), DEFAULT 'pending']
+  - expires_at: TIMESTAMPTZ [DEFAULT (NOW() + INTERVAL '7 days')]
+  - created_at: TIMESTAMPTZ [DEFAULT NOW()]
+  - accepted_at: TIMESTAMPTZ
+  - declined_at: TIMESTAMPTZ
+PRIMARY KEY: id
+FOREIGN KEYS:
+  - team_id -> teams(id) ON DELETE CASCADE
+  - invited_by -> profiles(id) ON DELETE CASCADE
 
 TABLE: workouts
   - id: UUID [PRIMARY KEY, DEFAULT uuid_generate_v4()]
   - name: TEXT [NOT NULL]
   - description: TEXT
-  - user_id: UUID [FOREIGN KEY -> profiles(id) ON DELETE CASCADE]
-  - type: TEXT [DEFAULT 'Custom']
-  - date: TEXT
-  - duration: TEXT
-  - time: TEXT
-  - notes: TEXT [DEFAULT '']
-  - exercises: JSONB [DEFAULT '[]']
-  - location: TEXT
+  - created_by: UUID [FOREIGN KEY -> profiles(id) ON DELETE SET NULL]
   - created_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW(), NOT NULL]
   - updated_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW(), NOT NULL]
+  - deleted_at: TIMESTAMP WITH TIME ZONE [DEFAULT NULL]
+  - deleted_by: UUID [FOREIGN KEY -> profiles(id) DEFAULT NULL]
 PRIMARY KEY: id
 FOREIGN KEYS:
-  - user_id -> profiles(id) ON DELETE CASCADE
-RLS POLICIES:
-  - Workouts are viewable by authenticated users: SELECT USING (auth.role() = 'authenticated')
-  - Users can create their own workouts: INSERT WITH CHECK (auth.uid() = user_id OR auth.uid()::text = created_by::text)
-  - Users can update their own workouts: UPDATE USING (auth.uid() = user_id OR auth.uid()::text = created_by::text)
-  - Users can delete their own workouts: DELETE USING (auth.uid() = user_id OR auth.uid()::text = created_by::text)
+  - created_by -> profiles(id) ON DELETE SET NULL
+  - deleted_by -> profiles(id) DEFAULT NULL
 
 TABLE: workout_assignments
   - id: UUID [PRIMARY KEY, DEFAULT uuid_generate_v4()]
@@ -114,30 +150,102 @@ TABLE: events
   - category: TEXT [CHECK (category IN ('sprint', 'middle_distance', 'long_distance', 'hurdles', 'relay', 'jump', 'throw', 'combined'))]
 PRIMARY KEY: id
 
-TABLE: personal_records
+TABLE: track_meets
   - id: UUID [PRIMARY KEY, DEFAULT uuid_generate_v4()]
-  - athlete_id: UUID [FOREIGN KEY -> athletes(id) ON DELETE CASCADE]
-  - event_id: UUID [FOREIGN KEY -> events(id) ON DELETE CASCADE]
-  - record_value: NUMERIC [NOT NULL]
-  - record_date: DATE [NOT NULL]
-  - location: TEXT
-  - notes: TEXT
-  - UNIQUE(athlete_id, event_id, record_date)
+  - name: TEXT [NOT NULL]
+  - meet_date: DATE [NOT NULL]
+  - end_date: DATE
+  - venue_type: TEXT [CHECK (venue_type IN ('Indoor', 'Outdoor'))]
+  - venue_name: TEXT
+  - join_link: TEXT
+  - description: TEXT
+  - address: TEXT
+  - city: TEXT
+  - state: TEXT
+  - zip: TEXT
+  - website: TEXT
+  - contact_name: TEXT
+  - contact_email: TEXT
+  - contact_phone: TEXT
+  - coach_id: UUID [FOREIGN KEY -> coaches(id) ON DELETE SET NULL]
+  - athlete_id: UUID [FOREIGN KEY -> athletes(id) ON DELETE SET NULL]
+  - school: TEXT
+  - meet_type: TEXT
+  - sanctioning_body: TEXT
+  - host_organization: TEXT
+  - status: TEXT [DEFAULT 'Planned', CHECK (status IN ('Planned', 'Completed', 'Cancelled'))]
+  - registration_deadline: DATE
+  - entry_fee: NUMERIC(10,2)
+  - arrival_date: DATE
+  - departure_date: DATE
+  - transportation_modes: TEXT[]
+  - transportation_info: TEXT
+  - lodging_type: TEXT
+  - lodging_details: TEXT
+  - created_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW(), NOT NULL]
+  - updated_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW(), NOT NULL]
+PRIMARY KEY: id
+FOREIGN KEYS:
+  - coach_id -> coaches(id) ON DELETE SET NULL
+  - athlete_id -> athletes(id) ON DELETE SET NULL
+INDEXES:
+  - idx_track_meets_meet_date ON meet_date
+  - idx_track_meets_end_date ON end_date
+  - idx_track_meets_coach_id ON coach_id
+  - idx_track_meets_athlete_id ON athlete_id
+
+TABLE: meet_events
+  - id: UUID [PRIMARY KEY, DEFAULT uuid_generate_v4()]
+  - meet_id: UUID [NOT NULL, FOREIGN KEY -> track_meets(id) ON DELETE CASCADE]
+  - event_id: UUID [FOREIGN KEY -> events(id)]
+  - event_name: TEXT [NOT NULL]
+  - event_day: INT
+  - start_time: TIME
+  - created_at: TIMESTAMPTZ [DEFAULT now()]
+  - updated_at: TIMESTAMPTZ [DEFAULT now()]
+PRIMARY KEY: id
+FOREIGN KEYS:
+  - meet_id -> track_meets(id) ON DELETE CASCADE
+  - event_id -> events(id)
+
+TABLE: athlete_meet_events
+  - id: UUID [PRIMARY KEY, DEFAULT uuid_generate_v4()]
+  - athlete_id: UUID [NOT NULL, FOREIGN KEY -> athletes(id) ON DELETE CASCADE]
+  - meet_event_id: UUID [NOT NULL, FOREIGN KEY -> meet_events(id) ON DELETE CASCADE]
+  - assigned_by: UUID [FOREIGN KEY -> coaches(id) ON DELETE SET NULL]
+  - created_at: TIMESTAMPTZ [DEFAULT now()]
+  - updated_at: TIMESTAMPTZ [DEFAULT now()]
+  - UNIQUE(athlete_id, meet_event_id)
 PRIMARY KEY: id
 FOREIGN KEYS:
   - athlete_id -> athletes(id) ON DELETE CASCADE
-  - event_id -> events(id) ON DELETE CASCADE
+  - meet_event_id -> meet_events(id) ON DELETE CASCADE
+  - assigned_by -> coaches(id) ON DELETE SET NULL
 
-TABLE: athlete_workouts
-  - id: UUID [PRIMARY KEY, DEFAULT gen_random_uuid()]
-  - athlete_id: UUID [FOREIGN KEY -> athletes(id) ON DELETE CASCADE]
-  - workout_id: UUID [FOREIGN KEY -> workouts(id) ON DELETE CASCADE]
-  - assigned_at: TIMESTAMPTZ [DEFAULT now(), NOT NULL]
-  - status: TEXT [DEFAULT 'assigned']
-  - UNIQUE(athlete_id, workout_id)
-PRIMARY KEY: id
-FOREIGN KEYS:
-  - athlete_id -> athletes(id) ON DELETE CASCADE
-  - workout_id -> workouts(id) ON DELETE CASCADE
+VIEWS:
+  - athletes_view: Combines profile and athlete data with team information
+  - coaches_view: Combines profile and coach data
+  - team_managers_view: Combines profile and team manager data
+  - coach_athletes_view: Shows coaches with their assigned athletes
+  - team_athletes_view: Shows teams with their member athletes
+  - team_coaches_view: Shows teams with coach information and roles
+  - team_management_view: Enhanced view for team management with stats
 
--- Add more tables as needed following this format 
+FUNCTIONS:
+  - update_updated_at_column(): Trigger function to update timestamps
+  - generate_team_invite_code(): Generates unique invite codes for teams
+
+INDEXES:
+  - idx_teams_invite_code ON teams(invite_code)
+  - idx_teams_created_by ON teams(created_by)
+  - idx_teams_team_type ON teams(team_type)
+  - idx_team_coaches_team_id ON team_coaches(team_id)
+  - idx_team_coaches_coach_id ON team_coaches(coach_id)
+  - idx_team_invitations_team_id ON team_invitations(team_id)
+  - idx_team_invitations_invite_code ON team_invitations(invite_code)
+  - idx_team_invitations_invitee_email ON team_invitations(invitee_email)
+
+EXTENSIONS:
+  - uuid-ossp: For UUID generation
+
+LAST UPDATED: 2025-01-10 (Complete schema with team management, invitations, workouts, and track meets) 
