@@ -23,9 +23,12 @@ export default function RoleDashboardRouter() {
     );
   }
 
-  if (profile.role === 'coach' || profile.role === 'team_manager') {
-    // Redirect coach/team_manager to their specific dashboard path
+  if (profile.role === 'coach') {
+    // Redirect coach to their specific dashboard path
     return <Navigate to="/coach/dashboard" replace />;
+  } else if (profile.role === 'team_manager') {
+    // Redirect team manager to their specific dashboard path
+    return <Navigate to="/team-manager/dashboard" replace />;
   } else if (profile.role === 'athlete') {
     return <Navigate to="/athlete/dashboard" replace />;
   }

@@ -10,6 +10,7 @@ export { default as TrackMeetsCard } from './TrackMeetsCard';
 export { TrainingCalendar } from './Calendar';
 export { CoachLayout } from './CoachLayout';
 export { AthleteLayout } from './AthleteLayout';
+export { TeamManagerLayout } from './TeamManagerLayout';
 export { ErrorBoundary } from './ErrorBoundary';
 export { Footer } from './Footer';
 export { Layout } from './Layout';

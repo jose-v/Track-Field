@@ -9,7 +9,7 @@ interface FeedbackSubmission {
   rating: number;
   message: string;
   username: string;
-  userType?: 'coach' | 'athlete';
+  userType?: 'coach' | 'athlete' | 'team_manager';
   timestamp?: string;
 }
 
@@ -17,7 +17,7 @@ export const submitFeedback = async (
   rating: number, 
   message: string, 
   username: string,
-  userType: 'coach' | 'athlete' = 'athlete'
+  userType: 'coach' | 'athlete' | 'team_manager' = 'athlete'
 ): Promise<void> => {
   // Create timestamp
   const timestamp = new Date().toISOString();

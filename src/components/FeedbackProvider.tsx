@@ -23,7 +23,7 @@ interface FeedbackProviderProps {
   children: ReactNode;
   username?: string;
   userAvatar?: string;
-  userType?: 'coach' | 'athlete';
+  userType?: 'coach' | 'athlete' | 'team_manager';
 }
 
 export const FeedbackProvider: React.FC<FeedbackProviderProps> = ({

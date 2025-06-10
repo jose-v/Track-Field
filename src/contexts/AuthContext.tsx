@@ -366,12 +366,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         // Check if we're in a signup context by looking at the current URL
         const currentPath = window.location.pathname;
+        const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://olympr.app';
         if (currentPath === '/signup' || currentPath.includes('signup')) {
           // For signup context, redirect to a special signup completion page
-          finalRedirectTo = `${window.location.origin}/signup?oauth_return=true`;
+          finalRedirectTo = `${baseUrl}/signup?oauth_return=true`;
         } else {
-          // For login context, redirect to dashboard
-          finalRedirectTo = `${window.location.origin}/dashboard`;
+          // For login context, redirect to dashboard router which will redirect to appropriate role dashboard
+          finalRedirectTo = `${baseUrl}/dashboard`;
         }
       }
       

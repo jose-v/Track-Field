@@ -55,6 +55,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { useFeedback } from './FeedbackProvider';
 import { useScrollDirection } from '../hooks/useScrollDirection';
 import { useCoachNavigation } from './layout/CoachNavigation';
+import { useTeamManagerNavigation } from './layout/TeamManagerNavigation';
 
 interface NavItemProps {
   icon: React.ElementType;
@@ -67,7 +68,7 @@ interface NavItemProps {
 }
 
 interface SidebarProps {
-  userType: 'coach' | 'athlete';
+  userType: 'coach' | 'athlete' | 'team_manager';
 }
 
 // Mobile-specific nav item component
@@ -203,8 +204,9 @@ const Sidebar = ({ userType }: SidebarProps) => {
   const { profile, displayName, initials } = useProfileDisplay();
   const { showFeedbackModal } = useFeedback();
   
-  // Get coach navigation configuration
+  // Get navigation configurations
   const coachNavigation = useCoachNavigation();
+  const teamManagerNavigation = useTeamManagerNavigation();
   
   // Color mode values for the sidebar
   const sidebarBg = useColorModeValue('white', 'gray.800');
@@ -238,6 +240,32 @@ const Sidebar = ({ userType }: SidebarProps) => {
         { icon: MdOutlineReport, label: 'Wellness', to: '/athlete/wellness' },
         { icon: BsChatDots, label: 'Loop', to: '/loop' },
       ];
+    } else if (userType === 'team_manager') {
+      // Create a mapping of team manager navigation paths to their proper icons
+      const teamManagerIconMap: { [key: string]: any } = {
+        '/team-manager/dashboard': FaTachometerAlt,
+        '/team-manager/teams': LuUsers,
+        '/team-manager/coaches': FaUsers,
+        '/team-manager/athletes': LuUsers,
+        '/team-manager/training-plans': FaClipboardList,
+        '/team-manager/workout-creator': FaCog,
+        '/team-manager/calendar': FaCalendarAlt,
+        '/team-manager/meets': BsCalendarCheck,
+        '/team-manager/stats': FaChartBar,
+        '/team-manager/admin': FaCog,
+        '/team-manager/notifications': FaBell,
+      };
+
+      // Use the team manager navigation configuration from the hook
+      return [
+        { icon: FaHome, label: 'Home', to: '/' },
+        ...teamManagerNavigation.navLinks.map(navItem => ({
+          icon: teamManagerIconMap[navItem.path] || FaTachometerAlt,
+          label: navItem.name,
+          to: navItem.path
+        })),
+        { icon: BsChatDots, label: 'Loop', to: '/loop' },
+      ];
     } else {
       // Create a mapping of coach navigation paths to their proper icons
       const coachIconMap: { [key: string]: any } = {
@@ -269,7 +297,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
   
   // Use the optimized display helpers from the hook
   const userInitials = initials;
-  const roleName = userType === 'athlete' ? 'Athlete' : 'Coach';
+  const roleName = userType === 'athlete' ? 'Athlete' : userType === 'team_manager' ? 'Team Manager' : 'Coach';
   const fullName = displayName;
 
   // Mobile hamburger trigger (visible on mobile, hidden on desktop)
