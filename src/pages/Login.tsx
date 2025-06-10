@@ -35,6 +35,7 @@ export function Login() {
   const [magicLinkLoading, setMagicLinkLoading] = useState(false)
   const [magicLinkSent, setMagicLinkSent] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [emailVerificationNeeded, setEmailVerificationNeeded] = useState(false)
   const { signIn, signInWithGoogle } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -56,18 +57,60 @@ export function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
+    setEmailVerificationNeeded(false) // Clear any previous verification messages
 
     try {
       await signIn(email, password)
       navigate('/dashboard')
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to sign in. Please check your credentials.',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      })
+
+      
+      // Check if this is an email not confirmed error
+      if (error.code === 'email_not_confirmed') {
+        setEmailVerificationNeeded(true)
+        
+        // Store email in localStorage for verification page
+        localStorage.setItem('verification-needed-email', email)
+        
+        toast({
+          title: 'Email Verification Required',
+          description: `We found your account, but you need to verify your email address first. Please check your email (${email}) for a verification link. We'll redirect you to the verification page shortly.`,
+          status: 'warning',
+          duration: 15000,
+          isClosable: true,
+        })
+        
+        // Navigate to verification page after allowing user to read the message
+        setTimeout(() => {
+          navigate('/verify-email?from=signin')
+        }, 5000)
+      } else if (error.message && error.message.toLowerCase().includes('email not confirmed')) {
+        // Fallback check for different error message formats
+        setEmailVerificationNeeded(true)
+        
+        // Store email in localStorage for verification page
+        localStorage.setItem('verification-needed-email', email)
+        
+        toast({
+          title: 'Email Verification Required',
+          description: `Please verify your email address before signing in. Check your email (${email}) for a verification link.`,
+          status: 'warning',
+          duration: 12000,
+          isClosable: true,
+        })
+        
+        setTimeout(() => {
+          navigate('/verify-email?from=signin')
+        }, 5000)
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to sign in. Please check your credentials.',
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        })
+      }
     } finally {
       setLoading(false)
     }
@@ -215,7 +258,10 @@ export function Login() {
                       <Input
                         type="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          setEmail(e.target.value)
+                          setEmailVerificationNeeded(false) // Clear verification alert when email changes
+                        }}
                         placeholder="Enter your email"
                         bg={inputBg}
                         borderColor={inputBorderColor}
@@ -300,6 +346,37 @@ export function Login() {
                   </Button>
                 </VStack>
               </form>
+
+              {/* Email Verification Alert */}
+              {emailVerificationNeeded && (
+                <Alert status="warning" borderRadius="md">
+                  <AlertIcon />
+                  <AlertDescription fontSize="sm">
+                    <VStack align="start" spacing={1}>
+                      <Text fontWeight="medium">
+                        Account found but email needs verification
+                      </Text>
+                      <Text>
+                        Check your email ({email}) for a verification link, or{' '}
+                                                 <Button
+                           variant="link"
+                           size="sm"
+                           colorScheme="orange"
+                           onClick={() => {
+                             localStorage.setItem('verification-needed-email', email)
+                             navigate('/verify-email?from=signin')
+                           }}
+                           p={0}
+                           h="auto"
+                           fontWeight="medium"
+                         >
+                           go to verification page
+                         </Button>
+                      </Text>
+                    </VStack>
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {/* Magic Link Section */}
               <Box px={4}>

@@ -7,7 +7,7 @@ console.log('Direct env values:', {
 });
 
 // HARDCODED VALUES AS FALLBACKS - LAST RESORT
-const FALLBACK_URL = 'https://vdfqhhfirorqdjldmyzc.supabase.co';
+const FALLBACK_URL = 'https://api.olympr.app';
 const FALLBACK_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkZnFoaGZpcm9ycWRqbGRteXpjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3MzM1MjksImV4cCI6MjA2MjMwOTUyOX0.g3ZUC7KtCnN5B8G1qyjiatS9Achy8utlwansrlDyfjM';
 
 // Get Supabase URL, ensuring it has https:// prefix

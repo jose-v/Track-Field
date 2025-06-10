@@ -38,14 +38,25 @@ export function VerifyEmail() {
     if (authLoading) return; // Wait for auth to load
 
     if (!user) {
-      // No user signed in - redirect to login
-      console.log('No user found, redirecting to login');
-      navigate('/login');
+      // Check if we came from a sign-in attempt (URL parameter or localStorage)
+      const urlParams = new URLSearchParams(window.location.search);
+      const fromSignIn = urlParams.get('from') === 'signin' || localStorage.getItem('verification-needed-email');
+      
+      if (!fromSignIn) {
+        // No user signed in and didn't come from sign-in attempt - redirect to login
+        console.log('No user found and not from sign-in, redirecting to login');
+        navigate('/login');
+        return;
+      }
+      
+      // If we came from sign-in attempt, we'll show the verification page anyway
+      console.log('User not signed in but came from sign-in attempt - showing verification guidance');
       return;
     }
 
     if (user.email_confirmed_at) {
-      // User is already verified - redirect to dashboard
+      // User is already verified - clean up and redirect to dashboard
+      localStorage.removeItem('verification-needed-email');
       console.log('User already verified, redirecting to dashboard');
       navigate('/dashboard');
       return;
@@ -56,7 +67,10 @@ export function VerifyEmail() {
   }, [user, authLoading, navigate]);
   
   const handleResendVerification = async () => {
-    if (!user?.email) {
+    // Get email from user or localStorage
+    const email = user?.email || localStorage.getItem('verification-needed-email');
+    
+    if (!email) {
       toast({
         title: 'Error',
         description: 'No email address found. Please try signing up again.',
@@ -72,7 +86,7 @@ export function VerifyEmail() {
     try {
       const { error } = await supabase.auth.resend({
         type: 'signup',
-        email: user.email,
+        email: email,
       });
       
       if (error) {
@@ -81,7 +95,7 @@ export function VerifyEmail() {
       
       toast({
         title: 'Verification Email Sent',
-        description: `A new verification email has been sent to ${user.email}`,
+        description: `A new verification email has been sent to ${email}`,
         status: 'success',
         duration: 8000,
         isClosable: true,
@@ -105,7 +119,7 @@ export function VerifyEmail() {
   };
 
   // Show loading while checking authentication state
-  if (authLoading || !user || user.email_confirmed_at) {
+  if (authLoading) {
     return (
       <Box
         bg={useColorModeValue('gray.50', 'gray.900')}
@@ -118,6 +132,24 @@ export function VerifyEmail() {
       </Box>
     );
   }
+  
+  // If user is verified, they shouldn't be here
+  if (user && user.email_confirmed_at) {
+    return (
+      <Box
+        bg={useColorModeValue('gray.50', 'gray.900')}
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        minHeight="100vh"
+      >
+        <Text>Redirecting...</Text>
+      </Box>
+    );
+  }
+  
+  // Get email to display (from user or localStorage)
+  const displayEmail = user?.email || localStorage.getItem('verification-needed-email');
   
   return (
     <Box
@@ -159,11 +191,13 @@ export function VerifyEmail() {
                     Verify Your Email
                   </Heading>
                   <Text color={textColor}>
-                    We've sent a verification link to:
+                    {displayEmail ? 'We\'ve sent a verification link to:' : 'Please verify your email address'}
                   </Text>
-                  <Text fontWeight="semibold" color={headingColor}>
-                    {user?.email}
-                  </Text>
+                  {displayEmail && (
+                    <Text fontWeight="semibold" color={headingColor}>
+                      {displayEmail}
+                    </Text>
+                  )}
                 </VStack>
               </VStack>
               
