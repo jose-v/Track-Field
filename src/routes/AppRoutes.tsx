@@ -38,6 +38,7 @@ import { CoachTrainingPlans } from '../pages/coach/TrainingPlans';
 
 // Team Manager pages
 import { TeamManagerDashboard } from '../pages/team-manager/Dashboard';
+import { Teams } from '../pages/team-manager/Teams';
 
 
 // Athlete pages
@@ -127,7 +128,7 @@ export default function AppRoutes() {
       {/* Team Manager Routes - With Role Protection */}
       <Route element={<TeamManagerLayoutWithFeedback />}> 
         <Route path="/team-manager/dashboard" element={<RoleProtectedRoute allowedRoles={['team_manager']}><TeamManagerDashboard /></RoleProtectedRoute>} />
-        <Route path="/team-manager/teams" element={<RoleProtectedRoute allowedRoles={['team_manager']}><NotFound /></RoleProtectedRoute>} />
+        <Route path="/team-manager/teams" element={<RoleProtectedRoute allowedRoles={['team_manager']}><Teams /></RoleProtectedRoute>} />
         <Route path="/team-manager/coaches" element={<RoleProtectedRoute allowedRoles={['team_manager']}><CoachAthletes /></RoleProtectedRoute>} />
         <Route path="/team-manager/athletes" element={<RoleProtectedRoute allowedRoles={['team_manager']}><CoachAthletes /></RoleProtectedRoute>} />
         <Route path="/team-manager/training-plans" element={<RoleProtectedRoute allowedRoles={['team_manager']}><CoachTrainingPlans /></RoleProtectedRoute>} />

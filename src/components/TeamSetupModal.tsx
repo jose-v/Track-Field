@@ -179,9 +179,6 @@ export function TeamSetupModal({ isOpen, onClose, userRole }: TeamSetupModalProp
       });
       onClose();
       
-      // Refresh the page to show the new team
-      window.location.reload();
-      
     } catch (error) {
       console.error('Error creating team:', error);
       toast({

@@ -107,6 +107,51 @@ export async function createIndependentCoachTeam(
 }
 
 /**
+ * Get teams created by a team manager
+ */
+export async function getTeamsByManager(manager_id: string): Promise<Team[]> {
+  try {
+    const { data, error } = await supabase
+      .from('teams')
+      .select('*')
+      .eq('created_by', manager_id)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to fetch teams: ${error.message}`);
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching teams by manager:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all teams (for admin/general viewing)
+ */
+export async function getAllTeams(): Promise<Team[]> {
+  try {
+    const { data, error } = await supabase
+      .from('teams')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to fetch teams: ${error.message}`);
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching all teams:', error);
+    throw error;
+  }
+}
+
+/**
  * Get team by invite code
  */
 export async function getTeamByInviteCode(invite_code: string): Promise<Team | null> {
