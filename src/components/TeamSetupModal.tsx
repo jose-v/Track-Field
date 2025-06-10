@@ -57,14 +57,14 @@ export function TeamSetupModal({ isOpen, onClose, userRole }: TeamSetupModalProp
   // Ensure user has team manager profile
   const ensureTeamManagerProfile = async (userId: string) => {
     try {
-      // Check if team manager profile exists
+      // Check if team manager profile exists (without .single() to avoid errors)
       const { data: existingManager, error: checkError } = await supabase
         .from('team_managers')
         .select('id')
         .eq('id', userId)
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single()
 
-      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
+      if (checkError) {
         throw checkError;
       }
 
@@ -75,9 +75,16 @@ export function TeamSetupModal({ isOpen, onClose, userRole }: TeamSetupModalProp
           .insert([{ id: userId }]);
 
         if (createError) {
+          // If it's a duplicate key error, that's fine - it means someone else created it
+          if (createError.code === '23505') {
+            console.log('Team manager profile already exists for user:', userId);
+            return;
+          }
           throw createError;
         }
         console.log('Team manager profile created for user:', userId);
+      } else {
+        console.log('Team manager profile already exists for user:', userId);
       }
     } catch (error) {
       console.error('Error ensuring team manager profile:', error);
