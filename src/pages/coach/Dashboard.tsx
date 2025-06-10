@@ -34,6 +34,7 @@ import { supabase } from '../../lib/supabase';
 import AthleteRosterCard from '../../components/coach/AthleteRosterCard';
 import { MeetFormDrawer, type TrackMeetFormData, type TrackMeetData } from '../../components/meets/MeetFormDrawer';
 import { useWorkouts } from '../../hooks/useWorkouts';
+import { CoachTeamsSection } from '../../components/CoachTeamsSection';
 
   
 // Mock data that's still needed for the exercises dropdown
@@ -554,6 +555,11 @@ export function CoachDashboard() {
       <Box mb={8}>
         {/* Enhanced Team Roster Card (replaces both YourTeamCard and AthleteRosterCard) */}
         <AthleteRosterCard onAthleteClick={handleAthleteClick} />
+      </Box>
+      
+      {/* Coach Teams Section */}
+      <Box mb={8}>
+        <CoachTeamsSection />
       </Box>
       
       {/* Track Meets Calendar View */}

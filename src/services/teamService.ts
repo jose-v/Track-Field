@@ -156,17 +156,23 @@ export async function getAllTeams(): Promise<Team[]> {
  */
 export async function getTeamByInviteCode(invite_code: string): Promise<Team | null> {
   try {
+    console.log('🔍 Looking up invite code:', invite_code);
+    
     const { data, error } = await supabase
       .from('teams')
       .select('*')
-      .eq('invite_code', invite_code)
+      .ilike('invite_code', invite_code)  // Use ilike for case-insensitive search
       .eq('is_active', true)
       .single();
 
+    console.log('🔍 Supabase response:', { data, error });
+
     if (error) {
+      console.log('❌ Error details:', error);
       return null;
     }
 
+    console.log('✅ Found team:', data);
     return data;
   } catch (error) {
     console.error('Error fetching team by invite code:', error);
@@ -183,11 +189,20 @@ export async function joinTeamByInviteCode(
   user_role: 'athlete' | 'coach' | 'team_manager'
 ): Promise<{ success: boolean; team?: Team; error?: string }> {
   try {
+    console.log('🚀 joinTeamByInviteCode called with:', { invite_code, user_id, user_role });
+    
+    // Normalize the invite code (uppercase, trim whitespace)
+    const normalizedCode = invite_code.trim().toUpperCase();
+    console.log('🔧 Normalized code:', normalizedCode);
+    
     // First, verify the invite code exists and get team info
-    const team = await getTeamByInviteCode(invite_code);
+    const team = await getTeamByInviteCode(normalizedCode);
     if (!team) {
+      console.log('❌ No team found for code:', normalizedCode);
       return { success: false, error: 'Invalid invite code' };
     }
+    
+    console.log('✅ Team found:', team.name);
 
     // Check if user is already part of this team
     if (user_role === 'athlete') {
@@ -304,5 +319,151 @@ export async function sendTeamInvitation(
   } catch (error) {
     console.error('Error sending team invitation:', error);
     return { success: false, error: 'Failed to send invitation. Please try again.' };
+  }
+}
+
+/**
+ * Get teams that a coach is assigned to
+ */
+export async function getCoachTeams(coach_id: string): Promise<Team[]> {
+  try {
+    const { data, error } = await supabase
+      .from('team_coaches')
+      .select(`
+        team_id,
+        role,
+        teams (*)
+      `)
+      .eq('coach_id', coach_id)
+      .eq('is_active', true);
+
+    if (error) {
+      throw new Error(`Failed to fetch coach teams: ${error.message}`);
+    }
+
+    // Extract the teams from the joined data
+    return data?.map((item: any) => item.teams as Team).filter(Boolean) || [];
+  } catch (error) {
+    console.error('Error fetching coach teams:', error);
+    throw error;
+  }
+}
+
+/**
+ * Coach leaves a team
+ */
+export async function leaveTeam(
+  team_id: string,
+  coach_id: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase
+      .from('team_coaches')
+      .delete()
+      .eq('team_id', team_id)
+      .eq('coach_id', coach_id);
+
+    if (error) {
+      throw error;
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error leaving team:', error);
+    return { success: false, error: 'Failed to leave team. Please try again.' };
+  }
+}
+
+/**
+ * Remove athlete from team
+ */
+export async function removeAthleteFromTeam(
+  athlete_id: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase
+      .from('athletes')
+      .update({ team_id: null })
+      .eq('id', athlete_id);
+
+    if (error) {
+      throw error;
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error removing athlete from team:', error);
+    return { success: false, error: 'Failed to remove athlete from team. Please try again.' };
+  }
+}
+
+/**
+ * Remove coach from team (by team manager)
+ */
+export async function removeCoachFromTeam(
+  team_id: string,
+  coach_id: string,
+  removed_by: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Verify the remover is the team manager
+    const { data: team } = await supabase
+      .from('teams')
+      .select('created_by')
+      .eq('id', team_id)
+      .single();
+
+    if (!team || team.created_by !== removed_by) {
+      return { success: false, error: 'Only team managers can remove coaches' };
+    }
+
+    const { error } = await supabase
+      .from('team_coaches')
+      .delete()
+      .eq('team_id', team_id)
+      .eq('coach_id', coach_id);
+
+    if (error) {
+      throw error;
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error removing coach from team:', error);
+    return { success: false, error: 'Failed to remove coach from team. Please try again.' };
+  }
+}
+
+/**
+ * Get coaches assigned to a team
+ */
+export async function getTeamCoaches(team_id: string): Promise<any[]> {
+  try {
+    const { data, error } = await supabase
+      .from('team_coaches')
+      .select(`
+        id,
+        role,
+        created_at,
+        coach_id,
+        profiles!inner (
+          id,
+          first_name,
+          last_name,
+          email,
+          avatar_url
+        )
+      `)
+      .eq('team_id', team_id)
+      .eq('is_active', true);
+
+    if (error) {
+      throw new Error(`Failed to fetch team coaches: ${error.message}`);
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching team coaches:', error);
+    throw error;
   }
 } 

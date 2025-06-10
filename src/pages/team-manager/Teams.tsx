@@ -20,11 +20,12 @@ import {
   useColorModeValue
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
-import { FiPlus, FiUsers, FiCalendar, FiCopy, FiSettings, FiEye, FiMail } from 'react-icons/fi';
+import { FiPlus, FiUsers, FiCalendar, FiCopy, FiSettings, FiEye, FiMail, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import { getTeamsByManager, Team } from '../../services/teamService';
 import { TeamSetupModal } from '../../components/TeamSetupModal';
 import { SendTeamInviteModal } from '../../components/SendTeamInviteModal';
+import { TeamCoachesSection } from '../../components/TeamCoachesSection';
 
 export function Teams() {
   const { user } = useAuth();
@@ -38,6 +39,7 @@ export function Teams() {
     onClose: onInviteClose 
   } = useDisclosure();
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
 
   // Dark mode color values
   const headingColor = useColorModeValue('orange.600', 'orange.300');
@@ -124,6 +126,18 @@ export function Teams() {
     setSelectedTeam(null);
     // Optionally refresh teams to update pending invite counts
     fetchTeams();
+  };
+
+  const toggleTeamExpansion = (teamId: string) => {
+    setExpandedTeams(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(teamId)) {
+        newSet.delete(teamId);
+      } else {
+        newSet.add(teamId);
+      }
+      return newSet;
+    });
   };
 
   if (isLoading) {
@@ -280,6 +294,34 @@ export function Teams() {
                           </Tooltip>
                         </HStack>
                       </Box>
+
+                      {/* Coaches Section Toggle */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        colorScheme="gray"
+                        rightIcon={expandedTeams.has(team.id) ? <FiChevronUp /> : <FiChevronDown />}
+                        onClick={() => toggleTeamExpansion(team.id)}
+                        w="full"
+                      >
+                        {expandedTeams.has(team.id) ? 'Hide' : 'Show'} Coaches
+                      </Button>
+
+                      {/* Expanded Coaches Section */}
+                      {expandedTeams.has(team.id) && (
+                        <Box
+                          p={3}
+                          bg={useColorModeValue('gray.50', 'gray.700')}
+                          borderRadius="md"
+                          borderWidth="1px"
+                          borderColor={cardBorder}
+                        >
+                          <Text fontSize="sm" fontWeight="medium" mb={3}>
+                            Team Coaches
+                          </Text>
+                          <TeamCoachesSection teamId={team.id} teamName={team.name} />
+                        </Box>
+                      )}
 
                       {/* Quick Actions */}
                       <VStack spacing={2}>
