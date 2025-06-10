@@ -228,12 +228,18 @@ export async function joinTeamByInviteCode(
       }
     } else if (user_role === 'coach') {
       // Check if coach is already assigned to this team
-      const { data: existingCoach } = await supabase
+      const { data: existingCoach, error: checkError } = await supabase
         .from('team_coaches')
         .select('id')
         .eq('coach_id', user_id)
         .eq('team_id', team.id)
-        .single();
+        .maybeSingle();
+      
+      // Only return error if there's an actual error (not just no rows found)
+      if (checkError) {
+        console.error('Error checking existing coach assignment:', checkError);
+        return { success: false, error: 'Failed to check team membership' };
+      }
       
       if (existingCoach) {
         return { success: false, error: 'You are already a coach for this team' };
