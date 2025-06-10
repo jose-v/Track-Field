@@ -106,7 +106,7 @@ export function useProfile() {
     const fallbackProfile = {
       id: auth.user?.id || '',
       email: auth.user?.email || '',
-      role: 'athlete' as const,
+      role: null as any, // Don't assign a default role - let users choose
       // Use actual extracted names instead of hardcoded ones
       first_name: firstName,
       last_name: lastName,

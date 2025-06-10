@@ -373,9 +373,9 @@ export async function handleOAuthUserProfile(user: any, role?: UserRole): Promis
         last_name: lastName,
       };
       
-      // Only set role if we're not in signup context
-      if (!isSignupContext) {
-        profileData.role = role || 'athlete';
+      // Only set role if we're not in signup context AND we have a role
+      if (!isSignupContext && role) {
+        profileData.role = role;
       }
 
       console.log('🔍 Profile data to upsert:', profileData);
@@ -395,10 +395,10 @@ export async function handleOAuthUserProfile(user: any, role?: UserRole): Promis
       
       console.log('✅ Profile created/updated successfully');
 
-      // Only create role-specific entry if we're not in signup context
-      if (!isSignupContext) {
+      // Only create role-specific entry if we're not in signup context and we have a role
+      if (!isSignupContext && role) {
         console.log('🔍 Creating role-specific profile for role:', role);
-        const userRole = role || 'athlete';
+        const userRole = role;
         
         // Check if role-specific profile already exists first
         let roleProfileExists = false;
@@ -456,13 +456,13 @@ export async function handleOAuthUserProfile(user: any, role?: UserRole): Promis
     } else {
       console.log('🔍 Profile already exists, skipping creation');
       
-      // If profile exists but has no role and we're not in signup context, 
+      // If profile exists but has no role and we're not in signup context and we have a role,
       // this might be a returning user who was deleted and needs role assignment
-      if (!existingProfile.role && !isSignupContext) {
+      if (!existingProfile.role && !isSignupContext && role) {
         console.log('🔍 Existing profile has no role, updating with provided role');
         const { error: updateError } = await supabase
           .from('profiles')
-          .update({ role: role || 'athlete' })
+          .update({ role: role })
           .eq('id', userId);
           
         if (updateError) {
