@@ -18,7 +18,7 @@ import {
   useColorModeValue,
   useToast,
   Spinner,
-
+  useDisclosure
 } from '@chakra-ui/react';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
@@ -39,6 +39,7 @@ import { useState, useEffect } from 'react';
 import { useProfile } from '../../hooks/useProfile';
 import { useProfileDisplay } from '../../hooks/useProfileDisplay';
 import { WeatherCard, TrackMeetsCard, AlertsNotificationsCard, TodaysFocusCard } from '../../components';
+import { TeamSetupModal } from '../../components/TeamSetupModal';
 
 
 export function TeamManagerDashboard() {
@@ -48,7 +49,8 @@ export function TeamManagerDashboard() {
   const [activeAlerts, setActiveAlerts] = useState<any[]>([]);
   const toast = useToast();
   
-
+  // Team setup modal
+  const { isOpen: isTeamSetupOpen, onOpen: onTeamSetupOpen, onClose: onTeamSetupClose } = useDisclosure();
 
   // Mock data for now - in production this would come from your database
   const mockStats = {
@@ -109,8 +111,7 @@ export function TeamManagerDashboard() {
               colorScheme="orange"
               size="sm"
               leftIcon={<FaPlus />}
-              as={RouterLink}
-              to="/team-manager/teams"
+              onClick={onTeamSetupOpen}
             >
               Create Team
             </Button>
@@ -354,6 +355,12 @@ export function TeamManagerDashboard() {
         />
       </Box>
 
+      {/* Team Setup Modal */}
+      <TeamSetupModal
+        isOpen={isTeamSetupOpen}
+        onClose={onTeamSetupClose}
+        userRole="team_manager"
+      />
 
     </Box>
   );
