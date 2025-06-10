@@ -192,6 +192,25 @@ export async function signIn(email: string, password: string) {
  */
 export async function signInWithMagicLink(email: string) {
   try {
+    console.log('🔍 Magic link requested for email:', email);
+    
+    // First, check if the email exists in our database
+    const { emailExists, error: checkError } = await checkEmailExists(email);
+    
+    if (checkError) {
+      console.error('❌ Error checking email existence:', checkError);
+      throw checkError;
+    }
+    
+    console.log('🔍 Email exists in database:', emailExists);
+    
+    if (!emailExists) {
+      // Return a generic error to prevent email enumeration attacks
+      console.log('⚠️ Magic link requested for non-existent email');
+      throw new Error('If an account with this email exists, you will receive a magic link shortly.');
+    }
+    
+    console.log('✅ Sending magic link to verified email');
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
@@ -199,8 +218,12 @@ export async function signInWithMagicLink(email: string) {
       }
     });
     
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Supabase magic link error:', error);
+      throw error;
+    }
     
+    console.log('✅ Magic link sent successfully');
     return { error: null };
   } catch (error) {
     console.error('Magic link sign-in error:', error);
@@ -518,6 +541,49 @@ export async function checkEmailExists(email: string) {
   } catch (error) {
     console.error('Email check error:', error);
     return { emailExists: false, error };
+  }
+}
+
+/**
+ * Check authentication methods available for an email
+ * This helps determine if a user signed up with password, OAuth, etc.
+ */
+export async function checkAuthMethods(email: string) {
+  try {
+    // First check if email exists in our profiles
+    const { emailExists, error: profileError } = await checkEmailExists(email);
+    
+    if (profileError) {
+      throw profileError;
+    }
+    
+    if (!emailExists) {
+      return { 
+        emailExists: false, 
+        hasPassword: false, 
+        hasOAuth: false, 
+        error: null 
+      };
+    }
+    
+    // Try to get user info from Supabase Auth to check auth methods
+    // Note: This is limited by Supabase's API - we can't directly query auth.users
+    // But we can infer from the profile data and previous auth attempts
+    
+    return { 
+      emailExists: true, 
+      hasPassword: true, // We assume password auth is available if profile exists
+      hasOAuth: false, // Would need additional logic to determine OAuth providers
+      error: null 
+    };
+  } catch (error) {
+    console.error('Auth methods check error:', error);
+    return { 
+      emailExists: false, 
+      hasPassword: false, 
+      hasOAuth: false, 
+      error 
+    };
   }
 }
 

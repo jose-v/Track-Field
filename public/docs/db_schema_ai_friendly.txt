@@ -25,7 +25,7 @@ PRIMARY KEY: id
 
 TABLE: athletes
   - id: UUID [PRIMARY KEY, FOREIGN KEY -> profiles(id) ON DELETE CASCADE]
-  - birth_date: DATE
+  - date_of_birth: DATE
   - gender: TEXT [CHECK (gender IN ('male', 'female', 'other'))]
   - events: TEXT[]
   - team_id: UUID [FOREIGN KEY -> teams(id) ON DELETE SET NULL]

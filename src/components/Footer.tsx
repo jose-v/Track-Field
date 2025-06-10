@@ -81,9 +81,14 @@ export function Footer() {
         >
           <VStack spacing={6} align="flex-start">
             <Box>
-              <Text fontWeight="bold" fontSize="xl" color={headingColor} mb={2}>
-                Track & Field
-              </Text>
+              <Image 
+                src="/images/olympr-logo-white.png" 
+                alt="Track & Field"
+                h="40px"
+                w="auto"
+                objectFit="contain"
+                mb={2}
+              />
               <Text fontSize="sm" maxW="xs">
                 The ultimate platform for track and field athletes to improve their performance.
               </Text>

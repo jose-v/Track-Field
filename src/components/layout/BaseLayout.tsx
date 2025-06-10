@@ -14,7 +14,8 @@ import {
   Avatar, 
   Text, 
   Badge, 
-  Tooltip 
+  Tooltip,
+  Image
 } from '@chakra-ui/react';
 import { HamburgerIcon, CloseIcon } from '@chakra-ui/icons';
 import { Link as RouterLink } from 'react-router-dom';
@@ -163,7 +164,13 @@ export function BaseLayout({
             <HStack spacing={8} alignItems="center">
               <RouterLink to={dashboardPath}>
                 <HStack>
-                  <Text fontWeight="bold" fontSize="xl" color="blue.500">Track & Field</Text>
+                  <Image 
+                    src="/images/olympr-logo.png" 
+                    alt="Track & Field"
+                    h="32px"
+                    w="auto"
+                    objectFit="contain"
+                  />
                   <Badge colorScheme={roleBadge.colorScheme} fontSize="0.8em" ml={1}>{roleBadge.text}</Badge>
                 </HStack>
               </RouterLink>

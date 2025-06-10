@@ -199,7 +199,7 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
 
   return (
     <Box w="100%" minH="calc(100vh - 400px)">
-      <VStack spacing={6} align="stretch" w="100%">
+      <VStack spacing={6} align="stretch" w="100%" px={{ base: 4, lg: 6, xl: 8, "2xl": 12 }}>
         {/* Workout Name and Location */}
         <HStack spacing={4} align="start" w="100%">
           {/* Workout Name - Left Side */}
@@ -284,584 +284,349 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
 
         {/* Template Type, Focus, and Training Period - Responsive Layout */}
         <Box w="100%">
-          {/* For screens 1920px+ (custom breakpoint), show all 3 cards in one row */}
-          <Box display={{ base: "none", "2xl": "none" }} sx={{ "@media (min-width: 1920px)": { display: "block" } }}>
-            <HStack spacing={4} align="start" w="100%">
-              {/* Template Type Selection */}
-              <Card flex="1" variant="outline" shadow="none" bg={cardBg} borderColor={borderColor}>
-                <CardBody p={6}>
-                  <VStack spacing={4} align="stretch">
-                    <VStack spacing={2} align="center">
-                      <HStack>
-                        <Calendar size={24} color="var(--chakra-colors-blue-500)" />
-                        <Heading size="md" color={textColor}>
-                          Choose Your Template Type
-                        </Heading>
-                      </HStack>
-                      <Text fontSize="sm" color={subtitleColor} textAlign="center">
-                        Will this be a single workout or a weekly training plan?
-                      </Text>
-                    </VStack>
-                    
-                    <VStack spacing={4}>
-                      {TEMPLATE_TYPES.map((type) => (
-                        <Card
-                          key={type.value}
-                          variant="outline"
-                          shadow="none"
-                          cursor="pointer"
-                          onClick={() => handleTemplateTypeChange(type.value as 'single' | 'weekly')}
-                          bg={templateType === type.value ? selectedBg : cardBg}
-                          borderColor={templateType === type.value ? selectedBorderColor : borderColor}
-                          borderWidth="2px"
-                          _hover={{ 
-                            borderColor: templateType === type.value ? "blue.500" : "blue.300",
-                            bg: templateType === type.value ? selectedHoverBg : hoverBg
-                          }}
-                          transition="all 0.2s"
-                          w="100%"
-                          h="140px"
-                          position="relative"
-                        >
-                          <CardBody p={6} display="flex" alignItems="center" h="100%">
-                            <Flex justify="center" align="center" h="100%" w="100%">
-                              <HStack spacing={4} w="100%">
-                                <Box color={templateType === type.value ? "blue.500" : useColorModeValue("gray.500", "gray.400")}>
-                                  {type.value === 'single' ? <FileText size={32} /> : <Calendar size={32} />}
-                                </Box>
-                                <VStack spacing={2} align="start" flex="1">
-                                  <Heading size="sm" color={templateType === type.value ? "blue.700" : textColor}>
-                                    {type.label}
-                                  </Heading>
-                                  <Text fontSize="xs" color={subtitleColor} lineHeight="short">
-                                    {type.value === 'single' 
-                                      ? 'Perfect for one-time workouts or specific training sessions'
-                                      : 'Create weekly schedules and save as templates for monthly plans'
-                                    }
-                                  </Text>
-                                </VStack>
-                              </HStack>
-                            </Flex>
-                          </CardBody>
-                          {templateType === type.value && (
-                            <Box
-                              position="absolute"
-                              top={2}
-                              right={2}
-                              bg="blue.500"
-                              color="white"
-                              borderRadius="full"
-                              w={5}
-                              h={5}
-                              display="flex"
-                              alignItems="center"
-                              justifyContent="center"
-                            >
-                              <Text fontSize="xs" fontWeight="bold">✓</Text>
-                            </Box>
-                          )}
-                        </Card>
-                      ))}
-                    
-                      {/* Template Checkbox - Show only for Weekly Training Plan */}
-                      {templateType === 'weekly' && setIsTemplate && (
-                        <Card
-                          variant="outline"
-                          shadow="none"
-                          cursor="pointer"
-                          onClick={() => setIsTemplate(!isTemplate)}
-                          bg={isTemplate ? templateSelectedBg : cardBg}
-                          borderColor={isTemplate ? templateSelectedBorderColor : borderColor}
-                          borderWidth="2px"
-                          _hover={{ 
-                            borderColor: isTemplate ? "blue.500" : "blue.300",
-                            bg: isTemplate ? templateSelectedHoverBg : hoverBg
-                          }}
-                          transition="all 0.2s"
-                          position="relative"
-                          w="100%"
-                          h="140px"
-                        >
-                          <CardBody p={6} display="flex" alignItems="center" h="100%">
-                            <Flex justify="center" align="center" h="100%" w="100%">
-                              <HStack spacing={4} w="100%">
-                                <Box color={isTemplate ? "blue.500" : templateIconColor}>
-                                  <BookOpen size={32} />
-                                </Box>
-                                <VStack spacing={2} align="start" flex="1">
-                                  <Heading 
-                                    size="sm" 
-                                    color={isTemplate ? "blue.700" : textColor}
-                                    lineHeight="tight"
-                                  >
-                                    Save as Template
-                                  </Heading>
-                                  <Text 
-                                    fontSize="xs" 
-                                    color={isTemplate ? templateTextColor : subtitleColor}
-                                    lineHeight="short"
-                                  >
-                                    Use for monthly plans
-                                  </Text>
-                                </VStack>
-                              </HStack>
-                            </Flex>
-                            {isTemplate && (
-                              <Box
-                                position="absolute"
-                                top={2}
-                                right={2}
-                                bg="blue.500"
-                                color="white"
-                                borderRadius="full"
-                                w={5}
-                                h={5}
-                                display="flex"
-                                alignItems="center"
-                                justifyContent="center"
-                              >
-                                <Text fontSize="xs" fontWeight="bold">✓</Text>
-                              </Box>
-                            )}
-                          </CardBody>
-                        </Card>
-                      )}
-                    </VStack>
-                  </VStack>
-                </CardBody>
-              </Card>
-
-              {/* Workout Type Selection - 25% */}
-              <Card flex="0.25" variant="outline" shadow="none" bg={cardBg} borderColor={borderColor}>
-                <CardBody p={6}>
-                  <VStack spacing={4} align="stretch">
-                    <VStack spacing={2} align="start">
-                      <HStack>
-                        <Target size={24} color="var(--chakra-colors-green-500)" />
-                        <Heading size="md" color={textColor}>
-                          Training Focus
-                        </Heading>
-                      </HStack>
-                      <Text fontSize="sm" color={subtitleColor}>
-                        Primary training type
-                      </Text>
-                    </VStack>
-                    
-                    <SimpleGrid columns={2} spacing={3} w="100%">
-                      {WORKOUT_TYPES.map((type) => (
-                        <Card
-                          key={type}
-                          variant="outline"
-                          shadow="none"
-                          cursor="pointer"
-                          onClick={() => setWorkoutType(type)}
-                          bg={workoutType === type ? greenSelectedBg : cardBg}
-                          borderColor={workoutType === type ? greenSelectedBorderColor : borderColor}
-                          borderWidth="2px"
-                          _hover={{ 
-                            borderColor: workoutType === type ? "green.500" : "green.300",
-                            bg: workoutType === type ? greenHoverBg : hoverBg
-                          }}
-                          transition="all 0.2s"
-                          h="90px"
-                          position="relative"
-                        >
-                          <CardBody p={3} display="flex" flexDirection="column" justifyContent="center" alignItems="center" h="100%">
-                            <VStack spacing={2} textAlign="center" w="100%">
-                              <Box color={workoutType === type ? "green.500" : useColorModeValue("gray.400", "gray.500")}>
-                                {getTypeIcon(type, 20)}
-                              </Box>
-                              <VStack spacing={0} w="100%">
-                                <Heading 
-                                  size="xs" 
-                                  color={workoutType === type ? "green.700" : textColor}
-                                  fontWeight="bold"
-                                  lineHeight="tight"
-                                >
-                                  {type}
-                                </Heading>
-                                <Text 
-                                  fontSize="2xs" 
-                                  color={workoutType === type ? "green.600" : subtitleColor} 
-                                  lineHeight="short" 
-                                  textAlign="center"
-                                  noOfLines={2}
-                                >
-                                  {getTypeDescription(type).split(' ').slice(0, 3).join(' ')}
-                                </Text>
-                              </VStack>
-                            </VStack>
-                            {workoutType === type && (
-                              <Box
-                                position="absolute"
-                                top={1}
-                                right={1}
-                                bg="green.500"
-                                color="white"
-                                borderRadius="full"
-                                w={4}
-                                h={4}
-                                display="flex"
-                                alignItems="center"
-                                justifyContent="center"
-                              >
-                                <Text fontSize="xs" fontWeight="bold">✓</Text>
-                              </Box>
-                            )}
-                          </CardBody>
-                        </Card>
-                      ))}
-                    </SimpleGrid>
-                  </VStack>
-                </CardBody>
-              </Card>
-
-              {/* Training Period Selection - 50% */}
-              <Card flex="0.5" variant="outline" shadow="none" bg={cardBg} borderColor={borderColor}>
-                <CardBody p={6}>
-                  <VStack spacing={4} align="stretch">
-                    <VStack spacing={2} align="start">
-                      <HStack>
-                        <Calendar size={24} color="var(--chakra-colors-purple-500)" />
-                        <Heading size="md" color={textColor}>
-                          Schedule
-                        </Heading>
-                      </HStack>
-                      <Text fontSize="sm" color={subtitleColor}>
-                        {isTemplate ? "Optional for templates" : "Date & time"}
-                      </Text>
-                    </VStack>
-
-                    {/* Show date/time picker only if not creating a template */}
-                    {!isTemplate && (
-                      <>
-                        {/* Date & Time Picker - Centered */}
-                        <Flex justify="center" w="100%">
-                          <DateTimePicker
-                            selectedDates={templateType === 'weekly' ? selectedDateRange : selectedDates}
-                            selectedStartTime={startTime}
-                            selectedEndTime={endTime}
-                            isMultiSelect={templateType === 'weekly'}
-                            onDateSelect={templateType === 'weekly' ? handleWeeklyDateSelect : handleSingleDateSelect}
-                            onTimeSelect={handleTimeSelect}
-                          />
-                        </Flex>
-                      </>
-                    )}
-
-                    {/* Show message when creating template */}
-                    {isTemplate && (
-                      <VStack spacing={4} align="center" py={8}>
-                        <Box color="blue.500">
-                          <BookOpen size={48} />
-                        </Box>
-                        <VStack spacing={2} align="center">
-                          <Heading size="sm" color="blue.700" textAlign="center">
-                            Creating Template
-                          </Heading>
-                          <Text fontSize="sm" color={subtitleColor} textAlign="center">
-                            Templates don't require specific dates or times
-                          </Text>
-                        </VStack>
-                      </VStack>
-                    )}
-                  </VStack>
-                </CardBody>
-              </Card>
-            </HStack>
-          </Box>
-
-          {/* For screens smaller than 1920px, show original layout */}
-          <Box display={{ base: "block" }} sx={{ "@media (min-width: 1920px)": { display: "none" } }}>
-            {/* Template Type and Focus Side by Side */}
-            <HStack spacing={4} align="start" w="100%" mb={6}>
-              {/* Template Type Selection */}
-              <Card flex="1" variant="outline" shadow="none" bg={cardBg} borderColor={borderColor}>
-                <CardBody p={6}>
-                  <VStack spacing={4} align="stretch">
-                    <VStack spacing={2} align="center">
-                      <HStack>
-                        <Calendar size={24} color="var(--chakra-colors-blue-500)" />
-                        <Heading size="md" color={textColor}>
-                          Choose Your Template Type
-                        </Heading>
-                      </HStack>
-                      <Text fontSize="sm" color={subtitleColor} textAlign="center">
-                        Will this be a single workout or a weekly training plan?
-                      </Text>
-                    </VStack>
-                    
-                    <VStack spacing={4}>
-                      {TEMPLATE_TYPES.map((type) => (
-                        <Card
-                          key={type.value}
-                          variant="outline"
-                          shadow="none"
-                          cursor="pointer"
-                          onClick={() => handleTemplateTypeChange(type.value as 'single' | 'weekly')}
-                          bg={templateType === type.value ? selectedBg : cardBg}
-                          borderColor={templateType === type.value ? selectedBorderColor : borderColor}
-                          borderWidth="2px"
-                          _hover={{ 
-                            borderColor: templateType === type.value ? "blue.500" : "blue.300",
-                            bg: templateType === type.value ? selectedHoverBg : hoverBg
-                          }}
-                          transition="all 0.2s"
-                          w="100%"
-                          h="140px"
-                          position="relative"
-                        >
-                          <CardBody p={6} display="flex" alignItems="center" h="100%">
-                            <Flex justify="center" align="center" h="100%" w="100%">
-                              <HStack spacing={4} w="100%">
-                                <Box color={templateType === type.value ? "blue.500" : useColorModeValue("gray.500", "gray.400")}>
-                                  {type.value === 'single' ? <FileText size={32} /> : <Calendar size={32} />}
-                                </Box>
-                                <VStack spacing={2} align="start" flex="1">
-                                  <Heading size="sm" color={templateType === type.value ? "blue.700" : textColor}>
-                                    {type.label}
-                                  </Heading>
-                                  <Text fontSize="xs" color={subtitleColor} lineHeight="short">
-                                    {type.value === 'single' 
-                                      ? 'Perfect for one-time workouts or specific training sessions'
-                                      : 'Create weekly schedules and save as templates for monthly plans'
-                                    }
-                                  </Text>
-                                </VStack>
-                              </HStack>
-                            </Flex>
-                          </CardBody>
-                          {templateType === type.value && (
-                            <Box
-                              position="absolute"
-                              top={2}
-                              right={2}
-                              bg="blue.500"
-                              color="white"
-                              borderRadius="full"
-                              w={5}
-                              h={5}
-                              display="flex"
-                              alignItems="center"
-                              justifyContent="center"
-                            >
-                              <Text fontSize="xs" fontWeight="bold">✓</Text>
-                            </Box>
-                          )}
-                        </Card>
-                      ))}
-                    
-                      {/* Template Checkbox - Show only for Weekly Training Plan */}
-                      {templateType === 'weekly' && setIsTemplate && (
-                        <Card
-                          variant="outline"
-                          shadow="none"
-                          cursor="pointer"
-                          onClick={() => setIsTemplate(!isTemplate)}
-                          bg={isTemplate ? templateSelectedBg : cardBg}
-                          borderColor={isTemplate ? templateSelectedBorderColor : borderColor}
-                          borderWidth="2px"
-                          _hover={{ 
-                            borderColor: isTemplate ? "blue.500" : "blue.300",
-                            bg: isTemplate ? templateSelectedHoverBg : hoverBg
-                          }}
-                          transition="all 0.2s"
-                          position="relative"
-                          w="100%"
-                          h="140px"
-                        >
-                          <CardBody p={6} display="flex" alignItems="center" h="100%">
-                            <Flex justify="center" align="center" h="100%" w="100%">
-                              <HStack spacing={4} w="100%">
-                                <Box color={isTemplate ? "blue.500" : templateIconColor}>
-                                  <BookOpen size={32} />
-                                </Box>
-                                <VStack spacing={2} align="start" flex="1">
-                                  <Heading 
-                                    size="sm" 
-                                    color={isTemplate ? "blue.700" : textColor}
-                                    lineHeight="tight"
-                                  >
-                                    Save as Template
-                                  </Heading>
-                                  <Text 
-                                    fontSize="xs" 
-                                    color={isTemplate ? templateTextColor : subtitleColor}
-                                    lineHeight="short"
-                                  >
-                                    Use for monthly plans
-                                  </Text>
-                                </VStack>
-                              </HStack>
-                            </Flex>
-                            {isTemplate && (
-                              <Box
-                                position="absolute"
-                                top={2}
-                                right={2}
-                                bg="blue.500"
-                                color="white"
-                                borderRadius="full"
-                                w={5}
-                                h={5}
-                                display="flex"
-                                alignItems="center"
-                                justifyContent="center"
-                              >
-                                <Text fontSize="xs" fontWeight="bold">✓</Text>
-                              </Box>
-                            )}
-                          </CardBody>
-                        </Card>
-                      )}
-                    </VStack>
-                  </VStack>
-                </CardBody>
-              </Card>
-
-              {/* Workout Type Selection */}
-              <Card flex="1" variant="outline" shadow="none" bg={cardBg} borderColor={borderColor}>
-                <CardBody p={6}>
-                  <VStack spacing={4} align="stretch">
-                    <VStack spacing={2} align="center">
-                      <HStack>
-                        <Target size={24} color="var(--chakra-colors-green-500)" />
-                        <Heading size="md" color={textColor}>
-                          What's the Focus?
-                        </Heading>
-                      </HStack>
-                      <Text fontSize="sm" color={subtitleColor} textAlign="center">
-                        Select the primary type of training for this workout
-                      </Text>
-                    </VStack>
-                    
-                    <SimpleGrid columns={2} spacing={4} w="100%">
-                      {WORKOUT_TYPES.map((type) => (
-                        <Card
-                          key={type}
-                          variant="outline"
-                          shadow="none"
-                          cursor="pointer"
-                          onClick={() => setWorkoutType(type)}
-                          bg={workoutType === type ? greenSelectedBg : cardBg}
-                          borderColor={workoutType === type ? greenSelectedBorderColor : borderColor}
-                          borderWidth="2px"
-                          _hover={{ 
-                            borderColor: workoutType === type ? "green.500" : "green.300",
-                            bg: workoutType === type ? greenHoverBg : hoverBg
-                          }}
-                          transition="all 0.2s"
-                          h="140px"
-                          position="relative"
-                        >
-                          <CardBody p={5} display="flex" flexDirection="column" justifyContent="center" alignItems="center" h="100%">
-                            <VStack spacing={3} textAlign="center" w="100%">
-                              <Box color={workoutType === type ? "green.500" : useColorModeValue("gray.400", "gray.500")}>
-                                {getTypeIcon(type, 28)}
-                              </Box>
-                              <VStack spacing={1} w="100%">
-                                <Heading 
-                                  size="sm" 
-                                  color={workoutType === type ? "green.700" : textColor}
-                                  fontWeight="bold"
-                                  lineHeight="tight"
-                                >
-                                  {type}
-                                </Heading>
-                                <Text 
-                                  fontSize="xs" 
-                                  color={workoutType === type ? "green.600" : subtitleColor} 
-                                  lineHeight="short" 
-                                  textAlign="center"
-                                  px={1}
-                                  noOfLines={2}
-                                >
-                                  {getTypeDescription(type)}
-                                </Text>
-                              </VStack>
-                            </VStack>
-                            {workoutType === type && (
-                              <Box
-                                position="absolute"
-                                top={2}
-                                right={2}
-                                bg="green.500"
-                                color="white"
-                                borderRadius="full"
-                                w={5}
-                                h={5}
-                                display="flex"
-                                alignItems="center"
-                                justifyContent="center"
-                              >
-                                <Text fontSize="xs" fontWeight="bold">✓</Text>
-                              </Box>
-                            )}
-                          </CardBody>
-                        </Card>
-                      ))}
-                    </SimpleGrid>
-                  </VStack>
-                </CardBody>
-              </Card>
-            </HStack>
-
-            {/* Date, Time & Location Selection - Full Width Card */}
-            {!isTemplate && (
-              <Card variant="outline" shadow="none" bg={cardBg} borderColor={borderColor} w="100%">
-                <CardBody p={6}>
-                  <VStack spacing={6} align="stretch" w="100%">
-                    <VStack spacing={2} align="center">
-                      <HStack>
-                        <Calendar size={24} color="var(--chakra-colors-purple-500)" />
-                        <Heading size="md" color={textColor}>
-                          {templateType === 'single' ? 'Schedule Your Workout' : 'Set Training Period'}
-                        </Heading>
-                      </HStack>
-                      <Text fontSize="sm" color={subtitleColor} textAlign="center">
-                        {templateType === 'single' 
-                          ? 'Choose the date and time for your workout session'
-                          : 'Select the start and end dates for your weekly training plan'
-                        }
-                      </Text>
-                    </VStack>
-
-                    {/* Date & Time Picker - Centered */}
-                    <Flex justify="center" w="100%">
-                      <DateTimePicker
-                        selectedDates={templateType === 'weekly' ? selectedDateRange : selectedDates}
-                        selectedStartTime={startTime}
-                        selectedEndTime={endTime}
-                        isMultiSelect={templateType === 'weekly'}
-                        onDateSelect={templateType === 'weekly' ? handleWeeklyDateSelect : handleSingleDateSelect}
-                        onTimeSelect={handleTimeSelect}
-                      />
-                    </Flex>
-                  </VStack>
-                </CardBody>
-              </Card>
-            )}
-
-            {/* Show template message when creating template */}
-            {isTemplate && (
-              <Card variant="outline" shadow="none" bg={cardBg} borderColor={borderColor} w="100%">
-                <CardBody p={6}>
-                  <VStack spacing={6} align="center" py={8}>
-                    <Box color="blue.500">
-                      <BookOpen size={64} />
-                    </Box>
-                    <VStack spacing={2} align="center">
-                      <Heading size="md" color="blue.700" textAlign="center">
-                        Creating Template
+          {/* Responsive Layout */}
+          <Box w="100%">
+            {/* Ultra-wide screens (2xl+): All 3 cards side by side with proper proportions */}
+            <SimpleGrid 
+              columns={{ base: 1, lg: 2 }} 
+              spacing={{ base: 4, lg: 6, xl: 8 }} 
+              w="100%"
+              templateColumns={{ 
+                base: "1fr", 
+                lg: "1fr 1fr"
+              }}
+              sx={{
+                "@media (min-width: 2200px)": {
+                  gridTemplateColumns: "1fr 1fr 2fr !important"
+                }
+              }}
+            >
+            {/* Template Type Selection */}
+            <Card 
+              variant="outline" 
+              shadow="none" 
+              bg={cardBg} 
+              borderColor={borderColor}
+              h="fit-content"
+              minH={{ xl: "400px" }}
+            >
+              <CardBody p={{ base: 4, lg: 6 }}>
+                <VStack spacing={{ base: 4, lg: 6 }} align="stretch">
+                  <VStack spacing={2} align="start">
+                    <HStack>
+                      <Calendar size={24} color="var(--chakra-colors-blue-500)" />
+                      <Heading size="md" color={textColor}>
+                        Choose Your Template Type
                       </Heading>
-                      <Text fontSize="sm" color={subtitleColor} textAlign="center">
-                        Templates don't require specific dates or times. You can add exercises and save this as a reusable template for monthly plans.
-                      </Text>
-                    </VStack>
+                    </HStack>
+                    <Text fontSize="sm" color={subtitleColor}>
+                      Will this be a single workout or a weekly training plan?
+                    </Text>
                   </VStack>
-                </CardBody>
-              </Card>
-            )}
+                  
+                  <VStack spacing={4}>
+                    {TEMPLATE_TYPES.map((type) => (
+                      <Card
+                        key={type.value}
+                        variant="outline"
+                        shadow="none"
+                        cursor="pointer"
+                        onClick={() => handleTemplateTypeChange(type.value as 'single' | 'weekly')}
+                        bg={templateType === type.value ? selectedBg : cardBg}
+                        borderColor={templateType === type.value ? selectedBorderColor : borderColor}
+                        borderWidth="2px"
+                        _hover={{ 
+                          borderColor: templateType === type.value ? "blue.500" : "blue.300",
+                          bg: templateType === type.value ? selectedHoverBg : hoverBg
+                        }}
+                        transition="all 0.2s"
+                        w="100%"
+                        minH="120px"
+                        position="relative"
+                      >
+                        <CardBody p={4} display="flex" alignItems="center" h="100%">
+                          <HStack spacing={4} w="100%" align="start">
+                            <Box 
+                              color={templateType === type.value ? "blue.500" : useColorModeValue("gray.500", "gray.400")}
+                              flexShrink={0}
+                            >
+                              {type.value === 'single' ? <FileText size={28} /> : <Calendar size={28} />}
+                            </Box>
+                            <VStack spacing={2} align="start" flex="1">
+                              <Heading size="sm" color={templateType === type.value ? "blue.700" : textColor}>
+                                {type.label}
+                              </Heading>
+                              <Text fontSize="xs" color={subtitleColor} lineHeight="1.4">
+                                {type.value === 'single' 
+                                  ? 'Perfect for one-time workouts or specific training sessions'
+                                  : 'Create weekly schedules and save as templates for monthly plans'
+                                }
+                              </Text>
+                            </VStack>
+                          </HStack>
+                          {templateType === type.value && (
+                            <Box
+                              position="absolute"
+                              top={2}
+                              right={2}
+                              bg="blue.500"
+                              color="white"
+                              borderRadius="full"
+                              w={5}
+                              h={5}
+                              display="flex"
+                              alignItems="center"
+                              justifyContent="center"
+                            >
+                              <Text fontSize="xs" fontWeight="bold">✓</Text>
+                            </Box>
+                          )}
+                        </CardBody>
+                      </Card>
+                    ))}
+                  
+                    {/* Template Checkbox - Show only for Weekly Training Plan */}
+                    {templateType === 'weekly' && setIsTemplate && (
+                      <Card
+                        variant="outline"
+                        shadow="none"
+                        cursor="pointer"
+                        onClick={() => setIsTemplate(!isTemplate)}
+                        bg={isTemplate ? templateSelectedBg : cardBg}
+                        borderColor={isTemplate ? templateSelectedBorderColor : borderColor}
+                        borderWidth="2px"
+                        _hover={{ 
+                          borderColor: isTemplate ? "blue.500" : "blue.300",
+                          bg: isTemplate ? templateSelectedHoverBg : hoverBg
+                        }}
+                        transition="all 0.2s"
+                        position="relative"
+                        w="100%"
+                        minH="120px"
+                      >
+                        <CardBody p={4} display="flex" alignItems="center" h="100%">
+                          <HStack spacing={4} w="100%" align="start">
+                            <Box 
+                              color={isTemplate ? "blue.500" : templateIconColor}
+                              flexShrink={0}
+                            >
+                              <BookOpen size={28} />
+                            </Box>
+                            <VStack spacing={2} align="start" flex="1">
+                              <Heading 
+                                size="sm" 
+                                color={isTemplate ? "blue.700" : textColor}
+                                lineHeight="tight"
+                              >
+                                Save as Template
+                              </Heading>
+                              <Text 
+                                fontSize="xs" 
+                                color={isTemplate ? templateTextColor : subtitleColor}
+                                lineHeight="1.4"
+                              >
+                                Use for monthly plans and reusable workouts
+                              </Text>
+                            </VStack>
+                          </HStack>
+                          {isTemplate && (
+                            <Box
+                              position="absolute"
+                              top={2}
+                              right={2}
+                              bg="blue.500"
+                              color="white"
+                              borderRadius="full"
+                              w={5}
+                              h={5}
+                              display="flex"
+                              alignItems="center"
+                              justifyContent="center"
+                            >
+                              <Text fontSize="xs" fontWeight="bold">✓</Text>
+                            </Box>
+                          )}
+                        </CardBody>
+                      </Card>
+                    )}
+                  </VStack>
+                </VStack>
+              </CardBody>
+            </Card>
+
+            {/* Training Focus Selection */}
+            <Card 
+              variant="outline" 
+              shadow="none" 
+              bg={cardBg} 
+              borderColor={borderColor}
+              h="fit-content"
+              minH={{ xl: "400px" }}
+            >
+              <CardBody p={{ base: 4, lg: 6 }}>
+                <VStack spacing={{ base: 4, lg: 6 }} align="stretch">
+                  <VStack spacing={2} align="start">
+                    <HStack>
+                      <Target size={24} color="var(--chakra-colors-green-500)" />
+                      <Heading size="md" color={textColor}>
+                        Training Focus
+                      </Heading>
+                    </HStack>
+                    <Text fontSize="sm" color={subtitleColor}>
+                      Select the primary type of training
+                    </Text>
+                  </VStack>
+                  
+                  <SimpleGrid 
+                    columns={{ base: 2, sm: 3, lg: 2, xl: 2 }} 
+                    spacing={{ base: 3, lg: 4 }} 
+                    w="100%"
+                  >
+                    {WORKOUT_TYPES.map((type) => (
+                      <Card
+                        key={type}
+                        variant="outline"
+                        shadow="none"
+                        cursor="pointer"
+                        onClick={() => setWorkoutType(type)}
+                        bg={workoutType === type ? greenSelectedBg : cardBg}
+                        borderColor={workoutType === type ? greenSelectedBorderColor : borderColor}
+                        borderWidth="2px"
+                        _hover={{ 
+                          borderColor: workoutType === type ? "green.500" : "green.300",
+                          bg: workoutType === type ? greenHoverBg : hoverBg
+                        }}
+                        transition="all 0.2s"
+                        h={{ base: "100px", lg: "120px" }}
+                        position="relative"
+                      >
+                        <CardBody 
+                          p={{ base: 3, lg: 4 }} 
+                          display="flex" 
+                          flexDirection="column" 
+                          justifyContent="center" 
+                          alignItems="center" 
+                          h="100%"
+                        >
+                          <VStack spacing={2} textAlign="center" w="100%">
+                            <Box color={workoutType === type ? "green.500" : useColorModeValue("gray.400", "gray.500")}>
+                              {getTypeIcon(type, 24)}
+                            </Box>
+                            <VStack spacing={1} w="100%">
+                              <Heading 
+                                size="xs" 
+                                color={workoutType === type ? "green.700" : textColor}
+                                fontWeight="bold"
+                                lineHeight="tight"
+                                fontSize={{ base: "xs", lg: "sm" }}
+                              >
+                                {type}
+                              </Heading>
+                              <Text 
+                                fontSize="2xs" 
+                                color={workoutType === type ? "green.600" : subtitleColor} 
+                                lineHeight="1.3" 
+                                textAlign="center"
+                                noOfLines={2}
+                                display={{ base: "none", lg: "block" }}
+                              >
+                                {getTypeDescription(type).split(' ').slice(0, 3).join(' ')}
+                              </Text>
+                            </VStack>
+                          </VStack>
+                          {workoutType === type && (
+                            <Box
+                              position="absolute"
+                              top={2}
+                              right={2}
+                              bg="green.500"
+                              color="white"
+                              borderRadius="full"
+                              w={4}
+                              h={4}
+                              display="flex"
+                              alignItems="center"
+                              justifyContent="center"
+                            >
+                              <Text fontSize="xs" fontWeight="bold">✓</Text>
+                            </Box>
+                          )}
+                        </CardBody>
+                      </Card>
+                    ))}
+                  </SimpleGrid>
+                </VStack>
+              </CardBody>
+            </Card>
+
+            {/* Schedule Selection */}
+            <Card 
+              variant="outline" 
+              shadow="none" 
+              bg={cardBg} 
+              borderColor={borderColor}
+              h="fit-content"
+              gridColumn={{ base: "1", lg: "span 2" }}
+              sx={{
+                "@media (min-width: 2200px)": {
+                  gridColumn: "auto !important"
+                }
+              }}
+            >
+              <CardBody p={{ base: 4, lg: 6 }}>
+                <VStack spacing={{ base: 4, lg: 6 }} align="stretch">
+                  <VStack spacing={2} align="start">
+                    <HStack>
+                      <Calendar size={24} color="var(--chakra-colors-purple-500)" />
+                      <Heading size="md" color={textColor}>
+                        Schedule
+                      </Heading>
+                    </HStack>
+                    <Text fontSize="sm" color={subtitleColor}>
+                      {isTemplate ? "Optional for templates" : 
+                       templateType === 'single' ? "Date & time for workout" : "Training period dates"}
+                    </Text>
+                  </VStack>
+
+                  {/* Show date/time picker only if not creating a template */}
+                  {!isTemplate && (
+                    <Box w="100%" display="flex" justifyContent="center">
+                      <Box 
+                        w="100%" 
+                        maxW="100%"
+                      >
+                        <DateTimePicker
+                          selectedDates={templateType === 'weekly' ? selectedDateRange : selectedDates}
+                          selectedStartTime={startTime}
+                          selectedEndTime={endTime}
+                          isMultiSelect={templateType === 'weekly'}
+                          onDateSelect={templateType === 'weekly' ? handleWeeklyDateSelect : handleSingleDateSelect}
+                          onTimeSelect={handleTimeSelect}
+                        />
+                      </Box>
+                    </Box>
+                  )}
+
+                  {/* Show message when creating template */}
+                  {isTemplate && (
+                    <VStack spacing={4} align="center" py={8}>
+                      <Box color="blue.500">
+                        <BookOpen size={48} />
+                      </Box>
+                      <VStack spacing={2} align="center">
+                        <Heading size="sm" color="blue.700" textAlign="center">
+                          Creating Template
+                        </Heading>
+                        <Text fontSize="sm" color={subtitleColor} textAlign="center">
+                          Templates don't require specific dates or times
+                        </Text>
+                      </VStack>
+                    </VStack>
+                  )}
+                </VStack>
+              </CardBody>
+            </Card>
+          </SimpleGrid>
           </Box>
         </Box>
       </VStack>

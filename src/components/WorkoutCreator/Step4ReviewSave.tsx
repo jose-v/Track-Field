@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   VStack,
@@ -94,6 +94,7 @@ interface Step4ReviewSaveProps {
   warnings: string[];
   onGoToStep: (step: number) => void;
   onUpdateWeeklyPlan?: (weeklyPlan: DayWorkout[]) => void;
+  onUpdateSingleDayExercises?: (exercises: SelectedExercise[]) => void;
   startDate?: string;
   endDate?: string;
   location?: string;
@@ -323,6 +324,224 @@ const DraggableExercise: React.FC<DraggableExerciseProps> = ({
   );
 };
 
+// Draggable Exercise Component for Single Day Workouts
+interface DraggableSingleDayExerciseProps {
+  exercise: SelectedExercise;
+  index: number;
+  onEdit: (exercise: SelectedExercise) => void;
+}
+
+const DraggableSingleDayExercise: React.FC<DraggableSingleDayExerciseProps> = ({ 
+  exercise, 
+  index, 
+  onEdit 
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ 
+    id: `single-${exercise.instanceId}`,
+    data: {
+      type: 'exercise',
+      exercise,
+      index
+    }
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  // Theme-aware colors
+  const cardBg = useColorModeValue('white', 'gray.700');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const textColor = useColorModeValue('gray.700', 'gray.100');
+  const subtitleColor = useColorModeValue('gray.600', 'gray.300');
+  const noExercisesColor = useColorModeValue('gray.500', 'gray.300');
+  const dragHandleBg = useColorModeValue('gray.200', 'gray.600');
+  const dragHandleHoverBg = useColorModeValue('gray.300', 'gray.500');
+  const dragHandleActiveBg = useColorModeValue('gray.400', 'gray.400');
+
+  const sets = parseInt(exercise.sets || '0') || 0;
+  const reps = parseInt(exercise.reps || '0') || 0;
+  const weight = parseFloat(exercise.weight || '0') || 0;
+  const distance = parseFloat(exercise.distance || '0') || 0;
+  const rest = parseInt(exercise.rest || '0') || 0;
+  const rpe = parseInt(exercise.rpe || '0') || 0;
+  
+  const volume = sets * reps;
+  const totalLoad = weight > 0 ? volume * weight : 0;
+  const restMinutes = Math.floor(rest / 60);
+  const restSeconds = rest % 60;
+  const restFormatted = rest > 0 ? (restMinutes > 0 ? `${restMinutes}:${restSeconds.toString().padStart(2, '0')}` : `${rest}s`) : '';
+  
+  const completedFields = [
+    exercise.sets,
+    exercise.reps,
+    exercise.weight,
+    exercise.distance,
+    exercise.rest,
+    exercise.rpe
+  ].filter(field => field && field.trim() !== '').length;
+
+  return (
+    <Card
+      ref={setNodeRef}
+      style={style}
+      bg={cardBg}
+      borderColor={isDragging ? "blue.400" : borderColor}
+      borderWidth={isDragging ? "2px" : "1px"}
+      borderStyle={isDragging ? "dashed" : "solid"}
+      _hover={{
+        boxShadow: 'md',
+        borderColor: 'blue.300'
+      }}
+    >
+      <CardBody>
+        <VStack spacing={3} align="stretch">
+          {/* Exercise Header with Drag Handle */}
+          <HStack justify="space-between" align="start">
+            <HStack spacing={3} flex={1}>
+              <Box
+                {...attributes}
+                {...listeners}
+                cursor="grab"
+                p={2}
+                borderRadius="md"
+                bg={dragHandleBg}
+                _hover={{ bg: dragHandleHoverBg }}
+                _active={{ cursor: 'grabbing', bg: dragHandleActiveBg }}
+                title="Drag to reorder"
+              >
+                <GripVertical size={20} />
+              </Box>
+              <VStack align="start" spacing={1} flex={1}>
+                <HStack spacing={3}>
+                  <Text fontSize="lg" fontWeight="bold" color={textColor}>
+                    {index + 1}. {exercise.name}
+                  </Text>
+                  <Badge colorScheme="blue" variant="subtle">{exercise.category}</Badge>
+                </HStack>
+                <Text fontSize="sm" color={subtitleColor} noOfLines={2}>
+                  {exercise.description}
+                </Text>
+              </VStack>
+            </HStack>
+            
+            {/* Action Buttons */}
+            <HStack spacing={2}>
+              <Tooltip label="Edit Exercise">
+                <IconButton
+                  size="sm"
+                  icon={<Eye size={16} />}
+                  variant="ghost"
+                  onClick={() => onEdit(exercise)}
+                  aria-label="Edit exercise"
+                />
+              </Tooltip>
+              
+              {/* Completion Indicator */}
+              <VStack align="end" spacing={1}>
+                <HStack spacing={1}>
+                  {[1,2,3,4,5,6].map(i => (
+                    <Box
+                      key={i}
+                      w={2}
+                      h={2}
+                      borderRadius="full"
+                      bg={i <= completedFields ? "green.400" : "gray.300"}
+                    />
+                  ))}
+                </HStack>
+                <Text fontSize="xs" color={subtitleColor}>
+                  {completedFields}/6 complete
+                </Text>
+              </VStack>
+            </HStack>
+          </HStack>
+
+          {/* Exercise Parameters */}
+          <SimpleGrid columns={{ base: 2, md: 3, lg: 6 }} spacing={4}>
+            <VStack align="start" spacing={1}>
+              <Text fontSize="xs" fontWeight="semibold" color={subtitleColor} textTransform="uppercase">Sets</Text>
+              <Text fontSize="md" fontWeight="medium" color={exercise.sets ? textColor : noExercisesColor}>
+                {exercise.sets || '-'}
+              </Text>
+            </VStack>
+            <VStack align="start" spacing={1}>
+              <Text fontSize="xs" fontWeight="semibold" color={subtitleColor} textTransform="uppercase">Reps</Text>
+              <Text fontSize="md" fontWeight="medium" color={exercise.reps ? textColor : noExercisesColor}>
+                {exercise.reps || '-'}
+              </Text>
+            </VStack>
+            <VStack align="start" spacing={1}>
+              <Text fontSize="xs" fontWeight="semibold" color={subtitleColor} textTransform="uppercase">Weight (kg)</Text>
+              <Text fontSize="md" fontWeight="medium" color={exercise.weight ? textColor : noExercisesColor}>
+                {exercise.weight ? `${exercise.weight} kg` : '-'}
+              </Text>
+            </VStack>
+            <VStack align="start" spacing={1}>
+              <Text fontSize="xs" fontWeight="semibold" color={subtitleColor} textTransform="uppercase">Distance (m)</Text>
+              <Text fontSize="md" fontWeight="medium" color={exercise.distance ? textColor : noExercisesColor}>
+                {exercise.distance ? `${exercise.distance} m` : '-'}
+              </Text>
+            </VStack>
+            <VStack align="start" spacing={1}>
+              <Text fontSize="xs" fontWeight="semibold" color={subtitleColor} textTransform="uppercase">Rest</Text>
+              <Text fontSize="md" fontWeight="medium" color={exercise.rest ? textColor : noExercisesColor}>
+                {restFormatted || '-'}
+              </Text>
+            </VStack>
+            <VStack align="start" spacing={1}>
+              <Text fontSize="xs" fontWeight="semibold" color={subtitleColor} textTransform="uppercase">RPE</Text>
+              <Text fontSize="md" fontWeight="medium" color={exercise.rpe ? textColor : noExercisesColor}>
+                {exercise.rpe || '-'}
+              </Text>
+            </VStack>
+          </SimpleGrid>
+
+          {/* Additional Stats */}
+          {(volume > 0 || totalLoad > 0) && (
+            <HStack spacing={6} pt={2} borderTop="1px solid" borderColor={borderColor}>
+              {volume > 0 && (
+                <VStack align="start" spacing={0}>
+                  <Text fontSize="xs" fontWeight="semibold" color={subtitleColor} textTransform="uppercase">Volume</Text>
+                  <Text fontSize="sm" fontWeight="medium" color={textColor}>
+                    {volume.toLocaleString()} reps
+                  </Text>
+                </VStack>
+              )}
+              {totalLoad > 0 && (
+                <VStack align="start" spacing={0}>
+                  <Text fontSize="xs" fontWeight="semibold" color={subtitleColor} textTransform="uppercase">Total Load</Text>
+                  <Text fontSize="sm" fontWeight="medium" color={textColor}>
+                    {totalLoad.toLocaleString()} kg
+                  </Text>
+                </VStack>
+              )}
+            </HStack>
+          )}
+
+          {exercise.notes && (
+            <Box pt={2} borderTop="1px solid" borderColor={borderColor}>
+              <Text fontSize="xs" fontWeight="semibold" color={subtitleColor} textTransform="uppercase" mb={1}>Coach Notes</Text>
+              <Text fontSize="sm" color={textColor} fontStyle="italic">
+                "{exercise.notes}"
+              </Text>
+            </Box>
+          )}
+        </VStack>
+      </CardBody>
+    </Card>
+  );
+};
+
 // Copy Exercise Modal Component
 interface CopyExerciseModalProps {
   isOpen: boolean;
@@ -479,6 +698,7 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
   warnings,
   onGoToStep,
   onUpdateWeeklyPlan,
+  onUpdateSingleDayExercises,
   startDate,
   endDate,
   location,
@@ -486,6 +706,7 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
 }) => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [copyExercise, setCopyExercise] = useState<{exercise: SelectedExercise, fromDay: string} | null>(null);
+  const [dragStartScrollPosition, setDragStartScrollPosition] = useState<number>(0);
   const { isOpen: isCopyModalOpen, onOpen: onCopyModalOpen, onClose: onCopyModalClose } = useDisclosure();
   const toast = useToast();
 
@@ -496,6 +717,48 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
       },
     })
   );
+
+  // Prevent auto-scrolling during drag operations
+  useEffect(() => {
+    if (activeId) {
+      // Prevent auto-scrolling to focused elements during drag
+      const originalScrollBehavior = document.documentElement.style.scrollBehavior;
+      document.documentElement.style.scrollBehavior = 'auto';
+      
+      // Store initial scroll position and prevent programmatic scrolling
+      const initialScrollY = window.scrollY;
+      
+      // Override scroll methods temporarily
+      const originalScrollTo = window.scrollTo;
+      const originalScrollBy = window.scrollBy;
+      
+      window.scrollTo = (x: number | ScrollToOptions, y?: number) => {
+        // Only allow manual user scrolling during drag, block programmatic scrolling
+        if (typeof x === 'object') {
+          // Allow smooth user-initiated scrolling but block programmatic jumps
+          if (x.behavior !== 'smooth') return;
+          originalScrollTo.call(window, x);
+        } else if (typeof x === 'number' && typeof y === 'number') {
+          // Allow small adjustments but block large jumps
+          const deltaY = Math.abs(y - window.scrollY);
+          if (deltaY > 100) return; // Block large scroll jumps
+          originalScrollTo.call(window, x, y);
+        }
+      };
+      
+      window.scrollBy = () => {
+        // Block all scrollBy during drag
+        return;
+      };
+      
+      return () => {
+        // Restore original behavior when drag ends
+        document.documentElement.style.scrollBehavior = originalScrollBehavior;
+        window.scrollTo = originalScrollTo;
+        window.scrollBy = originalScrollBy;
+      };
+    }
+  }, [activeId]);
 
   // Theme-aware colors
   const cardBg = useColorModeValue('white', 'gray.700');
@@ -581,18 +844,74 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
   const handleDragStart = (event: DragStartEvent) => {
     const draggedId = event.active.id as string;
     setActiveId(draggedId);
+    
+    // Store current scroll position
+    setDragStartScrollPosition(window.scrollY);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
 
-    if (!over || !onUpdateWeeklyPlan) return;
+    if (!over) {
+      // If drag was cancelled, restore scroll position
+      window.scrollTo(0, dragStartScrollPosition);
+      return;
+    }
 
     const activeData = active.data.current;
     const overData = over.data.current;
 
-    if (!activeData || activeData.type !== 'exercise') return;
+    if (!activeData || activeData.type !== 'exercise') {
+      // If invalid drag, restore scroll position
+      window.scrollTo(0, dragStartScrollPosition);
+      return;
+    }
+
+    // Handle Single Day Workout Reordering
+    if (templateType === 'single' && onUpdateSingleDayExercises) {
+      // For single day workouts, we're just reordering within the same array
+      const activeIndex = activeData.index;
+      const overIndex = overData ? overData.index : selectedExercises.length - 1;
+
+      if (activeIndex === overIndex) {
+        // No change, restore scroll position
+        window.scrollTo(0, dragStartScrollPosition);
+        return;
+      }
+
+      // Create new array with reordered exercises
+      const newExercises = [...selectedExercises];
+      const [removed] = newExercises.splice(activeIndex, 1);
+      newExercises.splice(overIndex, 0, removed);
+
+      onUpdateSingleDayExercises(newExercises);
+
+      // Show success toast
+      toast({
+        title: "Exercise reordered",
+        description: `"${removed.name}" moved to position ${overIndex + 1}`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      // Maintain scroll position after reorder
+      setTimeout(() => {
+        window.scrollTo({
+          top: dragStartScrollPosition,
+          behavior: 'auto'
+        });
+      }, 10);
+
+      return;
+    }
+
+    // Handle Weekly Plan Reordering (existing logic)
+    if (!onUpdateWeeklyPlan) {
+      window.scrollTo(0, dragStartScrollPosition);
+      return;
+    }
 
     // Parse IDs to get day and exercise info
     const activeId = active.id as string;
@@ -615,11 +934,13 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
       const targetDayData = weeklyPlan.find(d => d.day === targetDay);
       targetIndex = targetDayData ? targetDayData.exercises.length : 0;
     } else {
+      window.scrollTo(0, dragStartScrollPosition);
       return;
     }
 
     // Don't move if dropping on the same position
     if (activeDay === targetDay && activeData.index === targetIndex) {
+      window.scrollTo(0, dragStartScrollPosition);
       return;
     }
 
@@ -653,6 +974,14 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
       duration: 3000,
       isClosable: true,
     });
+
+    // Maintain scroll position after move with better timing
+    setTimeout(() => {
+      window.scrollTo({
+        top: dragStartScrollPosition,
+        behavior: 'auto'
+      });
+    }, 10);
   };
 
   const handleCopyExercise = (exercise: SelectedExercise, fromDay: string) => {
@@ -707,7 +1036,30 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
       collisionDetection={closestCenter}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      autoScroll={{
+        enabled: false, // Disable auto-scrolling completely
+      }}
     >
+      {/* Drag Mode Indicator */}
+      {activeId && (
+        <Box
+          position="fixed"
+          top={4}
+          right={4}
+          bg="blue.500"
+          color="white"
+          px={3}
+          py={2}
+          borderRadius="md"
+          fontSize="sm"
+          fontWeight="medium"
+          zIndex={9999}
+          boxShadow="lg"
+        >
+          Drag Mode - Scroll position locked
+        </Box>
+      )}
+      
       <VStack spacing={6} align="stretch" w="100%" bg={cardBg} p={6} borderRadius="md">
       {/* Warnings Section */}
       {warnings.length > 0 && (
@@ -885,147 +1237,22 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
         </HStack>
         
           {templateType === 'single' ? (
-            // Single Day Workout Display
-            <VStack spacing={4} align="stretch">
-              {selectedExercises.map((exercise, index) => {
-                const sets = parseInt(exercise.sets || '0') || 0;
-                const reps = parseInt(exercise.reps || '0') || 0;
-                const weight = parseFloat(exercise.weight || '0') || 0;
-                const distance = parseFloat(exercise.distance || '0') || 0;
-                const rest = parseInt(exercise.rest || '0') || 0;
-                const rpe = parseInt(exercise.rpe || '0') || 0;
-                
-                const volume = sets * reps;
-                const totalLoad = weight > 0 ? volume * weight : 0;
-                const restMinutes = Math.floor(rest / 60);
-                const restSeconds = rest % 60;
-                const restFormatted = rest > 0 ? (restMinutes > 0 ? `${restMinutes}:${restSeconds.toString().padStart(2, '0')}` : `${rest}s`) : '';
-                
-                const completedFields = [
-                  exercise.sets,
-                  exercise.reps,
-                  exercise.weight,
-                  exercise.distance,
-                  exercise.rest,
-                  exercise.rpe
-                ].filter(field => field && field.trim() !== '').length;
-                
-                return (
-                  <Card key={exercise.instanceId} variant="outline" bg={exerciseCardBg} borderColor={borderColor}>
-                    <CardBody>
-                      <VStack spacing={4} align="stretch">
-                        {/* Exercise Header */}
-                        <HStack justify="space-between" align="start">
-                          <VStack align="start" spacing={1} flex={1}>
-                            <HStack spacing={3}>
-                              <Text fontSize="lg" fontWeight="bold" color={textColor}>
-                                {index + 1}. {exercise.name}
-                              </Text>
-                              <Badge colorScheme="blue" variant="subtle" fontSize="xs">{exercise.category}</Badge>
-                            </HStack>
-                            <Text fontSize="sm" color={subtitleColor} noOfLines={2}>
-                              {exercise.description}
-                            </Text>
-                          </VStack>
-                          <VStack align="end" spacing={1}>
-                            <HStack spacing={1}>
-                              {[1,2,3,4,5,6].map(i => (
-                                <Box
-                                  key={i}
-                                  w={2}
-                                  h={2}
-                                  borderRadius="full"
-                                  bg={i <= completedFields ? "green.400" : "gray.300"}
-                                />
-                              ))}
-                            </HStack>
-                            <Text fontSize="xs" color={subtitleColor}>
-                              {completedFields}/6 fields
-                            </Text>
-                          </VStack>
-                        </HStack>
-                        
-                        {/* Exercise Parameters */}
-                        <SimpleGrid columns={{ base: 2, md: 3, lg: 6 }} spacing={4}>
-                          <VStack align="start" spacing={1}>
-                            <Text fontSize="xs" fontWeight="semibold" color={subtitleColor} textTransform="uppercase">Sets</Text>
-                            <Text fontSize="md" fontWeight="medium" color={exercise.sets ? textColor : noExercisesColor}>
-                              {exercise.sets || '-'}
-                            </Text>
-                          </VStack>
-                          <VStack align="start" spacing={1}>
-                            <Text fontSize="xs" fontWeight="semibold" color={subtitleColor} textTransform="uppercase">Reps</Text>
-                            <Text fontSize="md" fontWeight="medium" color={exercise.reps ? textColor : noExercisesColor}>
-                              {exercise.reps || '-'}
-                            </Text>
-                          </VStack>
-                          <VStack align="start" spacing={1}>
-                            <Text fontSize="xs" fontWeight="semibold" color={subtitleColor} textTransform="uppercase">Weight (kg)</Text>
-                            <Text fontSize="md" fontWeight="medium" color={exercise.weight ? textColor : noExercisesColor}>
-                              {exercise.weight ? `${exercise.weight} kg` : '-'}
-                            </Text>
-                          </VStack>
-                          <VStack align="start" spacing={1}>
-                            <Text fontSize="xs" fontWeight="semibold" color={subtitleColor} textTransform="uppercase">Distance (m)</Text>
-                            <Text fontSize="md" fontWeight="medium" color={exercise.distance ? textColor : noExercisesColor}>
-                              {exercise.distance ? `${exercise.distance} m` : '-'}
-                            </Text>
-                          </VStack>
-                          <VStack align="start" spacing={1}>
-                            <Text fontSize="xs" fontWeight="semibold" color={subtitleColor} textTransform="uppercase">Rest</Text>
-                            <Text fontSize="md" fontWeight="medium" color={exercise.rest ? textColor : noExercisesColor}>
-                              {restFormatted || '-'}
-                            </Text>
-                          </VStack>
-                          <VStack align="start" spacing={1}>
-                            <Text fontSize="xs" fontWeight="semibold" color={subtitleColor} textTransform="uppercase">RPE (1-10)</Text>
-                            <Text fontSize="md" fontWeight="medium" color={exercise.rpe ? textColor : noExercisesColor}>
-                              {exercise.rpe || '-'}
-                            </Text>
-                          </VStack>
-                        </SimpleGrid>
-                        
-                        {/* Calculated Metrics */}
-                        <HStack spacing={6} pt={2} borderTop="1px solid" borderColor={borderColor}>
-                          <VStack align="start" spacing={1}>
-                            <Text fontSize="xs" fontWeight="semibold" color={subtitleColor} textTransform="uppercase">Est. Volume</Text>
-                            <Text fontSize="sm" fontWeight="medium" color={textColor}>
-                              {volume > 0 ? `${volume} reps` : '-'}
-                            </Text>
-                          </VStack>
-                          {totalLoad > 0 && (
-                            <VStack align="start" spacing={1}>
-                              <Text fontSize="xs" fontWeight="semibold" color={subtitleColor} textTransform="uppercase">Total Load</Text>
-                              <Text fontSize="sm" fontWeight="medium" color={textColor}>
-                                {totalLoad.toLocaleString()} kg
-                              </Text>
-                            </VStack>
-                          )}
-                          {rest > 0 && (
-                            <VStack align="start" spacing={1}>
-                              <Text fontSize="xs" fontWeight="semibold" color={subtitleColor} textTransform="uppercase">Rest Time</Text>
-                              <Text fontSize="sm" fontWeight="medium" color={textColor}>
-                                {restFormatted}
-                              </Text>
-                            </VStack>
-                    )}
-                  </HStack>
-                        
-                        {/* Coach Notes */}
-                        {exercise.notes && (
-                          <Box pt={2} borderTop="1px solid" borderColor={borderColor}>
-                            <Text fontSize="xs" fontWeight="semibold" color={subtitleColor} textTransform="uppercase" mb={1}>Coach Notes</Text>
-                            <Text fontSize="sm" color={textColor} fontStyle="italic">
-                              "{exercise.notes}"
-                            </Text>
-                          </Box>
-                        )}
-                      </VStack>
-                    </CardBody>
-                  </Card>
-                );
-              })}
-                    </VStack>
+            // Single Day Workout Display with Drag and Drop
+            <SortableContext 
+              items={selectedExercises.map(ex => `single-${ex.instanceId}`)} 
+              strategy={verticalListSortingStrategy}
+            >
+              <VStack spacing={4} align="stretch">
+                {selectedExercises.map((exercise, index) => (
+                  <DraggableSingleDayExercise
+                    key={exercise.instanceId}
+                    exercise={exercise}
+                    index={index}
+                    onEdit={handleEditExercise}
+                  />
+                ))}
+              </VStack>
+            </SortableContext>
           ) : (
             // Weekly Plan Display with Drag and Drop
           <VStack spacing={6} align="stretch">
@@ -1125,7 +1352,74 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
       {/* Drag Overlay */}
       <DragOverlay>
         {activeId && (() => {
-          // Extract exercise data from activeId
+          // Handle single day exercise overlay
+          if (activeId.startsWith('single-')) {
+            const exerciseId = activeId.replace('single-', '');
+            const exercise = selectedExercises.find(ex => 
+              ex.instanceId === exerciseId || ex.instanceId.includes(exerciseId)
+            );
+            
+            if (!exercise) {
+              return (
+                <Box p={4} bg="blue.500" color="white" borderRadius="md" boxShadow="xl">
+                  Moving Exercise...
+                </Box>
+              );
+            }
+
+            return (
+              <Box
+                p={4}
+                bg={dragOverlayBg}
+                borderRadius="md"
+                boxShadow="xl"
+                border="2px solid"
+                borderColor="blue.400"
+                maxW="400px"
+              >
+                <VStack spacing={2} align="start">
+                  <HStack spacing={2}>
+                    <GripVertical size={16} color="gray" />
+                    <Text fontSize="md" fontWeight="bold" color={dragOverlayTextColor}>
+                      {exercise.name}
+                    </Text>
+                    <Badge colorScheme="blue" variant="subtle" fontSize="xs">
+                      {exercise.category}
+                    </Badge>
+                  </HStack>
+                  
+                  <HStack spacing={4} justify="space-around">
+                    {exercise.sets && (
+                      <VStack spacing={0}>
+                        <Text fontSize="xs" color={dragOverlaySubtitleColor}>Sets</Text>
+                        <Text fontSize="sm" fontWeight="bold" color={dragOverlayTextColor}>
+                          {exercise.sets}
+                        </Text>
+                      </VStack>
+                    )}
+                    {exercise.reps && (
+                      <VStack spacing={0}>
+                        <Text fontSize="xs" color={dragOverlaySubtitleColor}>Reps</Text>
+                        <Text fontSize="sm" fontWeight="bold" color={dragOverlayTextColor}>
+                          {exercise.reps}
+                        </Text>
+                      </VStack>
+                    )}
+                    {exercise.weight && (
+                      <VStack spacing={0}>
+                        <Text fontSize="xs" color={dragOverlaySubtitleColor}>Weight</Text>
+                        <Text fontSize="sm" fontWeight="bold" color={dragOverlayTextColor}>
+                          {exercise.weight}kg
+                        </Text>
+                      </VStack>
+                    )}
+                  </HStack>
+                </VStack>
+              </Box>
+            );
+          }
+
+          // Handle weekly plan exercise overlay (existing logic)
           const [day, exerciseId] = activeId.split('-');
           
           // Find the target day
@@ -1135,8 +1429,8 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
             return (
               <Box p={4} bg="orange.500" color="white" borderRadius="md" boxShadow="xl">
                 Moving Exercise...
-                            </Box>
-                          );
+              </Box>
+            );
           }
           
           // Find the exercise by instance ID - using the more flexible matching that was working
@@ -1151,40 +1445,28 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
               </Box>
             );
           }
-          
+
           return (
             <Box
               p={4}
               bg={dragOverlayBg}
               borderRadius="md"
-              borderLeft="4px solid"
-              borderLeftColor="blue.400"
+              boxShadow="xl"
               border="2px solid"
               borderColor="blue.400"
-              boxShadow="2xl"
-              transform="rotate(2deg) scale(1.03)"
-              maxW="320px"
-              opacity={0.85}
+              maxW="400px"
             >
-              <VStack spacing={3} align="stretch">
-                {/* Exercise Header with Drag Handle */}
+              <VStack spacing={2} align="start">
                 <HStack spacing={2}>
-                  <Box
-                    p={2}
-                    borderRadius="md"
-                    bg={dragHandleBg}
-                  >
-                    <GripVertical size={18} color={dragOverlayTextColor} />
-                  </Box>
-                  <VStack align="start" spacing={1} flex={1}>
-                    <Text fontSize="md" fontWeight="bold" color={dragOverlayTextColor}>
-                      {exercise.name}
-                      </Text>
-                    <Badge colorScheme="blue" variant="subtle" fontSize="xs">{exercise.category}</Badge>
-                    </VStack>
+                  <GripVertical size={16} color="gray" />
+                  <Text fontSize="md" fontWeight="bold" color={dragOverlayTextColor}>
+                    {exercise.name}
+                  </Text>
+                  <Badge colorScheme="blue" variant="subtle" fontSize="xs">
+                    {exercise.category}
+                  </Badge>
                 </HStack>
                 
-                {/* Key Parameters */}
                 <HStack spacing={4} justify="space-around">
                   {exercise.sets && (
                     <VStack spacing={0}>
@@ -1200,18 +1482,18 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
                       <Text fontSize="sm" fontWeight="bold" color={dragOverlayTextColor}>
                         {exercise.reps}
                       </Text>
-          </VStack>
-        )}
+                    </VStack>
+                  )}
                   {exercise.weight && (
                     <VStack spacing={0}>
                       <Text fontSize="xs" color={dragOverlaySubtitleColor}>Weight</Text>
                       <Text fontSize="sm" fontWeight="bold" color={dragOverlayTextColor}>
                         {exercise.weight}kg
-              </Text>
-            </VStack>
-      )}
+                      </Text>
+                    </VStack>
+                  )}
                 </HStack>
-    </VStack>
+              </VStack>
             </Box>
           );
         })()}

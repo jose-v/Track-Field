@@ -17,7 +17,7 @@ export interface AthleteProfile {
   first_name: string;
   last_name: string;
   email: string;
-  birth_date: string | null;
+  date_of_birth: string | null;
   gender: string | null;
   height: number | null;
   weight: number | null;
@@ -66,7 +66,7 @@ export async function getAllAthletes(): Promise<AthleteFrontend[]> {
   }
   
   try {
-    // Use a simpler query that doesn't depend on birth_date
+    // Use a simpler query that doesn't depend on date_of_birth
     const { data, error } = await supabase
       .from('profiles')
       .select(`
@@ -96,7 +96,7 @@ export async function getAllAthletes(): Promise<AthleteFrontend[]> {
     return data.map((item: any) => ({
       id: item.id,
       name: `${item.first_name || ''} ${item.last_name || ''}`.trim() || 'Unknown Athlete',
-      age: item.athletes?.birth_date ? calculateAge(item.athletes.birth_date) : 0,
+      age: item.athletes?.date_of_birth ? calculateAge(item.athletes.date_of_birth) : 0,
       events: item.athletes?.events || [],
       avatar: item.avatar_url,
       email: item.email,
@@ -128,7 +128,7 @@ export async function searchAthletes(query: string): Promise<AthleteFrontend[]> 
   }
 
   try {
-    // Use a simpler query that doesn't depend on birth_date
+    // Use a simpler query that doesn't depend on date_of_birth
     const { data, error } = await supabase
       .from('profiles')
       .select(`
@@ -159,7 +159,7 @@ export async function searchAthletes(query: string): Promise<AthleteFrontend[]> 
     return data.map((item: any) => ({
       id: item.id,
       name: `${item.first_name || ''} ${item.last_name || ''}`.trim() || 'Unknown Athlete',
-      age: item.athletes?.birth_date ? calculateAge(item.athletes.birth_date) : 0,
+      age: item.athletes?.date_of_birth ? calculateAge(item.athletes.date_of_birth) : 0,
       events: item.athletes?.events || [],
       avatar: item.avatar_url,
       email: item.email,
@@ -194,7 +194,7 @@ export async function getAthleteProfile(athleteId: string): Promise<AthleteProfi
 
     if (data) {
       // Use centralized age calculation
-      const age = calculateAge(data.birth_date);
+      const age = calculateAge(data.date_of_birth);
       return { ...data, age };
     }
 

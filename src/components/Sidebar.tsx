@@ -20,7 +20,8 @@ import {
   DrawerContent,
   DrawerCloseButton,
   IconButton,
-  useBreakpointValue
+  useBreakpointValue,
+  Image
 } from '@chakra-ui/react';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { 
@@ -345,15 +346,15 @@ const Sidebar = ({ userType }: SidebarProps) => {
           {/* Custom close button in header */}
           <DrawerHeader borderBottomWidth="1px" borderColor={borderColor} pb={4}>
             <Flex align="center" justify="center">
-              <Text 
-                fontWeight="bold" 
-                fontSize="xl" 
-                color="blue.500"
+              <Image 
+                src="/images/olympr-logo.png" 
+                alt="Track & Field"
+                h="36px"
+                w="auto"
+                objectFit="contain"
                 onDoubleClick={clearPWACache} // Double-click logo to clear cache
                 cursor="pointer"
-              >
-                Track & Field
-              </Text>
+              />
             </Flex>
           </DrawerHeader>
 

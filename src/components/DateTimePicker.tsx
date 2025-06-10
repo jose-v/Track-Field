@@ -240,11 +240,17 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
   const weekDays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
   return (
-    <HStack spacing={6} align="flex-start">
+    <Flex 
+      direction={{ base: "column", md: "row" }} 
+      align="flex-start"
+      gap={{ base: 4, md: 8 }}
+      w="100%"
+      justify="space-between"
+    >
       {/* Date Selection Card */}
-      <Card variant="outline" shadow="none" bg={bgColor} borderColor={borderColor} h="520px">
+      <Card variant="outline" shadow="none" bg={bgColor} borderColor={borderColor} h="520px" w={{ base: "100%", md: "auto" }} flex="1">
         <CardBody p={6} display="flex" flexDirection="column">
-          <VStack spacing={4} align="stretch" minW="416px" flex="1">
+          <VStack spacing={4} align="stretch" minW={{ base: "100%", md: "400px" }} flex="1">
             {/* Month Navigation */}
             <HStack justify="center" align="center" spacing={4}>
               <IconButton
@@ -375,9 +381,9 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
       </Card>
 
       {/* Time Selection Card */}
-      <Card variant="outline" shadow="none" bg={bgColor} borderColor={borderColor} h="520px">
+      <Card variant="outline" shadow="none" bg={bgColor} borderColor={borderColor} h="520px" w={{ base: "100%", md: "auto" }} flex="1">
         <CardBody p={6} display="flex" flexDirection="column">
-          <VStack spacing={4} align="stretch" minW="364px" flex="1">
+          <VStack spacing={4} align="stretch" minW={{ base: "100%", md: "360px" }} flex="1">
             {/* AM/PM Toggle */}
             <HStack justify="center" spacing={4}>
               <IconButton
@@ -468,6 +474,6 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
           </Box>
         </CardBody>
       </Card>
-    </HStack>
+    </Flex>
   );
 }; 

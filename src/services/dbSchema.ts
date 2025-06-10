@@ -24,7 +24,7 @@
  * -- Athletes Table (Athlete-specific Data)
  * create table public.athletes (
  *   id uuid references public.profiles(id) on delete cascade primary key,
- *   birth_date date,
+ *   date_of_birth date,
  *   gender text check (gender in ('male', 'female', 'other')),
  *   events text[],
  *   team_id uuid references public.teams(id)

@@ -17,6 +17,7 @@ import {
   Badge,
   Tooltip,
   Spinner,
+  Image,
 } from '@chakra-ui/react'
 import { HamburgerIcon, CloseIcon } from '@chakra-ui/icons'
 import { Link as RouterLink, useLocation } from 'react-router-dom'
@@ -149,9 +150,13 @@ const Navigation = () => {
         <Flex h={16} alignItems="center" justifyContent="space-between">
           {/* Logo */}
           <RouterLink to="/">
-            <Text fontWeight="bold" fontSize="xl" color={isPublicPage ? "gray.800" : "blue.500"}>
-              Track & Field
-            </Text>
+            <Image 
+              src="/images/olympr-logo.png" 
+              alt="Track & Field"
+              h="40px"
+              w="auto"
+              objectFit="contain"
+            />
           </RouterLink>
 
           {/* Desktop Navigation */}

@@ -498,6 +498,14 @@ const WorkoutCreatorWireframe: React.FC = () => {
     }));
   };
 
+  // Handle single day exercise updates for drag and drop
+  const handleUpdateSingleDayExercises = (newExercises: SelectedExercise[]) => {
+    setSelectedExercises(prev => ({
+      ...prev,
+      [currentDay]: newExercises
+    }));
+  };
+
   // Handle rest day toggle
   const handleToggleRestDay = (day: string, isRest: boolean) => {
     setRestDays(prev => ({
@@ -1497,6 +1505,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
               startDate={date}
               endDate={duration}
               onUpdateWeeklyPlan={handleUpdateWeeklyPlan}
+              onUpdateSingleDayExercises={handleUpdateSingleDayExercises}
               isTemplate={isTemplate}
             />
           </Suspense>

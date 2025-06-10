@@ -56,7 +56,7 @@ SELECT
   p.last_name,
   p.email,
   p.avatar_url, 
-  a.birth_date,
+  a.date_of_birth,
   a.gender,
   a.events
 FROM profiles p

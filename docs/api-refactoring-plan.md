@@ -344,7 +344,7 @@ export class AthleteQueries {
       .select(`
         athlete_id,
         athletes!inner (
-          id, birth_date, gender, events, team_id
+          id, date_of_birth, gender, events, team_id
         ),
         profiles!inner (
           id, first_name, last_name, email, phone, avatar_url

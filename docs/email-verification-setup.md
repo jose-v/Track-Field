@@ -36,6 +36,27 @@ For production, you should configure your own SMTP settings:
 3. Configure your email provider (e.g., SendGrid, Mailgun, etc.)
 4. This ensures better deliverability and branding for verification emails
 
+## Magic Link Security
+
+The application now includes **enhanced magic link security** to prevent abuse:
+
+### 🔒 Email Validation for Magic Links
+
+- **Email Existence Check**: Before sending a magic link, the system verifies that the email exists in the database
+- **Security Benefits**: 
+  - Prevents magic links from being sent to non-existent accounts
+  - Reduces email spam and potential abuse
+  - Protects against email enumeration attacks
+- **User Experience**: Users receive a generic message that doesn't reveal whether an email exists or not
+- **Implementation**: The `signInWithMagicLink()` function in `authService.ts` validates emails using `checkEmailExists()`
+
+### Error Handling
+
+When a magic link is requested for a non-existent email:
+- **Message**: "If an account with this email exists, you will receive a magic link shortly."
+- **User Guidance**: The UI suggests signing up if they don't have an account
+- **Logging**: Server-side logging tracks magic link requests for security monitoring
+
 ## Application Features Implemented
 
 The application now includes:
@@ -47,6 +68,11 @@ The application now includes:
 ✅ **Email Verification Enforcement:**
 - `PrivateRoute` component checks `user.email_confirmed_at`
 - Unverified users are redirected to `/verify-email` page
+
+✅ **Magic Link Validation:**
+- Validates email exists before sending magic link
+- Prevents abuse and protects user privacy
+- Provides appropriate error handling and user guidance
 
 ✅ **Dedicated Verification Page (`/verify-email`):**
 - Clear instructions for users
@@ -63,6 +89,13 @@ The application now includes:
 - Includes user's email address in signup success message
 - Longer display duration (10 seconds)
 - Clear call-to-action
+
+## Security Best Practices
+
+1. **Email Enumeration Protection**: Error messages don't reveal whether an email exists
+2. **Rate Limiting**: Consider implementing rate limiting for magic link requests (Supabase handles basic rate limiting)
+3. **Monitoring**: Log magic link requests for security analysis
+4. **User Education**: Provide clear guidance on when to use magic links vs. password authentication
 
 ## Testing
 

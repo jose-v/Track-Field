@@ -121,13 +121,24 @@ export function Login() {
         isClosable: true,
       })
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to send magic link. Please try again.',
-        status: 'error',
-        duration: 7000,
-        isClosable: true,
-      })
+      // Check if this is the email validation error
+      if (error.message && error.message.includes('If an account with this email exists')) {
+        toast({
+          title: 'Email Check',
+          description: error.message + ' If you don\'t have an account, please sign up first.',
+          status: 'info',
+          duration: 10000,
+          isClosable: true,
+        })
+      } else {
+        toast({
+          title: 'Error',
+          description: error.message || 'Failed to send magic link. Please try again.',
+          status: 'error',
+          duration: 7000,
+          isClosable: true,
+        })
+      }
     } finally {
       setMagicLinkLoading(false)
     }
