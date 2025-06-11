@@ -418,7 +418,11 @@ const Navigation = () => {
                   transition: 'transform 0.3s ease-in-out',
                 }}
               >
-                {isOpen ? <CloseIcon /> : <HamburgerIcon />}
+                {isOpen ? (
+                  <CloseIcon boxSize="20px" />
+                ) : (
+                  <HamburgerIcon boxSize="20px" />
+                )}
               </Box>
             }
             display={{ base: 'flex', md: 'none' }}
