@@ -426,6 +426,9 @@ const Navigation = () => {
             py={4}
             spacing={4}
             alignItems="flex-start"
+            bg={useColorModeValue('white', 'gray.900')}
+            borderTop="1px"
+            borderColor={useColorModeValue('gray.100', 'gray.700')}
           >
             {navItems.map((navItem) => (
               <Button 
@@ -437,6 +440,11 @@ const Navigation = () => {
                 onClick={onToggle}
                 w="100%"
                 justifyContent="flex-start"
+                color={useColorModeValue('gray.700', 'gray.200')}
+                _hover={{ 
+                  bg: useColorModeValue('gray.100', 'gray.700'),
+                  color: useColorModeValue('blue.500', 'blue.300')
+                }}
               >
                 {navItem.label}
               </Button>
@@ -454,6 +462,11 @@ const Navigation = () => {
                     w="100%"
                     justifyContent="flex-start"
                     leftIcon={<FaTachometerAlt />}
+                    color={useColorModeValue('gray.700', 'gray.200')}
+                    _hover={{ 
+                      bg: useColorModeValue('gray.100', 'gray.700'),
+                      color: useColorModeValue('blue.500', 'blue.300')
+                    }}
                   >
                     Dashboard
                   </Button>
@@ -465,6 +478,11 @@ const Navigation = () => {
                     to={displayProfile?.role === 'coach' ? '/coach/profile' : displayProfile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
                     w="100%"
                     justifyContent="flex-start"
+                    color={useColorModeValue('gray.700', 'gray.200')}
+                    _hover={{ 
+                      bg: useColorModeValue('gray.100', 'gray.700'),
+                      color: useColorModeValue('blue.500', 'blue.300')
+                    }}
                   >
                     Profile
                   </Button>
@@ -475,11 +493,15 @@ const Navigation = () => {
                     w="100%"
                     justifyContent="flex-start"
                     leftIcon={<FaBell />}
+                    color={useColorModeValue('gray.700', 'gray.200')}
+                    _hover={{ 
+                      bg: useColorModeValue('gray.100', 'gray.700'),
+                      color: useColorModeValue('blue.500', 'blue.300')
+                    }}
                   >
                     Notifications
                   </Button>
                   <Button 
-                    colorScheme="red"
                     variant="ghost"
                     size="sm"
                     onClick={() => {
@@ -488,6 +510,11 @@ const Navigation = () => {
                     }}
                     w="100%"
                     justifyContent="flex-start"
+                    color={useColorModeValue('red.600', 'red.400')}
+                    _hover={{ 
+                      bg: useColorModeValue('red.50', 'red.900'),
+                      color: useColorModeValue('red.700', 'red.300')
+                    }}
                   >
                     Sign Out
                   </Button>
@@ -502,10 +529,10 @@ const Navigation = () => {
                     to="/login"
                     w="100%"
                     justifyContent="flex-start"
-                    bg="purple.800"
+                    bg={useColorModeValue("purple.800", "purple.600")}
                     color="white"
                     _hover={{
-                      bg: "purple.900"
+                      bg: useColorModeValue("purple.900", "purple.700")
                     }}
                   >
                     Sign In
@@ -517,6 +544,11 @@ const Navigation = () => {
                     as={RouterLink} 
                     to="/signup"
                     w="100%"
+                    bg={useColorModeValue("blue.500", "blue.600")}
+                    color="white"
+                    _hover={{
+                      bg: useColorModeValue("blue.600", "blue.700")
+                    }}
                   >
                     Join Now
                   </Button>
@@ -533,6 +565,11 @@ const Navigation = () => {
                   w="100%"
                   justifyContent="flex-start"
                   leftIcon={<FaHome />}
+                  color={useColorModeValue('gray.700', 'gray.200')}
+                  _hover={{ 
+                    bg: useColorModeValue('gray.100', 'gray.700'),
+                    color: useColorModeValue('blue.500', 'blue.300')
+                  }}
                 >
                   Home
                 </Button>
@@ -545,6 +582,11 @@ const Navigation = () => {
                   w="100%"
                   justifyContent="flex-start"
                   leftIcon={<FaTachometerAlt />}
+                  color={useColorModeValue('gray.700', 'gray.200')}
+                  _hover={{ 
+                    bg: useColorModeValue('gray.100', 'gray.700'),
+                    color: useColorModeValue('blue.500', 'blue.300')
+                  }}
                 >
                   Dashboard
                 </Button>
@@ -556,6 +598,11 @@ const Navigation = () => {
                   to={displayProfile?.role === 'coach' ? '/coach/profile' : displayProfile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
                   w="100%"
                   justifyContent="flex-start"
+                  color={useColorModeValue('gray.700', 'gray.200')}
+                  _hover={{ 
+                    bg: useColorModeValue('gray.100', 'gray.700'),
+                    color: useColorModeValue('blue.500', 'blue.300')
+                  }}
                 >
                   Profile
                 </Button>
@@ -566,11 +613,15 @@ const Navigation = () => {
                   w="100%"
                   justifyContent="flex-start"
                   leftIcon={<FaBell />}
+                  color={useColorModeValue('gray.700', 'gray.200')}
+                  _hover={{ 
+                    bg: useColorModeValue('gray.100', 'gray.700'),
+                    color: useColorModeValue('blue.500', 'blue.300')
+                  }}
                 >
                   Notifications
                 </Button>
                 <Button 
-                  colorScheme="red"
                   variant="ghost"
                   size="sm"
                   onClick={() => {
@@ -579,6 +630,11 @@ const Navigation = () => {
                   }}
                   w="100%"
                   justifyContent="flex-start"
+                  color={useColorModeValue('red.600', 'red.400')}
+                  _hover={{ 
+                    bg: useColorModeValue('red.50', 'red.900'),
+                    color: useColorModeValue('red.700', 'red.300')
+                  }}
                 >
                   Sign Out
                 </Button>
