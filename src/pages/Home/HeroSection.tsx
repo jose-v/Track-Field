@@ -483,7 +483,7 @@ const HeroSection = () => {
   };
 
   return (
-    <Box w="100vw" maxW="100vw" overflowX="hidden" position="relative">
+    <Box w="100vw" maxW="100vw" overflowX="hidden" position="relative" mt={{ base: '-45px', md: 0 }}>
       {/* Hero Section - Full viewport, no margin or padding, behind navbar */}
       <Box 
         position="relative"
@@ -529,7 +529,7 @@ const HeroSection = () => {
             spacing={{ base: 6, md: 8 }}
             maxW={{ base: "100%", md: "80%" }}
             align="center"
-            mt={{ base: '20px', md: 0 }}
+            mt={{ base: '60px', md: 0 }}
           >
             <Badge 
               colorScheme="blue" 
