@@ -60,7 +60,7 @@ const PublicLayout = () => {
           opacity={showOverlay ? 0 : 1}
           transform={showOverlay ? 'translateY(10px)' : 'translateY(0)'}
           transition="all 0.3s ease-out"
-          mt={{ base: '20px', md: 0 }}
+          mt={{ base: '45px', md: 0 }}
         >
           <PageContainer py={0} fullWidth={fullWidth}>
             <Outlet />
