@@ -483,8 +483,8 @@ const Sidebar = ({ userType }: SidebarProps) => {
                   {navItems.map((item) => {
                     const isHome = item.to === '/';
                     const isActive = isHome
-                      ? location.pathname === '/'
-                      : location.pathname === item.to || (item.to !== '/loop' && location.pathname.startsWith(item.to));
+                      ? location.pathname === '/' // Home is only active when exactly on '/'
+                      : location.pathname === item.to || (item.to !== '/loop' && item.to !== '/' && location.pathname.startsWith(item.to));
                     return (
                       <MobileNavItem
                         key={item.to}
@@ -695,8 +695,8 @@ const Sidebar = ({ userType }: SidebarProps) => {
           {navItems.map((item) => {
             const isHome = item.to === '/';
             const isActive = isHome
-              ? location.pathname === '/'
-              : location.pathname === item.to || (item.to !== '/loop' && location.pathname.startsWith(item.to));
+              ? location.pathname === '/' // Home is only active when exactly on '/'
+              : location.pathname === item.to || (item.to !== '/loop' && item.to !== '/' && location.pathname.startsWith(item.to));
             return (
               <NavItem
                 key={item.to}
