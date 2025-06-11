@@ -445,29 +445,42 @@ export async function removeCoachFromTeam(
  */
 export async function getTeamCoaches(team_id: string): Promise<any[]> {
   try {
-    const { data, error } = await supabase
+    // First get team_coaches records
+    const { data: teamCoaches, error: teamCoachesError } = await supabase
       .from('team_coaches')
-      .select(`
-        id,
-        role,
-        created_at,
-        coach_id,
-        profiles!inner (
-          id,
-          first_name,
-          last_name,
-          email,
-          avatar_url
-        )
-      `)
+      .select('id, role, created_at, coach_id')
       .eq('team_id', team_id)
       .eq('is_active', true);
 
-    if (error) {
-      throw new Error(`Failed to fetch team coaches: ${error.message}`);
+    if (teamCoachesError) {
+      throw new Error(`Failed to fetch team coaches: ${teamCoachesError.message}`);
     }
 
-    return data || [];
+    if (!teamCoaches || teamCoaches.length === 0) {
+      return [];
+    }
+
+    // Then get profile data for each coach
+    const coachIds = teamCoaches.map(tc => tc.coach_id);
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, email, avatar_url')
+      .in('id', coachIds);
+
+    if (profilesError) {
+      throw new Error(`Failed to fetch coach profiles: ${profilesError.message}`);
+    }
+
+    // Combine the data
+    const result = teamCoaches.map(teamCoach => {
+      const profile = profiles?.find(p => p.id === teamCoach.coach_id);
+      return {
+        ...teamCoach,
+        profiles: profile
+      };
+    }).filter(coach => coach.profiles); // Only include coaches with valid profiles
+
+    return result;
   } catch (error) {
     console.error('Error fetching team coaches:', error);
     throw error;
