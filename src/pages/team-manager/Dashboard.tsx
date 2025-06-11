@@ -96,57 +96,22 @@ export function TeamManagerDashboard() {
 
   return (
     <Box py={8}>
-      {/* Header Section */}
-      <Flex justify="space-between" align="start" mb={8}>
-        <Box flex={1}>
-          <Heading mb={2}>Team Manager Dashboard</Heading>
-          <Text color={subtitleColor} mb={4}>
+      {/* Mobile Layout */}
+      <Box display={{ base: "block", md: "none" }}>
+        {/* Mobile Welcome Message - positioned to the left */}
+        <Box px="10px" mb={4} pt={4}>
+          <Text 
+            fontSize="lg" 
+            fontWeight="semibold" 
+            color={subtitleColor}
+            textAlign="left"
+          >
             {getWelcomeMessage()}
           </Text>
-          
-          {/* Quick Actions integrated into header */}
-          <HStack spacing={3} flexWrap="wrap">
-            <Button 
-              variant="solid" 
-              colorScheme="orange"
-              size="sm"
-              leftIcon={<FaPlus />}
-              onClick={onTeamSetupOpen}
-            >
-              Create Team
-            </Button>
-            <Button 
-              as={RouterLink} 
-              to="/team-manager/coaches" 
-              variant="solid" 
-              colorScheme="orange"
-              size="sm"
-            >
-              Manage Coaches
-            </Button>
-            <Button 
-              as={RouterLink} 
-              to="/team-manager/athletes" 
-              variant="solid" 
-              colorScheme="orange"
-              size="sm"
-            >
-              View Athletes
-            </Button>
-            <Button 
-              as={RouterLink} 
-              to="/team-manager/stats" 
-              variant="solid" 
-              colorScheme="teal"
-              size="sm"
-            >
-              View Analytics
-            </Button>
-          </HStack>
         </Box>
         
-        {/* Weather Widget */}
-        <Box width="390px" minW="390px">
+        {/* Weather Card - Full width with 10px padding */}
+        <Box px="10px" mb={4}>
           <WeatherCard 
             city={profile?.city || "Greensboro"}
             state={profile?.state || "NC"}
@@ -158,7 +123,110 @@ export function TeamManagerDashboard() {
             isLoading={profileLoading}
           />
         </Box>
-      </Flex>
+
+        {/* Quick Actions - 3 buttons in one line */}
+        <Box px="10px" mb={8}>
+          <HStack spacing={3} justify="space-between">
+            <Button 
+              variant="solid" 
+              colorScheme="orange"
+              size="sm"
+              leftIcon={<FaPlus />}
+              onClick={onTeamSetupOpen}
+              flex="1"
+            >
+              Create Team
+            </Button>
+            <Button 
+              as={RouterLink} 
+              to="/team-manager/coaches" 
+              variant="solid" 
+              colorScheme="orange"
+              size="sm"
+              flex="1"
+            >
+              Manage Coaches
+            </Button>
+            <Button 
+              as={RouterLink} 
+              to="/team-manager/athletes" 
+              variant="solid" 
+              colorScheme="orange"
+              size="sm"
+              flex="1"
+            >
+              View Athletes
+            </Button>
+          </HStack>
+        </Box>
+      </Box>
+
+      {/* Desktop Layout */}
+      <Box display={{ base: "none", md: "block" }}>
+        {/* Header Section */}
+        <Flex justify="space-between" align="start" mb={8}>
+          <Box flex={1}>
+            <Heading mb={2}>Team Manager Dashboard</Heading>
+            <Text color={subtitleColor} mb={4}>
+              {getWelcomeMessage()}
+            </Text>
+            
+            {/* Quick Actions integrated into header */}
+            <HStack spacing={3} flexWrap="wrap">
+              <Button 
+                variant="solid" 
+                colorScheme="orange"
+                size="sm"
+                leftIcon={<FaPlus />}
+                onClick={onTeamSetupOpen}
+              >
+                Create Team
+              </Button>
+              <Button 
+                as={RouterLink} 
+                to="/team-manager/coaches" 
+                variant="solid" 
+                colorScheme="orange"
+                size="sm"
+              >
+                Manage Coaches
+              </Button>
+              <Button 
+                as={RouterLink} 
+                to="/team-manager/athletes" 
+                variant="solid" 
+                colorScheme="orange"
+                size="sm"
+              >
+                View Athletes
+              </Button>
+              <Button 
+                as={RouterLink} 
+                to="/team-manager/stats" 
+                variant="solid" 
+                colorScheme="teal"
+                size="sm"
+              >
+                View Analytics
+              </Button>
+            </HStack>
+          </Box>
+          
+          {/* Weather Widget */}
+          <Box width="390px" minW="390px">
+            <WeatherCard 
+              city={profile?.city || "Greensboro"}
+              state={profile?.state || "NC"}
+              weather={{
+                temp: "71", 
+                condition: "Clouds",
+                description: "scattered clouds"
+            }}
+              isLoading={profileLoading}
+            />
+          </Box>
+        </Flex>
+      </Box>
 
       {/* Priority Section 1: Alerts & Notifications (High Priority) */}
       <Box mb={8}>

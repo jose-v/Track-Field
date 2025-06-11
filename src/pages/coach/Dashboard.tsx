@@ -393,56 +393,22 @@ export function CoachDashboard() {
 
   return (
     <Box py={8}>
-      {/* Header Section */}
-      <Flex justify="space-between" align="start" mb={8}>
-        <Box flex={1}>
-          <Heading mb={2}>Coach Dashboard</Heading>
-          <Text color={subtitleColor} mb={4}>
+      {/* Mobile Layout */}
+      <Box display={{ base: "block", md: "none" }}>
+        {/* Mobile Welcome Message - positioned to the left */}
+        <Box px="10px" mb={4} pt={4}>
+          <Text 
+            fontSize="lg" 
+            fontWeight="semibold" 
+            color={subtitleColor}
+            textAlign="left"
+          >
             {getWelcomeMessage()}
           </Text>
-          
-          {/* Quick Actions integrated into header */}
-          <HStack spacing={3} flexWrap="wrap">
-            <Button 
-              as={RouterLink} 
-              to="/coach/workout-creator" 
-              variant="solid" 
-              colorScheme="blue"
-              size="sm"
-            >
-              Create Workout
-            </Button>
-            <Button 
-              as={RouterLink} 
-              to="/coach/athletes" 
-              variant="solid" 
-              colorScheme="blue"
-              size="sm"
-            >
-              Manage Athletes
-            </Button>
-            <Button 
-              variant="solid" 
-              colorScheme="blue"
-              size="sm"
-              onClick={onScheduleMeetOpen}
-            >
-              Schedule Meet
-            </Button>
-            <Button 
-              as={RouterLink} 
-              to="/coach/stats" 
-              variant="solid" 
-              colorScheme="teal"
-              size="sm"
-            >
-              View Analytics
-            </Button>
-          </HStack>
         </Box>
         
-        {/* Weather Widget */}
-        <Box width="390px" minW="390px">
+        {/* Weather Card - Full width with 10px padding */}
+        <Box px="10px" mb={4}>
           <WeatherCard 
             city={profile?.city || "Greensboro"}
             state={profile?.state || "NC"}
@@ -454,7 +420,108 @@ export function CoachDashboard() {
             isLoading={profileLoading}
           />
         </Box>
-      </Flex>
+
+        {/* Quick Actions - 3 buttons in one line */}
+        <Box px="10px" mb={8}>
+          <HStack spacing={3} justify="space-between">
+            <Button 
+              as={RouterLink} 
+              to="/coach/workout-creator" 
+              variant="solid" 
+              colorScheme="blue"
+              size="sm"
+              flex="1"
+            >
+              Create Workout
+            </Button>
+            <Button 
+              as={RouterLink} 
+              to="/coach/athletes" 
+              variant="solid" 
+              colorScheme="blue"
+              size="sm"
+              flex="1"
+            >
+              Manage Athletes
+            </Button>
+            <Button 
+              variant="solid" 
+              colorScheme="blue"
+              size="sm"
+              onClick={onScheduleMeetOpen}
+              flex="1"
+            >
+              Schedule Meet
+            </Button>
+          </HStack>
+        </Box>
+      </Box>
+
+      {/* Desktop Layout */}
+      <Box display={{ base: "none", md: "block" }}>
+        {/* Header Section */}
+        <Flex justify="space-between" align="start" mb={8}>
+          <Box flex={1}>
+            <Heading mb={2}>Coach Dashboard</Heading>
+            <Text color={subtitleColor} mb={4}>
+              {getWelcomeMessage()}
+            </Text>
+            
+            {/* Quick Actions integrated into header */}
+            <HStack spacing={3} flexWrap="wrap">
+              <Button 
+                as={RouterLink} 
+                to="/coach/workout-creator" 
+                variant="solid" 
+                colorScheme="blue"
+                size="sm"
+              >
+                Create Workout
+              </Button>
+              <Button 
+                as={RouterLink} 
+                to="/coach/athletes" 
+                variant="solid" 
+                colorScheme="blue"
+                size="sm"
+              >
+                Manage Athletes
+              </Button>
+              <Button 
+                variant="solid" 
+                colorScheme="blue"
+                size="sm"
+                onClick={onScheduleMeetOpen}
+              >
+                Schedule Meet
+              </Button>
+              <Button 
+                as={RouterLink} 
+                to="/coach/stats" 
+                variant="solid" 
+                colorScheme="teal"
+                size="sm"
+              >
+                View Analytics
+              </Button>
+            </HStack>
+          </Box>
+          
+          {/* Weather Widget */}
+          <Box width="390px" minW="390px">
+            <WeatherCard 
+              city={profile?.city || "Greensboro"}
+              state={profile?.state || "NC"}
+              weather={{
+                temp: "71", 
+                condition: "Clouds",
+                description: "scattered clouds"
+              }}
+              isLoading={profileLoading}
+            />
+          </Box>
+        </Flex>
+      </Box>
 
       {/* Priority Section 1: Alerts & Notifications (High Priority) */}
       <Box mb={8}>

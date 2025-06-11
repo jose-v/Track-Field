@@ -35,6 +35,7 @@ interface SimplifiedNavProps {
   shareDescription: string;
   isPublicPage: boolean;
   onOpen: () => void;
+  welcomeMessage?: string;
 }
 
 const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
@@ -45,7 +46,8 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
   shareTitle,
   shareDescription,
   isPublicPage,
-  onOpen
+  onOpen,
+  welcomeMessage
 }) => {
   const location = useLocation();
   const { user, signOut } = useAuth();

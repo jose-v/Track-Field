@@ -616,41 +616,63 @@ export function Dashboard() {
         overflowX="hidden"
         mx="auto"
       >
-        {/* Header with personal greeting */}
-        <Box w="100%" mb={8} pt={{ base: 4, md: 0 }}>
-          {/* Mobile Header using reusable component */}
-          <MobileHeader
-            title={getWelcomeMessage()}
-            subtitle={profile?.role === 'athlete' ? 'Athlete Dashboard' : 'Dashboard'}
-            isLoading={profileLoading}
-          />
+        {/* Mobile Layout */}
+        <Box display={{ base: "block", lg: "none" }} w="100%" mb={8} pt={4}>
+          {/* Mobile Welcome Message - positioned to the left */}
+          <Box px="10px" mb={4}>
+            <Text 
+              fontSize="lg" 
+              fontWeight="semibold" 
+              color="gray.600"
+              textAlign="left"
+            >
+              {getWelcomeMessage()}
+            </Text>
+          </Box>
+          
+          {/* Weather Card - Full width with 10px padding */}
+          <Box px="10px" mb={4}>
+            <WeatherCard 
+              city={profile?.city || "Greensboro"}
+              state={profile?.state ? getStateAbbr(profile.state) : "NC"}
+              weather={{
+                temp: "71",
+                condition: "Clouds",
+                description: "scattered clouds"
+              }}
+              isLoading={profileLoading}
+            />
+          </Box>
+        </Box>
 
+        {/* Desktop Layout */}
+        <Box display={{ base: "none", lg: "block" }} w="100%" mb={8}>
           {/* Desktop Header Row */}
           <Flex 
-            direction={{ base: "column", lg: "row" }} 
-            gap={{ base: 4, lg: 6 }}
-            align={{ base: "center", lg: "flex-start" }}
-            justify={{ base: "center", lg: "space-between" }}
+            direction="row" 
+            gap={6}
+            align="flex-start"
+            justify="space-between"
             w="100%"
           >
             {/* Main Welcome Content */}
             <VStack 
-              align={{ base: "center", lg: "start" }} 
+              align="start" 
               spacing={2} 
               flex="1"
               minW={0}
             >
               <Heading 
-                fontSize={{ base: "3xl", lg: "4xl" }} 
+                fontSize="4xl" 
                 mb={2}
-                textAlign={{ base: "center", lg: "left" }}
+                textAlign="left"
               >
                 {getWelcomeMessage()}
               </Heading>
               <Text 
                 fontSize="xl" 
                 color="gray.500" 
-                textAlign={{ base: "center", lg: "left" }}
+                textAlign="left"
               >
                 {profile?.first_name || user?.email || 'Athlete'}, ready to crush your goals today?
               </Text>
@@ -676,24 +698,6 @@ export function Dashboard() {
               />
             </Box>
           </Flex>
-
-          {/* Mobile Weather Card */}
-          <Box 
-            display={{ base: "block", lg: "none" }}
-            w="100%"
-            mt={{ base: "20px", lg: 2 }}
-          >
-            <WeatherCard 
-              city={profile?.city || "Greensboro"}
-              state={profile?.state ? getStateAbbr(profile.state) : "NC"}
-              weather={{
-                temp: "71",
-                condition: "Clouds",
-                description: "scattered clouds"
-              }}
-              isLoading={profileLoading}
-            />
-          </Box>
         </Box>
 
         {/* Today's Workouts Card */}
