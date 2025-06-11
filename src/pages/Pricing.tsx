@@ -41,7 +41,7 @@ function Pricing() {
   return (
     <Box bg={bgColor} minH="100vh">
       {/* Hero Section */}
-      <Box py={{ base:100, md: 24 }} bg={cardBg}>
+      <Box py={{ base: 100, md: 24 }} bg={cardBg}>
         <Container maxW="container.lg">
           <VStack spacing={6} align="center" textAlign="center">
             <Heading
