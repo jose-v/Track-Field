@@ -75,7 +75,7 @@ const About = () => {
       {/* Story Section */}
       <Box py={20} bg="#ecc94b">
         <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={12} alignItems="center" maxW="container.lg" mx="auto">
-          <GridItem>
+          <GridItem px={{ base: '10px', lg: 0 }}>
             <VStack align="flex-start" spacing={6}>
               <Heading size="xl" color="gray.800" lineHeight="1.2">
                 Our Story
@@ -88,7 +88,7 @@ const About = () => {
               </Text>
             </VStack>
           </GridItem>
-          <GridItem>
+          <GridItem px={{ base: '10px', lg: 0 }}>
             <Box
               borderRadius="xl"
               overflow="hidden"
