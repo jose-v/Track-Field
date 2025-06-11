@@ -107,6 +107,18 @@ const MobileNavItem = ({ icon, label, to, isActive, onClick }: {
         bg: activeBg,
         color: activeColor,
       }}
+      _focus={{
+        boxShadow: 'none',
+        outline: 'none',
+        bg: hoverBg,
+        color: activeColor,
+      }}
+      _focusVisible={{
+        boxShadow: 'none',
+        outline: 'none',
+        bg: hoverBg,
+        color: activeColor,
+      }}
     >
       <Icon
         as={icon}
@@ -198,6 +210,19 @@ const Sidebar = ({ userType }: SidebarProps) => {
   
   // Mobile drawer state
   const { isOpen: isMobileDrawerOpen, onOpen: onMobileDrawerOpen, onClose: onMobileDrawerClose } = useDisclosure();
+
+  // Enhanced mobile drawer close function to clear focus
+  const handleMobileDrawerClose = () => {
+    onMobileDrawerClose();
+    // Clear any lingering focus by briefly focusing body and then removing focus
+    setTimeout(() => {
+      if (document.activeElement && document.activeElement !== document.body) {
+        (document.activeElement as HTMLElement).blur();
+      }
+      document.body.focus();
+      document.body.blur();
+    }, 100);
+  };
   
   const location = useLocation();
   const { user, signOut } = useAuth();
@@ -329,6 +354,18 @@ const Sidebar = ({ userType }: SidebarProps) => {
         _active={{
           bg: useColorModeValue('gray.200', 'gray.600'),
         }}
+        _focus={{
+          boxShadow: 'none',
+          outline: 'none',
+          bg: useColorModeValue('gray.100', 'gray.700'),
+          color: useColorModeValue('blue.600', 'blue.300'),
+        }}
+        _focusVisible={{
+          boxShadow: 'none',
+          outline: 'none',
+          bg: useColorModeValue('gray.100', 'gray.700'),
+          color: useColorModeValue('blue.600', 'blue.300'),
+        }}
       />
     );
   };
@@ -362,8 +399,12 @@ const Sidebar = ({ userType }: SidebarProps) => {
       <Drawer
         isOpen={isMobileDrawerOpen}
         placement="left"
-        onClose={onMobileDrawerClose}
+        onClose={handleMobileDrawerClose}
         size="full" // This makes it 100% width
+        trapFocus={true}
+        returnFocusOnClose={false}
+        blockScrollOnMount={true}
+        preserveScrollBarGap={false}
       >
         <DrawerOverlay bg="blackAlpha.600" />
         <DrawerContent
@@ -436,7 +477,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
                         label={item.label}
                         to={item.to}
                         isActive={isActive}
-                        onClick={onMobileDrawerClose}
+                        onClick={handleMobileDrawerClose}
                       />
                     );
                   })}
@@ -462,7 +503,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
                       label="Notifications"
                       to={userType === 'athlete' ? '/athlete/notifications' : '/coach/notifications'}
                       isActive={location.pathname.includes('/notifications')}
-                      onClick={onMobileDrawerClose}
+                      onClick={handleMobileDrawerClose}
                     />
                     
                     <MobileNavItem
@@ -470,7 +511,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
                       label="Profile"
                       to={userType === 'athlete' ? '/athlete/profile' : '/coach/profile'}
                       isActive={location.pathname.includes('/profile')}
-                      onClick={onMobileDrawerClose}
+                      onClick={handleMobileDrawerClose}
                     />
                   </VStack>
                 </Box>
@@ -498,10 +539,22 @@ const Sidebar = ({ userType }: SidebarProps) => {
                       borderRadius="lg"
                       onClick={() => {
                         showFeedbackModal();
-                        onMobileDrawerClose();
+                        handleMobileDrawerClose();
                       }}
                       color={useColorModeValue('gray.700', 'gray.300')}
                       _hover={{
+                        bg: useColorModeValue('gray.100', 'gray.700'),
+                        color: useColorModeValue('blue.600', 'blue.200'),
+                      }}
+                      _focus={{
+                        boxShadow: 'none',
+                        outline: 'none',
+                        bg: useColorModeValue('gray.100', 'gray.700'),
+                        color: useColorModeValue('blue.600', 'blue.200'),
+                      }}
+                      _focusVisible={{
+                        boxShadow: 'none',
+                        outline: 'none',
                         bg: useColorModeValue('gray.100', 'gray.700'),
                         color: useColorModeValue('blue.600', 'blue.200'),
                       }}
@@ -517,10 +570,22 @@ const Sidebar = ({ userType }: SidebarProps) => {
                       borderRadius="lg"
                       onClick={() => {
                         // Share functionality
-                        onMobileDrawerClose();
+                        handleMobileDrawerClose();
                       }}
                       color={useColorModeValue('gray.700', 'gray.300')}
                       _hover={{
+                        bg: useColorModeValue('gray.100', 'gray.700'),
+                        color: useColorModeValue('blue.600', 'blue.200'),
+                      }}
+                      _focus={{
+                        boxShadow: 'none',
+                        outline: 'none',
+                        bg: useColorModeValue('gray.100', 'gray.700'),
+                        color: useColorModeValue('blue.600', 'blue.200'),
+                      }}
+                      _focusVisible={{
+                        boxShadow: 'none',
+                        outline: 'none',
                         bg: useColorModeValue('gray.100', 'gray.700'),
                         color: useColorModeValue('blue.600', 'blue.200'),
                       }}
@@ -542,7 +607,15 @@ const Sidebar = ({ userType }: SidebarProps) => {
                     size="sm"
                     onClick={() => {
                       signOut();
-                      onMobileDrawerClose();
+                      handleMobileDrawerClose();
+                    }}
+                    _focus={{
+                      boxShadow: 'none',
+                      outline: 'none',
+                    }}
+                    _focusVisible={{
+                      boxShadow: 'none',
+                      outline: 'none',
                     }}
                   >
                     Sign Out
