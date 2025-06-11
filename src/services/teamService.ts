@@ -506,4 +506,38 @@ export async function getTeamAthletes(team_id: string): Promise<any[]> {
     console.error('Error fetching team athletes:', error);
     throw error;
   }
+}
+
+/**
+ * Get total member count for a team (coaches + athletes)
+ */
+export async function getTeamMemberCount(team_id: string): Promise<number> {
+  try {
+    // Count coaches
+    const { count: coachCount, error: coachError } = await supabase
+      .from('team_coaches')
+      .select('*', { count: 'exact', head: true })
+      .eq('team_id', team_id)
+      .eq('is_active', true);
+
+    if (coachError) {
+      console.error('Error counting coaches:', coachError);
+    }
+
+    // Count athletes
+    const { count: athleteCount, error: athleteError } = await supabase
+      .from('athletes')
+      .select('*', { count: 'exact', head: true })
+      .eq('team_id', team_id);
+
+    if (athleteError) {
+      console.error('Error counting athletes:', athleteError);
+    }
+
+    const totalMembers = (coachCount || 0) + (athleteCount || 0);
+    return totalMembers;
+  } catch (error) {
+    console.error('Error getting team member count:', error);
+    return 0;
+  }
 } 

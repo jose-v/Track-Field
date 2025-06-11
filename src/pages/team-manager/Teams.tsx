@@ -22,7 +22,7 @@ import {
 import { useState, useEffect } from 'react';
 import { FiPlus, FiUsers, FiCalendar, FiCopy, FiSettings, FiEye, FiMail, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
-import { getTeamsByManager, Team } from '../../services/teamService';
+import { getTeamsByManager, Team, getTeamMemberCount } from '../../services/teamService';
 import { TeamSetupModal } from '../../components/TeamSetupModal';
 import { SendTeamInviteModal } from '../../components/SendTeamInviteModal';
 import { TeamCoachesSection } from '../../components/TeamCoachesSection';
@@ -32,6 +32,7 @@ export function Teams() {
   const { user } = useAuth();
   const [teams, setTeams] = useState<Team[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [memberCounts, setMemberCounts] = useState<{ [teamId: string]: number }>({});
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { 
@@ -67,6 +68,14 @@ export function Teams() {
       setIsLoading(true);
       const teamsData = await getTeamsByManager(user.id);
       setTeams(teamsData);
+
+      // Fetch member counts for each team
+      const counts: { [teamId: string]: number } = {};
+      for (const team of teamsData) {
+        const memberCount = await getTeamMemberCount(team.id);
+        counts[team.id] = memberCount;
+      }
+      setMemberCounts(counts);
     } catch (error) {
       console.error('Error fetching teams:', error);
       toast({
@@ -115,7 +124,7 @@ export function Teams() {
 
   const handleTeamCreated = () => {
     onClose();
-    fetchTeams(); // Refresh the teams list
+    fetchTeams(); // Refresh the teams list and member counts
   };
 
   const handleInviteClick = (team: Team) => {
@@ -126,7 +135,7 @@ export function Teams() {
   const handleInviteSuccess = () => {
     onInviteClose();
     setSelectedTeam(null);
-    // Optionally refresh teams to update pending invite counts
+    // Refresh teams to update member counts when new members join
     fetchTeams();
   };
 
@@ -257,7 +266,7 @@ export function Teams() {
                         <VStack spacing={0} align="start">
                           <Text fontSize="xs" color={labelColor}>Members</Text>
                           <Text fontSize="sm" fontWeight="medium" color={valueColor}>
-                            0 {/* TODO: Add member count */}
+                            {memberCounts[team.id] || 0}
                           </Text>
                         </VStack>
                       </HStack>
