@@ -419,7 +419,7 @@ const Navigation = () => {
                 }}
               >
                 {isOpen ? (
-                  <CloseIcon boxSize="20px" />
+                  <CloseIcon boxSize="15px" />
                 ) : (
                   <HamburgerIcon boxSize="20px" />
                 )}
