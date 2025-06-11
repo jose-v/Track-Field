@@ -20,7 +20,8 @@ import {
   Alert,
   AlertIcon,
   Icon,
-  Skeleton
+  Skeleton,
+  Flex
 } from '@chakra-ui/react';
 import { FiUsers, FiTrash2, FiUserMinus } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
@@ -162,13 +163,33 @@ export const TeamAthletesSection: React.FC<TeamAthletesSectionProps> = ({
 
   if (athletes.length === 0) {
     return (
-      <Box textAlign="center" py={4}>
-        <Box color={textColor} mb={2}>
-          <FiUsers size="24" />
-        </Box>
-        <Text fontSize="sm" color={textColor}>
-          No athletes on this team yet
-        </Text>
+      <Box 
+        textAlign="center" 
+        py={6} 
+        px={4}
+        bg={useColorModeValue('green.50', 'green.900')}
+        borderRadius="lg"
+        border="2px dashed"
+        borderColor={useColorModeValue('green.200', 'green.700')}
+      >
+        <VStack spacing={3}>
+          <Box 
+            color={useColorModeValue('green.400', 'green.300')} 
+            p={3}
+            borderRadius="full"
+            bg={useColorModeValue('green.100', 'green.800')}
+          >
+            <Icon as={FiUsers} boxSize={6} />
+          </Box>
+          <VStack spacing={1}>
+            <Text fontSize="sm" fontWeight="medium" color={useColorModeValue('green.700', 'green.200')}>
+              No athletes on this team yet
+            </Text>
+            <Text fontSize="xs" color={useColorModeValue('green.600', 'green.300')}>
+              Send invitations to add athletes to this team
+            </Text>
+          </VStack>
+        </VStack>
       </Box>
     );
   }
@@ -177,71 +198,73 @@ export const TeamAthletesSection: React.FC<TeamAthletesSectionProps> = ({
     <>
       <VStack spacing={3} align="stretch">
         {athletes.map((athlete) => (
-          <HStack
+          <Box
             key={athlete.id}
-            p={3}
+            p={4}
             bg={cardBg}
             borderColor={cardBorder}
             borderWidth="1px"
-            borderRadius="md"
-            justify="space-between"
-            align="center"
+            borderRadius="lg"
+            boxShadow="sm"
+            _hover={{ boxShadow: 'md', transform: 'translateY(-1px)' }}
+            transition="all 0.2s"
           >
-            <HStack spacing={3}>
-              <Avatar
-                size="sm"
-                name={`${athlete.profiles.first_name} ${athlete.profiles.last_name}`}
-                src={athlete.profiles.avatar_url}
-              />
-              <VStack spacing={0} align="start">
-                <Text fontSize="sm" fontWeight="medium">
-                  {athlete.profiles.first_name} {athlete.profiles.last_name}
-                </Text>
-                <HStack spacing={2}>
-                  <Text fontSize="xs" color={textColor}>
+            <Flex justify="space-between" align="start">
+              <HStack spacing={3} flex={1}>
+                <Avatar
+                  size="md"
+                  name={`${athlete.profiles.first_name} ${athlete.profiles.last_name}`}
+                  src={athlete.profiles.avatar_url}
+                />
+                <VStack spacing={1} align="start" flex={1}>
+                  <Text fontSize="sm" fontWeight="semibold" color={useColorModeValue('gray.800', 'white')}>
+                    {athlete.profiles.first_name} {athlete.profiles.last_name}
+                  </Text>
+                  <Text fontSize="xs" color={textColor} noOfLines={1}>
                     {athlete.profiles.email}
                   </Text>
-                  {getAge(athlete.date_of_birth) && (
-                    <>
-                      <Text fontSize="xs" color={textColor}>•</Text>
+                  <HStack spacing={2} flexWrap="wrap">
+                    {getAge(athlete.date_of_birth) && (
                       <Text fontSize="xs" color={textColor}>
                         Age {getAge(athlete.date_of_birth)}
                       </Text>
-                    </>
-                  )}
-                  <Text fontSize="xs" color={textColor}>
-                    • Joined {formatJoinDate(athlete.created_at)}
-                  </Text>
-                </HStack>
-                {athlete.events && athlete.events.length > 0 && (
-                  <HStack spacing={1} mt={1}>
-                    {athlete.events.slice(0, 3).map((event, index) => (
-                      <Badge key={index} size="sm" colorScheme="blue">
-                        {event}
-                      </Badge>
-                    ))}
-                    {athlete.events.length > 3 && (
-                      <Badge size="sm" variant="outline">
-                        +{athlete.events.length - 3} more
-                      </Badge>
                     )}
+                    <Text fontSize="xs" color={textColor}>
+                      Joined {formatJoinDate(athlete.created_at)}
+                    </Text>
                   </HStack>
-                )}
-              </VStack>
-            </HStack>
+                  {athlete.events && athlete.events.length > 0 && (
+                    <HStack spacing={1} mt={1} flexWrap="wrap">
+                      {athlete.events.slice(0, 3).map((event, index) => (
+                        <Badge key={index} size="sm" colorScheme="green" variant="subtle" borderRadius="full">
+                          {event}
+                        </Badge>
+                      ))}
+                      {athlete.events.length > 3 && (
+                        <Badge size="sm" variant="outline" borderRadius="full">
+                          +{athlete.events.length - 3} more
+                        </Badge>
+                      )}
+                    </HStack>
+                  )}
+                </VStack>
+              </HStack>
 
-            <Button
-              size="xs"
-              colorScheme="red"
-              variant="ghost"
-              leftIcon={<FiUserMinus />}
-              onClick={() => handleRemoveAthlete(athlete)}
-              isLoading={removingAthleteId === athlete.id}
-              loadingText="Removing..."
-            >
-              Remove
-            </Button>
-          </HStack>
+              <Button
+                size="sm"
+                leftIcon={<FiUserMinus />}
+                colorScheme="red"
+                variant="outline"
+                onClick={() => handleRemoveAthlete(athlete)}
+                isLoading={removingAthleteId === athlete.id}
+                loadingText="Removing"
+                ml={3}
+                flexShrink={0}
+              >
+                Remove
+              </Button>
+            </Flex>
+          </Box>
         ))}
       </VStack>
 

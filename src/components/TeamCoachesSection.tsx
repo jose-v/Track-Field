@@ -21,7 +21,8 @@ import {
   Alert,
   AlertIcon,
   Icon,
-  Skeleton
+  Skeleton,
+  Flex
 } from '@chakra-ui/react';
 import { FiUsers, FiTrash2, FiUserMinus } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
@@ -150,13 +151,33 @@ export const TeamCoachesSection: React.FC<TeamCoachesSectionProps> = ({
 
   if (coaches.length === 0) {
     return (
-      <Box textAlign="center" py={4}>
-        <Box color={textColor} mb={2}>
-          <FiUsers size="24" />
-        </Box>
-        <Text fontSize="sm" color={textColor}>
-          No coaches assigned to this team yet
-        </Text>
+      <Box 
+        textAlign="center" 
+        py={6} 
+        px={4}
+        bg={useColorModeValue('blue.50', 'blue.900')}
+        borderRadius="lg"
+        border="2px dashed"
+        borderColor={useColorModeValue('blue.200', 'blue.700')}
+      >
+        <VStack spacing={3}>
+          <Box 
+            color={useColorModeValue('blue.400', 'blue.300')} 
+            p={3}
+            borderRadius="full"
+            bg={useColorModeValue('blue.100', 'blue.800')}
+          >
+            <Icon as={FiUsers} boxSize={6} />
+          </Box>
+          <VStack spacing={1}>
+            <Text fontSize="sm" fontWeight="medium" color={useColorModeValue('blue.700', 'blue.200')}>
+              No coaches assigned yet
+            </Text>
+            <Text fontSize="xs" color={useColorModeValue('blue.600', 'blue.300')}>
+              Send invitations to add coaches to this team
+            </Text>
+          </VStack>
+        </VStack>
       </Box>
     );
   }
@@ -165,56 +186,67 @@ export const TeamCoachesSection: React.FC<TeamCoachesSectionProps> = ({
     <>
       <VStack spacing={3} align="stretch">
         {coaches.map((coach) => (
-          <HStack
+          <Box
             key={coach.id}
-            p={3}
+            p={4}
             bg={cardBg}
             borderColor={cardBorder}
             borderWidth="1px"
-            borderRadius="md"
-            justify="space-between"
-            align="center"
+            borderRadius="lg"
+            boxShadow="sm"
+            _hover={{ boxShadow: 'md', transform: 'translateY(-1px)' }}
+            transition="all 0.2s"
           >
-            <HStack spacing={3}>
-              <Avatar
-                size="sm"
-                name={`${coach.profiles.first_name} ${coach.profiles.last_name}`}
-                src={coach.profiles.avatar_url}
-              />
-              <VStack spacing={0} align="start">
-                <Text fontSize="sm" fontWeight="medium">
-                  {coach.profiles.first_name} {coach.profiles.last_name}
-                </Text>
-                <HStack spacing={2}>
-                  <Text fontSize="xs" color={textColor}>
+            <Flex justify="space-between" align="start">
+              <HStack spacing={3} flex={1}>
+                <Avatar
+                  size="md"
+                  name={`${coach.profiles.first_name} ${coach.profiles.last_name}`}
+                  src={coach.profiles.avatar_url}
+                />
+                <VStack spacing={1} align="start" flex={1}>
+                  <HStack spacing={2} align="center" wrap="wrap">
+                    <Text fontSize="sm" fontWeight="semibold" color={useColorModeValue('gray.800', 'white')}>
+                      {coach.profiles.first_name} {coach.profiles.last_name}
+                    </Text>
+                    {coach.role && coach.role !== 'coach' && (
+                      <Badge 
+                        colorScheme="blue" 
+                        variant="subtle" 
+                        size="sm"
+                        borderRadius="full"
+                        px={2}
+                        py={1}
+                        textTransform="capitalize"
+                      >
+                        {coach.role.replace('_', ' ')}
+                      </Badge>
+                    )}
+                  </HStack>
+                  <Text fontSize="xs" color={textColor} noOfLines={1}>
                     {coach.profiles.email}
                   </Text>
                   <Text fontSize="xs" color={textColor}>
-                    • Joined {formatJoinDate(coach.created_at)}
+                    Joined {formatJoinDate(coach.created_at)}
                   </Text>
-                </HStack>
-              </VStack>
-            </HStack>
+                </VStack>
+              </HStack>
 
-            <HStack spacing={2}>
-              {coach.role && coach.role !== 'coach' && (
-                <Badge size="sm" colorScheme="blue">
-                  {coach.role}
-                </Badge>
-              )}
               <Button
-                size="xs"
-                colorScheme="red"
-                variant="ghost"
+                size="sm"
                 leftIcon={<FiUserMinus />}
+                colorScheme="red"
+                variant="outline"
                 onClick={() => handleRemoveCoach(coach)}
                 isLoading={removingCoachId === coach.coach_id}
-                loadingText="Removing..."
+                loadingText="Removing"
+                ml={3}
+                flexShrink={0}
               >
                 Remove
               </Button>
-            </HStack>
-          </HStack>
+            </Flex>
+          </Box>
         ))}
       </VStack>
 
