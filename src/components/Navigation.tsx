@@ -415,7 +415,12 @@ const Navigation = () => {
             display={{ base: 'flex', md: 'none' }}
             variant="ghost"
             onClick={onToggle}
-            sx={navIconStyle}
+            fontSize="24px"
+            sx={{
+              ...navIconStyle,
+              color: '#4A5568', // Darker gray (was #898989)
+              fontSize: '24px', // 20% bigger than default (20px * 1.2 = 24px)
+            }}
           />
         </Flex>
 
