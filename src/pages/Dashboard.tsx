@@ -609,7 +609,7 @@ export function Dashboard() {
     >
       <Box 
         px={{ base: 4, md: 6 }} 
-        pt={0} 
+        py={0} 
         mt={0} 
         w="100%"
         maxW="100%"

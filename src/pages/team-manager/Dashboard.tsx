@@ -95,7 +95,7 @@ export function TeamManagerDashboard() {
   };
 
   return (
-    <Box py={8}>
+    <Box py={0}>
       {/* Mobile Layout */}
       <Box display={{ base: "block", md: "none" }}>
         {/* Mobile Welcome Message - positioned on same line as hamburger */}
