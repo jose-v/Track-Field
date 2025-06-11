@@ -529,7 +529,7 @@ const HeroSection = () => {
             spacing={{ base: 6, md: 8 }}
             maxW={{ base: "100%", md: "80%" }}
             align="center"
-            mt={{ base: '60px', md: 0 }}
+            mt={{ base: '90px', md: 0 }}
           >
             <Badge 
               colorScheme="blue" 
