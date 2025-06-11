@@ -208,12 +208,13 @@ function SignupContent() {
         align="center"
         justify="center"
         minHeight={{ 
-          base: "calc(100vh - 140px)", // Mobile: smaller header/footer
+          base: "calc(100vh - 100px)", // Mobile: smaller header/footer
           md: "calc(100vh - 160px)",   // Tablet: medium spacing
           lg: "calc(100vh - 356px)"    // Desktop: larger footer space
         }}
         py={{ base: 4, md: 6, lg: 8 }}
         px={4}
+        mt={{ base: 4, md: 6, lg: 8 }}
       >
         <Card 
           maxW="850px"
@@ -228,7 +229,7 @@ function SignupContent() {
           {/* Full-width Hero Header */}
           <Box 
             w="full"
-            h="150px" 
+            h="60px" 
             bg={headerBg}
             position="relative"
             display="flex"
