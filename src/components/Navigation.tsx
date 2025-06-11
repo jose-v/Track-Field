@@ -410,8 +410,17 @@ const Navigation = () => {
 
           {/* Mobile navigation toggle */}
           <IconButton
-            aria-label="Open Navigation"
-            icon={<HamburgerIcon />}
+            aria-label={isOpen ? "Close Navigation" : "Open Navigation"}
+            icon={
+              <Box
+                sx={{
+                  transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.3s ease-in-out',
+                }}
+              >
+                {isOpen ? <CloseIcon /> : <HamburgerIcon />}
+              </Box>
+            }
             display={{ base: 'flex', md: 'none' }}
             variant="ghost"
             onClick={onToggle}
@@ -420,6 +429,7 @@ const Navigation = () => {
               ...navIconStyle,
               color: '#4A5568', // Darker gray (was #898989)
               fontSize: '24px', // 20% bigger than default (20px * 1.2 = 24px)
+              transition: 'all 0.3s ease-in-out',
             }}
           />
         </Flex>
