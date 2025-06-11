@@ -79,15 +79,33 @@ const AlertsNotificationsCard: React.FC<AlertsNotificationsCardProps> = ({ onAle
       if (missedError) {
         console.warn('Error fetching missed workouts:', missedError);
       } else if (missedWorkouts && missedWorkouts.length > 0) {
-        // Get athlete names separately
+        // Get athlete names separately, but ONLY for athletes assigned to this coach
         const athleteIds = [...new Set(missedWorkouts.map(w => w.athlete_id))];
-        const { data: athletes, error: athleteError } = await supabase
-          .from('athletes')
-          .select(`
-            id,
-            profiles!inner(first_name, last_name)
-          `)
-          .in('id', athleteIds);
+        
+        // First get athletes that are assigned to this coach
+        const { data: coachAthleteRelations, error: relationError } = await supabase
+          .from('coach_athletes')
+          .select('athlete_id')
+          .eq('coach_id', user.id)
+          .eq('approval_status', 'approved')
+          .in('athlete_id', athleteIds);
+
+        if (relationError) {
+          console.warn('Error fetching coach relations:', relationError);
+        }
+
+        const assignedAthleteIds = coachAthleteRelations?.map(r => r.athlete_id) || [];
+        
+        // Only proceed if there are athletes assigned to this coach
+        const { data: athletes, error: athleteError } = assignedAthleteIds.length > 0 
+          ? await supabase
+              .from('athletes')
+              .select(`
+                id,
+                profiles!inner(first_name, last_name)
+              `)
+              .in('id', assignedAthleteIds)
+          : { data: [], error: null };
 
         if (!athleteError && athletes) {
           // Group by athlete and count missed workouts
