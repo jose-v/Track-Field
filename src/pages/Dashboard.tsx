@@ -618,10 +618,10 @@ export function Dashboard() {
       >
         {/* Mobile Layout */}
         <Box display={{ base: "block", lg: "none" }} w="100%" mb={8} pt={4}>
-          {/* Mobile Welcome Message - positioned at top left to align with hamburger */}
+          {/* Mobile Welcome Message - positioned on same line as hamburger */}
           <Box 
             position="absolute"
-            top="100px"
+            top="20px"
             left="60px"
             right="20px"
             zIndex="999"

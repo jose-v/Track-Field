@@ -98,10 +98,10 @@ export function TeamManagerDashboard() {
     <Box py={8}>
       {/* Mobile Layout */}
       <Box display={{ base: "block", md: "none" }}>
-        {/* Mobile Welcome Message - positioned at top left to align with hamburger */}
+        {/* Mobile Welcome Message - positioned on same line as hamburger */}
         <Box 
           position="absolute"
-          top="100px"
+          top="20px"
           left="60px"
           right="20px"
           zIndex="999"
