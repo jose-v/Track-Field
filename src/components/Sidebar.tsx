@@ -373,7 +373,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
         >
           {/* Custom close button in header */}
           <DrawerHeader borderBottomWidth="1px" borderColor={borderColor} pb={4}>
-            <Flex align="center" justify="center">
+            <Flex align="center" justify="flex-start">
               <Image 
                 src="/images/olympr-logo.png" 
                 alt="Track & Field"
