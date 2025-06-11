@@ -45,7 +45,8 @@ import {
 } from 'react-icons/fa';
 import { BsCalendarCheck, BsChatDots } from 'react-icons/bs';
 import { MdLoop, MdRestaurantMenu, MdOutlineBedtime, MdOutlineReport, MdOutlineForum } from 'react-icons/md';
-import { LuUsers, LuCalendarClock, LuClipboardList, LuBell } from 'react-icons/lu';
+import { LuUsers, LuCalendarClock, LuClipboardList, LuBell, LuUserPlus } from 'react-icons/lu';
+import { BiRun, BiUser, BiCalendar, BiDish, BiMoon, BiGroup } from 'react-icons/bi';
 import { IoFitnessOutline } from 'react-icons/io5';
 import { HamburgerIcon } from '@chakra-ui/icons';
 import { LuHouse, LuMessageSquare, LuBellRing, LuShare, LuMenu } from 'react-icons/lu';
@@ -56,6 +57,7 @@ import { useFeedback } from './FeedbackProvider';
 import { useScrollDirection } from '../hooks/useScrollDirection';
 import { useCoachNavigation } from './layout/CoachNavigation';
 import { useTeamManagerNavigation } from './layout/TeamManagerNavigation';
+import { useAthleteNavigation } from './layout/AthleteNavigation';
 
 interface NavItemProps {
   icon: React.ElementType;
@@ -232,6 +234,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
   // Get navigation configurations
   const coachNavigation = useCoachNavigation();
   const teamManagerNavigation = useTeamManagerNavigation();
+  const athleteNavigation = useAthleteNavigation();
   
   // Color mode values for the sidebar
   const sidebarBg = useColorModeValue('white', 'gray.800');
@@ -252,17 +255,27 @@ const Sidebar = ({ userType }: SidebarProps) => {
 
   const getNavItems = () => {
     if (userType === 'athlete') {
+      // Create a mapping of athlete navigation paths to their proper icons
+      const athleteIconMap: { [key: string]: any } = {
+        '/athlete/dashboard': FaTachometerAlt,
+        '/athlete/workouts': BiRun,
+        '/join-team': BiGroup,
+        '/athlete/meets': BiCalendar,
+        '/athlete/calendar': BiCalendar,
+        '/athlete/nutrition': BiDish,
+        '/athlete/sleep': BiMoon,
+        '/athlete/notifications': FaBell,
+        '/athlete/profile': BiUser,
+      };
+
+      // Use the athlete navigation configuration from the hook
       return [
         { icon: FaHome, label: 'Home', to: '/' },
-        { icon: FaTachometerAlt, label: 'Dashboard', to: '/athlete/dashboard' },
-        { icon: FaDumbbell, label: 'My Workouts', to: '/athlete/workouts' },
-        { icon: FaCog, label: 'Workout Creator', to: '/athlete/workout-creator' },
-        { icon: FaCalendarAlt, label: 'Calendar', to: '/athlete/calendar' },
-        { icon: FaChartBar, label: 'Analytics', to: '/athlete/analytics' },
-        { icon: BsCalendarCheck, label: 'Meets', to: '/athlete/meets' },
-        { icon: MdRestaurantMenu, label: 'Nutrition', to: '/athlete/nutrition' },
-        { icon: MdOutlineBedtime, label: 'Sleep', to: '/athlete/sleep' },
-        { icon: MdOutlineReport, label: 'Wellness', to: '/athlete/wellness' },
+        ...athleteNavigation.navLinks.map(navItem => ({
+          icon: athleteIconMap[navItem.path] || FaTachometerAlt,
+          label: navItem.name,
+          to: navItem.path
+        })),
         { icon: BsChatDots, label: 'Loop', to: '/loop' },
       ];
     } else if (userType === 'team_manager') {
@@ -296,9 +309,9 @@ const Sidebar = ({ userType }: SidebarProps) => {
       const coachIconMap: { [key: string]: any } = {
         '/coach/dashboard': FaTachometerAlt,
         '/coach/athletes': FaUsers,
-        '/coach/workouts': FaDumbbell,
-        '/coach/workout-creator': FaCog,
+        '/join-team': LuUserPlus,
         '/coach/training-plans': FaClipboardList,
+        '/coach/workout-creator': FaCog,
         '/coach/calendar': FaCalendarAlt,
         '/coach/meets': BsCalendarCheck,
         '/coach/stats': FaChartBar,
