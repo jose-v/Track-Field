@@ -41,12 +41,14 @@ import {
   FaCog,
   FaSignOutAlt,
   FaTachometerAlt,
-  FaClipboardList
+  FaClipboardList,
+  FaUserPlus
 } from 'react-icons/fa';
 import { BsCalendarCheck, BsChatDots } from 'react-icons/bs';
 import { MdLoop, MdRestaurantMenu, MdOutlineBedtime, MdOutlineReport, MdOutlineForum } from 'react-icons/md';
-import { LuUsers, LuCalendarClock, LuClipboardList, LuBell, LuUserPlus } from 'react-icons/lu';
-import { BiRun, BiUser, BiCalendar, BiDish, BiMoon, BiGroup } from 'react-icons/bi';
+import { LuUsers, LuCalendarClock, LuClipboardList, LuBell } from 'react-icons/lu';
+import { BiRun, BiUser, BiCalendar, BiDish, BiMoon } from 'react-icons/bi';
+import { HiUserGroup } from 'react-icons/hi';
 import { IoFitnessOutline } from 'react-icons/io5';
 import { HamburgerIcon } from '@chakra-ui/icons';
 import { LuHouse, LuMessageSquare, LuBellRing, LuShare, LuMenu } from 'react-icons/lu';
@@ -259,7 +261,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
       const athleteIconMap: { [key: string]: any } = {
         '/athlete/dashboard': FaTachometerAlt,
         '/athlete/workouts': BiRun,
-        '/join-team': BiGroup,
+        '/join-team': HiUserGroup,
         '/athlete/meets': BiCalendar,
         '/athlete/calendar': BiCalendar,
         '/athlete/nutrition': BiDish,
@@ -309,7 +311,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
       const coachIconMap: { [key: string]: any } = {
         '/coach/dashboard': FaTachometerAlt,
         '/coach/athletes': FaUsers,
-        '/join-team': LuUserPlus,
+        '/join-team': FaUserPlus,
         '/coach/training-plans': FaClipboardList,
         '/coach/workout-creator': FaCog,
         '/coach/calendar': FaCalendarAlt,

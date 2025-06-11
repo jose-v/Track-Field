@@ -1,6 +1,7 @@
 import { useLocation } from 'react-router-dom';
 import { NavLink } from './BaseLayout';
-import { LuUsers, LuCalendarClock, LuClipboardList, LuBell, LuUserPlus } from 'react-icons/lu';
+import { LuUsers, LuCalendarClock, LuClipboardList, LuBell } from 'react-icons/lu';
+import { FaUserPlus } from 'react-icons/fa';
 import { IoFitnessOutline } from 'react-icons/io5';
 import { FaTachometerAlt, FaCalendarAlt } from 'react-icons/fa';
 import { ReactNode } from 'react';
@@ -52,7 +53,7 @@ export function useCoachNavigation(): CoachNavConfig & { isCurrentPathActive: (p
     {
       name: 'Join Team',
       path: '/join-team',
-      icon: <LuUserPlus />
+      icon: <FaUserPlus />
     },
     {
       name: 'Training Plans',

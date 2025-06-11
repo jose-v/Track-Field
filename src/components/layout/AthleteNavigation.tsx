@@ -1,6 +1,7 @@
 import { useLocation } from 'react-router-dom';
 import { NavLink } from './BaseLayout';
-import { BiRun, BiUser, BiCalendar, BiDish, BiMoon, BiBell, BiGroup } from 'react-icons/bi';
+import { BiRun, BiUser, BiCalendar, BiDish, BiMoon, BiBell } from 'react-icons/bi';
+import { HiUserGroup } from 'react-icons/hi';
 import { FaTachometerAlt } from 'react-icons/fa';
 import { ReactNode } from 'react';
 
@@ -51,7 +52,7 @@ export function useAthleteNavigation(): AthleteNavConfig & { isCurrentPathActive
     {
       name: 'Join Team',
       path: '/join-team',
-      icon: <BiGroup />
+      icon: <HiUserGroup />
     },
     {
       name: 'Events',
