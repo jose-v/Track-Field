@@ -426,9 +426,6 @@ const Navigation = () => {
             py={4}
             spacing={4}
             alignItems="flex-start"
-            bg={useColorModeValue('white', 'gray.900')}
-            borderTop="1px"
-            borderColor={useColorModeValue('gray.100', 'gray.700')}
           >
             {navItems.map((navItem) => (
               <Button 
@@ -440,10 +437,10 @@ const Navigation = () => {
                 onClick={onToggle}
                 w="100%"
                 justifyContent="flex-start"
-                color={useColorModeValue('gray.700', 'gray.200')}
+                color="gray.700"
                 _hover={{ 
-                  bg: useColorModeValue('gray.100', 'gray.700'),
-                  color: useColorModeValue('blue.500', 'blue.300')
+                  bg: "gray.100",
+                  color: "blue.500"
                 }}
               >
                 {navItem.label}
@@ -462,10 +459,10 @@ const Navigation = () => {
                     w="100%"
                     justifyContent="flex-start"
                     leftIcon={<FaTachometerAlt />}
-                    color={useColorModeValue('gray.700', 'gray.200')}
+                    color="gray.700"
                     _hover={{ 
-                      bg: useColorModeValue('gray.100', 'gray.700'),
-                      color: useColorModeValue('blue.500', 'blue.300')
+                      bg: "gray.100",
+                      color: "blue.500"
                     }}
                   >
                     Dashboard
@@ -478,10 +475,10 @@ const Navigation = () => {
                     to={displayProfile?.role === 'coach' ? '/coach/profile' : displayProfile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
                     w="100%"
                     justifyContent="flex-start"
-                    color={useColorModeValue('gray.700', 'gray.200')}
+                    color="gray.700"
                     _hover={{ 
-                      bg: useColorModeValue('gray.100', 'gray.700'),
-                      color: useColorModeValue('blue.500', 'blue.300')
+                      bg: "gray.100",
+                      color: "blue.500"
                     }}
                   >
                     Profile
@@ -493,10 +490,10 @@ const Navigation = () => {
                     w="100%"
                     justifyContent="flex-start"
                     leftIcon={<FaBell />}
-                    color={useColorModeValue('gray.700', 'gray.200')}
+                    color="gray.700"
                     _hover={{ 
-                      bg: useColorModeValue('gray.100', 'gray.700'),
-                      color: useColorModeValue('blue.500', 'blue.300')
+                      bg: "gray.100",
+                      color: "blue.500"
                     }}
                   >
                     Notifications
@@ -510,10 +507,10 @@ const Navigation = () => {
                     }}
                     w="100%"
                     justifyContent="flex-start"
-                    color={useColorModeValue('red.600', 'red.400')}
+                    color="red.600"
                     _hover={{ 
-                      bg: useColorModeValue('red.50', 'red.900'),
-                      color: useColorModeValue('red.700', 'red.300')
+                      bg: "red.50",
+                      color: "red.700"
                     }}
                   >
                     Sign Out
@@ -528,26 +525,27 @@ const Navigation = () => {
                     as={RouterLink} 
                     to="/login"
                     w="100%"
-                    justifyContent="flex-start"
-                    bg={useColorModeValue("purple.800", "purple.600")}
-                    color="white"
+                    justifyContent="center"
+                    bg="yellow.400"
+                    color="black"
                     _hover={{
-                      bg: useColorModeValue("purple.900", "purple.700")
+                      bg: "yellow.500"
                     }}
                   >
                     Sign In
                   </Button>
                   <Button 
-                    colorScheme="blue"
+                    variant="solid"
                     size="sm"
                     onClick={onToggle}
                     as={RouterLink} 
                     to="/signup"
                     w="100%"
-                    bg={useColorModeValue("blue.500", "blue.600")}
+                    justifyContent="center"
+                    bg="purple.600"
                     color="white"
                     _hover={{
-                      bg: useColorModeValue("blue.600", "blue.700")
+                      bg: "purple.700"
                     }}
                   >
                     Join Now
@@ -565,10 +563,10 @@ const Navigation = () => {
                   w="100%"
                   justifyContent="flex-start"
                   leftIcon={<FaHome />}
-                  color={useColorModeValue('gray.700', 'gray.200')}
+                  color="gray.700"
                   _hover={{ 
-                    bg: useColorModeValue('gray.100', 'gray.700'),
-                    color: useColorModeValue('blue.500', 'blue.300')
+                    bg: "gray.100",
+                    color: "blue.500"
                   }}
                 >
                   Home
@@ -582,10 +580,10 @@ const Navigation = () => {
                   w="100%"
                   justifyContent="flex-start"
                   leftIcon={<FaTachometerAlt />}
-                  color={useColorModeValue('gray.700', 'gray.200')}
+                  color="gray.700"
                   _hover={{ 
-                    bg: useColorModeValue('gray.100', 'gray.700'),
-                    color: useColorModeValue('blue.500', 'blue.300')
+                    bg: "gray.100",
+                    color: "blue.500"
                   }}
                 >
                   Dashboard
@@ -598,10 +596,10 @@ const Navigation = () => {
                   to={displayProfile?.role === 'coach' ? '/coach/profile' : displayProfile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
                   w="100%"
                   justifyContent="flex-start"
-                  color={useColorModeValue('gray.700', 'gray.200')}
+                  color="gray.700"
                   _hover={{ 
-                    bg: useColorModeValue('gray.100', 'gray.700'),
-                    color: useColorModeValue('blue.500', 'blue.300')
+                    bg: "gray.100",
+                    color: "blue.500"
                   }}
                 >
                   Profile
@@ -613,10 +611,10 @@ const Navigation = () => {
                   w="100%"
                   justifyContent="flex-start"
                   leftIcon={<FaBell />}
-                  color={useColorModeValue('gray.700', 'gray.200')}
+                  color="gray.700"
                   _hover={{ 
-                    bg: useColorModeValue('gray.100', 'gray.700'),
-                    color: useColorModeValue('blue.500', 'blue.300')
+                    bg: "gray.100",
+                    color: "blue.500"
                   }}
                 >
                   Notifications
@@ -630,10 +628,10 @@ const Navigation = () => {
                   }}
                   w="100%"
                   justifyContent="flex-start"
-                  color={useColorModeValue('red.600', 'red.400')}
+                  color="red.600"
                   _hover={{ 
-                    bg: useColorModeValue('red.50', 'red.900'),
-                    color: useColorModeValue('red.700', 'red.300')
+                    bg: "red.50",
+                    color: "red.700"
                   }}
                 >
                   Sign Out
