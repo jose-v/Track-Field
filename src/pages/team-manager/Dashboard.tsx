@@ -98,12 +98,18 @@ export function TeamManagerDashboard() {
     <Box py={8}>
       {/* Mobile Layout */}
       <Box display={{ base: "block", md: "none" }}>
-        {/* Mobile Welcome Message - positioned to the left */}
-        <Box px="10px" mb={4} pt={4}>
+        {/* Mobile Welcome Message - positioned at top left to align with hamburger */}
+        <Box 
+          position="absolute"
+          top="100px"
+          left="60px"
+          right="20px"
+          zIndex="999"
+        >
           <Text 
-            fontSize="lg" 
+            fontSize="md" 
             fontWeight="semibold" 
-            color={subtitleColor}
+            color="white"
             textAlign="left"
           >
             {getWelcomeMessage()}
