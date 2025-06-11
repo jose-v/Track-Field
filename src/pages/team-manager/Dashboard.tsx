@@ -101,9 +101,8 @@ export function TeamManagerDashboard() {
         {/* Mobile Welcome Message - positioned on same line as hamburger */}
         <Box 
           position="absolute"
-          top="20px"
-          left="60px"
-          right="20px"
+          top="24px"
+          right="15px"
           zIndex="999"
         >
           <Text 
