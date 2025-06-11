@@ -130,6 +130,20 @@ button.chakra-icon-button[aria-label*="Edit"] svg,
   color: #898989 !important;
 }
 
+/* Force home link to not have background when inactive in mobile sidebar */
+.chakra-drawer a[href="/"][role="group"]:not([data-active="true"]),
+.chakra-drawer .chakra-flex[as*="RouterLink"][to="/"]:not([data-active="true"]) {
+  background: transparent !important;
+}
+
+/* Remove any hover/focus backgrounds on mobile sidebar home link when inactive */
+.chakra-drawer a[href="/"][role="group"]:not([data-active="true"]):hover,
+.chakra-drawer a[href="/"][role="group"]:not([data-active="true"]):focus,
+.chakra-drawer .chakra-flex[as*="RouterLink"][to="/"]:not([data-active="true"]):hover,
+.chakra-drawer .chakra-flex[as*="RouterLink"][to="/"]:not([data-active="true"]):focus {
+  background: transparent !important;
+}
+
 /* Sidebar role text styling */
 .chakra-stack .chakra-text[data-role="label"] {
   color: #898989 !important;

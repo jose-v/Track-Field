@@ -482,9 +482,19 @@ const Sidebar = ({ userType }: SidebarProps) => {
                   
                   {navItems.map((item) => {
                     const isHome = item.to === '/';
-                    const isActive = isHome
-                      ? location.pathname === '/' // Home is only active when exactly on '/'
-                      : location.pathname === item.to || (item.to !== '/loop' && item.to !== '/' && location.pathname.startsWith(item.to));
+                    // More robust active state logic
+                    let isActive = false;
+                    if (isHome) {
+                      // Home is ONLY active when exactly on the root path
+                      isActive = location.pathname === '/';
+                    } else if (item.to === '/loop') {
+                      // Loop route special handling
+                      isActive = location.pathname === '/loop';
+                    } else {
+                      // For all other routes, check for exact match or starts with
+                      isActive = location.pathname === item.to || location.pathname.startsWith(item.to + '/');
+                    }
+                    
                     return (
                       <MobileNavItem
                         key={item.to}
@@ -694,9 +704,18 @@ const Sidebar = ({ userType }: SidebarProps) => {
         <VStack spacing={1} align="stretch" py={4} flex="1">
           {navItems.map((item) => {
             const isHome = item.to === '/';
-            const isActive = isHome
-              ? location.pathname === '/' // Home is only active when exactly on '/'
-              : location.pathname === item.to || (item.to !== '/loop' && item.to !== '/' && location.pathname.startsWith(item.to));
+            // More robust active state logic  
+            let isActive = false;
+            if (isHome) {
+              // Home is ONLY active when exactly on the root path
+              isActive = location.pathname === '/';
+            } else if (item.to === '/loop') {
+              // Loop route special handling
+              isActive = location.pathname === '/loop';
+            } else {
+              // For all other routes, check for exact match or starts with
+              isActive = location.pathname === item.to || location.pathname.startsWith(item.to + '/');
+            }
             return (
               <NavItem
                 key={item.to}
