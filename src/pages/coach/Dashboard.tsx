@@ -471,7 +471,7 @@ export function CoachDashboard() {
             <Heading size="md" mb={4}>Upcoming Events</Heading>
             {eventsLoading ? (
               <Flex justify="center" py={4}>
-                <Spinner />
+                <Spinner color="blue.500" />
               </Flex>
             ) : !athleteEvents || athleteEvents.length === 0 ? (
               <Text>No upcoming events assigned to your athletes.</Text>

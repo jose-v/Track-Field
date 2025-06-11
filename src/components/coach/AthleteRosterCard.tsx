@@ -89,6 +89,8 @@ const AthleteRosterCard: React.FC<AthleteRosterCardProps> = ({ onAthleteClick })
   const athleteItemHoverBg = useColorModeValue('gray.50', 'gray.700');
   const progressBg = useColorModeValue('gray.200', 'gray.600'); // Moved from conditional JSX
 
+
+
   useEffect(() => {
     if (user?.id && coachAthletes.length >= 0) { // Include case where array is empty but loaded
       fetchAthleteStatuses();
