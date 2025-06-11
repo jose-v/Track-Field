@@ -238,6 +238,7 @@ export function Events() {
         bg={lightBg} 
         pt={{ base: 28, md: 32 }}
         pb={{ base: 8, md: 12 }}
+        mt={{ base: '90px', md: 0 }}
         position="relative"
         overflow="hidden"
       >

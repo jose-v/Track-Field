@@ -38,7 +38,7 @@ export default function HomeAlt() {
   return (
     <Box>
       {/* ===== HERO ===== */}
-      <Box bg={yellow} py={{ base: 24, md: 32 }}>
+      <Box bg={yellow} py={{ base: 24, md: 32 }} mt={{ base: '90px', md: 0 }}>
         <Container maxW="container.lg">
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={10} alignItems="center">
             {/* Illustration */}
