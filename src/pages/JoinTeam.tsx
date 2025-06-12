@@ -73,7 +73,7 @@ export default function JoinTeam() {
                 Join a Team
               </Heading>
               <Text fontSize="lg" color={textColor} maxW="2xl" mx="auto">
-                Use an 8-character invite code to join a team as {userRole === 'team_manager' ? 'a team manager' : `an ${userRole}`}
+                Use a 6-character invite code to join a team as {userRole === 'team_manager' ? 'a team manager' : `an ${userRole}`}
               </Text>
             </Box>
 
@@ -151,7 +151,7 @@ export default function JoinTeam() {
                       <Badge colorScheme="green" fontSize="xs">Step 1</Badge>
                       <Text fontWeight="semibold" color={headingColor}>Get Invite Code</Text>
                       <Text fontSize="sm" color={textColor}>
-                        Receive an 8-character invite code from your team manager or coach
+                        Receive a 6-character invite code from your team manager or coach
                       </Text>
                     </VStack>
 
@@ -261,7 +261,7 @@ export default function JoinTeam() {
       <JoinTeamModal
         isOpen={isOpen}
         onClose={onClose}
-        onSuccess={handleRefresh}
+        onTeamJoined={handleRefresh}
       />
     </>
   );

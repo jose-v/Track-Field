@@ -30,7 +30,8 @@ import {
   SparkleIcon,
   MobileHeader,
   ExerciseExecutionModal,
-  MonthlyPlanAssignments
+  MonthlyPlanAssignments,
+  MyTeamsCard
 } from '../components'
 import { MobileWelcomeMessage } from '../components/MobileWelcomeMessage'
 import { supabase } from '../lib/supabase'
@@ -324,50 +325,82 @@ export function Dashboard() {
       try {
         let teamData = null;
         
-        if (profile.role === 'athlete' && profile.coach_id) {
-          // For athletes, get their coach's team info
-          const { data: coachProfile } = await supabase
-            .from('profiles')
-            .select('team_name, school_name, city, state')
-            .eq('id', profile.coach_id)
-            .single();
-          
-          if (coachProfile) {
+        if (profile.role === 'athlete') {
+          // For athletes, get their team memberships from the new team_members system
+          const { data: memberships, error: membershipsError } = await supabase
+            .from('team_members')
+            .select(`
+              teams!inner (
+                id,
+                name,
+                description,
+                team_type
+              )
+            `)
+            .eq('user_id', user.id)
+            .eq('role', 'athlete')
+            .eq('status', 'active')
+            .limit(1); // Get primary team for dashboard
+
+          if (membershipsError) {
+            console.error('Error fetching team memberships:', membershipsError);
+          } else if (memberships && memberships.length > 0) {
+            const membership = memberships[0] as any;
+            const primaryTeam = membership.teams;
+            
+            // Get total member count for this team
+            const { count: memberCount } = await supabase
+              .from('team_members')
+              .select('*', { count: 'exact', head: true })
+              .eq('team_id', primaryTeam.id)
+              .eq('status', 'active');
+
             teamData = {
-              name: coachProfile.team_name,
-              school: coachProfile.school_name,
-              location: `${coachProfile.city}, ${coachProfile.state}`,
-              athleteCount: 0,
+              name: primaryTeam.name,
+              description: primaryTeam.description,
+              teamType: primaryTeam.team_type,
+              memberCount: memberCount || 0,
               recentActivity: 'View team dashboard for updates'
             };
-            
-            // Get athlete count for the team
-            const { count } = await supabase
-              .from('profiles')
-              .select('*', { count: 'exact', head: true })
-              .eq('coach_id', profile.coach_id)
-              .eq('role', 'athlete');
-            
-            teamData.athleteCount = count || 0;
           }
         } else if (profile.role === 'coach') {
-          // For coaches, get their own team info
-          teamData = {
-            name: profile.team_name,
-            school: profile.school_name,
-            location: `${profile.city}, ${profile.state}`,
-            athleteCount: 0,
-            recentActivity: 'Manage your team and workouts'
-          };
-          
-          // Get athlete count for the coach
-          const { count } = await supabase
-            .from('profiles')
-            .select('*', { count: 'exact', head: true })
-            .eq('coach_id', user.id)
-            .eq('role', 'athlete');
-          
-          teamData.athleteCount = count || 0;
+          // For coaches, get teams they're coaching from team_members system
+          const { data: coachMemberships, error: coachError } = await supabase
+            .from('team_members')
+            .select(`
+              teams!inner (
+                id,
+                name,
+                description,
+                team_type
+              )
+            `)
+            .eq('user_id', user.id)
+            .eq('role', 'coach')
+            .eq('status', 'active')
+            .limit(1); // Get primary team for dashboard
+
+          if (coachError) {
+            console.error('Error fetching coach teams:', coachError);
+          } else if (coachMemberships && coachMemberships.length > 0) {
+            const coachMembership = coachMemberships[0] as any;
+            const primaryTeam = coachMembership.teams;
+            
+            // Get total member count for this team
+            const { count: memberCount } = await supabase
+              .from('team_members')
+              .select('*', { count: 'exact', head: true })
+              .eq('team_id', primaryTeam.id)
+              .eq('status', 'active');
+
+            teamData = {
+              name: primaryTeam.name,
+              description: primaryTeam.description,
+              teamType: primaryTeam.team_type,
+              memberCount: memberCount || 0,
+              recentActivity: 'Manage your team and workouts'
+            };
+          }
         }
         
         setTeamInfo(teamData);
@@ -714,6 +747,9 @@ export function Dashboard() {
           my={{ base: 6, md: 10 }}
           w="100%"
         >
+          {/* My Teams Card */}
+          <MyTeamsCard maxTeamsToShow={3} />
+
           {/* Track Meets Card */}
           <TrackMeetsCard viewAllLink="/athlete/meets" />
 

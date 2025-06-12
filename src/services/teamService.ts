@@ -161,7 +161,7 @@ export async function getTeamByInviteCode(invite_code: string): Promise<Team | n
     const { data, error } = await supabase
       .from('teams')
       .select('*')
-      .ilike('invite_code', invite_code)  // Use ilike for case-insensitive search
+      .eq('invite_code', invite_code.toUpperCase().trim())  // Exact match for 6-digit codes
       .eq('is_active', true)
       .single();
 
@@ -181,7 +181,7 @@ export async function getTeamByInviteCode(invite_code: string): Promise<Team | n
 }
 
 /**
- * Join a team using invite code
+ * Join a team using invite code (unified system)
  */
 export async function joinTeamByInviteCode(
   invite_code: string, 
@@ -195,6 +195,11 @@ export async function joinTeamByInviteCode(
     const normalizedCode = invite_code.trim().toUpperCase();
     console.log('🔧 Normalized code:', normalizedCode);
     
+    // Validate code format (6 digits)
+    if (!/^[A-Z0-9]{6}$/.test(normalizedCode)) {
+      return { success: false, error: 'Invalid invite code format. Must be 6 characters.' };
+    }
+    
     // First, verify the invite code exists and get team info
     const team = await getTeamByInviteCode(normalizedCode);
     if (!team) {
@@ -204,68 +209,59 @@ export async function joinTeamByInviteCode(
     
     console.log('✅ Team found:', team.name);
 
-    // Check if user is already part of this team
-    if (user_role === 'athlete') {
-      const { data: existingAthlete } = await supabase
-        .from('athletes')
-        .select('id')
-        .eq('id', user_id)
-        .eq('team_id', team.id)
-        .single();
-      
-      if (existingAthlete) {
-        return { success: false, error: 'You are already a member of this team' };
-      }
+    // Check if user is already a member
+    const { data: existingMembership } = await supabase
+      .from('team_members')
+      .select('id')
+      .eq('team_id', team.id)
+      .eq('user_id', user_id)
+      .eq('status', 'active')
+      .single();
 
-      // Add athlete to team
-      const { error: updateError } = await supabase
-        .from('athletes')
-        .update({ team_id: team.id })
-        .eq('id', user_id);
-
-      if (updateError) {
-        throw updateError;
-      }
-    } else if (user_role === 'coach') {
-      // Check if coach is already assigned to this team
-      const { data: existingCoach, error: checkError } = await supabase
-        .from('team_coaches')
-        .select('id')
-        .eq('coach_id', user_id)
-        .eq('team_id', team.id)
-        .maybeSingle();
-      
-      // Only return error if there's an actual error (not just no rows found)
-      if (checkError) {
-        console.error('Error checking existing coach assignment:', checkError);
-        return { success: false, error: 'Failed to check team membership' };
-      }
-      
-      if (existingCoach) {
-        return { success: false, error: 'You are already a coach for this team' };
-      }
-
-      // Add coach to team
-      const { error: insertError } = await supabase
-        .from('team_coaches')
-        .insert({
-          team_id: team.id,
-          coach_id: user_id,
-          assigned_by: team.created_by,
-          role: 'assistant_coach'
-        });
-
-      if (insertError) {
-        throw insertError;
-      }
-    } else {
-      return { success: false, error: 'Team managers cannot join teams using invite codes' };
+    if (existingMembership) {
+      return { success: false, error: 'You are already a member of this team' };
     }
 
+    // Add user to team_members
+    const memberRole = user_role === 'team_manager' ? 'manager' : user_role;
+    const { error: memberError } = await supabase
+      .from('team_members')
+      .insert({
+        team_id: team.id,
+        user_id: user_id,
+        role: memberRole,
+        status: 'active',
+        joined_at: new Date().toISOString()
+      });
+
+    if (memberError) {
+      console.error('❌ Error adding to team_members:', memberError);
+      return { success: false, error: 'Failed to join team. Please try again.' };
+    }
+
+    // For backward compatibility, also update legacy tables if needed
+    if (user_role === 'athlete' && team.team_type === 'school') {
+      // Update athletes.team_id for school teams (legacy support)
+      const { data: athlete } = await supabase
+        .from('athletes')
+        .select('team_id')
+        .eq('id', user_id)
+        .single();
+
+      if (athlete && !athlete.team_id) {
+        await supabase
+          .from('athletes')
+          .update({ team_id: team.id })
+          .eq('id', user_id);
+      }
+    }
+
+    console.log('✅ Successfully joined team:', team.name);
     return { success: true, team };
+
   } catch (error) {
-    console.error('Error joining team:', error);
-    return { success: false, error: 'Failed to join team. Please try again.' };
+    console.error('❌ Error in joinTeamByInviteCode:', error);
+    return { success: false, error: 'An unexpected error occurred. Please try again.' };
   }
 }
 
@@ -387,13 +383,26 @@ export async function removeAthleteFromTeam(
   athlete_id: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { error } = await supabase
+    // Update team_members status to inactive (soft delete)
+    const { error: teamMembersError } = await supabase
+      .from('team_members')
+      .update({ status: 'inactive' })
+      .eq('user_id', athlete_id)
+      .eq('status', 'active');
+
+    if (teamMembersError) {
+      throw teamMembersError;
+    }
+
+    // Legacy support: also clear athletes.team_id
+    const { error: athletesError } = await supabase
       .from('athletes')
       .update({ team_id: null })
       .eq('id', athlete_id);
 
-    if (error) {
-      throw error;
+    // Don't throw on athletes error since it's legacy support
+    if (athletesError) {
+      console.warn('Could not update legacy athletes.team_id:', athletesError);
     }
 
     return { success: true };
@@ -492,14 +501,12 @@ export async function getTeamCoaches(team_id: string): Promise<any[]> {
  */
 export async function getTeamAthletes(team_id: string): Promise<any[]> {
   try {
-    const { data, error } = await supabase
-      .from('athletes')
+    // Get team members who are athletes
+    const { data: teamMembers, error: membersError } = await supabase
+      .from('team_members')
       .select(`
-        id,
-        gender,
-        events,
-        date_of_birth,
-        created_at,
+        user_id,
+        joined_at,
         profiles!inner (
           id,
           first_name,
@@ -508,13 +515,43 @@ export async function getTeamAthletes(team_id: string): Promise<any[]> {
           avatar_url
         )
       `)
-      .eq('team_id', team_id);
+      .eq('team_id', team_id)
+      .eq('role', 'athlete')
+      .eq('status', 'active');
 
-    if (error) {
-      throw new Error(`Failed to fetch team athletes: ${error.message}`);
+    if (membersError) {
+      throw new Error(`Failed to fetch team members: ${membersError.message}`);
     }
 
-    return data || [];
+    if (!teamMembers || teamMembers.length === 0) {
+      return [];
+    }
+
+    // Get athlete-specific data
+    const athleteIds = teamMembers.map(tm => tm.user_id);
+    const { data: athleteData, error: athleteError } = await supabase
+      .from('athletes')
+      .select('id, gender, events, date_of_birth, created_at')
+      .in('id', athleteIds);
+
+    if (athleteError) {
+      console.warn('Could not fetch athlete data:', athleteError);
+    }
+
+    // Combine the data
+    const result = teamMembers.map(member => {
+      const athleteInfo = athleteData?.find(a => a.id === member.user_id);
+      return {
+        id: member.user_id,
+        gender: athleteInfo?.gender,
+        events: athleteInfo?.events,
+        date_of_birth: athleteInfo?.date_of_birth,
+        created_at: member.joined_at, // Use team join date instead of athlete creation
+        profiles: member.profiles
+      };
+    });
+
+    return result;
   } catch (error) {
     console.error('Error fetching team athletes:', error);
     throw error;
@@ -522,33 +559,23 @@ export async function getTeamAthletes(team_id: string): Promise<any[]> {
 }
 
 /**
- * Get total member count for a team (coaches + athletes)
+ * Get total member count for a team (all members from team_members table)
  */
 export async function getTeamMemberCount(team_id: string): Promise<number> {
   try {
-    // Count coaches
-    const { count: coachCount, error: coachError } = await supabase
-      .from('team_coaches')
+    // Count all active team members
+    const { count, error } = await supabase
+      .from('team_members')
       .select('*', { count: 'exact', head: true })
       .eq('team_id', team_id)
-      .eq('is_active', true);
+      .eq('status', 'active');
 
-    if (coachError) {
-      console.error('Error counting coaches:', coachError);
+    if (error) {
+      console.error('Error counting team members:', error);
+      return 0;
     }
 
-    // Count athletes
-    const { count: athleteCount, error: athleteError } = await supabase
-      .from('athletes')
-      .select('*', { count: 'exact', head: true })
-      .eq('team_id', team_id);
-
-    if (athleteError) {
-      console.error('Error counting athletes:', athleteError);
-    }
-
-    const totalMembers = (coachCount || 0) + (athleteCount || 0);
-    return totalMembers;
+    return count || 0;
   } catch (error) {
     console.error('Error getting team member count:', error);
     return 0;

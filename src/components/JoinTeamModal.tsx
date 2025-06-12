@@ -11,179 +11,263 @@ import {
   Input,
   VStack,
   Text,
-  Alert,
-  AlertIcon,
-  useColorModeValue,
+  useToast,
   FormControl,
   FormLabel,
-  FormErrorMessage,
+  Alert,
+  AlertIcon,
   HStack,
-  Icon,
+  Badge,
   Box
 } from '@chakra-ui/react';
-import { FiUsers, FiCheck } from 'react-icons/fi';
-import { joinTeamByInviteCode } from '../services/teamService';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { useUserRole } from '../hooks/useUserRole';
 
 interface JoinTeamModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
+  onTeamJoined?: () => void;
+}
+
+interface TeamPreview {
+  id: string;
+  name: string;
+  description?: string;
+  team_type: string;
+  member_count: number;
 }
 
 export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({
   isOpen,
   onClose,
-  onSuccess
+  onTeamJoined
 }) => {
-  const { user } = useAuth();
-  const { userRole } = useUserRole();
   const [inviteCode, setInviteCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [teamPreview, setTeamPreview] = useState<TeamPreview | null>(null);
+  const [isJoining, setIsJoining] = useState(false);
+  const { user } = useAuth();
+  const toast = useToast();
 
-  const bgColor = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const handleCodeChange = async (code: string) => {
+    setInviteCode(code);
+    setTeamPreview(null);
 
-  const handleSubmit = async () => {
-    if (!user || !userRole || !inviteCode.trim()) {
-      setError('Please enter an invite code');
-      return;
-    }
+    if (code.length >= 6) {
+      setIsLoading(true);
+      try {
+        // Look up team by invite code
+        const { data: team, error } = await supabase
+          .from('teams')
+          .select('id, name, description, team_type, invite_code')
+          .eq('invite_code', code.toUpperCase())
+          .single();
 
-    setIsLoading(true);
-    setError(null);
-    setSuccess(null);
+        if (error || !team) {
+          toast({
+            title: 'Invalid Invite Code',
+            description: 'No team found with this invite code.',
+            status: 'error',
+            duration: 3000,
+            isClosable: true,
+          });
+          return;
+        }
 
-    try {
-      const result = await joinTeamByInviteCode(
-        inviteCode.trim().toUpperCase(),
-        user.id,
-        userRole
-      );
+        // Get member count
+        const { count: memberCount } = await supabase
+          .from('team_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('team_id', team.id)
+          .eq('status', 'active');
 
-      if (result.success && result.team) {
-        setSuccess(`Successfully joined ${result.team.name}!`);
-        setInviteCode('');
-        
-        // Wait a moment to show success message
-        setTimeout(() => {
-          onSuccess?.();
-          onClose();
-          setSuccess(null);
-        }, 2000);
-      } else {
-        setError(result.error || 'Failed to join team');
+        // Check if user is already a member
+        const { data: existingMembership } = await supabase
+          .from('team_members')
+          .select('id')
+          .eq('team_id', team.id)
+          .eq('user_id', user?.id)
+          .eq('status', 'active')
+          .single();
+
+        if (existingMembership) {
+          toast({
+            title: 'Already a Member',
+            description: `You're already a member of ${team.name}.`,
+            status: 'info',
+            duration: 3000,
+            isClosable: true,
+          });
+          return;
+        }
+
+        setTeamPreview({
+          id: team.id,
+          name: team.name,
+          description: team.description,
+          team_type: team.team_type,
+          member_count: memberCount || 0
+        });
+
+      } catch (error) {
+        console.error('Error looking up team:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to look up team. Please try again.',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
-      console.error('Join team error:', err);
+    }
+  };
+
+  const handleJoinTeam = async () => {
+    if (!teamPreview || !user?.id) return;
+
+    setIsJoining(true);
+    try {
+      // Add user to team_members
+      const { error: memberError } = await supabase
+        .from('team_members')
+        .insert({
+          team_id: teamPreview.id,
+          user_id: user.id,
+          role: 'athlete', // Default role for invite code joins
+          status: 'active',
+          joined_at: new Date().toISOString()
+        });
+
+      if (memberError) throw memberError;
+
+      // For club teams, also update legacy athletes.team_id if user doesn't have one
+      if (teamPreview.team_type === 'club') {
+        const { data: athlete } = await supabase
+          .from('athletes')
+          .select('team_id')
+          .eq('id', user.id)
+          .single();
+
+        if (athlete && !athlete.team_id) {
+          await supabase
+            .from('athletes')
+            .update({ team_id: teamPreview.id })
+            .eq('id', user.id);
+        }
+      }
+
+      toast({
+        title: 'Joined Team Successfully!',
+        description: `Welcome to ${teamPreview.name}!`,
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      });
+
+      onTeamJoined?.();
+      onClose();
+      setInviteCode('');
+      setTeamPreview(null);
+
+    } catch (error) {
+      console.error('Error joining team:', error);
+      toast({
+        title: 'Error Joining Team',
+        description: 'Failed to join the team. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
     } finally {
-      setIsLoading(false);
+      setIsJoining(false);
     }
   };
 
   const handleClose = () => {
     setInviteCode('');
-    setError(null);
-    setSuccess(null);
+    setTeamPreview(null);
     onClose();
   };
 
-  const isValidCode = inviteCode.trim().length === 8;
+  const getTeamTypeLabel = (teamType: string) => {
+    switch (teamType) {
+      case 'school': return 'School Team';
+      case 'club': return 'Club Team';
+      case 'coach': return 'Coach Team';
+      default: return 'Team';
+    }
+  };
+
+  const getTeamTypeColor = (teamType: string) => {
+    switch (teamType) {
+      case 'school': return 'blue';
+      case 'club': return 'green';
+      case 'coach': return 'purple';
+      default: return 'gray';
+    }
+  };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} isCentered>
+    <Modal isOpen={isOpen} onClose={handleClose} size="md">
       <ModalOverlay />
-      <ModalContent bg={bgColor} borderColor={borderColor} borderWidth="1px">
-        <ModalHeader>
-          <HStack spacing={3}>
-            <Box
-              p={2}
-              borderRadius="lg"
-              bg={useColorModeValue('blue.50', 'blue.900')}
-              color={useColorModeValue('blue.500', 'blue.300')}
-            >
-              <Icon as={FiUsers} boxSize={5} />
-            </Box>
-            <Text>Join a Team</Text>
-          </HStack>
-        </ModalHeader>
+      <ModalContent>
+        <ModalHeader>Join a Team</ModalHeader>
         <ModalCloseButton />
-        
         <ModalBody>
           <VStack spacing={4} align="stretch">
-            <Text color={useColorModeValue('gray.600', 'gray.400')}>
-              Enter the 8-character invite code to join a team as {userRole === 'team_manager' ? 'a team manager' : `an ${userRole}`}.
-            </Text>
-
-            {error && (
-              <Alert status="error" borderRadius="md">
-                <AlertIcon />
-                <Text fontSize="sm">{error}</Text>
-              </Alert>
-            )}
-
-            {success && (
-              <Alert status="success" borderRadius="md">
-                <AlertIcon />
-                <HStack>
-                  <Icon as={FiCheck} />
-                  <Text fontSize="sm">{success}</Text>
-                </HStack>
-              </Alert>
-            )}
-
-            <FormControl isInvalid={!!error && !success}>
+            <FormControl>
               <FormLabel>Invite Code</FormLabel>
               <Input
-                placeholder="Enter 8-character code"
+                placeholder="Enter 6-character invite code"
                 value={inviteCode}
-                onChange={(e) => {
-                  setInviteCode(e.target.value.toUpperCase());
-                  setError(null);
-                }}
-                maxLength={8}
+                onChange={(e) => handleCodeChange(e.target.value)}
                 textTransform="uppercase"
-                letterSpacing="wider"
-                fontSize="lg"
-                fontWeight="bold"
-                textAlign="center"
-                isDisabled={isLoading || !!success}
+                maxLength={6}
+                isDisabled={isLoading || isJoining}
               />
-              {error && (
-                <FormErrorMessage>{error}</FormErrorMessage>
-              )}
+              <Text fontSize="sm" color="gray.500" mt={1}>
+                Ask your coach or team manager for the invite code
+              </Text>
             </FormControl>
 
-            {userRole === 'team_manager' && (
-              <Alert status="warning" borderRadius="md">
-                <AlertIcon />
-                <Text fontSize="sm">
-                  Note: Team managers cannot join teams using invite codes. You can only create and manage your own teams.
-                </Text>
-              </Alert>
+            {teamPreview && (
+              <Box>
+                <Alert status="success" borderRadius="md">
+                  <AlertIcon />
+                  <VStack align="start" spacing={2} flex="1">
+                    <HStack spacing={2}>
+                      <Text fontWeight="bold">{teamPreview.name}</Text>
+                      <Badge colorScheme={getTeamTypeColor(teamPreview.team_type)}>
+                        {getTeamTypeLabel(teamPreview.team_type)}
+                      </Badge>
+                    </HStack>
+                    {teamPreview.description && (
+                      <Text fontSize="sm">{teamPreview.description}</Text>
+                    )}
+                    <Text fontSize="sm" color="gray.600">
+                      {teamPreview.member_count} member{teamPreview.member_count !== 1 ? 's' : ''}
+                    </Text>
+                  </VStack>
+                </Alert>
+              </Box>
             )}
           </VStack>
         </ModalBody>
 
         <ModalFooter>
-          <HStack spacing={3}>
-            <Button variant="ghost" onClick={handleClose} isDisabled={isLoading}>
-              Cancel
-            </Button>
-            <Button
-              colorScheme="blue"
-              onClick={handleSubmit}
-              isLoading={isLoading}
-              loadingText="Joining..."
-              isDisabled={!isValidCode || userRole === 'team_manager' || !!success}
-            >
-              Join Team
-            </Button>
-          </HStack>
+          <Button variant="ghost" mr={3} onClick={handleClose}>
+            Cancel
+          </Button>
+          <Button
+            colorScheme="blue"
+            onClick={handleJoinTeam}
+            isLoading={isJoining}
+            isDisabled={!teamPreview || isLoading}
+          >
+            Join Team
+          </Button>
         </ModalFooter>
       </ModalContent>
     </Modal>

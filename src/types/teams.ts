@@ -202,8 +202,8 @@ export const TEAM_VALIDATION: TeamFormValidation = {
     maxLength: 500
   },
   invite_code: {
-    format: /^[A-Z0-9]{8}$/,
-    length: 8
+    format: /^[A-Z0-9]{6}$/,
+    length: 6
   }
 };
 
