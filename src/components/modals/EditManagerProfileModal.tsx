@@ -210,19 +210,20 @@ export function EditManagerProfileModal({ isOpen, onClose, onUpdate }: EditManag
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
 
       // Upload to Supabase Storage
+      const filePath = `avatars/${fileName}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, file, {
+        .from('storage')
+        .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: true
         });
 
       if (uploadError) throw uploadError;
 
       // Get public URL
       const { data: urlData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
+        .from('storage')
+        .getPublicUrl(filePath);
 
       const avatarUrl = urlData.publicUrl;
 
