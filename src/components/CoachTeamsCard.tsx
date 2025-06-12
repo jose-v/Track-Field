@@ -38,7 +38,11 @@ import {
   FaUserPlus,
   FaEye,
   FaCode,
-  FaTrash
+  FaTrash,
+  FaSchool,
+  FaRunning,
+  FaUserTie,
+  FaBullseye
 } from 'react-icons/fa';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
@@ -231,10 +235,10 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
 
   const getTeamTypeIcon = (teamType: string) => {
     switch (teamType) {
-      case 'school': return '🏫';
-      case 'club': return '🏃‍♀️';
-      case 'coach': return '👨‍🏫';
-      default: return '🎯';
+      case 'school': return FaSchool;
+      case 'club': return FaRunning;
+      case 'coach': return FaUserTie;
+      default: return FaBullseye;
     }
   };
 
@@ -376,9 +380,12 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
                         />
                         <VStack spacing={2} align="start" flex="1">
                           <HStack spacing={3} flexWrap="wrap">
-                            <Text fontSize="lg" fontWeight="bold" color={headingColor}>
-                              {getTeamTypeIcon(team.team_type)} {team.name}
-                            </Text>
+                            <HStack spacing={2}>
+                              <Icon as={getTeamTypeIcon(team.team_type)} color="blue.500" />
+                              <Text fontSize="lg" fontWeight="bold" color={headingColor}>
+                                {team.name}
+                              </Text>
+                            </HStack>
                             <Badge colorScheme={getTeamTypeColor(team.team_type)} size="sm">
                               {getTeamTypeLabel(team.team_type)}
                             </Badge>
@@ -440,9 +447,12 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
                       {/* Athletes Section */}
                       {athletes.length > 0 && (
                         <VStack spacing={3} align="stretch" mb={4}>
-                          <Text fontSize="sm" fontWeight="bold" color={headingColor}>
-                            🏃‍♀️ Athletes ({athletes.length})
-                          </Text>
+                          <HStack spacing={2}>
+                            <Icon as={FaRunning} color="green.500" />
+                            <Text fontSize="sm" fontWeight="bold" color={headingColor}>
+                              Athletes ({athletes.length})
+                            </Text>
+                          </HStack>
                           <VStack spacing={2} align="stretch">
                             {athletes.map((athlete) => (
                               <Flex key={athlete.id} justify="space-between" align="center" p={2} borderRadius="md" bg={hoverBg}>
@@ -482,9 +492,12 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
                       {/* Coaches Section */}
                       {coaches.length > 1 && (
                         <VStack spacing={3} align="stretch">
-                          <Text fontSize="sm" fontWeight="bold" color={headingColor}>
-                            👨‍🏫 Coaches ({coaches.length})
-                          </Text>
+                          <HStack spacing={2}>
+                            <Icon as={FaUserTie} color="purple.500" />
+                            <Text fontSize="sm" fontWeight="bold" color={headingColor}>
+                              Coaches ({coaches.length})
+                            </Text>
+                          </HStack>
                           <VStack spacing={2} align="stretch">
                             {coaches.map((coach) => (
                               <Flex key={coach.id} justify="space-between" align="center" p={2} borderRadius="md" bg={hoverBg}>

@@ -29,7 +29,7 @@ import {
   Tooltip,
   IconButton
 } from '@chakra-ui/react';
-import { FaUsers, FaSignOutAlt, FaUserFriends, FaCrown, FaPlus } from 'react-icons/fa';
+import { FaUsers, FaSignOutAlt, FaUserFriends, FaCrown, FaPlus, FaSchool, FaRunning, FaUserTie, FaBullseye } from 'react-icons/fa';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -322,10 +322,10 @@ export const MyTeamsCard: React.FC<MyTeamsCardProps> = ({ maxTeamsToShow = 3 }) 
 
   const getTeamTypeIcon = (teamType: string) => {
     switch (teamType) {
-      case 'school': return '🏫';
-      case 'club': return '🏃‍♀️';
-      case 'coach': return '👨‍🏫';
-      default: return '🎯';
+      case 'school': return FaSchool;
+      case 'club': return FaRunning;
+      case 'coach': return FaUserTie;
+      default: return FaBullseye;
     }
   };
 
@@ -338,14 +338,15 @@ export const MyTeamsCard: React.FC<MyTeamsCardProps> = ({ maxTeamsToShow = 3 }) 
     }
   };
 
-  const renderTeamSection = (sectionTeams: Team[], title: string, icon: string) => {
+  const renderTeamSection = (sectionTeams: Team[], title: string, IconComponent: any) => {
     if (sectionTeams.length === 0) return null;
 
     return (
       <VStack spacing={3} align="stretch">
         <HStack spacing={2}>
+          <Icon as={IconComponent} color="blue.500" />
           <Text fontSize="sm" fontWeight="bold" color={headingColor}>
-            {icon} {title} ({sectionTeams.length})
+            {title} ({sectionTeams.length})
           </Text>
         </HStack>
         {sectionTeams.map((team, index) => (
@@ -469,9 +470,9 @@ export const MyTeamsCard: React.FC<MyTeamsCardProps> = ({ maxTeamsToShow = 3 }) 
         </CardHeader>
         <CardBody pt={0}>
           <VStack spacing={6} align="stretch">
-            {renderTeamSection(institutionalTeams, "Institutional Teams", "🏫")}
-            {renderTeamSection(coachTeams, "Coach Teams", "👨‍🏫")}
-            {renderTeamSection(otherTeams, "Other Teams", "🎯")}
+            {renderTeamSection(institutionalTeams, "Institutional Teams", FaSchool)}
+            {renderTeamSection(coachTeams, "Coach Teams", FaUserTie)}
+            {renderTeamSection(otherTeams, "Other Teams", FaBullseye)}
           </VStack>
         </CardBody>
       </Card>
