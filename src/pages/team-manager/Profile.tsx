@@ -41,20 +41,37 @@ import {
   FaPhone,
   FaMapMarkerAlt,
   FaCalendar,
-  FaUser
+  FaUser,
+  FaLinkedin,
+  FaTwitter
 } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { getInstitutionalProfile, getInstitutionStats } from '../../services/institutionService';
+import { supabase } from '../../lib/supabase';
 import { InstitutionalProfile } from '../../types/institution';
 import { EditInstitutionModal } from '../../components/modals/EditInstitutionModal';
 import { TransferManagerModal } from '../../components/modals/TransferManagerModal';
 import { LogoUploadModal } from '../../components/modals/LogoUploadModal';
 import { EditManagerProfileModal } from '../../components/modals/EditManagerProfileModal';
 
+interface PersonalProfile {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  bio?: string;
+  avatar_url?: string;
+  linkedin_url?: string;
+  twitter_url?: string;
+  website_url?: string;
+}
+
 export function TeamManagerProfile() {
   const { user } = useAuth();
   const toast = useToast();
   const [profile, setProfile] = useState<InstitutionalProfile | null>(null);
+  const [personalProfile, setPersonalProfile] = useState<PersonalProfile | null>(null);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -84,14 +101,23 @@ export function TeamManagerProfile() {
       setLoading(true);
       setError(null);
 
-      // Load profile and stats in parallel
-      const [profileData, statsData] = await Promise.all([
+      // Load profile, stats, and personal profile in parallel
+      const [profileData, statsData, personalProfileData] = await Promise.all([
         getInstitutionalProfile(user.id),
-        getInstitutionStats(user.id)
+        getInstitutionStats(user.id),
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single()
       ]);
 
       setProfile(profileData);
       setStats(statsData);
+      
+      if (personalProfileData.data) {
+        setPersonalProfile(personalProfileData.data);
+      }
 
       if (!profileData) {
         setError('No institutional profile found. Please create a team first.');
@@ -135,9 +161,24 @@ export function TeamManagerProfile() {
     });
   };
 
-  const handlePersonalProfileUpdate = () => {
-    // Personal profile updates don't affect institutional profile
-    // Just show success message
+  const handlePersonalProfileUpdate = async () => {
+    // Reload personal profile data after update
+    if (user?.id) {
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (data) {
+          setPersonalProfile(data);
+        }
+      } catch (error) {
+        console.error('Error reloading personal profile:', error);
+      }
+    }
+    
     toast({
       title: 'Success',
       description: 'Personal profile updated successfully',
@@ -282,35 +323,119 @@ export function TeamManagerProfile() {
             </HStack>
           </CardHeader>
           <CardBody>
-            <Text color={textColor} mb={4}>
-              Manage your personal information, contact details, and social media links.
-            </Text>
-            <HStack spacing={4}>
-              <Button
-                leftIcon={<Icon as={FaUser} />}
-                variant="ghost"
-                size="sm"
-                onClick={personalProfileModal.onOpen}
-              >
-                Update Personal Info
-              </Button>
-              <Button
-                leftIcon={<Icon as={FaPhone} />}
-                variant="ghost"
-                size="sm"
-                onClick={personalProfileModal.onOpen}
-              >
-                Contact Details
-              </Button>
-              <Button
-                leftIcon={<Icon as={FaGlobe} />}
-                variant="ghost"
-                size="sm"
-                onClick={personalProfileModal.onOpen}
-              >
-                Social Links
-              </Button>
-            </HStack>
+            {personalProfile ? (
+              <HStack spacing={6} align="start">
+                {/* Avatar Section */}
+                <Box position="relative">
+                  <Avatar
+                    size="xl"
+                    src={personalProfile.avatar_url}
+                    name={`${personalProfile.first_name} ${personalProfile.last_name}`}
+                    bg="green.500"
+                  />
+                </Box>
+
+                {/* Personal Information */}
+                <VStack align="start" flex={1} spacing={4}>
+                  <VStack align="start" spacing={2}>
+                    <Heading size="md">
+                      {personalProfile.first_name} {personalProfile.last_name}
+                    </Heading>
+                    <Text color={textColor} fontSize="sm">
+                      {personalProfile.email}
+                    </Text>
+                  </VStack>
+
+                  {/* Contact & Bio */}
+                  <VStack align="start" spacing={3} w="full">
+                    {personalProfile.phone && (
+                      <HStack>
+                        <Icon as={FaPhone} color={mutedTextColor} />
+                        <Text fontSize="sm">{personalProfile.phone}</Text>
+                      </HStack>
+                    )}
+
+                    {personalProfile.bio && (
+                      <VStack align="start" spacing={1} w="full">
+                        <Text fontSize="sm" fontWeight="medium" color={textColor}>
+                          Bio
+                        </Text>
+                        <Text fontSize="sm" color={textColor} lineHeight="1.5">
+                          {personalProfile.bio}
+                        </Text>
+                      </VStack>
+                    )}
+
+                    {/* Social Links */}
+                    {(personalProfile.linkedin_url || personalProfile.twitter_url || personalProfile.website_url) && (
+                      <VStack align="start" spacing={2} w="full">
+                        <Text fontSize="sm" fontWeight="medium" color={textColor}>
+                          Social Links
+                        </Text>
+                        <HStack spacing={4} flexWrap="wrap">
+                          {personalProfile.linkedin_url && (
+                            <HStack
+                              as="a"
+                              href={personalProfile.linkedin_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              color="blue.500"
+                              _hover={{ color: "blue.600", textDecoration: "underline" }}
+                              fontSize="sm"
+                            >
+                              <Icon as={FaLinkedin} />
+                              <Text>LinkedIn</Text>
+                            </HStack>
+                          )}
+                          {personalProfile.twitter_url && (
+                            <HStack
+                              as="a"
+                              href={personalProfile.twitter_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              color="blue.400"
+                              _hover={{ color: "blue.500", textDecoration: "underline" }}
+                              fontSize="sm"
+                            >
+                              <Icon as={FaTwitter} />
+                              <Text>Twitter</Text>
+                            </HStack>
+                          )}
+                          {personalProfile.website_url && (
+                            <HStack
+                              as="a"
+                              href={personalProfile.website_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              color="green.500"
+                              _hover={{ color: "green.600", textDecoration: "underline" }}
+                              fontSize="sm"
+                            >
+                              <Icon as={FaGlobe} />
+                              <Text>Website</Text>
+                            </HStack>
+                          )}
+                        </HStack>
+                      </VStack>
+                    )}
+                  </VStack>
+                </VStack>
+              </HStack>
+            ) : (
+              <VStack spacing={4} align="center" py={8}>
+                <Text color={mutedTextColor} textAlign="center">
+                  No personal profile information available
+                </Text>
+                <Button
+                  leftIcon={<Icon as={FaUser} />}
+                  colorScheme="green"
+                  variant="outline"
+                  onClick={personalProfileModal.onOpen}
+                >
+                  Set Up Personal Profile
+                </Button>
+              </VStack>
+            )}
           </CardBody>
         </Card>
 
