@@ -109,19 +109,56 @@ export function TeamManagerAthletes() {
       if (!user?.id) return [];
 
       try {
-        // Get all teams created by this team manager
-        const { data: teams, error: teamsError } = await supabase
+        // Get all teams where this team manager has authority:
+        // 1. Teams created by this team manager (institution teams)
+        // 2. Teams where coaches belong to the institution (coach teams with institutional coaches)
+        
+        // First, get teams directly created by this team manager
+        const { data: institutionTeams, error: institutionTeamsError } = await supabase
           .from('teams')
           .select('id, name, team_type')
           .eq('created_by', user.id)
           .eq('is_active', true);
 
-        if (teamsError) throw teamsError;
-        if (!teams || teams.length === 0) return [];
+        if (institutionTeamsError) throw institutionTeamsError;
 
-        const teamIds = teams.map(t => t.id);
+        // Second, get coach teams where the coach belongs to this institution
+        // This means coaches who are also members of teams created by this team manager
+        const { data: institutionCoaches, error: coachesError } = await supabase
+          .from('team_members')
+          .select(`
+            user_id,
+            teams!inner(created_by)
+          `)
+          .eq('role', 'coach')
+          .eq('status', 'active')
+          .eq('teams.created_by', user.id);
 
-        // Get all athletes from these teams
+        if (coachesError) throw coachesError;
+
+        // Get coach teams created by these institutional coaches
+        const institutionCoachIds = institutionCoaches?.map(ic => ic.user_id) || [];
+        let coachTeams: any[] = [];
+        
+        if (institutionCoachIds.length > 0) {
+          const { data: coachTeamsData, error: coachTeamsError } = await supabase
+            .from('teams')
+            .select('id, name, team_type')
+            .in('created_by', institutionCoachIds)
+            .eq('team_type', 'coach')
+            .eq('is_active', true);
+
+          if (coachTeamsError) throw coachTeamsError;
+          coachTeams = coachTeamsData || [];
+        }
+
+        // Combine all team IDs
+        const allTeams = [...(institutionTeams || []), ...coachTeams];
+        if (allTeams.length === 0) return [];
+
+        const teamIds = allTeams.map(t => t.id);
+
+        // Get all athletes from these teams using team_members
         const { data: teamMembers, error: membersError } = await supabase
           .from('team_members')
           .select(`
@@ -149,7 +186,7 @@ export function TeamManagerAthletes() {
         // Get athlete-specific data
         const { data: athleteData, error: athleteError } = await supabase
           .from('athletes')
-          .select('id, birth_date, gender, events')
+          .select('id, date_of_birth, gender, events')
           .in('id', athleteIds);
 
         if (athleteError) throw athleteError;
@@ -159,8 +196,8 @@ export function TeamManagerAthletes() {
           const profile = profiles?.find(p => p.id === member.user_id);
           const athleteInfo = athleteData?.find(a => a.id === member.user_id);
           
-          const age = athleteInfo?.birth_date 
-            ? new Date().getFullYear() - new Date(athleteInfo.birth_date).getFullYear()
+          const age = athleteInfo?.date_of_birth 
+            ? new Date().getFullYear() - new Date(athleteInfo.date_of_birth).getFullYear()
             : undefined;
 
           return {
@@ -171,7 +208,7 @@ export function TeamManagerAthletes() {
             avatar_url: profile?.avatar_url,
             phone: profile?.phone,
             bio: profile?.bio,
-            date_of_birth: athleteInfo?.birth_date,
+            date_of_birth: athleteInfo?.date_of_birth,
             gender: athleteInfo?.gender,
             events: athleteInfo?.events || [],
             team_id: member.team_id,
