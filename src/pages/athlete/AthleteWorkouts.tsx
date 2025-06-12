@@ -2,10 +2,10 @@ import {
   Box, Heading, Text, Spinner, Alert, AlertIcon, Stack, Card, CardBody, Button, Flex, HStack, Progress, Tag, VStack, Divider, Center, Icon, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, IconButton, SimpleGrid, Container, Tooltip, useDisclosure, Tabs, TabList, TabPanels, Tab, TabPanel, useToast, useColorModeValue, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter
 } from '@chakra-ui/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { FaEye, FaPlayCircle, FaRunning, FaDumbbell, FaRegClock, FaCalendarAlt, FaListUl, FaLeaf, FaRedo } from 'react-icons/fa';
+import { FaEye, FaPlayCircle, FaRunning, FaDumbbell, FaRegClock, FaCalendarAlt, FaListUl, FaLeaf, FaRedo, FaCog } from 'react-icons/fa';
 import { CheckIcon, EditIcon } from '@chakra-ui/icons'; // For exec modal
 import { FiCalendar, FiClock } from 'react-icons/fi';
 import { useState, useEffect, useRef } from 'react';
@@ -94,6 +94,7 @@ export function AthleteWorkouts() {
   const headingColor = useColorModeValue('gray.700', 'gray.200');
   
   const { user } = useAuth();
+  const navigate = useNavigate();
   const workoutStore = useWorkoutStore();
   const today = getCurrentDate();
   const toast = useToast();
@@ -680,13 +681,44 @@ export function AthleteWorkouts() {
         title="Workouts"
         subtitle="Your Training Schedule"
         isLoading={isLoading}
+        actionButton={
+          <IconButton
+            aria-label="Create Workout"
+            icon={<FaCog />}
+            size="md"
+            colorScheme="blue"
+            variant="solid"
+            borderRadius="full"
+            onClick={() => navigate('/athlete/workout-creator')}
+            boxShadow="lg"
+            _hover={{ 
+              transform: 'scale(1.05)',
+              boxShadow: 'xl'
+            }}
+            transition="all 0.2s"
+            _active={{
+              transform: 'scale(0.95)'
+            }}
+          />
+        }
       />
 
       {/* Desktop Header - keep existing */}
       <Box display={{ base: "none", lg: "block" }} mb={6}>
-        <Heading size="lg" mb={2}>
-          Workouts
-        </Heading>
+        <Flex justify="space-between" align="center" mb={2}>
+          <Heading size="lg">
+            Workouts
+          </Heading>
+          <Button
+            leftIcon={<FaCog />}
+            colorScheme="blue"
+            variant="outline"
+            size="md"
+            onClick={() => navigate('/athlete/workout-creator')}
+          >
+            Create Workout
+          </Button>
+        </Flex>
         <Text color={textColor}>
           Your Training Schedule
         </Text>

@@ -64,6 +64,7 @@ import PublicLayout from '../layouts/PublicLayout';
 import AthleteLayoutWithFeedback from '../layouts/AthleteLayoutWithFeedback';
 import CoachLayoutWithFeedback from '../layouts/CoachLayoutWithFeedback';
 import TeamManagerLayoutWithFeedback from '../layouts/TeamManagerLayoutWithFeedback';
+import DynamicLayoutWithFeedback from '../layouts/DynamicLayoutWithFeedback';
 
 // Notifications
 import NotificationsPage from '../pages/NotificationsPage';
@@ -84,10 +85,12 @@ export default function AppRoutes() {
       <Route element={<GeneralLayout><Outlet /></GeneralLayout>}>
         <Route path="/workouts" element={<PrivateRoute><Workouts /></PrivateRoute>} />
         <Route path="/team" element={<PrivateRoute><Team /></PrivateRoute>} />
-        <Route path="/join-team" element={<PrivateRoute><JoinTeam /></PrivateRoute>} />
         <Route path="/private-meets" element={<PrivateRoute><Meets /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
       </Route>
+
+      {/* Join Team Route - Dynamic Layout Based on User Role */}
+      <Route path="/join-team" element={<DynamicLayoutWithFeedback><PrivateRoute><JoinTeam /></PrivateRoute></DynamicLayoutWithFeedback>} />
 
       {/* Public Routes */}
       <Route element={<PublicLayout />}>    

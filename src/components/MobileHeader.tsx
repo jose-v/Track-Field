@@ -16,12 +16,14 @@ interface MobileHeaderProps {
   title: string;
   subtitle?: string;
   isLoading?: boolean;
+  actionButton?: React.ReactNode;
 }
 
 export const MobileHeader: React.FC<MobileHeaderProps> = ({
   title,
   subtitle,
   isLoading = false,
+  actionButton,
 }) => {
   const { isHeaderVisible } = useScrollDirection(15);
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
@@ -67,6 +69,9 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
               </Skeleton>
             )}
           </VStack>
+          
+          {/* Optional Action Button */}
+          {actionButton}
           
           {/* AI Assistant Button */}
           <IconButton

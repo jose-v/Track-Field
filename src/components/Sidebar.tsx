@@ -87,12 +87,22 @@ const MobileNavItem = ({ icon, label, to, isActive, onClick }: {
   const hoverBg = useColorModeValue('gray.100', 'gray.700');
   const activeColor = useColorModeValue('blue.600', 'blue.200');
   const color = useColorModeValue('gray.700', 'gray.300');
+
+  // Handle touch events to prevent hover state persistence
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    // Clear any hover states by briefly blurring the element
+    const target = e.currentTarget as HTMLElement;
+    setTimeout(() => {
+      target.blur();
+    }, 50);
+  };
   
   return (
     <Flex
       as={RouterLink}
       to={to}
       onClick={onClick}
+      onTouchEnd={handleTouchEnd}
       align="center"
       p={4}
       borderRadius="lg"
@@ -104,8 +114,10 @@ const MobileNavItem = ({ icon, label, to, isActive, onClick }: {
       transition="all 0.2s"
       justify="flex-start"
       _hover={{
-        bg: hoverBg,
-        color: activeColor,
+        '@media (hover: hover)': {
+          bg: hoverBg,
+          color: activeColor,
+        }
       }}
       _active={{
         bg: activeBg,
@@ -114,14 +126,18 @@ const MobileNavItem = ({ icon, label, to, isActive, onClick }: {
       _focus={{
         boxShadow: 'none',
         outline: 'none',
-        bg: hoverBg,
-        color: activeColor,
+        '@media (hover: hover)': {
+          bg: hoverBg,
+          color: activeColor,
+        }
       }}
       _focusVisible={{
         boxShadow: 'none',
         outline: 'none',
-        bg: hoverBg,
-        color: activeColor,
+        '@media (hover: hover)': {
+          bg: hoverBg,
+          color: activeColor,
+        }
       }}
     >
       <Icon
@@ -260,9 +276,9 @@ const Sidebar = ({ userType }: SidebarProps) => {
       // Create a mapping of athlete navigation paths to their proper icons
       const athleteIconMap: { [key: string]: any } = {
         '/athlete/dashboard': FaTachometerAlt,
-        '/athlete/workouts': BiRun,
-        '/join-team': HiUserGroup,
-        '/athlete/meets': BiCalendar,
+        '/athlete/workouts': FaDumbbell,
+        '/join-team': FaUserPlus,
+        '/athlete/meets': BsCalendarCheck,
         '/athlete/calendar': BiCalendar,
         '/athlete/nutrition': BiDish,
         '/athlete/sleep': BiMoon,

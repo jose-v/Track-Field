@@ -55,7 +55,7 @@ export function useAthleteNavigation(): AthleteNavConfig & { isCurrentPathActive
       icon: <HiUserGroup />
     },
     {
-      name: 'Events',
+      name: 'Meets',
       path: '/athlete/meets',
       icon: <BiCalendar />
     },

@@ -212,7 +212,7 @@ export function Login() {
           bg={cardBg}
           borderColor={borderColor}
           borderWidth={1}
-          mt={{ base: 20, md: 6, lg: 8 }}
+          mt={{ base: 20, md: 6, lg: 20 }}
         >
           {/* Full-width Hero Header */}
           <Box 

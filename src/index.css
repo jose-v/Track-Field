@@ -144,6 +144,22 @@ button.chakra-icon-button[aria-label*="Edit"] svg,
   background: transparent !important;
 }
 
+/* Prevent persistent hover states on all mobile sidebar navigation items */
+@media (hover: none) and (pointer: coarse) {
+  .chakra-drawer [role="group"]:hover,
+  .chakra-drawer .chakra-flex:hover {
+    background: transparent !important;
+  }
+}
+
+/* Additional safety: Force no hover backgrounds on touch devices for sidebar nav */
+@media (max-width: 768px) {
+  .chakra-drawer [role="group"]:hover,
+  .chakra-drawer .chakra-flex[as*="RouterLink"]:hover {
+    background: transparent !important;
+  }
+}
+
 /* Sidebar role text styling */
 .chakra-stack .chakra-text[data-role="label"] {
   color: #898989 !important;
