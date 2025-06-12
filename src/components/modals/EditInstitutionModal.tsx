@@ -22,6 +22,7 @@ import {
   NumberInputStepper,
   NumberIncrementStepper,
   NumberDecrementStepper,
+  useColorModeValue,
 } from '@chakra-ui/react';
 import { useAuth } from '../../contexts/AuthContext';
 import { updateInstitutionalProfile } from '../../services/institutionService';
@@ -52,6 +53,10 @@ export function EditInstitutionModal({ isOpen, onClose, profile, onUpdate }: Edi
     manager_title: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Color mode values
+  const modalBg = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
 
   useEffect(() => {
     if (profile && isOpen) {
@@ -158,7 +163,7 @@ export function EditInstitutionModal({ isOpen, onClose, profile, onUpdate }: Edi
   return (
     <Modal isOpen={isOpen} onClose={handleClose} size="xl">
       <ModalOverlay />
-      <ModalContent>
+      <ModalContent bg={modalBg}>
         <ModalHeader>Edit Institutional Profile</ModalHeader>
         <ModalCloseButton />
         

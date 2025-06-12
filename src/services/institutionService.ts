@@ -89,7 +89,7 @@ export async function uploadInstitutionLogo(
 
     // Upload file to Supabase Storage
     const { error: uploadError } = await supabase.storage
-      .from('avatars') // Using existing avatars bucket
+      .from('storage') // Using existing storage bucket
       .upload(filePath, file, { upsert: true });
 
     if (uploadError) {
@@ -99,7 +99,7 @@ export async function uploadInstitutionLogo(
 
     // Get public URL
     const { data } = supabase.storage
-      .from('avatars')
+      .from('storage')
       .getPublicUrl(filePath);
 
     // Update teams table with logo URL (where this manager is creator)

@@ -26,7 +26,8 @@ import {
   SimpleGrid,
   Icon,
   Flex,
-  useDisclosure
+  useDisclosure,
+  useColorModeValue
 } from '@chakra-ui/react';
 import {
   FaBuilding,
@@ -55,6 +56,12 @@ export function TeamManagerProfile() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Color mode values
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const textColor = useColorModeValue('gray.600', 'gray.300');
+  const mutedTextColor = useColorModeValue('gray.500', 'gray.400');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
 
   // Modal controls
   const editModal = useDisclosure();
@@ -172,7 +179,7 @@ export function TeamManagerProfile() {
     <Container maxW="6xl" py={8}>
       <VStack spacing={8} align="stretch">
         {/* Header Section */}
-        <Card>
+        <Card bg={cardBg}>
           <CardBody>
             <HStack spacing={6} align="start">
               <Box position="relative">
@@ -204,7 +211,7 @@ export function TeamManagerProfile() {
                   </Badge>
                 </HStack>
 
-                <HStack spacing={4} color="gray.600">
+                <HStack spacing={4} color={textColor}>
                   <HStack>
                     <Icon as={FaUserTie} />
                     <Text>{profile.manager_first_name} {profile.manager_last_name}</Text>
@@ -214,7 +221,7 @@ export function TeamManagerProfile() {
                 </HStack>
 
                 {profile.city && profile.state && (
-                  <HStack color="gray.600">
+                  <HStack color={textColor}>
                     <Icon as={FaMapMarkerAlt} />
                     <Text>{profile.city}, {profile.state}</Text>
                   </HStack>
@@ -245,7 +252,7 @@ export function TeamManagerProfile() {
 
         {/* Statistics Section */}
         {stats && (
-          <Card>
+          <Card bg={cardBg}>
             <CardHeader>
               <Heading size="md">Institution Statistics</Heading>
             </CardHeader>
@@ -275,7 +282,7 @@ export function TeamManagerProfile() {
         {/* Institution Details */}
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
           {/* Contact Information */}
-          <Card>
+          <Card bg={cardBg}>
             <CardHeader>
               <Heading size="md">Contact Information</Heading>
             </CardHeader>
@@ -283,14 +290,14 @@ export function TeamManagerProfile() {
               <VStack align="start" spacing={4}>
                 {profile.phone && (
                   <HStack>
-                    <Icon as={FaPhone} color="gray.500" />
+                    <Icon as={FaPhone} color={mutedTextColor} />
                     <Text>{profile.phone}</Text>
                   </HStack>
                 )}
                 
                 {profile.website && (
                   <HStack>
-                    <Icon as={FaGlobe} color="gray.500" />
+                    <Icon as={FaGlobe} color={mutedTextColor} />
                     <Text
                       as="a"
                       href={profile.website}
@@ -307,10 +314,10 @@ export function TeamManagerProfile() {
                 {profile.address && (
                   <VStack align="start" spacing={1}>
                     <HStack>
-                      <Icon as={FaMapMarkerAlt} color="gray.500" />
+                      <Icon as={FaMapMarkerAlt} color={mutedTextColor} />
                       <Text fontWeight="medium">Address</Text>
                     </HStack>
-                    <Text ml={6} color="gray.600">
+                    <Text ml={6} color={textColor}>
                       {profile.address}
                       {profile.city && `, ${profile.city}`}
                       {profile.state && `, ${profile.state}`}
@@ -320,7 +327,7 @@ export function TeamManagerProfile() {
                 )}
 
                 {!profile.phone && !profile.website && !profile.address && (
-                  <Text color="gray.500" fontStyle="italic">
+                  <Text color={mutedTextColor} fontStyle="italic">
                     No contact information provided
                   </Text>
                 )}
@@ -329,7 +336,7 @@ export function TeamManagerProfile() {
           </Card>
 
           {/* Institution Details */}
-          <Card>
+          <Card bg={cardBg}>
             <CardHeader>
               <Heading size="md">Institution Details</Heading>
             </CardHeader>
@@ -337,13 +344,13 @@ export function TeamManagerProfile() {
               <VStack align="start" spacing={4}>
                 {profile.established_year && (
                   <HStack>
-                    <Icon as={FaCalendar} color="gray.500" />
+                    <Icon as={FaCalendar} color={mutedTextColor} />
                     <Text>Established {profile.established_year}</Text>
                   </HStack>
                 )}
 
                 <HStack>
-                  <Icon as={FaBuilding} color="gray.500" />
+                  <Icon as={FaBuilding} color={mutedTextColor} />
                   <Text>
                     {profile.institution_type?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Institution'}
                   </Text>
@@ -351,19 +358,19 @@ export function TeamManagerProfile() {
 
                 <VStack align="start" spacing={1}>
                   <HStack>
-                    <Icon as={FaUserTie} color="gray.500" />
+                    <Icon as={FaUserTie} color={mutedTextColor} />
                     <Text fontWeight="medium">Manager</Text>
                   </HStack>
-                  <Text ml={6} color="gray.600">
+                  <Text ml={6} color={textColor}>
                     {profile.manager_first_name} {profile.manager_last_name}
                   </Text>
-                  <Text ml={6} color="gray.500" fontSize="sm">
+                  <Text ml={6} color={mutedTextColor} fontSize="sm">
                     {profile.manager_email}
                   </Text>
                 </VStack>
 
                 {!profile.established_year && (
-                  <Text color="gray.500" fontStyle="italic">
+                  <Text color={mutedTextColor} fontStyle="italic">
                     Additional details can be added by editing the profile
                   </Text>
                 )}
@@ -373,7 +380,7 @@ export function TeamManagerProfile() {
         </SimpleGrid>
 
         {/* Quick Actions */}
-        <Card>
+        <Card bg={cardBg}>
           <CardHeader>
             <Heading size="md">Quick Actions</Heading>
           </CardHeader>

@@ -21,6 +21,7 @@ import {
   Icon,
   Center,
   Divider,
+  useColorModeValue,
 } from '@chakra-ui/react';
 import { FaUpload, FaImage, FaTrash } from 'react-icons/fa';
 import { uploadInstitutionLogo } from '../../services/institutionService';
@@ -46,6 +47,12 @@ export function LogoUploadModal({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Color mode values
+  const modalBg = useColorModeValue('white', 'gray.800');
+  const textColor = useColorModeValue('gray.600', 'gray.300');
+  const borderColor = useColorModeValue('gray.300', 'gray.600');
+  const bgColor = useColorModeValue('gray.50', 'gray.700');
 
   const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -160,7 +167,7 @@ export function LogoUploadModal({
   return (
     <Modal isOpen={isOpen} onClose={handleClose} size="md">
       <ModalOverlay />
-      <ModalContent>
+      <ModalContent bg={modalBg}>
         <ModalHeader>Institution Logo</ModalHeader>
         <ModalCloseButton />
         
@@ -169,7 +176,7 @@ export function LogoUploadModal({
             {/* Current Logo */}
             {currentLogoUrl && !selectedFile && (
               <Box>
-                <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.600">
+                <Text fontSize="sm" fontWeight="medium" mb={2} color={textColor}>
                   Current Logo
                 </Text>
                 <Center
@@ -177,9 +184,9 @@ export function LogoUploadModal({
                   h="200px"
                   borderWidth={2}
                   borderStyle="dashed"
-                  borderColor="gray.300"
+                  borderColor={borderColor}
                   borderRadius="md"
-                  bg="gray.50"
+                  bg={bgColor}
                 >
                   <Image
                     src={currentLogoUrl}
@@ -194,7 +201,7 @@ export function LogoUploadModal({
 
             {/* File Upload Area */}
             <Box width="100%">
-              <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.600">
+              <Text fontSize="sm" fontWeight="medium" mb={2} color={textColor}>
                 {selectedFile ? 'New Logo Preview' : 'Upload New Logo'}
               </Text>
               
@@ -203,14 +210,14 @@ export function LogoUploadModal({
                 h="200px"
                 borderWidth={2}
                 borderStyle="dashed"
-                borderColor={selectedFile ? "blue.300" : "gray.300"}
+                borderColor={selectedFile ? "blue.300" : borderColor}
                 borderRadius="md"
-                bg={selectedFile ? "blue.50" : "gray.50"}
+                bg={selectedFile ? useColorModeValue("blue.50", "blue.900") : bgColor}
                 cursor="pointer"
                 onClick={triggerFileSelect}
                 _hover={{
                   borderColor: "blue.400",
-                  bg: "blue.50"
+                  bg: useColorModeValue("blue.50", "blue.900")
                 }}
               >
                 {previewUrl ? (
@@ -223,11 +230,11 @@ export function LogoUploadModal({
                   />
                 ) : (
                   <VStack spacing={2}>
-                    <Icon as={FaImage} boxSize={8} color="gray.400" />
-                    <Text fontSize="sm" color="gray.500" textAlign="center">
+                    <Icon as={FaImage} boxSize={8} color={useColorModeValue("gray.400", "gray.500")} />
+                    <Text fontSize="sm" color={useColorModeValue("gray.500", "gray.400")} textAlign="center">
                       Click to select an image
                     </Text>
-                    <Text fontSize="xs" color="gray.400" textAlign="center">
+                    <Text fontSize="xs" color={useColorModeValue("gray.400", "gray.500")} textAlign="center">
                       JPEG, PNG, GIF, or WebP (max 5MB)
                     </Text>
                   </VStack>
@@ -259,7 +266,7 @@ export function LogoUploadModal({
                   <Text fontSize="sm">
                     <strong>Selected:</strong> {selectedFile.name}
                   </Text>
-                  <Text fontSize="xs" color="gray.600">
+                  <Text fontSize="xs" color={textColor}>
                     Size: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                   </Text>
                 </Box>

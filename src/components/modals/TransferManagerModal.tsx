@@ -24,6 +24,7 @@ import {
   Box,
   useToast,
   Divider,
+  useColorModeValue,
 } from '@chakra-ui/react';
 import { searchPotentialManagers, transferManagerRole } from '../../services/institutionService';
 import { ManagerTransferRequest } from '../../types/institution';
@@ -48,6 +49,10 @@ export function TransferManagerModal({
   const [selectedManager, setSelectedManager] = useState<any>(null);
   const [transferReason, setTransferReason] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Color mode values
+  const modalBg = useColorModeValue('white', 'gray.800');
+  const textColor = useColorModeValue('gray.600', 'gray.300');
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -164,7 +169,7 @@ export function TransferManagerModal({
   return (
     <Modal isOpen={isOpen} onClose={handleClose} size="lg">
       <ModalOverlay />
-      <ModalContent>
+      <ModalContent bg={modalBg}>
         <ModalHeader>
           {step === 'search' ? 'Transfer Management' : 'Confirm Transfer'}
         </ModalHeader>
@@ -198,7 +203,7 @@ export function TransferManagerModal({
                 <FormErrorMessage>{errors.email}</FormErrorMessage>
               </FormControl>
 
-              <Text fontSize="sm" color="gray.600" textAlign="center">
+              <Text fontSize="sm" color={textColor} textAlign="center">
                 The new manager must already have a team manager account in the system.
               </Text>
             </VStack>
@@ -219,7 +224,7 @@ export function TransferManagerModal({
                   p={4}
                   borderWidth={1}
                   borderRadius="md"
-                  borderColor="gray.200"
+                  borderColor={useColorModeValue("gray.200", "gray.600")}
                   width="100%"
                 >
                   <HStack spacing={4}>
@@ -232,7 +237,7 @@ export function TransferManagerModal({
                       <Text fontWeight="medium">
                         {selectedManager.first_name} {selectedManager.last_name}
                       </Text>
-                      <Text fontSize="sm" color="gray.600">
+                      <Text fontSize="sm" color={textColor}>
                         {selectedManager.email}
                       </Text>
                     </VStack>
