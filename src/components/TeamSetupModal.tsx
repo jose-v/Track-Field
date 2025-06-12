@@ -54,42 +54,12 @@ export function TeamSetupModal({ isOpen, onClose, userRole }: TeamSetupModalProp
     }));
   };
 
-  // Ensure user has team manager profile
+  // Team managers now use unified system - no separate profile needed
   const ensureTeamManagerProfile = async (userId: string) => {
-    try {
-      // Check if team manager profile exists (without .single() to avoid errors)
-      const { data: existingManager, error: checkError } = await supabase
-        .from('team_managers')
-        .select('id')
-        .eq('id', userId)
-        .maybeSingle(); // Use maybeSingle() instead of single()
-
-      if (checkError) {
-        throw checkError;
-      }
-
-      // If no team manager profile exists, create one
-      if (!existingManager) {
-        const { error: createError } = await supabase
-          .from('team_managers')
-          .insert([{ id: userId }]);
-
-        if (createError) {
-          // If it's a duplicate key error, that's fine - it means someone else created it
-          if (createError.code === '23505') {
-            console.log('Team manager profile already exists for user:', userId);
-            return;
-          }
-          throw createError;
-        }
-        console.log('Team manager profile created for user:', userId);
-      } else {
-        console.log('Team manager profile already exists for user:', userId);
-      }
-    } catch (error) {
-      console.error('Error ensuring team manager profile:', error);
-      throw error;
-    }
+    // Team managers are handled through the unified teams + team_members system
+    // They get added to team_members when they create or join teams
+    // No separate team_managers table needed
+    console.log('Team manager using unified system for user:', userId);
   };
 
   // Create team function

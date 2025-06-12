@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase'
-import type { Athlete, Coach, TeamManager, Profile, Team } from './dbSchema'
+import type { Athlete, Coach, Profile, Team } from './dbSchema'
 
 export interface Exercise {
   id?: string
@@ -832,10 +832,16 @@ export const api = {
                   });
 
                   const managerQueryPromise = supabase
-                    .from('team_managers')
-                    .select('*')
-                    .eq('id', user.id)
-                    .maybeSingle();
+                    .from('team_members')
+                    .select(`
+                      *,
+                      teams:team_id (
+                        id, name, institution_name, institution_type
+                      )
+                    `)
+                    .eq('user_id', user.id)
+                    .eq('role', 'manager')
+                    .eq('status', 'active');
 
                   const { data: managerData, error: managerError } = await Promise.race([
                     managerQueryPromise, 
@@ -843,7 +849,7 @@ export const api = {
                   ]) as any;
                   
                   if (!managerError && managerData) {
-                    roleData = managerData;
+                    roleData = { teams: managerData || [] };
                     console.log('✅ Found team manager role data:', managerData);
                   } else if (managerError) {
                     console.warn('Team manager data fetch warning:', managerError.message);
@@ -1074,20 +1080,11 @@ export const api = {
           console.log('Coach data updated successfully', data);
         }
         else if (userRole === 'team_manager' && roleData) {
-          console.log('Updating team manager data:', roleData);
-          const { error } = await supabase
-            .from('team_managers')
-            .update({
-              organization: roleData.organization
-            })
-            .eq('id', user.id)
-          
-          if (error) {
-            console.error('Error updating team manager data:', error);
-            throw error;
-          }
-          
-          console.log('Team manager data updated successfully');
+          console.log('Team manager data update - using unified system:', roleData);
+          // Team managers now use unified teams + team_members system
+          // Their data is stored in teams table institutional fields
+          // No separate team_managers table updates needed
+          console.log('Team manager data handled through unified system');
         }
 
         // Fetch updated profile with role data

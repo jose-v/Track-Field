@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { UserRole } from '../contexts/SignupContext';
-import type { Profile, Athlete, Coach, TeamManager } from './dbSchema';
+import type { Profile, Athlete, Coach } from './dbSchema';
 
 export interface SignupData {
   role: UserRole;
@@ -162,19 +162,12 @@ async function createCoachProfile(userId: string): Promise<void> {
  * Create a team manager profile
  */
 async function createTeamManagerProfile(userId: string): Promise<void> {
-  // 1. Insert into team_managers table
-  const managerData: Partial<TeamManager> = {
-    id: userId,
-  };
-
-  const { error } = await supabase
-    .from('team_managers')
-    .insert([managerData]);
-
-  if (error) throw error;
-
-  // 2. Team managers might work with athletes directly or through teams
-  // Additional logic can be added here based on requirements
+  // Team managers are now handled through the unified teams + team_members system
+  // No separate team_managers table needed - they get added to team_members when they create/join teams
+  console.log('Team manager profile setup - using unified system for user:', userId);
+  
+  // The actual team membership will be created when they create or join a team
+  // This function now just ensures the profile role is set correctly
 }
 
 /**
@@ -286,12 +279,19 @@ export async function getCurrentUserProfile() {
         break;
       
       case 'team_manager':
-        const { data: managerData } = await supabase
-          .from('team_managers')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        roleData = managerData;
+        // Team managers now use unified system - get their team memberships
+        const { data: managerTeams } = await supabase
+          .from('team_members')
+          .select(`
+            *,
+            teams:team_id (
+              id, name, institution_name, institution_type
+            )
+          `)
+          .eq('user_id', user.id)
+          .eq('role', 'manager')
+          .eq('status', 'active');
+        roleData = { teams: managerTeams || [] };
         break;
     }
 
@@ -421,12 +421,14 @@ export async function handleOAuthUserProfile(user: any, role?: UserRole): Promis
               roleProfileExists = !!coachData;
               break;
             case 'team_manager':
-              const { data: managerData } = await supabase
-                .from('team_managers')
+              // Team managers now use unified system - check if they have any team memberships
+              const { data: managerMemberships } = await supabase
+                .from('team_members')
                 .select('id')
-                .eq('id', userId)
-                .single();
-              roleProfileExists = !!managerData;
+                .eq('user_id', userId)
+                .eq('role', 'manager')
+                .limit(1);
+              roleProfileExists = !!managerMemberships && managerMemberships.length > 0;
               break;
           }
         } catch (error) {
@@ -655,16 +657,9 @@ export async function updateOAuthUserProfile(user: any, profileData: {
         break;
         
       case 'team_manager':
-        // Check if team manager profile exists
-        const { data: tmExists } = await supabase
-          .from('team_managers')
-          .select('id')
-          .eq('id', userId)
-          .single();
-        
-        if (!tmExists) {
-          await createTeamManagerProfile(userId);
-        }
+        // Team managers now use unified system - no separate table needed
+        // They will be added to team_members when they create or join teams
+        await createTeamManagerProfile(userId);
         break;
     }
 
