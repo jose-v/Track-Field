@@ -54,6 +54,9 @@ interface Team {
   user_role: 'athlete' | 'coach' | 'manager';
   joined_at: string;
   can_leave: boolean;
+  logo_url?: string;
+  institution_name?: string;
+  institution_type?: string;
 }
 
 interface MyTeamsCardProps {
@@ -82,7 +85,7 @@ export const MyTeamsCard: React.FC<MyTeamsCardProps> = ({ maxTeamsToShow = 3 }) 
       if (!user?.id) return [];
 
       try {
-        // Get user's team memberships from team_members table
+                // Get user's team memberships from team_members table
         const { data: memberships, error: membershipsError } = await supabase
           .from('team_members')
           .select(`
@@ -97,41 +100,51 @@ export const MyTeamsCard: React.FC<MyTeamsCardProps> = ({ maxTeamsToShow = 3 }) 
         if (!memberships || memberships.length === 0) return [];
 
         // Get detailed team information with all members for each team
-        const teamPromises = memberships.map(async (membership: any) => {
-          const teamId = membership.team_id;
+        const { data: teamsData, error: teamsError } = await supabase
+          .from('teams')
+          .select(`
+            id, 
+            name, 
+            description, 
+            team_type, 
+            created_at,
+            logo_url,
+            institution_name,
+            institution_type
+          `)
+          .in('id', memberships.map(m => m.team_id));
 
-          // Get team details
-          const { data: teamData, error: teamError } = await supabase
-            .from('teams')
-            .select('id, name, description, team_type, created_at')
-            .eq('id', teamId)
-            .single();
+        if (teamsError) throw teamsError;
 
-          if (teamError) throw teamError;
+        // Get all team members for all teams in one query
+        const { data: allTeamMembers, error: allMembersError } = await supabase
+          .from('team_members')
+          .select(`
+            team_id,
+            user_id,
+            role
+          `)
+          .in('team_id', memberships.map(m => m.team_id))
+          .eq('status', 'active');
 
-          // Get all team members for this team
-          const { data: teamMembers, error: membersError } = await supabase
-            .from('team_members')
-            .select(`
-              user_id,
-              role
-            `)
-            .eq('team_id', teamId)
-            .eq('status', 'active');
+        if (allMembersError) throw allMembersError;
 
-          if (membersError) throw membersError;
+        // Get all profile details for all members in one query
+        const allMemberIds = [...new Set(allTeamMembers?.map(m => m.user_id) || [])];
+        const { data: allProfiles, error: allProfilesError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, avatar_url')
+          .in('id', allMemberIds);
 
-          // Get profile details for team members
-          const memberIds = teamMembers?.map(m => m.user_id) || [];
-          const { data: profiles, error: profilesError } = await supabase
-            .from('profiles')
-            .select('id, first_name, last_name, avatar_url')
-            .in('id', memberIds);
+        if (allProfilesError) throw allProfilesError;
 
-          if (profilesError) throw profilesError;
-
-          const members: TeamMember[] = teamMembers?.map((member: any) => {
-            const profile = profiles?.find(p => p.id === member.user_id);
+        // Build teams with their members
+        const teams = teamsData?.map(teamData => {
+          const membership = memberships.find(m => m.team_id === teamData.id);
+          const teamMembers = allTeamMembers?.filter(m => m.team_id === teamData.id) || [];
+          
+          const members: TeamMember[] = teamMembers.map((member: any) => {
+            const profile = allProfiles?.find(p => p.id === member.user_id);
             return {
               id: member.user_id,
               first_name: profile?.first_name || 'Unknown',
@@ -139,26 +152,29 @@ export const MyTeamsCard: React.FC<MyTeamsCardProps> = ({ maxTeamsToShow = 3 }) 
               avatar_url: profile?.avatar_url,
               role: member.role as 'athlete' | 'coach' | 'team_manager'
             };
-          }) || [];
+          });
 
           // Determine if user can leave this team based on team type
           const canLeave = teamData.team_type !== 'school';
 
           return {
-            id: teamId,
+            id: teamData.id,
             name: teamData.name,
             description: teamData.description,
             team_type: teamData.team_type,
             member_count: members.length,
             members,
             created_at: teamData.created_at,
-            user_role: membership.role,
-            joined_at: membership.joined_at,
-            can_leave: canLeave
+            user_role: membership?.role,
+            joined_at: membership?.joined_at,
+            can_leave: canLeave,
+            logo_url: teamData.logo_url,
+            institution_name: teamData.institution_name,
+            institution_type: teamData.institution_type
           } as Team;
-        });
+        }) || [];
 
-        return await Promise.all(teamPromises);
+        return teams;
       } catch (error) {
         console.error('Error fetching teams:', error);
         throw error;
@@ -336,27 +352,42 @@ export const MyTeamsCard: React.FC<MyTeamsCardProps> = ({ maxTeamsToShow = 3 }) 
           <Box key={team.id}>
             <VStack spacing={3} align="stretch">
               <Flex justify="space-between" align="start">
-                <VStack spacing={1} align="start" flex="1">
-                  <HStack spacing={2}>
-                    <Heading size="sm" color={headingColor}>
-                      {team.name}
-                    </Heading>
-                    <Badge 
-                      colorScheme={team.team_type === 'school' ? 'blue' : team.team_type === 'coach' ? 'purple' : 'green'} 
-                      size="sm"
-                    >
-                      {getTeamTypeLabel(team.team_type)}
-                    </Badge>
-                  </HStack>
-                  {team.description && (
-                    <Text fontSize="sm" color={textColor} noOfLines={2}>
-                      {team.description}
+                <HStack spacing={3} flex="1">
+                  {/* Team/Institution Avatar */}
+                  <Avatar
+                    size="md"
+                    src={team.logo_url}
+                    name={team.institution_name || team.name}
+                    bg="blue.500"
+                    icon={<Icon as={FaUsers} />}
+                  />
+                  <VStack spacing={1} align="start" flex="1">
+                    <HStack spacing={2} flexWrap="wrap">
+                      <Heading size="sm" color={headingColor}>
+                        {team.name}
+                      </Heading>
+                      <Badge 
+                        colorScheme={team.team_type === 'school' ? 'blue' : team.team_type === 'coach' ? 'purple' : 'green'} 
+                        size="sm"
+                      >
+                        {getTeamTypeLabel(team.team_type)}
+                      </Badge>
+                    </HStack>
+                    {team.institution_name && team.institution_name !== team.name && (
+                      <Text fontSize="sm" color={textColor} fontWeight="medium">
+                        {team.institution_name}
+                      </Text>
+                    )}
+                    {team.description && (
+                      <Text fontSize="sm" color={textColor} noOfLines={2}>
+                        {team.description}
+                      </Text>
+                    )}
+                    <Text fontSize="xs" color={textColor}>
+                      Joined as {team.user_role} • {new Date(team.joined_at).toLocaleDateString()}
                     </Text>
-                  )}
-                  <Text fontSize="xs" color={textColor}>
-                    Joined as {team.user_role} • {new Date(team.joined_at).toLocaleDateString()}
-                  </Text>
-                </VStack>
+                  </VStack>
+                </HStack>
                 {team.can_leave ? (
                   <Tooltip label="Leave Team" hasArrow>
                     <IconButton

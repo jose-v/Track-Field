@@ -67,6 +67,9 @@ interface CoachTeam {
   member_count: number;
   athlete_count: number;
   coach_count: number;
+  logo_url?: string;
+  institution_name?: string;
+  institution_type?: string;
 }
 
 interface CoachTeamsCardProps {
@@ -118,39 +121,53 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
 
         const teamIds = coachMemberships.map(m => m.team_id);
 
-        // Get team details
+        // Get team details with institutional info
         const { data: teamsData, error: teamsError } = await supabase
           .from('teams')
-          .select('id, name, description, team_type, invite_code, created_at')
+          .select(`
+            id, 
+            name, 
+            description, 
+            team_type, 
+            invite_code, 
+            created_at,
+            logo_url,
+            institution_name,
+            institution_type
+          `)
           .in('id', teamIds);
 
         if (teamsError) throw teamsError;
 
-        // Get all members for these teams
-        const teamPromises = teamsData?.map(async (team) => {
-          const { data: teamMembers, error: membersError } = await supabase
-            .from('team_members')
-            .select(`
-              user_id,
-              role,
-              joined_at
-            `)
-            .eq('team_id', team.id)
-            .eq('status', 'active');
+        // Get all team members for all teams in one query
+        const { data: allTeamMembers, error: allMembersError } = await supabase
+          .from('team_members')
+          .select(`
+            team_id,
+            user_id,
+            role,
+            joined_at
+          `)
+          .in('team_id', teamIds)
+          .eq('status', 'active');
 
-          if (membersError) throw membersError;
+        if (allMembersError) throw allMembersError;
 
-          // Get profile details for team members
-          const memberIds = teamMembers?.map(m => m.user_id) || [];
-          const { data: profiles, error: profilesError } = await supabase
-            .from('profiles')
-            .select('id, first_name, last_name, avatar_url, email')
-            .in('id', memberIds);
+        // Get all profile details for all members in one query
+        const allMemberIds = [...new Set(allTeamMembers?.map(m => m.user_id) || [])];
+        const { data: allProfiles, error: allProfilesError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, avatar_url, email')
+          .in('id', allMemberIds);
 
-          if (profilesError) throw profilesError;
+        if (allProfilesError) throw allProfilesError;
 
-          const members: TeamMember[] = teamMembers?.map((member: any) => {
-            const profile = profiles?.find(p => p.id === member.user_id);
+        // Build teams with their members
+        const teams = teamsData?.map(teamData => {
+          const teamMembers = allTeamMembers?.filter(m => m.team_id === teamData.id) || [];
+          
+          const members: TeamMember[] = teamMembers.map((member: any) => {
+            const profile = allProfiles?.find(p => p.id === member.user_id);
             return {
               id: member.user_id,
               first_name: profile?.first_name || 'Unknown',
@@ -160,26 +177,29 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
               role: member.role,
               joined_at: member.joined_at
             };
-          }) || [];
+          });
 
           const athleteCount = members.filter(m => m.role === 'athlete').length;
           const coachCount = members.filter(m => m.role === 'coach').length;
 
           return {
-            id: team.id,
-            name: team.name,
-            description: team.description,
-            team_type: team.team_type,
-            invite_code: team.invite_code,
-            created_at: team.created_at,
+            id: teamData.id,
+            name: teamData.name,
+            description: teamData.description,
+            team_type: teamData.team_type,
+            invite_code: teamData.invite_code,
+            created_at: teamData.created_at,
             members,
             member_count: members.length,
             athlete_count: athleteCount,
-            coach_count: coachCount
+            coach_count: coachCount,
+            logo_url: teamData.logo_url,
+            institution_name: teamData.institution_name,
+            institution_type: teamData.institution_type
           } as CoachTeam;
         }) || [];
 
-        return await Promise.all(teamPromises);
+        return teams;
       } catch (error) {
         console.error('Error fetching coach teams:', error);
         throw error;
@@ -345,21 +365,36 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
                     onClick={() => toggleTeamExpansion(team.id)}
                   >
                     <Flex justify="space-between" align="center">
-                      <VStack spacing={2} align="start" flex="1">
-                        <HStack spacing={3}>
-                          <Text fontSize="lg" fontWeight="bold" color={headingColor}>
-                            {getTeamTypeIcon(team.team_type)} {team.name}
-                          </Text>
-                          <Badge colorScheme={getTeamTypeColor(team.team_type)} size="sm">
-                            {getTeamTypeLabel(team.team_type)}
-                          </Badge>
-                        </HStack>
-                        <HStack spacing={4} fontSize="sm" color={textColor}>
-                          <Text>{team.athlete_count} athletes</Text>
-                          <Text>{team.coach_count} coaches</Text>
-                          <Text>Code: {team.invite_code}</Text>
-                        </HStack>
-                      </VStack>
+                      <HStack spacing={3} flex="1">
+                        {/* Team/Institution Avatar */}
+                        <Avatar
+                          size="md"
+                          src={team.logo_url}
+                          name={team.institution_name || team.name}
+                          bg="blue.500"
+                          icon={<Icon as={FaUsers} />}
+                        />
+                        <VStack spacing={2} align="start" flex="1">
+                          <HStack spacing={3} flexWrap="wrap">
+                            <Text fontSize="lg" fontWeight="bold" color={headingColor}>
+                              {getTeamTypeIcon(team.team_type)} {team.name}
+                            </Text>
+                            <Badge colorScheme={getTeamTypeColor(team.team_type)} size="sm">
+                              {getTeamTypeLabel(team.team_type)}
+                            </Badge>
+                          </HStack>
+                          {team.institution_name && team.institution_name !== team.name && (
+                            <Text fontSize="sm" color={textColor} fontWeight="medium">
+                              {team.institution_name}
+                            </Text>
+                          )}
+                          <HStack spacing={4} fontSize="sm" color={textColor}>
+                            <Text>{team.athlete_count} athletes</Text>
+                            <Text>{team.coach_count} coaches</Text>
+                            <Text>Code: {team.invite_code}</Text>
+                          </HStack>
+                        </VStack>
+                      </HStack>
                       <HStack spacing={2}>
                         <Menu>
                           <MenuButton
