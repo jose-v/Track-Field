@@ -351,27 +351,28 @@ html[data-theme="dark"] .chakra-card .chakra-heading {
   color: #2D3748 !important; /* gray.700 for light mode */
 }
 
-/* Mobile Welcome Message - Safe Area Support */
+/* Mobile Welcome Message - Simplified positioning for better device compatibility */
+.mobile-welcome-message {
+  /* Ensure it's always visible on mobile devices */
+  position: fixed !important;
+  top: 16px !important;
+  right: 16px !important;
+  z-index: 9999 !important;
+  max-width: 300px !important;
+}
+
+/* Safe area support for devices with notches */
 @supports (top: env(safe-area-inset-top)) {
   .mobile-welcome-message {
-    top: calc(env(safe-area-inset-top) - 60px) !important;
+    top: calc(env(safe-area-inset-top) + 16px) !important;
   }
 }
 
-/* Fallback for devices without safe area support */
-@supports not (top: env(safe-area-inset-top)) {
-  .mobile-welcome-message {
-    top: -68px !important;
-  }
-}
-
-/* Additional mobile-specific positioning adjustments */
+/* Ensure visibility on all mobile devices */
 @media screen and (max-width: 768px) {
   .mobile-welcome-message {
-    position: absolute !important;
-    right: 16px !important;
-    z-index: 999 !important;
-    max-width: 300px !important;
-    pointer-events: none !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 }
