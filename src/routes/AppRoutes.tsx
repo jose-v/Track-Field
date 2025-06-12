@@ -40,6 +40,8 @@ import { CoachTrainingPlans } from '../pages/coach/TrainingPlans';
 import { TeamManagerDashboard } from '../pages/team-manager/Dashboard';
 import { TeamManagerProfile } from '../pages/team-manager/Profile';
 import { Teams } from '../pages/team-manager/Teams';
+import { TeamManagerAthletes } from '../pages/team-manager/Athletes';
+import { TeamManagerCoaches } from '../pages/team-manager/Coaches';
 
 
 // Athlete pages
@@ -138,8 +140,8 @@ export default function AppRoutes() {
         <Route path="/team-manager/dashboard" element={<RoleProtectedRoute allowedRoles={['team_manager']}><TeamManagerDashboard /></RoleProtectedRoute>} />
         <Route path="/team-manager/profile" element={<RoleProtectedRoute allowedRoles={['team_manager']}><TeamManagerProfile /></RoleProtectedRoute>} />
         <Route path="/team-manager/teams" element={<RoleProtectedRoute allowedRoles={['team_manager']}><Teams /></RoleProtectedRoute>} />
-        <Route path="/team-manager/coaches" element={<RoleProtectedRoute allowedRoles={['team_manager']}><CoachAthletes /></RoleProtectedRoute>} />
-        <Route path="/team-manager/athletes" element={<RoleProtectedRoute allowedRoles={['team_manager']}><CoachAthletes /></RoleProtectedRoute>} />
+        <Route path="/team-manager/coaches" element={<RoleProtectedRoute allowedRoles={['team_manager']}><TeamManagerCoaches /></RoleProtectedRoute>} />
+        <Route path="/team-manager/athletes" element={<RoleProtectedRoute allowedRoles={['team_manager']}><TeamManagerAthletes /></RoleProtectedRoute>} />
         <Route path="/team-manager/training-plans" element={<RoleProtectedRoute allowedRoles={['team_manager']}><CoachTrainingPlans /></RoleProtectedRoute>} />
         <Route path="/team-manager/workout-creator" element={<RoleProtectedRoute allowedRoles={['team_manager']}><WorkoutCreatorDemo /></RoleProtectedRoute>} />
         <Route path="/team-manager/calendar" element={<RoleProtectedRoute allowedRoles={['team_manager']}><CoachCalendar /></RoleProtectedRoute>} />
