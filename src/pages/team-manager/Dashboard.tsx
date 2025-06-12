@@ -40,6 +40,7 @@ import { useProfile } from '../../hooks/useProfile';
 import { useProfileDisplay } from '../../hooks/useProfileDisplay';
 import { WeatherCard, TrackMeetsCard, AlertsNotificationsCard, TodaysFocusCard } from '../../components';
 import { TeamSetupModal } from '../../components/TeamSetupModal';
+import { MobileWelcomeMessage } from '../../components/MobileWelcomeMessage';
 
 
 export function TeamManagerDashboard() {
@@ -99,21 +100,7 @@ export function TeamManagerDashboard() {
       {/* Mobile Layout */}
       <Box display={{ base: "block", md: "none" }}>
         {/* Mobile Welcome Message - positioned on same line as hamburger */}
-        <Box 
-          position="absolute"
-          top="24px"
-          right="15px"
-          zIndex="999"
-        >
-          <Text 
-            fontSize="md" 
-            fontWeight="semibold" 
-            color="white"
-            textAlign="left"
-          >
-            {getWelcomeMessage()}
-          </Text>
-        </Box>
+        <MobileWelcomeMessage message={getWelcomeMessage()} />
         
         {/* Weather Card - Full width with 10px padding */}
         <Box px="10px" mb={4}>

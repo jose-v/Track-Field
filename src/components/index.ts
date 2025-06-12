@@ -27,6 +27,7 @@ export { default as AddAthleteModal } from './AddAthleteModal';
 export { default as AIModal } from './AIModal';
 export { default as SparkleIcon } from './SparkleIcon';
 export { default as MobileHeader } from './MobileHeader';
+export { MobileWelcomeMessage } from './MobileWelcomeMessage';
 export { PWARefreshButton } from './PWARefreshButton';
 export { PWAStartupHandler } from './PWAStartupHandler';
 export { RunTimeInput } from './RunTimeInput';

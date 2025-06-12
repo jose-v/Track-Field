@@ -29,6 +29,7 @@ import { useProfile } from '../../hooks/useProfile';
 import { useProfileDisplay } from '../../hooks/useProfileDisplay';
 import { useQueryClient } from '@tanstack/react-query';
 import { WeatherCard, TrackMeetsCard, AlertsNotificationsCard, TodaysFocusCard } from '../../components';
+import { MobileWelcomeMessage } from '../../components/MobileWelcomeMessage';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import AthleteRosterCard from '../../components/coach/AthleteRosterCard';
@@ -396,21 +397,7 @@ export function CoachDashboard() {
       {/* Mobile Layout */}
       <Box display={{ base: "block", md: "none" }}>
         {/* Mobile Welcome Message - positioned on same line as hamburger */}
-        <Box 
-          position="absolute"
-          top="24px"
-          right="15px"
-          zIndex="999"
-        >
-          <Text 
-            fontSize="md" 
-            fontWeight="semibold" 
-            color="white"
-            textAlign="left"
-          >
-            {getWelcomeMessage()}
-          </Text>
-        </Box>
+        <MobileWelcomeMessage message={getWelcomeMessage()} />
         
         {/* Weather Card - Full width with 10px padding */}
         <Box px="10px" mb={4}>
