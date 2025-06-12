@@ -207,9 +207,9 @@ export function Teams() {
               </CardBody>
             </Card>
           ) : (
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+            <VStack spacing={6} align="stretch">
               {teams.map((team) => (
-                <Card key={team.id} bg={cardBg} borderColor={cardBorder} _hover={{ shadow: 'lg' }} transition="all 0.2s">
+                <Card key={team.id} bg={cardBg} borderColor={cardBorder} _hover={{ shadow: 'lg' }} transition="all 0.2s" w="full">
                   <CardBody>
                     <VStack align="stretch" spacing={4}>
                       {/* Team Header */}
@@ -373,7 +373,7 @@ export function Teams() {
                   </CardBody>
                 </Card>
               ))}
-            </SimpleGrid>
+            </VStack>
           )}
         </VStack>
       </Container>
