@@ -65,6 +65,13 @@ export function TeamSetupModal({ isOpen, onClose, userRole }: TeamSetupModalProp
   // Create team function
   const createTeam = async (request: CreateTeamRequest, created_by: string) => {
     try {
+      // Generate a 6-digit invite code
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let inviteCode = '';
+      for (let i = 0; i < 6; i++) {
+        inviteCode += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+
       // Create the team
       const { data: teamData, error: teamError } = await supabase
         .from('teams')
@@ -72,7 +79,8 @@ export function TeamSetupModal({ isOpen, onClose, userRole }: TeamSetupModalProp
           name: request.name,
           description: request.description,
           created_by: created_by,
-          team_type: request.team_type
+          team_type: request.team_type,
+          invite_code: inviteCode
         })
         .select()
         .single();

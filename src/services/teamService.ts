@@ -1,5 +1,17 @@
 import { supabase } from '../lib/supabase';
 
+/**
+ * Generate a 6-digit invite code that matches the database constraint
+ */
+function generateInviteCode(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
 export interface Team {
   id: string;
   name: string;
@@ -37,6 +49,9 @@ export async function createTeam(
   created_by: string
 ): Promise<TeamCreationResponse> {
   try {
+    // Generate a 6-digit invite code
+    const inviteCode = generateInviteCode();
+    
     // Create the team
     const { data: teamData, error: teamError } = await supabase
       .from('teams')
@@ -44,7 +59,8 @@ export async function createTeam(
         name: request.name,
         description: request.description,
         created_by: created_by,
-        team_type: request.team_type
+        team_type: request.team_type,
+        invite_code: inviteCode
       })
       .select()
       .single();
