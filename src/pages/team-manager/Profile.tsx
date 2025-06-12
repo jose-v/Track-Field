@@ -40,7 +40,8 @@ import {
   FaGlobe,
   FaPhone,
   FaMapMarkerAlt,
-  FaCalendar
+  FaCalendar,
+  FaUser
 } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { getInstitutionalProfile, getInstitutionStats } from '../../services/institutionService';
@@ -48,6 +49,7 @@ import { InstitutionalProfile } from '../../types/institution';
 import { EditInstitutionModal } from '../../components/modals/EditInstitutionModal';
 import { TransferManagerModal } from '../../components/modals/TransferManagerModal';
 import { LogoUploadModal } from '../../components/modals/LogoUploadModal';
+import { EditManagerProfileModal } from '../../components/modals/EditManagerProfileModal';
 
 export function TeamManagerProfile() {
   const { user } = useAuth();
@@ -67,6 +69,7 @@ export function TeamManagerProfile() {
   const editModal = useDisclosure();
   const transferModal = useDisclosure();
   const logoModal = useDisclosure();
+  const personalProfileModal = useDisclosure();
 
   useEffect(() => {
     if (user?.id) {
@@ -126,6 +129,18 @@ export function TeamManagerProfile() {
     toast({
       title: 'Success',
       description: 'Institution logo updated successfully',
+      status: 'success',
+      duration: 3000,
+      isClosable: true,
+    });
+  };
+
+  const handlePersonalProfileUpdate = () => {
+    // Personal profile updates don't affect institutional profile
+    // Just show success message
+    toast({
+      title: 'Success',
+      description: 'Personal profile updated successfully',
       status: 'success',
       duration: 3000,
       isClosable: true,
@@ -246,6 +261,55 @@ export function TeamManagerProfile() {
                   </Button>
                 </HStack>
               </VStack>
+            </HStack>
+          </CardBody>
+        </Card>
+
+        {/* Personal Profile Section */}
+        <Card bg={cardBg}>
+          <CardHeader>
+            <HStack justify="space-between" align="center">
+              <Heading size="md">Personal Profile</Heading>
+              <Button
+                leftIcon={<Icon as={FaEdit} />}
+                colorScheme="green"
+                variant="outline"
+                size="sm"
+                onClick={personalProfileModal.onOpen}
+              >
+                Edit Personal Profile
+              </Button>
+            </HStack>
+          </CardHeader>
+          <CardBody>
+            <Text color={textColor} mb={4}>
+              Manage your personal information, contact details, and social media links.
+            </Text>
+            <HStack spacing={4}>
+              <Button
+                leftIcon={<Icon as={FaUser} />}
+                variant="ghost"
+                size="sm"
+                onClick={personalProfileModal.onOpen}
+              >
+                Update Personal Info
+              </Button>
+              <Button
+                leftIcon={<Icon as={FaPhone} />}
+                variant="ghost"
+                size="sm"
+                onClick={personalProfileModal.onOpen}
+              >
+                Contact Details
+              </Button>
+              <Button
+                leftIcon={<Icon as={FaGlobe} />}
+                variant="ghost"
+                size="sm"
+                onClick={personalProfileModal.onOpen}
+              >
+                Social Links
+              </Button>
             </HStack>
           </CardBody>
         </Card>
@@ -440,6 +504,12 @@ export function TeamManagerProfile() {
         managerId={user?.id || ''}
         currentLogoUrl={profile.logo_url}
         onLogoUpdate={handleLogoUpdate}
+      />
+
+      <EditManagerProfileModal
+        isOpen={personalProfileModal.isOpen}
+        onClose={personalProfileModal.onClose}
+        onUpdate={handlePersonalProfileUpdate}
       />
     </Container>
   );
