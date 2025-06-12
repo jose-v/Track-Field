@@ -618,9 +618,9 @@ export function Dashboard() {
         mx="auto"
       >
         {/* Mobile Layout */}
-        <Box display={{ base: "block", lg: "none" }} w="100%" mb={8} pt={4}>
-                  {/* Mobile Welcome Message - positioned on same line as hamburger */}
-        <MobileWelcomeMessage message={getWelcomeMessage()} />
+        <Box display={{ base: "block", lg: "none" }} w="100%" mb={8} pt={4} position="relative">
+          {/* Mobile Welcome Message - positioned on same line as hamburger */}
+          <MobileWelcomeMessage message={getWelcomeMessage()} />
           
           {/* Weather Card - Full width with 10px padding */}
           <Box px="10px" mb={4}>

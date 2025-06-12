@@ -7,17 +7,18 @@ interface MobileWelcomeMessageProps {
 
 export const MobileWelcomeMessage: React.FC<MobileWelcomeMessageProps> = ({ message }) => {
   return (
-    <Box 
-      className="mobile-welcome-message"
-      position="fixed"
-      top={{ base: "max(16px, env(safe-area-inset-top))", md: "16px" }}
-      right="16px"
-      zIndex="9999"
-      pt="8px"
-      pr="4px"
-      maxW="200px"
-      display={{ base: "block", lg: "none" }}
-    >
+          <Box 
+        className="mobile-welcome-message"
+        position="absolute"
+        top={{ base: "-68px", md: "-68px" }}
+        right="16px"
+        zIndex="999"
+        pt="8px"
+        pr="4px"
+        maxW="300px"
+        display={{ base: "block", lg: "none" }}
+        pointerEvents="none"
+      >
       <Text 
         fontSize={{ base: "sm", md: "md" }}
         fontWeight="semibold" 

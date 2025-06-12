@@ -354,23 +354,24 @@ html[data-theme="dark"] .chakra-card .chakra-heading {
 /* Mobile Welcome Message - Safe Area Support */
 @supports (top: env(safe-area-inset-top)) {
   .mobile-welcome-message {
-    top: calc(env(safe-area-inset-top) + 16px) !important;
+    top: calc(env(safe-area-inset-top) - 60px) !important;
   }
 }
 
 /* Fallback for devices without safe area support */
 @supports not (top: env(safe-area-inset-top)) {
   .mobile-welcome-message {
-    top: 24px !important;
+    top: -68px !important;
   }
 }
 
 /* Additional mobile-specific positioning adjustments */
 @media screen and (max-width: 768px) {
   .mobile-welcome-message {
-    position: fixed !important;
+    position: absolute !important;
     right: 16px !important;
-    z-index: 9999 !important;
-    max-width: 200px !important;
+    z-index: 999 !important;
+    max-width: 300px !important;
+    pointer-events: none !important;
   }
 }
