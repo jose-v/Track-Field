@@ -2,7 +2,7 @@ import { useLocation } from 'react-router-dom';
 import { NavLink } from './BaseLayout';
 import { LuUsers, LuCalendarClock, LuClipboardList, LuBell, LuTrophy, LuShield } from 'react-icons/lu';
 import { IoFitnessOutline } from 'react-icons/io5';
-import { FaTachometerAlt, FaCalendarAlt, FaUserTie } from 'react-icons/fa';
+import { FaTachometerAlt, FaCalendarAlt, FaUserTie, FaUniversity } from 'react-icons/fa';
 import { ReactNode } from 'react';
 
 // Team Manager navigation links
@@ -43,6 +43,11 @@ export function useTeamManagerNavigation(): TeamManagerNavConfig & { isCurrentPa
       name: 'Dashboard',
       path: '/team-manager/dashboard',
       icon: <FaTachometerAlt />
+    },
+    {
+      name: 'Institution Profile',
+      path: '/team-manager/profile',
+      icon: <FaUniversity />
     },
     {
       name: 'Teams',

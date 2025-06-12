@@ -1,0 +1,203 @@
+/**
+ * Institution Service
+ * Handles institution-centric team manager operations
+ */
+
+import { supabase } from '../lib/supabase';
+import { Institution, InstitutionalProfile, InstitutionFormData, ManagerTransferRequest } from '../types/institution';
+
+/**
+ * Get institutional profile for current team manager
+ */
+export async function getInstitutionalProfile(managerId: string): Promise<InstitutionalProfile | null> {
+  try {
+    const { data, error } = await supabase
+      .from('institutional_profile_view')
+      .select('*')
+      .eq('id', managerId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching institutional profile:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in getInstitutionalProfile:', error);
+    return null;
+  }
+}
+
+/**
+ * Update institutional profile
+ */
+export async function updateInstitutionalProfile(
+  managerId: string, 
+  formData: InstitutionFormData
+): Promise<Institution | null> {
+  try {
+    const updateData = {
+      institution_name: formData.institution_name,
+      institution_type: formData.institution_type,
+      address: formData.address || null,
+      city: formData.city || null,
+      state: formData.state || null,
+      zip_code: formData.zip_code || null,
+      phone: formData.phone || null,
+      website: formData.website || null,
+      established_year: formData.established_year || null,
+      description: formData.description || null,
+      manager_title: formData.manager_title,
+    };
+
+    const { data, error } = await supabase
+      .from('team_managers')
+      .update(updateData)
+      .eq('id', managerId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating institutional profile:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in updateInstitutionalProfile:', error);
+    throw error;
+  }
+}
+
+/**
+ * Upload institution logo
+ */
+export async function uploadInstitutionLogo(
+  managerId: string, 
+  file: File
+): Promise<string | null> {
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${managerId}-logo.${fileExt}`;
+    const filePath = `institution-logos/${fileName}`;
+
+    // Upload file to Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from('avatars') // Using existing avatars bucket
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) {
+      console.error('Error uploading logo:', uploadError);
+      throw uploadError;
+    }
+
+    // Get public URL
+    const { data } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(filePath);
+
+    // Update team_managers record with logo URL
+    const { error: updateError } = await supabase
+      .from('team_managers')
+      .update({ logo_url: data.publicUrl })
+      .eq('id', managerId);
+
+    if (updateError) {
+      console.error('Error updating logo URL:', updateError);
+      throw updateError;
+    }
+
+    return data.publicUrl;
+  } catch (error) {
+    console.error('Error in uploadInstitutionLogo:', error);
+    throw error;
+  }
+}
+
+/**
+ * Transfer team manager role to another person
+ */
+export async function transferManagerRole(
+  transferRequest: ManagerTransferRequest
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc('transfer_team_manager_role', {
+      old_manager_id: transferRequest.old_manager_id,
+      new_manager_id: transferRequest.new_manager_id
+    });
+
+    if (error) {
+      console.error('Error transferring manager role:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in transferManagerRole:', error);
+    throw error;
+  }
+}
+
+/**
+ * Search for potential new managers by email
+ */
+export async function searchPotentialManagers(email: string): Promise<any[]> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, email, avatar_url')
+      .eq('email', email.toLowerCase().trim())
+      .eq('role', 'team_manager');
+
+    if (error) {
+      console.error('Error searching for managers:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error in searchPotentialManagers:', error);
+    return [];
+  }
+}
+
+/**
+ * Get institution statistics
+ */
+export async function getInstitutionStats(managerId: string): Promise<{
+  teams: number;
+  athletes: number;
+  coaches: number;
+  activeInvites: number;
+} | null> {
+  try {
+    const { data, error } = await supabase
+      .from('institutional_profile_view')
+      .select('team_count, total_athletes, total_coaches')
+      .eq('id', managerId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching institution stats:', error);
+      return null;
+    }
+
+    // Get active invites count
+    const { count: activeInvites } = await supabase
+      .from('team_invitations')
+      .select('*', { count: 'exact', head: true })
+      .eq('invited_by', managerId)
+      .eq('status', 'pending');
+
+    return {
+      teams: data.team_count || 0,
+      athletes: data.total_athletes || 0,
+      coaches: data.total_coaches || 0,
+      activeInvites: activeInvites || 0
+    };
+  } catch (error) {
+    console.error('Error in getInstitutionStats:', error);
+    return null;
+  }
+} 
