@@ -27,6 +27,7 @@ import { TeamSetupModal } from '../../components/TeamSetupModal';
 import { SendTeamInviteModal } from '../../components/SendTeamInviteModal';
 import { TeamCoachesSection } from '../../components/TeamCoachesSection';
 import { TeamAthletesSection } from '../../components/TeamAthletesSection';
+import { EditTeamModal } from '../../components/modals/EditTeamModal';
 
 export function Teams() {
   const { user } = useAuth();
@@ -40,7 +41,9 @@ export function Teams() {
     onOpen: onInviteOpen, 
     onClose: onInviteClose 
   } = useDisclosure();
+  const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure();
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const [selectedEditTeam, setSelectedEditTeam] = useState<Team | null>(null);
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
   const [expandedSection, setExpandedSection] = useState<{ [teamId: string]: 'coaches' | 'athletes' | null }>({});
 
@@ -137,6 +140,18 @@ export function Teams() {
     setSelectedTeam(null);
     // Refresh teams to update member counts when new members join
     fetchTeams();
+  };
+
+  const handleEditClick = (team: Team) => {
+    setSelectedEditTeam(team);
+    onEditOpen();
+  };
+
+  const handleTeamUpdate = (updatedTeam: Team) => {
+    setTeams(prev => prev.map(team => 
+      team.id === updatedTeam.id ? updatedTeam : team
+    ));
+    setSelectedEditTeam(null);
   };
 
   const toggleTeamSection = (teamId: string, section: 'coaches' | 'athletes') => {
@@ -243,6 +258,7 @@ export function Teams() {
                               size="sm"
                               variant="ghost"
                               colorScheme="orange"
+                              onClick={() => handleEditClick(team)}
                             />
                           </Tooltip>
                         </HStack>
@@ -395,6 +411,14 @@ export function Teams() {
           onSuccess={handleInviteSuccess}
         />
       )}
+
+             {/* Edit Team Modal */}
+       <EditTeamModal
+         isOpen={isEditOpen}
+         onClose={onEditClose}
+         team={selectedEditTeam}
+         onUpdate={handleTeamUpdate}
+       />
     </>
   );
 } 
