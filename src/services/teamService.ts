@@ -501,20 +501,10 @@ export async function getTeamCoaches(team_id: string): Promise<any[]> {
  */
 export async function getTeamAthletes(team_id: string): Promise<any[]> {
   try {
-    // Get team members who are athletes
+    // Get team members who are athletes (without the problematic join)
     const { data: teamMembers, error: membersError } = await supabase
       .from('team_members')
-      .select(`
-        user_id,
-        joined_at,
-        profiles!inner (
-          id,
-          first_name,
-          last_name,
-          email,
-          avatar_url
-        )
-      `)
+      .select('user_id, joined_at')
       .eq('team_id', team_id)
       .eq('role', 'athlete')
       .eq('status', 'active');
@@ -527,8 +517,18 @@ export async function getTeamAthletes(team_id: string): Promise<any[]> {
       return [];
     }
 
-    // Get athlete-specific data
+    // Get profile data separately to avoid relationship conflicts
     const athleteIds = teamMembers.map(tm => tm.user_id);
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, email, avatar_url')
+      .in('id', athleteIds);
+
+    if (profilesError) {
+      throw new Error(`Failed to fetch profiles: ${profilesError.message}`);
+    }
+
+    // Get athlete-specific data
     const { data: athleteData, error: athleteError } = await supabase
       .from('athletes')
       .select('id, gender, events, date_of_birth, created_at')
@@ -538,18 +538,25 @@ export async function getTeamAthletes(team_id: string): Promise<any[]> {
       console.warn('Could not fetch athlete data:', athleteError);
     }
 
-    // Combine the data
+    // Combine the data manually
     const result = teamMembers.map(member => {
+      const profile = profiles?.find(p => p.id === member.user_id);
       const athleteInfo = athleteData?.find(a => a.id === member.user_id);
+      
+      if (!profile) {
+        console.warn(`Profile not found for user_id: ${member.user_id}`);
+        return null;
+      }
+      
       return {
         id: member.user_id,
         gender: athleteInfo?.gender,
         events: athleteInfo?.events,
         date_of_birth: athleteInfo?.date_of_birth,
         created_at: member.joined_at, // Use team join date instead of athlete creation
-        profiles: member.profiles
+        profiles: profile
       };
-    });
+    }).filter(Boolean); // Remove any null entries
 
     return result;
   } catch (error) {
