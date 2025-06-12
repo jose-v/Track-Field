@@ -10,7 +10,7 @@ export function getProfilePathForRole(role: UserRole | null | undefined): string
     case 'athlete':
       return '/athlete/profile';
     case 'team_manager':
-      return '/team-manager/account';
+      return '/team-manager/profile';
     default:
       return '/profile';
   }

@@ -241,7 +241,7 @@ const WorkoutCreatorNavigation: React.FC<WorkoutCreatorNavigationProps> = ({
                   to={
                     displayProfile?.role === 'coach' ? '/coach/profile' : 
                     displayProfile?.role === 'athlete' ? '/athlete/profile' : 
-                    displayProfile?.role === 'team_manager' ? '/team-manager/account' : '/profile'
+                    displayProfile?.role === 'team_manager' ? '/team-manager/profile' : '/profile'
                   }
                   color={menuTextColor}
                   _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}

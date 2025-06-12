@@ -244,7 +244,7 @@ const Navigation = () => {
                     <MenuItem as={RouterLink} to="/" color={menuTextColor} _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}>Home</MenuItem>
                     <MenuItem as={RouterLink} to="/dashboard" color={menuTextColor} _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}>Dashboard</MenuItem>
                     <MenuItem as={RouterLink} 
-                      to={displayProfile?.role === 'coach' ? '/coach/profile' : displayProfile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
+                      to={getProfilePathForRole(displayProfile?.role)}
                       color={menuTextColor}
                       _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
                     >
@@ -394,7 +394,7 @@ const Navigation = () => {
                     <MenuItem as={RouterLink} to="/" color={menuTextColor} _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}>Home</MenuItem>
                     <MenuItem as={RouterLink} to="/dashboard" color={menuTextColor} _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}>Dashboard</MenuItem>
                     <MenuItem as={RouterLink} 
-                      to={displayProfile?.role === 'coach' ? '/coach/profile' : displayProfile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
+                      to={getProfilePathForRole(displayProfile?.role)}
                       color={menuTextColor}
                       _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
                     >
@@ -491,7 +491,7 @@ const Navigation = () => {
                     size="sm"
                     onClick={onToggle}
                     as={RouterLink} 
-                    to={displayProfile?.role === 'coach' ? '/coach/profile' : displayProfile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
+                    to={getProfilePathForRole(displayProfile?.role)}
                     w="100%"
                     justifyContent="flex-start"
                     color="gray.700"
@@ -612,7 +612,7 @@ const Navigation = () => {
                   size="sm"
                   onClick={onToggle}
                   as={RouterLink} 
-                  to={displayProfile?.role === 'coach' ? '/coach/profile' : displayProfile?.role === 'athlete' ? '/athlete/profile' : '/profile'}
+                  to={getProfilePathForRole(displayProfile?.role)}
                   w="100%"
                   justifyContent="flex-start"
                   color="gray.700"
