@@ -28,6 +28,11 @@ body {
   min-height: 100vh;
   width: 100%;
   overflow-x: hidden;
+  /* Support for safe area insets on mobile devices */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 h1 {
@@ -344,4 +349,28 @@ html[data-theme="dark"] .chakra-card .chakra-heading {
 [data-color-mode="light"] .chakra-card .chakra-heading,
 [data-color-mode="light"] .chakra-card .chakra-text {
   color: #2D3748 !important; /* gray.700 for light mode */
+}
+
+/* Mobile Welcome Message - Safe Area Support */
+@supports (top: env(safe-area-inset-top)) {
+  .mobile-welcome-message {
+    top: calc(env(safe-area-inset-top) + 16px) !important;
+  }
+}
+
+/* Fallback for devices without safe area support */
+@supports not (top: env(safe-area-inset-top)) {
+  .mobile-welcome-message {
+    top: 24px !important;
+  }
+}
+
+/* Additional mobile-specific positioning adjustments */
+@media screen and (max-width: 768px) {
+  .mobile-welcome-message {
+    position: fixed !important;
+    right: 16px !important;
+    z-index: 9999 !important;
+    max-width: 200px !important;
+  }
 }
