@@ -1,12 +1,22 @@
 /**
  * Institution-Centric Team Manager Types
- * Represents institutions/schools rather than individual managers
+ * Uses unified teams + team_members system (NO team_managers table)
  */
 
-export interface Institution {
-  id: string; // References the current manager's profile id
-  institution_name: string;
-  institution_type: 'high_school' | 'middle_school' | 'college' | 'university' | 'club' | 'academy' | 'other';
+export interface InstitutionalTeam {
+  id: string;
+  name: string;
+  description?: string;
+  invite_code: string;
+  created_by: string; // References profiles.id (team_manager)
+  team_type: 'school' | 'club' | 'independent' | 'other' | 'coach';
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  
+  // Institutional fields (stored in teams table)
+  institution_name?: string;
+  institution_type?: 'high_school' | 'middle_school' | 'college' | 'university' | 'club' | 'academy' | 'other';
   address?: string;
   city?: string;
   state?: string;
@@ -15,20 +25,32 @@ export interface Institution {
   website?: string;
   logo_url?: string;
   established_year?: number;
-  description?: string;
-  manager_title: string; // e.g., "Athletic Director", "Head Coach", "Team Manager"
-  updated_at: string;
+  manager_title?: string;
 }
 
-export interface InstitutionalProfile extends Institution {
-  // Current manager info (for contact purposes)
+export interface InstitutionalProfile {
+  id: string; // Manager's profile id
+  institution_name?: string;
+  institution_type?: InstitutionalTeam['institution_type'];
+  address?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
+  phone?: string;
+  website?: string;
+  logo_url?: string;
+  established_year?: number;
+  manager_title?: string;
+  updated_at: string;
+  
+  // Current manager info (from profiles)
   manager_first_name: string;
   manager_last_name: string;
   manager_email: string;
   manager_personal_phone?: string;
   manager_avatar?: string;
   
-  // Institution statistics
+  // Institution statistics (from team_members)
   team_count: number;
   total_athletes: number;
   total_coaches: number;
@@ -36,7 +58,7 @@ export interface InstitutionalProfile extends Institution {
 
 export interface InstitutionFormData {
   institution_name: string;
-  institution_type: Institution['institution_type'];
+  institution_type: InstitutionalTeam['institution_type'];
   address?: string;
   city?: string;
   state?: string;

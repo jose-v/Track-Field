@@ -1,13 +1,15 @@
 /**
  * Institution Service
- * Handles institution-centric team manager operations
+ * Handles institution-centric team manager operations using unified teams + team_members system
+ * NO team_managers table dependencies
  */
 
 import { supabase } from '../lib/supabase';
-import { Institution, InstitutionalProfile, InstitutionFormData, ManagerTransferRequest } from '../types/institution';
+import { InstitutionalProfile, InstitutionFormData, ManagerTransferRequest } from '../types/institution';
 
 /**
  * Get institutional profile for current team manager
+ * Uses institutional_profile_view which queries teams + profiles (not team_managers)
  */
 export async function getInstitutionalProfile(managerId: string): Promise<InstitutionalProfile | null> {
   try {
@@ -31,11 +33,12 @@ export async function getInstitutionalProfile(managerId: string): Promise<Instit
 
 /**
  * Update institutional profile
+ * Updates teams table directly (not team_managers)
  */
 export async function updateInstitutionalProfile(
   managerId: string, 
   formData: InstitutionFormData
-): Promise<Institution | null> {
+): Promise<any | null> {
   try {
     const updateData = {
       institution_name: formData.institution_name,
@@ -51,10 +54,11 @@ export async function updateInstitutionalProfile(
       manager_title: formData.manager_title,
     };
 
+    // Update teams table where this manager is the creator
     const { data, error } = await supabase
-      .from('team_managers')
+      .from('teams')
       .update(updateData)
-      .eq('id', managerId)
+      .eq('created_by', managerId)
       .select()
       .single();
 
@@ -72,6 +76,7 @@ export async function updateInstitutionalProfile(
 
 /**
  * Upload institution logo
+ * Updates teams table logo_url (not team_managers)
  */
 export async function uploadInstitutionLogo(
   managerId: string, 
@@ -97,11 +102,11 @@ export async function uploadInstitutionLogo(
       .from('avatars')
       .getPublicUrl(filePath);
 
-    // Update team_managers record with logo URL
+    // Update teams table with logo URL (where this manager is creator)
     const { error: updateError } = await supabase
-      .from('team_managers')
+      .from('teams')
       .update({ logo_url: data.publicUrl })
-      .eq('id', managerId);
+      .eq('created_by', managerId);
 
     if (updateError) {
       console.error('Error updating logo URL:', updateError);
@@ -117,12 +122,13 @@ export async function uploadInstitutionLogo(
 
 /**
  * Transfer team manager role to another person
+ * Uses transfer_team_management function (profiles-based, not team_managers)
  */
 export async function transferManagerRole(
   transferRequest: ManagerTransferRequest
 ): Promise<boolean> {
   try {
-    const { data, error } = await supabase.rpc('transfer_team_manager_role', {
+    const { data, error } = await supabase.rpc('transfer_team_management', {
       old_manager_id: transferRequest.old_manager_id,
       new_manager_id: transferRequest.new_manager_id
     });
@@ -141,6 +147,7 @@ export async function transferManagerRole(
 
 /**
  * Search for potential new managers by email
+ * Uses profiles table directly
  */
 export async function searchPotentialManagers(email: string): Promise<any[]> {
   try {
@@ -164,6 +171,7 @@ export async function searchPotentialManagers(email: string): Promise<any[]> {
 
 /**
  * Get institution statistics
+ * Uses institutional_profile_view (teams + team_members based)
  */
 export async function getInstitutionStats(managerId: string): Promise<{
   teams: number;
@@ -183,7 +191,7 @@ export async function getInstitutionStats(managerId: string): Promise<{
       return null;
     }
 
-    // Get active invites count
+    // Get active invites count (using profiles, not team_managers)
     const { count: activeInvites } = await supabase
       .from('team_invitations')
       .select('*', { count: 'exact', head: true })
