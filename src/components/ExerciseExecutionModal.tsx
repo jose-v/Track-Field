@@ -131,10 +131,20 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
   useEffect(() => {
     if (workout && workout.exercises[exerciseIdx]) {
       const currentExercise = workout.exercises[exerciseIdx];
-      const newSetData = Array(currentExercise.sets).fill(null).map(() => ({
+      
+      // Get exercise data from nested structure
+      const exerciseData = (currentExercise as any)?.exercises?.[exerciseIdx] || 
+                          (currentExercise as any)?.exercises?.[0] || 
+                          (workout?.exercises?.[0] as any)?.exercises?.[exerciseIdx] ||
+                          currentExercise;
+      
+      const sets = parseInt(exerciseData?.sets || currentExercise?.sets || '3');
+      const reps = parseInt(exerciseData?.reps || currentExercise?.reps || '10');
+      
+      const newSetData = Array(sets).fill(null).map(() => ({
         completed: false,
-        actualReps: currentExercise.reps,
-        targetReps: currentExercise.reps
+        actualReps: reps,
+        targetReps: reps
       }));
       setSetData(newSetData);
     }
@@ -703,6 +713,34 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                           color={modalHeadingColor}
                         >
                           {getCompletedSetsCount()}/{currentExercise.sets} Sets
+                        </Text>
+                      </VStack>
+                      
+                      <VStack spacing={1}>
+                        <Text 
+                          color={modalTextColor} 
+                          fontSize="sm"
+                          fontWeight="medium"
+                          textTransform="uppercase"
+                          letterSpacing="wider"
+                        >
+                          Target Reps
+                        </Text>
+                        <Text 
+                          fontWeight="bold" 
+                          fontSize="xl"
+                          color={modalHeadingColor}
+                        >
+                          {(() => {
+                            // Get sets and reps from the nested exercise structure
+                            const exerciseData = (currentExercise as any)?.exercises?.[exerciseIdx] || 
+                                                (currentExercise as any)?.exercises?.[0] || 
+                                                (workout?.exercises?.[0] as any)?.exercises?.[exerciseIdx] ||
+                                                currentExercise;
+                            const sets = parseInt(exerciseData?.sets || currentExercise?.sets || '0');
+                            const reps = parseInt(exerciseData?.reps || currentExercise?.reps || '0');
+                            return sets * reps;
+                          })()}
                         </Text>
                       </VStack>
                       
