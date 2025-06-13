@@ -133,9 +133,9 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
       const currentExercise = workout.exercises[exerciseIdx];
       
       // Get exercise data from nested structure
-      const exerciseData = (currentExercise as any)?.exercises?.[exerciseIdx] || 
-                          (currentExercise as any)?.exercises?.[0] || 
-                          (workout?.exercises?.[0] as any)?.exercises?.[exerciseIdx] ||
+      const exerciseData = (currentExercise as any)?.exercises?.[0] || 
+                          (workout as any)?.exercises?.[exerciseIdx] ||
+                          (workout as any)?.exercises?.[exerciseIdx]?.exercises?.[0] ||
                           currentExercise;
       
       const sets = parseInt(exerciseData?.sets || currentExercise?.sets || '3');
@@ -268,7 +268,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
             .map((set, idx) => `Set ${idx + 1}: ${set.actualReps}/${set.targetReps} reps ${set.completed ? '✓' : '○'}`)
             .join(', ');
           
-          const exerciseName = currentExercise?.name || (currentExercise as any)?.exercises?.[exerciseIdx]?.name || (currentExercise as any)?.exercises?.[0]?.name || (workout?.exercises?.[0] as any)?.exercises?.[exerciseIdx]?.name || (currentExercise as any)?.title || (currentExercise as any)?.exercise_name || (currentExercise as any)?.exerciseName || (currentExercise as any)?.label || `Exercise ${exerciseIdx + 1}`;
+          const exerciseName = currentExercise?.name || (currentExercise as any)?.exercises?.[0]?.name || (workout as any)?.exercises?.[exerciseIdx]?.name || (workout as any)?.exercises?.[exerciseIdx]?.exercises?.[0]?.name || (currentExercise as any)?.title || (currentExercise as any)?.exercise_name || (currentExercise as any)?.exerciseName || (currentExercise as any)?.label || `Exercise ${exerciseIdx + 1}`;
           
           await api.exerciseResults.save({
             athleteId: user.id,
@@ -401,7 +401,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
   const handleVideoClick = () => {
     if (workout && workout.exercises[exerciseIdx]) {
       const currentExercise = workout.exercises[exerciseIdx];
-      const exerciseName = currentExercise?.name || (currentExercise as any)?.exercises?.[exerciseIdx]?.name || (currentExercise as any)?.exercises?.[0]?.name || (workout?.exercises?.[0] as any)?.exercises?.[exerciseIdx]?.name || (currentExercise as any)?.title || (currentExercise as any)?.exercise_name || (currentExercise as any)?.exerciseName || (currentExercise as any)?.label || `Exercise ${exerciseIdx + 1}`;
+      const exerciseName = currentExercise?.name || (currentExercise as any)?.exercises?.[0]?.name || (workout as any)?.exercises?.[exerciseIdx]?.name || (workout as any)?.exercises?.[exerciseIdx]?.exercises?.[0]?.name || (currentExercise as any)?.title || (currentExercise as any)?.exercise_name || (currentExercise as any)?.exerciseName || (currentExercise as any)?.label || `Exercise ${exerciseIdx + 1}`;
       const videoUrl = getVideoUrl(exerciseName);
       onShowVideo(exerciseName, videoUrl);
     }
@@ -526,9 +526,9 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                 >
                   {
                     currentExercise?.name || 
-                    (currentExercise as any)?.exercises?.[exerciseIdx]?.name ||
                     (currentExercise as any)?.exercises?.[0]?.name ||
-                    (workout?.exercises?.[0] as any)?.exercises?.[exerciseIdx]?.name ||
+                    (workout as any)?.exercises?.[exerciseIdx]?.name ||
+                    (workout as any)?.exercises?.[exerciseIdx]?.exercises?.[0]?.name ||
                     (currentExercise as any)?.title || 
                     (currentExercise as any)?.exercise_name || 
                     (currentExercise as any)?.exerciseName ||
