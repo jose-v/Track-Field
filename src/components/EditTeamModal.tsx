@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -22,9 +22,10 @@ import {
   Avatar,
   HStack,
   IconButton,
-  Box
+  Box,
+  Progress
 } from '@chakra-ui/react';
-import { FaCamera, FaTrash } from 'react-icons/fa';
+import { FaCamera, FaTrash, FaUpload } from 'react-icons/fa';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -58,6 +59,9 @@ export const EditTeamModal: React.FC<EditTeamModalProps> = ({
   const [institutionName, setInstitutionName] = useState('');
   const [institutionType, setInstitutionType] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const toast = useToast();
 
@@ -139,6 +143,8 @@ export const EditTeamModal: React.FC<EditTeamModalProps> = ({
     setLogoUrl('');
     setInstitutionName('');
     setInstitutionType('');
+    setIsUploading(false);
+    setUploadProgress(0);
     onClose();
   };
 
@@ -161,6 +167,102 @@ export const EditTeamModal: React.FC<EditTeamModalProps> = ({
     setLogoUrl('');
   };
 
+  const handleFileUpload = async (file: File) => {
+    if (!file || !team?.id) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: 'Invalid File Type',
+        description: 'Please upload a valid image file (JPEG, PNG, GIF, or WebP).',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      toast({
+        title: 'File Too Large',
+        description: 'Please upload an image smaller than 5MB.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${team.id}-logo-${Date.now()}.${fileExt}`;
+      const filePath = `team-logos/${fileName}`;
+
+      // Upload file to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('storage')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      setUploadProgress(50);
+
+      // Get public URL
+      const { data } = supabase.storage
+        .from('storage')
+        .getPublicUrl(filePath);
+
+      setUploadProgress(75);
+
+      // Update logo URL in state
+      setLogoUrl(data.publicUrl);
+
+      setUploadProgress(100);
+
+      toast({
+        title: 'Logo Uploaded Successfully!',
+        description: 'Your team logo has been uploaded. Don\'t forget to save your changes.',
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      });
+
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      toast({
+        title: 'Upload Failed',
+        description: 'Failed to upload the logo. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleFileUpload(file);
+    }
+    // Reset input value to allow uploading the same file again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   if (!team) return null;
 
   return (
@@ -180,29 +282,35 @@ export const EditTeamModal: React.FC<EditTeamModalProps> = ({
                   name={teamName}
                   src={logoUrl}
                 />
-                <VStack spacing={2} align="start">
+                <VStack spacing={2} align="start" flex="1">
                   <Input
                     placeholder="Enter logo URL"
                     value={logoUrl}
                     onChange={(e) => setLogoUrl(e.target.value)}
                     size="sm"
+                    isDisabled={isUploading}
                   />
+                  
+                  {/* Upload Progress */}
+                  {isUploading && (
+                    <Box w="full">
+                      <Progress value={uploadProgress} size="sm" colorScheme="blue" />
+                      <Text fontSize="xs" color={textColor} mt={1}>
+                        Uploading... {uploadProgress}%
+                      </Text>
+                    </Box>
+                  )}
+                  
                   <HStack spacing={2}>
                     <Button
                       size="xs"
-                      leftIcon={<FaCamera />}
+                      leftIcon={<FaUpload />}
                       variant="outline"
-                      onClick={() => {
-                        // Future: implement file upload
-                        toast({
-                          title: 'Coming Soon',
-                          description: 'File upload will be available soon. For now, use a URL.',
-                          status: 'info',
-                          duration: 3000,
-                        });
-                      }}
+                      onClick={handleUploadClick}
+                      isLoading={isUploading}
+                      loadingText="Uploading..."
                     >
-                      Upload
+                      Upload File
                     </Button>
                     {logoUrl && (
                       <IconButton
@@ -212,11 +320,25 @@ export const EditTeamModal: React.FC<EditTeamModalProps> = ({
                         variant="outline"
                         aria-label="Remove logo"
                         onClick={handleRemoveLogo}
+                        isDisabled={isUploading}
                       />
                     )}
                   </HStack>
+                  
+                  <Text fontSize="xs" color={textColor}>
+                    Upload an image file (JPEG, PNG, GIF, WebP) up to 5MB
+                  </Text>
                 </VStack>
               </HStack>
+              
+              {/* Hidden File Input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                style={{ display: 'none' }}
+              />
             </FormControl>
 
             <FormControl isRequired>
