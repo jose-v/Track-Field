@@ -22,13 +22,24 @@ import {
   AlertDialogContent,
   AlertDialogHeader,
   AlertDialogBody,
-  VStack
+  VStack,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+  FormControl,
+  FormLabel,
+  Select,
+  Icon,
+  useColorModeValue
 } from '@chakra-ui/react';
-import { FaTrash, FaComments, FaUsers } from 'react-icons/fa';
+import { FaTrash, FaComments, FaUsers, FaUserPlus } from 'react-icons/fa';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
-import { SendTeamInviteModal } from './SendTeamInviteModal';
 
 interface RequestStatus {
   id: string;
@@ -41,6 +52,244 @@ interface RequestStatus {
   approved_at?: string;
 }
 
+interface Team {
+  id: string;
+  name: string;
+  team_type: string;
+  member_count?: number;
+}
+
+interface AddAthleteToTeamModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  athlete: { id: string; name: string } | null;
+  onSuccess?: () => void;
+}
+
+const AddAthleteToTeamModal: React.FC<AddAthleteToTeamModalProps> = ({
+  isOpen,
+  onClose,
+  athlete,
+  onSuccess
+}) => {
+  const { user } = useAuth();
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [selectedTeamId, setSelectedTeamId] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isAddingToTeam, setIsAddingToTeam] = useState(false);
+  const toast = useToast();
+
+  const bgColor = useColorModeValue('gray.800', 'gray.800');
+  const borderColor = useColorModeValue('gray.600', 'gray.600');
+  const textColor = 'white';
+
+  useEffect(() => {
+    if (isOpen && user?.id) {
+      fetchCoachTeams();
+    }
+  }, [isOpen, user?.id]);
+
+  const fetchCoachTeams = async () => {
+    setIsLoading(true);
+    try {
+      const { data: teamsData, error } = await supabase
+        .from('teams')
+        .select(`
+          id,
+          name,
+          team_type,
+          team_members!inner(count)
+        `)
+        .eq('created_by', user?.id)
+        .eq('team_type', 'coach');
+
+      if (error) throw error;
+
+      // Get member counts for each team
+      const teamsWithCounts = await Promise.all(
+        (teamsData || []).map(async (team) => {
+          const { count } = await supabase
+            .from('team_members')
+            .select('*', { count: 'exact', head: true })
+            .eq('team_id', team.id)
+            .eq('status', 'active');
+
+          return {
+            ...team,
+            member_count: count || 0
+          };
+        })
+      );
+
+      setTeams(teamsWithCounts);
+    } catch (error) {
+      console.error('Error fetching teams:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load teams',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddToTeam = async () => {
+    if (!selectedTeamId || !athlete?.id) return;
+
+    setIsAddingToTeam(true);
+    try {
+      // Check if athlete is already in this team
+      const { data: existingMember, error: checkError } = await supabase
+        .from('team_members')
+        .select('id')
+        .eq('team_id', selectedTeamId)
+        .eq('user_id', athlete.id)
+        .eq('status', 'active')
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
+
+      if (existingMember) {
+        toast({
+          title: 'Already a Member',
+          description: `${athlete.name} is already a member of this team`,
+          status: 'warning',
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      // Add athlete to team
+      const { error } = await supabase
+        .from('team_members')
+        .insert({
+          team_id: selectedTeamId,
+          user_id: athlete.id,
+          role: 'athlete',
+          status: 'active',
+          joined_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+
+      const selectedTeam = teams.find(t => t.id === selectedTeamId);
+      toast({
+        title: 'Athlete Added!',
+        description: `${athlete.name} has been added to ${selectedTeam?.name}`,
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      onSuccess?.();
+      handleClose();
+    } catch (error) {
+      console.error('Error adding athlete to team:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to add athlete to team',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsAddingToTeam(false);
+    }
+  };
+
+  const handleClose = () => {
+    setSelectedTeamId('');
+    onClose();
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={handleClose} isCentered size="md">
+      <ModalOverlay />
+      <ModalContent bg={bgColor} borderColor={borderColor} borderWidth="1px" color={textColor}>
+        <ModalHeader>
+          <HStack spacing={3}>
+            <Box
+              p={2}
+              borderRadius="lg"
+              bg="green.900"
+              color="green.300"
+            >
+              <Icon as={FaUserPlus} boxSize={5} />
+            </Box>
+            <VStack align="start" spacing={0}>
+              <Text color={textColor}>Add {athlete?.name} to Team</Text>
+              <Text fontSize="sm" color="gray.300">
+                Select a team to add this athlete to
+              </Text>
+            </VStack>
+          </HStack>
+        </ModalHeader>
+        <ModalCloseButton color={textColor} />
+        
+        <ModalBody>
+          <VStack spacing={4} align="stretch">
+            {isLoading ? (
+              <Flex justify="center" p={4}>
+                <Spinner color="blue.300" />
+              </Flex>
+            ) : teams.length === 0 ? (
+              <Box textAlign="center" p={4}>
+                <Text color={textColor}>
+                  You don't have any teams yet. Create a team first to add athletes.
+                </Text>
+              </Box>
+            ) : (
+              <>
+                <FormControl>
+                  <FormLabel color={textColor}>Select Team</FormLabel>
+                  <Select
+                    placeholder="Choose a team..."
+                    value={selectedTeamId}
+                    onChange={(e) => setSelectedTeamId(e.target.value)}
+                    color={textColor}
+                    bg="gray.700"
+                    borderColor="gray.600"
+                  >
+                    {teams.map((team) => (
+                      <option key={team.id} value={team.id} style={{ backgroundColor: '#2D3748', color: 'white' }}>
+                        {team.name} ({team.member_count} members)
+                      </option>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <Button
+                  colorScheme="green"
+                  onClick={handleAddToTeam}
+                  isLoading={isAddingToTeam}
+                  loadingText="Adding..."
+                  isDisabled={!selectedTeamId}
+                  leftIcon={<FaUserPlus />}
+                  size="lg"
+                >
+                  Add to Team
+                </Button>
+              </>
+            )}
+          </VStack>
+        </ModalBody>
+
+        <ModalFooter>
+          <Button variant="ghost" onClick={handleClose} color={textColor}>
+            Close
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+};
+
 const CoachRequestStatusTable: React.FC = () => {
   const { user } = useAuth();
   const [requests, setRequests] = useState<RequestStatus[]>([]);
@@ -48,7 +297,6 @@ const CoachRequestStatusTable: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [athleteToDelete, setAthleteToDelete] = useState<RequestStatus | null>(null);
   const [selectedAthleteForTeam, setSelectedAthleteForTeam] = useState<{ id: string; name: string } | null>(null);
-  const [coachTeams, setCoachTeams] = useState<Array<{ id: string; name: string }>>([]);
   const toast = useToast();
 
   // Modal controls
@@ -59,24 +307,8 @@ const CoachRequestStatusTable: React.FC = () => {
   useEffect(() => {
     if (user?.id) {
       fetchSentRequests();
-      fetchCoachTeams();
     }
   }, [user]);
-
-  const fetchCoachTeams = async () => {
-    try {
-      const { data: teams, error } = await supabase
-        .from('teams')
-        .select('id, name')
-        .eq('created_by', user?.id)
-        .eq('team_type', 'coach');
-
-      if (error) throw error;
-      setCoachTeams(teams || []);
-    } catch (error) {
-      console.error('Error fetching coach teams:', error);
-    }
-  };
 
   const fetchSentRequests = async () => {
     try {
@@ -252,21 +484,10 @@ const CoachRequestStatusTable: React.FC = () => {
   };
 
   const handleAddToTeam = (request: RequestStatus) => {
-    if (coachTeams.length === 0) {
-      toast({
-        title: 'No Teams Available',
-        description: 'You need to create a team first before adding athletes',
-        status: 'warning',
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    // For now, we'll use the first team. In a full implementation, 
-    // you might want to show a team selection modal
-    const firstTeam = coachTeams[0];
-    setSelectedAthleteForTeam({ id: firstTeam.id, name: firstTeam.name });
+    setSelectedAthleteForTeam({ 
+      id: request.athlete_id, 
+      name: request.athlete_name 
+    });
     onTeamModalOpen();
   };
 
@@ -423,28 +644,18 @@ const CoachRequestStatusTable: React.FC = () => {
       </AlertDialog>
 
       {/* Add to Team Modal */}
-      {selectedAthleteForTeam && (
-        <SendTeamInviteModal
-          isOpen={isTeamModalOpen}
-          onClose={() => {
-            onTeamModalClose();
-            setSelectedAthleteForTeam(null);
-          }}
-          teamId={selectedAthleteForTeam.id}
-          teamName={selectedAthleteForTeam.name}
-          onSuccess={() => {
-            onTeamModalClose();
-            setSelectedAthleteForTeam(null);
-            toast({
-              title: 'Success',
-              description: 'Athlete added to team successfully',
-              status: 'success',
-              duration: 3000,
-              isClosable: true,
-            });
-          }}
-        />
-      )}
+      <AddAthleteToTeamModal
+        isOpen={isTeamModalOpen}
+        onClose={() => {
+          onTeamModalClose();
+          setSelectedAthleteForTeam(null);
+        }}
+        athlete={selectedAthleteForTeam}
+        onSuccess={() => {
+          onTeamModalClose();
+          setSelectedAthleteForTeam(null);
+        }}
+      />
     </>
   );
 };
