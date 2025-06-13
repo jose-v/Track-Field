@@ -21,7 +21,7 @@ import {
     useDisclosure
   } from '@chakra-ui/react';
   import { useAuth } from '../../contexts/AuthContext';
-import { FaUserFriends, FaRunning, FaClipboardCheck, FaCalendarAlt, FaChartLine, FaClipboardList, FaFlagCheckered, FaCloudSun, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaUserFriends, FaRunning, FaClipboardCheck, FaCalendarAlt, FaChartLine } from 'react-icons/fa';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useCoachAthletes } from '../../hooks/useCoachAthletes';
 import { useState, useEffect } from 'react';
@@ -37,6 +37,7 @@ import { MeetFormDrawer, type TrackMeetFormData, type TrackMeetData } from '../.
 import { useWorkouts } from '../../hooks/useWorkouts';
 import { CoachTeamsCard } from '../../components/CoachTeamsCard';
 import { CreateTeamModal } from '../../components/CreateTeamModal';
+import { UpcomingEventsCard } from '../../components/UpcomingEventsCard';
 
   
 // Mock data that's still needed for the exercises dropdown
@@ -242,10 +243,9 @@ export function CoachDashboard() {
   const cardShadowMd = useColorModeValue('none', 'md');
   const athleteItemHoverBg = useColorModeValue('gray.50', 'gray.700');
   const subtitleColor = useColorModeValue('gray.600', 'gray.200');
-  const eventDateColor = useColorModeValue('gray.500', 'gray.200');
-  const noEventsColor = useColorModeValue('gray.400', 'gray.200');
-  const statHelpTextColor = useColorModeValue('gray.500', 'gray.200');
-  const statLabelColor = useColorModeValue('gray.600', 'gray.200');
+
+  const statLabelColor = useColorModeValue('gray.600', 'gray.300');
+  const statHelpTextColor = useColorModeValue('gray.500', 'gray.400');
 
   const getCompletionColor = (rate: number) => {
     if (rate >= 80) return 'green';
@@ -525,44 +525,11 @@ export function CoachDashboard() {
       <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={8} mb={8}>
         <TodaysFocusCard onTaskClick={handleTaskClick} />
         
-        {/* Upcoming Events moved here from secondary section */}
-        <Card bg={cardBg} borderColor={borderColor} borderWidth="1px" shadow={cardShadow} borderRadius="xl" data-testid="upcoming-events-card">
-          <CardBody>
-            <Heading size="md" mb={4}>Upcoming Events</Heading>
-            {eventsLoading ? (
-              <Flex justify="center" py={4}>
-                <Spinner color="blue.500" />
-              </Flex>
-            ) : !athleteEvents || athleteEvents.length === 0 ? (
-              <Text>No upcoming events assigned to your athletes.</Text>
-            ) : (
-              <Stack spacing={4}>
-                {athleteEvents.map((athleteWithEvents) => (
-                  <Box key={athleteWithEvents.id}>
-                    <Text fontWeight="medium" mb={1}>{athleteWithEvents.name}</Text>
-                    {athleteWithEvents.events.length > 0 ? (
-                      <Stack pl={4} spacing={1}>
-                        {athleteWithEvents.events.map((event, idx) => (
-                          <HStack key={idx}>
-                            <Icon as={FaFlagCheckered} color="teal.400" boxSize={3} />
-                            <Box>
-                              <Text fontSize="sm" fontWeight="medium">{event.name}</Text>
-                              <Text fontSize="xs" color={eventDateColor}>
-                                {new Date(event.date).toLocaleDateString()} • {event.eventName}
-                              </Text>
-                            </Box>
-                          </HStack>
-                        ))}
-                      </Stack>
-                    ) : (
-                      <Text fontSize="sm" color={noEventsColor} pl={4}>No upcoming events</Text>
-                    )}
-                  </Box>
-                ))}
-              </Stack>
-            )}
-          </CardBody>
-        </Card>
+        {/* Enhanced Upcoming Events with athlete dropdowns and meet grouping */}
+        <UpcomingEventsCard 
+          athleteEvents={athleteEvents || []}
+          isLoading={eventsLoading}
+        />
       </SimpleGrid>
 
       {/* Dashboard Stats - At-a-Glance Metrics */}
