@@ -16,15 +16,35 @@ import {
   Divider,
   Badge,
   Alert,
-  AlertIcon
+  AlertIcon,
+  Avatar,
+  Flex,
+  Spinner,
+  useToast
 } from '@chakra-ui/react';
-import { FiUsers, FiUserPlus, FiSearch } from 'react-icons/fi';
+import { FiUsers, FiUserPlus, FiSearch, FiSend } from 'react-icons/fi';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import { JoinTeamModal } from '../components/JoinTeamModal';
 import { useUserRole } from '../hooks/useUserRole';
+
+interface Coach {
+  id: string;
+  first_name: string;
+  last_name: string;
+  avatar_url?: string;
+  email?: string;
+  team_count: number;
+  athlete_count: number;
+}
 
 export default function JoinTeam() {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { userRole, loading } = useUserRole();
+  const { user } = useAuth();
+  const toast = useToast();
+  const [sendingRequest, setSendingRequest] = useState<string | null>(null);
   
   const bgColor = useColorModeValue('gray.50', 'gray.900');
   const cardBg = useColorModeValue('white', 'gray.800');
@@ -34,9 +54,116 @@ export default function JoinTeam() {
   const iconBg = useColorModeValue('blue.50', 'blue.900');
   const iconColor = useColorModeValue('blue.500', 'blue.300');
 
+  // Fetch available coaches
+  const { data: coaches, isLoading: coachesLoading, refetch: refetchCoaches } = useQuery<Coach[]>({
+    queryKey: ['available-coaches', user?.id],
+    queryFn: async () => {
+      if (!user?.id || userRole !== 'athlete') return [];
+
+      try {
+        // Get all coaches with their team and athlete counts
+        const { data: coachProfiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, avatar_url, email')
+          .eq('role', 'coach');
+
+        if (profilesError) throw profilesError;
+
+        // Get team counts for each coach
+        const coachIds = coachProfiles?.map(c => c.id) || [];
+        const { data: teamCounts, error: teamCountsError } = await supabase
+          .from('team_members')
+          .select('user_id, team_id')
+          .in('user_id', coachIds)
+          .eq('role', 'coach')
+          .eq('status', 'active');
+
+        if (teamCountsError) throw teamCountsError;
+
+        // Get athlete counts for each coach's teams
+        const teamIds = [...new Set(teamCounts?.map(tc => tc.team_id) || [])];
+        const { data: athleteCounts, error: athleteCountsError } = await supabase
+          .from('team_members')
+          .select('team_id, user_id')
+          .in('team_id', teamIds)
+          .eq('role', 'athlete')
+          .eq('status', 'active');
+
+        if (athleteCountsError) throw athleteCountsError;
+
+        // Build coach data with counts
+        const coaches: Coach[] = coachProfiles?.map(coach => {
+          const coachTeams = teamCounts?.filter(tc => tc.user_id === coach.id) || [];
+          const coachTeamIds = coachTeams.map(ct => ct.team_id);
+          const coachAthletes = athleteCounts?.filter(ac => coachTeamIds.includes(ac.team_id)) || [];
+
+          return {
+            id: coach.id,
+            first_name: coach.first_name,
+            last_name: coach.last_name,
+            avatar_url: coach.avatar_url,
+            email: coach.email,
+            team_count: coachTeams.length,
+            athlete_count: coachAthletes.length
+          };
+        }) || [];
+
+        return coaches;
+      } catch (error) {
+        console.error('Error fetching coaches:', error);
+        throw error;
+      }
+    },
+    enabled: !!user?.id && userRole === 'athlete',
+  });
+
+  const handleSendCoachRequest = async (coach: Coach) => {
+    if (!user?.id) return;
+
+    setSendingRequest(coach.id);
+    try {
+      // Create a coach request notification
+      const { error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: coach.id, // Send to coach
+          type: 'coach_request',
+          title: 'New Athlete Request',
+          message: `${user.user_metadata?.first_name || 'An athlete'} ${user.user_metadata?.last_name || ''} wants to join your team`,
+          metadata: {
+            athlete_id: user.id,
+            athlete_name: `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim(),
+            athlete_email: user.email
+          },
+          created_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Request Sent!',
+        description: `Your request has been sent to ${coach.first_name} ${coach.last_name}. They will be notified and can approve your request.`,
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      });
+
+    } catch (error) {
+      console.error('Error sending coach request:', error);
+      toast({
+        title: 'Error Sending Request',
+        description: 'Failed to send your request. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setSendingRequest(null);
+    }
+  };
+
   const handleRefresh = () => {
-    // Placeholder for refreshing teams/invitations
-    console.log('Refreshing teams...');
+    refetchCoaches();
   };
 
   if (loading) {
@@ -88,44 +215,195 @@ export default function JoinTeam() {
               </Alert>
             )}
 
-            {/* Main action card */}
-            <Card bg={cardBg} borderColor={cardBorder} borderWidth="1px">
-              <CardBody py={12} textAlign="center">
-                <VStack spacing={6}>
-                  <Box
-                    w={20}
-                    h={20}
-                    borderRadius="full"
-                    bg={iconBg}
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                  >
-                    <Icon as={FiUserPlus} boxSize={10} color={iconColor} />
-                  </Box>
-                  
-                  <VStack spacing={2}>
-                    <Heading size="lg" color={headingColor}>
-                      Enter Invite Code
-                    </Heading>
-                    <Text color={textColor} maxW="md">
-                      Have an invite code? Click below to enter it and join your team instantly.
-                    </Text>
-                  </VStack>
+            {/* Two-column layout for athletes */}
+            {userRole === 'athlete' ? (
+              <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
+                {/* Join with Code Card */}
+                <Card bg={cardBg} borderColor={cardBorder} borderWidth="1px">
+                  <CardBody py={8} textAlign="center">
+                    <VStack spacing={4}>
+                      <Box
+                        w={16}
+                        h={16}
+                        borderRadius="full"
+                        bg={iconBg}
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                      >
+                        <Icon as={FiUserPlus} boxSize={8} color={iconColor} />
+                      </Box>
+                      
+                      <VStack spacing={2}>
+                        <Heading size="md" color={headingColor}>
+                          Enter Invite Code
+                        </Heading>
+                        <Text color={textColor} fontSize="sm">
+                          Have an invite code? Join instantly.
+                        </Text>
+                      </VStack>
 
-                  <Button
-                    colorScheme="blue"
-                    size="lg"
-                    leftIcon={<FiUserPlus />}
-                    onClick={onOpen}
-                    isDisabled={userRole === 'team_manager'}
-                    px={8}
-                  >
-                    Join Team with Code
-                  </Button>
-                </VStack>
-              </CardBody>
-            </Card>
+                      <Button
+                        colorScheme="blue"
+                        leftIcon={<FiUserPlus />}
+                        onClick={onOpen}
+                        size="md"
+                      >
+                        Join with Code
+                      </Button>
+                    </VStack>
+                  </CardBody>
+                </Card>
+
+                {/* Find Coaches Card */}
+                <Card bg={cardBg} borderColor={cardBorder} borderWidth="1px">
+                  <CardBody py={8} textAlign="center">
+                    <VStack spacing={4}>
+                      <Box
+                        w={16}
+                        h={16}
+                        borderRadius="full"
+                        bg={useColorModeValue('green.50', 'green.900')}
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                      >
+                        <Icon as={FiSearch} boxSize={8} color={useColorModeValue('green.500', 'green.300')} />
+                      </Box>
+                      
+                      <VStack spacing={2}>
+                        <Heading size="md" color={headingColor}>
+                          Find Coaches
+                        </Heading>
+                        <Text color={textColor} fontSize="sm">
+                          Browse available coaches and send requests.
+                        </Text>
+                      </VStack>
+
+                      <Text fontSize="sm" color={useColorModeValue('green.600', 'green.300')} fontWeight="medium">
+                        {coaches?.length || 0} coaches available
+                      </Text>
+                    </VStack>
+                  </CardBody>
+                </Card>
+              </SimpleGrid>
+            ) : (
+              /* Single card for non-athletes */
+              <Card bg={cardBg} borderColor={cardBorder} borderWidth="1px">
+                <CardBody py={12} textAlign="center">
+                  <VStack spacing={6}>
+                    <Box
+                      w={20}
+                      h={20}
+                      borderRadius="full"
+                      bg={iconBg}
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="center"
+                    >
+                      <Icon as={FiUserPlus} boxSize={10} color={iconColor} />
+                    </Box>
+                    
+                    <VStack spacing={2}>
+                      <Heading size="lg" color={headingColor}>
+                        Enter Invite Code
+                      </Heading>
+                      <Text color={textColor} maxW="md">
+                        Have an invite code? Click below to enter it and join your team instantly.
+                      </Text>
+                    </VStack>
+
+                    <Button
+                      colorScheme="blue"
+                      size="lg"
+                      leftIcon={<FiUserPlus />}
+                      onClick={onOpen}
+                      isDisabled={userRole === 'team_manager'}
+                      px={8}
+                    >
+                      Join Team with Code
+                    </Button>
+                  </VStack>
+                </CardBody>
+              </Card>
+            )}
+
+            {/* Available Coaches Section - Only for athletes */}
+            {userRole === 'athlete' && (
+              <Card bg={cardBg} borderColor={cardBorder} borderWidth="1px">
+                <CardBody>
+                  <VStack spacing={6} align="stretch">
+                    <Flex justify="space-between" align="center">
+                      <Heading size="md" color={headingColor}>
+                        Available Coaches
+                      </Heading>
+                      <Button size="sm" variant="outline" onClick={() => refetchCoaches()} isLoading={coachesLoading}>
+                        Refresh
+                      </Button>
+                    </Flex>
+                    
+                    {coachesLoading ? (
+                      <VStack spacing={4}>
+                        <Spinner />
+                        <Text color={textColor}>Loading coaches...</Text>
+                      </VStack>
+                    ) : coaches && coaches.length > 0 ? (
+                      <VStack spacing={4} align="stretch">
+                        {coaches.map((coach) => (
+                          <Flex
+                            key={coach.id}
+                            p={4}
+                            borderRadius="md"
+                            borderWidth="1px"
+                            borderColor={cardBorder}
+                            justify="space-between"
+                            align="center"
+                            bg={useColorModeValue('gray.50', 'gray.700')}
+                          >
+                            <HStack spacing={4}>
+                              <Avatar
+                                size="md"
+                                name={`${coach.first_name} ${coach.last_name}`}
+                                src={coach.avatar_url}
+                              />
+                              <VStack spacing={1} align="start">
+                                <Text fontWeight="bold" color={headingColor}>
+                                  {coach.first_name} {coach.last_name}
+                                </Text>
+                                <HStack spacing={4} fontSize="sm" color={textColor}>
+                                  <Text>{coach.team_count} team{coach.team_count !== 1 ? 's' : ''}</Text>
+                                  <Text>{coach.athlete_count} athlete{coach.athlete_count !== 1 ? 's' : ''}</Text>
+                                </HStack>
+                              </VStack>
+                            </HStack>
+                            <Button
+                              size="sm"
+                              colorScheme="green"
+                              leftIcon={<FiSend />}
+                              onClick={() => handleSendCoachRequest(coach)}
+                              isLoading={sendingRequest === coach.id}
+                              loadingText="Sending..."
+                            >
+                              Send Request
+                            </Button>
+                          </Flex>
+                        ))}
+                      </VStack>
+                    ) : (
+                      <VStack spacing={4} py={8}>
+                        <Icon as={FiSearch} boxSize={12} color="gray.400" />
+                        <Text color={textColor} textAlign="center">
+                          No coaches available at the moment
+                        </Text>
+                        <Text fontSize="sm" color={textColor} textAlign="center">
+                          Try refreshing or check back later
+                        </Text>
+                      </VStack>
+                    )}
+                  </VStack>
+                </CardBody>
+              </Card>
+            )}
 
             {/* How it works */}
             <Card bg={cardBg} borderColor={cardBorder} borderWidth="1px">

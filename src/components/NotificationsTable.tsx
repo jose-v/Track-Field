@@ -131,6 +131,141 @@ const NotificationsTable: React.FC = () => {
     }
   };
 
+  const handleAthleteRequest = async (notificationId: string, athleteId: string, approved: boolean) => {
+    if (!user?.id) return;
+    
+    try {
+      setIsProcessing(true);
+      
+      console.log('Processing athlete request from:', athleteId, 'to coach:', user.id);
+      
+      // Get athlete name for the notification message
+      const { data: athleteData } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', athleteId)
+        .single();
+      
+      const athleteName = athleteData 
+        ? `${athleteData.first_name || ''} ${athleteData.last_name || ''}`.trim()
+        : 'Athlete';
+      
+      if (approved) {
+        // Get coach's teams to add athlete to
+        const { data: coachTeams, error: teamsError } = await supabase
+          .from('team_members')
+          .select('team_id, teams!inner(id, name, team_type)')
+          .eq('user_id', user.id)
+          .eq('role', 'coach')
+          .eq('status', 'active');
+
+        if (teamsError) throw teamsError;
+
+        if (!coachTeams || coachTeams.length === 0) {
+          toast({
+            title: 'No Teams Available',
+            description: 'You need to create a team first before adding athletes.',
+            status: 'warning',
+            duration: 5000,
+            isClosable: true,
+          });
+          return;
+        }
+
+        // For now, add to the first team (coaches can move athletes later)
+        const firstTeam = coachTeams[0];
+        
+        // Add athlete to team using UPSERT to handle reactivating inactive members
+        const { error: memberError } = await supabase
+          .from('team_members')
+          .upsert({
+            team_id: firstTeam.team_id,
+            user_id: athleteId,
+            role: 'athlete',
+            status: 'active',
+            joined_at: new Date().toISOString()
+          }, {
+            onConflict: 'team_id,user_id',
+            ignoreDuplicates: false
+          });
+
+        if (memberError) throw memberError;
+
+        // Update notification with new status message
+        const newTitle = 'Athlete Request Approved';
+        const newMessage = `You approved ${athleteName}'s request and added them to your team`;
+        await updateNotificationMessage(notificationId, newTitle, newMessage);
+        
+        toast({
+          title: 'Request Approved',
+          description: `${athleteName} has been added to your team`,
+          status: 'success',
+          duration: 5000,
+          isClosable: true,
+        });
+
+        // Send notification to athlete
+        await supabase
+          .from('notifications')
+          .insert({
+            user_id: athleteId,
+            type: 'team_invitation_accepted',
+            title: 'Request Approved!',
+            message: `Coach ${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''} approved your request and added you to their team`,
+            metadata: {
+              coach_id: user.id,
+              team_id: firstTeam.team_id,
+              team_name: (firstTeam as any).teams.name
+            }
+          });
+
+      } else {
+        // Decline the request
+        const newTitle = 'Athlete Request Declined';
+        const newMessage = `You declined ${athleteName}'s request to join your team`;
+        await updateNotificationMessage(notificationId, newTitle, newMessage);
+        
+        toast({
+          title: 'Request Declined',
+          description: `You declined ${athleteName}'s request`,
+          status: 'info',
+          duration: 3000,
+          isClosable: true,
+        });
+
+        // Send notification to athlete
+        await supabase
+          .from('notifications')
+          .insert({
+            user_id: athleteId,
+            type: 'team_invitation_declined',
+            title: 'Request Declined',
+            message: `Coach ${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''} declined your request to join their team`,
+            metadata: {
+              coach_id: user.id
+            }
+          });
+      }
+      
+      // Refresh notifications
+      fetchNotifications();
+      
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['coach-teams', user.id] });
+    } catch (error) {
+      console.error('Error handling athlete request:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to process the athlete request',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleCoachRequest = async (notificationId: string, coachId: string, approved: boolean) => {
     if (!user?.id) return;
     
@@ -328,14 +463,22 @@ const NotificationsTable: React.FC = () => {
                   colorScheme={
                     notification.type === 'coach_request' 
                       ? 'green' 
-                      : notification.type === 'system' 
-                        ? 'blue' 
-                        : 'purple'
+                      : notification.type === 'coach_invitation'
+                        ? 'purple'
+                        : notification.type === 'system' 
+                          ? 'blue' 
+                          : 'gray'
                   }
                 >
                   {notification.type === 'coach_request' 
-                    ? 'Coach Request' 
-                    : notification.type}
+                    ? 'Athlete Request' 
+                    : notification.type === 'coach_invitation'
+                      ? 'Coach Request'
+                      : notification.type === 'team_invitation_accepted'
+                        ? 'Request Approved'
+                        : notification.type === 'team_invitation_declined'
+                          ? 'Request Declined'
+                          : notification.type}
                 </Badge>
               </Td>
               <Td>
@@ -354,6 +497,41 @@ const NotificationsTable: React.FC = () => {
               </Td>
               <Td>
                 {notification.type === 'coach_request' && !notification.is_read && (
+                  <Flex>
+                    <Tooltip label="Approve">
+                      <IconButton
+                        aria-label="Approve request"
+                        icon={<FaCheckCircle />}
+                        variant="solid"
+                        colorScheme="green"
+                        size="sm"
+                        mr={2}
+                        isLoading={isProcessing}
+                        onClick={() => handleAthleteRequest(
+                          notification.id, 
+                          notification.metadata.athlete_id, 
+                          true
+                        )}
+                      />
+                    </Tooltip>
+                    <Tooltip label="Decline">
+                      <IconButton
+                        aria-label="Decline request"
+                        icon={<FaTimesCircle />}
+                        variant="solid"
+                        colorScheme="red"
+                        size="sm"
+                        isLoading={isProcessing}
+                        onClick={() => handleAthleteRequest(
+                          notification.id, 
+                          notification.metadata.athlete_id, 
+                          false
+                        )}
+                      />
+                    </Tooltip>
+                  </Flex>
+                )}
+                {notification.type === 'coach_invitation' && !notification.is_read && (
                   <Flex>
                     <Tooltip label="Approve">
                       <IconButton
@@ -388,7 +566,7 @@ const NotificationsTable: React.FC = () => {
                     </Tooltip>
                   </Flex>
                 )}
-                {(!notification.is_read && notification.type !== 'coach_request') && (
+                {(!notification.is_read && notification.type !== 'coach_request' && notification.type !== 'coach_invitation') && (
                   <Tooltip label="Mark as read">
                     <IconButton
                       aria-label="Mark as read"
