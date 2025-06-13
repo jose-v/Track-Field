@@ -108,8 +108,6 @@ export const MyTeamsCard: React.FC<MyTeamsCardProps> = ({ maxTeamsToShow = 3 }) 
           .eq('status', 'active')
           .eq('teams.is_active', true);
 
-        console.log('MyTeamsCard - Memberships with teams:', memberships);
-        console.log('MyTeamsCard - Memberships error:', membershipsError);
         if (membershipsError) throw membershipsError;
         if (!memberships || memberships.length === 0) return [];
 
@@ -174,7 +172,6 @@ export const MyTeamsCard: React.FC<MyTeamsCardProps> = ({ maxTeamsToShow = 3 }) 
           } as Team;
         }) || [];
 
-        console.log('MyTeamsCard - Final teams result:', teams);
         return teams;
       } catch (error) {
         console.error('Error fetching teams:', error);

@@ -280,6 +280,8 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
 
     setIsDeleting(true);
     try {
+      console.log('Deleting team:', teamToDelete.name, teamToDelete.id);
+      
       // First, mark all team members as inactive (soft delete)
       const { error: membersError } = await supabase
         .from('team_members')
@@ -290,7 +292,10 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
         .eq('team_id', teamToDelete.id)
         .eq('status', 'active');
 
-      if (membersError) throw membersError;
+      if (membersError) {
+        console.error('Error updating team members:', membersError);
+        throw membersError;
+      }
 
       // Then mark the team as inactive (soft delete) instead of hard delete
       const { error: teamError } = await supabase
@@ -302,7 +307,12 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
         .eq('id', teamToDelete.id)
         .eq('created_by', user.id); // Ensure only creator can delete
 
-      if (teamError) throw teamError;
+      if (teamError) {
+        console.error('Error updating team:', teamError);
+        throw teamError;
+      }
+
+      console.log('Team deletion completed successfully');
 
       toast({
         title: 'Team Deleted',
@@ -316,11 +326,19 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
       onDeleteClose();
     } catch (error) {
       console.error('Error deleting team:', error);
+      
+      // Check if it's a timeout error
+      const isTimeoutError = error?.message?.includes('timeout') || 
+                            error?.message?.includes('API timeout') ||
+                            error?.code === 'PGRST301';
+      
       toast({
         title: 'Error Deleting Team',
-        description: 'Failed to delete the team. Please try again.',
+        description: isTimeoutError 
+          ? 'Database timeout occurred. Please check if the team was deleted and try again if needed.'
+          : 'Failed to delete the team. Please try again.',
         status: 'error',
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
     } finally {
