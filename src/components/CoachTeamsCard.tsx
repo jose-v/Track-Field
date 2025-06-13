@@ -51,7 +51,7 @@ import {
   FaUserMinus,
   FaEdit
 } from 'react-icons/fa';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { CreateTeamModal } from './CreateTeamModal';
@@ -94,6 +94,7 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
   const toast = useToast();
   const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure();
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
+  const queryClient = useQueryClient();
 
   // New state for additional functionality
   const { isOpen: isInviteOpen, onOpen: onInviteOpen, onClose: onInviteClose } = useDisclosure();
@@ -334,14 +335,29 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
       setIsRemovingAthlete(true);
       
       // Remove from team_members
-      const { error } = await supabase
+      const { data: updateResult, error } = await supabase
         .from('team_members')
         .update({ status: 'inactive' })
         .eq('team_id', teamId)
         .eq('user_id', athleteId)
-        .eq('status', 'active');
+        .eq('status', 'active')
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating team member status:', error);
+        throw error;
+      }
+
+      if (!updateResult || updateResult.length === 0) {
+        toast({
+          title: 'Warning',
+          description: 'No records were updated. The athlete may have already been removed.',
+          status: 'warning',
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
 
       toast({
         title: 'Athlete Removed',
@@ -351,15 +367,18 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
         isClosable: true,
       });
 
-      refetch(); // Refresh teams list
+      // Refresh the data
+      await refetch();
+      await queryClient.invalidateQueries({ queryKey: ['coach-teams'] });
+      
       setAthleteToRemove(null);
     } catch (error) {
       console.error('Error removing athlete:', error);
       toast({
         title: 'Error',
-        description: 'Failed to remove athlete from team',
+        description: `Failed to remove athlete from team: ${error.message || 'Unknown error'}`,
         status: 'error',
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
     } finally {
@@ -823,8 +842,15 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
           setTeamToEdit(null);
         }}
         team={teamToEdit}
-        onTeamUpdated={() => {
-          refetch();
+        onTeamUpdated={async () => {
+          console.log('Team updated, refreshing data...');
+          
+          // Force a more aggressive cache refresh
+          await refetch();
+          await queryClient.invalidateQueries({ queryKey: ['coach-teams'] });
+          await queryClient.refetchQueries({ queryKey: ['coach-teams', user?.id] });
+          
+          console.log('Data refresh completed');
         }}
       />
     </>

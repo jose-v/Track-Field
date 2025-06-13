@@ -103,12 +103,38 @@ export const EditTeamModal: React.FC<EditTeamModalProps> = ({
         updateData.institution_type = null;
       }
 
-      const { error } = await supabase
+      console.log('Attempting to update team:', team.id);
+      console.log('Update data:', updateData);
+      console.log('Current user:', user?.id);
+
+      // First, let's check if the team exists and we have permission
+      const { data: existingTeam, error: checkError } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('id', team.id)
+        .single();
+
+      console.log('Existing team check:', existingTeam);
+      
+      if (checkError) {
+        console.error('Error checking existing team:', checkError);
+        throw new Error(`Team not found: ${checkError.message}`);
+      }
+
+      const { data: updatedTeam, error } = await supabase
         .from('teams')
         .update(updateData)
-        .eq('id', team.id);
+        .eq('id', team.id)
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Update error:', error);
+        throw error;
+      }
+
+      console.log('Team update successful:', updatedTeam);
+      console.log('Update data sent:', updateData);
 
       toast({
         title: 'Team Updated Successfully!',
@@ -125,9 +151,9 @@ export const EditTeamModal: React.FC<EditTeamModalProps> = ({
       console.error('Error updating team:', error);
       toast({
         title: 'Error Updating Team',
-        description: 'Failed to update the team. Please try again.',
+        description: `Failed to update the team: ${error.message || 'Unknown error'}`,
         status: 'error',
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
     } finally {
