@@ -30,7 +30,6 @@ import {
   useDisclosure as useCollapseDisclosure,
   AlertDialog,
   AlertDialogBody,
-  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogContent,
   AlertDialogOverlay
@@ -97,9 +96,12 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
   // New state for additional functionality
   const { isOpen: isInviteOpen, onOpen: onInviteOpen, onClose: onInviteClose } = useDisclosure();
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
+  const { isOpen: isRemoveAthleteOpen, onOpen: onRemoveAthleteOpen, onClose: onRemoveAthleteClose } = useDisclosure();
   const [selectedTeamForInvite, setSelectedTeamForInvite] = useState<{ id: string; name: string } | null>(null);
   const [teamToDelete, setTeamToDelete] = useState<CoachTeam | null>(null);
+  const [athleteToRemove, setAthleteToRemove] = useState<{ id: string; name: string; teamId: string; teamName: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isRemovingAthlete, setIsRemovingAthlete] = useState(false);
   const cancelRef = React.useRef<HTMLButtonElement>(null);
 
   // Theme colors
@@ -312,6 +314,8 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
   // Handle removing athlete from team
   const handleRemoveAthlete = async (athleteId: string, athleteName: string, teamId: string, teamName: string) => {
     try {
+      setIsRemovingAthlete(true);
+      
       // Remove from team_members
       const { error } = await supabase
         .from('team_members')
@@ -331,6 +335,7 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
       });
 
       refetch(); // Refresh teams list
+      setAthleteToRemove(null);
     } catch (error) {
       console.error('Error removing athlete:', error);
       toast({
@@ -340,6 +345,8 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
         duration: 3000,
         isClosable: true,
       });
+    } finally {
+      setIsRemovingAthlete(false);
     }
   };
 
@@ -609,12 +616,15 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
                                     <MenuItem 
                                       icon={<FaUserMinus />} 
                                       color="red.500"
-                                      onClick={() => handleRemoveAthlete(
-                                        athlete.id, 
-                                        `${athlete.first_name} ${athlete.last_name}`, 
-                                        team.id, 
-                                        team.name
-                                      )}
+                                      onClick={() => {
+                                        setAthleteToRemove({
+                                          id: athlete.id,
+                                          name: `${athlete.first_name} ${athlete.last_name}`,
+                                          teamId: team.id,
+                                          teamName: team.name
+                                        });
+                                        onRemoveAthleteOpen();
+                                      }}
                                     >
                                       Remove from Team
                                     </MenuItem>
@@ -694,8 +704,9 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
             onInviteClose();
             setSelectedTeamForInvite(null);
           }}
-          team={selectedTeamForInvite}
-          onInviteSent={() => {
+          teamId={selectedTeamForInvite.id}
+          teamName={selectedTeamForInvite.name}
+          onSuccess={() => {
             refetch();
           }}
         />
@@ -714,27 +725,80 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
             </AlertDialogHeader>
 
             <AlertDialogBody>
-              Are you sure you want to delete <strong>{teamToDelete?.name}</strong>? 
-              This will remove all team members and cannot be undone.
+              <VStack spacing={4} align="stretch">
+                <Text>
+                  Are you sure you want to delete <strong>{teamToDelete?.name}</strong>? 
+                  This will remove all team members and cannot be undone.
+                </Text>
+                
+                {/* Buttons in content area instead of footer */}
+                <HStack spacing={3} justify="flex-end" pt={4}>
+                  <Button ref={cancelRef} onClick={onDeleteClose}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    colorScheme="red" 
+                    onClick={confirmDeleteTeam}
+                    isLoading={isDeleting}
+                    loadingText="Deleting..."
+                  >
+                    Delete Team
+                  </Button>
+                </HStack>
+              </VStack>
             </AlertDialogBody>
-
-            <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={onDeleteClose}>
-                Cancel
-              </Button>
-              <Button 
-                colorScheme="red" 
-                onClick={confirmDeleteTeam}
-                ml={3}
-                isLoading={isDeleting}
-                loadingText="Deleting..."
-              >
-                Delete Team
-              </Button>
-            </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialogOverlay>
       </AlertDialog>
+
+      {/* Remove Athlete Confirmation Dialog */}
+      {athleteToRemove && (
+        <AlertDialog
+          isOpen={isRemoveAthleteOpen}
+          leastDestructiveRef={cancelRef}
+          onClose={onRemoveAthleteClose}
+        >
+          <AlertDialogOverlay>
+            <AlertDialogContent>
+              <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                Remove Athlete
+              </AlertDialogHeader>
+
+              <AlertDialogBody>
+                <VStack spacing={4} align="stretch">
+                  <Text>
+                    Are you sure you want to remove <strong>{athleteToRemove.name}</strong> from <strong>{athleteToRemove.teamName}</strong>? 
+                    This will remove the athlete from the team and cannot be undone.
+                  </Text>
+                  
+                  {/* Buttons in content area instead of footer */}
+                  <HStack spacing={3} justify="flex-end" pt={4}>
+                    <Button ref={cancelRef} onClick={onRemoveAthleteClose}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      colorScheme="red" 
+                      onClick={() => {
+                        handleRemoveAthlete(
+                          athleteToRemove.id,
+                          athleteToRemove.name,
+                          athleteToRemove.teamId,
+                          athleteToRemove.teamName
+                        );
+                        onRemoveAthleteClose();
+                      }}
+                      isLoading={isRemovingAthlete}
+                      loadingText="Removing..."
+                    >
+                      Remove Athlete
+                    </Button>
+                  </HStack>
+                </VStack>
+              </AlertDialogBody>
+            </AlertDialogContent>
+          </AlertDialogOverlay>
+        </AlertDialog>
+      )}
     </>
   );
 };
