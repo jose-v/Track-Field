@@ -170,20 +170,32 @@ export const SendTeamInviteModal: React.FC<SendTeamInviteModalProps> = ({
 
     setIsAddingAthletes(true);
     try {
-      // Double-check for existing memberships to prevent 409 errors
-      const { data: existingMembers, error: checkError } = await supabase
+      // Prepare insert data for all selected athletes
+      const insertData = selectedAthleteIds.map(athleteId => ({
+        team_id: teamId,
+        user_id: athleteId,
+        role: 'athlete',
+        status: 'active',
+        joined_at: new Date().toISOString()
+      }));
+
+      // Use upsert to handle duplicates gracefully
+      const { data: insertedData, error } = await supabase
         .from('team_members')
-        .select('user_id')
-        .eq('team_id', teamId)
-        .eq('status', 'active')
-        .in('user_id', selectedAthleteIds);
+        .upsert(insertData, { 
+          onConflict: 'team_id,user_id',
+          ignoreDuplicates: true 
+        })
+        .select('user_id');
 
-      if (checkError) throw checkError;
+      if (error) throw error;
 
-      const existingMemberIds = new Set(existingMembers?.map(member => member.user_id) || []);
-      const newAthleteIds = selectedAthleteIds.filter(id => !existingMemberIds.has(id));
+      // Get the actual inserted/updated records to determine what was added
+      const insertedUserIds = new Set(insertedData?.map(record => record.user_id) || []);
+      const addedAthletes = coachAthletes.filter(a => insertedUserIds.has(a.id));
+      const skippedCount = selectedAthleteIds.length - insertedUserIds.size;
 
-      if (newAthleteIds.length === 0) {
+      if (insertedUserIds.size === 0) {
         toast({
           title: 'Already Members',
           description: 'All selected athletes are already members of this team',
@@ -194,27 +206,10 @@ export const SendTeamInviteModal: React.FC<SendTeamInviteModalProps> = ({
         return;
       }
 
-      // Only insert athletes who are not already members
-      const insertData = newAthleteIds.map(athleteId => ({
-        team_id: teamId,
-        user_id: athleteId,
-        role: 'athlete',
-        status: 'active',
-        joined_at: new Date().toISOString()
-      }));
-
-      const { error } = await supabase
-        .from('team_members')
-        .insert(insertData);
-
-      if (error) throw error;
-
-      const addedAthletes = coachAthletes.filter(a => newAthleteIds.includes(a.id));
       const athleteNames = addedAthletes.map(a => `${a.first_name} ${a.last_name}`).join(', ');
       
-      // Show different messages based on what happened
-      if (existingMemberIds.size > 0) {
-        const skippedCount = existingMemberIds.size;
+      // Show appropriate success message
+      if (skippedCount > 0) {
         toast({
           title: 'Athletes Added!',
           description: `${athleteNames} ${addedAthletes.length === 1 ? 'has' : 'have'} been added to ${teamName}. ${skippedCount} athlete${skippedCount === 1 ? ' was' : 's were'} already members.`,

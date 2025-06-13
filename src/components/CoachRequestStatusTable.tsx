@@ -141,20 +141,25 @@ const AddAthleteToTeamModal: React.FC<AddAthleteToTeamModalProps> = ({
 
     setIsAddingToTeam(true);
     try {
-      // Check if athlete is already in this team
-      const { data: existingMember, error: checkError } = await supabase
+      // Use upsert to handle duplicates gracefully
+      const { data: insertedData, error } = await supabase
         .from('team_members')
-        .select('id')
-        .eq('team_id', selectedTeamId)
-        .eq('user_id', athlete.id)
-        .eq('status', 'active')
-        .single();
+        .upsert({
+          team_id: selectedTeamId,
+          user_id: athlete.id,
+          role: 'athlete',
+          status: 'active',
+          joined_at: new Date().toISOString()
+        }, { 
+          onConflict: 'team_id,user_id',
+          ignoreDuplicates: true 
+        })
+        .select('id');
 
-      if (checkError && checkError.code !== 'PGRST116') {
-        throw checkError;
-      }
+      if (error) throw error;
 
-      if (existingMember) {
+      // Check if the record was actually inserted (not a duplicate)
+      if (!insertedData || insertedData.length === 0) {
         toast({
           title: 'Already a Member',
           description: `${athlete.name} is already a member of this team`,
@@ -164,19 +169,6 @@ const AddAthleteToTeamModal: React.FC<AddAthleteToTeamModalProps> = ({
         });
         return;
       }
-
-      // Add athlete to team
-      const { error } = await supabase
-        .from('team_members')
-        .insert({
-          team_id: selectedTeamId,
-          user_id: athlete.id,
-          role: 'athlete',
-          status: 'active',
-          joined_at: new Date().toISOString()
-        });
-
-      if (error) throw error;
 
       const selectedTeam = teams.find(t => t.id === selectedTeamId);
       toast({
