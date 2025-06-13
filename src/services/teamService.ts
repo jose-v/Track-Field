@@ -238,16 +238,19 @@ export async function joinTeamByInviteCode(
       return { success: false, error: 'You are already a member of this team' };
     }
 
-    // Add user to team_members
+    // Add user to team_members using UPSERT to handle reactivating inactive members
     const memberRole = user_role === 'team_manager' ? 'manager' : user_role;
     const { error: memberError } = await supabase
       .from('team_members')
-      .insert({
+      .upsert({
         team_id: team.id,
         user_id: user_id,
         role: memberRole,
         status: 'active',
         joined_at: new Date().toISOString()
+      }, {
+        onConflict: 'team_id,user_id',
+        ignoreDuplicates: false  // Allow updating inactive records to active
       });
 
     if (memberError) {

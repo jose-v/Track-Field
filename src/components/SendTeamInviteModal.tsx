@@ -221,12 +221,12 @@ export const SendTeamInviteModal: React.FC<SendTeamInviteModalProps> = ({
         joined_at: new Date().toISOString()
       }));
 
-      // Use upsert as a safety net (should not be needed now, but good practice)
+      // Use upsert to handle both new additions and reactivating inactive members
       const { data: insertedData, error } = await supabase
         .from('team_members')
         .upsert(insertData, { 
           onConflict: 'team_id,user_id',
-          ignoreDuplicates: true 
+          ignoreDuplicates: false  // Changed to false so it updates inactive records
         })
         .select('user_id');
 

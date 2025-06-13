@@ -159,13 +159,13 @@ const AddAthleteToTeamModal: React.FC<AddAthleteToTeamModalProps> = ({
 
     setIsAddingToTeam(true);
     try {
-      // First check if athlete is already a member of this team
+      // First check if athlete is already an ACTIVE member of this team
       const { data: existingMember, error: checkError } = await supabase
         .from('team_members')
-        .select('id')
+        .select('id, status')
         .eq('team_id', selectedTeamId)
         .eq('user_id', athlete.id)
-        .eq('status', 'active')
+        .eq('status', 'active')  // Only check for active members
         .single();
 
       if (checkError && checkError.code !== 'PGRST116') {
@@ -186,7 +186,7 @@ const AddAthleteToTeamModal: React.FC<AddAthleteToTeamModalProps> = ({
         return;
       }
 
-      // Add athlete to team using UPSERT (same approach as SendTeamInviteModal)
+      // Add athlete to team using UPSERT to handle both new additions and reactivating inactive members
       const { data: insertedData, error } = await supabase
         .from('team_members')
         .upsert({
@@ -197,26 +197,13 @@ const AddAthleteToTeamModal: React.FC<AddAthleteToTeamModalProps> = ({
           joined_at: new Date().toISOString()
         }, { 
           onConflict: 'team_id,user_id',
-          ignoreDuplicates: true 
+          ignoreDuplicates: false  // Changed to false so it updates inactive records
         })
         .select('id');
 
       if (error) throw error;
 
-      // Check if the record was actually inserted (not a duplicate)
-      if (!insertedData || insertedData.length === 0) {
-        // This means the athlete was already a member (UPSERT ignored the duplicate)
-        const selectedTeam = teams.find(t => t.id === selectedTeamId);
-        toast({
-          title: 'Already a Member',
-          description: `${athlete.name} is already a member of ${selectedTeam?.name}`,
-          status: 'warning',
-          duration: 4000,
-          isClosable: true,
-        });
-        return;
-      }
-
+      // UPSERT with ignoreDuplicates: false will always return data when successful
       const selectedTeam = teams.find(t => t.id === selectedTeamId);
       toast({
         title: 'Athlete Added!',

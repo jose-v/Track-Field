@@ -129,15 +129,18 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({
 
     setIsJoining(true);
     try {
-      // Add user to team_members
+      // Add user to team_members using UPSERT to handle reactivating inactive members
       const { error: memberError } = await supabase
         .from('team_members')
-        .insert({
+        .upsert({
           team_id: teamPreview.id,
           user_id: user.id,
           role: 'athlete', // Default role for invite code joins
           status: 'active',
           joined_at: new Date().toISOString()
+        }, {
+          onConflict: 'team_id,user_id',
+          ignoreDuplicates: false  // Allow updating inactive records to active
         });
 
       if (memberError) throw memberError;
