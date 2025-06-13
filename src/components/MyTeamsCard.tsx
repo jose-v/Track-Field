@@ -85,37 +85,36 @@ export const MyTeamsCard: React.FC<MyTeamsCardProps> = ({ maxTeamsToShow = 3 }) 
       if (!user?.id) return [];
 
       try {
-                // Get user's team memberships from team_members table
+        // Use a single query with join to get only active teams and memberships
         const { data: memberships, error: membershipsError } = await supabase
           .from('team_members')
           .select(`
             team_id,
             role,
-            joined_at
+            joined_at,
+            teams!inner (
+              id,
+              name,
+              description,
+              team_type,
+              created_at,
+              logo_url,
+              institution_name,
+              institution_type,
+              is_active
+            )
           `)
           .eq('user_id', user.id)
-          .eq('status', 'active');
+          .eq('status', 'active')
+          .eq('teams.is_active', true);
 
+        console.log('MyTeamsCard - Memberships with teams:', memberships);
+        console.log('MyTeamsCard - Memberships error:', membershipsError);
         if (membershipsError) throw membershipsError;
         if (!memberships || memberships.length === 0) return [];
 
-        // Get detailed team information with all members for each team
-        const { data: teamsData, error: teamsError } = await supabase
-          .from('teams')
-          .select(`
-            id, 
-            name, 
-            description, 
-            team_type, 
-            created_at,
-            logo_url,
-            institution_name,
-            institution_type
-          `)
-          .in('id', memberships.map(m => m.team_id))
-          .eq('is_active', true);
-
-        if (teamsError) throw teamsError;
+        // Extract team IDs for additional queries
+        const teamIds = memberships.map(m => m.team_id);
 
         // Get all team members for all teams in one query
         const { data: allTeamMembers, error: allMembersError } = await supabase
@@ -125,7 +124,7 @@ export const MyTeamsCard: React.FC<MyTeamsCardProps> = ({ maxTeamsToShow = 3 }) 
             user_id,
             role
           `)
-          .in('team_id', memberships.map(m => m.team_id))
+          .in('team_id', teamIds)
           .eq('status', 'active');
 
         if (allMembersError) throw allMembersError;
@@ -139,9 +138,9 @@ export const MyTeamsCard: React.FC<MyTeamsCardProps> = ({ maxTeamsToShow = 3 }) 
 
         if (allProfilesError) throw allProfilesError;
 
-        // Build teams with their members
-        const teams = teamsData?.map(teamData => {
-          const membership = memberships.find(m => m.team_id === teamData.id);
+        // Build teams with their members using the joined data
+        const teams = memberships?.map(membership => {
+          const teamData = (membership as any).teams;
           const teamMembers = allTeamMembers?.filter(m => m.team_id === teamData.id) || [];
           
           const members: TeamMember[] = teamMembers.map((member: any) => {
@@ -166,8 +165,8 @@ export const MyTeamsCard: React.FC<MyTeamsCardProps> = ({ maxTeamsToShow = 3 }) 
             member_count: members.length,
             members,
             created_at: teamData.created_at,
-            user_role: membership?.role,
-            joined_at: membership?.joined_at,
+            user_role: membership.role,
+            joined_at: membership.joined_at,
             can_leave: canLeave,
             logo_url: teamData.logo_url,
             institution_name: teamData.institution_name,
@@ -175,6 +174,7 @@ export const MyTeamsCard: React.FC<MyTeamsCardProps> = ({ maxTeamsToShow = 3 }) 
           } as Team;
         }) || [];
 
+        console.log('MyTeamsCard - Final teams result:', teams);
         return teams;
       } catch (error) {
         console.error('Error fetching teams:', error);
