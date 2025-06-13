@@ -19,7 +19,8 @@ import {
   Circle,
   SimpleGrid,
   Badge,
-  Flex
+  Flex,
+  Input
 } from '@chakra-ui/react';
 import { FaRegClock, FaRunning, FaPlayCircle, FaDumbbell, FaCheckCircle } from 'react-icons/fa';
 import { CheckIcon, ChevronLeftIcon } from '@chakra-ui/icons';
@@ -110,6 +111,13 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
   const [selectedRPE, setSelectedRPE] = useState<number | null>(null);
   const [isLoggingRPE, setIsLoggingRPE] = useState(false);
 
+  // State for set tracking
+  const [setData, setSetData] = useState<Array<{
+    completed: boolean;
+    actualReps: number;
+    targetReps: number;
+  }>>([]);
+
   // Theme colors
   const cardBg = useColorModeValue('white', 'gray.800');
   const modalHeaderBg = useColorModeValue('gray.50', 'gray.700');
@@ -118,6 +126,19 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
   const modalTextColor = useColorModeValue('gray.500', 'gray.400');
   const modalSpanColor = useColorModeValue('gray.500', 'gray.400');
   const modalIconBg = useColorModeValue('white', 'gray.800');
+
+  // Initialize set data when exercise changes
+  useEffect(() => {
+    if (workout && workout.exercises[exerciseIdx]) {
+      const currentExercise = workout.exercises[exerciseIdx];
+      const newSetData = Array(currentExercise.sets).fill(null).map(() => ({
+        completed: false,
+        actualReps: currentExercise.reps,
+        targetReps: currentExercise.reps
+      }));
+      setSetData(newSetData);
+    }
+  }, [exerciseIdx, workout]);
 
   // Update timer ref whenever timer changes
   useEffect(() => {
@@ -145,61 +166,125 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
     }
   }, [exerciseIdx, isOpen]);
 
+  // Helper functions for set tracking
+  const handleSetComplete = (setIndex: number) => {
+    setSetData(prev => prev.map((set, idx) => 
+      idx === setIndex ? { ...set, completed: !set.completed } : set
+    ));
+  };
+
+  const handleRepsChange = (setIndex: number, reps: number) => {
+    setSetData(prev => prev.map((set, idx) => 
+      idx === setIndex ? { ...set, actualReps: Math.max(0, reps) } : set
+    ));
+  };
+
+  const getCompletedSetsCount = () => {
+    return setData.filter(set => set.completed).length;
+  };
+
+  const isStrengthExercise = (exerciseName: string) => {
+    return !isRunExercise(exerciseName);
+  };
+
   const handleDone = async () => {
     if (!workout || !workout.exercises[exerciseIdx]) return;
     
     const currentExercise = workout.exercises[exerciseIdx];
     const totalExercises = workout.exercises.length;
-    
-    // Check if this is a run exercise and validate time if entered
     const isRun = isRunExercise(currentExercise.name);
-    let timeValidation: { isValid: boolean; error?: string } = { isValid: true };
     
-    if (isRun && (runTime.minutes > 0 || runTime.seconds > 0 || runTime.hundredths > 0)) {
-      timeValidation = validateTime(runTime.minutes, runTime.seconds, runTime.hundredths);
+    // Validate and save data based on exercise type
+    if (isRun) {
+      // Handle run exercise validation and saving
+      let timeValidation: { isValid: boolean; error?: string } = { isValid: true };
       
-      if (!timeValidation.isValid) {
-        toast({
-          title: 'Invalid Time',
-          description: timeValidation.error || 'Please enter a valid time',
-          status: 'error',
-          duration: 3000,
-          isClosable: true,
-        });
-        return;
-      }
-    }
-    
-    // Save exercise result if time was recorded for run exercise
-    if (isRun && timeValidation.isValid && user?.id && (runTime.minutes > 0 || runTime.seconds > 0 || runTime.hundredths > 0)) {
-      try {
-        await api.exerciseResults.save({
-          athleteId: user.id,
-          workoutId: workout.id,
-          exerciseIndex: exerciseIdx,
-          exerciseName: currentExercise.name,
-          timeMinutes: runTime.minutes,
-          timeSeconds: runTime.seconds,
-          timeHundredths: runTime.hundredths,
-          notes: `Workout timer: ${Math.floor(timer / 60)}:${(timer % 60).toString().padStart(2, '0')}`
-        });
+      if (runTime.minutes > 0 || runTime.seconds > 0 || runTime.hundredths > 0) {
+        timeValidation = validateTime(runTime.minutes, runTime.seconds, runTime.hundredths);
         
-        toast({
-          title: 'Time Recorded!',
-          description: `Your time of ${runTime.minutes.toString().padStart(2, '0')}:${runTime.seconds.toString().padStart(2, '0')}.${runTime.hundredths.toString().padStart(2, '0')} has been saved.`,
-          status: 'success',
-          duration: 3000,
-          isClosable: true,
-        });
-      } catch (error) {
-        console.error('Error saving exercise result:', error);
-        toast({
-          title: 'Error Saving Time',
-          description: 'Your time could not be saved, but exercise completion was recorded.',
-          status: 'warning',
-          duration: 3000,
-          isClosable: true,
-        });
+        if (!timeValidation.isValid) {
+          toast({
+            title: 'Invalid Time',
+            description: timeValidation.error || 'Please enter a valid time',
+            status: 'error',
+            duration: 3000,
+            isClosable: true,
+          });
+          return;
+        }
+      }
+      
+      // Save exercise result if time was recorded for run exercise
+      if (timeValidation.isValid && user?.id && (runTime.minutes > 0 || runTime.seconds > 0 || runTime.hundredths > 0)) {
+        try {
+          await api.exerciseResults.save({
+            athleteId: user.id,
+            workoutId: workout.id,
+            exerciseIndex: exerciseIdx,
+            exerciseName: currentExercise.name,
+            timeMinutes: runTime.minutes,
+            timeSeconds: runTime.seconds,
+            timeHundredths: runTime.hundredths,
+            notes: `Workout timer: ${Math.floor(timer / 60)}:${(timer % 60).toString().padStart(2, '0')}`
+          });
+          
+          toast({
+            title: 'Time Recorded!',
+            description: `Your time of ${runTime.minutes.toString().padStart(2, '0')}:${runTime.seconds.toString().padStart(2, '0')}.${runTime.hundredths.toString().padStart(2, '0')} has been saved.`,
+            status: 'success',
+            duration: 3000,
+            isClosable: true,
+          });
+        } catch (error) {
+          console.error('Error saving exercise result:', error);
+          toast({
+            title: 'Error Saving Time',
+            description: 'Your time could not be saved, but exercise completion was recorded.',
+            status: 'warning',
+            duration: 3000,
+            isClosable: true,
+          });
+        }
+      }
+    } else {
+      // Handle strength exercise - save set/rep data
+      const completedSets = getCompletedSetsCount();
+      const totalSets = setData.length;
+      
+      if (user?.id && completedSets > 0) {
+        try {
+          // Create notes with set/rep breakdown
+          const setBreakdown = setData
+            .map((set, idx) => `Set ${idx + 1}: ${set.actualReps}/${set.targetReps} reps ${set.completed ? '✓' : '○'}`)
+            .join(', ');
+          
+          await api.exerciseResults.save({
+            athleteId: user.id,
+            workoutId: workout.id,
+            exerciseIndex: exerciseIdx,
+            exerciseName: currentExercise.name,
+            setsCompleted: completedSets,
+            repsCompleted: setData.reduce((total, set) => total + (set.completed ? set.actualReps : 0), 0),
+            notes: `${setBreakdown}. Workout timer: ${Math.floor(timer / 60)}:${(timer % 60).toString().padStart(2, '0')}`
+          });
+          
+          toast({
+            title: 'Sets Recorded!',
+            description: `${completedSets}/${totalSets} sets completed`,
+            status: 'success',
+            duration: 3000,
+            isClosable: true,
+          });
+        } catch (error) {
+          console.error('Error saving exercise result:', error);
+          toast({
+            title: 'Error Saving Data',
+            description: 'Your set data could not be saved, but exercise completion was recorded.',
+            status: 'warning',
+            duration: 3000,
+            isClosable: true,
+          });
+        }
       }
     }
     
@@ -549,79 +634,18 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
           ) : (
             /* Original Exercise Execution Content */
             <VStack spacing={6} align="stretch">
-              {/* Exercise Stats Grid */}
-              <Box 
-                bg={modalHeaderBg} 
-                borderRadius="2xl" 
-                p={6}
-                border="1px solid"
-                borderColor={modalHeaderBorderColor}
-              >
-                <HStack justify="space-around" align="center" spacing={6}>
-                  <VStack spacing={1}>
-                    <Text 
-                      color={modalTextColor} 
-                      fontSize="sm"
-                      fontWeight="medium"
-                      textTransform="uppercase"
-                      letterSpacing="wider"
-                    >
-                      Sets
-                    </Text>
-                    <Text 
-                      fontWeight="bold" 
-                      fontSize="2xl"
-                      color={modalHeadingColor}
-                    >
-                      {currentExercise.sets}
-                    </Text>
-                  </VStack>
-                  
-                  <Divider orientation="vertical" h="50px" />
-                  
-                  <VStack spacing={1}>
-                    <Text 
-                      color={modalTextColor} 
-                      fontSize="sm"
-                      fontWeight="medium"
-                      textTransform="uppercase"
-                      letterSpacing="wider"
-                    >
-                      Reps
-                    </Text>
-                    <Text 
-                      fontWeight="bold" 
-                      fontSize="2xl"
-                      color={modalHeadingColor}
-                    >
-                      {currentExercise.reps}
-                    </Text>
-                  </VStack>
-                  
-                  <Divider orientation="vertical" h="50px" />
-                  
-                  <VStack spacing={1}>
-                    <Text 
-                      color={modalTextColor} 
-                      fontSize="sm"
-                      fontWeight="medium"
-                      textTransform="uppercase"
-                      letterSpacing="wider"
-                    >
-                      Exercise
-                    </Text>
-                    <Text 
-                      fontWeight="bold" 
-                      fontSize="2xl"
-                      color={modalHeadingColor}
-                    >
-                      {exerciseIdx + 1}/{workout.exercises.length}
-                    </Text>
-                  </VStack>
-                  
-                  {currentExercise.weight && (
-                    <>
-                      <Divider orientation="vertical" h="50px" />
+              {isStrengthExercise(currentExercise.name) ? (
+                /* Interactive Set Tracker for Strength Exercises */
+                <Box 
+                  bg={modalHeaderBg} 
+                  borderRadius="2xl" 
+                  p={6}
+                  border="1px solid"
+                  borderColor={modalHeaderBorderColor}
+                >
+                  <VStack spacing={4}>
+                    {/* Exercise Summary */}
+                    <HStack justify="space-between" width="100%">
                       <VStack spacing={1}>
                         <Text 
                           color={modalTextColor} 
@@ -630,23 +654,226 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                           textTransform="uppercase"
                           letterSpacing="wider"
                         >
-                          Weight
+                          Progress
                         </Text>
                         <Text 
                           fontWeight="bold" 
-                          fontSize="2xl"
+                          fontSize="xl"
                           color={modalHeadingColor}
                         >
-                          {currentExercise.weight}
-                          <Text as="span" fontSize="lg" color={modalSpanColor}>
-                            kg
-                          </Text>
+                          {getCompletedSetsCount()}/{currentExercise.sets} Sets
                         </Text>
                       </VStack>
-                    </>
-                  )}
-                </HStack>
-              </Box>
+                      
+                      <VStack spacing={1}>
+                        <Text 
+                          color={modalTextColor} 
+                          fontSize="sm"
+                          fontWeight="medium"
+                          textTransform="uppercase"
+                          letterSpacing="wider"
+                        >
+                          Exercise
+                        </Text>
+                        <Text 
+                          fontWeight="bold" 
+                          fontSize="xl"
+                          color={modalHeadingColor}
+                        >
+                          {exerciseIdx + 1}/{workout.exercises.length}
+                        </Text>
+                      </VStack>
+                      
+                      {currentExercise.weight && (
+                        <VStack spacing={1}>
+                          <Text 
+                            color={modalTextColor} 
+                            fontSize="sm"
+                            fontWeight="medium"
+                            textTransform="uppercase"
+                            letterSpacing="wider"
+                          >
+                            Weight
+                          </Text>
+                          <Text 
+                            fontWeight="bold" 
+                            fontSize="xl"
+                            color={modalHeadingColor}
+                          >
+                            {currentExercise.weight}
+                            <Text as="span" fontSize="md" color={modalSpanColor}>
+                              kg
+                            </Text>
+                          </Text>
+                        </VStack>
+                      )}
+                    </HStack>
+                    
+                    <Divider />
+                    
+                    {/* Individual Set Tracking */}
+                    <VStack spacing={3} width="100%">
+                      <Text 
+                        color={modalTextColor} 
+                        fontSize="sm"
+                        fontWeight="medium"
+                        textTransform="uppercase"
+                        letterSpacing="wider"
+                        alignSelf="flex-start"
+                      >
+                        Set Tracking
+                      </Text>
+                      
+                      {setData.map((set, index) => (
+                        <HStack 
+                          key={index} 
+                          spacing={4} 
+                          width="100%" 
+                          p={3}
+                          bg={set.completed ? 'green.50' : cardBg}
+                          borderRadius="lg"
+                          border="1px solid"
+                          borderColor={set.completed ? 'green.200' : modalHeaderBorderColor}
+                        >
+                          <Flex minWidth="60px" align="center">
+                            <Text fontWeight="semibold" color={modalHeadingColor}>
+                              Set {index + 1}
+                            </Text>
+                          </Flex>
+                          
+                          <HStack spacing={2} flex={1}>
+                            <Text fontSize="sm" color={modalTextColor}>
+                              Reps:
+                            </Text>
+                            <Input
+                              type="number"
+                              value={set.actualReps}
+                              onChange={(e) => handleRepsChange(index, parseInt(e.target.value) || 0)}
+                              size="sm"
+                              width="70px"
+                              textAlign="center"
+                              min={0}
+                              bg={cardBg}
+                              isDisabled={set.completed}
+                            />
+                            <Text fontSize="sm" color={modalTextColor}>
+                              / {set.targetReps}
+                            </Text>
+                          </HStack>
+                          
+                          <IconButton
+                            aria-label={set.completed ? "Mark incomplete" : "Mark complete"}
+                            icon={<CheckIcon />}
+                            colorScheme={set.completed ? "green" : "gray"}
+                            variant={set.completed ? "solid" : "outline"}
+                            size="sm"
+                            onClick={() => handleSetComplete(index)}
+                          />
+                        </HStack>
+                      ))}
+                    </VStack>
+                  </VStack>
+                </Box>
+              ) : (
+                /* Static Display for Run Exercises */
+                <Box 
+                  bg={modalHeaderBg} 
+                  borderRadius="2xl" 
+                  p={6}
+                  border="1px solid"
+                  borderColor={modalHeaderBorderColor}
+                >
+                  <HStack justify="space-around" align="center" spacing={6}>
+                    <VStack spacing={1}>
+                      <Text 
+                        color={modalTextColor} 
+                        fontSize="sm"
+                        fontWeight="medium"
+                        textTransform="uppercase"
+                        letterSpacing="wider"
+                      >
+                        Sets
+                      </Text>
+                      <Text 
+                        fontWeight="bold" 
+                        fontSize="2xl"
+                        color={modalHeadingColor}
+                      >
+                        {currentExercise.sets}
+                      </Text>
+                    </VStack>
+                    
+                    <Divider orientation="vertical" h="50px" />
+                    
+                    <VStack spacing={1}>
+                      <Text 
+                        color={modalTextColor} 
+                        fontSize="sm"
+                        fontWeight="medium"
+                        textTransform="uppercase"
+                        letterSpacing="wider"
+                      >
+                        Reps
+                      </Text>
+                      <Text 
+                        fontWeight="bold" 
+                        fontSize="2xl"
+                        color={modalHeadingColor}
+                      >
+                        {currentExercise.reps}
+                      </Text>
+                    </VStack>
+                    
+                    <Divider orientation="vertical" h="50px" />
+                    
+                    <VStack spacing={1}>
+                      <Text 
+                        color={modalTextColor} 
+                        fontSize="sm"
+                        fontWeight="medium"
+                        textTransform="uppercase"
+                        letterSpacing="wider"
+                      >
+                        Exercise
+                      </Text>
+                      <Text 
+                        fontWeight="bold" 
+                        fontSize="2xl"
+                        color={modalHeadingColor}
+                      >
+                        {exerciseIdx + 1}/{workout.exercises.length}
+                      </Text>
+                    </VStack>
+                    
+                    {currentExercise.weight && (
+                      <>
+                        <Divider orientation="vertical" h="50px" />
+                        <VStack spacing={1}>
+                          <Text 
+                            color={modalTextColor} 
+                            fontSize="sm"
+                            fontWeight="medium"
+                            textTransform="uppercase"
+                            letterSpacing="wider"
+                          >
+                            Weight
+                          </Text>
+                          <Text 
+                            fontWeight="bold" 
+                            fontSize="2xl"
+                            color={modalHeadingColor}
+                          >
+                            {currentExercise.weight}
+                            <Text as="span" fontSize="lg" color={modalSpanColor}>
+                              kg
+                            </Text>
+                          </Text>
+                        </VStack>
+                      </>
+                    )}
+                  </HStack>
+                </Box>
+              )}
 
               {/* Timer Display */}
               <VStack spacing={1} w="100%">
