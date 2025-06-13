@@ -170,8 +170,32 @@ export const SendTeamInviteModal: React.FC<SendTeamInviteModalProps> = ({
 
     setIsAddingAthletes(true);
     try {
-      // Add all selected athletes to team
-      const insertData = selectedAthleteIds.map(athleteId => ({
+      // Double-check for existing memberships to prevent 409 errors
+      const { data: existingMembers, error: checkError } = await supabase
+        .from('team_members')
+        .select('user_id')
+        .eq('team_id', teamId)
+        .eq('status', 'active')
+        .in('user_id', selectedAthleteIds);
+
+      if (checkError) throw checkError;
+
+      const existingMemberIds = new Set(existingMembers?.map(member => member.user_id) || []);
+      const newAthleteIds = selectedAthleteIds.filter(id => !existingMemberIds.has(id));
+
+      if (newAthleteIds.length === 0) {
+        toast({
+          title: 'Already Members',
+          description: 'All selected athletes are already members of this team',
+          status: 'warning',
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      // Only insert athletes who are not already members
+      const insertData = newAthleteIds.map(athleteId => ({
         team_id: teamId,
         user_id: athleteId,
         role: 'athlete',
@@ -185,16 +209,28 @@ export const SendTeamInviteModal: React.FC<SendTeamInviteModalProps> = ({
 
       if (error) throw error;
 
-      const addedAthletes = coachAthletes.filter(a => selectedAthleteIds.includes(a.id));
+      const addedAthletes = coachAthletes.filter(a => newAthleteIds.includes(a.id));
       const athleteNames = addedAthletes.map(a => `${a.first_name} ${a.last_name}`).join(', ');
       
-      toast({
-        title: 'Athletes Added!',
-        description: `${athleteNames} ${addedAthletes.length === 1 ? 'has' : 'have'} been added to ${teamName}`,
-        status: 'success',
-        duration: 4000,
-        isClosable: true,
-      });
+      // Show different messages based on what happened
+      if (existingMemberIds.size > 0) {
+        const skippedCount = existingMemberIds.size;
+        toast({
+          title: 'Athletes Added!',
+          description: `${athleteNames} ${addedAthletes.length === 1 ? 'has' : 'have'} been added to ${teamName}. ${skippedCount} athlete${skippedCount === 1 ? ' was' : 's were'} already members.`,
+          status: 'success',
+          duration: 4000,
+          isClosable: true,
+        });
+      } else {
+        toast({
+          title: 'Athletes Added!',
+          description: `${athleteNames} ${addedAthletes.length === 1 ? 'has' : 'have'} been added to ${teamName}`,
+          status: 'success',
+          duration: 4000,
+          isClosable: true,
+        });
+      }
 
       // Remove added athletes from available list
       setCoachAthletes(prev => prev.filter(a => !selectedAthleteIds.includes(a.id)));
