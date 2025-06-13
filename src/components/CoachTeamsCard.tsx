@@ -101,7 +101,7 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
       if (!user?.id) return [];
 
       try {
-        // First, ensure coach has a team if they have athletes
+        // Auto-create team for new coaches (only if they have athletes but no teams)
         const { data: profile } = await supabase
           .from('profiles')
           .select('first_name, last_name')

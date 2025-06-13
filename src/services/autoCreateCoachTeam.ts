@@ -16,8 +16,8 @@ export async function autoCreateCoachTeam(
   coachName: string
 ): Promise<AutoCreateResult> {
   try {
-    // Check if coach already has a coach team
-    const { data: existingTeam } = await supabase
+    // Double-check if coach already has ANY teams (not just coach teams)
+    const { data: existingTeams } = await supabase
       .from('team_members')
       .select(`
         team_id,
@@ -30,12 +30,11 @@ export async function autoCreateCoachTeam(
       `)
       .eq('user_id', coachId)
       .eq('role', 'coach')
-      .eq('status', 'active')
-      .eq('teams.team_type', 'coach')
-      .single();
+      .eq('status', 'active');
 
-    if (existingTeam) {
-      const team = existingTeam.teams as any;
+    if (existingTeams && existingTeams.length > 0) {
+      // Return the first team found
+      const team = existingTeams[0].teams as any;
       return {
         success: true,
         teamId: team.id,
@@ -141,13 +140,40 @@ export async function autoCreateCoachTeam(
 
 /**
  * Check if a coach needs an auto-created team and create it if needed
+ * Only creates a team if:
+ * 1. Coach has athletes but no coach teams
+ * 2. Coach hasn't manually created any teams yet
  */
 export async function ensureCoachHasTeam(
   coachId: string,
   coachName: string
 ): Promise<AutoCreateResult> {
   try {
-    // Check if coach has athletes
+    // First check if coach already has ANY teams (manual or auto-created)
+    const { data: existingTeams } = await supabase
+      .from('team_members')
+      .select(`
+        team_id,
+        teams!inner (
+          id,
+          name,
+          team_type,
+          invite_code
+        )
+      `)
+      .eq('user_id', coachId)
+      .eq('role', 'coach')
+      .eq('status', 'active');
+
+    // If coach already has teams, don't auto-create
+    if (existingTeams && existingTeams.length > 0) {
+      return {
+        success: true,
+        error: 'Coach already has teams'
+      };
+    }
+
+    // Check if coach has athletes (only auto-create if they do)
     const { data: hasAthletes } = await supabase
       .from('coach_athletes')
       .select('athlete_id')
@@ -162,7 +188,7 @@ export async function ensureCoachHasTeam(
       };
     }
 
-    // Auto-create team if coach has athletes
+    // Auto-create team if coach has athletes but no teams
     return await autoCreateCoachTeam(coachId, coachName);
 
   } catch (error) {
