@@ -258,7 +258,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
             .map((set, idx) => `Set ${idx + 1}: ${set.actualReps}/${set.targetReps} reps ${set.completed ? '✓' : '○'}`)
             .join(', ');
           
-          const exerciseName = currentExercise?.name || (currentExercise as any)?.exercise_name || (currentExercise as any)?.exerciseName || `Exercise ${exerciseIdx + 1}`;
+          const exerciseName = currentExercise?.name || (currentExercise as any)?.title || (currentExercise as any)?.day || (currentExercise as any)?.exercise_name || (currentExercise as any)?.exerciseName || (currentExercise as any)?.label || `Exercise ${exerciseIdx + 1}`;
           
           await api.exerciseResults.save({
             athleteId: user.id,
@@ -503,7 +503,15 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                   mb={2}
                   textShadow="0 2px 4px rgba(0,0,0,0.3)"
                 >
-                  {currentExercise?.name || (currentExercise as any)?.exercise_name || (currentExercise as any)?.exerciseName || `Exercise ${exerciseIdx + 1}`}
+                  {
+                    currentExercise?.name || 
+                    (currentExercise as any)?.title || 
+                    (currentExercise as any)?.day || 
+                    (currentExercise as any)?.exercise_name || 
+                    (currentExercise as any)?.exerciseName ||
+                    (currentExercise as any)?.label ||
+                    `Exercise ${exerciseIdx + 1}`
+                  }
                 </Heading>
                 <Text 
                   fontSize="sm" 
