@@ -37,6 +37,8 @@ interface Coach {
   email?: string;
   team_count: number;
   athlete_count: number;
+  is_member: boolean;
+  member_team_name?: string;
 }
 
 export default function JoinTeam() {
@@ -104,9 +106,48 @@ export default function JoinTeam() {
             avatar_url: coach.avatar_url,
             email: coach.email,
             team_count: coachTeams.length,
-            athlete_count: coachAthletes.length
+            athlete_count: coachAthletes.length,
+            is_member: false,
+            member_team_name: undefined
           };
         }) || [];
+
+        // Check if current athlete is already a member of any coach's teams
+        if (coaches.length > 0) {
+          const allCoachTeamIds = [...new Set(coaches.flatMap(c => {
+            const coachTeams = teamCounts?.filter(tc => tc.user_id === c.id) || [];
+            return coachTeams.map(ct => ct.team_id);
+          }))];
+
+          if (allCoachTeamIds.length > 0) {
+            // Check athlete's memberships in all coach teams
+            const { data: athleteMemberships, error: membershipError } = await supabase
+              .from('team_members')
+              .select('team_id, teams!inner(id, name, created_by)')
+              .eq('user_id', user.id)
+              .eq('status', 'active')
+              .in('team_id', allCoachTeamIds);
+
+            if (membershipError) throw membershipError;
+
+            // Update coaches with membership info
+            if (athleteMemberships && athleteMemberships.length > 0) {
+              coaches.forEach(coach => {
+                const coachTeams = teamCounts?.filter(tc => tc.user_id === coach.id) || [];
+                const coachTeamIds = coachTeams.map(ct => ct.team_id);
+                
+                const membershipInCoachTeam = athleteMemberships.find(membership => 
+                  coachTeamIds.includes(membership.team_id)
+                );
+
+                if (membershipInCoachTeam) {
+                  coach.is_member = true;
+                  coach.member_team_name = (membershipInCoachTeam as any).teams.name;
+                }
+              });
+            }
+          }
+        }
 
         return coaches;
       } catch (error) {
@@ -376,16 +417,27 @@ export default function JoinTeam() {
                                 </HStack>
                               </VStack>
                             </HStack>
-                            <Button
-                              size="sm"
-                              colorScheme="green"
-                              leftIcon={<FiSend />}
-                              onClick={() => handleSendCoachRequest(coach)}
-                              isLoading={sendingRequest === coach.id}
-                              loadingText="Sending..."
-                            >
-                              Send Request
-                            </Button>
+                            {coach.is_member ? (
+                              <VStack spacing={1} align="end">
+                                <Badge colorScheme="blue" fontSize="xs">
+                                  Already Member
+                                </Badge>
+                                <Text fontSize="xs" color={textColor} textAlign="right">
+                                  {coach.member_team_name}
+                                </Text>
+                              </VStack>
+                            ) : (
+                              <Button
+                                size="sm"
+                                colorScheme="green"
+                                leftIcon={<FiSend />}
+                                onClick={() => handleSendCoachRequest(coach)}
+                                isLoading={sendingRequest === coach.id}
+                                loadingText="Sending..."
+                              >
+                                Send Request
+                              </Button>
+                            )}
                           </Flex>
                         ))}
                       </VStack>
