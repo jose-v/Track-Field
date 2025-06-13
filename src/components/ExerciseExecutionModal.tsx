@@ -399,6 +399,14 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
   }
 
   const currentExercise = workout.exercises[exerciseIdx];
+  
+  // Debug logging
+  console.log('ExerciseExecutionModal - Debug Info:', {
+    workout: workout?.name,
+    exerciseIdx,
+    currentExercise: currentExercise?.name,
+    totalExercises: workout?.exercises?.length
+  });
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered size={{ base: 'full', md: 'md' }} motionPreset="none">
@@ -477,13 +485,15 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
             ) : (
               <>
                 <Heading 
-                  size="lg" 
+                  size="xl" 
                   textAlign="center"
                   color="white"
                   lineHeight="shorter"
                   fontWeight="bold"
+                  mb={2}
+                  textShadow="0 2px 4px rgba(0,0,0,0.3)"
                 >
-                  {currentExercise.name}
+                  {currentExercise?.name || `Exercise ${exerciseIdx + 1}`}
                 </Heading>
                 <Text 
                   fontSize="sm" 
@@ -730,10 +740,16 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                           spacing={4} 
                           width="100%" 
                           p={3}
-                          bg={set.completed ? 'green.50' : cardBg}
+                          bg={set.completed ? 
+                            useColorModeValue('green.50', 'green.900') : 
+                            cardBg
+                          }
                           borderRadius="lg"
                           border="1px solid"
-                          borderColor={set.completed ? 'green.200' : modalHeaderBorderColor}
+                          borderColor={set.completed ? 
+                            useColorModeValue('green.200', 'green.600') : 
+                            modalHeaderBorderColor
+                          }
                         >
                           <Flex minWidth="60px" align="center">
                             <Text fontWeight="semibold" color={modalHeadingColor}>
