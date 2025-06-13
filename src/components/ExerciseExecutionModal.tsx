@@ -503,13 +503,13 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
             ) : (
               <>
                 <Heading 
-                  size="xl" 
+                  size="md" 
                   textAlign="center"
                   color="white"
                   lineHeight="shorter"
                   fontWeight="bold"
                   mb={2}
-                  textShadow="0 2px 4px rgba(0,0,0,0.3)"
+                  width="100%"
                 >
                   {
                     currentExercise?.name || 
