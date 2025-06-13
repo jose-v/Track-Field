@@ -547,9 +547,6 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
                             >
                               Add Athlete
                             </MenuItem>
-                            <MenuItem icon={<FaEye />}>
-                              View Details
-                            </MenuItem>
                             <MenuItem 
                               icon={<FaTrash />}
                               color="red.500"
@@ -612,7 +609,6 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
                                     variant="ghost"
                                   />
                                   <MenuList>
-                                    <MenuItem icon={<FaEye />}>View Profile</MenuItem>
                                     <MenuItem 
                                       icon={<FaUserMinus />} 
                                       color="red.500"

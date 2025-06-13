@@ -29,7 +29,10 @@ import {
   TabPanel,
   Badge,
   Divider,
-  useToast
+  useToast,
+  Checkbox,
+  CheckboxGroup,
+  Stack
 } from '@chakra-ui/react';
 import { FiMail, FiCheck, FiUsers, FiUserPlus } from 'react-icons/fi';
 import { sendTeamInvitation } from '../services/teamService';
@@ -72,12 +75,14 @@ export const SendTeamInviteModal: React.FC<SendTeamInviteModalProps> = ({
 
   // Athlete selection state
   const [coachAthletes, setCoachAthletes] = useState<Athlete[]>([]);
-  const [selectedAthleteId, setSelectedAthleteId] = useState('');
+  const [selectedAthleteIds, setSelectedAthleteIds] = useState<string[]>([]);
   const [isLoadingAthletes, setIsLoadingAthletes] = useState(false);
-  const [isAddingAthlete, setIsAddingAthlete] = useState(false);
+  const [isAddingAthletes, setIsAddingAthletes] = useState(false);
 
-  const bgColor = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  // Force white text colors
+  const textColor = 'white';
+  const bgColor = useColorModeValue('gray.800', 'gray.800');
+  const borderColor = useColorModeValue('gray.600', 'gray.600');
 
   // Fetch coach's athletes when modal opens
   useEffect(() => {
@@ -160,49 +165,53 @@ export const SendTeamInviteModal: React.FC<SendTeamInviteModalProps> = ({
     }
   };
 
-  const handleAddExistingAthlete = async () => {
-    if (!selectedAthleteId || !user?.id) return;
+  const handleAddExistingAthletes = async () => {
+    if (selectedAthleteIds.length === 0 || !user?.id) return;
 
-    setIsAddingAthlete(true);
+    setIsAddingAthletes(true);
     try {
-      // Add athlete to team
+      // Add all selected athletes to team
+      const insertData = selectedAthleteIds.map(athleteId => ({
+        team_id: teamId,
+        user_id: athleteId,
+        role: 'athlete',
+        status: 'active',
+        joined_at: new Date().toISOString()
+      }));
+
       const { error } = await supabase
         .from('team_members')
-        .insert({
-          team_id: teamId,
-          user_id: selectedAthleteId,
-          role: 'athlete',
-          status: 'active',
-          joined_at: new Date().toISOString()
-        });
+        .insert(insertData);
 
       if (error) throw error;
 
-      const selectedAthlete = coachAthletes.find(a => a.id === selectedAthleteId);
+      const addedAthletes = coachAthletes.filter(a => selectedAthleteIds.includes(a.id));
+      const athleteNames = addedAthletes.map(a => `${a.first_name} ${a.last_name}`).join(', ');
+      
       toast({
-        title: 'Athlete Added!',
-        description: `${selectedAthlete?.first_name} ${selectedAthlete?.last_name} has been added to ${teamName}`,
+        title: 'Athletes Added!',
+        description: `${athleteNames} ${addedAthletes.length === 1 ? 'has' : 'have'} been added to ${teamName}`,
         status: 'success',
-        duration: 3000,
+        duration: 4000,
         isClosable: true,
       });
 
-      // Remove athlete from available list
-      setCoachAthletes(prev => prev.filter(a => a.id !== selectedAthleteId));
-      setSelectedAthleteId('');
+      // Remove added athletes from available list
+      setCoachAthletes(prev => prev.filter(a => !selectedAthleteIds.includes(a.id)));
+      setSelectedAthleteIds([]);
       
       onSuccess?.();
     } catch (err) {
-      console.error('Error adding athlete to team:', err);
+      console.error('Error adding athletes to team:', err);
       toast({
         title: 'Error',
-        description: 'Failed to add athlete to team',
+        description: 'Failed to add athletes to team',
         status: 'error',
         duration: 3000,
         isClosable: true,
       });
     } finally {
-      setIsAddingAthlete(false);
+      setIsAddingAthletes(false);
     }
   };
 
@@ -259,7 +268,7 @@ export const SendTeamInviteModal: React.FC<SendTeamInviteModalProps> = ({
     setMessage('');
     setError(null);
     setSuccess(null);
-    setSelectedAthleteId('');
+    setSelectedAthleteIds([]);
     onClose();
   };
 
@@ -268,31 +277,31 @@ export const SendTeamInviteModal: React.FC<SendTeamInviteModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={handleClose} isCentered size="lg">
       <ModalOverlay />
-      <ModalContent bg={bgColor} borderColor={borderColor} borderWidth="1px">
+      <ModalContent bg={bgColor} borderColor={borderColor} borderWidth="1px" color={textColor}>
         <ModalHeader>
           <HStack spacing={3}>
             <Box
               p={2}
               borderRadius="lg"
-              bg={useColorModeValue('blue.50', 'blue.900')}
-              color={useColorModeValue('blue.500', 'blue.300')}
+              bg="blue.900"
+              color="blue.300"
             >
               <Icon as={FiUserPlus} boxSize={5} />
             </Box>
             <VStack align="start" spacing={0}>
-              <Text>Add Athletes to Team</Text>
-              <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')}>
+              <Text color={textColor}>Add Athletes to Team</Text>
+              <Text fontSize="sm" color="gray.300">
                 {teamName}
               </Text>
             </VStack>
           </HStack>
         </ModalHeader>
-        <ModalCloseButton />
+        <ModalCloseButton color={textColor} />
         
         <ModalBody>
           <Tabs variant="enclosed" colorScheme="blue">
             <TabList>
-              <Tab>
+              <Tab color={textColor} _selected={{ color: 'blue.300', bg: 'blue.900' }}>
                 <HStack spacing={2}>
                   <Icon as={FiUsers} />
                   <Text>Your Athletes</Text>
@@ -303,7 +312,7 @@ export const SendTeamInviteModal: React.FC<SendTeamInviteModalProps> = ({
                   )}
                 </HStack>
               </Tab>
-              <Tab>
+              <Tab color={textColor} _selected={{ color: 'blue.300', bg: 'blue.900' }}>
                 <HStack spacing={2}>
                   <Icon as={FiMail} />
                   <Text>Invite by Email</Text>
@@ -315,20 +324,20 @@ export const SendTeamInviteModal: React.FC<SendTeamInviteModalProps> = ({
               {/* Existing Athletes Tab */}
               <TabPanel px={0}>
                 <VStack spacing={4} align="stretch">
-                  <Text color={useColorModeValue('gray.600', 'gray.400')}>
-                    Add athletes from your current roster to this team.
+                  <Text color={textColor}>
+                    Select athletes from your current roster to add to this team.
                   </Text>
 
                   {isLoadingAthletes ? (
-                    <Text>Loading your athletes...</Text>
+                    <Text color={textColor}>Loading your athletes...</Text>
                   ) : coachAthletes.length === 0 ? (
-                    <Alert status="info" borderRadius="md">
-                      <AlertIcon />
+                    <Alert status="info" borderRadius="md" bg="blue.900" borderColor="blue.600">
+                      <AlertIcon color="blue.300" />
                       <VStack align="start" spacing={1} flex="1">
-                        <Text fontSize="sm" fontWeight="bold">
+                        <Text fontSize="sm" fontWeight="bold" color={textColor}>
                           No Available Athletes
                         </Text>
-                        <Text fontSize="sm">
+                        <Text fontSize="sm" color={textColor}>
                           All your athletes are already in this team, or you don't have any athletes yet.
                         </Text>
                       </VStack>
@@ -336,34 +345,52 @@ export const SendTeamInviteModal: React.FC<SendTeamInviteModalProps> = ({
                   ) : (
                     <>
                       <FormControl>
-                        <FormLabel>Select Athlete</FormLabel>
-                        <Select
-                          placeholder="Choose an athlete to add..."
-                          value={selectedAthleteId}
-                          onChange={(e) => setSelectedAthleteId(e.target.value)}
-                          isDisabled={isAddingAthlete}
+                        <FormLabel color={textColor}>Select Athletes</FormLabel>
+                        <CheckboxGroup 
+                          value={selectedAthleteIds} 
+                          onChange={(values) => setSelectedAthleteIds(values as string[])}
                         >
-                          {coachAthletes.map((athlete) => (
-                            <option key={athlete.id} value={athlete.id}>
-                              {athlete.first_name} {athlete.last_name}
-                              {athlete.events && athlete.events.length > 0 && 
-                                ` - ${athlete.events.slice(0, 2).join(', ')}${athlete.events.length > 2 ? '...' : ''}`
-                              }
-                            </option>
-                          ))}
-                        </Select>
+                          <Stack spacing={3} maxH="300px" overflowY="auto" pr={2}>
+                            {coachAthletes.map((athlete) => (
+                              <Checkbox 
+                                key={athlete.id} 
+                                value={athlete.id}
+                                colorScheme="blue"
+                                isDisabled={isAddingAthletes}
+                              >
+                                <VStack align="start" spacing={0} ml={2}>
+                                  <Text color={textColor} fontWeight="medium">
+                                    {athlete.first_name} {athlete.last_name}
+                                  </Text>
+                                  {athlete.events && athlete.events.length > 0 && (
+                                    <Text fontSize="sm" color="gray.300">
+                                      {athlete.events.slice(0, 3).join(', ')}
+                                      {athlete.events.length > 3 ? '...' : ''}
+                                    </Text>
+                                  )}
+                                </VStack>
+                              </Checkbox>
+                            ))}
+                          </Stack>
+                        </CheckboxGroup>
                       </FormControl>
+
+                      <HStack spacing={2}>
+                        <Text fontSize="sm" color="gray.300">
+                          {selectedAthleteIds.length} athlete{selectedAthleteIds.length !== 1 ? 's' : ''} selected
+                        </Text>
+                      </HStack>
 
                       <Button
                         colorScheme="blue"
-                        onClick={handleAddExistingAthlete}
-                        isLoading={isAddingAthlete}
+                        onClick={handleAddExistingAthletes}
+                        isLoading={isAddingAthletes}
                         loadingText="Adding..."
-                        isDisabled={!selectedAthleteId}
+                        isDisabled={selectedAthleteIds.length === 0}
                         leftIcon={<FiUserPlus />}
                         size="lg"
                       >
-                        Add to Team
+                        Add {selectedAthleteIds.length} Athlete{selectedAthleteIds.length !== 1 ? 's' : ''} to Team
                       </Button>
                     </>
                   )}
@@ -373,14 +400,14 @@ export const SendTeamInviteModal: React.FC<SendTeamInviteModalProps> = ({
               {/* Email Invitation Tab */}
               <TabPanel px={0}>
                 <VStack spacing={4} align="stretch">
-                  <Text color={useColorModeValue('gray.600', 'gray.400')}>
+                  <Text color={textColor}>
                     Send an email invitation to join your team. They'll receive the team's invite code and can join immediately.
                   </Text>
 
                   {error && (
                     <Alert status="error" borderRadius="md">
                       <AlertIcon />
-                      <Text fontSize="sm">{error}</Text>
+                      <Text fontSize="sm" color={textColor}>{error}</Text>
                     </Alert>
                   )}
 
@@ -389,13 +416,13 @@ export const SendTeamInviteModal: React.FC<SendTeamInviteModalProps> = ({
                       <AlertIcon />
                       <HStack>
                         <Icon as={FiCheck} />
-                        <Text fontSize="sm">{success}</Text>
+                        <Text fontSize="sm" color={textColor}>{success}</Text>
                       </HStack>
                     </Alert>
                   )}
 
                   <FormControl isInvalid={!!error && !success} isRequired>
-                    <FormLabel>Email Address</FormLabel>
+                    <FormLabel color={textColor}>Email Address</FormLabel>
                     <Input
                       type="email"
                       placeholder="athlete@example.com"
@@ -405,18 +432,22 @@ export const SendTeamInviteModal: React.FC<SendTeamInviteModalProps> = ({
                         setError(null);
                       }}
                       isDisabled={isLoading || !!success}
+                      color={textColor}
+                      _placeholder={{ color: 'gray.400' }}
                     />
                     {error && (
-                      <FormErrorMessage>{error}</FormErrorMessage>
+                      <FormErrorMessage color="red.300">{error}</FormErrorMessage>
                     )}
                   </FormControl>
 
                   <FormControl isRequired>
-                    <FormLabel>Role</FormLabel>
+                    <FormLabel color={textColor}>Role</FormLabel>
                     <Select
                       value={role}
                       onChange={(e) => setRole(e.target.value as 'athlete' | 'coach')}
                       isDisabled={isLoading || !!success}
+                      color={textColor}
+                      bg="gray.700"
                     >
                       <option value="athlete">Athlete</option>
                       <option value="coach">Coach</option>
@@ -424,19 +455,21 @@ export const SendTeamInviteModal: React.FC<SendTeamInviteModalProps> = ({
                   </FormControl>
 
                   <FormControl>
-                    <FormLabel>Personal Message (Optional)</FormLabel>
+                    <FormLabel color={textColor}>Personal Message (Optional)</FormLabel>
                     <Textarea
                       placeholder="Hi! I'd like to invite you to join our team..."
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       isDisabled={isLoading || !!success}
                       rows={3}
+                      color={textColor}
+                      _placeholder={{ color: 'gray.400' }}
                     />
                   </FormControl>
 
-                  <Alert status="info" borderRadius="md">
-                    <AlertIcon />
-                    <Text fontSize="sm">
+                  <Alert status="info" borderRadius="md" bg="blue.900" borderColor="blue.600">
+                    <AlertIcon color="blue.300" />
+                    <Text fontSize="sm" color={textColor}>
                       The invitation will include your team's invite code so they can join immediately.
                     </Text>
                   </Alert>
@@ -459,7 +492,7 @@ export const SendTeamInviteModal: React.FC<SendTeamInviteModalProps> = ({
         </ModalBody>
 
         <ModalFooter>
-          <Button variant="ghost" onClick={handleClose} isDisabled={isLoading || isAddingAthlete}>
+          <Button variant="ghost" onClick={handleClose} isDisabled={isLoading || isAddingAthletes} color={textColor}>
             Close
           </Button>
         </ModalFooter>
