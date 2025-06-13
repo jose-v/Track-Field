@@ -416,6 +416,11 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
   if (currentExercise) {
     console.log('Exercise Object Keys:', Object.keys(currentExercise));
     console.log('Full Exercise Object:', JSON.stringify(currentExercise, null, 2));
+    
+    // Look for exercise names in different nested locations
+    console.log('Checking for exercise name in exercises array:', (currentExercise as any)?.exercises);
+    console.log('Checking for exercise name in nested structure:', (currentExercise as any)?.exercise?.name);
+    console.log('Checking for exercise name in details:', (currentExercise as any)?.details?.name);
   }
 
   return (
