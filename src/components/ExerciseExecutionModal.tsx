@@ -258,7 +258,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
             .map((set, idx) => `Set ${idx + 1}: ${set.actualReps}/${set.targetReps} reps ${set.completed ? '✓' : '○'}`)
             .join(', ');
           
-          const exerciseName = currentExercise?.name || (currentExercise as any)?.exercises?.[0]?.name || (currentExercise as any)?.title || (currentExercise as any)?.exercise_name || (currentExercise as any)?.exerciseName || (currentExercise as any)?.label || `Exercise ${exerciseIdx + 1}`;
+          const exerciseName = currentExercise?.name || (currentExercise as any)?.exercises?.[exerciseIdx]?.name || (currentExercise as any)?.exercises?.[0]?.name || (currentExercise as any)?.title || (currentExercise as any)?.exercise_name || (currentExercise as any)?.exerciseName || (currentExercise as any)?.label || `Exercise ${exerciseIdx + 1}`;
           
           await api.exerciseResults.save({
             athleteId: user.id,
@@ -390,7 +390,8 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
 
   const handleVideoClick = () => {
     if (workout && workout.exercises[exerciseIdx]) {
-      const exerciseName = workout.exercises[exerciseIdx].name;
+      const currentExercise = workout.exercises[exerciseIdx];
+      const exerciseName = currentExercise?.name || (currentExercise as any)?.exercises?.[exerciseIdx]?.name || (currentExercise as any)?.exercises?.[0]?.name || (currentExercise as any)?.title || (currentExercise as any)?.exercise_name || (currentExercise as any)?.exerciseName || (currentExercise as any)?.label || `Exercise ${exerciseIdx + 1}`;
       const videoUrl = getVideoUrl(exerciseName);
       onShowVideo(exerciseName, videoUrl);
     }
@@ -503,7 +504,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
             ) : (
               <>
                 <Heading 
-                  size="md" 
+                  size="xl" 
                   textAlign="center"
                   color="white"
                   lineHeight="shorter"
@@ -513,6 +514,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                 >
                   {
                     currentExercise?.name || 
+                    (currentExercise as any)?.exercises?.[exerciseIdx]?.name ||
                     (currentExercise as any)?.exercises?.[0]?.name ||
                     (currentExercise as any)?.title || 
                     (currentExercise as any)?.exercise_name || 
