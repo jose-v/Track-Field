@@ -27,7 +27,13 @@ import {
   MenuList,
   MenuItem,
   Collapse,
-  useDisclosure as useCollapseDisclosure
+  useDisclosure as useCollapseDisclosure,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay
 } from '@chakra-ui/react';
 import { 
   FaUsers, 
@@ -42,12 +48,14 @@ import {
   FaSchool,
   FaRunning,
   FaUserTie,
-  FaBullseye
+  FaBullseye,
+  FaUserMinus
 } from 'react-icons/fa';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { CreateTeamModal } from './CreateTeamModal';
+import { SendTeamInviteModal } from './SendTeamInviteModal';
 import { ensureCoachHasTeam } from '../services/autoCreateCoachTeam';
 
 interface TeamMember {
@@ -85,6 +93,14 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
   const toast = useToast();
   const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure();
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
+
+  // New state for additional functionality
+  const { isOpen: isInviteOpen, onOpen: onInviteOpen, onClose: onInviteClose } = useDisclosure();
+  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
+  const [selectedTeamForInvite, setSelectedTeamForInvite] = useState<{ id: string; name: string } | null>(null);
+  const [teamToDelete, setTeamToDelete] = useState<CoachTeam | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const cancelRef = React.useRef<HTMLButtonElement>(null);
 
   // Theme colors
   const cardBg = useColorModeValue('white', 'gray.800');
@@ -222,15 +238,109 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
     setExpandedTeams(newExpanded);
   };
 
-  const copyInviteCode = (code: string, teamName: string) => {
-    navigator.clipboard.writeText(code);
+  const copyInviteCode = (inviteCode: string, teamName: string) => {
+    navigator.clipboard.writeText(inviteCode);
     toast({
       title: 'Invite Code Copied!',
       description: `Invite code for ${teamName} copied to clipboard`,
       status: 'success',
-      duration: 3000,
+      duration: 2000,
       isClosable: true,
     });
+  };
+
+  // Handle opening invite modal for a specific team
+  const handleInviteAthlete = (team: { id: string; name: string }) => {
+    setSelectedTeamForInvite(team);
+    onInviteOpen();
+  };
+
+  // Handle opening delete confirmation for a team
+  const handleDeleteTeam = (team: CoachTeam) => {
+    setTeamToDelete(team);
+    onDeleteOpen();
+  };
+
+  // Handle confirming team deletion
+  const confirmDeleteTeam = async () => {
+    if (!teamToDelete || !user?.id) return;
+
+    setIsDeleting(true);
+    try {
+      // First, remove all team members
+      const { error: membersError } = await supabase
+        .from('team_members')
+        .delete()
+        .eq('team_id', teamToDelete.id);
+
+      if (membersError) throw membersError;
+
+      // Then delete the team
+      const { error: teamError } = await supabase
+        .from('teams')
+        .delete()
+        .eq('id', teamToDelete.id)
+        .eq('created_by', user.id); // Ensure only creator can delete
+
+      if (teamError) throw teamError;
+
+      toast({
+        title: 'Team Deleted',
+        description: `${teamToDelete.name} has been deleted successfully`,
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      refetch(); // Refresh teams list
+      onDeleteClose();
+    } catch (error) {
+      console.error('Error deleting team:', error);
+      toast({
+        title: 'Error Deleting Team',
+        description: 'Failed to delete the team. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsDeleting(false);
+      setTeamToDelete(null);
+    }
+  };
+
+  // Handle removing athlete from team
+  const handleRemoveAthlete = async (athleteId: string, athleteName: string, teamId: string, teamName: string) => {
+    try {
+      // Remove from team_members
+      const { error } = await supabase
+        .from('team_members')
+        .update({ status: 'inactive' })
+        .eq('team_id', teamId)
+        .eq('user_id', athleteId)
+        .eq('status', 'active');
+
+      if (error) throw error;
+
+      toast({
+        title: 'Athlete Removed',
+        description: `${athleteName} has been removed from ${teamName}`,
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      refetch(); // Refresh teams list
+    } catch (error) {
+      console.error('Error removing athlete:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to remove athlete from team',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   const getTeamTypeIcon = (teamType: string) => {
@@ -421,11 +531,27 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
                             >
                               Copy Invite Code
                             </MenuItem>
-                            <MenuItem icon={<FaUserPlus />}>
+                            <MenuItem 
+                              icon={<FaUserPlus />}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleInviteAthlete({ id: team.id, name: team.name });
+                              }}
+                            >
                               Add Athlete
                             </MenuItem>
                             <MenuItem icon={<FaEye />}>
                               View Details
+                            </MenuItem>
+                            <MenuItem 
+                              icon={<FaTrash />}
+                              color="red.500"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteTeam(team);
+                              }}
+                            >
+                              Delete Team
                             </MenuItem>
                           </MenuList>
                         </Menu>
@@ -480,7 +606,18 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
                                   />
                                   <MenuList>
                                     <MenuItem icon={<FaEye />}>View Profile</MenuItem>
-                                    <MenuItem icon={<FaTrash />} color="red.500">Remove from Team</MenuItem>
+                                    <MenuItem 
+                                      icon={<FaUserMinus />} 
+                                      color="red.500"
+                                      onClick={() => handleRemoveAthlete(
+                                        athlete.id, 
+                                        `${athlete.first_name} ${athlete.last_name}`, 
+                                        team.id, 
+                                        team.name
+                                      )}
+                                    >
+                                      Remove from Team
+                                    </MenuItem>
                                   </MenuList>
                                 </Menu>
                               </Flex>
@@ -548,6 +685,56 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
           onCreateClose();
         }}
       />
+
+      {/* Send Team Invite Modal */}
+      {selectedTeamForInvite && (
+        <SendTeamInviteModal
+          isOpen={isInviteOpen}
+          onClose={() => {
+            onInviteClose();
+            setSelectedTeamForInvite(null);
+          }}
+          team={selectedTeamForInvite}
+          onInviteSent={() => {
+            refetch();
+          }}
+        />
+      )}
+
+      {/* Delete Team Confirmation Dialog */}
+      <AlertDialog
+        isOpen={isDeleteOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onDeleteClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Delete Team
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              Are you sure you want to delete <strong>{teamToDelete?.name}</strong>? 
+              This will remove all team members and cannot be undone.
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onDeleteClose}>
+                Cancel
+              </Button>
+              <Button 
+                colorScheme="red" 
+                onClick={confirmDeleteTeam}
+                ml={3}
+                isLoading={isDeleting}
+                loadingText="Deleting..."
+              >
+                Delete Team
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </>
   );
 };

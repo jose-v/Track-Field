@@ -19,7 +19,8 @@ import {
   HStack,
   Badge,
   Alert,
-  AlertIcon
+  AlertIcon,
+  useColorModeValue
 } from '@chakra-ui/react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -41,6 +42,11 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
   const [isCreating, setIsCreating] = useState(false);
   const { user } = useAuth();
   const toast = useToast();
+
+  // Color mode values for better readability
+  const textColor = useColorModeValue('gray.600', 'gray.300');
+  const modalBg = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
 
   const generateInviteCode = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -132,7 +138,7 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={handleClose} size="md">
       <ModalOverlay />
-      <ModalContent>
+      <ModalContent bg={modalBg} borderColor={borderColor}>
         <ModalHeader>Create New Team</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
@@ -167,7 +173,7 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
                 <option value="coach">Coach Team</option>
                 <option value="club">Club Team</option>
               </Select>
-              <Text fontSize="sm" color="gray.500" mt={2}>
+              <Text fontSize="sm" color={textColor} mt={2}>
                 {getTeamTypeDescription(teamType)}
               </Text>
             </FormControl>
@@ -178,9 +184,9 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
                 <Text fontSize="sm" fontWeight="bold">
                   What happens next:
                 </Text>
-                <Text fontSize="sm">
-                  • A unique 6-character invite code will be generated
-                  • You'll be added as the team coach automatically
+                <Text fontSize="sm" color={textColor}>
+                  • A unique 6-character invite code will be generated<br />
+                  • You'll be added as the team coach automatically<br />
                   • Share the invite code with athletes to join your team
                 </Text>
               </VStack>
