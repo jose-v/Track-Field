@@ -411,6 +411,12 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
     exercisesArray: workout?.exercises,
     totalExercises: workout?.exercises?.length
   });
+  
+  // Additional detailed logging to see exercise structure
+  if (currentExercise) {
+    console.log('Exercise Object Keys:', Object.keys(currentExercise));
+    console.log('Full Exercise Object:', JSON.stringify(currentExercise, null, 2));
+  }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered size={{ base: 'full', md: 'md' }} motionPreset="none">
