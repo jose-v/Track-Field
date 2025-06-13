@@ -22,10 +22,6 @@ import {
   Avatar,
   AvatarGroup,
   Divider,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
   Collapse,
   useDisclosure as useCollapseDisclosure,
   AlertDialog,
@@ -39,7 +35,6 @@ import {
   FaPlus, 
   FaChevronDown, 
   FaChevronUp, 
-  FaCog, 
   FaUserPlus,
   FaEye,
   FaCode,
@@ -608,31 +603,24 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
                                     </Text>
                                   </VStack>
                                 </HStack>
-                                <Menu>
-                                  <MenuButton
-                                    as={IconButton}
-                                    icon={<FaCog />}
+                                <Tooltip label="Remove from team" placement="left">
+                                  <IconButton
+                                    icon={<FaUserMinus />}
                                     size="xs"
                                     variant="ghost"
+                                    colorScheme="red"
+                                    aria-label="Remove athlete from team"
+                                    onClick={() => {
+                                      setAthleteToRemove({
+                                        id: athlete.id,
+                                        name: `${athlete.first_name} ${athlete.last_name}`,
+                                        teamId: team.id,
+                                        teamName: team.name
+                                      });
+                                      onRemoveAthleteOpen();
+                                    }}
                                   />
-                                  <MenuList>
-                                    <MenuItem 
-                                      icon={<FaUserMinus />} 
-                                      color="red.500"
-                                      onClick={() => {
-                                        setAthleteToRemove({
-                                          id: athlete.id,
-                                          name: `${athlete.first_name} ${athlete.last_name}`,
-                                          teamId: team.id,
-                                          teamName: team.name
-                                        });
-                                        onRemoveAthleteOpen();
-                                      }}
-                                    >
-                                      Remove from Team
-                                    </MenuItem>
-                                  </MenuList>
-                                </Menu>
+                                </Tooltip>
                               </Flex>
                             ))}
                           </VStack>
