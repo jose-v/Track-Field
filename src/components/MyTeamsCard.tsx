@@ -112,7 +112,8 @@ export const MyTeamsCard: React.FC<MyTeamsCardProps> = ({ maxTeamsToShow = 3 }) 
             institution_name,
             institution_type
           `)
-          .in('id', memberships.map(m => m.team_id));
+          .in('id', memberships.map(m => m.team_id))
+          .eq('is_active', true);
 
         if (teamsError) throw teamsError;
 

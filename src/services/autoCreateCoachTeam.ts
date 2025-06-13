@@ -30,7 +30,8 @@ export async function autoCreateCoachTeam(
       `)
       .eq('user_id', coachId)
       .eq('role', 'coach')
-      .eq('status', 'active');
+      .eq('status', 'active')
+      .eq('teams.is_active', true);
 
     if (existingTeams && existingTeams.length > 0) {
       // Return the first team found
@@ -163,7 +164,8 @@ export async function ensureCoachHasTeam(
       `)
       .eq('user_id', coachId)
       .eq('role', 'coach')
-      .eq('status', 'active');
+      .eq('status', 'active')
+      .eq('teams.is_active', true);
 
     // If coach already has teams, don't auto-create
     if (existingTeams && existingTeams.length > 0) {

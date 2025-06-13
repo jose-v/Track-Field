@@ -124,7 +124,8 @@ export function TeamManagerCoaches() {
           `)
           .eq('role', 'coach')
           .eq('status', 'active')
-          .eq('teams.created_by', user.id);
+          .eq('teams.created_by', user.id)
+          .eq('teams.is_active', true);
 
         if (coachesError) throw coachesError;
 
@@ -161,7 +162,8 @@ export function TeamManagerCoaches() {
           `)
           .in('team_id', teamIds)
           .eq('role', 'coach')
-          .eq('status', 'active');
+          .eq('status', 'active')
+          .eq('teams.is_active', true);
 
         if (membersError) throw membersError;
         if (!teamMembers || teamMembers.length === 0) return [];

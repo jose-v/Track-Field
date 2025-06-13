@@ -157,7 +157,8 @@ const NotificationsTable: React.FC = () => {
           .select('team_id, teams!inner(id, name, team_type)')
           .eq('user_id', user.id)
           .eq('role', 'coach')
-          .eq('status', 'active');
+          .eq('status', 'active')
+          .eq('teams.is_active', true);
 
         if (teamsError) throw teamsError;
 

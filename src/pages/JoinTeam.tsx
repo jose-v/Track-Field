@@ -126,6 +126,7 @@ export default function JoinTeam() {
               .select('team_id, teams!inner(id, name, created_by)')
               .eq('user_id', user.id)
               .eq('status', 'active')
+              .eq('teams.is_active', true)
               .in('team_id', allCoachTeamIds);
 
             if (membershipError) throw membershipError;

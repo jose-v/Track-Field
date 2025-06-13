@@ -340,6 +340,7 @@ export function Dashboard() {
             .eq('user_id', user.id)
             .eq('role', 'athlete')
             .eq('status', 'active')
+            .eq('teams.is_active', true)
             .limit(1); // Get primary team for dashboard
 
           if (membershipsError) {
@@ -378,6 +379,7 @@ export function Dashboard() {
             .eq('user_id', user.id)
             .eq('role', 'coach')
             .eq('status', 'active')
+            .eq('teams.is_active', true)
             .limit(1); // Get primary team for dashboard
 
           if (coachError) {
