@@ -48,13 +48,15 @@ import {
   FaRunning,
   FaUserTie,
   FaBullseye,
-  FaUserMinus
+  FaUserMinus,
+  FaEdit
 } from 'react-icons/fa';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { CreateTeamModal } from './CreateTeamModal';
 import { SendTeamInviteModal } from './SendTeamInviteModal';
+import { EditTeamModal } from './EditTeamModal';
 import { ensureCoachHasTeam } from '../services/autoCreateCoachTeam';
 
 interface TeamMember {
@@ -97,8 +99,10 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
   const { isOpen: isInviteOpen, onOpen: onInviteOpen, onClose: onInviteClose } = useDisclosure();
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
   const { isOpen: isRemoveAthleteOpen, onOpen: onRemoveAthleteOpen, onClose: onRemoveAthleteClose } = useDisclosure();
+  const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure();
   const [selectedTeamForInvite, setSelectedTeamForInvite] = useState<{ id: string; name: string } | null>(null);
   const [teamToDelete, setTeamToDelete] = useState<CoachTeam | null>(null);
+  const [teamToEdit, setTeamToEdit] = useState<CoachTeam | null>(null);
   const [athleteToRemove, setAthleteToRemove] = useState<{ id: string; name: string; teamId: string; teamName: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRemovingAthlete, setIsRemovingAthlete] = useState(false);
@@ -261,6 +265,12 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
   const handleDeleteTeam = (team: CoachTeam) => {
     setTeamToDelete(team);
     onDeleteOpen();
+  };
+
+  // Handle opening edit modal for a team
+  const handleEditTeam = (team: CoachTeam) => {
+    setTeamToEdit(team);
+    onEditOpen();
   };
 
   // Handle confirming team deletion
@@ -555,6 +565,15 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
                               Add Athlete
                             </MenuItem>
                             <MenuItem 
+                              icon={<FaEdit />}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditTeam(team);
+                              }}
+                            >
+                              Edit Team
+                            </MenuItem>
+                            <MenuItem 
                               icon={<FaTrash />}
                               color="red.500"
                               onClick={(e) => {
@@ -795,6 +814,19 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
           </AlertDialogOverlay>
         </AlertDialog>
       )}
+
+      {/* Edit Team Modal */}
+      <EditTeamModal
+        isOpen={isEditOpen}
+        onClose={() => {
+          onEditClose();
+          setTeamToEdit(null);
+        }}
+        team={teamToEdit}
+        onTeamUpdated={() => {
+          refetch();
+        }}
+      />
     </>
   );
 };
