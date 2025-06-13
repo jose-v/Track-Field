@@ -33,8 +33,7 @@ import {
   FormControl,
   FormLabel,
   Select,
-  Icon,
-  useColorModeValue
+  Icon
 } from '@chakra-ui/react';
 import { FaTrash, FaComments, FaUsers, FaUserPlus } from 'react-icons/fa';
 import { supabase } from '../lib/supabase';
@@ -56,7 +55,7 @@ interface Team {
   id: string;
   name: string;
   team_type: string;
-  member_count?: number;
+  athlete_count?: number;
 }
 
 interface AddAthleteToTeamModalProps {
@@ -79,8 +78,9 @@ const AddAthleteToTeamModal: React.FC<AddAthleteToTeamModalProps> = ({
   const [isAddingToTeam, setIsAddingToTeam] = useState(false);
   const toast = useToast();
 
-  const bgColor = useColorModeValue('gray.800', 'gray.800');
-  const borderColor = useColorModeValue('gray.600', 'gray.600');
+  // Use static colors instead of useColorModeValue since we're forcing the same values
+  const bgColor = 'gray.800';
+  const borderColor = 'gray.600';
   const textColor = 'white';
 
   useEffect(() => {
@@ -92,31 +92,49 @@ const AddAthleteToTeamModal: React.FC<AddAthleteToTeamModalProps> = ({
   const fetchCoachTeams = async () => {
     setIsLoading(true);
     try {
+      // Get all active teams created by this coach (not just 'coach' type)
       const { data: teamsData, error } = await supabase
         .from('teams')
-        .select(`
-          id,
-          name,
-          team_type,
-          team_members!inner(count)
-        `)
+        .select('id, name, team_type, is_active')
         .eq('created_by', user?.id)
-        .eq('team_type', 'coach');
+        .eq('is_active', true)  // Only get active (non-deleted) teams
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Get member counts for each team
+      if (!teamsData || teamsData.length === 0) {
+        setTeams([]);
+        return;
+      }
+
+      // Get teams where the athlete is already a member
+      const { data: existingMemberships, error: membershipError } = await supabase
+        .from('team_members')
+        .select('team_id')
+        .eq('user_id', athlete?.id)
+        .eq('status', 'active')
+        .in('team_id', teamsData.map(t => t.id));
+
+      if (membershipError) throw membershipError;
+
+      const existingTeamIds = new Set(existingMemberships?.map(m => m.team_id) || []);
+
+      // Filter out teams where athlete is already a member and get member counts
+      const availableTeams = teamsData.filter(team => !existingTeamIds.has(team.id));
+      
       const teamsWithCounts = await Promise.all(
-        (teamsData || []).map(async (team) => {
-          const { count } = await supabase
+        availableTeams.map(async (team) => {
+          // Get athlete count only (not total members) to match dashboard display
+          const { count: athleteCount } = await supabase
             .from('team_members')
             .select('*', { count: 'exact', head: true })
             .eq('team_id', team.id)
+            .eq('role', 'athlete')  // Only count athletes, not coaches
             .eq('status', 'active');
 
           return {
             ...team,
-            member_count: count || 0
+            athlete_count: athleteCount || 0
           };
         })
       );
@@ -141,7 +159,34 @@ const AddAthleteToTeamModal: React.FC<AddAthleteToTeamModalProps> = ({
 
     setIsAddingToTeam(true);
     try {
-      // Use upsert to handle duplicates gracefully
+      // First check if athlete is already a member of this team
+      const { data: existingMember, error: checkError } = await supabase
+        .from('team_members')
+        .select('id')
+        .eq('team_id', selectedTeamId)
+        .eq('user_id', athlete.id)
+        .eq('status', 'active')
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        // PGRST116 is "not found" error, which is what we want
+        throw checkError;
+      }
+
+      if (existingMember) {
+        // Athlete is already a member
+        const selectedTeam = teams.find(t => t.id === selectedTeamId);
+        toast({
+          title: 'Already a Member',
+          description: `${athlete.name} is already a member of ${selectedTeam?.name}`,
+          status: 'warning',
+          duration: 4000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      // Add athlete to team using UPSERT (same approach as SendTeamInviteModal)
       const { data: insertedData, error } = await supabase
         .from('team_members')
         .upsert({
@@ -160,11 +205,13 @@ const AddAthleteToTeamModal: React.FC<AddAthleteToTeamModalProps> = ({
 
       // Check if the record was actually inserted (not a duplicate)
       if (!insertedData || insertedData.length === 0) {
+        // This means the athlete was already a member (UPSERT ignored the duplicate)
+        const selectedTeam = teams.find(t => t.id === selectedTeamId);
         toast({
           title: 'Already a Member',
-          description: `${athlete.name} is already a member of this team`,
+          description: `${athlete.name} is already a member of ${selectedTeam?.name}`,
           status: 'warning',
-          duration: 3000,
+          duration: 4000,
           isClosable: true,
         });
         return;
@@ -175,7 +222,7 @@ const AddAthleteToTeamModal: React.FC<AddAthleteToTeamModalProps> = ({
         title: 'Athlete Added!',
         description: `${athlete.name} has been added to ${selectedTeam?.name}`,
         status: 'success',
-        duration: 3000,
+        duration: 4000,
         isClosable: true,
       });
 
@@ -232,9 +279,17 @@ const AddAthleteToTeamModal: React.FC<AddAthleteToTeamModalProps> = ({
               </Flex>
             ) : teams.length === 0 ? (
               <Box textAlign="center" p={4}>
-                <Text color={textColor}>
-                  You don't have any teams yet. Create a team first to add athletes.
-                </Text>
+                <VStack spacing={3}>
+                  <Text color={textColor} fontWeight="medium">
+                    No Available Teams
+                  </Text>
+                  <Text color="gray.300" fontSize="sm">
+                    {athlete?.name} is already a member of all your teams, or you don't have any teams yet.
+                  </Text>
+                  <Text color="gray.400" fontSize="xs">
+                    Create a new team to add this athlete, or check if they're already assigned to your existing teams.
+                  </Text>
+                </VStack>
               </Box>
             ) : (
               <>
@@ -250,7 +305,7 @@ const AddAthleteToTeamModal: React.FC<AddAthleteToTeamModalProps> = ({
                   >
                     {teams.map((team) => (
                       <option key={team.id} value={team.id} style={{ backgroundColor: '#2D3748', color: 'white' }}>
-                        {team.name} ({team.member_count} members)
+                        {team.name} ({team.athlete_count} athletes)
                       </option>
                     ))}
                   </Select>

@@ -1709,9 +1709,13 @@ export const api = {
     },
     
     async delete(id: string) {
+      // Use soft delete instead of hard delete
       const { data, error } = await supabase
         .from('teams')
-        .delete()
+        .update({
+          is_active: false,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', id)
         .select()
       

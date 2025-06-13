@@ -466,6 +466,60 @@ export async function removeCoachFromTeam(
 }
 
 /**
+ * Delete team (soft delete - marks as inactive)
+ */
+export async function deleteTeam(
+  team_id: string,
+  deleted_by: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Verify the deleter is the team creator
+    const { data: team } = await supabase
+      .from('teams')
+      .select('created_by, name')
+      .eq('id', team_id)
+      .eq('is_active', true)
+      .single();
+
+    if (!team) {
+      return { success: false, error: 'Team not found or already deleted' };
+    }
+
+    if (team.created_by !== deleted_by) {
+      return { success: false, error: 'Only team creators can delete teams' };
+    }
+
+    // First, mark all team members as inactive (soft delete)
+    const { error: membersError } = await supabase
+      .from('team_members')
+      .update({ 
+        status: 'inactive',
+        updated_at: new Date().toISOString()
+      })
+      .eq('team_id', team_id)
+      .eq('status', 'active');
+
+    if (membersError) throw membersError;
+
+    // Then mark the team as inactive (soft delete)
+    const { error: teamError } = await supabase
+      .from('teams')
+      .update({ 
+        is_active: false,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', team_id);
+
+    if (teamError) throw teamError;
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting team:', error);
+    return { success: false, error: 'Failed to delete team. Please try again.' };
+  }
+}
+
+/**
  * Get coaches assigned to a team
  */
 export async function getTeamCoaches(team_id: string): Promise<any[]> {

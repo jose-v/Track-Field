@@ -83,6 +83,14 @@ export function CoachAthletes() {
   const textColor = useColorModeValue('gray.600', 'gray.300')
   const accentColor = useColorModeValue('blue.500', 'blue.300')
   
+  // Additional color values for JSX elements
+  const cardBgSecondary = useColorModeValue('white', 'gray.800')
+  const cardBorderColor = useColorModeValue('gray.200', 'gray.700')
+  const headingColor = useColorModeValue('gray.800', 'gray.100')
+  const subTextColor = useColorModeValue('gray.500', 'gray.400')
+  const bodyTextColor = useColorModeValue('gray.700', 'gray.300')
+  const labelTextColor = useColorModeValue('gray.700', 'gray.200')
+  
   const filteredAthletes = !searchTerm
     ? athletes
     : athletes.filter(athlete =>
@@ -377,11 +385,11 @@ export function CoachAthletes() {
                         onClick={() => openAthleteDetails(athlete)}
                         _hover={{ transform: 'translateY(-2px)', shadow: 'lg' }}
                         transition="all 0.2s"
-                        bg={useColorModeValue('white', 'gray.800')}
+                        bg={cardBgSecondary}
                         borderWidth="1px"
-                        borderColor={useColorModeValue('gray.200', 'gray.700')}
+                        borderColor={cardBorderColor}
                       >
-                        <CardBody bg={useColorModeValue('white', 'gray.800')} borderRadius="inherit">
+                        <CardBody bg={cardBgSecondary} borderRadius="inherit">
                           <HStack mb={4}>
                             <Avatar 
                               size="md" 
@@ -389,28 +397,28 @@ export function CoachAthletes() {
                               src={athlete.avatar_url} 
                             />
                             <Box>
-                              <Heading size="md" color={useColorModeValue('gray.800', 'gray.100')}>{`${athlete.first_name} ${athlete.last_name}`}</Heading>
-                              <Text fontSize="sm" color={useColorModeValue('gray.500', 'gray.400')}>Age: {athlete.age}</Text>
+                              <Heading size="md" color={headingColor}>{`${athlete.first_name} ${athlete.last_name}`}</Heading>
+                              <Text fontSize="sm" color={subTextColor}>Age: {athlete.age}</Text>
                             </Box>
                           </HStack>
                           
                           <Stack spacing={2} mb={4}>
                             <Flex align="center">
                               <Icon as={FaPhone} color="green.500" mr={2} />
-                              <Text fontSize="sm" color={useColorModeValue('gray.700', 'gray.300')}>{athlete.phone || 'No phone number'}</Text>
+                              <Text fontSize="sm" color={bodyTextColor}>{athlete.phone || 'No phone number'}</Text>
                             </Flex>
                             <Flex align="center">
                               <Icon as={FaEnvelope} color="blue.500" mr={2} />
-                              <Text fontSize="sm" color={useColorModeValue('gray.700', 'gray.300')}>{athlete.email || 'No email'}</Text>
+                              <Text fontSize="sm" color={bodyTextColor}>{athlete.email || 'No email'}</Text>
                             </Flex>
                             <Flex align="center">
                               <Icon as={FaRunning} color="purple.500" mr={2} />
-                              <Text fontSize="sm" color={useColorModeValue('gray.700', 'gray.300')}>{(athlete.events || []).join(', ') || 'No events assigned'}</Text>
+                              <Text fontSize="sm" color={bodyTextColor}>{(athlete.events || []).join(', ') || 'No events assigned'}</Text>
                             </Flex>
                           </Stack>
                           
                           <Flex justify="space-between" align="center">
-                            <Text fontSize="sm" fontWeight="medium" color={useColorModeValue('gray.700', 'gray.200')}>Workout Completion:</Text>
+                            <Text fontSize="sm" fontWeight="medium" color={labelTextColor}>Workout Completion:</Text>
                             <Badge colorScheme={getCompletionColor(athlete.completion_rate || 0)}>
                               {athlete.completion_rate || 0}%
                             </Badge>
@@ -570,7 +578,7 @@ export function CoachAthletes() {
                   />
                   <Box>
                     <Heading size="lg">{`${selectedAthlete.first_name} ${selectedAthlete.last_name}`}</Heading>
-                    <Text color={useColorModeValue('gray.500', 'gray.400')}>Age: {selectedAthlete.age}</Text>
+                    <Text color={subTextColor}>Age: {selectedAthlete.age}</Text>
                   </Box>
                 </HStack>
                 

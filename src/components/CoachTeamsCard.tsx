@@ -269,18 +269,25 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
 
     setIsDeleting(true);
     try {
-      // First, remove all team members
+      // First, mark all team members as inactive (soft delete)
       const { error: membersError } = await supabase
         .from('team_members')
-        .delete()
-        .eq('team_id', teamToDelete.id);
+        .update({ 
+          status: 'inactive',
+          updated_at: new Date().toISOString()
+        })
+        .eq('team_id', teamToDelete.id)
+        .eq('status', 'active');
 
       if (membersError) throw membersError;
 
-      // Then delete the team
+      // Then mark the team as inactive (soft delete) instead of hard delete
       const { error: teamError } = await supabase
         .from('teams')
-        .delete()
+        .update({ 
+          is_active: false,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', teamToDelete.id)
         .eq('created_by', user.id); // Ensure only creator can delete
 

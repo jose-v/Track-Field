@@ -84,12 +84,12 @@ export const SendTeamInviteModal: React.FC<SendTeamInviteModalProps> = ({
   const bgColor = useColorModeValue('gray.800', 'gray.800');
   const borderColor = useColorModeValue('gray.600', 'gray.600');
 
-  // Fetch coach's athletes when modal opens
+  // Fetch coach's athletes when modal opens and refresh when it becomes visible
   useEffect(() => {
     if (isOpen && user?.id) {
       fetchCoachAthletes();
     }
-  }, [isOpen, user?.id]);
+  }, [isOpen, user?.id, teamId]);
 
   const fetchCoachAthletes = async () => {
     if (!user?.id) return;
@@ -128,18 +128,19 @@ export const SendTeamInviteModal: React.FC<SendTeamInviteModalProps> = ({
 
       if (athletesError) throw athletesError;
 
-      // Check which athletes are already in this team
-      const { data: teamMembers, error: teamMembersError } = await supabase
+      // Check which athletes are already ACTIVE athlete members of this team
+      const { data: activeTeamMembers, error: teamMembersError } = await supabase
         .from('team_members')
         .select('user_id')
         .eq('team_id', teamId)
-        .eq('status', 'active');
+        .eq('status', 'active')
+        .eq('role', 'athlete'); // Only get athletes, not coaches
 
       if (teamMembersError) throw teamMembersError;
 
-      const teamMemberIds = new Set(teamMembers?.map(member => member.user_id) || []);
+      const teamMemberIds = new Set(activeTeamMembers?.map(member => member.user_id) || []);
 
-      // Filter out athletes already in the team
+      // Filter out athletes already in the team and map to proper structure
       const availableAthletes = athletesData
         ?.filter(athlete => !teamMemberIds.has(athlete.id))
         .map(athlete => ({
@@ -165,13 +166,54 @@ export const SendTeamInviteModal: React.FC<SendTeamInviteModalProps> = ({
     }
   };
 
+  // Add a function to check membership in real-time before adding
+  const checkCurrentMembership = async (athleteIds: string[]) => {
+    const { data: currentMembers, error } = await supabase
+      .from('team_members')
+      .select('user_id')
+      .eq('team_id', teamId)
+      .eq('status', 'active')
+      .in('user_id', athleteIds);
+
+    if (error) throw error;
+    return new Set(currentMembers?.map(m => m.user_id) || []);
+  };
+
   const handleAddExistingAthletes = async () => {
     if (selectedAthleteIds.length === 0 || !user?.id) return;
 
     setIsAddingAthletes(true);
     try {
-      // Prepare insert data for all selected athletes
-      const insertData = selectedAthleteIds.map(athleteId => ({
+      // Real-time membership check right before adding
+      const currentMemberIds = await checkCurrentMembership(selectedAthleteIds);
+      
+      // Filter out athletes who are already members
+      const athletesToAdd = selectedAthleteIds.filter(id => !currentMemberIds.has(id));
+      const alreadyMembers = selectedAthleteIds.filter(id => currentMemberIds.has(id));
+      
+      if (athletesToAdd.length === 0) {
+        // All selected athletes are already members
+        const alreadyMemberNames = coachAthletes
+          .filter(a => alreadyMembers.includes(a.id))
+          .map(a => `${a.first_name} ${a.last_name}`)
+          .join(', ');
+          
+        toast({
+          title: 'Already Members',
+          description: `${alreadyMemberNames} ${alreadyMembers.length === 1 ? 'is' : 'are'} already ${alreadyMembers.length === 1 ? 'a member' : 'members'} of this team`,
+          status: 'warning',
+          duration: 4000,
+          isClosable: true,
+        });
+        
+        // Refresh the athlete list and clear selections
+        setSelectedAthleteIds([]);
+        await fetchCoachAthletes();
+        return;
+      }
+      
+      // Prepare insert data only for athletes who are not already members
+      const insertData = athletesToAdd.map(athleteId => ({
         team_id: teamId,
         user_id: athleteId,
         role: 'athlete',
@@ -179,7 +221,7 @@ export const SendTeamInviteModal: React.FC<SendTeamInviteModalProps> = ({
         joined_at: new Date().toISOString()
       }));
 
-      // Use upsert to handle duplicates gracefully
+      // Use upsert as a safety net (should not be needed now, but good practice)
       const { data: insertedData, error } = await supabase
         .from('team_members')
         .upsert(insertData, { 
@@ -188,48 +230,64 @@ export const SendTeamInviteModal: React.FC<SendTeamInviteModalProps> = ({
         })
         .select('user_id');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Upsert error:', error);
+        throw error;
+      }
 
-      // Get the actual inserted/updated records to determine what was added
+      // Get the actual inserted records
       const insertedUserIds = new Set(insertedData?.map(record => record.user_id) || []);
       const addedAthletes = coachAthletes.filter(a => insertedUserIds.has(a.id));
-      const skippedCount = selectedAthleteIds.length - insertedUserIds.size;
 
-      if (insertedUserIds.size === 0) {
+      // Show appropriate message based on what actually happened
+      if (addedAthletes.length > 0) {
+        // Some athletes were successfully added
+        const athleteNames = addedAthletes.map(a => `${a.first_name} ${a.last_name}`).join(', ');
+        
+        if (alreadyMembers.length > 0) {
+          // Some added, some were already members
+          const alreadyMemberNames = coachAthletes
+            .filter(a => alreadyMembers.includes(a.id))
+            .map(a => `${a.first_name} ${a.last_name}`)
+            .join(', ');
+            
+          toast({
+            title: 'Athletes Added!',
+            description: `${athleteNames} ${addedAthletes.length === 1 ? 'has' : 'have'} been added to ${teamName}. ${alreadyMemberNames} ${alreadyMembers.length === 1 ? 'was' : 'were'} already ${alreadyMembers.length === 1 ? 'a member' : 'members'}.`,
+            status: 'success',
+            duration: 5000,
+            isClosable: true,
+          });
+        } else {
+          // All were successfully added
+          toast({
+            title: 'Athletes Added!',
+            description: `${athleteNames} ${addedAthletes.length === 1 ? 'has' : 'have'} been added to ${teamName}`,
+            status: 'success',
+            duration: 4000,
+            isClosable: true,
+          });
+        }
+      } else if (alreadyMembers.length > 0) {
+        // No athletes were added because they were all already members
+        // This case should have been handled earlier, but just in case
+        const alreadyMemberNames = coachAthletes
+          .filter(a => alreadyMembers.includes(a.id))
+          .map(a => `${a.first_name} ${a.last_name}`)
+          .join(', ');
+          
         toast({
           title: 'Already Members',
-          description: 'All selected athletes are already members of this team',
+          description: `${alreadyMemberNames} ${alreadyMembers.length === 1 ? 'is' : 'are'} already ${alreadyMembers.length === 1 ? 'a member' : 'members'} of this team`,
           status: 'warning',
-          duration: 3000,
-          isClosable: true,
-        });
-        return;
-      }
-
-      const athleteNames = addedAthletes.map(a => `${a.first_name} ${a.last_name}`).join(', ');
-      
-      // Show appropriate success message
-      if (skippedCount > 0) {
-        toast({
-          title: 'Athletes Added!',
-          description: `${athleteNames} ${addedAthletes.length === 1 ? 'has' : 'have'} been added to ${teamName}. ${skippedCount} athlete${skippedCount === 1 ? ' was' : 's were'} already members.`,
-          status: 'success',
-          duration: 4000,
-          isClosable: true,
-        });
-      } else {
-        toast({
-          title: 'Athletes Added!',
-          description: `${athleteNames} ${addedAthletes.length === 1 ? 'has' : 'have'} been added to ${teamName}`,
-          status: 'success',
           duration: 4000,
           isClosable: true,
         });
       }
 
-      // Remove added athletes from available list
-      setCoachAthletes(prev => prev.filter(a => !selectedAthleteIds.includes(a.id)));
+      // Clear selections and refresh the athlete list
       setSelectedAthleteIds([]);
+      await fetchCoachAthletes(); // Refresh to remove added athletes from the list
       
       onSuccess?.();
     } catch (err) {
