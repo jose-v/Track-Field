@@ -258,11 +258,13 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
             .map((set, idx) => `Set ${idx + 1}: ${set.actualReps}/${set.targetReps} reps ${set.completed ? '✓' : '○'}`)
             .join(', ');
           
+          const exerciseName = currentExercise?.name || (currentExercise as any)?.exercise_name || (currentExercise as any)?.exerciseName || `Exercise ${exerciseIdx + 1}`;
+          
           await api.exerciseResults.save({
             athleteId: user.id,
             workoutId: workout.id,
             exerciseIndex: exerciseIdx,
-            exerciseName: currentExercise.name,
+            exerciseName: exerciseName,
             setsCompleted: completedSets,
             repsCompleted: setData.reduce((total, set) => total + (set.completed ? set.actualReps : 0), 0),
             notes: `${setBreakdown}. Workout timer: ${Math.floor(timer / 60)}:${(timer % 60).toString().padStart(2, '0')}`
@@ -404,7 +406,9 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
   console.log('ExerciseExecutionModal - Debug Info:', {
     workout: workout?.name,
     exerciseIdx,
-    currentExercise: currentExercise?.name,
+    currentExercise: currentExercise,
+    currentExerciseName: currentExercise?.name,
+    exercisesArray: workout?.exercises,
     totalExercises: workout?.exercises?.length
   });
 
@@ -493,7 +497,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                   mb={2}
                   textShadow="0 2px 4px rgba(0,0,0,0.3)"
                 >
-                  {currentExercise?.name || `Exercise ${exerciseIdx + 1}`}
+                  {currentExercise?.name || (currentExercise as any)?.exercise_name || (currentExercise as any)?.exerciseName || `Exercise ${exerciseIdx + 1}`}
                 </Heading>
                 <Text 
                   fontSize="sm" 
