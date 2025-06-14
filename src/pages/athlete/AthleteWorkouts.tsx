@@ -20,6 +20,7 @@ import { useFeedback } from '../../components/FeedbackProvider'; // Import the f
 import { MobileHeader, ExerciseExecutionModal, MonthlyPlanAssignments } from '../../components';
 import { RunTimeInput } from '../../components/RunTimeInput';
 import { isRunExercise, validateTime } from '../../utils/exerciseUtils';
+import { ExerciseLibrary, Exercise as LibraryExercise } from '../../components/ExerciseLibrary';
 
 // Consistent Exercise type
 interface Exercise {
@@ -119,6 +120,10 @@ export function AthleteWorkouts() {
     // Check localStorage to see if user has completed a workout before
     return localStorage.getItem('hasCompletedFirstWorkout') === 'true';
   });
+
+  // State for custom exercises
+  const [customExercises, setCustomExercises] = useState<LibraryExercise[]>([]);
+  const [exercisesLoading, setExercisesLoading] = useState(false);
 
   const { 
     data: assignedWorkouts, 
@@ -674,6 +679,87 @@ export function AthleteWorkouts() {
     }
   };
 
+  // Exercise Library Functions
+  const loadCustomExercises = async () => {
+    if (!user?.id) return;
+    
+    setExercisesLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('custom_exercises')
+        .select('*')
+        .eq('created_by', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setCustomExercises(data || []);
+    } catch (error) {
+      console.error('Error loading custom exercises:', error);
+      toast({
+        title: 'Error loading exercises',
+        description: 'Could not load your custom exercises. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setExercisesLoading(false);
+    }
+  };
+
+  const handleAddExercise = async (exerciseData: Omit<LibraryExercise, 'id'>) => {
+    if (!user?.id) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('custom_exercises')
+      .insert([{
+        ...exerciseData,
+        created_by: user.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    setCustomExercises(prev => [data, ...prev]);
+  };
+
+  const handleUpdateExercise = async (id: string, exerciseData: Omit<LibraryExercise, 'id'>) => {
+    const { data, error } = await supabase
+      .from('custom_exercises')
+      .update({
+        ...exerciseData,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    setCustomExercises(prev => 
+      prev.map(ex => ex.id === id ? data : ex)
+    );
+  };
+
+  const handleDeleteExercise = async (id: string) => {
+    const { error } = await supabase
+      .from('custom_exercises')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    
+    setCustomExercises(prev => prev.filter(ex => ex.id !== id));
+  };
+
+  // Load custom exercises on component mount
+  useEffect(() => {
+    loadCustomExercises();
+  }, [user?.id]);
+
   return (
     <Container maxW="container.xl" px={{ base: 4, md: 6 }} py={{ base: 6, md: 4 }} data-testid="athlete-workouts">
       {/* Mobile Header - Now using reusable component */}
@@ -755,6 +841,7 @@ export function AthleteWorkouts() {
             <TabList>
               <Tab>Daily Workouts</Tab>
               <Tab>Monthly Plans</Tab>
+              <Tab>Exercise Library</Tab>
             </TabList>
             
             <TabPanels>
@@ -775,6 +862,19 @@ export function AthleteWorkouts() {
               {/* Monthly Plans Tab */}
               <TabPanel px={0}>
                 <MonthlyPlanAssignments />
+              </TabPanel>
+
+              {/* Exercise Library Tab */}
+              <TabPanel px={0}>
+                <ExerciseLibrary
+                  exercises={customExercises}
+                  onAddExercise={handleAddExercise}
+                  onUpdateExercise={handleUpdateExercise}
+                  onDeleteExercise={handleDeleteExercise}
+                  isLoading={exercisesLoading}
+                  title="My Exercise Library"
+                  subtitle="Manage your custom exercises for use in workouts"
+                />
               </TabPanel>
             </TabPanels>
           </Tabs>

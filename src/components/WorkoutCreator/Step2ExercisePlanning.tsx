@@ -34,7 +34,22 @@ import {
   MenuItem,
   ButtonGroup,
 } from '@chakra-ui/react';
-import { Search, PlusCircle, X, Library, FileText, Moon, Plus, Copy, ChevronDown } from 'lucide-react';
+import { Search, PlusCircle, X, Library, FileText, Moon, Plus, Copy, ChevronDown, GripVertical } from 'lucide-react';
+import {
+  DndContext,
+  DragEndEvent,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Exercise {
   id: string;
@@ -60,6 +75,7 @@ interface Step2ExercisePlanningProps {
   onAddExercise: (exercise: Exercise) => void;
   onRemoveExercise: (instanceId: string) => void;
   onUpdateExercise: (instanceId: string, field: string, value: string) => void;
+  onReorderExercises: (exercises: SelectedExercise[]) => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   selectedCategory: string;
@@ -86,12 +102,234 @@ const DAYS_OF_WEEK = [
   { value: 'sunday', label: 'Sunday' }
 ];
 
+// Draggable Exercise Component
+interface DraggableExerciseProps {
+  exercise: SelectedExercise;
+  index: number;
+  onRemoveExercise: (instanceId: string) => void;
+  onUpdateExercise: (instanceId: string, field: string, value: string) => void;
+  cardBg: string;
+  borderColor: string;
+  textColor: string;
+  exerciseCardBg: string;
+  exerciseCardBorderColor: string;
+  exerciseCardHoverBorderColor: string;
+  exerciseNameColor: string;
+  exerciseDescColor: string;
+  formLabelColor: string;
+  removeButtonHoverBg: string;
+}
+
+const DraggableExercise: React.FC<DraggableExerciseProps> = ({ 
+  exercise, 
+  index, 
+  onRemoveExercise,
+  onUpdateExercise,
+  cardBg,
+  borderColor,
+  textColor,
+  exerciseCardBg,
+  exerciseCardBorderColor,
+  exerciseCardHoverBorderColor,
+  exerciseNameColor,
+  exerciseDescColor,
+  formLabelColor,
+  removeButtonHoverBg,
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ 
+    id: exercise.instanceId,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const dragHandleBg = useColorModeValue('gray.200', 'gray.600');
+  const dragHandleHoverBg = useColorModeValue('gray.300', 'gray.500');
+  const dragHandleActiveBg = useColorModeValue('gray.400', 'gray.400');
+
+  return (
+    <Card 
+      ref={setNodeRef}
+      style={style}
+      variant="outline"
+      shadow="none"
+      bg={exerciseCardBg}
+      borderWidth="1px"
+      borderColor={isDragging ? "blue.400" : exerciseCardBorderColor}
+      _hover={{ borderColor: exerciseCardHoverBorderColor }}
+      transition="all 0.2s"
+      size="sm"
+    >
+      <CardBody px={4} pt={4} pb={2}>
+        <VStack spacing={2} align="stretch">
+          <HStack justify="space-between" align="start">
+            <HStack spacing={2} flex="1">
+              {/* Drag Handle */}
+              <Box
+                {...attributes}
+                {...listeners}
+                cursor="grab"
+                p={1}
+                borderRadius="md"
+                bg={dragHandleBg}
+                _hover={{ bg: dragHandleHoverBg }}
+                _active={{ cursor: 'grabbing', bg: dragHandleActiveBg }}
+                minW="24px"
+                h="24px"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+              >
+                <GripVertical size={16} color="var(--chakra-colors-gray-500)" />
+              </Box>
+              
+              <VStack align="start" spacing={1} flex="1">
+                <HStack>
+                  <Text fontWeight="bold" fontSize="md" color={exerciseNameColor}>
+                    {index + 1}. {exercise.name}
+                  </Text>
+                  <Tag size="sm" colorScheme="teal" variant="subtle">
+                    {exercise.category}
+                  </Tag>
+                </HStack>
+                <Text fontSize="sm" color={exerciseDescColor} lineHeight="short">
+                  {exercise.description}
+                </Text>
+              </VStack>
+            </HStack>
+            <IconButton
+              icon={<X size={16} />}
+              size="sm"
+              variant="ghost"
+              colorScheme="red"
+              aria-label="Remove exercise"
+              onClick={() => onRemoveExercise(exercise.instanceId)}
+              _hover={{ bg: removeButtonHoverBg }}
+            />
+          </HStack>
+          
+          <HStack spacing={3}>
+            <FormControl flex="1">
+              <FormLabel fontSize="xs" fontWeight="bold" color={formLabelColor}>Sets</FormLabel>
+              <Input 
+                size="sm" 
+                value={exercise.sets || ''} 
+                onChange={(e) => onUpdateExercise(exercise.instanceId, 'sets', e.target.value)}
+                placeholder="e.g., 3"
+                bg={cardBg}
+                borderColor={borderColor}
+                color={textColor}
+              />
+            </FormControl>
+            <FormControl flex="1">
+              <FormLabel fontSize="xs" fontWeight="bold" color={formLabelColor}>Reps</FormLabel>
+              <Input 
+                size="sm" 
+                value={exercise.reps || ''}
+                onChange={(e) => onUpdateExercise(exercise.instanceId, 'reps', e.target.value)}
+                placeholder="e.g., 10"
+                bg={cardBg}
+                borderColor={borderColor}
+                color={textColor}
+              />
+            </FormControl>
+          </HStack>
+          
+          <HStack spacing={3}>
+            <FormControl flex="1">
+              <FormLabel fontSize="xs" fontWeight="bold" color={formLabelColor}>Weight (kg)</FormLabel>
+              <Input 
+                size="sm" 
+                type="number"
+                value={exercise.weight || ''} 
+                onChange={(e) => onUpdateExercise(exercise.instanceId, 'weight', e.target.value)}
+                placeholder="e.g., 70"
+                bg={cardBg}
+                borderColor={borderColor}
+                color={textColor}
+              />
+            </FormControl>
+            <FormControl flex="1">
+              <FormLabel fontSize="xs" fontWeight="bold" color={formLabelColor}>Distance (m)</FormLabel>
+              <Input 
+                size="sm" 
+                type="number"
+                value={exercise.distance || ''}
+                onChange={(e) => onUpdateExercise(exercise.instanceId, 'distance', e.target.value)}
+                placeholder="e.g., 100"
+                bg={cardBg}
+                borderColor={borderColor}
+                color={textColor}
+              />
+            </FormControl>
+          </HStack>
+          
+          <HStack spacing={3}>
+            <FormControl flex="1">
+              <FormLabel fontSize="xs" fontWeight="bold" color={formLabelColor}>Rest (sec)</FormLabel>
+              <Input 
+                size="sm" 
+                type="number"
+                value={exercise.rest || ''} 
+                onChange={(e) => onUpdateExercise(exercise.instanceId, 'rest', e.target.value)}
+                placeholder="e.g., 60"
+                bg={cardBg}
+                borderColor={borderColor}
+                color={textColor}
+              />
+            </FormControl>
+            <FormControl flex="1">
+              <FormLabel fontSize="xs" fontWeight="bold" color={formLabelColor}>RPE (1-10)</FormLabel>
+              <Input 
+                size="sm" 
+                type="number"
+                min="1"
+                max="10"
+                value={exercise.rpe || ''}
+                onChange={(e) => onUpdateExercise(exercise.instanceId, 'rpe', e.target.value)}
+                placeholder="e.g., 8"
+                bg={cardBg}
+                borderColor={borderColor}
+                color={textColor}
+              />
+            </FormControl>
+          </HStack>
+          
+          <FormControl>
+            <FormLabel fontSize="xs" fontWeight="bold" color={formLabelColor}>Notes (optional)</FormLabel>
+            <Input 
+              size="sm" 
+              value={exercise.notes || ''}
+              onChange={(e) => onUpdateExercise(exercise.instanceId, 'notes', e.target.value)}
+              placeholder="e.g., Focus on form, RPE 8, rest 60s"
+              bg={cardBg}
+              borderColor={borderColor}
+              color={textColor}
+            />
+          </FormControl>
+        </VStack>
+      </CardBody>
+    </Card>
+  );
+};
+
 const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
   exercises,
   selectedExercises,
   onAddExercise,
   onRemoveExercise,
   onUpdateExercise,
+  onReorderExercises,
   searchTerm,
   setSearchTerm,
   selectedCategory,
@@ -108,6 +346,30 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [newExerciseName, setNewExerciseName] = useState('');
   const [newExerciseDescription, setNewExerciseDescription] = useState('');
+
+  // DnD Sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 3,
+      },
+    })
+  );
+
+  // Handle drag end
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = selectedExercises.findIndex(ex => ex.instanceId === active.id);
+      const newIndex = selectedExercises.findIndex(ex => ex.instanceId === over.id);
+      
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const reorderedExercises = arrayMove(selectedExercises, oldIndex, newIndex);
+        onReorderExercises(reorderedExercises);
+      }
+    }
+  };
 
   // Theme-aware colors
   const cardBg = useColorModeValue('white', 'gray.700');
@@ -448,150 +710,38 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
                   </VStack>
                 </VStack>
               ) : (
-                <VStack spacing={2} align="stretch">
-                  {selectedExercises.map((exercise, index) => (
-                    <Card 
-                      key={exercise.instanceId} 
-                      variant="outline"
-                      shadow="none"
-                      bg={exerciseCardBg}
-                      borderWidth="1px"
-                      borderColor={exerciseCardBorderColor}
-                      _hover={{ borderColor: exerciseCardHoverBorderColor }}
-                      transition="all 0.2s"
-                      size="sm"
-                    >
-                      <CardBody px={4} pt={4} pb={2}>
-                        <VStack spacing={2} align="stretch">
-                          <HStack justify="space-between" align="start">
-                            <VStack align="start" spacing={1} flex="1">
-                              <HStack>
-                                <Text fontWeight="bold" fontSize="md" color={exerciseNameColor}>
-                                  {index + 1}. {exercise.name}
-                                </Text>
-                                <Tag size="sm" colorScheme="teal" variant="subtle">
-                                  {exercise.category}
-                                </Tag>
-                              </HStack>
-                              <Text fontSize="sm" color={exerciseDescColor} lineHeight="short">
-                                {exercise.description}
-                              </Text>
-                            </VStack>
-                            <IconButton
-                              icon={<X size={16} />}
-                              size="sm"
-                              variant="ghost"
-                              colorScheme="red"
-                              aria-label="Remove exercise"
-                              onClick={() => onRemoveExercise(exercise.instanceId)}
-                              _hover={{ bg: removeButtonHoverBg }}
-                            />
-                          </HStack>
-                          
-                          <HStack spacing={3}>
-                            <FormControl flex="1">
-                              <FormLabel fontSize="xs" fontWeight="bold" color={formLabelColor}>Sets</FormLabel>
-                              <Input 
-                                size="sm" 
-                                value={exercise.sets || ''} 
-                                onChange={(e) => onUpdateExercise(exercise.instanceId, 'sets', e.target.value)}
-                                placeholder="e.g., 3"
-                                bg={cardBg}
-                                borderColor={borderColor}
-                                color={textColor}
-                              />
-                            </FormControl>
-                            <FormControl flex="1">
-                              <FormLabel fontSize="xs" fontWeight="bold" color={formLabelColor}>Reps</FormLabel>
-                              <Input 
-                                size="sm" 
-                                value={exercise.reps || ''}
-                                onChange={(e) => onUpdateExercise(exercise.instanceId, 'reps', e.target.value)}
-                                placeholder="e.g., 10"
-                                bg={cardBg}
-                                borderColor={borderColor}
-                                color={textColor}
-                              />
-                            </FormControl>
-                          </HStack>
-                          
-                          <HStack spacing={3}>
-                            <FormControl flex="1">
-                              <FormLabel fontSize="xs" fontWeight="bold" color={formLabelColor}>Weight (kg)</FormLabel>
-                              <Input 
-                                size="sm" 
-                                type="number"
-                                value={exercise.weight || ''} 
-                                onChange={(e) => onUpdateExercise(exercise.instanceId, 'weight', e.target.value)}
-                                placeholder="e.g., 70"
-                                bg={cardBg}
-                                borderColor={borderColor}
-                                color={textColor}
-                              />
-                            </FormControl>
-                            <FormControl flex="1">
-                              <FormLabel fontSize="xs" fontWeight="bold" color={formLabelColor}>Distance (m)</FormLabel>
-                              <Input 
-                                size="sm" 
-                                type="number"
-                                value={exercise.distance || ''}
-                                onChange={(e) => onUpdateExercise(exercise.instanceId, 'distance', e.target.value)}
-                                placeholder="e.g., 100"
-                                bg={cardBg}
-                                borderColor={borderColor}
-                                color={textColor}
-                              />
-                            </FormControl>
-                          </HStack>
-                          
-                          <HStack spacing={3}>
-                            <FormControl flex="1">
-                              <FormLabel fontSize="xs" fontWeight="bold" color={formLabelColor}>Rest (sec)</FormLabel>
-                              <Input 
-                                size="sm" 
-                                type="number"
-                                value={exercise.rest || ''} 
-                                onChange={(e) => onUpdateExercise(exercise.instanceId, 'rest', e.target.value)}
-                                placeholder="e.g., 60"
-                                bg={cardBg}
-                                borderColor={borderColor}
-                                color={textColor}
-                              />
-                            </FormControl>
-                            <FormControl flex="1">
-                              <FormLabel fontSize="xs" fontWeight="bold" color={formLabelColor}>RPE (1-10)</FormLabel>
-                              <Input 
-                                size="sm" 
-                                type="number"
-                                min="1"
-                                max="10"
-                                value={exercise.rpe || ''}
-                                onChange={(e) => onUpdateExercise(exercise.instanceId, 'rpe', e.target.value)}
-                                placeholder="e.g., 8"
-                                bg={cardBg}
-                                borderColor={borderColor}
-                                color={textColor}
-                              />
-                            </FormControl>
-                          </HStack>
-                          
-                          <FormControl>
-                            <FormLabel fontSize="xs" fontWeight="bold" color={formLabelColor}>Notes (optional)</FormLabel>
-                            <Input 
-                              size="sm" 
-                              value={exercise.notes || ''}
-                              onChange={(e) => onUpdateExercise(exercise.instanceId, 'notes', e.target.value)}
-                              placeholder="e.g., Focus on form, RPE 8, rest 60s"
-                              bg={cardBg}
-                              borderColor={borderColor}
-                              color={textColor}
-                            />
-                          </FormControl>
-                        </VStack>
-                      </CardBody>
-                    </Card>
-                  ))}
-                </VStack>
+                <DndContext 
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext 
+                    items={selectedExercises.map(ex => ex.instanceId)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <VStack spacing={2} align="stretch">
+                      {selectedExercises.map((exercise, index) => (
+                        <DraggableExercise
+                          key={exercise.instanceId}
+                          exercise={exercise}
+                          index={index}
+                          onRemoveExercise={onRemoveExercise}
+                          onUpdateExercise={onUpdateExercise}
+                          cardBg={cardBg}
+                          borderColor={borderColor}
+                          textColor={textColor}
+                          exerciseCardBg={exerciseCardBg}
+                          exerciseCardBorderColor={exerciseCardBorderColor}
+                          exerciseCardHoverBorderColor={exerciseCardHoverBorderColor}
+                          exerciseNameColor={exerciseNameColor}
+                          exerciseDescColor={exerciseDescColor}
+                          formLabelColor={formLabelColor}
+                          removeButtonHoverBg={removeButtonHoverBg}
+                        />
+                      ))}
+                    </VStack>
+                  </SortableContext>
+                </DndContext>
               )}
             </Box>
           </CardBody>

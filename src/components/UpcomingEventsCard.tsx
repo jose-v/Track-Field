@@ -82,8 +82,8 @@ export const UpcomingEventsCard: React.FC<UpcomingEventsCardProps> = ({
     setExpandedAthletes(newExpanded);
   };
 
-  const toggleMeetExpansion = (athleteId: string, meetName: string) => {
-    const meetKey = `${athleteId}-${meetName}`;
+  const toggleMeetExpansion = (athleteId: string, meetName: string, meetDate: string) => {
+    const meetKey = `${athleteId}-${meetName}-${meetDate}`;
     const newExpanded = new Set(expandedMeets);
     if (newExpanded.has(meetKey)) {
       newExpanded.delete(meetKey);
@@ -214,7 +214,7 @@ export const UpcomingEventsCard: React.FC<UpcomingEventsCardProps> = ({
                       ) : (
                         <VStack spacing={2} align="stretch">
                           {groupedMeets.map((meet) => {
-                            const meetKey = `${athlete.id}-${meet.meetName}`;
+                            const meetKey = `${athlete.id}-${meet.meetName}-${meet.date}`;
                             const isMeetExpanded = expandedMeets.has(meetKey);
                             const hasMultipleEvents = meet.events.length > 1;
 
@@ -226,7 +226,7 @@ export const UpcomingEventsCard: React.FC<UpcomingEventsCardProps> = ({
                                   borderRadius="md"
                                   p={3}
                                   cursor={hasMultipleEvents ? "pointer" : "default"}
-                                  onClick={hasMultipleEvents ? () => toggleMeetExpansion(athlete.id, meet.meetName) : undefined}
+                                  onClick={hasMultipleEvents ? () => toggleMeetExpansion(athlete.id, meet.meetName, meet.date) : undefined}
                                   _hover={hasMultipleEvents ? { opacity: 0.8 } : {}}
                                 >
                                   <Flex justify="space-between" align="center">
@@ -239,7 +239,7 @@ export const UpcomingEventsCard: React.FC<UpcomingEventsCardProps> = ({
                                           variant="ghost"
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            toggleMeetExpansion(athlete.id, meet.meetName);
+                                            toggleMeetExpansion(athlete.id, meet.meetName, meet.date);
                                           }}
                                         />
                                       )}

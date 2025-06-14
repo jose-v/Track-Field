@@ -172,11 +172,12 @@ function useCoachAthleteEvents() {
           if (!athlete) return;
           
           athlete.events.push({
-            id: meet.id,
+            id: `${meet.id}-${meetEvent.id}`,
             name: meet.name,
             date: meet.meet_date,
             location: `${meet.city || ''}, ${meet.state || ''}`.trim(),
-            eventName: meetEvent.event_name
+            eventName: meetEvent.event_name,
+            meetName: meet.name
           });
         });
 

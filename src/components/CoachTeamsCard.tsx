@@ -297,15 +297,14 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
         throw membersError;
       }
 
-      // Then mark the team as inactive (soft delete) instead of hard delete
+      // Mark the team as inactive (soft delete) - RLS policy ensures only creator can do this
       const { error: teamError } = await supabase
         .from('teams')
         .update({ 
           is_active: false,
           updated_at: new Date().toISOString()
         })
-        .eq('id', teamToDelete.id)
-        .eq('created_by', user.id); // Ensure only creator can delete
+        .eq('id', teamToDelete.id);
 
       if (teamError) {
         console.error('Error updating team:', teamError);
@@ -322,7 +321,14 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
         isClosable: true,
       });
 
-      refetch(); // Refresh teams list
+      // Try to refresh the teams list, but don't fail if this errors
+      try {
+        await refetch();
+      } catch (refetchError) {
+        console.warn('Error refreshing teams list after deletion:', refetchError);
+        // Don't throw - the deletion was successful
+      }
+      
       onDeleteClose();
     } catch (error) {
       console.error('Error deleting team:', error);
@@ -332,10 +338,17 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
                             error?.message?.includes('API timeout') ||
                             error?.code === 'PGRST301';
       
+      // Check if it's an RLS policy error
+      const isRLSError = error?.message?.includes('row-level security policy') ||
+                        error?.message?.includes('violates row-level security') ||
+                        error?.code === 'PGRST301';
+      
       toast({
         title: 'Error Deleting Team',
         description: isTimeoutError 
           ? 'Database timeout occurred. Please check if the team was deleted and try again if needed.'
+          : isRLSError
+          ? 'Permission denied. You can only delete teams you created.'
           : 'Failed to delete the team. Please try again.',
         status: 'error',
         duration: 5000,

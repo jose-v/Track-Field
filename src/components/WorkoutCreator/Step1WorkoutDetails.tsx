@@ -566,10 +566,13 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
               bg={cardBg} 
               borderColor={borderColor}
               h="fit-content"
-              gridColumn={{ base: "1", lg: "span 2" }}
+              gridColumn={{ 
+                base: "1", 
+                lg: "span 2"
+              }}
               sx={{
                 "@media (min-width: 2200px)": {
-                  gridColumn: "auto !important"
+                  gridColumn: "span 1 !important"
                 }
               }}
             >
@@ -590,20 +593,15 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
 
                   {/* Show date/time picker only if not creating a template */}
                   {!isTemplate && (
-                    <Box w="100%" display="flex" justifyContent="center">
-                      <Box 
-                        w="100%" 
-                        maxW="100%"
-                      >
-                        <DateTimePicker
-                          selectedDates={templateType === 'weekly' ? selectedDateRange : selectedDates}
-                          selectedStartTime={startTime}
-                          selectedEndTime={endTime}
-                          isMultiSelect={templateType === 'weekly'}
-                          onDateSelect={templateType === 'weekly' ? handleWeeklyDateSelect : handleSingleDateSelect}
-                          onTimeSelect={handleTimeSelect}
-                        />
-                      </Box>
+                    <Box w="100%" overflow="hidden">
+                      <DateTimePicker
+                        selectedDates={templateType === 'weekly' ? selectedDateRange : selectedDates}
+                        selectedStartTime={startTime}
+                        selectedEndTime={endTime}
+                        isMultiSelect={templateType === 'weekly'}
+                        onDateSelect={templateType === 'weekly' ? handleWeeklyDateSelect : handleSingleDateSelect}
+                        onTimeSelect={handleTimeSelect}
+                      />
                     </Box>
                   )}
 

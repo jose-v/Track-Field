@@ -24,6 +24,7 @@ import { useWorkoutsRealtime } from '../../hooks/useWorkoutsRealtime';
 import { supabase } from '../../lib/supabase';
 import { useQueryClient } from '@tanstack/react-query';
 import { DeletedItemCard } from '../../components/DeletedItemCard';
+import { ExerciseLibrary, Exercise } from '../../components/ExerciseLibrary';
 
 // Type for monthly plan with assignment stats
 interface MonthlyPlanWithStats extends TrainingPlan {
@@ -130,6 +131,7 @@ export function CoachTrainingPlans() {
       case 'templates': return 2;
       case 'drafts': return 3;
       case 'deleted': return 4;
+      case 'exercises': return 5;
       default: return 0; // Default to workouts tab
     }
   };
@@ -143,7 +145,7 @@ export function CoachTrainingPlans() {
   // Update URL when tab changes
   const handleTabChange = (index: number) => {
     setActiveTabIndex(index);
-    const tabNames = ['workouts', 'plans', 'templates', 'drafts', 'deleted'];
+    const tabNames = ['workouts', 'plans', 'templates', 'drafts', 'deleted', 'exercises'];
     const newParams = new URLSearchParams(searchParams);
     newParams.set('tab', tabNames[index]);
     setSearchParams(newParams);
@@ -196,6 +198,10 @@ export function CoachTrainingPlans() {
   const [deletedMonthlyPlans, setDeletedMonthlyPlans] = useState<TrainingPlan[]>([]);
   const [deletedLoading, setDeletedLoading] = useState(false);
   const [deletedRefreshing, setDeletedRefreshing] = useState(false);
+
+  // State for custom exercises
+  const [customExercises, setCustomExercises] = useState<Exercise[]>([]);
+  const [exercisesLoading, setExercisesLoading] = useState(false);
 
   // Move all useColorModeValue calls to the top level
   const bgColor = useColorModeValue('gray.50', 'gray.900');
@@ -940,6 +946,87 @@ export function CoachTrainingPlans() {
     );
   }
 
+  // Exercise Library Functions
+  const loadCustomExercises = async () => {
+    if (!user?.id) return;
+    
+    setExercisesLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('custom_exercises')
+        .select('*')
+        .eq('created_by', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setCustomExercises(data || []);
+    } catch (error) {
+      console.error('Error loading custom exercises:', error);
+      toast({
+        title: 'Error loading exercises',
+        description: 'Could not load your custom exercises. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setExercisesLoading(false);
+    }
+  };
+
+  const handleAddExercise = async (exerciseData: Omit<Exercise, 'id'>) => {
+    if (!user?.id) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('custom_exercises')
+      .insert([{
+        ...exerciseData,
+        created_by: user.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    setCustomExercises(prev => [data, ...prev]);
+  };
+
+  const handleUpdateExercise = async (id: string, exerciseData: Omit<Exercise, 'id'>) => {
+    const { data, error } = await supabase
+      .from('custom_exercises')
+      .update({
+        ...exerciseData,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    setCustomExercises(prev => 
+      prev.map(ex => ex.id === id ? data : ex)
+    );
+  };
+
+  const handleDeleteExercise = async (id: string) => {
+    const { error } = await supabase
+      .from('custom_exercises')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    
+    setCustomExercises(prev => prev.filter(ex => ex.id !== id));
+  };
+
+  // Load custom exercises on component mount
+  useEffect(() => {
+    loadCustomExercises();
+  }, [user?.id]);
+
   return (
     <Box minH="calc(100vh - 64px)" bg={bgColor}>
       <Box maxW="1400px" mx="auto" px={{ base: 4, md: 6, lg: 8 }} py={8}>
@@ -1031,6 +1118,10 @@ export function CoachTrainingPlans() {
               <Tab>
                 <FaTrash style={{ marginRight: '8px' }} />
                 Deleted ({deletedWorkouts.length + deletedMonthlyPlans.length})
+              </Tab>
+              <Tab>
+                <FaDumbbell style={{ marginRight: '8px' }} />
+                Exercise Library ({customExercises.length})
               </Tab>
             </TabList>
 
@@ -1289,6 +1380,19 @@ export function CoachTrainingPlans() {
                   {/* Deleted Plans Grid */}
                   {renderDeletedPlans()}
                 </VStack>
+              </TabPanel>
+
+              {/* Exercise Library Tab */}
+              <TabPanel px={0}>
+                <ExerciseLibrary
+                  exercises={customExercises}
+                  onAddExercise={handleAddExercise}
+                  onUpdateExercise={handleUpdateExercise}
+                  onDeleteExercise={handleDeleteExercise}
+                  isLoading={exercisesLoading}
+                  title="My Exercise Library"
+                  subtitle="Manage your custom exercises for use in workouts and training plans"
+                />
               </TabPanel>
             </TabPanels>
           </Tabs>

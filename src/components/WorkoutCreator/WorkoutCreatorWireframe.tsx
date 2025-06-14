@@ -484,6 +484,13 @@ const WorkoutCreatorWireframe: React.FC = () => {
     }));
   };
 
+  const handleReorderExercises = (reorderedExercises: SelectedExercise[]) => {
+    setSelectedExercises(prev => ({
+      ...prev,
+      [currentDay]: reorderedExercises
+    }));
+  };
+
   // Handle weekly plan updates for drag and drop
   const handleUpdateWeeklyPlan = (newWeeklyPlan: Array<{day: string, exercises: SelectedExercise[], isRestDay: boolean}>) => {
     const updatedExercises: Record<string, SelectedExercise[]> = {};
@@ -1424,6 +1431,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
               onAddExercise={handleAddExercise}
               onRemoveExercise={handleRemoveExercise}
               onUpdateExercise={handleUpdateExercise}
+              onReorderExercises={handleReorderExercises}
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
               selectedCategory={selectedCategory}

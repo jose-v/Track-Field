@@ -277,6 +277,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
       const athleteIconMap: { [key: string]: any } = {
         '/athlete/dashboard': FaTachometerAlt,
         '/athlete/workouts': FaDumbbell,
+        '/athlete/workout-creator': FaCog,
         '/join-team': FaUserPlus,
         '/athlete/meets': BsCalendarCheck,
         '/athlete/calendar': BiCalendar,

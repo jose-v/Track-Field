@@ -241,16 +241,26 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
 
   return (
     <Flex 
-      direction={{ base: "column", md: "row" }} 
+      direction={{ base: "column", lg: "row" }} 
       align="flex-start"
-      gap={{ base: 4, md: 8 }}
+      gap={{ base: 4, lg: 4 }}
       w="100%"
       justify="space-between"
     >
       {/* Date Selection Card */}
-      <Card variant="outline" shadow="none" bg={bgColor} borderColor={borderColor} h="520px" w={{ base: "100%", md: "auto" }} flex="1">
-        <CardBody p={6} display="flex" flexDirection="column">
-          <VStack spacing={4} align="stretch" minW={{ base: "100%", md: "400px" }} flex="1">
+      <Card 
+        variant="outline" 
+        shadow="none" 
+        bg={bgColor} 
+        borderColor={borderColor} 
+        h="520px" 
+        w="100%"
+        flex="1"
+        minW="0"
+        maxW={{ base: "100%", lg: "none" }}
+      >
+        <CardBody p={{ base: 4, lg: 6 }} display="flex" flexDirection="column">
+          <VStack spacing={4} align="stretch" w="100%" flex="1" minW="0">
             {/* Month Navigation */}
             <HStack justify="center" align="center" spacing={4}>
               <IconButton
@@ -260,7 +270,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                 variant="ghost"
                 onClick={() => navigateMonth('prev')}
               />
-              <Text fontWeight="bold" minW="160px" textAlign="center">
+              <Text fontWeight="bold" minW="160px" textAlign="center" fontSize={{ base: "sm", lg: "md" }}>
                 {months[currentDate.getMonth()]} {currentDate.getFullYear()}
               </Text>
               <IconButton
@@ -273,9 +283,9 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
             </HStack>
 
             {/* Week Days Header */}
-            <Grid templateColumns="repeat(7, 1fr)" gap={1}>
+            <Grid templateColumns="repeat(7, 1fr)" gap={1} w="100%">
               {weekDays.map(day => (
-                <GridItem key={day} p={2} textAlign="center">
+                <GridItem key={day} p={1} textAlign="center">
                   <Text fontSize="xs" fontWeight="bold" color={mutedTextColor}>
                     {day}
                   </Text>
@@ -284,7 +294,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
             </Grid>
 
             {/* Calendar Grid */}
-            <Grid templateColumns="repeat(7, 1fr)" gap={1}>
+            <Grid templateColumns="repeat(7, 1fr)" gap={1} w="100%">
               {daysInMonth.map((dayObj, index) => {
                 const isSelected = isDateSelected(dayObj.date);
                 const isInRange = isDateInRange(dayObj.date);
@@ -298,8 +308,8 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                       variant={isSelected ? "solid" : "ghost"}
                       colorScheme={isSelected ? "blue" : undefined}
                       w="100%"
-                      h="40px"
-                      fontSize="sm"
+                      h={{ base: "32px", lg: "40px" }}
+                      fontSize={{ base: "xs", lg: "sm" }}
                       opacity={dayObj.isCurrentMonth ? 1 : 0.5}
                       bg={
                         isSelected 
@@ -352,10 +362,10 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
 
           {/* Date Selection Footer */}
           <Box 
-            mx={-6}
-            mb={-6}
+            mx={{ base: -4, lg: -6 }}
+            mb={{ base: -4, lg: -6 }}
             mt={4} 
-            p={6}
+            p={{ base: 4, lg: 6 }}
             pt={4}
             bg={bgColor}
             borderTop="1px solid"
@@ -367,7 +377,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                 <Text fontSize="sm" color={textColor} fontWeight="semibold">
                   Selected Dates ({selectedDates.length}):
                 </Text>
-                <Text fontSize="sm" color={mutedTextColor} mt={1}>
+                <Text fontSize="xs" color={mutedTextColor} mt={1} noOfLines={2}>
                   {selectedDates.map(date => new Date(date).toLocaleDateString()).join(' ')}
                 </Text>
               </>
@@ -381,9 +391,19 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
       </Card>
 
       {/* Time Selection Card */}
-      <Card variant="outline" shadow="none" bg={bgColor} borderColor={borderColor} h="520px" w={{ base: "100%", md: "auto" }} flex="1">
-        <CardBody p={6} display="flex" flexDirection="column">
-          <VStack spacing={4} align="stretch" minW={{ base: "100%", md: "360px" }} flex="1">
+      <Card 
+        variant="outline" 
+        shadow="none" 
+        bg={bgColor} 
+        borderColor={borderColor} 
+        h="520px" 
+        w="100%"
+        flex="1"
+        minW="0"
+        maxW={{ base: "100%", lg: "none" }}
+      >
+        <CardBody p={{ base: 4, lg: 6 }} display="flex" flexDirection="column">
+          <VStack spacing={4} align="stretch" w="100%" flex="1" minW="0">
             {/* AM/PM Toggle */}
             <HStack justify="center" spacing={4}>
               <IconButton
@@ -406,7 +426,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
             </HStack>
 
             {/* Time Grid */}
-            <Grid templateColumns="repeat(3, 1fr)" gap={2}>
+            <Grid templateColumns={{ base: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={2} w="100%">
               {timeSlots.map((timeSlot, index) => {
                 const fullTimeAM = `${timeSlot} AM`;
                 const fullTimePM = `${timeSlot} PM`;
@@ -422,7 +442,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                       variant={isSelected ? "solid" : "outline"}
                       colorScheme={isStartSelected ? "blue" : isEndSelected ? "green" : "gray"}
                       w="100%"
-                      fontSize="sm"
+                      fontSize={{ base: "xs", lg: "sm" }}
                       onClick={() => handleTimeSelection(timeSlot)}
                       _hover={{
                         bg: isSelected ? undefined : timeBg
@@ -438,10 +458,10 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
 
           {/* Time Selection Footer */}
           <Box 
-            mx={-6}
-            mb={-6}
+            mx={{ base: -4, lg: -6 }}
+            mb={{ base: -4, lg: -6 }}
             mt={4} 
-            p={6}
+            p={{ base: 4, lg: 6 }}
             pt={4}
             bg={bgColor}
             borderTop="1px solid"
@@ -453,18 +473,18 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                 <Text fontSize="sm" color={textColor} fontWeight="semibold" mb={1}>
                   Selected Time:
                 </Text>
-                <HStack spacing={4}>
+                <VStack spacing={1} align="start">
                   {selectedStartTime && (
-                    <Text fontSize="sm" color={mutedTextColor}>
+                    <Text fontSize="xs" color={mutedTextColor}>
                       Start: {selectedStartTime}
                     </Text>
                   )}
                   {selectedEndTime && (
-                    <Text fontSize="sm" color={mutedTextColor}>
+                    <Text fontSize="xs" color={mutedTextColor}>
                       End: {selectedEndTime}
                     </Text>
                   )}
-                </HStack>
+                </VStack>
               </>
             ) : (
               <Text fontSize="sm" color={mutedTextColor}>
