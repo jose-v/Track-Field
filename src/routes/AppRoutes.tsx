@@ -35,6 +35,7 @@ import { EditWorkout } from '../pages/coach/EditWorkout';
 import { Calendar as CoachCalendar } from '../pages/coach/Calendar';
 import CoachProfile from "../pages/coach/Profile";
 import { CoachTrainingPlans } from '../pages/coach/TrainingPlans';
+import CoachSettings from '../pages/coach/Settings';
 
 // Team Manager pages
 import { TeamManagerDashboard } from '../pages/team-manager/Dashboard';
@@ -54,6 +55,7 @@ import { Nutrition } from '../pages/athlete/Nutrition';
 import { Sleep } from '../pages/athlete/Sleep';
 import { Calendar as AthleteCalendar } from '../pages/athlete/Calendar';
 import AthleteProfile from "../pages/athlete/Profile";
+import AthleteSettings from "../pages/athlete/Settings";
 import Analytics from '../pages/Analytics';
 
 // Team-related pages
@@ -133,6 +135,7 @@ export default function AppRoutes() {
         <Route path="/account" element={<RoleProtectedRoute allowedRoles={['coach']}><Account /></RoleProtectedRoute>} />
         <Route path="/coach/meets" element={<RoleProtectedRoute allowedRoles={['coach']}><Meets /></RoleProtectedRoute>} />
         <Route path="/coach/training-plans" element={<RoleProtectedRoute allowedRoles={['coach']}><CoachTrainingPlans /></RoleProtectedRoute>} />
+        <Route path="/coach/settings" element={<RoleProtectedRoute allowedRoles={['coach']}><CoachSettings /></RoleProtectedRoute>} />
       </Route>
 
       {/* Team Manager Routes - With Role Protection */}
@@ -170,6 +173,7 @@ export default function AppRoutes() {
         <Route path="/athlete/analytics" element={<RoleProtectedRoute allowedRoles={['athlete']}><Analytics /></RoleProtectedRoute>} />
         <Route path="/account" element={<RoleProtectedRoute allowedRoles={['athlete']}><Account /></RoleProtectedRoute>} />
         <Route path="/athlete/meets" element={<RoleProtectedRoute allowedRoles={['athlete']}><Meets /></RoleProtectedRoute>} />
+        <Route path="/athlete/settings" element={<RoleProtectedRoute allowedRoles={['athlete']}><AthleteSettings /></RoleProtectedRoute>} />
       </Route>
 
       {/* Loop Feature Routes (Accessible to both coaches and athletes) */}

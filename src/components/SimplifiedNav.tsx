@@ -259,7 +259,12 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
                 >
                   Account & Billing
                 </MenuItem>
-                <MenuItem as={RouterLink} to="/settings"
+                <MenuItem as={RouterLink} 
+                  to={
+                    displayProfile?.role === 'coach' ? '/coach/settings' : 
+                    displayProfile?.role === 'athlete' ? '/athlete/settings' : 
+                    displayProfile?.role === 'team_manager' ? '/team-manager/settings' : '/settings'
+                  }
                   color={menuTextColor}
                   _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
                   _focus={{ bg: menuItemHoverBg, color: menuItemHoverColor }}

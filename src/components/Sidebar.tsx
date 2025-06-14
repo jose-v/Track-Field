@@ -39,6 +39,8 @@ import {
   FaRunning,
   FaShare,
   FaCog,
+  FaSlidersH,
+  FaWrench,
   FaSignOutAlt,
   FaTachometerAlt,
   FaClipboardList,
@@ -277,7 +279,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
       const athleteIconMap: { [key: string]: any } = {
         '/athlete/dashboard': FaTachometerAlt,
         '/athlete/workouts': FaDumbbell,
-        '/athlete/workout-creator': FaCog,
+        '/athlete/workout-creator': FaWrench,
         '/join-team': FaUserPlus,
         '/athlete/meets': BsCalendarCheck,
         '/athlete/calendar': BiCalendar,
@@ -285,6 +287,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
         '/athlete/sleep': BiMoon,
         '/athlete/notifications': FaBell,
         '/athlete/profile': BiUser,
+        '/athlete/settings': FaCog,
       };
 
       // Use the athlete navigation configuration from the hook
@@ -330,11 +333,12 @@ const Sidebar = ({ userType }: SidebarProps) => {
         '/coach/athletes': FaUsers,
         '/join-team': FaUserPlus,
         '/coach/training-plans': FaClipboardList,
-        '/coach/workout-creator': FaCog,
+        '/coach/workout-creator': FaWrench,
         '/coach/calendar': FaCalendarAlt,
         '/coach/meets': BsCalendarCheck,
         '/coach/stats': FaChartBar,
         '/coach/notifications': FaBell,
+        '/coach/settings': FaCog,
       };
 
       // Use the coach navigation configuration from the hook

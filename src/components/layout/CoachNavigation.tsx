@@ -1,7 +1,7 @@
 import { useLocation } from 'react-router-dom';
 import { NavLink } from './BaseLayout';
 import { LuUsers, LuCalendarClock, LuClipboardList, LuBell } from 'react-icons/lu';
-import { FaUserPlus } from 'react-icons/fa';
+import { FaUserPlus, FaCog, FaWrench } from 'react-icons/fa';
 import { IoFitnessOutline } from 'react-icons/io5';
 import { FaTachometerAlt, FaCalendarAlt } from 'react-icons/fa';
 import { ReactNode } from 'react';
@@ -63,7 +63,7 @@ export function useCoachNavigation(): CoachNavConfig & { isCurrentPathActive: (p
     {
       name: 'Workout Creator',
       path: '/coach/workout-creator',
-      icon: <IoFitnessOutline />
+      icon: <FaWrench />
     },
     {
       name: 'Calendar',
@@ -84,6 +84,11 @@ export function useCoachNavigation(): CoachNavConfig & { isCurrentPathActive: (p
       name: 'Notifications',
       path: '/coach/notifications',
       icon: <LuBell />
+    },
+    {
+      name: 'Settings',
+      path: '/coach/settings',
+      icon: <FaCog />
     }
   ];
   
