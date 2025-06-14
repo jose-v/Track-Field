@@ -5,10 +5,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { FaEye, FaPlayCircle, FaRunning, FaDumbbell, FaRegClock, FaCalendarAlt, FaListUl, FaLeaf, FaRedo, FaCog } from 'react-icons/fa';
+import { FaEye, FaPlayCircle, FaRunning, FaDumbbell, FaRegClock, FaCalendarAlt, FaListUl, FaLeaf, FaRedo, FaCog, FaPlus, FaCalendarWeek, FaCalendarDay, FaClock, FaChartLine, FaBookOpen, FaHistory, FaFilter } from 'react-icons/fa';
 import { CheckIcon, EditIcon } from '@chakra-ui/icons'; // For exec modal
 import { FiCalendar, FiClock } from 'react-icons/fi';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useWorkoutStore } from '../../lib/workoutStore'; // Import the store
 import { WorkoutCard } from '../../components/WorkoutCard'; // Import our shared card component
 import { supabase } from '../../lib/supabase';
@@ -17,7 +17,9 @@ import { dateUtils } from '../../utils/date';
 import { useWorkoutsRealtime } from '../../hooks/useWorkoutsRealtime';
 import { handleWorkoutCompletion } from '../../services/integrationService';
 import { useFeedback } from '../../components/FeedbackProvider'; // Import the feedback hook
-import { MobileHeader, ExerciseExecutionModal, MonthlyPlanAssignments } from '../../components';
+import { MobileHeader, ExerciseExecutionModal, MonthlyPlanAssignments, WorkoutsSidebar } from '../../components';
+import type { WorkoutsSection } from '../../components';
+import { useScrollDirection } from '../../hooks/useScrollDirection';
 import { RunTimeInput } from '../../components/RunTimeInput';
 import { isRunExercise, validateTime } from '../../utils/exerciseUtils';
 import { ExerciseLibrary, Exercise as LibraryExercise } from '../../components/ExerciseLibrary';
@@ -93,6 +95,9 @@ export function AthleteWorkouts() {
   const textColor = useColorModeValue('gray.600', 'gray.300');
   const errorTextColor = useColorModeValue('red.600', 'red.300');
   const headingColor = useColorModeValue('gray.700', 'gray.200');
+  const pageBackgroundColor = useColorModeValue('gray.50', 'gray.900');
+  const headerTextColor = useColorModeValue('gray.800', 'white');
+  const headerSubtextColor = useColorModeValue('gray.600', 'gray.300');
   
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -124,6 +129,14 @@ export function AthleteWorkouts() {
   // State for custom exercises
   const [customExercises, setCustomExercises] = useState<LibraryExercise[]>([]);
   const [exercisesLoading, setExercisesLoading] = useState(false);
+
+  // Sidebar state and configuration
+  const [activeItem, setActiveItem] = useState('all-workouts');
+  const [mainSidebarWidth, setMainSidebarWidth] = useState(() => {
+    const savedSidebarState = localStorage.getItem('sidebarCollapsed');
+    return savedSidebarState === 'true' ? 70 : 200;
+  });
+  const { isHeaderVisible } = useScrollDirection(15);
 
   const { 
     data: assignedWorkouts, 
@@ -158,6 +171,192 @@ export function AthleteWorkouts() {
   useEffect(() => {
     recordAppUsage();
   }, [recordAppUsage]);
+
+  // Listen for main sidebar toggle events
+  useEffect(() => {
+    const handleSidebarToggle = (event: CustomEvent) => {
+      const newWidth = event.detail.width;
+      setMainSidebarWidth(newWidth);
+    };
+    
+    window.addEventListener('sidebarToggle', handleSidebarToggle as EventListener);
+    
+    return () => {
+      window.removeEventListener('sidebarToggle', handleSidebarToggle as EventListener);
+    };
+  }, []);
+
+  // Calculate workout statistics
+  const workoutStats = useMemo(() => {
+    if (!assignedWorkouts) return { today: 0, thisWeek: 0, total: 0, completed: 0 };
+    
+    const today = getCurrentDate();
+    const startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    const startOfWeekStr = dateUtils.localDateString(startOfWeek);
+    
+    const todayWorkouts = assignedWorkouts.filter(w => formatDateForComparison(w.date) === today);
+    const thisWeekWorkouts = assignedWorkouts.filter(w => {
+      const workoutDate = formatDateForComparison(w.date);
+      return workoutDate >= startOfWeekStr && workoutDate <= today;
+    });
+    const completedWorkouts = assignedWorkouts.filter(w => {
+      const progress = workoutStore.getProgress(w.id);
+      const totalExercises = w.exercises?.length || 0;
+      const completedExercises = progress ? progress.completedExercises.length : 0;
+      return totalExercises > 0 && completedExercises === totalExercises;
+    });
+
+    return {
+      today: todayWorkouts.length,
+      thisWeek: thisWeekWorkouts.length,
+      total: assignedWorkouts.length,
+      completed: completedWorkouts.length
+    };
+  }, [assignedWorkouts, workoutStore]);
+
+  // Filter workouts based on active sidebar item
+  const filteredWorkouts = useMemo(() => {
+    if (!assignedWorkouts) return [];
+    
+    const today = getCurrentDate();
+    const startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    const startOfWeekStr = dateUtils.localDateString(startOfWeek);
+    
+    switch (activeItem) {
+      case 'today':
+        return assignedWorkouts.filter(w => formatDateForComparison(w.date) === today);
+      case 'this-week':
+        return assignedWorkouts.filter(w => {
+          const workoutDate = formatDateForComparison(w.date);
+          return workoutDate >= startOfWeekStr && workoutDate <= today;
+        });
+      case 'upcoming':
+        return assignedWorkouts.filter(w => formatDateForComparison(w.date) > today);
+      case 'completed':
+        return assignedWorkouts.filter(w => {
+          const progress = workoutStore.getProgress(w.id);
+          const totalExercises = w.exercises?.length || 0;
+          const completedExercises = progress ? progress.completedExercises.length : 0;
+          return totalExercises > 0 && completedExercises === totalExercises;
+        });
+      case 'in-progress':
+        return assignedWorkouts.filter(w => {
+          const progress = workoutStore.getProgress(w.id);
+          const totalExercises = w.exercises?.length || 0;
+          const completedExercises = progress ? progress.completedExercises.length : 0;
+          return completedExercises > 0 && completedExercises < totalExercises;
+        });
+      case 'strength':
+        return assignedWorkouts.filter(w => w.type?.toLowerCase().includes('strength') || w.type?.toLowerCase().includes('weight'));
+      case 'cardio':
+        return assignedWorkouts.filter(w => w.type?.toLowerCase().includes('cardio') || w.type?.toLowerCase().includes('running') || w.type?.toLowerCase().includes('endurance'));
+      case 'speed':
+        return assignedWorkouts.filter(w => w.type?.toLowerCase().includes('speed') || w.type?.toLowerCase().includes('sprint'));
+      case 'all-workouts':
+      default:
+        return assignedWorkouts;
+    }
+  }, [assignedWorkouts, activeItem, workoutStore]);
+
+  // Sidebar configuration
+  const workoutsSections: WorkoutsSection[] = [
+    {
+      id: 'overview',
+      title: 'Overview',
+      items: [
+        {
+          id: 'all-workouts',
+          label: 'All Workouts',
+          icon: FaListUl,
+          description: 'View all assigned workouts',
+          badge: workoutStats.total
+        },
+        {
+          id: 'today',
+          label: 'Today',
+          icon: FaCalendarDay,
+          description: 'Today\'s scheduled workouts',
+          badge: workoutStats.today
+        },
+        {
+          id: 'this-week',
+          label: 'This Week',
+          icon: FaCalendarWeek,
+          description: 'This week\'s workouts',
+          badge: workoutStats.thisWeek
+        }
+      ]
+    },
+    {
+      id: 'status',
+      title: 'By Status',
+      items: [
+        {
+          id: 'upcoming',
+          label: 'Upcoming',
+          icon: FaClock,
+          description: 'Future scheduled workouts'
+        },
+        {
+          id: 'in-progress',
+          label: 'In Progress',
+          icon: FaPlayCircle,
+          description: 'Partially completed workouts'
+        },
+        {
+          id: 'completed',
+          label: 'Completed',
+          icon: FaChartLine,
+          description: 'Finished workouts',
+          badge: workoutStats.completed
+        }
+      ]
+    },
+    {
+      id: 'type',
+      title: 'By Type',
+      items: [
+        {
+          id: 'strength',
+          label: 'Strength',
+          icon: FaDumbbell,
+          description: 'Weight and resistance training'
+        },
+        {
+          id: 'cardio',
+          label: 'Cardio',
+          icon: FaRunning,
+          description: 'Endurance and running workouts'
+        },
+        {
+          id: 'speed',
+          label: 'Speed',
+          icon: FaLeaf,
+          description: 'Sprint and speed training'
+        }
+      ]
+    },
+    {
+      id: 'tools',
+      title: 'Tools & Library',
+      items: [
+        {
+          id: 'monthly-plans',
+          label: 'Monthly Plans',
+          icon: FaCalendarAlt,
+          description: 'View training plan assignments'
+        },
+        {
+          id: 'exercise-library',
+          label: 'Exercise Library',
+          icon: FaBookOpen,
+          description: 'Manage custom exercises'
+        }
+      ]
+    }
+  ];
 
   // Refetch workouts when component mounts
   useEffect(() => {
@@ -760,9 +959,91 @@ export function AthleteWorkouts() {
     loadCustomExercises();
   }, [user?.id]);
 
+  // Function to render content based on active sidebar item
+  const renderContent = () => {
+    const getSectionInfo = () => {
+      switch (activeItem) {
+        case 'today':
+          return { title: 'Today\'s Workouts', description: 'Workouts scheduled for today', icon: FaCalendarDay };
+        case 'this-week':
+          return { title: 'This Week\'s Workouts', description: 'All workouts for this week', icon: FaCalendarWeek };
+        case 'upcoming':
+          return { title: 'Upcoming Workouts', description: 'Future scheduled workouts', icon: FaClock };
+        case 'completed':
+          return { title: 'Completed Workouts', description: 'Workouts you\'ve finished', icon: FaChartLine };
+        case 'in-progress':
+          return { title: 'In Progress', description: 'Partially completed workouts', icon: FaPlayCircle };
+        case 'strength':
+          return { title: 'Strength Training', description: 'Weight and resistance workouts', icon: FaDumbbell };
+        case 'cardio':
+          return { title: 'Cardio Workouts', description: 'Endurance and running training', icon: FaRunning };
+        case 'speed':
+          return { title: 'Speed Training', description: 'Sprint and speed workouts', icon: FaLeaf };
+        case 'monthly-plans':
+          return { title: 'Monthly Plans', description: 'Training plan assignments', icon: FaCalendarAlt };
+        case 'exercise-library':
+          return { title: 'Exercise Library', description: 'Manage your custom exercises', icon: FaBookOpen };
+        case 'all-workouts':
+        default:
+          return { title: 'All Workouts', description: 'Your complete training schedule', icon: FaListUl };
+      }
+    };
+
+    const sectionInfo = getSectionInfo();
+
+    const renderMainContent = () => {
+      switch (activeItem) {
+        case 'monthly-plans':
+          return <MonthlyPlanAssignments />;
+        case 'exercise-library':
+          return (
+            <ExerciseLibrary
+              exercises={customExercises}
+              onAddExercise={handleAddExercise}
+              onUpdateExercise={handleUpdateExercise}
+              onDeleteExercise={handleDeleteExercise}
+              isLoading={exercisesLoading}
+              title=""
+              subtitle=""
+            />
+          );
+        default:
+          return (
+            <Box>
+              {renderWorkoutCards(filteredWorkouts)}
+            </Box>
+          );
+      }
+    };
+
+    return (
+      <VStack spacing={6} align="stretch" w="100%">
+        {/* Section Header */}
+        <VStack spacing={2} align="start" w="100%">
+          <HStack spacing={3} align="center">
+            <Icon
+              as={sectionInfo.icon}
+              boxSize={6}
+              color={useColorModeValue('blue.500', 'blue.300')}
+            />
+            <Heading size="lg" color={headerTextColor}>
+              {sectionInfo.title}
+            </Heading>
+          </HStack>
+          <Text color={headerSubtextColor} fontSize="md">
+            {sectionInfo.description} ({filteredWorkouts.length} workouts)
+          </Text>
+        </VStack>
+        
+        {/* Main Content */}
+        {renderMainContent()}
+      </VStack>
+    );
+  };
+
   return (
-    <Container maxW="container.xl" px={{ base: 4, md: 6 }} py={{ base: 6, md: 4 }} data-testid="athlete-workouts">
-      {/* Mobile Header - Now using reusable component */}
+    <Box bg={pageBackgroundColor} minH="100vh" data-testid="athlete-workouts">
+      {/* Mobile Header */}
       <MobileHeader
         title="Workouts"
         subtitle="Your Training Schedule"
@@ -770,7 +1051,7 @@ export function AthleteWorkouts() {
         actionButton={
           <IconButton
             aria-label="Create Workout"
-            icon={<FaCog />}
+            icon={<FaPlus />}
             size="md"
             colorScheme="blue"
             variant="solid"
@@ -789,29 +1070,34 @@ export function AthleteWorkouts() {
         }
       />
 
-      {/* Desktop Header - keep existing */}
-      <Box display={{ base: "none", lg: "block" }} mb={6}>
-        <Flex justify="space-between" align="center" mb={2}>
-          <Heading size="lg">
-            Workouts
-          </Heading>
-          <Button
-            leftIcon={<FaCog />}
-            colorScheme="blue"
-            variant="outline"
-            size="md"
-            onClick={() => navigate('/athlete/workout-creator')}
-          >
-            Create Workout
-          </Button>
-        </Flex>
-        <Text color={textColor}>
-          Your Training Schedule
-        </Text>
-      </Box>
+      {/* Workouts Sidebar */}
+      <WorkoutsSidebar
+        sections={workoutsSections}
+        activeItem={activeItem}
+        onItemClick={setActiveItem}
+        createWorkoutAction={() => navigate('/athlete/workout-creator')}
+        workoutCounts={workoutStats}
+      />
 
-      {/* Content with mobile spacing */}
-      <Box mt={{ base: "20px", lg: 0 }}>
+      {/* Main Content */}
+      <Box
+        ml={{ 
+          base: 0, 
+          md: `${mainSidebarWidth - 50}px`, 
+          lg: mainSidebarWidth === 70 
+            ? `${mainSidebarWidth + 280 - 50}px`  // When collapsed: less margin adjustment
+            : `${mainSidebarWidth + 280 - 180}px`  // When expanded: more margin adjustment
+        }}
+        mr={{ 
+          base: 0, 
+          lg: mainSidebarWidth === 70 ? "30px" : "20px"  // Less right margin when sidebar is collapsed
+        }}
+        pt={isHeaderVisible ? "-2px" : "-82px"}
+        transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+        minH="100vh"
+        px={0} // Remove padding since AthleteLayout already adds it
+        py={8}
+      >
         {isLoading && (
           <Center py={{ base: 8, md: 10 }}>
             <Spinner 
@@ -836,137 +1122,95 @@ export function AthleteWorkouts() {
           </Alert>
         )}
 
-        {!isLoading && !isError && (
-          <Tabs variant="enclosed" colorScheme="blue">
-            <TabList>
-              <Tab>Daily Workouts</Tab>
-              <Tab>Monthly Plans</Tab>
-              <Tab>Exercise Library</Tab>
-            </TabList>
-            
-            <TabPanels>
-              {/* Daily Workouts Tab */}
-              <TabPanel px={0}>
-                <Box>
-                  <Heading 
-                    size={{ base: 'sm', md: 'md' }} 
-                    mb={{ base: 3, md: 4 }}
-                    color={headingColor}
-                  >
-                    All Workouts ({assignedWorkouts?.length || 0})
-                  </Heading>
-                  {renderWorkoutCards(assignedWorkouts || [])}
-                </Box>
-              </TabPanel>
-              
-              {/* Monthly Plans Tab */}
-              <TabPanel px={0}>
-                <MonthlyPlanAssignments />
-              </TabPanel>
-
-              {/* Exercise Library Tab */}
-              <TabPanel px={0}>
-                <ExerciseLibrary
-                  exercises={customExercises}
-                  onAddExercise={handleAddExercise}
-                  onUpdateExercise={handleUpdateExercise}
-                  onDeleteExercise={handleDeleteExercise}
-                  isLoading={exercisesLoading}
-                  title="My Exercise Library"
-                  subtitle="Manage your custom exercises for use in workouts"
-                />
-              </TabPanel>
-            </TabPanels>
-          </Tabs>
-        )}
-        
-        {/* Exercise Execution Modal - Using shared component */}
-        <ExerciseExecutionModal
-          isOpen={execModal.isOpen}
-          onClose={() => setExecModal({ ...execModal, isOpen: false })}
-          workout={execModal.workout}
-          exerciseIdx={execModal.exerciseIdx}
-          timer={execModal.timer}
-          running={execModal.running}
-          onUpdateTimer={handleUpdateTimer}
-          onUpdateRunning={handleUpdateRunning}
-          onNextExercise={handleNextExercise}
-          onPreviousExercise={handlePreviousExercise}
-          onFinishWorkout={handleFinishWorkout}
-          onShowVideo={handleShowVideo}
-        />
-
-        {/* Video Modal - Copied from Workouts.tsx */}
-        <Modal isOpen={videoModal.isOpen} onClose={() => setVideoModal({ ...videoModal, isOpen: false })} isCentered size="xl">
-          <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>How to: {videoModal.exerciseName}</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody pb={6}>
-              <Box position="relative" paddingTop="56.25%">
-                <iframe
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    border: 'none',
-                  }}
-                  src={videoModal.videoUrl}
-                  title="Exercise Tutorial"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </Box>
-            </ModalBody>
-          </ModalContent>
-        </Modal>
-
-        {/* Reset Confirmation Modal */}
-        <AlertDialog
-          isOpen={isResetOpen}
-          leastDestructiveRef={cancelRef}
-          onClose={onResetClose}
-          size="lg"
-        >
-          <AlertDialogOverlay>
-            <AlertDialogContent minHeight="220px">
-              <AlertDialogHeader fontSize="lg" fontWeight="bold">
-                Reset Workout Progress
-              </AlertDialogHeader>
-
-              <AlertDialogBody>
-                <VStack spacing={4} minHeight="100px">
-                  <Text>
-                    Are you sure you want to reset your progress on <strong>{workoutToReset?.name}</strong>? 
-                    This will clear all completed exercises and you'll start from the beginning.
-                    This action cannot be undone.
-                  </Text>
-                </VStack>
-                {/* Action buttons styled as a footer */}
-                <HStack width="100%" justifyContent="flex-end" pt={4} spacing={4}>
-                  <Button 
-                    ref={cancelRef} 
-                    onClick={onResetClose}
-                    variant="ghost"
-                    colorScheme="gray"
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    colorScheme="orange" 
-                    onClick={handleResetConfirm} 
-                    variant="solid"
-                  >
-                    Reset Progress
-                  </Button>
-                </HStack>
-              </AlertDialogBody>
-            </AlertDialogContent>
-          </AlertDialogOverlay>
-        </AlertDialog>
+        {!isLoading && !isError && renderContent()}
       </Box>
-    </Container>
+        
+      {/* Exercise Execution Modal - Using shared component */}
+      <ExerciseExecutionModal
+        isOpen={execModal.isOpen}
+        onClose={() => setExecModal({ ...execModal, isOpen: false })}
+        workout={execModal.workout}
+        exerciseIdx={execModal.exerciseIdx}
+        timer={execModal.timer}
+        running={execModal.running}
+        onUpdateTimer={handleUpdateTimer}
+        onUpdateRunning={handleUpdateRunning}
+        onNextExercise={handleNextExercise}
+        onPreviousExercise={handlePreviousExercise}
+        onFinishWorkout={handleFinishWorkout}
+        onShowVideo={handleShowVideo}
+      />
+
+      {/* Video Modal - Copied from Workouts.tsx */}
+      <Modal isOpen={videoModal.isOpen} onClose={() => setVideoModal({ ...videoModal, isOpen: false })} isCentered size="xl">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>How to: {videoModal.exerciseName}</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <Box position="relative" paddingTop="56.25%">
+              <iframe
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                }}
+                src={videoModal.videoUrl}
+                title="Exercise Tutorial"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </Box>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      {/* Reset Confirmation Modal */}
+      <AlertDialog
+        isOpen={isResetOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onResetClose}
+        size="lg"
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent minHeight="220px">
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Reset Workout Progress
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              <VStack spacing={4} minHeight="100px">
+                <Text>
+                  Are you sure you want to reset your progress on <strong>{workoutToReset?.name}</strong>? 
+                  This will clear all completed exercises and you'll start from the beginning.
+                  This action cannot be undone.
+                </Text>
+              </VStack>
+              {/* Action buttons styled as a footer */}
+              <HStack width="100%" justifyContent="flex-end" pt={4} spacing={4}>
+                <Button 
+                  ref={cancelRef} 
+                  onClick={onResetClose}
+                  variant="ghost"
+                  colorScheme="gray"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  colorScheme="orange" 
+                  onClick={handleResetConfirm} 
+                  variant="solid"
+                >
+                  Reset Progress
+                </Button>
+              </HStack>
+            </AlertDialogBody>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+    </Box>
   );
 } 

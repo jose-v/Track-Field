@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box, Heading, Text, SimpleGrid, Button, HStack, VStack, useDisclosure,
   useToast, Skeleton, Card, CardBody, useColorModeValue, Flex, 
-  IconButton, Badge, Alert, AlertIcon, Spinner, Tabs, TabList, TabPanels, Tab, TabPanel,
+  IconButton, Badge, Alert, AlertIcon, Spinner, Icon, Tabs, TabList, TabPanels, Tab, TabPanel,
   Select
 } from '@chakra-ui/react';
-import { FaCalendarAlt, FaPlus, FaRedo, FaUsers, FaChartLine, FaLayerGroup, FaTrash, FaFileImport, FaDumbbell, FaUserFriends } from 'react-icons/fa';
+import { FaCalendarAlt, FaPlus, FaRedo, FaUsers, FaChartLine, FaLayerGroup, FaTrash, FaFileImport, FaDumbbell, FaUserFriends, FaListUl, FaCalendarWeek, FaCalendarDay, FaClock, FaBookOpen, FaHistory, FaFilter, FaCog } from 'react-icons/fa';
 import { AddIcon, RepeatIcon } from '@chakra-ui/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -25,6 +25,9 @@ import { supabase } from '../../lib/supabase';
 import { useQueryClient } from '@tanstack/react-query';
 import { DeletedItemCard } from '../../components/DeletedItemCard';
 import { ExerciseLibrary, Exercise } from '../../components/ExerciseLibrary';
+import { WorkoutsSidebar } from '../../components';
+import type { WorkoutsSection } from '../../components';
+import { useScrollDirection } from '../../hooks/useScrollDirection';
 
 // Type for monthly plan with assignment stats
 interface MonthlyPlanWithStats extends TrainingPlan {
@@ -199,6 +202,17 @@ export function CoachTrainingPlans() {
   const [deletedLoading, setDeletedLoading] = useState(false);
   const [deletedRefreshing, setDeletedRefreshing] = useState(false);
 
+  // Sidebar state and configuration
+  const [activeItem, setActiveItem] = useState('all-workouts');
+  const [mainSidebarWidth, setMainSidebarWidth] = useState(() => {
+    const savedSidebarState = localStorage.getItem('sidebarCollapsed');
+    return savedSidebarState === 'true' ? 70 : 200;
+  });
+  const { isHeaderVisible } = useScrollDirection(15);
+
+  // Theme colors for the page
+  const pageBackgroundColor = useColorModeValue('gray.50', 'gray.900');
+
   // State for custom exercises
   const [customExercises, setCustomExercises] = useState<Exercise[]>([]);
   const [exercisesLoading, setExercisesLoading] = useState(false);
@@ -255,6 +269,156 @@ export function CoachTrainingPlans() {
 
     fetchAssignments();
   }, [JSON.stringify(workoutIds)]);
+
+  // Listen for main sidebar toggle events
+  useEffect(() => {
+    const handleSidebarToggle = (event: CustomEvent) => {
+      const newWidth = event.detail.width;
+      setMainSidebarWidth(newWidth);
+    };
+    
+    window.addEventListener('sidebarToggle', handleSidebarToggle as EventListener);
+    
+    return () => {
+      window.removeEventListener('sidebarToggle', handleSidebarToggle as EventListener);
+    };
+  }, []);
+
+  // Calculate statistics for sidebar
+  const coachStats = useMemo(() => {
+    const totalWorkouts = workouts?.filter(w => !w.is_draft).length || 0;
+    const totalPlans = monthlyPlans.length;
+    const totalTemplates = templateWorkouts.length;
+    const totalDrafts = draftWorkouts.length;
+    const totalDeleted = deletedWorkouts.length + deletedMonthlyPlans.length;
+    const totalExercises = customExercises.length;
+    const totalAthletes = athletes?.length || 0;
+
+    return {
+      workouts: totalWorkouts,
+      plans: totalPlans,
+      templates: totalTemplates,
+      drafts: totalDrafts,
+      deleted: totalDeleted,
+      exercises: totalExercises,
+      athletes: totalAthletes
+    };
+  }, [workouts, monthlyPlans, templateWorkouts, draftWorkouts, deletedWorkouts, deletedMonthlyPlans, customExercises, athletes]);
+
+  // Filter data based on active sidebar item
+  const filteredData = useMemo(() => {
+    switch (activeItem) {
+      case 'all-workouts':
+        return { type: 'workouts', data: workouts?.filter(w => !w.is_draft) || [] };
+      case 'monthly-plans':
+        return { type: 'plans', data: monthlyPlans };
+      case 'templates':
+        return { type: 'templates', data: templateWorkouts };
+      case 'drafts':
+        return { type: 'drafts', data: draftWorkouts };
+      case 'deleted':
+        return { type: 'deleted', data: [...deletedWorkouts, ...deletedMonthlyPlans] };
+      case 'exercise-library':
+        return { type: 'exercises', data: customExercises };
+      case 'by-athlete':
+        return { type: 'workouts', data: workouts?.filter(w => !w.is_draft && (selectedAthlete === 'all' || getAthleteNames(w).includes(selectedAthlete))) || [] };
+      case 'single-workouts':
+        return { type: 'workouts', data: workouts?.filter(w => !w.is_draft && w.type !== 'weekly') || [] };
+      case 'weekly-workouts':
+        return { type: 'workouts', data: workouts?.filter(w => !w.is_draft && w.type === 'weekly') || [] };
+      default:
+        return { type: 'workouts', data: workouts?.filter(w => !w.is_draft) || [] };
+    }
+  }, [activeItem, workouts, monthlyPlans, templateWorkouts, draftWorkouts, deletedWorkouts, deletedMonthlyPlans, customExercises, selectedAthlete]);
+
+  // Sidebar configuration for coaches
+  const coachSections: WorkoutsSection[] = [
+    {
+      id: 'overview',
+      title: 'Overview',
+      items: [
+        {
+          id: 'all-workouts',
+          label: 'All Workouts',
+          icon: FaListUl,
+          description: 'View all created workouts',
+          badge: coachStats.workouts
+        },
+        {
+          id: 'monthly-plans',
+          label: 'Monthly Plans',
+          icon: FaCalendarAlt,
+          description: 'Training plan templates',
+          badge: coachStats.plans
+        },
+        {
+          id: 'by-athlete',
+          label: 'By Athlete',
+          icon: FaUserFriends,
+          description: 'Filter workouts by athlete',
+          badge: coachStats.athletes
+        }
+      ]
+    },
+    {
+      id: 'workout-types',
+      title: 'Workout Types',
+      items: [
+        {
+          id: 'single-workouts',
+          label: 'Single Workouts',
+          icon: FaDumbbell,
+          description: 'Individual workout sessions'
+        },
+        {
+          id: 'weekly-workouts',
+          label: 'Weekly Plans',
+          icon: FaCalendarWeek,
+          description: 'Weekly training programs'
+        },
+        {
+          id: 'templates',
+          label: 'Templates',
+          icon: FaLayerGroup,
+          description: 'Reusable workout templates',
+          badge: coachStats.templates
+        }
+      ]
+    },
+    {
+      id: 'management',
+      title: 'Management',
+      items: [
+        {
+          id: 'drafts',
+          label: 'Drafts',
+          icon: FaCog,
+          description: 'Unfinished workouts',
+          badge: coachStats.drafts
+        },
+        {
+          id: 'deleted',
+          label: 'Deleted Items',
+          icon: FaTrash,
+          description: 'Deleted workouts and plans',
+          badge: coachStats.deleted
+        }
+      ]
+    },
+    {
+      id: 'tools',
+      title: 'Tools & Library',
+      items: [
+        {
+          id: 'exercise-library',
+          label: 'Exercise Library',
+          icon: FaBookOpen,
+          description: 'Manage custom exercises',
+          badge: coachStats.exercises
+        }
+      ]
+    }
+  ];
 
   // Load monthly plans
   const loadMonthlyPlans = async () => {
@@ -1027,394 +1191,372 @@ export function CoachTrainingPlans() {
     loadCustomExercises();
   }, [user?.id]);
 
-  return (
-    <Box minH="calc(100vh - 64px)" bg={bgColor}>
-      <Box maxW="1400px" mx="auto" px={{ base: 4, md: 6, lg: 8 }} py={8}>
-        <VStack spacing={8} align="stretch">
-          {/* Header */}
-          <Flex justify="flex-end" align="center" wrap="wrap" gap={4}>
-            <VStack align="start" spacing={1} flex="1">
-              <Heading size="xl" color={headerTextColor}>
-                Training Plans
-              </Heading>
-              <Text color={headerSubtextColor}>
-                Create and manage workouts and training plans for your athletes
-              </Text>
-            </VStack>
-            
-            <HStack spacing={4} wrap="wrap" justify="flex-end">
-              <Button
-                leftIcon={<AddIcon />}
-                colorScheme="blue"
-                onClick={() => navigate('/coach/workout-creator')}
-                size="lg"
-              >
-                Create Workout
-              </Button>
-              <Button
-                leftIcon={<FaFileImport />}
-                colorScheme="teal"
-                variant="outline"
-                onClick={() => navigate('/coach/workouts/import')}
-                size="lg"
-              >
-                Import from File
-              </Button>
-              <Button
-                leftIcon={<FaPlus />}
-                colorScheme="green"
-                onClick={onCreatorOpen}
-                size="lg"
-              >
-                Create Plan
-              </Button>
-            </HStack>
-          </Flex>
+  // Function to render content based on active sidebar item
+  const renderContent = () => {
+    const getSectionInfo = () => {
+      switch (activeItem) {
+        case 'monthly-plans':
+          return { title: 'Monthly Plans', description: 'Training plan templates for your athletes', icon: FaCalendarAlt };
+        case 'templates':
+          return { title: 'Workout Templates', description: 'Reusable workout templates', icon: FaLayerGroup };
+        case 'drafts':
+          return { title: 'Draft Workouts', description: 'Unfinished workouts saved as drafts', icon: FaCog };
+        case 'deleted':
+          return { title: 'Deleted Items', description: 'Deleted workouts and training plans', icon: FaTrash };
+        case 'exercise-library':
+          return { title: 'Exercise Library', description: 'Manage your custom exercises', icon: FaBookOpen };
+        case 'by-athlete':
+          return { title: 'Workouts by Athlete', description: 'Filter workouts by specific athletes', icon: FaUserFriends };
+        case 'single-workouts':
+          return { title: 'Single Workouts', description: 'Individual workout sessions', icon: FaDumbbell };
+        case 'weekly-workouts':
+          return { title: 'Weekly Plans', description: 'Weekly training programs', icon: FaCalendarWeek };
+        case 'all-workouts':
+        default:
+          return { title: 'All Workouts', description: 'All created workouts and training sessions', icon: FaListUl };
+      }
+    };
 
-          {/* Loading indicator when saving */}
-          {isSaving && (
-            <Box 
-              position="fixed" 
-              top="0" 
-              left="0" 
-              right="0" 
-              p={2} 
-              bg="blue.500" 
-              color="white" 
-              textAlign="center"
-              zIndex={9999}
-            >
-              <HStack justify="center" spacing={2}>
-                <Spinner size="sm" />
-                <Text fontWeight="medium">Saving workout...</Text>
-              </HStack>
-            </Box>
-          )}
+    const sectionInfo = getSectionInfo();
 
-          {/* Tabs */}
-          <Tabs 
-            variant="enclosed" 
-            colorScheme="teal"
-            index={activeTabIndex}
-            onChange={handleTabChange}
-          >
-            <TabList>
-              <Tab>
-                <FaDumbbell style={{ marginRight: '8px' }} />
-                Workouts ({workouts?.filter(w => !w.is_draft).length || 0})
-              </Tab>
-              <Tab>
-                <FaCalendarAlt style={{ marginRight: '8px' }} />
-                Monthly Plans ({monthlyPlans.length})
-              </Tab>
-              <Tab>
-                <FaLayerGroup style={{ marginRight: '8px' }} />
-                Templates ({templateWorkouts.length})
-              </Tab>
-              <Tab>
-                <FaUsers style={{ marginRight: '8px' }} />
-                Drafts ({draftWorkouts.length})
-              </Tab>
-              <Tab>
-                <FaTrash style={{ marginRight: '8px' }} />
-                Deleted ({deletedWorkouts.length + deletedMonthlyPlans.length})
-              </Tab>
-              <Tab>
-                <FaDumbbell style={{ marginRight: '8px' }} />
-                Exercise Library ({customExercises.length})
-              </Tab>
-            </TabList>
-
-            <TabPanels>
-              {/* Workouts Tab */}
-              <TabPanel px={0}>
-                <VStack spacing={6} align="stretch">
-                  {/* Stats and Actions - Restructured for better responsive behavior */}
-                  <VStack spacing={4} align="stretch">
-                    {/* Stats Badges Row */}
-                    <Flex justify="flex-start" align="center" wrap="wrap" gap={2}>
-                      <Badge colorScheme="blue" fontSize="sm" px={3} py={1}>
-                        {workouts?.filter(w => !w.is_draft).length || 0} Workouts Created
-                      </Badge>
-                      {athletes && (
-                        <Badge colorScheme="green" fontSize="sm" px={3} py={1}>
-                          {athletes.length} Athletes
-                        </Badge>
-                      )}
-                      {selectedAthlete !== 'all' && (
-                        <Badge colorScheme="purple" fontSize="sm" px={3} py={1} maxW="300px" isTruncated>
-                          Filtered by: {athletes?.find(a => a.id === selectedAthlete)?.first_name} {athletes?.find(a => a.id === selectedAthlete)?.last_name}
-                        </Badge>
-                      )}
-                      {(workoutFilter !== 'all' || selectedAthlete !== 'all') && (
-                        <Button
-                          size="xs"
-                          variant="ghost"
-                          colorScheme="gray"
-                          onClick={handleClearFilters}
-                        >
-                          Clear Filters
-                        </Button>
-                      )}
-                    </Flex>
-                    
-                    {/* Filter Controls Row */}
-                    <Flex justify="flex-start" align="center" wrap="wrap" gap={3}>
-                      {/* Workout Type Filter Buttons */}
-                      <HStack spacing={2}>
-                        <Button
-                          size="sm"
-                          variant={workoutFilter === 'all' ? 'solid' : 'outline'}
-                          colorScheme={workoutFilter === 'all' ? 'blue' : 'gray'}
-                          onClick={() => setWorkoutFilter('all')}
-                        >
-                          All
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={workoutFilter === 'single' ? 'solid' : 'outline'}
-                          colorScheme={workoutFilter === 'single' ? 'blue' : 'gray'}
-                          onClick={() => setWorkoutFilter('single')}
-                        >
-                          Single
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={workoutFilter === 'weekly' ? 'solid' : 'outline'}
-                          colorScheme={workoutFilter === 'weekly' ? 'blue' : 'gray'}
-                          onClick={() => setWorkoutFilter('weekly')}
-                        >
-                          Weekly
-                        </Button>
-                      </HStack>
-
-                      {/* Athlete Filter Dropdown */}
-                      <HStack spacing={2} align="center">
-                        <FaUserFriends style={{ color: iconColor }} />
-                        <Select
-                          value={selectedAthlete}
-                          onChange={(e) => setSelectedAthlete(e.target.value)}
-                          size="sm"
-                          width={{ base: "180px", md: "200px" }}
-                          bg={selectBg}
-                          borderColor={selectBorderColor}
-                        >
-                          <option value="all">All Athletes</option>
-                          {athletes?.map((athlete) => (
-                            <option key={athlete.id} value={athlete.id}>
-                              {athlete.first_name} {athlete.last_name}
-                            </option>
-                          ))}
-                        </Select>
-                      </HStack>
-                      
-                      <Button
-                        leftIcon={<FaRedo />}
-                        variant="outline"
-                        size="sm"
-                        onClick={handleWorkoutsRefresh}
-                        isLoading={assignmentsLoading}
-                      >
-                        Refresh
-                      </Button>
-                    </Flex>
-                  </VStack>
-
-                  {/* Workouts Grid */}
-                  {renderWorkouts()}
-                </VStack>
-              </TabPanel>
-
-              {/* Monthly Plans Tab */}
-              <TabPanel px={0}>
-                <VStack spacing={6} align="stretch">
-                  {/* Stats and Actions */}
-                  <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
-                    <HStack spacing={4}>
-                      <Badge colorScheme="blue" fontSize="sm" px={3} py={1}>
-                        {monthlyPlans.length} Plans Created
-                      </Badge>
-                      {athletes && (
-                        <Badge colorScheme="green" fontSize="sm" px={3} py={1}>
-                          {athletes.length} Athletes
-                        </Badge>
-                      )}
-                    </HStack>
-                    
-                    <Button
-                      leftIcon={<FaRedo />}
-                      variant="outline"
-                      size="sm"
-                      onClick={handleRefresh}
-                      isLoading={refreshing}
-                    >
-                      Refresh
-                    </Button>
-                  </Flex>
-
-                  {/* Monthly Plans Grid */}
-                  {loading ? (
-                    <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-                      {[...Array(6)].map((_, i) => (
-                        <Skeleton key={i} height="300px" borderRadius="lg" />
-                      ))}
-                    </SimpleGrid>
-                  ) : monthlyPlans.length === 0 ? (
-                    <Alert status="info" borderRadius="md">
-                      <AlertIcon />
-                      <VStack align="start" spacing={0}>
-                        <Text fontWeight="medium">No Training Plans Created</Text>
-                        <Text fontSize="sm">Create your first monthly training plan to get started.</Text>
-                      </VStack>
-                    </Alert>
-                  ) : (
-                    <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-                      {monthlyPlans.map((plan) => (
-                        <MonthlyPlanCard
-                          key={plan.id}
-                          monthlyPlan={plan}
-                          isCoach={true}
-                          onView={() => handleViewPlan(plan)}
-                          onEdit={() => handleEditPlan(plan)}
-                          onAssign={() => handleAssignPlan(plan)}
-                          onDelete={() => handleDeletePlan(plan)}
-                          completionStats={{
-                            totalAssigned: plan.totalAssignments,
-                            completed: plan.completedAssignments,
-                            inProgress: plan.activeAssignments - plan.completedAssignments,
-                            percentage: plan.totalAssignments > 0 ? (plan.completedAssignments / plan.totalAssignments) * 100 : 0
-                          }}
-                          statsLoading={statsLoading}
-                        />
-                      ))}
-                    </SimpleGrid>
+    const renderMainContent = () => {
+      switch (activeItem) {
+        case 'monthly-plans':
+          return (
+            <VStack spacing={6} align="stretch">
+              {/* Stats and Actions */}
+              <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
+                <HStack spacing={4}>
+                  <Badge colorScheme="blue" fontSize="sm" px={3} py={1}>
+                    {monthlyPlans.length} Plans Created
+                  </Badge>
+                  {athletes && (
+                    <Badge colorScheme="green" fontSize="sm" px={3} py={1}>
+                      {athletes.length} Athletes
+                    </Badge>
                   )}
-                </VStack>
-              </TabPanel>
+                </HStack>
+                
+                <Button
+                  leftIcon={<FaRedo />}
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefresh}
+                  isLoading={refreshing}
+                >
+                  Refresh
+                </Button>
+              </Flex>
 
-              {/* Template Workouts Tab */}
-              <TabPanel px={0}>
-                <VStack spacing={6} align="stretch">
-                  {/* Stats and Actions */}
-                  <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
-                    <VStack align="start" spacing={1}>
-                      <Text fontSize="lg" fontWeight="semibold" color={headerTextColor}>
-                        Template Workouts
-                      </Text>
-                      <Text fontSize="sm" color={headerSubtextColor}>
-                        Workouts saved as templates for creating training plans
-                      </Text>
-                    </VStack>
-                    
+              {/* Monthly Plans Grid */}
+              {loading ? (
+                <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+                  {[...Array(6)].map((_, i) => (
+                    <Skeleton key={i} height="300px" borderRadius="lg" />
+                  ))}
+                </SimpleGrid>
+              ) : monthlyPlans.length === 0 ? (
+                <Alert status="info" borderRadius="md">
+                  <AlertIcon />
+                  <VStack align="start" spacing={0}>
+                    <Text fontWeight="medium">No Training Plans Created</Text>
+                    <Text fontSize="sm">Create your first monthly training plan to get started.</Text>
+                  </VStack>
+                </Alert>
+              ) : (
+                <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+                  {monthlyPlans.map((plan) => (
+                    <MonthlyPlanCard
+                      key={plan.id}
+                      monthlyPlan={plan}
+                      isCoach={true}
+                      onView={() => handleViewPlan(plan)}
+                      onEdit={() => handleEditPlan(plan)}
+                      onAssign={() => handleAssignPlan(plan)}
+                      onDelete={() => handleDeletePlan(plan)}
+                      completionStats={{
+                        totalAssigned: plan.totalAssignments,
+                        completed: plan.completedAssignments,
+                        inProgress: plan.activeAssignments - plan.completedAssignments,
+                        percentage: plan.totalAssignments > 0 ? (plan.completedAssignments / plan.totalAssignments) * 100 : 0
+                      }}
+                      statsLoading={statsLoading}
+                    />
+                  ))}
+                </SimpleGrid>
+              )}
+            </VStack>
+          );
+        case 'templates':
+          return renderTemplateWorkouts();
+        case 'drafts':
+          return renderDraftWorkouts();
+        case 'deleted':
+          return renderDeletedPlans();
+        case 'exercise-library':
+          return (
+            <ExerciseLibrary
+              exercises={customExercises}
+              onAddExercise={handleAddExercise}
+              onUpdateExercise={handleUpdateExercise}
+              onDeleteExercise={handleDeleteExercise}
+              isLoading={exercisesLoading}
+              title=""
+              subtitle=""
+            />
+          );
+        case 'by-athlete':
+          return (
+            <VStack spacing={6} align="stretch">
+              {/* Athlete Filter */}
+              <Flex justify="flex-start" align="center" wrap="wrap" gap={3}>
+                <HStack spacing={2} align="center">
+                  <FaUserFriends style={{ color: iconColor }} />
+                  <Select
+                    value={selectedAthlete}
+                    onChange={(e) => setSelectedAthlete(e.target.value)}
+                    size="sm"
+                    width={{ base: "180px", md: "200px" }}
+                    bg={selectBg}
+                    borderColor={selectBorderColor}
+                  >
+                    <option value="all">All Athletes</option>
+                    {athletes?.map((athlete) => (
+                      <option key={athlete.id} value={athlete.id}>
+                        {athlete.first_name} {athlete.last_name}
+                      </option>
+                    ))}
+                  </Select>
+                </HStack>
+                
+                <Button
+                  leftIcon={<FaRedo />}
+                  variant="outline"
+                  size="sm"
+                  onClick={handleWorkoutsRefresh}
+                  isLoading={assignmentsLoading}
+                >
+                  Refresh
+                </Button>
+              </Flex>
+              {renderWorkouts()}
+            </VStack>
+          );
+        default:
+          return (
+            <VStack spacing={6} align="stretch">
+              {/* Stats and Actions */}
+              <VStack spacing={4} align="stretch">
+                {/* Stats Badges Row */}
+                <Flex justify="flex-start" align="center" wrap="wrap" gap={2}>
+                  <Badge colorScheme="blue" fontSize="sm" px={3} py={1}>
+                    {workouts?.filter(w => !w.is_draft).length || 0} Workouts Created
+                  </Badge>
+                  {athletes && (
+                    <Badge colorScheme="green" fontSize="sm" px={3} py={1}>
+                      {athletes.length} Athletes
+                    </Badge>
+                  )}
+                  {selectedAthlete !== 'all' && (
+                    <Badge colorScheme="purple" fontSize="sm" px={3} py={1} maxW="300px" isTruncated>
+                      Filtered by: {athletes?.find(a => a.id === selectedAthlete)?.first_name} {athletes?.find(a => a.id === selectedAthlete)?.last_name}
+                    </Badge>
+                  )}
+                  {(workoutFilter !== 'all' || selectedAthlete !== 'all') && (
                     <Button
-                      leftIcon={<FaRedo />}
-                      variant="outline"
-                      size="sm"
-                      onClick={handleTemplateRefresh}
-                      isLoading={templateRefreshing}
+                      size="xs"
+                      variant="ghost"
+                      colorScheme="gray"
+                      onClick={handleClearFilters}
                     >
-                      Refresh
+                      Clear Filters
                     </Button>
-                  </Flex>
-
-                  {/* Template Workouts Grid */}
-                  {renderTemplateWorkouts()}
-                </VStack>
-              </TabPanel>
-
-              {/* Drafts Tab */}
-              <TabPanel px={0}>
-                <VStack spacing={6} align="stretch">
-                  {/* Stats and Actions */}
-                  <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
-                    <VStack align="start" spacing={1}>
-                      <Text fontSize="lg" fontWeight="semibold" color={headerTextColor}>
-                        Draft Workouts
-                      </Text>
-                      <Text fontSize="sm" color={headerSubtextColor}>
-                        Workouts saved as drafts for future use
-                      </Text>
-                    </VStack>
-                    
+                  )}
+                </Flex>
+                
+                {/* Filter Controls Row */}
+                <Flex justify="flex-start" align="center" wrap="wrap" gap={3}>
+                  {/* Workout Type Filter Buttons */}
+                  <HStack spacing={2}>
                     <Button
-                      leftIcon={<FaRedo />}
-                      variant="outline"
                       size="sm"
-                      onClick={handleDraftsRefresh}
-                      isLoading={draftsRefreshing}
+                      variant={workoutFilter === 'all' ? 'solid' : 'outline'}
+                      colorScheme={workoutFilter === 'all' ? 'blue' : 'gray'}
+                      onClick={() => setWorkoutFilter('all')}
                     >
-                      Refresh
+                      All
                     </Button>
-                  </Flex>
-
-                  {/* Draft Workouts Grid */}
-                  {renderDraftWorkouts()}
-                </VStack>
-              </TabPanel>
-
-              {/* Deleted Tab */}
-              <TabPanel px={0}>
-                <VStack spacing={6} align="stretch">
-                  {/* Stats and Actions */}
-                  <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
-                    <VStack align="start" spacing={1}>
-                      <Text fontSize="lg" fontWeight="semibold" color={headerTextColor}>
-                        Deleted Items
-                      </Text>
-                      <Text fontSize="sm" color={headerSubtextColor}>
-                        Workouts and training plans that have been deleted
-                      </Text>
-                    </VStack>
-                    
                     <Button
-                      leftIcon={<FaRedo />}
-                      variant="outline"
                       size="sm"
-                      onClick={handleDeletedRefresh}
-                      isLoading={deletedRefreshing}
+                      variant={workoutFilter === 'single' ? 'solid' : 'outline'}
+                      colorScheme={workoutFilter === 'single' ? 'blue' : 'gray'}
+                      onClick={() => setWorkoutFilter('single')}
                     >
-                      Refresh
+                      Single
                     </Button>
-                  </Flex>
+                    <Button
+                      size="sm"
+                      variant={workoutFilter === 'weekly' ? 'solid' : 'outline'}
+                      colorScheme={workoutFilter === 'weekly' ? 'blue' : 'gray'}
+                      onClick={() => setWorkoutFilter('weekly')}
+                    >
+                      Weekly
+                    </Button>
+                  </HStack>
 
-                  {/* Deleted Plans Grid */}
-                  {renderDeletedPlans()}
-                </VStack>
-              </TabPanel>
+                  {/* Athlete Filter Dropdown */}
+                  <HStack spacing={2} align="center">
+                    <FaUserFriends style={{ color: iconColor }} />
+                    <Select
+                      value={selectedAthlete}
+                      onChange={(e) => setSelectedAthlete(e.target.value)}
+                      size="sm"
+                      width={{ base: "180px", md: "200px" }}
+                      bg={selectBg}
+                      borderColor={selectBorderColor}
+                    >
+                      <option value="all">All Athletes</option>
+                      {athletes?.map((athlete) => (
+                        <option key={athlete.id} value={athlete.id}>
+                          {athlete.first_name} {athlete.last_name}
+                        </option>
+                      ))}
+                    </Select>
+                  </HStack>
+                  
+                  <Button
+                    leftIcon={<FaRedo />}
+                    variant="outline"
+                    size="sm"
+                    onClick={handleWorkoutsRefresh}
+                    isLoading={assignmentsLoading}
+                  >
+                    Refresh
+                  </Button>
+                </Flex>
+              </VStack>
 
-              {/* Exercise Library Tab */}
-              <TabPanel px={0}>
-                <ExerciseLibrary
-                  exercises={customExercises}
-                  onAddExercise={handleAddExercise}
-                  onUpdateExercise={handleUpdateExercise}
-                  onDeleteExercise={handleDeleteExercise}
-                  isLoading={exercisesLoading}
-                  title="My Exercise Library"
-                  subtitle="Manage your custom exercises for use in workouts and training plans"
-                />
-              </TabPanel>
-            </TabPanels>
-          </Tabs>
+              {/* Workouts Grid */}
+              {renderWorkouts()}
+            </VStack>
+          );
+      }
+    };
+
+    return (
+      <VStack spacing={6} align="stretch" w="100%">
+        {/* Section Header */}
+        <VStack spacing={2} align="start" w="100%">
+          <HStack spacing={3} align="center">
+            <Icon
+              as={sectionInfo.icon}
+              boxSize={6}
+              color={useColorModeValue('blue.500', 'blue.300')}
+            />
+            <Heading size="lg" color={headerTextColor}>
+              {sectionInfo.title}
+            </Heading>
+          </HStack>
+          <Text color={headerSubtextColor} fontSize="md">
+            {sectionInfo.description} ({filteredData.data.length} items)
+          </Text>
         </VStack>
+        
+        {/* Main Content */}
+        {renderMainContent()}
+      </VStack>
+    );
+  };
 
-        {/* Training Plan Creator Modal */}
-        <MonthlyPlanCreator
-          isOpen={isCreatorOpen}
-          onClose={onCreatorClose}
-          onSuccess={handleCreationSuccess}
-        />
+  return (
+    <Box bg={pageBackgroundColor} minH="100vh">
+      {/* Loading indicator when saving */}
+      {isSaving && (
+        <Box 
+          position="fixed" 
+          top="0" 
+          left="0" 
+          right="0" 
+          p={2} 
+          bg="blue.500" 
+          color="white" 
+          textAlign="center"
+          zIndex={9999}
+        >
+          <HStack justify="center" spacing={2}>
+            <Spinner size="sm" />
+            <Text fontWeight="medium">Saving workout...</Text>
+          </HStack>
+        </Box>
+      )}
 
-        {/* Plan Assignment Modal */}
-        {selectedPlanForAssignment && (
-          <PlanAssignmentModal
-            isOpen={isAssignmentOpen}
-            onClose={onAssignmentClose}
-            onSuccess={handleAssignmentSuccess}
-            monthlyPlan={selectedPlanForAssignment}
-          />
-        )}
+      {/* Workouts Sidebar */}
+      <WorkoutsSidebar
+        sections={coachSections}
+        activeItem={activeItem}
+        onItemClick={setActiveItem}
+        createWorkoutAction={() => navigate('/coach/workout-creator')}
+        additionalActions={[
+          {
+            label: 'Import from File',
+            icon: FaFileImport,
+            action: () => navigate('/coach/workouts/import')
+          },
+          {
+            label: 'Create Plan',
+            icon: FaPlus,
+            action: onCreatorOpen
+          }
+        ]}
+        workoutCounts={{
+          today: 0, // Coaches don't have "today" workouts like athletes
+          thisWeek: 0,
+          total: coachStats.workouts,
+          completed: 0
+        }}
+      />
+
+      {/* Main Content */}
+      <Box
+        ml={{ 
+          base: 0, 
+          md: `${mainSidebarWidth - 50}px`, 
+          lg: mainSidebarWidth === 70 
+            ? `${mainSidebarWidth + 280 - 50}px`  // When collapsed: less margin adjustment
+            : `${mainSidebarWidth + 280 - 180}px`  // When expanded: more margin adjustment
+        }}
+        mr={{ 
+          base: 0, 
+          lg: mainSidebarWidth === 70 ? "30px" : "20px"  // Less right margin when sidebar is collapsed
+        }}
+        pt={isHeaderVisible ? "-2px" : "-82px"}
+        transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+        minH="100vh"
+        px={0} // Remove padding since CoachLayout already adds it
+        py={8}
+      >
+
+
+        {/* Content */}
+        {renderContent()}
       </Box>
+
+      {/* Training Plan Creator Modal */}
+      <MonthlyPlanCreator
+        isOpen={isCreatorOpen}
+        onClose={onCreatorClose}
+        onSuccess={handleCreationSuccess}
+      />
+
+      {/* Plan Assignment Modal */}
+      {selectedPlanForAssignment && (
+        <PlanAssignmentModal
+          isOpen={isAssignmentOpen}
+          onClose={onAssignmentClose}
+          onSuccess={handleAssignmentSuccess}
+          monthlyPlan={selectedPlanForAssignment}
+        />
+      )}
     </Box>
   );
 } 

@@ -53,4 +53,8 @@ export { AlertsNotificationsCard, AthleteRosterCard, TodaysFocusCard } from './c
 // Athlete components
 export { MonthlyPlanAssignments } from './athlete/MonthlyPlanAssignments';
 
+// Workouts components
+export { WorkoutsSidebar } from './workouts';
+export type { WorkoutsSection, WorkoutsItem } from './workouts';
+
 export { DateTimePicker } from './DateTimePicker' 
