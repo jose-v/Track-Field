@@ -772,7 +772,7 @@ export const api = {
               case 'athlete': {
                 try {
                   const athleteTimeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error('Athlete query timeout')), 10000); // Increased timeout
+                    setTimeout(() => reject(new Error('Athlete query timeout')), 15000); // Increased timeout to 15 seconds
                   });
 
                   const athleteQueryPromise = supabase
@@ -790,10 +790,12 @@ export const api = {
                     roleData = athleteData;
                     console.log('✅ Found athlete role data:', athleteData);
                   } else if (athleteError) {
-                    console.warn('Athlete data fetch warning:', athleteError.message);
+                    // Only log as warning, don't fail the entire profile fetch
+                    console.warn('Athlete data fetch warning (continuing without role data):', athleteError.message);
                   }
-                } catch (athleteErr) {
-                  console.warn('Athlete data fetch failed, continuing without roleData:', athleteErr);
+                } catch (athleteErr: any) {
+                  // Don't fail the entire profile fetch if athlete data is unavailable
+                  console.warn('Athlete data fetch failed, continuing without roleData:', athleteErr.message);
                 }
                 break
               }
@@ -2551,9 +2553,9 @@ export const api = {
       console.log('🔍 getTodaysWorkout called for athlete:', athleteId);
       
       try {
-        // Add timeout protection
+        // Add timeout protection - increased timeout for better reliability
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('getTodaysWorkout timeout after 10 seconds')), 10000);
+          setTimeout(() => reject(new Error('getTodaysWorkout timeout after 15 seconds')), 15000);
         });
         
         const workoutPromise = (async () => {

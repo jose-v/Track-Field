@@ -30,23 +30,17 @@ export interface AthleteProfile {
 }
 
 /**
- * Checks if the athletes table exists
+ * Checks if the athletes table exists - simplified version
  */
 async function checkTableExists(): Promise<boolean> {
   try {
-    // Check profiles table first
-    const { count: profileCount, error: profileError } = await supabase
+    // Simple check - just try to query one record
+    const { error } = await supabase
       .from('profiles')
-      .select('*', { count: 'exact', head: true });
+      .select('id')
+      .eq('role', 'athlete')
+      .limit(1);
     
-    if (profileError) return false;
-    
-    // Then check athletes table
-    const { count, error } = await supabase
-      .from('athletes')
-      .select('*', { count: 'exact', head: true });
-    
-    // If no error, tables exist
     return !error;
   } catch (err) {
     console.error('Error checking if tables exist:', err);
@@ -55,119 +49,124 @@ async function checkTableExists(): Promise<boolean> {
 }
 
 /**
- * Fetches all athletes from the database
+ * Fetches all athletes from the database - optimized version
  */
 export async function getAllAthletes(): Promise<AthleteFrontend[]> {
-  // First check if tables exist
-  const tableExists = await checkTableExists();
-  if (!tableExists) {
-    console.warn('Athletes or profiles table does not exist, using mock data');
-    return getMockAthletes();
-  }
-  
   try {
-    // Use a simpler query that doesn't depend on date_of_birth
-    const { data, error } = await supabase
+    // Use a direct query without nested joins for better performance
+    const { data: profiles, error: profileError } = await supabase
       .from('profiles')
-      .select(`
-        id, 
-        first_name, 
-        last_name, 
-        email, 
-        phone, 
-        avatar_url,
-        athletes (
-          events
-        )
-      `)
+      .select('id, first_name, last_name, email, phone, avatar_url')
       .eq('role', 'athlete');
     
-    if (error) {
-      console.error('Error fetching athletes:', error);
-      return getMockAthletes();
+    if (profileError) {
+      console.error('Error fetching athlete profiles:', profileError);
+      // Only fallback if it's a table not found error
+      if (profileError.code === '42P01') {
+        console.warn('Profiles table does not exist, using mock data');
+        return getMockAthletes();
+      }
+      throw profileError; // Let the calling component handle other errors
     }
 
-    if (!data || data.length === 0) {
-      console.warn('No athletes found in database, using mock data');
-      return getMockAthletes();
+    if (!profiles || profiles.length === 0) {
+      console.warn('No athlete profiles found in database');
+      return []; // Return empty array instead of mock data
+    }
+
+    // Get athlete-specific data in a separate query for better performance
+    const athleteIds = profiles.map(p => p.id);
+    const { data: athleteData, error: athleteError } = await supabase
+      .from('athletes')
+      .select('id, events, date_of_birth')
+      .in('id', athleteIds);
+
+    // If athlete table query fails, continue with just profile data
+    if (athleteError) {
+      console.warn('Error fetching athlete data, using profile data only:', athleteError);
     }
 
     // Transform the data to match the AthleteFrontend interface
-    return data.map((item: any) => ({
-      id: item.id,
-      name: `${item.first_name || ''} ${item.last_name || ''}`.trim() || 'Unknown Athlete',
-      age: item.athletes?.date_of_birth ? calculateAge(item.athletes.date_of_birth) : 0,
-      events: item.athletes?.events || [],
-      avatar: item.avatar_url,
-      email: item.email,
-      phone: item.phone,
-    }));
+    return profiles.map((profile: any) => {
+      const athleteInfo = athleteData?.find(a => a.id === profile.id);
+      return {
+        id: profile.id,
+        name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown Athlete',
+        age: athleteInfo?.date_of_birth ? calculateAge(athleteInfo.date_of_birth) : 0,
+        events: athleteInfo?.events || [],
+        avatar: profile.avatar_url,
+        email: profile.email,
+        phone: profile.phone,
+      };
+    });
   } catch (err) {
     console.error('Failed to fetch athletes:', err);
+    // Only use mock data as last resort
     return getMockAthletes();
   }
 }
 
 /**
- * Searches athletes based on name or events
+ * Searches athletes based on name or events - optimized version
  */
 export async function searchAthletes(query: string): Promise<AthleteFrontend[]> {
   if (!query) {
     return getAllAthletes();
   }
 
-  // Check if tables exist first
-  const tableExists = await checkTableExists();
-  if (!tableExists) {
-    // Fall back to filtering mock data
-    const mockData = getMockAthletes();
-    return mockData.filter(athlete => 
-      athlete.name.toLowerCase().includes(query.toLowerCase()) ||
-      athlete.events.some(event => event.toLowerCase().includes(query.toLowerCase()))
-    );
-  }
-
   try {
-    // Use a simpler query that doesn't depend on date_of_birth
-    const { data, error } = await supabase
+    // Use direct query without nested joins for better performance
+    const { data: profiles, error: profileError } = await supabase
       .from('profiles')
-      .select(`
-        id, 
-        first_name, 
-        last_name, 
-        email, 
-        phone, 
-        avatar_url,
-        athletes (
-          events
-        )
-      `)
+      .select('id, first_name, last_name, email, phone, avatar_url')
       .eq('role', 'athlete')
       .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%`);
     
-    if (error) {
-      console.error('Error searching athletes:', error);
-      // Fall back to filtering mock data
-      const mockData = getMockAthletes();
-      return mockData.filter(athlete => 
-        athlete.name.toLowerCase().includes(query.toLowerCase()) ||
-        athlete.events.some(event => event.toLowerCase().includes(query.toLowerCase()))
-      );
+    if (profileError) {
+      console.error('Error searching athlete profiles:', profileError);
+      // Only fallback to mock data for table not found errors
+      if (profileError.code === '42P01') {
+        const mockData = getMockAthletes();
+        return mockData.filter(athlete => 
+          athlete.name.toLowerCase().includes(query.toLowerCase()) ||
+          athlete.events.some(event => event.toLowerCase().includes(query.toLowerCase()))
+        );
+      }
+      throw profileError; // Let calling component handle other errors
+    }
+
+    if (!profiles || profiles.length === 0) {
+      return []; // Return empty array instead of mock data
+    }
+
+    // Get athlete-specific data in a separate query
+    const athleteIds = profiles.map(p => p.id);
+    const { data: athleteData, error: athleteError } = await supabase
+      .from('athletes')
+      .select('id, events, date_of_birth')
+      .in('id', athleteIds);
+
+    // If athlete table query fails, continue with just profile data
+    if (athleteError) {
+      console.warn('Error fetching athlete data during search, using profile data only:', athleteError);
     }
 
     // Transform the data
-    return data.map((item: any) => ({
-      id: item.id,
-      name: `${item.first_name || ''} ${item.last_name || ''}`.trim() || 'Unknown Athlete',
-      age: item.athletes?.date_of_birth ? calculateAge(item.athletes.date_of_birth) : 0,
-      events: item.athletes?.events || [],
-      avatar: item.avatar_url,
-      email: item.email,
-      phone: item.phone,
-    }));
+    return profiles.map((profile: any) => {
+      const athleteInfo = athleteData?.find(a => a.id === profile.id);
+      return {
+        id: profile.id,
+        name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown Athlete',
+        age: athleteInfo?.date_of_birth ? calculateAge(athleteInfo.date_of_birth) : 0,
+        events: athleteInfo?.events || [],
+        avatar: profile.avatar_url,
+        email: profile.email,
+        phone: profile.phone,
+      };
+    });
   } catch (err) {
     console.error('Failed to search athletes:', err);
-    // Fall back to filtering mock data
+    // Only use mock data as last resort
     const mockData = getMockAthletes();
     return mockData.filter(athlete => 
       athlete.name.toLowerCase().includes(query.toLowerCase()) ||

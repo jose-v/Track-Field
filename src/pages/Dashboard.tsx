@@ -326,43 +326,75 @@ export function Dashboard() {
         let teamData = null;
         
         if (profile.role === 'athlete') {
-          // For athletes, get their team memberships from the new team_members system
-          const { data: memberships, error: membershipsError } = await supabase
-            .from('team_members')
-            .select(`
-              teams!inner (
-                id,
-                name,
-                description,
-                team_type
-              )
-            `)
-            .eq('user_id', user.id)
-            .eq('role', 'athlete')
-            .eq('status', 'active')
-            .eq('teams.is_active', true)
-            .limit(1); // Get primary team for dashboard
+          // For athletes, get their team memberships with simplified query and timeout protection
+          try {
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(() => reject(new Error('Team query timeout')), 8000); // 8 second timeout
+            });
 
-          if (membershipsError) {
-            console.error('Error fetching team memberships:', membershipsError);
-          } else if (memberships && memberships.length > 0) {
-            const membership = memberships[0] as any;
-            const primaryTeam = membership.teams;
-            
-            // Get total member count for this team
-            const { count: memberCount } = await supabase
+            const teamQueryPromise = supabase
               .from('team_members')
-              .select('*', { count: 'exact', head: true })
-              .eq('team_id', primaryTeam.id)
-              .eq('status', 'active');
+              .select(`
+                team_id,
+                teams!inner (
+                  id,
+                  name,
+                  description,
+                  team_type
+                )
+              `)
+              .eq('user_id', user.id)
+              .eq('role', 'athlete')
+              .eq('status', 'active')
+              .eq('teams.is_active', true)
+              .limit(1);
 
-            teamData = {
-              name: primaryTeam.name,
-              description: primaryTeam.description,
-              teamType: primaryTeam.team_type,
-              memberCount: memberCount || 0,
-              recentActivity: 'View team dashboard for updates'
-            };
+            const { data: memberships, error: membershipsError } = await Promise.race([
+              teamQueryPromise,
+              timeoutPromise
+            ]) as any;
+
+            if (membershipsError) {
+              console.error('Error fetching team memberships:', membershipsError);
+            } else if (memberships && memberships.length > 0) {
+              const membership = memberships[0] as any;
+              const primaryTeam = membership.teams;
+              
+              // Get member count with timeout protection (optional)
+              let memberCount = 0;
+              try {
+                const countTimeoutPromise = new Promise((_, reject) => {
+                  setTimeout(() => reject(new Error('Count query timeout')), 3000);
+                });
+
+                const countQueryPromise = supabase
+                  .from('team_members')
+                  .select('*', { count: 'exact', head: true })
+                  .eq('team_id', primaryTeam.id)
+                  .eq('status', 'active');
+
+                const { count } = await Promise.race([
+                  countQueryPromise,
+                  countTimeoutPromise
+                ]) as any;
+
+                memberCount = count || 0;
+              } catch (countError) {
+                console.warn('Could not fetch member count, using default:', countError);
+                memberCount = 0; // Default value if count fails
+              }
+
+              teamData = {
+                name: primaryTeam.name,
+                description: primaryTeam.description,
+                teamType: primaryTeam.team_type,
+                memberCount,
+                recentActivity: 'View team dashboard for updates'
+              };
+            }
+          } catch (teamError) {
+            console.warn('Team data fetch failed for athlete, continuing without team info:', teamError);
+            // Don't set teamData, let it remain null
           }
         } else if (profile.role === 'coach') {
           // For coaches, get teams they're coaching from team_members system
