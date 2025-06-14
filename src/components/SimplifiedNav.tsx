@@ -252,7 +252,7 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
                 >
                   My Profile
                 </MenuItem>
-                <MenuItem as={RouterLink} to="/account"
+                <MenuItem onClick={() => window.location.href = '/account'}
                   color={menuTextColor}
                   _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
                   _focus={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
