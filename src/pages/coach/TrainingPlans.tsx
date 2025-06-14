@@ -1222,7 +1222,7 @@ export function CoachTrainingPlans() {
     const renderMainContent = () => {
       switch (activeItem) {
         case 'monthly-plans':
-          return (
+  return (
             <VStack spacing={6} align="stretch">
               {/* Stats and Actions */}
               <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
@@ -1237,16 +1237,16 @@ export function CoachTrainingPlans() {
                   )}
                 </HStack>
                 
-                <Button
+              <Button
                   leftIcon={<FaRedo />}
-                  variant="outline"
+                variant="outline"
                   size="sm"
                   onClick={handleRefresh}
                   isLoading={refreshing}
-                >
+              >
                   Refresh
-                </Button>
-              </Flex>
+              </Button>
+          </Flex>
 
               {/* Monthly Plans Grid */}
               {loading ? (
@@ -1327,7 +1327,7 @@ export function CoachTrainingPlans() {
                       </option>
                     ))}
                   </Select>
-                </HStack>
+              </HStack>
                 
                 <Button
                   leftIcon={<FaRedo />}
@@ -1344,101 +1344,101 @@ export function CoachTrainingPlans() {
           );
         default:
           return (
-            <VStack spacing={6} align="stretch">
+                <VStack spacing={6} align="stretch">
               {/* Stats and Actions */}
-              <VStack spacing={4} align="stretch">
-                {/* Stats Badges Row */}
-                <Flex justify="flex-start" align="center" wrap="wrap" gap={2}>
-                  <Badge colorScheme="blue" fontSize="sm" px={3} py={1}>
-                    {workouts?.filter(w => !w.is_draft).length || 0} Workouts Created
-                  </Badge>
-                  {athletes && (
-                    <Badge colorScheme="green" fontSize="sm" px={3} py={1}>
-                      {athletes.length} Athletes
-                    </Badge>
-                  )}
-                  {selectedAthlete !== 'all' && (
-                    <Badge colorScheme="purple" fontSize="sm" px={3} py={1} maxW="300px" isTruncated>
-                      Filtered by: {athletes?.find(a => a.id === selectedAthlete)?.first_name} {athletes?.find(a => a.id === selectedAthlete)?.last_name}
-                    </Badge>
-                  )}
-                  {(workoutFilter !== 'all' || selectedAthlete !== 'all') && (
-                    <Button
-                      size="xs"
-                      variant="ghost"
-                      colorScheme="gray"
-                      onClick={handleClearFilters}
-                    >
-                      Clear Filters
-                    </Button>
-                  )}
-                </Flex>
-                
-                {/* Filter Controls Row */}
-                <Flex justify="flex-start" align="center" wrap="wrap" gap={3}>
-                  {/* Workout Type Filter Buttons */}
-                  <HStack spacing={2}>
-                    <Button
-                      size="sm"
-                      variant={workoutFilter === 'all' ? 'solid' : 'outline'}
-                      colorScheme={workoutFilter === 'all' ? 'blue' : 'gray'}
-                      onClick={() => setWorkoutFilter('all')}
-                    >
-                      All
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={workoutFilter === 'single' ? 'solid' : 'outline'}
-                      colorScheme={workoutFilter === 'single' ? 'blue' : 'gray'}
-                      onClick={() => setWorkoutFilter('single')}
-                    >
-                      Single
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={workoutFilter === 'weekly' ? 'solid' : 'outline'}
-                      colorScheme={workoutFilter === 'weekly' ? 'blue' : 'gray'}
-                      onClick={() => setWorkoutFilter('weekly')}
-                    >
-                      Weekly
-                    </Button>
-                  </HStack>
+                  <VStack spacing={4} align="stretch">
+                    {/* Stats Badges Row */}
+                    <Flex justify="flex-start" align="center" wrap="wrap" gap={2}>
+                      <Badge colorScheme="blue" fontSize="sm" px={3} py={1}>
+                        {workouts?.filter(w => !w.is_draft).length || 0} Workouts Created
+                      </Badge>
+                      {athletes && (
+                        <Badge colorScheme="green" fontSize="sm" px={3} py={1}>
+                          {athletes.length} Athletes
+                        </Badge>
+                      )}
+                      {selectedAthlete !== 'all' && (
+                        <Badge colorScheme="purple" fontSize="sm" px={3} py={1} maxW="300px" isTruncated>
+                          Filtered by: {athletes?.find(a => a.id === selectedAthlete)?.first_name} {athletes?.find(a => a.id === selectedAthlete)?.last_name}
+                        </Badge>
+                      )}
+                      {(workoutFilter !== 'all' || selectedAthlete !== 'all') && (
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          colorScheme="gray"
+                          onClick={handleClearFilters}
+                        >
+                          Clear Filters
+                        </Button>
+                      )}
+                    </Flex>
+                    
+                    {/* Filter Controls Row */}
+                    <Flex justify="flex-start" align="center" wrap="wrap" gap={3}>
+                      {/* Workout Type Filter Buttons */}
+                      <HStack spacing={2}>
+                        <Button
+                          size="sm"
+                          variant={workoutFilter === 'all' ? 'solid' : 'outline'}
+                          colorScheme={workoutFilter === 'all' ? 'blue' : 'gray'}
+                          onClick={() => setWorkoutFilter('all')}
+                        >
+                          All
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={workoutFilter === 'single' ? 'solid' : 'outline'}
+                          colorScheme={workoutFilter === 'single' ? 'blue' : 'gray'}
+                          onClick={() => setWorkoutFilter('single')}
+                        >
+                          Single
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={workoutFilter === 'weekly' ? 'solid' : 'outline'}
+                          colorScheme={workoutFilter === 'weekly' ? 'blue' : 'gray'}
+                          onClick={() => setWorkoutFilter('weekly')}
+                        >
+                          Weekly
+                        </Button>
+                      </HStack>
 
-                  {/* Athlete Filter Dropdown */}
-                  <HStack spacing={2} align="center">
-                    <FaUserFriends style={{ color: iconColor }} />
-                    <Select
-                      value={selectedAthlete}
-                      onChange={(e) => setSelectedAthlete(e.target.value)}
-                      size="sm"
-                      width={{ base: "180px", md: "200px" }}
-                      bg={selectBg}
-                      borderColor={selectBorderColor}
-                    >
-                      <option value="all">All Athletes</option>
-                      {athletes?.map((athlete) => (
-                        <option key={athlete.id} value={athlete.id}>
-                          {athlete.first_name} {athlete.last_name}
-                        </option>
-                      ))}
-                    </Select>
-                  </HStack>
-                  
-                  <Button
-                    leftIcon={<FaRedo />}
-                    variant="outline"
-                    size="sm"
-                    onClick={handleWorkoutsRefresh}
-                    isLoading={assignmentsLoading}
-                  >
-                    Refresh
-                  </Button>
-                </Flex>
-              </VStack>
+                      {/* Athlete Filter Dropdown */}
+                      <HStack spacing={2} align="center">
+                        <FaUserFriends style={{ color: iconColor }} />
+                        <Select
+                          value={selectedAthlete}
+                          onChange={(e) => setSelectedAthlete(e.target.value)}
+                          size="sm"
+                          width={{ base: "180px", md: "200px" }}
+                          bg={selectBg}
+                          borderColor={selectBorderColor}
+                        >
+                          <option value="all">All Athletes</option>
+                          {athletes?.map((athlete) => (
+                            <option key={athlete.id} value={athlete.id}>
+                              {athlete.first_name} {athlete.last_name}
+                            </option>
+                          ))}
+                        </Select>
+                      </HStack>
+                      
+                      <Button
+                        leftIcon={<FaRedo />}
+                        variant="outline"
+                        size="sm"
+                        onClick={handleWorkoutsRefresh}
+                        isLoading={assignmentsLoading}
+                      >
+                        Refresh
+                      </Button>
+                    </Flex>
+                  </VStack>
 
-              {/* Workouts Grid */}
-              {renderWorkouts()}
-            </VStack>
+                  {/* Workouts Grid */}
+                  {renderWorkouts()}
+                </VStack>
           );
       }
     };
@@ -1459,12 +1459,12 @@ export function CoachTrainingPlans() {
           </HStack>
           <Text color={headerSubtextColor} fontSize="md">
             {sectionInfo.description} ({filteredData.data.length} items)
-          </Text>
-        </VStack>
-        
+                      </Text>
+                    </VStack>
+                    
         {/* Main Content */}
         {renderMainContent()}
-      </VStack>
+                </VStack>
     );
   };
 
@@ -1541,22 +1541,22 @@ export function CoachTrainingPlans() {
         {renderContent()}
       </Box>
 
-      {/* Training Plan Creator Modal */}
-      <MonthlyPlanCreator
-        isOpen={isCreatorOpen}
-        onClose={onCreatorClose}
-        onSuccess={handleCreationSuccess}
-      />
-
-      {/* Plan Assignment Modal */}
-      {selectedPlanForAssignment && (
-        <PlanAssignmentModal
-          isOpen={isAssignmentOpen}
-          onClose={onAssignmentClose}
-          onSuccess={handleAssignmentSuccess}
-          monthlyPlan={selectedPlanForAssignment}
+        {/* Training Plan Creator Modal */}
+        <MonthlyPlanCreator
+          isOpen={isCreatorOpen}
+          onClose={onCreatorClose}
+          onSuccess={handleCreationSuccess}
         />
-      )}
+
+        {/* Plan Assignment Modal */}
+        {selectedPlanForAssignment && (
+          <PlanAssignmentModal
+            isOpen={isAssignmentOpen}
+            onClose={onAssignmentClose}
+            onSuccess={handleAssignmentSuccess}
+            monthlyPlan={selectedPlanForAssignment}
+          />
+        )}
     </Box>
   );
 } 

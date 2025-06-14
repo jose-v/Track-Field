@@ -97,10 +97,10 @@ const WorkoutsSidebar: React.FC<WorkoutsSidebarProps> = ({
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const sectionTitleColor = useColorModeValue('gray.500', 'gray.400');
-  const itemColor = useColorModeValue('gray.700', 'gray.300');
+  const itemColor = useColorModeValue('gray.700', 'white');
   const itemHoverBg = useColorModeValue('gray.50', 'gray.700');
   const activeItemBg = useColorModeValue('blue.50', 'blue.900');
-  const activeItemColor = useColorModeValue('blue.600', 'blue.200');
+  const activeItemColor = useColorModeValue('blue.600', 'white');
   const activeItemBorderColor = useColorModeValue('blue.500', 'blue.300');
   const createButtonBg = useColorModeValue('blue.500', 'blue.600');
   const createButtonHoverBg = useColorModeValue('blue.600', 'blue.500');
@@ -123,40 +123,64 @@ const WorkoutsSidebar: React.FC<WorkoutsSidebarProps> = ({
       transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
       zIndex={998} // Below main sidebar (1000) and SimplifiedNav (999) but above content
     >
-      <VStack spacing={6} align="stretch">
-        {/* Create Workout Button */}
+      <VStack spacing={4} align="stretch">
+        {/* Create Workout Links */}
         {createWorkoutAction && (
-          <VStack spacing={2} align="stretch">
-            <Button
-              leftIcon={<FaPlus />}
-              colorScheme="blue"
-              size="md"
-              width="100%"
-              onClick={createWorkoutAction}
+          <VStack spacing={1} align="stretch">
+            <Flex
+              align="center"
+              px={3}
+              py={2}
               borderRadius="md"
-              fontWeight="medium"
-              justifyContent="flex-start"
-              variant="solid"
+              cursor="pointer"
+              bg="transparent"
+              color={itemColor}
+              transition="all 0.2s"
+              _hover={{
+                bg: itemHoverBg,
+                color: itemColor,
+              }}
+              onClick={createWorkoutAction}
             >
-              Create Workout
-            </Button>
+              <Icon
+                as={FaPlus}
+                fontSize="md"
+                mr={3}
+                color={itemColor}
+              />
+              <Text fontSize="sm" fontWeight="medium">
+                Create Workout
+              </Text>
+            </Flex>
             
-            {/* Additional Action Buttons */}
+            {/* Additional Action Links */}
             {additionalActions && additionalActions.map((action, index) => (
-              <Button
+              <Flex
                 key={index}
-                leftIcon={<Icon as={action.icon} />}
-                colorScheme={action.colorScheme || "blue"}
-                variant="solid"
-                size="md"
-                width="100%"
-                onClick={action.action}
+                align="center"
+                px={3}
+                py={2}
                 borderRadius="md"
-                fontWeight="medium"
-                justifyContent="flex-start"
+                cursor="pointer"
+                bg="transparent"
+                color={itemColor}
+                transition="all 0.2s"
+                _hover={{
+                  bg: itemHoverBg,
+                  color: itemColor,
+                }}
+                onClick={action.action}
               >
-                {action.label}
-              </Button>
+                <Icon
+                  as={action.icon}
+                  fontSize="md"
+                  mr={3}
+                  color={itemColor}
+                />
+                <Text fontSize="sm" fontWeight="medium">
+                  {action.label}
+                </Text>
+              </Flex>
             ))}
           </VStack>
         )}
@@ -170,21 +194,21 @@ const WorkoutsSidebar: React.FC<WorkoutsSidebarProps> = ({
               color={sectionTitleColor}
               textTransform="uppercase"
               letterSpacing="wider"
-              mb={3}
+              mb={2}
               px={3}
             >
               Quick Stats
             </Text>
-            <VStack spacing={2} align="stretch">
-              <HStack justify="space-between" px={3} py={2} borderRadius="md" bg={itemHoverBg}>
+            <VStack spacing={1} align="stretch">
+              <HStack justify="space-between" px={3} py={1.5} borderRadius="md" bg={itemHoverBg}>
                 <Text fontSize="sm" color={itemColor}>Today</Text>
                 <Badge colorScheme="blue" variant="subtle">{workoutCounts.today}</Badge>
               </HStack>
-              <HStack justify="space-between" px={3} py={2} borderRadius="md" bg={itemHoverBg}>
+              <HStack justify="space-between" px={3} py={1.5} borderRadius="md" bg={itemHoverBg}>
                 <Text fontSize="sm" color={itemColor}>This Week</Text>
                 <Badge colorScheme="green" variant="subtle">{workoutCounts.thisWeek}</Badge>
               </HStack>
-              <HStack justify="space-between" px={3} py={2} borderRadius="md" bg={itemHoverBg}>
+              <HStack justify="space-between" px={3} py={1.5} borderRadius="md" bg={itemHoverBg}>
                 <Text fontSize="sm" color={itemColor}>Completed</Text>
                 <Badge colorScheme="purple" variant="subtle">{workoutCounts.completed}</Badge>
               </HStack>
@@ -202,14 +226,14 @@ const WorkoutsSidebar: React.FC<WorkoutsSidebarProps> = ({
               color={sectionTitleColor}
               textTransform="uppercase"
               letterSpacing="wider"
-              mb={3}
+              mb={2}
               px={3}
             >
               {section.title}
             </Text>
             
             {/* Section Items */}
-            <VStack spacing={1} align="stretch">
+            <VStack spacing={0.5} align="stretch">
               {section.items.map((item) => {
                 const isActive = activeItem === item.id;
                 
@@ -217,7 +241,8 @@ const WorkoutsSidebar: React.FC<WorkoutsSidebarProps> = ({
                   <Flex
                     key={item.id}
                     align="center"
-                    p={3}
+                    px={3}
+                    py={2}
                     borderRadius="md"
                     cursor="pointer"
                     bg={isActive ? activeItemBg : 'transparent'}
@@ -231,12 +256,6 @@ const WorkoutsSidebar: React.FC<WorkoutsSidebarProps> = ({
                     }}
                     onClick={() => item.action ? item.action() : onItemClick(item.id)}
                   >
-                    <Icon
-                      as={item.icon}
-                      fontSize="lg"
-                      mr={3}
-                      color={isActive ? activeItemColor : itemColor}
-                    />
                     <Box flex="1">
                       <HStack justify="space-between" align="center">
                         <Text fontSize="sm" fontWeight={isActive ? 'semibold' : 'medium'}>
@@ -265,7 +284,7 @@ const WorkoutsSidebar: React.FC<WorkoutsSidebarProps> = ({
             
             {/* Divider between sections (except last) */}
             {sectionIndex < sections.length - 1 && (
-              <Divider mt={4} borderColor={borderColor} />
+              <Divider mt={3} borderColor={borderColor} />
             )}
           </Box>
         ))}
