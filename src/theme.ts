@@ -39,7 +39,7 @@ const theme = extendTheme({
     background: '#F5F4FA', // from guidelines
     surface: '#FFFFFF', // from guidelines
     text: {
-      primary: '#5a5a5a', // from guidelines
+      primary: '#a7a9ac', // lighter than original #5a5a5a
       secondary: '#555555', // from guidelines
     },
     border: '#E0E0E0', // from guidelines

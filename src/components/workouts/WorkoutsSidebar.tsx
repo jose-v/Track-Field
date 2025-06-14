@@ -96,7 +96,7 @@ const WorkoutsSidebar: React.FC<WorkoutsSidebarProps> = ({
 
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
-  const sectionTitleColor = useColorModeValue('gray.500', 'gray.400');
+  const sectionTitleColor = useColorModeValue('gray.500', 'white');
   const itemColor = useColorModeValue('gray.700', 'white');
   const itemHoverBg = useColorModeValue('gray.50', 'gray.700');
   const activeItemBg = useColorModeValue('blue.50', 'blue.900');
