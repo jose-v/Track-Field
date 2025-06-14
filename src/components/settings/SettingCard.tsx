@@ -14,7 +14,7 @@ import {
 } from '@chakra-ui/react';
 
 interface SettingCardProps {
-  title: string;
+  title?: string;
   description?: string;
   icon?: React.ElementType;
   children: React.ReactNode;
@@ -49,31 +49,35 @@ export const SettingCard: React.FC<SettingCardProps> = ({
       opacity={isLoading ? 0.6 : 1}
       pointerEvents={isLoading ? 'none' : 'auto'}
     >
-      <CardHeader pb={3}>
-        <HStack spacing={3} align="center">
-          {icon && (
-            <Icon
-              as={icon}
-              boxSize={5}
-              color={iconColor}
-            />
-          )}
-          <VStack align="start" spacing={1} flex="1">
-            <Heading size="md" color={headerTextColor}>
-              {title}
-            </Heading>
-            {description && (
-              <Text fontSize="sm" color={descriptionColor}>
-                {description}
-              </Text>
-            )}
-          </VStack>
-        </HStack>
-      </CardHeader>
+      {title && (
+        <>
+          <CardHeader pb={3}>
+            <HStack spacing={3} align="center">
+              {icon && (
+                <Icon
+                  as={icon}
+                  boxSize={5}
+                  color={iconColor}
+                />
+              )}
+              <VStack align="start" spacing={1} flex="1">
+                <Heading size="md" color={headerTextColor}>
+                  {title}
+                </Heading>
+                {description && (
+                  <Text fontSize="sm" color={descriptionColor}>
+                    {description}
+                  </Text>
+                )}
+              </VStack>
+            </HStack>
+          </CardHeader>
+          
+          <Divider />
+        </>
+      )}
       
-      <Divider />
-      
-      <CardBody pt={4}>
+      <CardBody pt={title ? 4 : 6}>
         {children}
       </CardBody>
     </Card>
