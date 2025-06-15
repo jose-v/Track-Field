@@ -3,7 +3,7 @@ import {
   Box, Heading, Text, SimpleGrid, Button, HStack, VStack, useDisclosure,
   useToast, Skeleton, Card, CardBody, useColorModeValue, Flex, 
   IconButton, Badge, Alert, AlertIcon, Spinner, Icon, Tabs, TabList, TabPanels, Tab, TabPanel,
-  Select
+  Select, Drawer, DrawerBody, DrawerHeader, DrawerOverlay, DrawerContent, DrawerCloseButton
 } from '@chakra-ui/react';
 import { FaCalendarAlt, FaPlus, FaRedo, FaUsers, FaChartLine, FaLayerGroup, FaTrash, FaFileImport, FaDumbbell, FaUserFriends, FaListUl, FaCalendarWeek, FaCalendarDay, FaClock, FaBookOpen, FaHistory, FaFilter, FaCog, FaHeartbeat, FaBolt } from 'react-icons/fa';
 import { AddIcon, RepeatIcon } from '@chakra-ui/icons';
@@ -26,7 +26,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { DeletedItemCard } from '../../components/DeletedItemCard';
 import { ExerciseLibrary, Exercise } from '../../components/ExerciseLibrary';
 import { WorkoutsSidebar } from '../../components';
-import type { WorkoutsSection } from '../../components';
+import type { WorkoutsSection, WorkoutsItem } from '../../components';
 import { useScrollDirection } from '../../hooks/useScrollDirection';
 
 // Type for monthly plan with assignment stats
@@ -218,6 +218,10 @@ export function CoachTrainingPlans() {
   const iconColor = useColorModeValue('#4A5568', '#A0AEC0');
   const selectBg = useColorModeValue('white', 'gray.700');
   const selectBorderColor = useColorModeValue('gray.300', 'gray.600');
+
+  // State for plan editing
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedPlanForEdit, setSelectedPlanForEdit] = useState<TrainingPlan | null>(null);
 
   // Load data when component mounts
   useEffect(() => {
@@ -840,14 +844,18 @@ export function CoachTrainingPlans() {
   };
 
   const handleEditPlan = (plan: TrainingPlan) => {
-    // TODO: Implement plan editing
-    toast({
-      title: 'Edit Plan',
-      description: 'Plan editing functionality coming soon.',
-      status: 'info',
-      duration: 3000,
-      isClosable: true
-    });
+    setSelectedPlanForEdit(plan);
+    setShowEditModal(true);
+  };
+
+  const handleEditModalClose = () => {
+    setShowEditModal(false);
+    setSelectedPlanForEdit(null);
+  };
+
+  const handleEditSuccess = () => {
+    handleEditModalClose();
+    loadMonthlyPlans(); // Refresh the plans list
   };
 
   const handleDeletePlan = async (plan: TrainingPlan) => {
@@ -1307,17 +1315,6 @@ export function CoachTrainingPlans() {
       refetchWorkoutStats();
     }
   }, [refetchWorkoutStats]);
-
-  if (showDetailView && selectedPlanForView) {
-    return (
-      <PlanDetailView
-        monthlyPlan={selectedPlanForView}
-        onBack={() => setShowDetailView(false)}
-        onAssign={() => handleAssignPlan(selectedPlanForView)}
-        onEdit={() => handleEditPlan(selectedPlanForView)}
-      />
-    );
-  }
 
   // Exercise Library Functions
   const loadCustomExercises = async () => {
@@ -1802,6 +1799,14 @@ export function CoachTrainingPlans() {
         onSuccess={handleCreationSuccess}
       />
 
+      {/* Training Plan Editor Modal */}
+      <MonthlyPlanCreator
+        isOpen={showEditModal}
+        onClose={handleEditModalClose}
+        onSuccess={handleEditSuccess}
+        editingPlan={selectedPlanForEdit}
+      />
+
       {/* Plan Assignment Modal */}
       {selectedPlanForAssignment && (
         <PlanAssignmentModal
@@ -1811,6 +1816,29 @@ export function CoachTrainingPlans() {
           monthlyPlan={selectedPlanForAssignment}
         />
       )}
+
+      {/* Plan Detail View Drawer */}
+      <Drawer
+        isOpen={showDetailView}
+        placement="right"
+        onClose={() => setShowDetailView(false)}
+        size="xl"
+      >
+        <DrawerOverlay />
+        <DrawerContent>
+          <DrawerCloseButton />
+          <DrawerBody p={0}>
+            {selectedPlanForView && (
+              <PlanDetailView
+                monthlyPlan={selectedPlanForView}
+                onBack={() => setShowDetailView(false)}
+                onAssign={() => handleAssignPlan(selectedPlanForView)}
+                onEdit={() => handleEditPlan(selectedPlanForView)}
+              />
+            )}
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
     </Box>
   );
 } 

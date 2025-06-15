@@ -67,9 +67,13 @@ export function MonthlyPlanCreator({
   useEffect(() => {
     if (isOpen) {
       loadAvailableWorkouts();
-      resetForm();
+      if (editingPlan) {
+        loadEditingPlan();
+      } else {
+        resetForm();
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, editingPlan]);
 
   const loadAvailableWorkouts = async () => {
     try {
@@ -89,6 +93,24 @@ export function MonthlyPlanCreator({
     } finally {
       setWorkoutsLoading(false);
     }
+  };
+
+  const loadEditingPlan = () => {
+    if (editingPlan) {
+      setFormData({
+        name: editingPlan.name || '',
+        description: editingPlan.description || '',
+        month: editingPlan.month || new Date().getMonth() + 1,
+        year: editingPlan.year || CURRENT_YEAR,
+        weeks: editingPlan.weeks || [
+          { week_number: 1, workout_id: '', is_rest_week: false },
+          { week_number: 2, workout_id: '', is_rest_week: false },
+          { week_number: 3, workout_id: '', is_rest_week: false },
+          { week_number: 4, workout_id: '', is_rest_week: false }
+        ]
+      });
+    }
+    setErrors({});
   };
 
   const resetForm = () => {
@@ -162,22 +184,35 @@ export function MonthlyPlanCreator({
         }))
       };
 
-      const result = await api.monthlyPlans.create(planData);
-
-      toast({
-        title: 'Monthly plan created successfully!',
-        description: `"${planData.name}" has been created for ${MONTHS.find(m => m.value === planData.month)?.name} ${planData.year}`,
-        status: 'success',
-        duration: 5000,
-        isClosable: true
-      });
+      let result;
+      if (editingPlan) {
+        // Update existing plan
+        result = await api.monthlyPlans.update(editingPlan.id, planData);
+        toast({
+          title: 'Monthly plan updated successfully!',
+          description: `"${planData.name}" has been updated for ${MONTHS.find(m => m.value === planData.month)?.name} ${planData.year}`,
+          status: 'success',
+          duration: 5000,
+          isClosable: true
+        });
+      } else {
+        // Create new plan
+        result = await api.monthlyPlans.create(planData);
+        toast({
+          title: 'Monthly plan created successfully!',
+          description: `"${planData.name}" has been created for ${MONTHS.find(m => m.value === planData.month)?.name} ${planData.year}`,
+          status: 'success',
+          duration: 5000,
+          isClosable: true
+        });
+      }
 
       onSuccess?.();
       onClose();
     } catch (error) {
-      console.error('Error creating monthly plan:', error);
+      console.error(`Error ${editingPlan ? 'updating' : 'creating'} monthly plan:`, error);
       toast({
-        title: 'Error creating monthly plan',
+        title: `Error ${editingPlan ? 'updating' : 'creating'} monthly plan`,
         description: error instanceof Error ? error.message : 'Please try again later.',
         status: 'error',
         duration: 5000,
@@ -322,7 +357,7 @@ export function MonthlyPlanCreator({
               colorScheme="teal"
               onClick={handleSubmit}
               isLoading={loading}
-              loadingText="Creating..."
+              loadingText={editingPlan ? "Updating..." : "Creating..."}
               disabled={loading}
             >
               <Icon as={FaSave} mr={2} />
