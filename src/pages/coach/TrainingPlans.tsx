@@ -5,7 +5,7 @@ import {
   IconButton, Badge, Alert, AlertIcon, Spinner, Icon, Tabs, TabList, TabPanels, Tab, TabPanel,
   Select
 } from '@chakra-ui/react';
-import { FaCalendarAlt, FaPlus, FaRedo, FaUsers, FaChartLine, FaLayerGroup, FaTrash, FaFileImport, FaDumbbell, FaUserFriends, FaListUl, FaCalendarWeek, FaCalendarDay, FaClock, FaBookOpen, FaHistory, FaFilter, FaCog } from 'react-icons/fa';
+import { FaCalendarAlt, FaPlus, FaRedo, FaUsers, FaChartLine, FaLayerGroup, FaTrash, FaFileImport, FaDumbbell, FaUserFriends, FaListUl, FaCalendarWeek, FaCalendarDay, FaClock, FaBookOpen, FaHistory, FaFilter, FaCog, FaHeartbeat, FaBolt } from 'react-icons/fa';
 import { AddIcon, RepeatIcon } from '@chakra-ui/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -142,22 +142,14 @@ export function CoachTrainingPlans() {
   const [activeTabIndex, setActiveTabIndex] = useState(getInitialTab);
   
   // Workout filter state
-  const [workoutFilter, setWorkoutFilter] = useState<'all' | 'single' | 'weekly'>('all');
+  const [workoutFilter, setWorkoutFilter] = useState<'all' | 'single' | 'weekly' | 'monthly'>('all');
   const [selectedAthlete, setSelectedAthlete] = useState<string>('all');
-
-  // Update URL when tab changes
-  const handleTabChange = (index: number) => {
-    setActiveTabIndex(index);
-    const tabNames = ['workouts', 'plans', 'templates', 'drafts', 'deleted', 'exercises'];
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set('tab', tabNames[index]);
-    setSearchParams(newParams);
-  };
-
-  // Update tab when URL changes
-  useEffect(() => {
-    setActiveTabIndex(getInitialTab());
-  }, [searchParams]);
+  
+  // Template filter state
+  const [templateFilter, setTemplateFilter] = useState<'all' | 'single' | 'weekly' | 'monthly'>('all');
+  
+  // Draft filter state
+  const [draftFilter, setDraftFilter] = useState<'all' | 'single' | 'weekly' | 'monthly'>('all');
 
   // Data state for monthly plans
   const [monthlyPlans, setMonthlyPlans] = useState<MonthlyPlanWithStats[]>([]);
@@ -309,27 +301,62 @@ export function CoachTrainingPlans() {
   const filteredData = useMemo(() => {
     switch (activeItem) {
       case 'all-workouts':
-        return { type: 'workouts', data: workouts?.filter(w => !w.is_draft) || [] };
-      case 'monthly-plans':
-        return { type: 'plans', data: monthlyPlans };
+        // Apply workout filter within all-workouts
+        let filteredWorkouts = workouts?.filter(w => !w.is_draft) || [];
+        
+        // Apply workout type filter
+        if (workoutFilter === 'single') {
+          filteredWorkouts = filteredWorkouts.filter(w => w.type !== 'weekly');
+        } else if (workoutFilter === 'weekly') {
+          filteredWorkouts = filteredWorkouts.filter(w => w.type === 'weekly');
+        } else if (workoutFilter === 'monthly') {
+          return { type: 'plans', data: monthlyPlans };
+        }
+        
+        // Apply athlete filter
+        if (selectedAthlete !== 'all') {
+          filteredWorkouts = filteredWorkouts.filter(w => getAthleteNames(w).includes(selectedAthlete));
+        }
+        
+        return { type: 'workouts', data: filteredWorkouts };
+      case 'strength':
+        return { type: 'workouts', data: workouts?.filter(w => !w.is_draft && (w.type?.toLowerCase().includes('strength') || w.type?.toLowerCase().includes('weight'))) || [] };
+      case 'cardio':
+        return { type: 'workouts', data: workouts?.filter(w => !w.is_draft && (w.type?.toLowerCase().includes('cardio') || w.type?.toLowerCase().includes('running') || w.type?.toLowerCase().includes('endurance'))) || [] };
+      case 'speed':
+        return { type: 'workouts', data: workouts?.filter(w => !w.is_draft && (w.type?.toLowerCase().includes('speed') || w.type?.toLowerCase().includes('sprint'))) || [] };
       case 'templates':
-        return { type: 'templates', data: templateWorkouts };
+        // Apply template filter
+        let filteredTemplates = templateWorkouts;
+        if (templateFilter === 'single') {
+          filteredTemplates = templateWorkouts.filter(t => t.type !== 'weekly');
+        } else if (templateFilter === 'weekly') {
+          filteredTemplates = templateWorkouts.filter(t => t.type === 'weekly');
+        } else if (templateFilter === 'monthly') {
+          filteredTemplates = templateWorkouts.filter(t => t.type === 'monthly');
+        }
+        return { type: 'templates', data: filteredTemplates };
       case 'drafts':
-        return { type: 'drafts', data: draftWorkouts };
+        // Apply draft filter
+        let filteredDrafts = draftWorkouts;
+        if (draftFilter === 'single') {
+          filteredDrafts = draftWorkouts.filter(d => d.type !== 'weekly');
+        } else if (draftFilter === 'weekly') {
+          filteredDrafts = draftWorkouts.filter(d => d.type === 'weekly');
+        } else if (draftFilter === 'monthly') {
+          filteredDrafts = draftWorkouts.filter(d => d.type === 'monthly');
+        }
+        return { type: 'drafts', data: filteredDrafts };
       case 'deleted':
         return { type: 'deleted', data: [...deletedWorkouts, ...deletedMonthlyPlans] };
       case 'exercise-library':
         return { type: 'exercises', data: customExercises };
       case 'by-athlete':
         return { type: 'workouts', data: workouts?.filter(w => !w.is_draft && (selectedAthlete === 'all' || getAthleteNames(w).includes(selectedAthlete))) || [] };
-      case 'single-workouts':
-        return { type: 'workouts', data: workouts?.filter(w => !w.is_draft && w.type !== 'weekly') || [] };
-      case 'weekly-workouts':
-        return { type: 'workouts', data: workouts?.filter(w => !w.is_draft && w.type === 'weekly') || [] };
       default:
         return { type: 'workouts', data: workouts?.filter(w => !w.is_draft) || [] };
     }
-  }, [activeItem, workouts, monthlyPlans, templateWorkouts, draftWorkouts, deletedWorkouts, deletedMonthlyPlans, customExercises, selectedAthlete]);
+  }, [activeItem, workouts, monthlyPlans, templateWorkouts, draftWorkouts, deletedWorkouts, deletedMonthlyPlans, customExercises, selectedAthlete, workoutFilter, templateFilter, draftFilter]);
 
   // Sidebar configuration for coaches
   const coachSections: WorkoutsSection[] = [
@@ -347,20 +374,29 @@ export function CoachTrainingPlans() {
       ]
     },
     {
-      id: 'workout-types',
-      title: 'Workout Types',
+      id: 'by-type',
+      title: 'By Type',
       items: [
         {
-          id: 'single-workouts',
-          label: 'Single Workouts',
+          id: 'strength',
+          label: 'Strength',
           icon: FaDumbbell,
-          description: 'Individual workout sessions'
+          description: 'Weight and resistance training',
+          badge: workouts?.filter(w => !w.is_draft && (w.type?.toLowerCase().includes('strength') || w.type?.toLowerCase().includes('weight'))).length || 0
         },
         {
-          id: 'weekly-workouts',
-          label: 'Plans',
-          icon: FaCalendarWeek,
-          description: 'Weekly training programs'
+          id: 'cardio',
+          label: 'Cardio',
+          icon: FaHeartbeat,
+          description: 'Endurance and running workouts',
+          badge: workouts?.filter(w => !w.is_draft && (w.type?.toLowerCase().includes('cardio') || w.type?.toLowerCase().includes('running') || w.type?.toLowerCase().includes('endurance'))).length || 0
+        },
+        {
+          id: 'speed',
+          label: 'Speed',
+          icon: FaBolt,
+          description: 'Sprint and speed training',
+          badge: workouts?.filter(w => !w.is_draft && (w.type?.toLowerCase().includes('speed') || w.type?.toLowerCase().includes('sprint'))).length || 0
         }
       ]
     },
@@ -855,30 +891,47 @@ export function CoachTrainingPlans() {
       );
     }
 
-    // Filter out drafts and apply workout type filter
-    let filteredWorkouts = workouts?.filter(workout => !workout.is_draft) || [];
+    // Use filteredData for "By Type" sections, otherwise use custom filtering
+    let filteredWorkouts;
     
-    // Apply template type filter
-    if (workoutFilter === 'single') {
-      filteredWorkouts = filteredWorkouts.filter(workout => workout.template_type === 'single' || !workout.template_type);
-    } else if (workoutFilter === 'weekly') {
-      filteredWorkouts = filteredWorkouts.filter(workout => workout.template_type === 'weekly');
-    }
-    // 'all' shows everything (no additional filtering)
+    if (activeItem === 'strength' || activeItem === 'cardio' || activeItem === 'speed') {
+      // For "By Type" sections, use the pre-filtered data
+      filteredWorkouts = filteredData.data as Workout[];
+    } else {
+      // For other sections, apply custom filtering
+      filteredWorkouts = workouts?.filter(workout => !workout.is_draft) || [];
+      
+      // Apply template type filter
+      if (workoutFilter === 'single') {
+        filteredWorkouts = filteredWorkouts.filter(workout => workout.type === 'single' || !workout.type);
+      } else if (workoutFilter === 'weekly') {
+        filteredWorkouts = filteredWorkouts.filter(workout => workout.type === 'weekly');
+      }
+      // 'all' shows everything (no additional filtering)
 
-    // Apply athlete filter
-    if (selectedAthlete !== 'all') {
-      filteredWorkouts = filteredWorkouts.filter(workout => {
-        const workoutAssignments = assignments?.filter(a => a.workout_id === workout.id) || [];
-        return workoutAssignments.some(assignment => assignment.athlete_id === selectedAthlete);
-      });
+      // Apply athlete filter
+      if (selectedAthlete !== 'all') {
+        filteredWorkouts = filteredWorkouts.filter(workout => {
+          const workoutAssignments = assignments?.filter(a => a.workout_id === workout.id) || [];
+          return workoutAssignments.some(assignment => assignment.athlete_id === selectedAthlete);
+        });
+      }
     }
 
     if (filteredWorkouts.length === 0) {
       let filterMessage = 'No Workouts Found';
       let filterSubMessage = 'Try adjusting your filters.';
       
-      if (selectedAthlete !== 'all') {
+      if (activeItem === 'strength') {
+        filterMessage = 'No Strength Workouts Found';
+        filterSubMessage = 'Create strength workouts to see them here.';
+      } else if (activeItem === 'cardio') {
+        filterMessage = 'No Cardio Workouts Found';
+        filterSubMessage = 'Create cardio/running workouts to see them here.';
+      } else if (activeItem === 'speed') {
+        filterMessage = 'No Speed Workouts Found';
+        filterSubMessage = 'Create speed/sprint workouts to see them here.';
+      } else if (selectedAthlete !== 'all') {
         const selectedAthleteData = athletes?.find(a => a.id === selectedAthlete);
         const athleteName = selectedAthleteData ? `${selectedAthleteData.first_name} ${selectedAthleteData.last_name}` : 'selected athlete';
         filterMessage = `No Workouts Assigned to ${athleteName}`;
@@ -933,82 +986,252 @@ export function CoachTrainingPlans() {
   };
 
   const renderTemplateWorkouts = () => {
-    if (templateLoading) {
-      return (
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-          {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} height="200px" borderRadius="lg" />
-          ))}
-        </SimpleGrid>
-      );
-    }
-
-    if (templateWorkouts.length === 0) {
-      return (
-        <Alert status="info" borderRadius="md">
-          <AlertIcon />
-          <VStack align="start" spacing={0}>
-            <Text fontWeight="medium">No Template Workouts</Text>
-            <Text fontSize="sm">Create workouts and save them as templates to get started.</Text>
-          </VStack>
-        </Alert>
-      );
-    }
+    // Apply template filter
+    const filteredTemplates = templateWorkouts.filter(template => {
+      if (templateFilter === 'all') return true;
+      if (templateFilter === 'single') return template.type !== 'weekly';
+      if (templateFilter === 'weekly') return template.type === 'weekly';
+      if (templateFilter === 'monthly') return template.type === 'monthly';
+      return true;
+    });
 
     return (
-      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-        {templateWorkouts.map((template) => (
-          <WorkoutCard
-            key={template.id}
-            workout={template}
-            isCoach={true}
-            isTemplate={true}
-            onEdit={() => navigate(`/coach/workout-creator?edit=${template.id}`)}
-            onDelete={() => deleteWorkout(template.id)}
-            onRefresh={handleTemplateRefresh}
-            showRefresh={false}
-          />
-        ))}
-      </SimpleGrid>
+      <VStack spacing={6} align="stretch">
+        {/* Stats and Filter Controls */}
+        <VStack spacing={4} align="stretch">
+          {/* Stats Badges Row */}
+          <Flex justify="flex-start" align="center" wrap="wrap" gap={2}>
+            <Badge colorScheme="blue" fontSize="sm" px={3} py={1}>
+              {filteredTemplates.length} Templates
+            </Badge>
+            <Badge colorScheme="gray" fontSize="sm" px={3} py={1}>
+              {templateWorkouts.length} Total
+            </Badge>
+            {templateFilter !== 'all' && (
+              <Button
+                size="xs"
+                variant="ghost"
+                colorScheme="gray"
+                onClick={() => setTemplateFilter('all')}
+              >
+                Clear Filter
+              </Button>
+            )}
+          </Flex>
+          
+          {/* Filter Controls Row */}
+          <Flex justify="flex-start" align="center" wrap="wrap" gap={3}>
+            {/* Template Type Filter Buttons */}
+            <HStack spacing={2}>
+              <Button
+                size="sm"
+                variant={templateFilter === 'all' ? 'solid' : 'outline'}
+                colorScheme={templateFilter === 'all' ? 'blue' : 'gray'}
+                onClick={() => setTemplateFilter('all')}
+              >
+                All
+              </Button>
+              <Button
+                size="sm"
+                variant={templateFilter === 'single' ? 'solid' : 'outline'}
+                colorScheme={templateFilter === 'single' ? 'blue' : 'gray'}
+                onClick={() => setTemplateFilter('single')}
+              >
+                Single
+              </Button>
+              <Button
+                size="sm"
+                variant={templateFilter === 'weekly' ? 'solid' : 'outline'}
+                colorScheme={templateFilter === 'weekly' ? 'blue' : 'gray'}
+                onClick={() => setTemplateFilter('weekly')}
+              >
+                Weekly
+              </Button>
+              <Button
+                size="sm"
+                variant={templateFilter === 'monthly' ? 'solid' : 'outline'}
+                colorScheme={templateFilter === 'monthly' ? 'green' : 'gray'}
+                onClick={() => setTemplateFilter('monthly')}
+              >
+                Monthly
+              </Button>
+            </HStack>
+            
+            <Button
+              leftIcon={<FaRedo />}
+              variant="outline"
+              size="sm"
+              onClick={handleTemplateRefresh}
+              isLoading={templateRefreshing}
+            >
+              Refresh
+            </Button>
+          </Flex>
+        </VStack>
+
+        {/* Templates Grid */}
+        {templateLoading ? (
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+            {[...Array(3)].map((_, i) => (
+              <Skeleton key={i} height="200px" borderRadius="lg" />
+            ))}
+          </SimpleGrid>
+        ) : filteredTemplates.length === 0 ? (
+          <Alert status="info" borderRadius="md">
+            <AlertIcon />
+            <VStack align="start" spacing={0}>
+              <Text fontWeight="medium">
+                {templateFilter === 'all' ? 'No Template Workouts' : `No ${templateFilter === 'monthly' ? 'Monthly' : templateFilter === 'weekly' ? 'Weekly' : 'Single'} Templates`}
+              </Text>
+              <Text fontSize="sm">
+                {templateFilter === 'all' 
+                  ? 'Create workouts and save them as templates to get started.'
+                  : `No ${templateFilter} templates found. Try a different filter or create new templates.`
+                }
+              </Text>
+            </VStack>
+          </Alert>
+        ) : (
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+            {filteredTemplates.map((template) => (
+              <WorkoutCard
+                key={template.id}
+                workout={template}
+                isCoach={true}
+                isTemplate={true}
+                onEdit={() => navigate(`/coach/workout-creator?edit=${template.id}`)}
+                onDelete={() => deleteWorkout(template.id)}
+                onRefresh={handleTemplateRefresh}
+                showRefresh={false}
+              />
+            ))}
+          </SimpleGrid>
+        )}
+      </VStack>
     );
   };
 
   const renderDraftWorkouts = () => {
-    if (draftsLoading) {
-      return (
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-          {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} height="200px" borderRadius="lg" />
-          ))}
-        </SimpleGrid>
-      );
-    }
-
-    if (draftWorkouts.length === 0) {
-      return (
-        <Alert status="info" borderRadius="md">
-          <AlertIcon />
-          <VStack align="start" spacing={0}>
-            <Text fontWeight="medium">No Draft Workouts</Text>
-            <Text fontSize="sm">Draft workouts are automatically saved when you create workouts.</Text>
-          </VStack>
-        </Alert>
-      );
-    }
+    // Apply draft filter
+    const filteredDrafts = draftWorkouts.filter(draft => {
+      if (draftFilter === 'all') return true;
+      if (draftFilter === 'single') return draft.type !== 'weekly';
+      if (draftFilter === 'weekly') return draft.type === 'weekly';
+      if (draftFilter === 'monthly') return draft.type === 'monthly';
+      return true;
+    });
 
     return (
-      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-        {draftWorkouts.map((draft) => (
-          <WorkoutCard
-            key={draft.id}
-            workout={draft}
-            isCoach={true}
-            isTemplate={true}
-            onEdit={() => navigate(`/coach/workout-creator?edit=${draft.id}`)}
-            onDelete={() => deleteWorkout(draft.id)}
-          />
-        ))}
-      </SimpleGrid>
+      <VStack spacing={6} align="stretch">
+        {/* Stats and Filter Controls */}
+        <VStack spacing={4} align="stretch">
+          {/* Stats Badges Row */}
+          <Flex justify="flex-start" align="center" wrap="wrap" gap={2}>
+            <Badge colorScheme="blue" fontSize="sm" px={3} py={1}>
+              {filteredDrafts.length} Drafts
+            </Badge>
+            <Badge colorScheme="gray" fontSize="sm" px={3} py={1}>
+              {draftWorkouts.length} Total
+            </Badge>
+            {draftFilter !== 'all' && (
+              <Button
+                size="xs"
+                variant="ghost"
+                colorScheme="gray"
+                onClick={() => setDraftFilter('all')}
+              >
+                Clear Filter
+              </Button>
+            )}
+          </Flex>
+          
+          {/* Filter Controls Row */}
+          <Flex justify="flex-start" align="center" wrap="wrap" gap={3}>
+            {/* Draft Type Filter Buttons */}
+            <HStack spacing={2}>
+              <Button
+                size="sm"
+                variant={draftFilter === 'all' ? 'solid' : 'outline'}
+                colorScheme={draftFilter === 'all' ? 'blue' : 'gray'}
+                onClick={() => setDraftFilter('all')}
+              >
+                All
+              </Button>
+              <Button
+                size="sm"
+                variant={draftFilter === 'single' ? 'solid' : 'outline'}
+                colorScheme={draftFilter === 'single' ? 'blue' : 'gray'}
+                onClick={() => setDraftFilter('single')}
+              >
+                Single
+              </Button>
+              <Button
+                size="sm"
+                variant={draftFilter === 'weekly' ? 'solid' : 'outline'}
+                colorScheme={draftFilter === 'weekly' ? 'blue' : 'gray'}
+                onClick={() => setDraftFilter('weekly')}
+              >
+                Weekly
+              </Button>
+              <Button
+                size="sm"
+                variant={draftFilter === 'monthly' ? 'solid' : 'outline'}
+                colorScheme={draftFilter === 'monthly' ? 'green' : 'gray'}
+                onClick={() => setDraftFilter('monthly')}
+              >
+                Monthly
+              </Button>
+            </HStack>
+            
+            <Button
+              leftIcon={<FaRedo />}
+              variant="outline"
+              size="sm"
+              onClick={handleDraftsRefresh}
+              isLoading={draftsRefreshing}
+            >
+              Refresh
+            </Button>
+          </Flex>
+        </VStack>
+
+        {/* Drafts Grid */}
+        {draftsLoading ? (
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+            {[...Array(3)].map((_, i) => (
+              <Skeleton key={i} height="200px" borderRadius="lg" />
+            ))}
+          </SimpleGrid>
+        ) : filteredDrafts.length === 0 ? (
+          <Alert status="info" borderRadius="md">
+            <AlertIcon />
+            <VStack align="start" spacing={0}>
+              <Text fontWeight="medium">
+                {draftFilter === 'all' ? 'No Draft Workouts' : `No ${draftFilter === 'monthly' ? 'Monthly' : draftFilter === 'weekly' ? 'Weekly' : 'Single'} Drafts`}
+              </Text>
+              <Text fontSize="sm">
+                {draftFilter === 'all' 
+                  ? 'Draft workouts are automatically saved when you create workouts.'
+                  : `No ${draftFilter} drafts found. Try a different filter or create new drafts.`
+                }
+              </Text>
+            </VStack>
+          </Alert>
+        ) : (
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+            {filteredDrafts.map((draft) => (
+              <WorkoutCard
+                key={draft.id}
+                workout={draft}
+                isCoach={true}
+                isTemplate={true}
+                onEdit={() => navigate(`/coach/workout-creator?edit=${draft.id}`)}
+                onDelete={() => deleteWorkout(draft.id)}
+              />
+            ))}
+          </SimpleGrid>
+        )}
+      </VStack>
     );
   };
 
@@ -1181,25 +1404,52 @@ export function CoachTrainingPlans() {
   const renderContent = () => {
     const getSectionInfo = () => {
       switch (activeItem) {
-        case 'monthly-plans':
-          return { title: 'Monthly Plans', description: 'Training plan templates for your athletes', icon: FaCalendarAlt };
+        case 'strength':
+          return { title: 'Strength Workouts', description: 'Weight and resistance training', icon: FaDumbbell };
+        case 'cardio':
+          return { title: 'Cardio Workouts', description: 'Endurance and running workouts', icon: FaHeartbeat };
+        case 'speed':
+          return { title: 'Speed Workouts', description: 'Sprint and speed training', icon: FaBolt };
         case 'templates':
-          return { title: 'Workout Templates', description: 'Reusable workout templates', icon: FaLayerGroup };
+          // Dynamic title based on template filter
+          if (templateFilter === 'monthly') {
+            return { title: 'Monthly Templates', description: 'Monthly workout templates', icon: FaLayerGroup };
+          } else if (templateFilter === 'single') {
+            return { title: 'Single Templates', description: 'Individual workout templates', icon: FaLayerGroup };
+          } else if (templateFilter === 'weekly') {
+            return { title: 'Weekly Templates', description: 'Weekly workout templates', icon: FaLayerGroup };
+          } else {
+            return { title: 'Workout Templates', description: 'Reusable workout templates', icon: FaLayerGroup };
+          }
         case 'drafts':
-          return { title: 'Draft Workouts', description: 'Unfinished workouts saved as drafts', icon: FaCog };
+          // Dynamic title based on draft filter
+          if (draftFilter === 'monthly') {
+            return { title: 'Monthly Drafts', description: 'Monthly workout drafts', icon: FaCog };
+          } else if (draftFilter === 'single') {
+            return { title: 'Single Drafts', description: 'Individual workout drafts', icon: FaCog };
+          } else if (draftFilter === 'weekly') {
+            return { title: 'Weekly Drafts', description: 'Weekly workout drafts', icon: FaCog };
+          } else {
+            return { title: 'Draft Workouts', description: 'Unfinished workouts saved as drafts', icon: FaCog };
+          }
         case 'deleted':
           return { title: 'Deleted Items', description: 'Deleted workouts and training plans', icon: FaTrash };
         case 'exercise-library':
           return { title: 'Exercise Library', description: 'Manage your custom exercises', icon: FaBookOpen };
         case 'by-athlete':
           return { title: 'Workouts by Athlete', description: 'Filter workouts by specific athletes', icon: FaUserFriends };
-        case 'single-workouts':
-          return { title: 'Single Workouts', description: 'Individual workout sessions', icon: FaDumbbell };
-        case 'weekly-workouts':
-          return { title: 'Plans', description: 'Weekly training programs', icon: FaCalendarWeek };
         case 'all-workouts':
         default:
-          return { title: 'All Workouts', description: 'All created workouts and training sessions', icon: FaListUl };
+          // Dynamic title based on filter
+          if (workoutFilter === 'monthly') {
+            return { title: 'Monthly Plans', description: 'Training plan templates for your athletes', icon: FaCalendarAlt };
+          } else if (workoutFilter === 'single') {
+            return { title: 'Single Workouts', description: 'Individual workout sessions', icon: FaDumbbell };
+          } else if (workoutFilter === 'weekly') {
+            return { title: 'Weekly Plans', description: 'Training programs', icon: FaCalendarWeek };
+          } else {
+            return { title: 'All Workouts', description: 'All created workouts and training sessions', icon: FaListUl };
+          }
       }
     };
 
@@ -1207,70 +1457,41 @@ export function CoachTrainingPlans() {
 
     const renderMainContent = () => {
       switch (activeItem) {
-        case 'monthly-plans':
-  return (
+        case 'strength':
+        case 'cardio':
+        case 'speed':
+          return (
             <VStack spacing={6} align="stretch">
               {/* Stats and Actions */}
-              <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
-                <HStack spacing={4}>
+              <VStack spacing={4} align="stretch">
+                {/* Stats Badges Row */}
+                <Flex justify="flex-start" align="center" wrap="wrap" gap={2}>
                   <Badge colorScheme="blue" fontSize="sm" px={3} py={1}>
-                    {monthlyPlans.length} Plans Created
+                    {filteredData.data.length} {activeItem.charAt(0).toUpperCase() + activeItem.slice(1)} Workouts
                   </Badge>
                   {athletes && (
                     <Badge colorScheme="green" fontSize="sm" px={3} py={1}>
                       {athletes.length} Athletes
                     </Badge>
                   )}
-                </HStack>
+                </Flex>
                 
-              <Button
-                  leftIcon={<FaRedo />}
-                variant="outline"
-                  size="sm"
-                  onClick={handleRefresh}
-                  isLoading={refreshing}
-              >
-                  Refresh
-              </Button>
-          </Flex>
+                {/* Refresh Button */}
+                <Flex justify="flex-start" align="center" wrap="wrap" gap={3}>
+                  <Button
+                    leftIcon={<FaRedo />}
+                    variant="outline"
+                    size="sm"
+                    onClick={handleWorkoutsRefresh}
+                    isLoading={assignmentsLoading}
+                  >
+                    Refresh
+                  </Button>
+                </Flex>
+              </VStack>
 
-              {/* Monthly Plans Grid */}
-              {loading ? (
-                <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-                  {[...Array(6)].map((_, i) => (
-                    <Skeleton key={i} height="300px" borderRadius="lg" />
-                  ))}
-                </SimpleGrid>
-              ) : monthlyPlans.length === 0 ? (
-                <Alert status="info" borderRadius="md">
-                  <AlertIcon />
-                  <VStack align="start" spacing={0}>
-                    <Text fontWeight="medium">No Training Plans Created</Text>
-                    <Text fontSize="sm">Create your first monthly training plan to get started.</Text>
-                  </VStack>
-                </Alert>
-              ) : (
-                <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-                  {monthlyPlans.map((plan) => (
-                    <MonthlyPlanCard
-                      key={plan.id}
-                      monthlyPlan={plan}
-                      isCoach={true}
-                      onView={() => handleViewPlan(plan)}
-                      onEdit={() => handleEditPlan(plan)}
-                      onAssign={() => handleAssignPlan(plan)}
-                      onDelete={() => handleDeletePlan(plan)}
-                      completionStats={{
-                        totalAssigned: plan.totalAssignments,
-                        completed: plan.completedAssignments,
-                        inProgress: plan.activeAssignments - plan.completedAssignments,
-                        percentage: plan.totalAssignments > 0 ? (plan.completedAssignments / plan.totalAssignments) * 100 : 0
-                      }}
-                      statsLoading={statsLoading}
-                    />
-                  ))}
-                </SimpleGrid>
-              )}
+              {/* Workouts Grid */}
+              {renderWorkouts()}
             </VStack>
           );
         case 'templates':
@@ -1313,7 +1534,7 @@ export function CoachTrainingPlans() {
                       </option>
                     ))}
                   </Select>
-              </HStack>
+                </HStack>
                 
                 <Button
                   leftIcon={<FaRedo />}
@@ -1330,109 +1551,150 @@ export function CoachTrainingPlans() {
           );
         default:
           return (
-                <VStack spacing={6} align="stretch">
+            <VStack spacing={6} align="stretch">
               {/* Stats and Actions */}
-                  <VStack spacing={4} align="stretch">
-                    {/* Stats Badges Row */}
-                    <Flex justify="flex-start" align="center" wrap="wrap" gap={2}>
-                      <Badge colorScheme="blue" fontSize="sm" px={3} py={1}>
-                        {workouts?.filter(w => !w.is_draft).length || 0} Workouts Created
-                      </Badge>
-                      {athletes && (
-                        <Badge colorScheme="green" fontSize="sm" px={3} py={1}>
-                          {athletes.length} Athletes
-                        </Badge>
-                      )}
-                      {selectedAthlete !== 'all' && (
-                        <Badge colorScheme="purple" fontSize="sm" px={3} py={1} maxW="300px" isTruncated>
-                          Filtered by: {athletes?.find(a => a.id === selectedAthlete)?.first_name} {athletes?.find(a => a.id === selectedAthlete)?.last_name}
-                        </Badge>
-                      )}
-                      {(workoutFilter !== 'all' || selectedAthlete !== 'all') && (
-                        <Button
-                          size="xs"
-                          variant="ghost"
-                          colorScheme="gray"
-                          onClick={handleClearFilters}
-                        >
-                          Clear Filters
-                        </Button>
-                      )}
-                    </Flex>
-                    
-                    {/* Filter Controls Row */}
-                    <Flex justify="flex-start" align="center" wrap="wrap" gap={3}>
-                      {/* Workout Type Filter Buttons */}
-                      <HStack spacing={2}>
-                        <Button
-                          size="sm"
-                          variant={workoutFilter === 'all' ? 'solid' : 'outline'}
-                          colorScheme={workoutFilter === 'all' ? 'blue' : 'gray'}
-                          onClick={() => setWorkoutFilter('all')}
-                        >
-                          All
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={workoutFilter === 'single' ? 'solid' : 'outline'}
-                          colorScheme={workoutFilter === 'single' ? 'blue' : 'gray'}
-                          onClick={() => setWorkoutFilter('single')}
-                        >
-                          Single
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={workoutFilter === 'weekly' ? 'solid' : 'outline'}
-                          colorScheme={workoutFilter === 'weekly' ? 'blue' : 'gray'}
-                          onClick={() => setWorkoutFilter('weekly')}
-                        >
-                          Weekly
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={activeItem === 'monthly-plans' ? 'solid' : 'outline'}
-                          colorScheme={activeItem === 'monthly-plans' ? 'green' : 'gray'}
-                          onClick={() => setActiveItem('monthly-plans')}
-                        >
-                          Monthly
-                        </Button>
-                      </HStack>
+              <VStack spacing={4} align="stretch">
+                {/* Stats Badges Row */}
+                <Flex justify="flex-start" align="center" wrap="wrap" gap={2}>
+                  <Badge colorScheme="blue" fontSize="sm" px={3} py={1}>
+                    {workoutFilter === 'monthly' ? monthlyPlans.length : workouts?.filter(w => !w.is_draft).length || 0} {workoutFilter === 'monthly' ? 'Plans' : 'Workouts'} Created
+                  </Badge>
+                  {athletes && (
+                    <Badge colorScheme="green" fontSize="sm" px={3} py={1}>
+                      {athletes.length} Athletes
+                    </Badge>
+                  )}
+                  {selectedAthlete !== 'all' && (
+                    <Badge colorScheme="purple" fontSize="sm" px={3} py={1} maxW="300px" isTruncated>
+                      Filtered by: {athletes?.find(a => a.id === selectedAthlete)?.first_name} {athletes?.find(a => a.id === selectedAthlete)?.last_name}
+                    </Badge>
+                  )}
+                  {(workoutFilter !== 'all' || selectedAthlete !== 'all') && (
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      colorScheme="gray"
+                      onClick={handleClearFilters}
+                    >
+                      Clear Filters
+                    </Button>
+                  )}
+                </Flex>
+                
+                {/* Filter Controls Row */}
+                <Flex justify="flex-start" align="center" wrap="wrap" gap={3}>
+                  {/* Workout Type Filter Buttons */}
+                  <HStack spacing={2}>
+                    <Button
+                      size="sm"
+                      variant={workoutFilter === 'all' ? 'solid' : 'outline'}
+                      colorScheme={workoutFilter === 'all' ? 'blue' : 'gray'}
+                      onClick={() => setWorkoutFilter('all')}
+                    >
+                      All
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={workoutFilter === 'single' ? 'solid' : 'outline'}
+                      colorScheme={workoutFilter === 'single' ? 'blue' : 'gray'}
+                      onClick={() => setWorkoutFilter('single')}
+                    >
+                      Single
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={workoutFilter === 'weekly' ? 'solid' : 'outline'}
+                      colorScheme={workoutFilter === 'weekly' ? 'blue' : 'gray'}
+                      onClick={() => setWorkoutFilter('weekly')}
+                    >
+                      Weekly
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={workoutFilter === 'monthly' ? 'solid' : 'outline'}
+                      colorScheme={workoutFilter === 'monthly' ? 'green' : 'gray'}
+                      onClick={() => setWorkoutFilter('monthly')}
+                    >
+                      Monthly
+                    </Button>
+                  </HStack>
 
-                      {/* Athlete Filter Dropdown */}
-                      <HStack spacing={2} align="center">
-                        <FaUserFriends style={{ color: iconColor }} />
-                        <Select
-                          value={selectedAthlete}
-                          onChange={(e) => setSelectedAthlete(e.target.value)}
-                          size="sm"
-                          width={{ base: "180px", md: "200px" }}
-                          bg={selectBg}
-                          borderColor={selectBorderColor}
-                        >
-                          <option value="all">All Athletes</option>
-                          {athletes?.map((athlete) => (
-                            <option key={athlete.id} value={athlete.id}>
-                              {athlete.first_name} {athlete.last_name}
-                            </option>
-                          ))}
-                        </Select>
-                      </HStack>
-                      
-                      <Button
-                        leftIcon={<FaRedo />}
-                        variant="outline"
-                        size="sm"
-                        onClick={handleWorkoutsRefresh}
-                        isLoading={assignmentsLoading}
-                      >
-                        Refresh
-                      </Button>
-                    </Flex>
-                  </VStack>
+                  {/* Athlete Filter Dropdown */}
+                  <HStack spacing={2} align="center">
+                    <FaUserFriends style={{ color: iconColor }} />
+                    <Select
+                      value={selectedAthlete}
+                      onChange={(e) => setSelectedAthlete(e.target.value)}
+                      size="sm"
+                      width={{ base: "180px", md: "200px" }}
+                      bg={selectBg}
+                      borderColor={selectBorderColor}
+                    >
+                      <option value="all">All Athletes</option>
+                      {athletes?.map((athlete) => (
+                        <option key={athlete.id} value={athlete.id}>
+                          {athlete.first_name} {athlete.last_name}
+                        </option>
+                      ))}
+                    </Select>
+                  </HStack>
+                  
+                  <Button
+                    leftIcon={<FaRedo />}
+                    variant="outline"
+                    size="sm"
+                    onClick={workoutFilter === 'monthly' ? handleRefresh : handleWorkoutsRefresh}
+                    isLoading={workoutFilter === 'monthly' ? refreshing : assignmentsLoading}
+                  >
+                    Refresh
+                  </Button>
+                </Flex>
+              </VStack>
 
-                  {/* Workouts Grid */}
-                  {renderWorkouts()}
-                </VStack>
+              {/* Content Grid - Dynamic based on filter */}
+              {workoutFilter === 'monthly' ? (
+                // Monthly Plans Grid
+                loading ? (
+                  <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+                    {[...Array(6)].map((_, i) => (
+                      <Skeleton key={i} height="300px" borderRadius="lg" />
+                    ))}
+                  </SimpleGrid>
+                ) : monthlyPlans.length === 0 ? (
+                  <Alert status="info" borderRadius="md">
+                    <AlertIcon />
+                    <VStack align="start" spacing={0}>
+                      <Text fontWeight="medium">No Training Plans Created</Text>
+                      <Text fontSize="sm">Create your first monthly training plan to get started.</Text>
+                    </VStack>
+                  </Alert>
+                ) : (
+                  <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+                    {monthlyPlans.map((plan) => (
+                      <MonthlyPlanCard
+                        key={plan.id}
+                        monthlyPlan={plan}
+                        isCoach={true}
+                        onView={() => handleViewPlan(plan)}
+                        onEdit={() => handleEditPlan(plan)}
+                        onAssign={() => handleAssignPlan(plan)}
+                        onDelete={() => handleDeletePlan(plan)}
+                        completionStats={{
+                          totalAssigned: plan.totalAssignments,
+                          completed: plan.completedAssignments,
+                          inProgress: plan.activeAssignments - plan.completedAssignments,
+                          percentage: plan.totalAssignments > 0 ? (plan.completedAssignments / plan.totalAssignments) * 100 : 0
+                        }}
+                        statsLoading={statsLoading}
+                      />
+                    ))}
+                  </SimpleGrid>
+                )
+              ) : (
+                // Workouts Grid
+                renderWorkouts()
+              )}
+            </VStack>
           );
       }
     };
@@ -1453,12 +1715,12 @@ export function CoachTrainingPlans() {
           </HStack>
           <Text color={headerSubtextColor} fontSize="md">
             {sectionInfo.description} ({filteredData.data.length} items)
-                      </Text>
-                    </VStack>
-                    
+          </Text>
+        </VStack>
+        
         {/* Main Content */}
         {renderMainContent()}
-                </VStack>
+      </VStack>
     );
   };
 
@@ -1529,28 +1791,26 @@ export function CoachTrainingPlans() {
         px={0} // Remove padding since CoachLayout already adds it
         py={8}
       >
-
-
         {/* Content */}
         {renderContent()}
       </Box>
 
-        {/* Training Plan Creator Modal */}
-        <MonthlyPlanCreator
-          isOpen={isCreatorOpen}
-          onClose={onCreatorClose}
-          onSuccess={handleCreationSuccess}
-        />
+      {/* Training Plan Creator Modal */}
+      <MonthlyPlanCreator
+        isOpen={isCreatorOpen}
+        onClose={onCreatorClose}
+        onSuccess={handleCreationSuccess}
+      />
 
-        {/* Plan Assignment Modal */}
-        {selectedPlanForAssignment && (
-          <PlanAssignmentModal
-            isOpen={isAssignmentOpen}
-            onClose={onAssignmentClose}
-            onSuccess={handleAssignmentSuccess}
-            monthlyPlan={selectedPlanForAssignment}
-          />
-        )}
+      {/* Plan Assignment Modal */}
+      {selectedPlanForAssignment && (
+        <PlanAssignmentModal
+          isOpen={isAssignmentOpen}
+          onClose={onAssignmentClose}
+          onSuccess={handleAssignmentSuccess}
+          monthlyPlan={selectedPlanForAssignment}
+        />
+      )}
     </Box>
   );
 } 
