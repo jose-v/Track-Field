@@ -334,8 +334,8 @@ export function CoachTrainingPlans() {
   // Sidebar configuration for coaches
   const coachSections: WorkoutsSection[] = [
     {
-      id: 'overview',
-      title: 'Overview',
+      id: 'dashboard',
+      title: 'Dashboard',
       items: [
         {
           id: 'all-workouts',
@@ -343,20 +343,6 @@ export function CoachTrainingPlans() {
           icon: FaListUl,
           description: 'View all created workouts',
           badge: coachStats.workouts
-        },
-        {
-          id: 'monthly-plans',
-          label: 'Monthly Plans',
-          icon: FaCalendarAlt,
-          description: 'Training plan templates',
-          badge: coachStats.plans
-        },
-        {
-          id: 'by-athlete',
-          label: 'By Athlete',
-          icon: FaUserFriends,
-          description: 'Filter workouts by athlete',
-          badge: coachStats.athletes
         }
       ]
     },
@@ -372,16 +358,9 @@ export function CoachTrainingPlans() {
         },
         {
           id: 'weekly-workouts',
-          label: 'Weekly Plans',
+          label: 'Plans',
           icon: FaCalendarWeek,
           description: 'Weekly training programs'
-        },
-        {
-          id: 'templates',
-          label: 'Templates',
-          icon: FaLayerGroup,
-          description: 'Reusable workout templates',
-          badge: coachStats.templates
         }
       ]
     },
@@ -389,6 +368,13 @@ export function CoachTrainingPlans() {
       id: 'management',
       title: 'Management',
       items: [
+        {
+          id: 'templates',
+          label: 'Templates',
+          icon: FaLayerGroup,
+          description: 'Reusable workout templates',
+          badge: coachStats.templates
+        },
         {
           id: 'drafts',
           label: 'Drafts',
@@ -1210,7 +1196,7 @@ export function CoachTrainingPlans() {
         case 'single-workouts':
           return { title: 'Single Workouts', description: 'Individual workout sessions', icon: FaDumbbell };
         case 'weekly-workouts':
-          return { title: 'Weekly Plans', description: 'Weekly training programs', icon: FaCalendarWeek };
+          return { title: 'Plans', description: 'Weekly training programs', icon: FaCalendarWeek };
         case 'all-workouts':
         default:
           return { title: 'All Workouts', description: 'All created workouts and training sessions', icon: FaListUl };
@@ -1401,6 +1387,14 @@ export function CoachTrainingPlans() {
                           onClick={() => setWorkoutFilter('weekly')}
                         >
                           Weekly
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={activeItem === 'monthly-plans' ? 'solid' : 'outline'}
+                          colorScheme={activeItem === 'monthly-plans' ? 'green' : 'gray'}
+                          onClick={() => setActiveItem('monthly-plans')}
+                        >
+                          Monthly
                         </Button>
                       </HStack>
 
