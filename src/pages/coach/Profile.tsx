@@ -4,12 +4,16 @@ import {
 } from '@chakra-ui/react';
 import { FaCamera } from 'react-icons/fa';
 import { useProfile } from '../../hooks/useProfile';
+import { useAvatarLoader } from '../../hooks/useAvatarLoader';
+import { useAvatar } from '../../hooks/useAvatar';
 import ProfileCard from '../../components/ProfileCard';
 
 const genderOptions = ['male', 'female', 'other'];
 
 const CoachProfile = () => {
   const { profile, isLoading, isError, error, updateProfile, isUpdatingProfile } = useProfile();
+  const { avatarUrl, refresh: refreshAvatar } = useAvatarLoader(profile?.id);
+  const { uploading, uploadAvatar } = useAvatar();
   const [form, setForm] = useState<any>({});
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
@@ -39,9 +43,9 @@ const CoachProfile = () => {
         zip_code: profile.zip_code || '',
         bio: profile.bio || '',
       });
-      setAvatarPreview(profile.avatar_url || null);
+      setAvatarPreview(avatarUrl || null);
     }
-  }, [profile]);
+      }, [profile, avatarUrl]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -50,15 +54,24 @@ const CoachProfile = () => {
 
   const handleAvatarClick = () => fileInputRef.current?.click();
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Show preview immediately for better UX
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) setAvatarPreview(event.target.result as string);
       };
       reader.readAsDataURL(file);
-      // TODO: Upload avatar to storage and update profile.avatar_url
+
+      // Upload to storage
+      const avatarUrl = await uploadAvatar(file);
+      if (avatarUrl) {
+        // Update the preview to the actual uploaded URL
+        setAvatarPreview(avatarUrl);
+        // Refresh the profile to load the new avatar
+        refreshAvatar();
+      }
     }
   };
 
@@ -82,8 +95,8 @@ const CoachProfile = () => {
         bio: form.bio,
       },
       roleData: {
-        gender: form.gender,
-        date_of_birth: form.date_of_birth,
+        gender: form.gender || null, // Convert empty string to null
+        date_of_birth: form.date_of_birth || null, // Convert empty string to null
         events: form.events.split(',').map((e: string) => e.trim()).filter(Boolean),
       },
     });
@@ -118,7 +131,7 @@ const CoachProfile = () => {
     <Box maxW="lg" mx="auto" mt={8}>
       {!editMode ? (
         <ProfileCard
-          avatarUrl={avatarPreview || undefined}
+          avatarUrl={avatarUrl || undefined}
           bannerColor="#1A73E8"
           name={`${profile.first_name} ${profile.last_name}`}
           role="Coach"
@@ -137,7 +150,11 @@ const CoachProfile = () => {
               <FormControl>
                 <FormLabel>Avatar</FormLabel>
                 <HStack>
-                  <Avatar size="xl" src={avatarPreview || undefined} name={`${form.first_name} ${form.last_name}`} />
+                  <Avatar 
+                    size="xl" 
+                    src={avatarPreview || avatarUrl || undefined} 
+                    name={`${form.first_name} ${form.last_name}`} 
+                  />
                   <input type="file" hidden ref={fileInputRef} accept="image/*" onChange={handleAvatarChange} />
                   <IconButton
                     aria-label="Change photo"
@@ -145,6 +162,8 @@ const CoachProfile = () => {
                     onClick={handleAvatarClick}
                     variant="outline"
                     size="md"
+                    isLoading={uploading}
+                    isDisabled={uploading}
                   />
                 </HStack>
               </FormControl>

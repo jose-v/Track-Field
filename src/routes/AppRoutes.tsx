@@ -84,8 +84,8 @@ export default function AppRoutes() {
       <Route path="sandbox" element={<SandboxPage />} />
       <Route path="test-auth" element={<PrivateRoute><TestAuth /></PrivateRoute>} />
 
-      {/* Role Selection Route - For users with profiles but no roles */}
-      <Route path="/role-selection" element={<PrivateRoute><RoleSelectionPage /></PrivateRoute>} />
+      {/* Role Selection Route - DISABLED: Auto-fix handles NULL roles now */}
+      {/* <Route path="/role-selection" element={<PrivateRoute><RoleSelectionPage /></PrivateRoute>} /> */}
 
       {/* Protected Dashboard Route - Highest Priority */}
       <Route path="/dashboard" element={<GeneralLayout><PrivateRoute><RoleDashboardRouter /></PrivateRoute></GeneralLayout>} />

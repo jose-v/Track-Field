@@ -11,9 +11,6 @@ export interface Athlete {
   last_name: string;  // From athletes table
   date_of_birth?: string;
   created_at: string;
-  created_by?: string;
-  updated_at?: string;
-  updated_by?: string;
   weight_kg?: number;
   email?: string;
   phone?: string;
@@ -63,7 +60,7 @@ export function useCoachAthletes() {
       const { data: athletesData, error: athletesError } = await supabase
         .from('athletes')
         .select(`
-          *
+          id, date_of_birth, gender, events, team_id, weight_kg, first_name, last_name, created_at
         `)
         .in('id', athleteIds);
 

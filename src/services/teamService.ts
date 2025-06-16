@@ -103,7 +103,7 @@ export async function createIndependentCoachTeam(
     // Fetch the created team data
     const { data: teamData, error: teamFetchError } = await supabase
       .from('teams')
-      .select('*')
+      .select('id, name, description, invite_code, created_by, team_type, is_active, created_at, updated_at')
       .eq('id', data)
       .single();
 
@@ -129,7 +129,7 @@ export async function getTeamsByManager(manager_id: string): Promise<Team[]> {
   try {
     const { data, error } = await supabase
       .from('teams')
-      .select('*')
+      .select('id, name, description, invite_code, created_by, team_type, is_active, created_at, updated_at')
       .eq('created_by', manager_id)
       .eq('is_active', true)
       .order('created_at', { ascending: false });
@@ -152,7 +152,7 @@ export async function getAllTeams(): Promise<Team[]> {
   try {
     const { data, error } = await supabase
       .from('teams')
-      .select('*')
+      .select('id, name, description, invite_code, created_by, team_type, is_active, created_at, updated_at')
       .eq('is_active', true)
       .order('created_at', { ascending: false });
 
@@ -176,7 +176,7 @@ export async function getTeamByInviteCode(invite_code: string): Promise<Team | n
     
     const { data, error } = await supabase
       .from('teams')
-      .select('*')
+      .select('id, name, description, invite_code, created_by, team_type, is_active, created_at, updated_at')
       .eq('invite_code', invite_code.toUpperCase().trim())  // Exact match for 6-digit codes
       .eq('is_active', true)
       .single();

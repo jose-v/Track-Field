@@ -16,7 +16,7 @@ export interface SignupData {
   firstName: string;
   lastName: string;
   phone: string;
-  profileImage?: string; // Base64 encoded profile image
+  profileImage?: string; // Avatar URL from Supabase Storage
   termsAccepted?: boolean; // Whether user accepted terms and conditions
   termsAcceptedAt?: string; // ISO timestamp of when terms were accepted
   emailValid?: boolean; // Whether email format is valid and available

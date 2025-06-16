@@ -130,6 +130,7 @@ function SignupContent() {
         firstName: signupData.firstName,
         lastName: signupData.lastName,
         phone: signupData.phone,
+        profileImage: signupData.profileImage, // Include avatar URL
       });
       
       if (error) {

@@ -28,7 +28,6 @@ export interface Workout {
   time?: string
   notes?: string
   created_at: string
-  updated_at?: string
   exercises?: Exercise[]
   location?: string
   template_type?: 'single' | 'weekly'
@@ -68,7 +67,7 @@ export const api = {
     async getAll(): Promise<Workout[]> {
       const { data, error } = await supabase
         .from('workouts')
-        .select('*')
+        .select('id, name, description, type, date, time, duration, location, created_at, user_id, created_by, is_template, template_type')
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -79,7 +78,7 @@ export const api = {
       if (!userId) return [];
       const { data, error } = await supabase
         .from('workouts')
-        .select('*')
+        .select('id, name, description, type, date, time, duration, location, created_at, user_id, created_by, is_template, template_type')
         .eq('user_id', userId)
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
@@ -200,7 +199,7 @@ export const api = {
       
       const { data, error } = await supabase
         .from('workouts')
-        .select('*')
+        .select('id, name, description, type, date, time, duration, location, created_at, updated_at, deleted_at, deleted_by, user_id, created_by')
         .eq('user_id', userId)
         .not('deleted_at', 'is', null)
         .order('deleted_at', { ascending: false });
@@ -717,7 +716,7 @@ export const api = {
 
           const queryPromise = supabase
             .from('profiles')
-            .select('*')
+            .select('id, email, first_name, last_name, role, avatar_url, phone, bio, address, city, state, country, zip_code, team, school, coach, created_at, updated_at')
             .eq('id', user.id)
             .single();
 
@@ -777,7 +776,7 @@ export const api = {
 
                   const athleteQueryPromise = supabase
                     .from('athletes')
-                    .select('*')
+                    .select('id, date_of_birth, gender, events, team_id, height, weight, year, major, emergency_contact_name, emergency_contact_phone, allergies, medications, injury_history')
                     .eq('id', user.id)
                     .maybeSingle();
 
@@ -807,7 +806,7 @@ export const api = {
 
                   const coachQueryPromise = supabase
                     .from('coaches')
-                    .select('*')
+                    .select('id, specialties, certifications, experience_years, coaching_philosophy, availability')
                     .eq('id', user.id)
                     .maybeSingle();
 
@@ -836,7 +835,7 @@ export const api = {
                   const managerQueryPromise = supabase
                     .from('team_members')
                     .select(`
-                      *,
+                      id, user_id, team_id, role, status, joined_at,
                       teams:team_id (
                         id, name, institution_name, institution_type
                       )
@@ -866,7 +865,13 @@ export const api = {
 
           // Return the complete profile with role data
           const completeProfile = { ...data, roleData };
-          console.log('✅ Returning complete profile:', completeProfile);
+          console.log('✅ API PROFILE GET - Returning complete profile:', {
+            id: completeProfile.id,
+            email: completeProfile.email,
+            role: completeProfile.role,
+            roleType: typeof completeProfile.role,
+            hasRoleData: !!completeProfile.roleData
+          });
           return completeProfile;
           
         } catch (err: any) {
@@ -928,7 +933,11 @@ export const api = {
       return data
     },
 
-    async update(profile: Partial<Profile>) {
+    async update(profile: Partial<Profile> & { isFallback?: boolean }) {
+      if (profile?.isFallback || (profile.first_name === 'User' && !profile.last_name)) {
+        console.warn('❌ Attempted to write fallback/placeholder profile to DB. Aborting write.', profile);
+        throw new Error('Refusing to overwrite real user data with fallback profile.');
+      }
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('No user found')
 
@@ -968,7 +977,11 @@ export const api = {
       return data
     },
 
-    async updateWithRoleData(profile: Partial<Profile>, roleData: any) {
+    async updateWithRoleData(profile: Partial<Profile> & { isFallback?: boolean }, roleData: any) {
+      if (profile?.isFallback || (profile.first_name === 'User' && !profile.last_name)) {
+        console.warn('❌ Attempted to write fallback/placeholder profile to DB. Aborting write.', profile);
+        throw new Error('Refusing to overwrite real user data with fallback profile.');
+      }
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('No user found')
 
@@ -995,8 +1008,8 @@ export const api = {
         if (userRole === 'athlete' && roleData) {
           console.log('Updating athlete data:', roleData);
           const athleteData = {
-            date_of_birth: roleData.date_of_birth,
-            gender: roleData.gender,
+            date_of_birth: roleData.date_of_birth || null, // Convert empty string to null
+            gender: roleData.gender || null, // Convert empty string to null
             events: roleData.events,
             team_id: roleData.team_id
           };
@@ -1100,6 +1113,10 @@ export const api = {
     },
 
     async upsert(profile: any) {
+      if (profile?.isFallback || (profile.first_name === 'User' && !profile.last_name)) {
+        console.warn('❌ Attempted to write fallback/placeholder profile to DB. Aborting write.', profile);
+        throw new Error('Refusing to overwrite real user data with fallback profile.');
+      }
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('No user found')
       
@@ -1239,8 +1256,8 @@ export const api = {
       
       // Ensure we have the correct data format
       const updateData = {
-        gender: athleteData.gender,
-        date_of_birth: athleteData.date_of_birth || athleteData.dob,
+        gender: athleteData.gender || null, // Convert empty string to null
+        date_of_birth: athleteData.date_of_birth || athleteData.dob || null, // Convert empty string to null
         events: Array.isArray(athleteData.events) ? athleteData.events : []
       };
       
@@ -1347,7 +1364,7 @@ export const api = {
     async getAll() {
       const { data, error } = await supabase
         .from('athletes_view')
-        .select('*')
+        .select('id, first_name, last_name, email, avatar_url, birth_date, gender, events, team_id')
       
       if (error) throw error
       return data
@@ -1356,7 +1373,7 @@ export const api = {
     async getById(id: string) {
       const { data, error } = await supabase
         .from('athletes_view')
-        .select('*')
+        .select('id, first_name, last_name, email, avatar_url, birth_date, gender, events, team_id, height, weight, year, major')
         .eq('id', id)
         .single()
       
@@ -1367,7 +1384,7 @@ export const api = {
     async getByTeam(teamId: string) {
       const { data, error } = await supabase
         .from('athletes_view')
-        .select('*')
+        .select('id, first_name, last_name, email, avatar_url, birth_date, gender, events, team_id')
         .eq('team_id', teamId)
       
       if (error) throw error
@@ -1418,7 +1435,7 @@ export const api = {
     async search(query: string) {
       const { data, error } = await supabase
         .from('athletes_view')
-        .select('*')
+        .select('id, first_name, last_name, email, avatar_url, birth_date, gender, events, team_id')
         .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,full_name.ilike.%${query}%`)
         .order('full_name')
       
@@ -1437,7 +1454,11 @@ export const api = {
       return data
     },
 
-    async create(profileData: Partial<Profile>, athleteData: Partial<Athlete>) {
+    async create(profileData: Partial<Profile> & { isFallback?: boolean }, athleteData: Partial<Athlete>) {
+      if (profileData?.isFallback || (profileData.first_name === 'User' && !profileData.last_name)) {
+        console.warn('❌ Attempted to write fallback/placeholder profile to DB. Aborting write.', profileData);
+        throw new Error('Refusing to overwrite real user data with fallback profile.');
+      }
       const profileId = crypto.randomUUID()
       const { error: profileError } = await supabase
         .from('profiles')
@@ -1480,7 +1501,7 @@ export const api = {
     async getAll() {
       const { data, error } = await supabase
         .from('coaches_view')
-        .select('*')
+        .select('id, first_name, last_name, email, avatar_url, specialties, certifications, experience_years')
       
       if (error) throw error
       return data
@@ -1489,7 +1510,7 @@ export const api = {
     async getById(id: string) {
       const { data, error } = await supabase
         .from('coaches_view')
-        .select('*')
+        .select('id, first_name, last_name, email, avatar_url, specialties, certifications, experience_years, coaching_philosophy')
         .eq('id', id)
         .single()
       
@@ -1500,7 +1521,7 @@ export const api = {
     async getWithAthletes(coachId: string) {
       const { data, error } = await supabase
         .from('coach_athletes_view')
-        .select('*')
+        .select('coach_id, coach_name, athlete_count, athletes')
         .eq('coach_id', coachId)
         .single()
       
@@ -1654,7 +1675,7 @@ export const api = {
     async getAll() {
       const { data, error } = await supabase
         .from('teams')
-        .select('*')
+        .select('id, name, description, institution_name, institution_type, invite_code, is_active, created_at')
       
       if (error) throw error
       return data
@@ -1663,7 +1684,7 @@ export const api = {
     async getById(id: string) {
       const { data, error } = await supabase
         .from('teams')
-        .select('*')
+        .select('id, name, description, institution_name, institution_type, address, city, state, zip_code, phone, website, logo_url, invite_code, is_active, created_at, updated_at')
         .eq('id', id)
         .single()
       
@@ -1674,7 +1695,7 @@ export const api = {
     async getWithAthletes(teamId: string) {
       const { data, error } = await supabase
         .from('team_athletes_view')
-        .select('*')
+        .select('team_id, team_name, athlete_count, athletes')
         .eq('team_id', teamId)
         .single()
       
@@ -1730,7 +1751,7 @@ export const api = {
     async getAll() {
       const { data, error } = await supabase
         .from('events')
-        .select('*')
+        .select('id, name, category, description, gender, unit')
         .order('name')
       
       if (error) throw error
@@ -1740,7 +1761,7 @@ export const api = {
     async getByCategory(category: string) {
       const { data, error } = await supabase
         .from('events')
-        .select('*')
+        .select('id, name, category, description, gender, unit')
         .eq('category', category)
         .order('name')
       
@@ -1753,7 +1774,7 @@ export const api = {
     async getByAthlete(athleteId: string) {
       const { data, error } = await supabase
         .from('athlete_records_view')
-        .select('*')
+        .select('id, athlete_id, event_name, record_value, record_date, record_type, notes')
         .eq('id', athleteId)
         .order('event_name, record_date')
       

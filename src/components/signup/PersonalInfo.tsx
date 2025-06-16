@@ -11,21 +11,26 @@ import {
   IconButton,
   Center,
   Text,
-  useColorModeValue
+  useColorModeValue,
+  useToast,
+  Spinner
 } from '@chakra-ui/react';
 import { FaCamera, FaTrash } from 'react-icons/fa';
 import { useSignup } from '../../contexts/SignupContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { uploadAvatar } from '../../utils/avatarStorage';
 
 export function PersonalInfo() {
   const { signupData, updateSignupData } = useSignup();
   const { user } = useAuth();
+  const toast = useToast();
   const [errors, setErrors] = useState({
     firstName: '',
     lastName: '',
     phone: ''
   });
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Dark mode adaptive colors
@@ -115,17 +120,54 @@ export function PersonalInfo() {
     fileInputRef.current?.click();
   };
   
-  // Handle file input change
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle file input change with proper storage upload
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const result = event.target?.result as string;
-        setProfileImage(result);
-        updateSignupData({ profileImage: result });
-      };
-      reader.readAsDataURL(file);
+    if (!file || !user?.id) return;
+
+    setUploading(true);
+
+    try {
+      // Upload to storage and get URL
+      const result = await uploadAvatar({ 
+        userId: user.id, 
+        file 
+      });
+
+      if (result.error) {
+        toast({
+          title: 'Upload Error',
+          description: result.error,
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      // Set the storage URL instead of base64
+      setProfileImage(result.url);
+      updateSignupData({ profileImage: result.url });
+
+      toast({
+        title: 'Success',
+        description: 'Profile picture uploaded successfully',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      toast({
+        title: 'Upload Error',
+        description: 'Failed to upload profile picture',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setUploading(false);
     }
   };
   
@@ -156,7 +198,7 @@ export function PersonalInfo() {
               {/* Camera icon button */}
               <IconButton
                 aria-label="Upload photo"
-                icon={<FaCamera />}
+                icon={uploading ? <Spinner size="xs" /> : <FaCamera />}
                 size="sm"
                 colorScheme="blue"
                 borderRadius="full"
@@ -164,6 +206,8 @@ export function PersonalInfo() {
                 bottom={0}
                 right={0}
                 onClick={handleImageSelect}
+                isLoading={uploading}
+                isDisabled={uploading}
               />
               
               {/* Remove image button */}

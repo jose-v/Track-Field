@@ -3,6 +3,8 @@ import {
   Box, Button, FormControl, FormLabel, Input, VStack, Avatar, Heading, HStack, Select, Spinner, useToast, Text, useColorModeValue
 } from '@chakra-ui/react';
 import { useProfile } from '../../hooks/useProfile';
+import { useAvatar } from '../../hooks/useAvatar';
+import { useAvatarLoader } from '../../hooks/useAvatarLoader';
 import ProfileCard from '../../components/ProfileCard';
 import { MobileHeader } from '../../components';
 
@@ -10,6 +12,8 @@ const genderOptions = ['male', 'female', 'other'];
 
 const AthleteProfile = () => {
   const { profile, isLoading, isError, error, updateProfile, isUpdatingProfile } = useProfile();
+  const { uploading, uploadAvatar } = useAvatar();
+  const { avatarUrl, loading: avatarLoading, refresh: refreshAvatar } = useAvatarLoader(profile?.id);
   const [form, setForm] = useState<any>({});
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
@@ -52,15 +56,24 @@ const AthleteProfile = () => {
 
   const handleAvatarClick = () => fileInputRef.current?.click();
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Show preview immediately for better UX
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) setAvatarPreview(event.target.result as string);
       };
       reader.readAsDataURL(file);
-      // TODO: Upload avatar to storage and update profile.avatar_url
+
+      // Upload to storage
+      const avatarUrl = await uploadAvatar(file);
+      if (avatarUrl) {
+        // Update the preview to the actual uploaded URL
+        setAvatarPreview(avatarUrl);
+        // Refresh the profile to load the new avatar
+        refreshAvatar();
+      }
     }
   };
 
@@ -83,8 +96,8 @@ const AthleteProfile = () => {
         bio: form.bio,
       },
       roleData: {
-        gender: form.gender,
-        date_of_birth: form.date_of_birth,
+        gender: form.gender || null, // Convert empty string to null
+        date_of_birth: form.date_of_birth || null, // Convert empty string to null
         events: form.events.split(',').map((e: string) => e.trim()).filter(Boolean),
       },
     });
@@ -143,20 +156,20 @@ const AthleteProfile = () => {
 
       <Box maxW="lg" mx="auto" mt={{ base: "20px", lg: 8 }}>
         {!editMode ? (
-          <ProfileCard
-            avatarUrl={avatarPreview || undefined}
-            bannerColor="#1976d2"
-            name={`${profile.first_name} ${profile.last_name}`}
-            role="Athlete"
-            stats={stats}
-            bio={profile.bio}
-            infoList={infoList}
-            onEdit={() => setEditMode(true)}
-            onAvatarEdit={handleAvatarClick}
-            onAction={() => {}}
-            editLabel="Edit Profile"
-            actionLabel="View Stats"
-          />
+                  <ProfileCard
+          avatarUrl={avatarUrl || undefined}
+          bannerColor="#1976d2"
+          name={`${profile.first_name} ${profile.last_name}`}
+          role="Athlete"
+          stats={stats}
+          bio={profile.bio}
+          infoList={infoList}
+          onEdit={() => setEditMode(true)}
+          onAvatarEdit={handleAvatarClick}
+          onAction={() => {}}
+          editLabel="Edit Profile"
+          actionLabel="View Stats"
+        />
         ) : (
           <Box p={6} borderWidth={1} borderRadius="lg" boxShadow="md" bg={cardBg} borderColor={borderColor}>
             <Heading size="lg" mb={6}>Edit Athlete Profile</Heading>
@@ -165,9 +178,22 @@ const AthleteProfile = () => {
                 <FormControl>
                   <FormLabel>Avatar</FormLabel>
                   <HStack>
-                    <Avatar size="xl" src={avatarPreview || undefined} name={`${form.first_name} ${form.last_name}`} onClick={handleAvatarClick} cursor="pointer" />
+                    <Avatar 
+                      size="xl" 
+                      src={avatarPreview || avatarUrl || undefined} 
+                      name={`${form.first_name} ${form.last_name}`} 
+                      onClick={handleAvatarClick} 
+                      cursor="pointer" 
+                    />
                     <input type="file" hidden ref={fileInputRef} accept="image/*" onChange={handleAvatarChange} />
-                    <Button onClick={handleAvatarClick} variant="outline">Change</Button>
+                    <Button 
+                      onClick={handleAvatarClick} 
+                      variant="outline"
+                      isLoading={uploading}
+                      loadingText="Uploading..."
+                    >
+                      Change
+                    </Button>
                   </HStack>
                 </FormControl>
                 <HStack spacing={4}>

@@ -9,6 +9,7 @@ export interface SignupData {
   firstName: string;
   lastName: string;
   phone?: string;
+  profileImage?: string; // Avatar URL from Supabase Storage
   termsAccepted?: boolean;
   termsAcceptedAt?: string;
 }
@@ -47,6 +48,7 @@ export async function signUp(data: SignupData): Promise<{ user: any; error: any 
       first_name: data.firstName,
       last_name: data.lastName,
       phone: data.phone,
+      avatar_url: data.profileImage, // Store avatar URL if provided
       role: data.role,
     };
 
@@ -246,10 +248,10 @@ export async function getCurrentUserProfile() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    // Get base profile
+    // Get base profile (excluding avatar_url to avoid large downloads by default)
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, email, first_name, last_name, role, phone, bio, created_at, updated_at')
       .eq('id', user.id)
       .single();
 
@@ -263,7 +265,7 @@ export async function getCurrentUserProfile() {
       case 'athlete':
         const { data: athleteData } = await supabase
           .from('athletes')
-          .select('*')
+          .select('id, date_of_birth, gender, events, team_id, height, weight, year, major')
           .eq('id', user.id)
           .single();
         roleData = athleteData;
@@ -272,7 +274,7 @@ export async function getCurrentUserProfile() {
       case 'coach':
         const { data: coachData } = await supabase
           .from('coaches')
-          .select('*')
+          .select('id, specialties, certifications, experience_years, coaching_philosophy, availability')
           .eq('id', user.id)
           .single();
         roleData = coachData;
@@ -283,7 +285,7 @@ export async function getCurrentUserProfile() {
         const { data: managerTeams } = await supabase
           .from('team_members')
           .select(`
-            *,
+            id, user_id, team_id, role, status, joined_at,
             teams:team_id (
               id, name, institution_name, institution_type
             )
@@ -299,6 +301,25 @@ export async function getCurrentUserProfile() {
   } catch (error) {
     console.error('Error getting user profile:', error);
     throw error;
+  }
+}
+
+/**
+ * Get avatar URL for a specific user (separate query to avoid loading large base64)
+ */
+export async function getUserAvatarUrl(userId: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('avatar_url')
+      .eq('id', userId)
+      .single();
+
+    if (error) throw error;
+    return data?.avatar_url || null;
+  } catch (error) {
+    console.error('Error getting user avatar:', error);
+    return null;
   }
 }
 
@@ -346,7 +367,7 @@ export async function handleOAuthUserProfile(user: any, role?: UserRole): Promis
     console.log('🔍 Checking if profile exists for user:', userId);
     const { data: existingProfile, error: profileCheckError } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, email, first_name, last_name, role, created_at')
       .eq('id', userId)
       .single();
     
@@ -373,10 +394,15 @@ export async function handleOAuthUserProfile(user: any, role?: UserRole): Promis
         last_name: lastName,
       };
       
-      // Only set role if we're not in signup context AND we have a role
-      if (!isSignupContext && role) {
-        profileData.role = role;
+      // CRITICAL FIX: Always require a role - never create NULL role profiles
+      if (!role) {
+        console.log('🚨 No role provided - profile creation requires role');
+        // Instead of creating an incomplete profile, return and let the app handle role selection
+        return { error: null };
       }
+      
+      // Set the role if provided
+      profileData.role = role;
 
       console.log('🔍 Profile data to upsert:', profileData);
 

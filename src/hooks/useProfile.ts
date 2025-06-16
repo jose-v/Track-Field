@@ -112,7 +112,8 @@ export function useProfile() {
       last_name: lastName,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      roleData: null
+      roleData: null,
+      isFallback: true // Mark this as a fallback profile
     };
 
     console.log(`🚨 Generated fallback profile:`, fallbackProfile);
@@ -180,10 +181,10 @@ export function useProfile() {
       return false;
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
-    staleTime: 10 * 60 * 1000, // Increased stale time to 10 minutes
-    gcTime: 30 * 60 * 1000, // Increased garbage collection time to 30 minutes
-    refetchOnWindowFocus: false, // Prevent unnecessary refetches
-    refetchOnMount: false, // Don't refetch on mount if we have cached data
+    staleTime: 30 * 1000, // Reduced to 30 seconds for testing
+    gcTime: 5 * 60 * 1000, // Reduced to 5 minutes  
+    refetchOnWindowFocus: true, // Enable refetch to pick up role changes
+    refetchOnMount: true, // Enable refetch on mount to get fresh data
   })
 
   // Increase timeout for loading state fallback

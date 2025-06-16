@@ -1,7 +1,7 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useProfile } from '../hooks/useProfile'
-import { LoadingSpinner } from './LoadingSpinner'
+import { LoadingSpinner } from '../components/LoadingSpinner'
 import { UserRole } from '../contexts/SignupContext'
 
 interface RoleProtectedRouteProps {
@@ -17,6 +17,32 @@ export function RoleProtectedRoute({
 }: RoleProtectedRouteProps) {
   const { user, loading: authLoading } = useAuth()
   const { profile, isLoading: profileLoading } = useProfile()
+
+  // DEBUG: Log all the data we're working with
+  console.log('🔍 RoleProtectedRoute Debug:', {
+    allowedRoles,
+    currentPath: window.location.pathname,
+    user: user ? { id: user.id, email: user.email } : null,
+    profile: profile ? { 
+      id: profile.id, 
+      email: profile.email, 
+      role: profile.role,
+      roleType: typeof profile.role 
+    } : null,
+    authLoading,
+    profileLoading,
+    userEmailConfirmed: user?.email_confirmed_at ? 'YES' : 'NO'
+  });
+
+  // Explicit type-safe check
+  if (profile && profile.role) {
+    console.log('🔍 RoleProtectedRoute Role Check:', {
+      allowedRoles,
+      actualRole: profile.role,
+      type: typeof profile.role,
+      includes: allowedRoles.includes(profile.role)
+    });
+  }
 
   // Show loading while authentication or profile is loading
   if (authLoading || profileLoading) {
@@ -35,7 +61,13 @@ export function RoleProtectedRoute({
 
   // If profile doesn't exist or doesn't have a role, redirect to signup completion
   if (!profile || !profile.role) {
-    return <Navigate to="/signup" />
+    // If profile exists but no role, redirect to dashboard to trigger auto-fix
+    if (profile && !profile.role) {
+      console.log('🔧 RoleProtectedRoute: Profile has no role, redirecting to dashboard for auto-fix');
+      return <Navigate to="/dashboard" />;
+    }
+    // If no profile at all, redirect to signup
+    return <Navigate to="/signup" />;
   }
 
   // Check if user's role is allowed for this route

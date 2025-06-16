@@ -119,31 +119,31 @@ export function useSettings() {
       /* TODO: Replace with real Supabase calls when database is ready
       const { data: settingsData, error: settingsError } = await supabase
         .from('user_settings')
-        .select('*')
+        .select('id, user_id, theme, language, timezone, date_format, time_format, units, created_at, updated_at')
         .eq('user_id', user.id)
         .single();
 
       const { data: notificationsData, error: notificationsError } = await supabase
         .from('notification_preferences')
-        .select('*')
+        .select('id, user_id, email_notifications, push_notifications, workout_reminders, assignment_notifications, created_at, updated_at')
         .eq('user_id', user.id)
         .single();
 
       const { data: privacyData, error: privacyError } = await supabase
         .from('privacy_settings')
-        .select('*')
+        .select('id, user_id, profile_visibility, workout_visibility, performance_visibility, created_at, updated_at')
         .eq('user_id', user.id)
         .single();
 
       const { data: emergencyData, error: emergencyError } = await supabase
         .from('emergency_contacts')
-        .select('*')
+        .select('id, user_id, name, relationship, phone, email, is_primary, created_at, updated_at')
         .eq('user_id', user.id)
         .order('is_primary', { ascending: false });
 
       const { data: medicalData, error: medicalError } = await supabase
         .from('medical_information')
-        .select('*')
+        .select('id, user_id, allergies, medications, medical_conditions, emergency_medical_info, created_at, updated_at')
         .eq('user_id', user.id)
         .single();
 

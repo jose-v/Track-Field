@@ -17,6 +17,8 @@ import { FaRunning, FaChalkboardTeacher, FaUsers } from 'react-icons/fa';
 import { useProfile } from '../hooks/useProfile';
 import { useNavigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
+import { supabase } from '../lib/supabase';
+import { useQueryClient } from '@tanstack/react-query';
 
 type UserRole = 'athlete' | 'coach' | 'team_manager';
 
@@ -80,6 +82,7 @@ export default function RoleSelectionPage() {
   const { profile, updateProfile } = useProfile();
   const navigate = useNavigate();
   const toast = useToast();
+  const queryClient = useQueryClient();
   
   // Dark mode adaptive colors
   const headingColor = useColorModeValue('gray.800', 'gray.100');
@@ -95,10 +98,66 @@ export default function RoleSelectionPage() {
     
     setIsUpdating(true);
     try {
-      await updateProfile({
-        profile: { ...profile, role: selectedRole },
-        roleData: {} // Empty role data for now
-      });
+      console.log('🔄 Starting role update for:', selectedRole);
+      console.log('🔄 Current profile:', profile);
+      
+      // Use direct database update instead of complex updateProfile
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+      
+      console.log('🔄 Updating role directly in database...');
+      const { data: updatedProfile, error: roleUpdateError } = await supabase
+        .from('profiles')
+        .update({ 
+          role: selectedRole,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+        .select()
+        .single();
+      
+      if (roleUpdateError) {
+        console.error('❌ Direct role update failed:', roleUpdateError);
+        throw new Error(`Failed to update role: ${roleUpdateError.message}`);
+      }
+      
+      console.log('✅ Role updated successfully:', updatedProfile);
+      
+      // Create role-specific profile entry
+      console.log('🔄 Creating role-specific profile...');
+      switch (selectedRole) {
+        case 'athlete':
+          const { error: athleteError } = await supabase
+            .from('athletes')
+            .upsert([{
+              id: user.id,
+              birth_date: null,
+              gender: null,
+              events: [],
+              team_id: null
+            }], { onConflict: 'id' });
+          if (athleteError) console.warn('Athlete profile creation warning:', athleteError);
+          break;
+          
+        case 'coach':
+          const { error: coachError } = await supabase
+            .from('coaches')
+            .upsert([{
+              id: user.id,
+              specialties: [],
+              certifications: []
+            }], { onConflict: 'id' });
+          if (coachError) console.warn('Coach profile creation warning:', coachError);
+          break;
+          
+        case 'team_manager':
+          // Team managers use unified system - no additional table needed
+          console.log('Team manager role set - no additional profile needed');
+          break;
+      }
+      
+      // Clear any cached profile data
+      await queryClient.invalidateQueries({ queryKey: ['profile'] });
       
       toast({
         title: 'Role Updated',
@@ -107,6 +166,9 @@ export default function RoleSelectionPage() {
         duration: 3000,
         isClosable: true,
       });
+      
+      // Add small delay to ensure database consistency
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Navigate to the appropriate dashboard
       switch (selectedRole) {
@@ -122,13 +184,13 @@ export default function RoleSelectionPage() {
         default:
           navigate('/dashboard');
       }
-    } catch (error) {
-      console.error('Error updating role:', error);
+    } catch (error: any) {
+      console.error('❌ Role update error:', error);
       toast({
         title: 'Error',
-        description: 'Failed to update your role. Please try again.',
+        description: `Failed to update your role: ${error.message}. Please try again.`,
         status: 'error',
-        duration: 5000,
+        duration: 8000,
         isClosable: true,
       });
     } finally {
