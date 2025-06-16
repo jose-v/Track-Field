@@ -199,7 +199,7 @@ export const api = {
       
       const { data, error } = await supabase
         .from('workouts')
-        .select('id, name, description, type, date, time, duration, location, created_at, updated_at, deleted_at, deleted_by, user_id, created_by')
+        .select('id, name, description, type, date, time, duration, location, created_at, deleted_at, deleted_by, user_id, created_by')
         .eq('user_id', userId)
         .not('deleted_at', 'is', null)
         .order('deleted_at', { ascending: false });
@@ -765,8 +765,6 @@ export const api = {
           // Fetch role-specific data if profile has a role
           let roleData = null
           if (data.role) {
-            console.log(`Fetching role-specific data for role: ${data.role}`)
-            
             switch (data.role) {
               case 'athlete': {
                 try {
@@ -776,7 +774,7 @@ export const api = {
 
                   const athleteQueryPromise = supabase
                     .from('athletes')
-                    .select('id, date_of_birth, gender, events, team_id, height, weight, year, major, emergency_contact_name, emergency_contact_phone, allergies, medications, injury_history')
+                    .select('id, date_of_birth, gender, events, team_id, weight_kg, first_name, last_name, created_at')
                     .eq('id', user.id)
                     .maybeSingle();
 
@@ -787,7 +785,6 @@ export const api = {
                   
                   if (!athleteError && athleteData) {
                     roleData = athleteData;
-                    console.log('✅ Found athlete role data:', athleteData);
                   } else if (athleteError) {
                     // Only log as warning, don't fail the entire profile fetch
                     console.warn('Athlete data fetch warning (continuing without role data):', athleteError.message);
@@ -806,7 +803,7 @@ export const api = {
 
                   const coachQueryPromise = supabase
                     .from('coaches')
-                    .select('id, specialties, certifications, experience_years, coaching_philosophy, availability')
+                    .select('id, gender, date_of_birth, events, specialties, certifications')
                     .eq('id', user.id)
                     .maybeSingle();
 
@@ -815,11 +812,16 @@ export const api = {
                     coachTimeoutPromise
                   ]) as any;
                   
-                  if (!coachError && coachData) {
-                    roleData = coachData;
-                    console.log('✅ Found coach role data:', coachData);
-                  } else if (coachError) {
-                    console.warn('Coach data fetch warning:', coachError.message);
+                  if (coachError && coachError.code !== 'PGRST116') {
+                    console.error('Error fetching coach data:', coachError)
+                  } else if (coachData) {
+                    roleData = {
+                      gender: coachData.gender,
+                      date_of_birth: coachData.date_of_birth,
+                      events: coachData.events,
+                      specialties: coachData.specialties,
+                      certifications: coachData.certifications
+                    }
                   }
                 } catch (coachErr) {
                   console.warn('Coach data fetch failed, continuing without roleData:', coachErr);
@@ -851,7 +853,6 @@ export const api = {
                   
                   if (!managerError && managerData) {
                     roleData = { teams: managerData || [] };
-                    console.log('✅ Found team manager role data:', managerData);
                   } else if (managerError) {
                     console.warn('Team manager data fetch warning:', managerError.message);
                   }
@@ -865,13 +866,6 @@ export const api = {
 
           // Return the complete profile with role data
           const completeProfile = { ...data, roleData };
-          console.log('✅ API PROFILE GET - Returning complete profile:', {
-            id: completeProfile.id,
-            email: completeProfile.email,
-            role: completeProfile.role,
-            roleType: typeof completeProfile.role,
-            hasRoleData: !!completeProfile.roleData
-          });
           return completeProfile;
           
         } catch (err: any) {
@@ -985,127 +979,105 @@ export const api = {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('No user found')
 
-      console.log('=========== API SERVICE: updateWithRoleData ===========');
-      console.log('Starting updateWithRoleData with profile:', profile);
-      console.log('Role data to update:', roleData);
-      console.log('Role data fields check:', {
-        type: typeof roleData,
-        hasGender: roleData?.gender !== undefined,
-        hasBirthDate: roleData?.date_of_birth !== undefined,
-        hasEvents: roleData?.events !== undefined,
-        eventsIsArray: Array.isArray(roleData?.events)
-      });
-
       try {
         // First update the basic profile
         const profileData = await this.update(profile)
-        console.log('Basic profile updated. Now updating role-specific data');
 
         // Use the role from the passed profile or the updated profile data instead of making another DB call
-        const userRole = profile.role || profileData.role
-        console.log('User role detected as:', userRole);
+        const userRole = profile.role || profileData.role;
         
         if (userRole === 'athlete' && roleData) {
-          console.log('Updating athlete data:', roleData);
           const athleteData = {
             date_of_birth: roleData.date_of_birth || null, // Convert empty string to null
             gender: roleData.gender || null, // Convert empty string to null
             events: roleData.events,
-            team_id: roleData.team_id
+            team_id: roleData.team_id || null
           };
           
           // Make sure events is an array
           if (!Array.isArray(athleteData.events)) {
-            console.warn('Events is not an array - fixing:', athleteData.events);
             athleteData.events = athleteData.events ? [athleteData.events] : [];
           }
           
-          console.log('Final athlete data to update:', athleteData);
-          
-          const { data, error } = await supabase
+          // First check if athlete record exists
+          const { data: existingAthlete, error: checkError } = await supabase
             .from('athletes')
-            .update(athleteData)
-            .eq('id', user.id)
-          
-          if (error) {
-            console.error('Error updating athlete data:', error);
-            throw error;
-          }
-          
-          console.log('Athlete data updated successfully', data);
-        }
-        else if (userRole === 'coach' && roleData) {
-          console.log('Updating coach data:', roleData);
-          
-          // Check if coach record exists first
-          console.log('Checking if coach record exists for ID:', user.id);
-          const { data: coachCheck, error: coachCheckError } = await supabase
-            .from('coaches')
             .select('id')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
+          
+          if (!existingAthlete && !checkError) {
+            const { data: insertData, error: insertError } = await supabase
+              .from('athletes')
+              .insert([{ id: user.id, ...athleteData }])
+              .select();
             
-          if (coachCheckError) {
-            console.error('Error checking coach record:', coachCheckError);
-            if (coachCheckError.code === 'PGRST116') {
-              console.log('Coach record not found - attempting to create one');
-              const { data: insertData, error: insertError } = await supabase
-                .from('coaches')
-                .insert({
-                  id: user.id,
-                  specialties: [],
-                  certifications: [],
-                  gender: null,
-                  date_of_birth: null,
-                  events: []
-                });
-                
-              if (insertError) {
-                console.error('Error creating coach record:', insertError);
-                throw new Error('Failed to create coach record: ' + insertError.message);
-              }
-              console.log('Created coach record');
+            if (insertError) {
+              console.error('Error creating athlete record:', insertError);
+              throw insertError;
             }
           } else {
-            console.log('Coach record exists:', coachCheck);
+            const { data: updateData, error: updateError } = await supabase
+              .from('athletes')
+              .update(athleteData)
+              .eq('id', user.id)
+              .select();
+            
+            if (updateError) {
+              console.error('Error updating athlete data:', updateError);
+              throw updateError;
+            }
           }
-          
-          // Prepare coach data with explicit type checking
-          const updateData = {
-            gender: roleData.gender,
-            date_of_birth: roleData.date_of_birth || roleData.dob,
-            events: Array.isArray(roleData.events) ? roleData.events : [],
-            specialties: Array.isArray(roleData.specialties) ? roleData.specialties : [],
-            certifications: Array.isArray(roleData.certifications) ? roleData.certifications : []
-          };
-          console.log('Final coach updateData payload:', updateData);
-          
-          // Update the coach record
-          const { data, error } = await supabase
+        }
+        else if (userRole === 'coach' && roleData) {
+          const coachData = {
+            date_of_birth: roleData.date_of_birth || null, // Convert empty string to null
+            gender: roleData.gender || null, // Convert empty string to null
+            events: roleData.events || null,
+            specialties: roleData.specialties || null,
+            certifications: roleData.certifications || null,
+          }
+
+          const { data: updateResult, error: updateError } = await supabase
             .from('coaches')
-            .update(updateData)
+            .update(coachData)
             .eq('id', user.id)
-          
-          if (error) {
-            console.error('Error updating coach data:', error);
-            console.error('SQL error details:', error.details, error.hint, error.code);
-            throw error;
+            .select()
+
+          if (updateError) {
+            throw updateError
           }
-          
-          console.log('Coach data updated successfully', data);
+
+          // Verify the data was saved by querying it back
+          const { data: verifyData, error: verifyError } = await supabase
+            .from('coaches')
+            .select('*')
+            .eq('id', user.id)
+            .single()
+
+          if (verifyError) {
+            console.warn('Could not verify coach data save:', verifyError)
+          }
         }
         else if (userRole === 'team_manager' && roleData) {
-          console.log('Team manager data update - using unified system:', roleData);
           // Team managers now use unified teams + team_members system
           // Their data is stored in teams table institutional fields
           // No separate team_managers table updates needed
-          console.log('Team manager data handled through unified system');
         }
 
-        // Fetch updated profile with role data
-        console.log('Getting updated profile with role data');
-        const updatedRoleData = userRole && roleData ? roleData : null;
-        return { ...profileData, roleData: updatedRoleData }
+        // Fetch updated profile with role data from database
+        console.log('Fetching complete updated profile with role data from database');
+        const updatedProfile = await this.get();
+        console.log('Successfully fetched updated profile:', updatedProfile);
+        console.log('Updated profile roleData check:', {
+          hasRoleData: !!updatedProfile?.roleData,
+          roleDataType: typeof updatedProfile?.roleData,
+          roleDataKeys: updatedProfile?.roleData ? Object.keys(updatedProfile.roleData) : [],
+          gender: updatedProfile?.roleData?.gender,
+          dateOfBirth: updatedProfile?.roleData?.date_of_birth,
+          events: updatedProfile?.roleData?.events
+        });
+        return updatedProfile;
       } catch (err) {
         console.error('Error in updateWithRoleData:', err);
         throw err;

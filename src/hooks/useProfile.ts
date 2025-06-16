@@ -15,9 +15,6 @@ export function useProfile() {
 
   // Create a comprehensive fallback profile creator - only use when database is truly unavailable
   const createFallbackProfile = (reason: string) => {
-    console.log(`🚨 Creating fallback profile - Reason: ${reason}`);
-    console.log('🔍 This should only happen when database is completely unavailable');
-    
     if (process.env.NODE_ENV === 'development') {
       console.log('🔍 Available auth user data:', {
         id: auth.user?.id,
@@ -41,14 +38,6 @@ export function useProfile() {
       const sessionName = (auth.user as any)?.name;
       const userMetadataName = auth.user.user_metadata?.name || auth.user.user_metadata?.full_name;
       const identityName = auth.user.identities?.[0]?.identity_data?.name || auth.user.identities?.[0]?.identity_data?.full_name;
-      
-      console.log('🔍 Name detection sources:', {
-        sessionName,
-        userMetadataName,
-        identityName,
-        firstName: auth.user.user_metadata?.first_name,
-        lastName: auth.user.user_metadata?.last_name,
-      });
       
       // Try multiple sources for first name with priority on actual names over metadata
       firstName = auth.user.user_metadata?.first_name || 
@@ -116,7 +105,6 @@ export function useProfile() {
       isFallback: true // Mark this as a fallback profile
     };
 
-    console.log(`🚨 Generated fallback profile:`, fallbackProfile);
     return fallbackProfile;
   };
 
@@ -128,8 +116,6 @@ export function useProfile() {
       }
       
       try {
-        console.log(`useProfile: Fetching profile for user ${auth.user.id}`)
-        
         // Increase timeout for better reliability
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => reject(new Error('API timeout after 15 seconds')), 15000);
@@ -139,7 +125,6 @@ export function useProfile() {
         
         const profile = await Promise.race([apiPromise, timeoutPromise]);
         
-        console.log('✅ Successfully fetched profile from database:', profile);
         return profile;
         
       } catch (error: any) {
@@ -154,12 +139,10 @@ export function useProfile() {
             error.message?.includes('Failed to fetch') ||
             error.message?.includes('NetworkError') ||
             error.message?.includes('connection')) {
-          console.warn('🚨 Database connectivity issue detected, using fallback');
           return createFallbackProfile(`Database connectivity error: ${error.message}`);
         }
         
         if (error.message === 'Profile not found' || error.status === 404) {
-          console.warn('🚨 Profile not found in database, using fallback');
           return createFallbackProfile('Profile not found - creating temporary profile');
         }
         
@@ -174,7 +157,6 @@ export function useProfile() {
         if (error?.message?.includes('timeout') || 
             error?.message?.includes('Failed to fetch') ||
             error?.message?.includes('NetworkError')) {
-          console.log(`Retrying profile fetch (attempt ${failureCount + 1}/3)`);
           return true;
         }
       }
@@ -191,7 +173,6 @@ export function useProfile() {
   useEffect(() => {
     if (auth.user && !auth.loading && profileQuery.isLoading && !profileQuery.data && !timeoutFallback) {
       const timer = setTimeout(() => {
-        console.warn('🚨 useProfile: Query stuck loading for 10 seconds, creating timeout fallback');
         const fallback = createFallbackProfile('Query loading timeout after 10 seconds');
         setTimeoutFallback(fallback);
       }, 10000); // Increased from 3 to 10 seconds
@@ -206,7 +187,6 @@ export function useProfile() {
   // Clear timeout fallback when real data is available
   useEffect(() => {
     if (profileQuery.data && timeoutFallback) {
-      console.log('🔄 Real profile data received, clearing timeout fallback');
       setTimeoutFallback(null);
     }
   }, [profileQuery.data, timeoutFallback]);
@@ -214,15 +194,7 @@ export function useProfile() {
   // Add timeout for loading states to prevent infinite loading
   useEffect(() => {
     if (auth.loading || (!!auth.user && profileQuery.isLoading && !timeoutFallback)) {
-      console.log('Profile loading state:', { 
-        authLoading: auth.loading, 
-        hasUser: !!auth.user, 
-        profileQueryLoading: profileQuery.isLoading,
-        hasTimeoutFallback: !!timeoutFallback
-      });
-      
       const timer = setTimeout(() => {
-        console.warn('Profile loading taking too long, this may indicate an issue');
         setLoadingTimeout(true)
       }, 15000); // Increased from 10 to 15 seconds
       
@@ -241,81 +213,39 @@ export function useProfile() {
 
   const updateProfile = useMutation<any, Error, UpdateProfileVariables>({ 
     mutationFn: async (variables: UpdateProfileVariables) => {
-      // Log the variables being sent to ensure proper data flow
-      console.log('======== UPDATE PROFILE MUTATION START ========');
-      console.log('Update profile variables:', variables);
-      console.log('Role data type check:', {
-        type: typeof variables.roleData,
-        isNull: variables.roleData === null,
-        isUndefined: variables.roleData === undefined,
-        hasGender: variables.roleData?.gender !== undefined,
-        hasBirthDate: variables.roleData?.date_of_birth !== undefined,
-        hasEvents: variables.roleData?.events !== undefined,
-        eventsIsArray: Array.isArray(variables.roleData?.events)
-      });
-      
-      // For coach profiles, check the data more thoroughly
-      if (variables.profile.role === 'coach') {
-        console.log('COACH PROFILE UPDATE DETAILS:');
-        console.log('- Gender:', variables.roleData?.gender);
-        console.log('- Birth date:', variables.roleData?.date_of_birth);
-        console.log('- Events:', variables.roleData?.events);
-        
-        // Force fix any issues with events data
-        if (variables.roleData && !Array.isArray(variables.roleData.events)) {
-          console.warn('Fixing events array for coach data');
-          variables.roleData.events = variables.roleData.events ? [variables.roleData.events] : [];
+      // Clean up roleData before sending
+      if (variables.roleData) {
+        // Fix events array if it's not an array
+        if (variables.roleData.events && !Array.isArray(variables.roleData.events)) {
+          if (typeof variables.roleData.events === 'string') {
+            variables.roleData.events = variables.roleData.events.split(',').map((e: string) => e.trim()).filter(Boolean);
+          } else {
+            variables.roleData.events = [variables.roleData.events];
+          }
         }
         
-        // Force fix empty gender
-        if (variables.roleData && !variables.roleData.gender) {
-          console.warn('Gender is empty in coach data, using default');
-          variables.roleData.gender = 'male'; // Default to male if not set
-        }
+        // Convert empty strings to null for proper database storage
+        if (variables.roleData.gender === '') variables.roleData.gender = null;
+        if (variables.roleData.date_of_birth === '') variables.roleData.date_of_birth = null;
       }
       
       try {
-        // Ensure api.profile.updateWithRoleData exists and is the correct function to call.
-        if (typeof api.profile.updateWithRoleData === 'function') {
-          console.log('Using updateWithRoleData with profile and role data');
-          return await api.profile.updateWithRoleData(variables.profile, variables.roleData);
-        } else {
-          // Fallback or error if the specific update function isn't appropriate/available
-          console.warn('api.profile.updateWithRoleData not found or not used, falling back to api.profile.update');
-          return await api.profile.update(variables.profile);
-        }
+        // Always use updateWithRoleData for better consistency
+        return await api.profile.updateWithRoleData(variables.profile, variables.roleData);
       } catch (error) {
         console.error('Mutation error in updateProfile:', error);
-        // If normal update fails, try the direct method for coaches
-        if (variables.profile.role === 'coach' && variables.roleData) {
-          console.log('Normal update failed, trying direct coach update method...');
-          try {
-            const directResult = await api.profile.updateCoachDirectly(
-              variables.profile.id || '',
-              variables.roleData
-            );
-            console.log('Direct coach update successful:', directResult);
-            return directResult;
-          } catch (directError) {
-            console.error('Direct coach update also failed:', directError);
-            throw directError;
-          }
-        } else {
-          throw error;
-        }
+        throw error;
       }
     }, 
-    onSuccess: (data, variables) => {
-      console.log('Profile update successful:', data);
-      queryClient.invalidateQueries({ queryKey: ['profile', auth.user?.id] })
-      queryClient.setQueryData(['profile', auth.user?.id], data)
+    onSuccess: (updatedProfile) => {
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      
       toast({
-        title: 'Success',
-        description: 'Profile updated successfully',
+        title: 'Profile updated successfully',
         status: 'success',
         duration: 3000,
         isClosable: true,
-      })
+      });
     },
     onError: (error) => {
       console.error('Profile update error:', error);
@@ -328,18 +258,6 @@ export function useProfile() {
       })
     },
   })
-
-  // Reduced debugging - only log critical issues
-  if (process.env.NODE_ENV === 'development' && effectiveProfile && effectiveProfile.role === null) {
-    console.warn('🚨 useProfile: Profile found but role is NULL - this will cause routing issues');
-    console.log('Profile details:', {
-      id: effectiveProfile.id,
-      email: effectiveProfile.email,
-      first_name: effectiveProfile.first_name,
-      last_name: effectiveProfile.last_name,
-      role: effectiveProfile.role
-    });
-  }
 
   return {
     profile: effectiveProfile,

@@ -162,7 +162,7 @@ export async function createExerciseWithSharing(
   };
 
   if (process.env.NODE_ENV === 'development') {
-    console.log('🔍 Creating exercise with data:', insertData);
+    
   }
 
   const { data, error } = await supabase

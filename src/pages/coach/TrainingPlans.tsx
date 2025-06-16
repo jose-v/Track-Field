@@ -274,6 +274,14 @@ export function CoachTrainingPlans() {
     fetchAssignments();
   }, [JSON.stringify(workoutIds)]);
 
+  // Load deleted items when user navigates to deleted tab
+  useEffect(() => {
+    if (activeItem === 'deleted' && user?.id) {
+      console.log('🗑️ User navigated to deleted tab, loading deleted items...');
+      loadDeletedPlans();
+    }
+  }, [activeItem, user?.id]);
+
   // Listen for main sidebar toggle events
   useEffect(() => {
     const handleSidebarToggle = (event: CustomEvent) => {
@@ -530,16 +538,23 @@ export function CoachTrainingPlans() {
     if (!user?.id) return;
 
     try {
+      console.log('🗑️ Loading deleted items for coach:', user.id);
       setDeletedLoading(true);
       
       // Load deleted workouts and monthly plans in parallel
+      console.log('🗑️ Fetching deleted workouts and plans...');
       const [deletedWorkoutsData, deletedPlansData] = await Promise.all([
         api.workouts.getDeleted(user.id),
         api.monthlyPlans.getDeleted(user.id)
       ]);
       
+      console.log('🗑️ Deleted workouts received:', deletedWorkoutsData);
+      console.log('🗑️ Deleted plans received:', deletedPlansData);
+      
       setDeletedWorkouts(deletedWorkoutsData);
       setDeletedMonthlyPlans(deletedPlansData);
+      
+      console.log('🗑️ State updated - deleted workouts:', deletedWorkoutsData.length, 'deleted plans:', deletedPlansData.length);
     } catch (error) {
       console.error('Error loading deleted items:', error);
       toast({

@@ -28,13 +28,22 @@ const CoachProfile = () => {
 
   React.useEffect(() => {
     if (profile) {
-      setForm({
+      // Format date properly for HTML date input (YYYY-MM-DD)
+      let formattedDate = '';
+      if (profile.roleData?.date_of_birth) {
+        const date = new Date(profile.roleData.date_of_birth);
+        if (!isNaN(date.getTime())) {
+          formattedDate = date.toISOString().split('T')[0];
+        }
+      }
+
+      const formData = {
         first_name: profile.first_name || '',
         last_name: profile.last_name || '',
         email: profile.email || '',
         phone: profile.phone || '',
         gender: profile.roleData?.gender || '',
-        date_of_birth: profile.roleData?.date_of_birth || '',
+        date_of_birth: formattedDate,
         team: profile.team || '',
         events: profile.roleData?.events?.join(', ') || '',
         address: profile.address || '',
@@ -42,10 +51,12 @@ const CoachProfile = () => {
         state: profile.state || '',
         zip_code: profile.zip_code || '',
         bio: profile.bio || '',
-      });
+      };
+      
+      setForm(formData);
       setAvatarPreview(avatarUrl || null);
     }
-      }, [profile, avatarUrl]);
+  }, [profile, avatarUrl]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -78,6 +89,7 @@ const CoachProfile = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile) return;
+    
     updateProfile({
       profile: {
         id: profile.id,
@@ -85,7 +97,7 @@ const CoachProfile = () => {
         last_name: form.last_name,
         email: form.email,
         phone: form.phone,
-        avatar_url: profile.avatar_url, // TODO: update if avatar changed
+        avatar_url: avatarUrl || profile.avatar_url, // Use current avatar URL
         role: 'coach',
         team: form.team,
         address: form.address,

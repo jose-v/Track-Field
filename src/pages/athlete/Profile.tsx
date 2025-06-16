@@ -31,20 +31,31 @@ const AthleteProfile = () => {
 
   React.useEffect(() => {
     if (profile) {
-      setForm({
+      // Format date properly for HTML date input (YYYY-MM-DD)
+      let formattedDate = '';
+      if (profile.roleData?.date_of_birth) {
+        const date = new Date(profile.roleData.date_of_birth);
+        if (!isNaN(date.getTime())) {
+          formattedDate = date.toISOString().split('T')[0];
+        }
+      }
+
+      const formData = {
         first_name: profile.first_name || '',
         last_name: profile.last_name || '',
         email: profile.email || '',
         phone: profile.phone || '',
         gender: profile.roleData?.gender || '',
-        date_of_birth: profile.roleData?.date_of_birth || '',
+        date_of_birth: formattedDate,
         events: profile.roleData?.events?.join(', ') || '',
         address: profile.address || '',
         city: profile.city || '',
         state: profile.state || '',
         zip_code: profile.zip_code || '',
         bio: profile.bio || '',
-      });
+      };
+      
+      setForm(formData);
       setAvatarPreview(profile.avatar_url || null);
     }
   }, [profile]);
@@ -80,27 +91,27 @@ const AthleteProfile = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile) return;
-    updateProfile({
-      profile: {
-        id: profile.id,
-        first_name: form.first_name,
-        last_name: form.last_name,
-        email: form.email,
-        phone: form.phone,
-        avatar_url: profile.avatar_url, // TODO: update if avatar changed
-        role: 'athlete',
-        address: form.address,
-        city: form.city,
-        state: form.state,
-        zip_code: form.zip_code,
-        bio: form.bio,
-      },
-      roleData: {
-        gender: form.gender || null, // Convert empty string to null
-        date_of_birth: form.date_of_birth || null, // Convert empty string to null
-        events: form.events.split(',').map((e: string) => e.trim()).filter(Boolean),
-      },
-    });
+          updateProfile({
+        profile: {
+          id: profile.id,
+          first_name: form.first_name,
+          last_name: form.last_name,
+          email: form.email,
+          phone: form.phone,
+          avatar_url: avatarUrl || profile.avatar_url, // Use current avatar URL
+          role: 'athlete',
+          address: form.address,
+          city: form.city,
+          state: form.state,
+          zip_code: form.zip_code,
+          bio: form.bio,
+        },
+        roleData: {
+          gender: form.gender || null, // Convert empty string to null
+          date_of_birth: form.date_of_birth || null, // Convert empty string to null
+          events: form.events.split(',').map((e: string) => e.trim()).filter(Boolean),
+        },
+      });
     setEditMode(false);
   };
 
