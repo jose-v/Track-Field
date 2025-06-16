@@ -132,6 +132,9 @@ export function AthleteWorkouts() {
   const [customExercises, setCustomExercises] = useState<LibraryExercise[]>([]);
   const [exercisesLoading, setExercisesLoading] = useState(false);
 
+  // State for user teams
+  const [userTeams, setUserTeams] = useState<Array<{ id: string; name: string }>>([]);
+
   // Add ref for ExerciseLibrary
   const exerciseLibraryRef = React.useRef<{ openAddModal: () => void } | null>(null);
 
@@ -153,14 +156,20 @@ export function AthleteWorkouts() {
     queryKey: ['athleteAssignedWorkouts', user?.id],
     queryFn: async () => {
       if (!user?.id) {
-        console.log('No user ID available for fetching workouts');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('No user ID available for fetching workouts');
+        }
         return [];
       }
       
-      console.log('Fetching assigned workouts for athlete:', user.id);
+      if (process.env.NODE_ENV === 'development') {
+        // console.log('Fetching assigned workouts for athlete:', user.id);
+      }
       try {
         const workouts = await api.workouts.getAssignedToAthlete(user.id);
-        console.log('Received assigned workouts:', workouts?.length || 0);
+        if (process.env.NODE_ENV === 'development') {
+          // console.log('Received assigned workouts:', workouts?.length || 0);
+        }
         return workouts;
       } catch (err) {
         console.error('Error fetching assigned workouts:', err);
@@ -367,7 +376,9 @@ export function AthleteWorkouts() {
   // Refetch workouts when component mounts
   useEffect(() => {
     if (user?.id) {
-      console.log('Athlete component mounted, refetching workouts');
+      if (process.env.NODE_ENV === 'development') {
+        // console.log('Athlete component mounted, refetching workouts');
+      }
       refetch();
     }
   }, [user?.id]);
@@ -380,7 +391,9 @@ export function AthleteWorkouts() {
         if (!user?.id) return;
         
         try {
-          console.log('Syncing workoutStore with database completion status');
+          if (process.env.NODE_ENV === 'development') {
+        // console.log('Syncing workoutStore with database completion status');
+      }
           const { data: assignments, error } = await supabase
             .from('athlete_workouts')
             .select('workout_id, status')
@@ -400,7 +413,9 @@ export function AthleteWorkouts() {
               
               // If workout is completed in database, mark all exercises as completed in store
               if (assignment.status === 'completed') {
-                console.log(`Setting workout ${assignment.workout_id} as fully completed`);
+                if (process.env.NODE_ENV === 'development') {
+              // console.log(`Setting workout ${assignment.workout_id} as fully completed`);
+            }
                 // Create an array of all exercise indices
                 const allExercises = Array.from({ length: totalExercises }, (_, i) => i);
                 // Mark all exercises as completed
@@ -521,7 +536,9 @@ export function AthleteWorkouts() {
       if (user?.id) {
         try {
           await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutId, 'completed');
-          console.log(`Workout ${workoutId} marked as completed in database`);
+          if (process.env.NODE_ENV === 'development') {
+      console.log(`Workout ${workoutId} marked as completed in database`);
+    }
         } catch (error) {
           console.error('Error updating workout completion status:', error);
         }
@@ -546,7 +563,9 @@ export function AthleteWorkouts() {
       if (user?.id) {
         try {
           await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutId, 'in_progress');
-          console.log(`Workout ${workoutId} marked as in_progress in database`);
+          if (process.env.NODE_ENV === 'development') {
+      console.log(`Workout ${workoutId} marked as in_progress in database`);
+    }
         } catch (error) {
           console.error('Error updating workout progress status:', error);
         }
@@ -581,7 +600,9 @@ export function AthleteWorkouts() {
     if (!workoutToReset) return;
     
     try {
+      if (process.env.NODE_ENV === 'development') {
       console.log(`Resetting progress for workout ${workoutToReset.id}`);
+    }
       
       // Reset progress in the workout store
       workoutStore.resetProgress(workoutToReset.id);
@@ -590,7 +611,9 @@ export function AthleteWorkouts() {
       if (user?.id) {
         try {
           await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutToReset.id, 'assigned');
-          console.log(`Workout ${workoutToReset.id} status reset to 'assigned' in database`);
+          if (process.env.NODE_ENV === 'development') {
+        console.log(`Workout ${workoutToReset.id} status reset to 'assigned' in database`);
+      }
         } catch (error) {
           console.error('Error resetting workout status in database:', error);
         }
@@ -700,7 +723,9 @@ export function AthleteWorkouts() {
   // Handle refresh
   const handleRefresh = async () => {
     try {
+      if (process.env.NODE_ENV === 'development') {
       console.log("Manual refresh initiated by athlete");
+    }
       
       // Use the real-time hook to force refresh all related queries
       forceRefresh();
@@ -710,7 +735,9 @@ export function AthleteWorkouts() {
       
       // Resync all workout progress data
       if (assignedWorkouts && assignedWorkouts.length > 0 && user?.id) {
-        console.log("Resyncing all workout progress data");
+        if (process.env.NODE_ENV === 'development') {
+      console.log("Resyncing all workout progress data");
+    }
         
         // Get all assignments with their status
         const { data: assignments, error } = await supabase
@@ -798,10 +825,10 @@ export function AthleteWorkouts() {
   // Log real-time status in development
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.log(`Real-time subscription status: ${isSubscribed ? 'Active' : 'Inactive'}`);
-      if (lastUpdate) {
-        console.log(`Last real-time update: ${lastUpdate.toLocaleTimeString()}`);
-      }
+          // console.log(`Real-time subscription status: ${isSubscribed ? 'Active' : 'Inactive'}`);
+    // if (lastUpdate) {
+    //   console.log(`Last real-time update: ${lastUpdate.toLocaleTimeString()}`);
+    // }
     }
   }, [isSubscribed, lastUpdate]);
 
@@ -810,7 +837,7 @@ export function AthleteWorkouts() {
     if (!user?.id) return;
     
     try {
-      console.log(`Forcing refresh of workout progress for ${workoutId}`);
+      // console.log(`Forcing refresh of workout progress for ${workoutId}`);
       
       // Get the workout assignment from the database
       const { data: assignment, error } = await supabase
@@ -891,6 +918,7 @@ export function AthleteWorkouts() {
     setExercisesLoading(true);
     try {
       const exercises = await getExercisesWithTeamSharing(user.id);
+      // Exercises loaded successfully
       setCustomExercises(exercises);
     } catch (error) {
       console.error('Error loading exercises:', error);
@@ -933,9 +961,40 @@ export function AthleteWorkouts() {
     setCustomExercises(prev => prev.filter(ex => ex.id !== id));
   };
 
+  const loadUserTeams = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('team_members')
+        .select(`
+          team_id,
+          teams!inner(
+            id,
+            name
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'active');
+
+      if (error) throw error;
+
+      const teams = data?.map((item: any) => ({
+        id: item.teams.id,
+        name: item.teams.name
+      })) || [];
+
+      setUserTeams(teams);
+      // Teams loaded successfully
+    } catch (error) {
+      console.error('Error loading user teams:', error);
+    }
+  };
+
   // Load custom exercises on component mount
   useEffect(() => {
     loadCustomExercises();
+    loadUserTeams();
   }, [user?.id]);
 
   // Function to render content based on active sidebar item
@@ -984,6 +1043,7 @@ export function AthleteWorkouts() {
               onDeleteExercise={handleDeleteExercise}
               isLoading={exercisesLoading}
               currentUserId={user?.id}
+              userTeams={userTeams}
               title=""
               subtitle=""
               showAddButton={false}

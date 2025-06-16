@@ -122,7 +122,9 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
       
       let workouts: WorkoutData[] = [];
       
-      console.log('Fetching workouts for user:', targetUserId, 'for year:', currentYear);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Fetching workouts for user:', targetUserId, 'for year:', currentYear);
+      }
       
       // Format year for date filtering
       const yearStart = `${currentYear}-01-01`;
@@ -133,7 +135,9 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
         const assignedWorkouts = await api.workouts.getAssignedToAthlete(targetUserId);
         
         if (assignedWorkouts && assignedWorkouts.length > 0) {
-          console.log('Found assigned and created workouts:', assignedWorkouts.length);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Found assigned and created workouts:', assignedWorkouts.length);
+          }
           
           // Transform and filter workouts for the current year
           workouts = assignedWorkouts
@@ -151,13 +155,19 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
               duration: workout.duration || '30'
             }));
             
-          console.log(`Filtered ${workouts.length} workouts for year ${currentYear}`);
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Filtered ${workouts.length} workouts for year ${currentYear}`);
+          }
         } else {
-          console.log('No assigned workouts found for user:', targetUserId);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('No assigned workouts found for user:', targetUserId);
+          }
           
           // If no assigned workouts, try fetching workouts created by the user
           if (!isCoach) {
-            console.log('Trying to fetch workouts created by user');
+            if (process.env.NODE_ENV === 'development') {
+              console.log('Trying to fetch workouts created by user');
+            }
             const createdWorkouts = await api.workouts.getByCreator(targetUserId);
             
             if (createdWorkouts && createdWorkouts.length > 0) {
@@ -175,7 +185,9 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
                   duration: workout.duration || '30'
                 }));
                 
-              console.log(`Found ${workouts.length} created workouts for year ${currentYear}`);
+                              if (process.env.NODE_ENV === 'development') {
+                  console.log(`Found ${workouts.length} created workouts for year ${currentYear}`);
+                }
             }
           }
         }
@@ -225,7 +237,9 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
       let events: EventData[] = [];
       
       try {
-        console.log('Fetching events for year:', currentYear);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Fetching events for year:', currentYear);
+        }
         
         // Format year for date filtering
         const yearStart = `${currentYear}-01-01`;
@@ -233,7 +247,9 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
         
         if (isCoach) {
           // For coaches, fetch events for all of their athletes
-          console.log('Coach view: fetching events for all athletes');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Coach view: fetching events for all athletes');
+          }
           
           // First, get all athletes for this coach
           const { data: coachAthletes, error: coachAthletesError } = await supabase
@@ -245,7 +261,9 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
           
           if (coachAthletes && coachAthletes.length > 0) {
             const athleteIds = coachAthletes.map(row => row.athlete_id);
-            console.log(`Found ${athleteIds.length} athletes for coach:`, athleteIds);
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`Found ${athleteIds.length} athletes for coach:`, athleteIds);
+            }
             
             // Get profile information for each athlete
             const { data: athleteProfiles, error: profilesError } = await supabase
@@ -271,7 +289,9 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
               .lte('meet_date', yearEnd);
             
             if (yearMeetsError) throw yearMeetsError;
-            console.log(`Found ${yearMeets?.length || 0} track meets in year range`);
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`Found ${yearMeets?.length || 0} track meets in year range`);
+            }
             
             // Create a map of track meets for quick lookup
             const trackMeetsMap = new Map();
@@ -295,7 +315,9 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
             if (allEventsError) throw allEventsError;
             
             if (allEventAssignments && allEventAssignments.length > 0) {
-              console.log(`Found ${allEventAssignments.length} event assignments for all athletes:`, allEventAssignments);
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`Found ${allEventAssignments.length} event assignments for all athletes:`, allEventAssignments);
+              }
               
               // We need to get meet_events for each assignment
               const meetEventIds = allEventAssignments.map(item => item.meet_event_id).filter(Boolean);
@@ -307,7 +329,9 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
                 .in('id', meetEventIds);
               
               if (meetEventsError) throw meetEventsError;
-              console.log(`Found ${meetEvents?.length || 0} meet events:`, meetEvents);
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`Found ${meetEvents?.length || 0} meet events:`, meetEvents);
+              }
               
               // Create a map of meet events for quick lookup
               const meetEventsMap = new Map();
@@ -345,16 +369,24 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
                   return eventYear === currentYear;
                 });
               
-              console.log(`Processed ${events.length} events for all athletes in year ${currentYear}:`, events);
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`Processed ${events.length} events for all athletes in year ${currentYear}:`, events);
+              }
             } else {
-              console.log('No event assignments found for any athletes');
+              if (process.env.NODE_ENV === 'development') {
+                console.log('No event assignments found for any athletes');
+              }
             }
           } else {
-            console.log('No athletes found for coach:', targetUserId);
+            if (process.env.NODE_ENV === 'development') {
+              console.log('No athletes found for coach:', targetUserId);
+            }
           }
         } else {
           // For individual athletes, fetch only their events
-          console.log('Athlete view: fetching events for:', targetUserId);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Athlete view: fetching events for:', targetUserId);
+          }
           
           // Get the athlete's meet event assignments
           const { data: eventAssignments, error: eventError } = await supabase
@@ -379,7 +411,9 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
           if (eventError) throw eventError;
           
           if (eventAssignments && eventAssignments.length > 0) {
-            console.log('Found event assignments:', eventAssignments);
+            if (process.env.NODE_ENV === 'development') {
+              console.log('Found event assignments:', eventAssignments);
+            }
             
             // Transform the data to match our EventData interface and filter by year
             events = eventAssignments
@@ -403,7 +437,9 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
                 return eventYear === currentYear;
               });
             
-            console.log(`Filtered ${events.length} events for year ${currentYear}`);
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`Filtered ${events.length} events for year ${currentYear}`);
+            }
           } else {
             console.log('No event assignments found for user:', targetUserId);
             

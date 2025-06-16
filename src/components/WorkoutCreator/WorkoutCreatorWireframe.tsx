@@ -184,6 +184,9 @@ const WorkoutCreatorWireframe: React.FC = () => {
   const [customExercises, setCustomExercises] = useState<Exercise[]>([]);
   const [isLoadingExercises, setIsLoadingExercises] = useState(false);
 
+  // State for user teams
+  const [userTeams, setUserTeams] = useState<Array<{ id: string; name: string }>>([]);
+
   // Load exercises from database
   const loadExercises = async () => {
     if (!user?.id) return;
@@ -206,9 +209,39 @@ const WorkoutCreatorWireframe: React.FC = () => {
     }
   };
 
+  const loadUserTeams = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('team_members')
+        .select(`
+          team_id,
+          teams!inner(
+            id,
+            name
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'active');
+
+      if (error) throw error;
+
+      const teams = data?.map((item: any) => ({
+        id: item.teams.id,
+        name: item.teams.name
+      })) || [];
+
+      setUserTeams(teams);
+    } catch (error) {
+      console.error('Error loading user teams:', error);
+    }
+  };
+
   // Load exercises on component mount
   useEffect(() => {
     loadExercises();
+    loadUserTeams();
   }, [user?.id]);
   
   // Add loading states
@@ -1494,6 +1527,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
               onDeleteCustomExercise={handleDeleteCustomExercise}
               isLoadingExercises={isLoadingExercises}
               currentUserId={user?.id}
+              userTeams={userTeams}
               onToggleRestDay={handleToggleRestDay}
               onCopyExercises={handleCopyExercises}
             />

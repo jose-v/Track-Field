@@ -106,6 +106,7 @@ interface Step2ExercisePlanningProps {
   onDeleteCustomExercise: (id: string) => Promise<void>;
   isLoadingExercises?: boolean;
   currentUserId?: string;
+  userTeams?: Array<{ id: string; name: string }>;
 }
 
 const EXERCISE_CATEGORIES = ['All', 'Lift', 'Bodyweight', 'Run Interval', 'Core', 'Plyometric', 'Warm-up', 'Cool-down', 'Drill', 'Custom'];
@@ -364,6 +365,7 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
   onDeleteCustomExercise,
   isLoadingExercises = false,
   currentUserId,
+  userTeams,
 }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [newExerciseName, setNewExerciseName] = useState('');
@@ -471,6 +473,7 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
               onDeleteExercise={onDeleteCustomExercise}
               isLoading={isLoadingExercises}
               currentUserId={currentUserId}
+              userTeams={userTeams}
               onExerciseSelect={onAddExercise}
               selectionMode={true}
               selectedExercises={selectedExercises.map(ex => ex.id)}

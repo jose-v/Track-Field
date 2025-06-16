@@ -317,7 +317,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
 
     setIsLoggingRPE(true);
     try {
-      console.log('ExerciseExecutionModal: Logging RPE', selectedRPE, 'for workout', workout.id);
+      // console.log('ExerciseExecutionModal: Logging RPE', selectedRPE, 'for workout', workout.id);
       
       const insertData = {
         athlete_id: user.id,
@@ -340,7 +340,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
         throw new Error('Failed to log RPE rating');
       }
 
-      console.log('ExerciseExecutionModal: Successfully logged RPE rating, inserted data:', insertedData);
+              // console.log('ExerciseExecutionModal: Successfully logged RPE rating, inserted data:', insertedData);
 
       toast({
         title: 'Great job! 💪',
@@ -413,30 +413,14 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
 
   const currentExercise = workout.exercises[exerciseIdx];
   
-  // Debug logging
-  console.log('ExerciseExecutionModal - Debug Info:', {
-    workout: workout?.name,
-    exerciseIdx,
-    currentExercise: currentExercise,
-    currentExerciseName: currentExercise?.name,
-    exercisesArray: workout?.exercises,
-    totalExercises: workout?.exercises?.length,
-    'exerciseIdx in exercises array': (currentExercise as any)?.exercises?.[exerciseIdx],
-    'All exercises in current day': (currentExercise as any)?.exercises
-  });
-  
-  // Additional detailed logging to see exercise structure
-  if (currentExercise) {
-    console.log('Exercise Object Keys:', Object.keys(currentExercise));
-    console.log('Full Exercise Object:', JSON.stringify(currentExercise, null, 2));
-    
-    // Look for exercise names in different nested locations
-    console.log('Checking for exercise name in exercises array:', (currentExercise as any)?.exercises);
-    console.log('Checking for exercise name in nested structure:', (currentExercise as any)?.exercise?.name);
-    console.log('Checking for exercise name in details:', (currentExercise as any)?.details?.name);
-    console.log('Direct name field test:', currentExercise.name);
-    console.log('Name exists?', 'name' in currentExercise);
-    console.log('Name value:', currentExercise['name']);
+  // Debug logging (reduced for performance)
+  if (process.env.NODE_ENV === 'development' && !currentExercise?.name) {
+    console.warn('ExerciseExecutionModal - Missing exercise name:', {
+      workout: workout?.name,
+      exerciseIdx,
+      hasCurrentExercise: !!currentExercise,
+      totalExercises: workout?.exercises?.length
+    });
   }
 
   return (

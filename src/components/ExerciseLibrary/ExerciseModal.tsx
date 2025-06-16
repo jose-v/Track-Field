@@ -344,6 +344,14 @@ export const ExerciseModal: React.FC<ExerciseModalProps> = ({
         default_instructions: formData.default_instructions.trim(),
       };
 
+      console.log('🔍 ExerciseModal submitting data:', {
+        sharing_level: formData.sharing_level,
+        selected_team_id: formData.selected_team_id,
+        is_public,
+        organization_id,
+        exerciseData
+      });
+
       await onSave(exerciseData);
     } catch (error) {
       // Error handling is done in the parent component

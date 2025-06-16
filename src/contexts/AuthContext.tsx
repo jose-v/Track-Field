@@ -42,7 +42,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Check active sessions and sets the user
     const initializeAuth = async () => {
       try {
-        console.log('Initializing auth state...');
+        if (process.env.NODE_ENV === 'development') {
+    console.log('Initializing auth state...');
+  }
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -52,30 +54,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         
         if (data?.session) {
-          console.log('Session found during initialization');
-          console.log('🔍 AuthContext: User data during initialization:', {
-            userId: data.session.user.id,
-            email: data.session.user.email,
-            userMetadata: data.session.user.user_metadata,
-            appMetadata: data.session.user.app_metadata,
-            identities: data.session.user.identities,
-            // Full user object structure
-            fullUser: data.session.user,
-            // Try to access any name fields
-            name: (data.session.user as any).name,
-            fullName: (data.session.user as any).full_name,
-            firstName: (data.session.user as any).first_name,
-            lastName: (data.session.user as any).last_name,
-            // Keys available on user object
-            userKeys: Object.keys(data.session.user),
-            // Check raw metadata
-            rawMetadata: JSON.stringify(data.session.user.user_metadata),
-            rawIdentities: JSON.stringify(data.session.user.identities)
-          });
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Session found during initialization');
+          }
           setUser(data.session.user);
           setSession(data.session);
         } else {
-          console.log('No active session found');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('No active session found');
+          }
           setUser(null);
           setSession(null);
         }
@@ -90,30 +77,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for changes on auth state
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      console.log('Auth state changed:', _event);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Auth state changed:', _event);
+      }
       
       if (newSession) {
-        console.log('New session available');
-        console.log('🔍 AuthContext: User data during state change:', {
-          event: _event,
-          userId: newSession.user.id,
-          email: newSession.user.email,
-          userMetadata: newSession.user.user_metadata,
-          appMetadata: newSession.user.app_metadata,
-          identities: newSession.user.identities,
-          // Full user object structure
-          fullUser: newSession.user,
-          // Try to access any name fields
-          name: (newSession.user as any).name,
-          fullName: (newSession.user as any).full_name,
-          firstName: (newSession.user as any).first_name,
-          lastName: (newSession.user as any).last_name,
-          // Keys available on user object
-          userKeys: Object.keys(newSession.user),
-          // Check raw metadata
-          rawMetadata: JSON.stringify(newSession.user.user_metadata),
-          rawIdentities: JSON.stringify(newSession.user.identities)
-        });
+        if (process.env.NODE_ENV === 'development') {
+          console.log('New session available');
+        }
         
         // Handle OAuth profile creation for new users
         if (_event === 'SIGNED_IN' && newSession.user.identities) {
@@ -122,7 +93,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           );
           
           if (hasOAuthIdentity) {
-            console.log('OAuth user detected, ensuring profile exists');
+            if (process.env.NODE_ENV === 'development') {
+              console.log('OAuth user detected, ensuring profile exists');
+            }
             
             // Check if we're in a signup context by looking for role in localStorage
             let selectedRole: any = null;
@@ -132,9 +105,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const signupData = JSON.parse(signupDataStr);
                 selectedRole = signupData.role;
               }
-            } catch (error) {
-              console.log('No signup context found');
-            }
+                          } catch (error) {
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('No signup context found');
+                }
+              }
             
             // Only pass role if we have one from signup context
             // If no role, handleOAuthUserProfile will know we're in signup flow
@@ -150,7 +125,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(newSession.user);
         setSession(newSession);
       } else {
-        console.log('Session ended');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Session ended');
+        }
         setUser(null);
         setSession(null);
       }

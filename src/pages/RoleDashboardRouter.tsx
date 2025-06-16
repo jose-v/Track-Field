@@ -35,7 +35,9 @@ export default function RoleDashboardRouter() {
 
   // Handle null/undefined roles by redirecting to role selection
   if (!profile.role) {
-    console.warn('RoleDashboardRouter: Profile has no role assigned, redirecting to role selection', profile?.role);
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('RoleDashboardRouter: Profile has no role assigned, redirecting to role selection', profile?.role);
+    }
     return <Navigate to="/role-selection" replace />;
   }
 

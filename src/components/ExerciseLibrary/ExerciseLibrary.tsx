@@ -65,6 +65,7 @@ export interface Exercise {
   created_at?: string;
   updated_at?: string;
   created_by_name?: string; // For attribution
+  sharing_info?: string; // For filtering (Private, Team, Public, System)
 }
 
 interface ExerciseLibraryProps {
@@ -80,6 +81,7 @@ interface ExerciseLibraryProps {
   selectionMode?: boolean;
   selectedExercises?: string[];
   currentUserId?: string; // For filtering "mine" exercises
+  userTeams?: Array<{ id: string; name: string }>; // For filtering team exercises
   onAddButtonClick?: (openModal: () => void) => void; // Expose the add button click function
 }
 
@@ -99,20 +101,23 @@ const EXERCISE_SOURCES = [
   'all',
   'system',
   'public',
-  'mine'
+  'mine',
+  'team'
 ];
 
 const SOURCE_LABELS = {
   'all': 'All Exercises',
   'system': 'System Exercises',
   'public': 'Public Community',
-  'mine': 'My Exercises'
+  'mine': 'My Exercises',
+  'team': 'Team Exercises'
 };
 
 const SOURCE_COLORS = {
   'system': 'blue',
   'public': 'green', 
-  'mine': 'purple'
+  'mine': 'purple',
+  'team': 'orange'
 };
 
 const DIFFICULTY_COLORS = {
@@ -138,6 +143,7 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
   selectionMode = false,
   selectedExercises = [],
   currentUserId,
+  userTeams,
   onAddButtonClick,
 }, ref) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -175,6 +181,7 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
   // Filter and sort exercises
   const filteredExercises = exercises
     .filter(exercise => {
+              // Exercise filtering logic
       const matchesSearch = exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            exercise.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            (exercise.muscle_groups?.some(mg => mg.toLowerCase().includes(searchTerm.toLowerCase())));
@@ -190,6 +197,13 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
         matchesSource = exercise.is_system_exercise === false && exercise.is_public === true;
       } else if (selectedSource === 'mine') {
         matchesSource = exercise.is_system_exercise === false && exercise.user_id === currentUserId;
+      } else if (selectedSource === 'team') {
+        // Team exercises: exercises shared with user's teams (including ones created by the user)
+        const userTeamIds = userTeams?.map(team => team.id) || [];
+        matchesSource = exercise.is_system_exercise === false && 
+                       exercise.is_public === false && 
+                       exercise.organization_id && 
+                       userTeamIds.includes(exercise.organization_id);
       }
       
       return matchesSearch && matchesCategory && matchesDifficulty && matchesSource;
@@ -419,6 +433,9 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
                 <option value="all">All Sources</option>
                 <option value="system">System</option>
                 <option value="public">Public</option>
+                {userTeams && userTeams.length > 0 && (
+                  <option value="team">Team</option>
+                )}
                 <option value="mine">Mine</option>
               </Select>
 
@@ -534,6 +551,10 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
                             <Badge size="sm" colorScheme="green" variant="solid">
                               Public
                             </Badge>
+                          ) : exercise.organization_id ? (
+                            <Badge size="sm" colorScheme="orange" variant="solid">
+                              Team
+                            </Badge>
                           ) : (
                             <Badge size="sm" colorScheme="purple" variant="solid">
                               Mine
@@ -616,6 +637,10 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
                           ) : exercise.is_public ? (
                             <Badge size="sm" colorScheme="green" variant="solid">
                               Public
+                            </Badge>
+                          ) : exercise.organization_id ? (
+                            <Badge size="sm" colorScheme="orange" variant="solid">
+                              Team
                             </Badge>
                           ) : (
                             <Badge size="sm" colorScheme="purple" variant="solid">

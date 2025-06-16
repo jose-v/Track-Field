@@ -328,42 +328,16 @@ export function useProfile() {
     },
   })
 
-  // Add debugging to see what we're actually returning
-  if (process.env.NODE_ENV === 'development') {
-    console.log('🔍 useProfile: Final return data:', {
-      hasProfile: !!effectiveProfile,
-      profileRole: effectiveProfile?.role,
-      profileName: `${effectiveProfile?.first_name} ${effectiveProfile?.last_name}`.trim(),
-      isLoading: !loadingTimeout && (auth.loading || (!!auth.user && profileQuery.isLoading && !timeoutFallback)),
-      isError: profileQuery.isError && !timeoutFallback,
-      errorMessage: profileQuery.error?.message,
-      queryStatus: profileQuery.status,
-      fallbackUsed: !!timeoutFallback,
-      timeoutFallbackActive: !!timeoutFallback,
-      // Additional debugging info
-      authUserId: auth.user?.id,
-      profileId: effectiveProfile?.id,
-      rawProfileData: effectiveProfile,
-      cacheStatus: {
-        hasQueryData: !!profileQuery.data,
-        hasTimeoutFallback: !!timeoutFallback,
-        queryIsFetching: profileQuery.isFetching,
-        queryIsStale: profileQuery.isStale
-      }
+  // Reduced debugging - only log critical issues
+  if (process.env.NODE_ENV === 'development' && effectiveProfile && effectiveProfile.role === null) {
+    console.warn('🚨 useProfile: Profile found but role is NULL - this will cause routing issues');
+    console.log('Profile details:', {
+      id: effectiveProfile.id,
+      email: effectiveProfile.email,
+      first_name: effectiveProfile.first_name,
+      last_name: effectiveProfile.last_name,
+      role: effectiveProfile.role
     });
-    
-    // Warning for null roles
-    if (effectiveProfile && effectiveProfile.role === null) {
-      console.warn('🚨 useProfile: Profile found but role is NULL - this will cause routing issues');
-      console.log('Profile details:', {
-        id: effectiveProfile.id,
-        email: effectiveProfile.email,
-        first_name: effectiveProfile.first_name,
-        last_name: effectiveProfile.last_name,
-        created_at: effectiveProfile.created_at,
-        role: effectiveProfile.role
-      });
-    }
   }
 
   return {

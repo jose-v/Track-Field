@@ -385,19 +385,19 @@ export function CoachWorkouts() {
     }
   }, [refetchStats]); // Only depend on refetchStats function
 
-  // Log for debugging - remove or reduce frequency
+  // Log for debugging - reduced frequency
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Workouts:', workouts?.length || 0);
-      console.log('Coach Athletes:', coachAthletes?.length || 0);
-      console.log('Assignments:', assignments?.length || 0);
+    if (process.env.NODE_ENV === 'development' && workouts?.length === 0) {
+      console.log('Coach workouts loaded:', workouts?.length || 0);
     }
-  }, [workouts?.length, coachAthletes?.length, assignments?.length]); // Only log when counts change
+  }, [workouts?.length]); // Only log when counts change
 
   // Add a refresh function
   const handleRefresh = async () => {
     try {
+      if (process.env.NODE_ENV === 'development') {
       console.log('Manual refresh initiated by coach');
+    }
       
       // Force refetch of stats
       await refetchStats();

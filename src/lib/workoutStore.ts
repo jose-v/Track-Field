@@ -84,7 +84,10 @@ export const useWorkoutStore = create<WorkoutStore>()(
             updatedProgress.completed = updatedProgress.completed.filter(idx => idx < totalExercises);
           }
           
-          console.log(`[WorkoutStore] Updated progress for ${workoutId}: Exercise ${exerciseIndex}/${totalExercises}, Completed: ${updatedProgress.completed.length}, IsCompleted param: ${isCompleted}`);
+          // Disabled for performance
+          // if (process.env.NODE_ENV === 'development') {
+          //   console.log(`[WorkoutStore] Updated progress for ${workoutId}: Exercise ${exerciseIndex}/${totalExercises}, Completed: ${updatedProgress.completed.length}, IsCompleted param: ${isCompleted}`);
+          // }
           
           return {
             workoutProgress: {
@@ -102,26 +105,36 @@ export const useWorkoutStore = create<WorkoutStore>()(
           // Get existing workout progress or return
           const existingProgress = state.workoutProgress[workoutId];
           if (!existingProgress) {
-            console.warn(`[WorkoutStore] Tried to mark exercise ${exerciseIndex} completed for workout ${workoutId}, but no progress record exists`);
+            if (process.env.NODE_ENV === 'development') {
+              console.warn(`[WorkoutStore] Tried to mark exercise ${exerciseIndex} completed for workout ${workoutId}, but no progress record exists`);
+            }
             return state;
           }
           
           // Validate exercise index is within bounds
           if (exerciseIndex >= existingProgress.totalExercises) {
-            console.warn(`[WorkoutStore] Exercise index ${exerciseIndex} is out of bounds for workout ${workoutId} (total: ${existingProgress.totalExercises})`);
+            if (process.env.NODE_ENV === 'development') {
+              console.warn(`[WorkoutStore] Exercise index ${exerciseIndex} is out of bounds for workout ${workoutId} (total: ${existingProgress.totalExercises})`);
+            }
             return state;
           }
           
           // If already completed, do nothing
           if (existingProgress.completed.includes(exerciseIndex)) {
-            console.log(`[WorkoutStore] Exercise ${exerciseIndex} was already marked as completed for ${workoutId}`);
+            // Disabled for performance
+            // if (process.env.NODE_ENV === 'development') {
+            //   console.log(`[WorkoutStore] Exercise ${exerciseIndex} was already marked as completed for ${workoutId}`);
+            // }
             return state;
           }
           
           // Add to completed list
           const updatedCompleted = [...existingProgress.completed, exerciseIndex];
           
-          console.log(`[WorkoutStore] Marked exercise ${exerciseIndex} as completed for ${workoutId}. Total completed: ${updatedCompleted.length}/${existingProgress.totalExercises}`);
+          // Disabled for performance
+          // if (process.env.NODE_ENV === 'development') {
+          //   console.log(`[WorkoutStore] Marked exercise ${exerciseIndex} as completed for ${workoutId}. Total completed: ${updatedCompleted.length}/${existingProgress.totalExercises}`);
+          // }
           
           return {
             workoutProgress: {
@@ -135,13 +148,15 @@ export const useWorkoutStore = create<WorkoutStore>()(
           };
         });
         
-        // After updating the store, log the current state for debugging
-        const currentProgress = get().workoutProgress[workoutId];
-        console.log(`[WorkoutStore] Current progress after marking exercise as completed:`, {
-          workoutId,
-          exerciseIndex,
-          currentProgress
-        });
+        // Disabled for performance
+        // if (process.env.NODE_ENV === 'development') {
+        //   const currentProgress = get().workoutProgress[workoutId];
+        //   console.log(`[WorkoutStore] Current progress after marking exercise as completed:`, {
+        //     workoutId,
+        //     exerciseIndex,
+        //     currentProgress
+        //   });
+        // }
       },
       
       isExerciseCompleted: (workoutId, exerciseIndex) => {
@@ -167,7 +182,10 @@ export const useWorkoutStore = create<WorkoutStore>()(
         
         // If we cleaned up any data, update the store
         if (cleanedCompleted.length !== progress.completed.length) {
-          console.log(`[WorkoutStore] Cleaned up invalid progress for ${workoutId}: ${progress.completed.length} -> ${cleanedCompleted.length}`);
+          // Disabled for performance
+          // if (process.env.NODE_ENV === 'development') {
+          //   console.log(`[WorkoutStore] Cleaned up invalid progress for ${workoutId}: ${progress.completed.length} -> ${cleanedCompleted.length}`);
+          // }
           set((state) => ({
             workoutProgress: {
               ...state.workoutProgress,
@@ -199,7 +217,10 @@ export const useWorkoutStore = create<WorkoutStore>()(
           
           const { totalExercises } = state.workoutProgress[workoutId];
           
-          console.log(`[WorkoutStore] Reset progress for ${workoutId}`);
+          // Disabled for performance
+          // if (process.env.NODE_ENV === 'development') {
+          //   console.log(`[WorkoutStore] Reset progress for ${workoutId}`);
+          // }
           
           return {
             workoutProgress: {

@@ -210,6 +210,9 @@ export function CoachTrainingPlans() {
   const [customExercises, setCustomExercises] = useState<Exercise[]>([]);
   const [exercisesLoading, setExercisesLoading] = useState(false);
 
+  // State for user teams
+  const [userTeams, setUserTeams] = useState<Array<{ id: string; name: string }>>([]);
+
   // Move all useColorModeValue calls to the top level
   const bgColor = useColorModeValue('gray.50', 'gray.900');
   const cardBg = useColorModeValue('white', 'gray.800');
@@ -233,6 +236,7 @@ export function CoachTrainingPlans() {
     loadTemplateWorkouts();
     loadDraftWorkouts();
     loadDeletedPlans();
+    loadUserTeams();
   }, [user?.id]);
 
   // Ensure workouts are refreshed when component mounts or user changes
@@ -1327,6 +1331,10 @@ export function CoachTrainingPlans() {
     setExercisesLoading(true);
     try {
       const exercises = await getExercisesWithTeamSharing(user.id);
+      if (process.env.NODE_ENV === 'development') {
+        const teamExercises = exercises.filter(ex => ex.sharing_info === 'Team');
+        console.log('🔍 Coach loaded exercises:', exercises.length, 'team exercises:', teamExercises.length);
+      }
       setCustomExercises(exercises);
     } catch (error) {
       console.error('Error loading exercises:', error);
@@ -1367,6 +1375,38 @@ export function CoachTrainingPlans() {
     if (error) throw error;
     
     setCustomExercises(prev => prev.filter(ex => ex.id !== id));
+  };
+
+  const loadUserTeams = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('team_members')
+        .select(`
+          team_id,
+          teams!inner(
+            id,
+            name
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'active');
+
+      if (error) throw error;
+
+      const teams = data?.map((item: any) => ({
+        id: item.teams.id,
+        name: item.teams.name
+      })) || [];
+
+      setUserTeams(teams);
+      if (process.env.NODE_ENV === 'development' && teams.length > 0) {
+        console.log('🔍 Coach loaded teams:', teams.map(t => t.name));
+      }
+    } catch (error) {
+      console.error('Error loading user teams:', error);
+    }
   };
 
   // Load custom exercises on component mount
@@ -1484,6 +1524,7 @@ export function CoachTrainingPlans() {
               onDeleteExercise={handleDeleteExercise}
               isLoading={exercisesLoading}
               currentUserId={user?.id}
+              userTeams={userTeams}
               title=""
               subtitle=""
               showAddButton={false}
