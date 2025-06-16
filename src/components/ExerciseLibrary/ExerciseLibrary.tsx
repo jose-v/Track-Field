@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import {
   Box,
   VStack,
@@ -41,7 +41,6 @@ import {
   Edit3, 
   Trash2, 
   Filter, 
-  Library, 
   ChevronDown,
   BookOpen,
   Dumbbell
@@ -53,12 +52,19 @@ export interface Exercise {
   name: string;
   category: string;
   description: string;
+  video_url?: string;
+  default_instructions?: string;
+  difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
   muscle_groups?: string[];
   equipment?: string[];
-  difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
-  created_by?: string;
+  user_id?: string;
+  is_system_exercise?: boolean;
+  is_public?: boolean;
+  organization_id?: string;
+  usage_count?: number;
   created_at?: string;
   updated_at?: string;
+  created_by_name?: string; // For attribution
 }
 
 interface ExerciseLibraryProps {
@@ -73,25 +79,41 @@ interface ExerciseLibraryProps {
   onExerciseSelect?: (exercise: Exercise) => void;
   selectionMode?: boolean;
   selectedExercises?: string[];
+  currentUserId?: string; // For filtering "mine" exercises
+  onAddButtonClick?: (openModal: () => void) => void; // Expose the add button click function
 }
 
 const PREDEFINED_CATEGORIES = [
-  'Lift',
-  'Bodyweight', 
-  'Run Interval',
-  'Core',
-  'Plyometric',
-  'Warm-up',
-  'Cool-down',
-  'Drill',
-  'Cardio',
-  'Flexibility',
-  'Strength',
-  'Power',
-  'Endurance',
-  'Recovery',
-  'Custom'
+  'strength',
+  'running', 
+  'plyometric',
+  'flexibility',
+  'warm_up',
+  'cool_down',
+  'drill',
+  'recovery',
+  'custom'
 ];
+
+const EXERCISE_SOURCES = [
+  'all',
+  'system',
+  'public',
+  'mine'
+];
+
+const SOURCE_LABELS = {
+  'all': 'All Exercises',
+  'system': 'System Exercises',
+  'public': 'Public Community',
+  'mine': 'My Exercises'
+};
+
+const SOURCE_COLORS = {
+  'system': 'blue',
+  'public': 'green', 
+  'mine': 'purple'
+};
 
 const DIFFICULTY_COLORS = {
   'Beginner': 'green',
@@ -99,7 +121,11 @@ const DIFFICULTY_COLORS = {
   'Advanced': 'red'
 };
 
-export const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
+export interface ExerciseLibraryRef {
+  openAddModal: () => void;
+}
+
+export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryProps>(({
   exercises,
   onAddExercise,
   onUpdateExercise,
@@ -111,10 +137,13 @@ export const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
   onExerciseSelect,
   selectionMode = false,
   selectedExercises = [],
-}) => {
+  currentUserId,
+  onAddButtonClick,
+}, ref) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedDifficulty, setSelectedDifficulty] = useState('All');
+  const [selectedSource, setSelectedSource] = useState('all');
   const [sortBy, setSortBy] = useState<'name' | 'category' | 'created_at'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   
@@ -153,7 +182,17 @@ export const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
       const matchesCategory = selectedCategory === 'All' || exercise.category === selectedCategory;
       const matchesDifficulty = selectedDifficulty === 'All' || exercise.difficulty === selectedDifficulty;
       
-      return matchesSearch && matchesCategory && matchesDifficulty;
+      // Source filtering
+      let matchesSource = true;
+      if (selectedSource === 'system') {
+        matchesSource = exercise.is_system_exercise === true;
+      } else if (selectedSource === 'public') {
+        matchesSource = exercise.is_system_exercise === false && exercise.is_public === true;
+      } else if (selectedSource === 'mine') {
+        matchesSource = exercise.is_system_exercise === false && exercise.user_id === currentUserId;
+      }
+      
+      return matchesSearch && matchesCategory && matchesDifficulty && matchesSource;
     })
     .sort((a, b) => {
       let aValue: string | number = '';
@@ -284,90 +323,110 @@ export const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
     );
   }
 
+  useImperativeHandle(ref, () => ({
+    openAddModal: onAddOpen,
+  }));
+
   return (
-    <Box w="100%" bg={bgColor} borderRadius="lg" p={6}>
-      {/* Header */}
-      <VStack spacing={6} align="stretch">
-        <HStack justify="space-between" align="start">
-          <VStack align="start" spacing={1}>
-            <HStack spacing={3} align="center">
-              <Library size={28} color="var(--chakra-colors-blue-500)" />
-              <Heading size="lg" color={textColor}>{title}</Heading>
-            </HStack>
-            <Text color={subtitleColor} fontSize="md">{subtitle}</Text>
-          </VStack>
-          
-          {showAddButton && (
-            <Button
-              leftIcon={<Plus size={20} />}
-              colorScheme="blue"
-              onClick={onAddOpen}
-              size="lg"
-            >
-              Add Exercise
-            </Button>
-          )}
-        </HStack>
-
-        {/* Search and Filters */}
+    <Box w="100%" h="100%" display="flex" flexDirection="column" minH="0">
+      {/* Fixed Header */}
+      <Box p={6} pb={4} flexShrink={0}>
         <VStack spacing={4} align="stretch">
-          {/* Search Bar */}
-          <InputGroup size="lg">
-            <InputLeftElement pointerEvents="none">
-              <Search size={20} color={searchIconColor} />
-            </InputLeftElement>
-            <Input
-              placeholder="Search exercises by name, description, or muscle group..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              bg={cardBg}
-              borderColor={borderColor}
-              _focus={{ borderColor: 'blue.400', boxShadow: '0 0 0 1px var(--chakra-colors-blue-400)' }}
-            />
-          </InputGroup>
+          <HStack justify="space-between" align="start">
+            <VStack align="start" spacing={1}>
+              <Heading size="lg" color={textColor}>{title}</Heading>
+              <Text color={subtitleColor} fontSize="md">{subtitle}</Text>
+            </VStack>
+            
+            {showAddButton && (
+              <Button
+                leftIcon={<Plus size={20} />}
+                colorScheme="blue"
+                onClick={onAddOpen}
+                size="lg"
+              >
+                Add Exercise
+              </Button>
+            )}
+          </HStack>
 
-          {/* Filters */}
-          <HStack spacing={4} wrap="wrap">
+          {/* Search and Filters */}
+          <VStack spacing={4} align="stretch">
+            {/* Search Bar */}
             <HStack spacing={2}>
-              <Text fontSize="sm" fontWeight="semibold" color={subtitleColor}>Category:</Text>
+              <InputGroup size="lg" flex="1">
+                <InputLeftElement pointerEvents="none">
+                  <Search size={20} color={searchIconColor} />
+                </InputLeftElement>
+                <Input
+                  placeholder="Search exercises by name, description, or muscle group..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  bg={cardBg}
+                  borderColor={borderColor}
+                  _focus={{ borderColor: 'blue.400', boxShadow: '0 0 0 1px var(--chakra-colors-blue-400)' }}
+                />
+              </InputGroup>
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                minW="48px"
+                w="48px"
+              >
+                {sortOrder === 'asc' ? '↑' : '↓'}
+              </Button>
+            </HStack>
+
+            {/* Filters */}
+            <HStack spacing={2} wrap="nowrap" w="555px">
               <Select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 size="sm"
-                w="150px"
+                w="137px"
                 bg={cardBg}
                 borderColor={borderColor}
               >
-                {availableCategories.map(category => (
+                <option value="All">All Categories</option>
+                {availableCategories.filter(cat => cat !== 'All').map(category => (
                   <option key={category} value={category}>{category}</option>
                 ))}
               </Select>
-            </HStack>
 
-            <HStack spacing={2}>
-              <Text fontSize="sm" fontWeight="semibold" color={subtitleColor}>Difficulty:</Text>
               <Select
                 value={selectedDifficulty}
                 onChange={(e) => setSelectedDifficulty(e.target.value)}
                 size="sm"
-                w="130px"
+                w="126px"
                 bg={cardBg}
                 borderColor={borderColor}
               >
-                <option value="All">All</option>
+                <option value="All">All Levels</option>
                 <option value="Beginner">Beginner</option>
                 <option value="Intermediate">Intermediate</option>
                 <option value="Advanced">Advanced</option>
               </Select>
-            </HStack>
 
-            <HStack spacing={2}>
-              <Text fontSize="sm" fontWeight="semibold" color={subtitleColor}>Sort by:</Text>
+              <Select
+                value={selectedSource}
+                onChange={(e) => setSelectedSource(e.target.value)}
+                size="sm"
+                w="126px"
+                bg={cardBg}
+                borderColor={borderColor}
+              >
+                <option value="all">All Sources</option>
+                <option value="system">System</option>
+                <option value="public">Public</option>
+                <option value="mine">Mine</option>
+              </Select>
+
               <Select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'name' | 'category' | 'created_at')}
                 size="sm"
-                w="120px"
+                w="122px"
                 bg={cardBg}
                 borderColor={borderColor}
               >
@@ -375,25 +434,20 @@ export const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
                 <option value="category">Category</option>
                 <option value="created_at">Date Added</option>
               </Select>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-              >
-                {sortOrder === 'asc' ? '↑' : '↓'}
-              </Button>
             </HStack>
+          </VStack>
+
+          {/* Results Count */}
+          <HStack justify="space-between" align="center">
+            <Text fontSize="sm" color={subtitleColor}>
+              {filteredExercises.length} exercise{filteredExercises.length !== 1 ? 's' : ''} found
+            </Text>
           </HStack>
         </VStack>
+      </Box>
 
-        {/* Results Count */}
-        <HStack justify="space-between" align="center">
-          <Text fontSize="sm" color={subtitleColor}>
-            {filteredExercises.length} exercise{filteredExercises.length !== 1 ? 's' : ''} found
-          </Text>
-        </HStack>
-
-        {/* Exercise Grid */}
+      {/* Scrollable Content Area */}
+      <Box flex="1" overflow="auto" px={6} pb={6} minH="0">
         {filteredExercises.length === 0 ? (
           <Center py={16}>
             <VStack spacing={4}>
@@ -424,19 +478,111 @@ export const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
               )}
             </VStack>
           </Center>
+        ) : selectionMode ? (
+          // Selection mode: Full-width list layout for workout creator
+          <VStack spacing={2} align="stretch">
+            {filteredExercises.map((exercise) => {
+              const isAlreadySelected = isExerciseSelected(exercise.id);
+              
+              // Dark mode aware selected colors
+              const selectedBg = useColorModeValue('blue.50', 'blue.900');
+              const selectedHoverBg = useColorModeValue('blue.100', 'blue.800');
+              const selectedBorderColor = useColorModeValue('blue.400', 'blue.300');
+              const selectedTextColor = useColorModeValue('blue.800', 'blue.100');
+              
+              return (
+                <Card
+                  key={exercise.id}
+                  variant="outline"
+                  bg={isAlreadySelected ? selectedBg : exerciseCardBg}
+                  borderColor={isAlreadySelected ? selectedBorderColor : borderColor}
+                  borderWidth={isAlreadySelected ? '2px' : '1px'}
+                  _hover={{ 
+                    bg: isAlreadySelected ? selectedHoverBg : exerciseCardHoverBg, 
+                    borderColor: selectedBorderColor,
+                    cursor: 'pointer'
+                  }}
+                  transition="all 0.2s"
+                  onClick={() => handleExerciseClick(exercise)}
+                  opacity={1}
+                >
+                  <CardBody p={3}>
+                    <HStack justify="space-between" align="center" spacing={4}>
+                      <VStack align="start" spacing={1} flex="1">
+                        <HStack spacing={2} align="center">
+                          <Text fontWeight="bold" fontSize="sm" color={isAlreadySelected ? selectedTextColor : textColor}>
+                            {exercise.name}
+                          </Text>
+                          <Tag size="sm" colorScheme="blue" variant="subtle">
+                            {exercise.category}
+                          </Tag>
+                          {exercise.difficulty && (
+                            <Badge 
+                              size="sm" 
+                              colorScheme={DIFFICULTY_COLORS[exercise.difficulty]}
+                              variant="subtle"
+                            >
+                              {exercise.difficulty}
+                            </Badge>
+                          )}
+                          {/* Source Badge */}
+                          {exercise.is_system_exercise ? (
+                            <Badge size="sm" colorScheme="blue" variant="solid">
+                              System
+                            </Badge>
+                          ) : exercise.is_public ? (
+                            <Badge size="sm" colorScheme="green" variant="solid">
+                              Public
+                            </Badge>
+                          ) : (
+                            <Badge size="sm" colorScheme="purple" variant="solid">
+                              Mine
+                            </Badge>
+                          )}
+                          {isAlreadySelected && (
+                            <Badge size="sm" colorScheme="green" variant="solid">
+                              ✓ Added
+                            </Badge>
+                          )}
+                        </HStack>
+                        <Text fontSize="xs" color={isAlreadySelected ? selectedTextColor : subtitleColor} noOfLines={1}>
+                          {exercise.description}
+                        </Text>
+                      </VStack>
+                      
+                      {!isAlreadySelected && (
+                        <Button
+                          size="sm"
+                          colorScheme="blue"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleExerciseClick(exercise);
+                          }}
+                          leftIcon={<Plus size={14} />}
+                        >
+                          Add
+                        </Button>
+                      )}
+                    </HStack>
+                  </CardBody>
+                </Card>
+              );
+            })}
+          </VStack>
         ) : (
+          // Regular mode: Grid layout for exercise library management
           <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
             {filteredExercises.map((exercise) => (
               <Card
                 key={exercise.id}
                 variant="outline"
                 bg={exerciseCardBg}
-                borderColor={isExerciseSelected(exercise.id) ? 'blue.400' : borderColor}
-                borderWidth={isExerciseSelected(exercise.id) ? '2px' : '1px'}
+                borderColor={borderColor}
+                borderWidth="1px"
                 _hover={{ 
                   bg: exerciseCardHoverBg, 
-                  borderColor: 'blue.300',
-                  cursor: selectionMode ? 'pointer' : 'default'
+                  borderColor: 'blue.300'
                 }}
                 transition="all 0.2s"
                 onClick={() => handleExerciseClick(exercise)}
@@ -462,10 +608,24 @@ export const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
                               {exercise.difficulty}
                             </Badge>
                           )}
+                          {/* Source Badge */}
+                          {exercise.is_system_exercise ? (
+                            <Badge size="sm" colorScheme="blue" variant="solid">
+                              System
+                            </Badge>
+                          ) : exercise.is_public ? (
+                            <Badge size="sm" colorScheme="green" variant="solid">
+                              Public
+                            </Badge>
+                          ) : (
+                            <Badge size="sm" colorScheme="purple" variant="solid">
+                              Mine
+                            </Badge>
+                          )}
                         </HStack>
                       </VStack>
                       
-                      {!selectionMode && (
+                      {!exercise.is_system_exercise && exercise.user_id === currentUserId && (
                         <HStack spacing={1}>
                           <Tooltip label="Edit exercise">
                             <IconButton
@@ -534,7 +694,7 @@ export const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
             ))}
           </SimpleGrid>
         )}
-      </VStack>
+      </Box>
 
       {/* Add Exercise Modal */}
       <ExerciseModal
@@ -587,4 +747,4 @@ export const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
       </AlertDialog>
     </Box>
   );
-}; 
+}); 

@@ -263,7 +263,7 @@ export const ExerciseModal: React.FC<ExerciseModalProps> = ({
         <ModalHeader borderBottomWidth="1px" borderColor={borderColor}>
           {title}
         </ModalHeader>
-        <ModalCloseButton isDisabled={isSubmitting} />
+        <ModalCloseButton disabled={isSubmitting} />
         
         <ModalBody py={6}>
           <VStack spacing={6} align="stretch">
@@ -377,8 +377,9 @@ export const ExerciseModal: React.FC<ExerciseModalProps> = ({
                         <Tag size="md" colorScheme="blue" variant="solid">
                           <TagLabel>{muscle}</TagLabel>
                           <TagCloseButton 
-                            onClick={() => handleRemoveMuscleGroup(muscle)}
-                            isDisabled={isSubmitting}
+                            onClick={isSubmitting ? undefined : () => handleRemoveMuscleGroup(muscle)}
+                            opacity={isSubmitting ? 0.5 : 1}
+                            cursor={isSubmitting ? "not-allowed" : "pointer"}
                           />
                         </Tag>
                       </WrapItem>
@@ -396,10 +397,10 @@ export const ExerciseModal: React.FC<ExerciseModalProps> = ({
                       <Tag
                         size="md"
                         variant="outline"
-                        cursor="pointer"
-                        onClick={() => handleAddMuscleGroup(muscle)}
-                        _hover={{ bg: 'blue.50' }}
-                        isDisabled={isSubmitting}
+                        cursor={isSubmitting ? "not-allowed" : "pointer"}
+                        onClick={isSubmitting ? undefined : () => handleAddMuscleGroup(muscle)}
+                        _hover={isSubmitting ? {} : { bg: 'blue.50' }}
+                        opacity={isSubmitting ? 0.6 : 1}
                       >
                         <TagLabel>{muscle}</TagLabel>
                         <Plus size={12} style={{ marginLeft: '4px' }} />
@@ -444,8 +445,9 @@ export const ExerciseModal: React.FC<ExerciseModalProps> = ({
                         <Tag size="md" colorScheme="green" variant="solid">
                           <TagLabel>{equipment}</TagLabel>
                           <TagCloseButton 
-                            onClick={() => handleRemoveEquipment(equipment)}
-                            isDisabled={isSubmitting}
+                            onClick={isSubmitting ? undefined : () => handleRemoveEquipment(equipment)}
+                            opacity={isSubmitting ? 0.5 : 1}
+                            cursor={isSubmitting ? "not-allowed" : "pointer"}
                           />
                         </Tag>
                       </WrapItem>
@@ -463,10 +465,10 @@ export const ExerciseModal: React.FC<ExerciseModalProps> = ({
                       <Tag
                         size="md"
                         variant="outline"
-                        cursor="pointer"
-                        onClick={() => handleAddEquipment(equipment)}
-                        _hover={{ bg: 'green.50' }}
-                        isDisabled={isSubmitting}
+                        cursor={isSubmitting ? "not-allowed" : "pointer"}
+                        onClick={isSubmitting ? undefined : () => handleAddEquipment(equipment)}
+                        _hover={isSubmitting ? {} : { bg: 'green.50' }}
+                        opacity={isSubmitting ? 0.6 : 1}
                       >
                         <TagLabel>{equipment}</TagLabel>
                         <Plus size={12} style={{ marginLeft: '4px' }} />

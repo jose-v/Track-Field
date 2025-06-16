@@ -181,6 +181,48 @@ const WorkoutCreatorWireframe: React.FC = () => {
   
   // Custom exercises state
   const [customExercises, setCustomExercises] = useState<Exercise[]>([]);
+  const [isLoadingExercises, setIsLoadingExercises] = useState(false);
+
+  // Load exercises from database
+  const loadExercises = async () => {
+    if (!user?.id) return;
+    
+    setIsLoadingExercises(true);
+    try {
+      const { data, error } = await supabase
+        .from('exercise_library')
+        .select('*')
+        .or(`is_system_exercise.eq.true,and(user_id.eq.${user.id}),and(is_public.eq.true,is_system_exercise.eq.false)`)
+        .order('is_system_exercise', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      // Transform data to include created_by_name
+      const transformedData = (data || []).map(exercise => ({
+        ...exercise,
+        created_by_name: exercise.is_system_exercise ? 'System' : 'User'
+      }));
+      
+      setCustomExercises(transformedData);
+    } catch (error) {
+      console.error('Error loading exercises:', error);
+      toast({
+        title: 'Error loading exercises',
+        description: 'Could not load exercises. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoadingExercises(false);
+    }
+  };
+
+  // Load exercises on component mount
+  useEffect(() => {
+    loadExercises();
+  }, [user?.id]);
   
   // Add loading states
   const [isLoadingAthletes, setIsLoadingAthletes] = useState(false);
@@ -556,12 +598,66 @@ const WorkoutCreatorWireframe: React.FC = () => {
   };
 
   // Custom exercise functions
-  const handleAddCustomExercise = (exerciseData: Omit<Exercise, 'id'>) => {
-    const newExercise: Exercise = {
-      ...exerciseData,
-      id: `custom-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+  const handleAddCustomExercise = async (exerciseData: Omit<Exercise, 'id'>) => {
+    if (!user?.id) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('exercise_library')
+      .insert([{
+        ...exerciseData,
+        user_id: user.id,
+        is_system_exercise: false,
+        is_public: false, // Private by default
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }])
+      .select('*')
+      .single();
+
+    if (error) throw error;
+    
+    // Transform data to include created_by_name
+    const transformedData = {
+      ...data,
+      created_by_name: 'You'
     };
-    setCustomExercises(prev => [...prev, newExercise]);
+    
+    setCustomExercises(prev => [transformedData, ...prev]);
+  };
+
+  const handleUpdateCustomExercise = async (id: string, exerciseData: Omit<Exercise, 'id'>) => {
+    const { data, error } = await supabase
+      .from('exercise_library')
+      .update({
+        ...exerciseData,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+    
+    // Transform data to include created_by_name
+    const transformedData = {
+      ...data,
+      created_by_name: 'You'
+    };
+    
+    setCustomExercises(prev => 
+      prev.map(ex => ex.id === id ? transformedData : ex)
+    );
+  };
+
+  const handleDeleteCustomExercise = async (id: string) => {
+    const { error } = await supabase
+      .from('exercise_library')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    
+    setCustomExercises(prev => prev.filter(ex => ex.id !== id));
   };
 
   // Get warnings for review step
@@ -1426,7 +1522,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
         return (
           <Suspense fallback={<LoadingFallback />}>
             <Step2ExercisePlanning
-              exercises={MOCK_EXERCISES}
+              exercises={customExercises}
               selectedExercises={selectedExercises[currentDay] || []}
               onAddExercise={handleAddExercise}
               onRemoveExercise={handleRemoveExercise}
@@ -1442,6 +1538,10 @@ const WorkoutCreatorWireframe: React.FC = () => {
               isRestDay={restDays[currentDay]}
               customExercises={customExercises}
               onAddCustomExercise={handleAddCustomExercise}
+              onUpdateCustomExercise={handleUpdateCustomExercise}
+              onDeleteCustomExercise={handleDeleteCustomExercise}
+              isLoadingExercises={isLoadingExercises}
+              currentUserId={user?.id}
               onToggleRestDay={handleToggleRestDay}
               onCopyExercises={handleCopyExercises}
             />

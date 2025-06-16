@@ -223,6 +223,9 @@ export function CoachTrainingPlans() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedPlanForEdit, setSelectedPlanForEdit] = useState<TrainingPlan | null>(null);
 
+  // Add ref for ExerciseLibrary
+  const exerciseLibraryRef = React.useRef<{ openAddModal: () => void } | null>(null);
+
   // Load data when component mounts
   useEffect(() => {
     loadMonthlyPlans();
@@ -1323,18 +1326,26 @@ export function CoachTrainingPlans() {
     setExercisesLoading(true);
     try {
       const { data, error } = await supabase
-        .from('custom_exercises')
+        .from('exercise_library')
         .select('*')
-        .eq('created_by', user.id)
+        .or(`is_system_exercise.eq.true,and(user_id.eq.${user.id}),and(is_public.eq.true,is_system_exercise.eq.false)`)
+        .order('is_system_exercise', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setCustomExercises(data || []);
+      
+      // Transform data to include created_by_name
+      const transformedData = (data || []).map(exercise => ({
+        ...exercise,
+        created_by_name: exercise.is_system_exercise ? 'System' : 'User'
+      }));
+      
+      setCustomExercises(transformedData);
     } catch (error) {
-      console.error('Error loading custom exercises:', error);
+      console.error('Error loading exercises:', error);
       toast({
         title: 'Error loading exercises',
-        description: 'Could not load your custom exercises. Please try again.',
+        description: 'Could not load exercises. Please try again.',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -1348,42 +1359,56 @@ export function CoachTrainingPlans() {
     if (!user?.id) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
-      .from('custom_exercises')
+      .from('exercise_library')
       .insert([{
         ...exerciseData,
-        created_by: user.id,
+        user_id: user.id,
+        is_system_exercise: false,
+        is_public: false, // Private by default
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }])
-      .select()
+      .select('*')
       .single();
 
     if (error) throw error;
     
-    setCustomExercises(prev => [data, ...prev]);
+    // Transform data to include created_by_name
+    const transformedData = {
+      ...data,
+      created_by_name: 'You'
+    };
+    
+    setCustomExercises(prev => [transformedData, ...prev]);
   };
 
   const handleUpdateExercise = async (id: string, exerciseData: Omit<Exercise, 'id'>) => {
     const { data, error } = await supabase
-      .from('custom_exercises')
+      .from('exercise_library')
       .update({
         ...exerciseData,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
-      .select()
+      .select('*')
       .single();
 
     if (error) throw error;
     
+    // Transform data to include created_by_name
+    const transformedData = {
+      ...data,
+      created_by_name: 'You'
+    };
+    
     setCustomExercises(prev => 
-      prev.map(ex => ex.id === id ? data : ex)
+      prev.map(ex => ex.id === id ? transformedData : ex)
     );
   };
 
   const handleDeleteExercise = async (id: string) => {
     const { error } = await supabase
-      .from('custom_exercises')
+      .from('exercise_library')
       .delete()
       .eq('id', id);
 
@@ -1500,13 +1525,16 @@ export function CoachTrainingPlans() {
         case 'exercise-library':
           return (
             <ExerciseLibrary
+              ref={exerciseLibraryRef}
               exercises={customExercises}
               onAddExercise={handleAddExercise}
               onUpdateExercise={handleUpdateExercise}
               onDeleteExercise={handleDeleteExercise}
               isLoading={exercisesLoading}
+              currentUserId={user?.id}
               title=""
               subtitle=""
+              showAddButton={false}
             />
           );
         case 'by-athlete':
@@ -1700,15 +1728,30 @@ export function CoachTrainingPlans() {
       <VStack spacing={6} align="stretch" w="100%">
         {/* Section Header */}
         <VStack spacing={2} align="start" w="100%">
-          <HStack spacing={3} align="center">
-            <Icon
-              as={sectionInfo.icon}
-              boxSize={6}
-              color={useColorModeValue('blue.500', 'blue.300')}
-            />
-            <Heading size="lg" color={headerTextColor}>
-              {sectionInfo.title}
-            </Heading>
+          <HStack spacing={3} align="center" justify="space-between" w="100%">
+            <HStack spacing={3} align="center">
+              <Icon
+                as={sectionInfo.icon}
+                boxSize={6}
+                color={useColorModeValue('blue.500', 'blue.300')}
+              />
+              <Heading size="lg" color={headerTextColor}>
+                {sectionInfo.title}
+              </Heading>
+            </HStack>
+            {activeItem === 'exercise-library' && (
+              <Button
+                leftIcon={<AddIcon />}
+                colorScheme="blue"
+                onClick={() => {
+                  if (exerciseLibraryRef.current) {
+                    exerciseLibraryRef.current.openAddModal();
+                  }
+                }}
+              >
+                Add Exercise
+              </Button>
+            )}
           </HStack>
           <Text color={headerSubtextColor} fontSize="md">
             {sectionInfo.description} ({filteredData.data.length} items)

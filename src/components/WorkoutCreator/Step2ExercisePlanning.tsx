@@ -35,6 +35,7 @@ import {
   ButtonGroup,
 } from '@chakra-ui/react';
 import { Search, PlusCircle, X, Library, FileText, Moon, Plus, Copy, ChevronDown, GripVertical } from 'lucide-react';
+import { ExerciseLibrary } from '../ExerciseLibrary/ExerciseLibrary';
 import {
   DndContext,
   DragEndEvent,
@@ -56,6 +57,19 @@ interface Exercise {
   name: string;
   category: string;
   description: string;
+  video_url?: string;
+  default_instructions?: string;
+  difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
+  muscle_groups?: string[];
+  equipment?: string[];
+  user_id?: string;
+  is_system_exercise?: boolean;
+  is_public?: boolean;
+  organization_id?: string;
+  usage_count?: number;
+  created_at?: string;
+  updated_at?: string;
+  created_by_name?: string;
 }
 
 interface SelectedExercise extends Exercise {
@@ -87,7 +101,11 @@ interface Step2ExercisePlanningProps {
   onToggleRestDay?: (day: string, isRest: boolean) => void;
   onCopyExercises?: (fromDay: string, toDay: string) => void;
   customExercises: Exercise[];
-  onAddCustomExercise: (exercise: Omit<Exercise, 'id'>) => void;
+  onAddCustomExercise: (exercise: Omit<Exercise, 'id'>) => Promise<void>;
+  onUpdateCustomExercise: (id: string, exercise: Omit<Exercise, 'id'>) => Promise<void>;
+  onDeleteCustomExercise: (id: string) => Promise<void>;
+  isLoadingExercises?: boolean;
+  currentUserId?: string;
 }
 
 const EXERCISE_CATEGORIES = ['All', 'Lift', 'Bodyweight', 'Run Interval', 'Core', 'Plyometric', 'Warm-up', 'Cool-down', 'Drill', 'Custom'];
@@ -342,6 +360,10 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
   onCopyExercises,
   customExercises,
   onAddCustomExercise,
+  onUpdateCustomExercise,
+  onDeleteCustomExercise,
+  isLoadingExercises = false,
+  currentUserId,
 }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [newExerciseName, setNewExerciseName] = useState('');
@@ -438,139 +460,24 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
 
   return (
     <Box w="100%" mb={0}>
-      <HStack spacing={4} align="start" w="100%" height="calc(100vh - 170px)">
+      <HStack spacing={4} align="start" w="100%" height="calc(100vh - 380px)">
         {/* Left Panel: Exercise Library */}
         <Card flex="1" height="100%" variant="outline" shadow="none" bg={cardBg} borderColor={borderColor}>
-          <CardHeader pb={3}>
-            <VStack spacing={4} align="stretch">
-              <HStack justify="space-between">
-                <HStack spacing={3} align="baseline">
-                  <Box display="flex" alignItems="center">
-                    <Library size={29} color="var(--chakra-colors-blue-500)" />
-                  </Box>
-                  <Heading size="lg" color={libraryHeadingColor}>Exercise Library</Heading>
-                </HStack>
-                <Button
-                  size="sm"
-                  colorScheme="blue"
-                  variant="outline"
-                  leftIcon={<Plus size={16} />}
-                  onClick={onOpen}
-                >
-                  Add Exercise
-                </Button>
-              </HStack>
-              
-              {/* Search */}
-              <InputGroup size="lg">
-                <InputLeftElement pointerEvents="none">
-                  <Search size={20} color={searchIconColor} />
-                </InputLeftElement>
-                <Input
-                  placeholder="Search exercises by name, category, or muscle group..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  borderWidth="1px"
-                  _focus={{ borderColor: "blue.400", shadow: "sm" }}
-                  bg={cardBg}
-                  borderColor={borderColor}
-                  color={textColor}
-                />
-              </InputGroup>
-
-              {/* Category Filters */}
-              <HStack spacing={2} flexWrap="wrap">
-                {EXERCISE_CATEGORIES.map((category) => (
-                  <Button
-                    key={category}
-                    size="sm"
-                    variant={selectedCategory === category ? 'solid' : 'outline'}
-                    colorScheme={selectedCategory === category ? 'blue' : 'gray'}
-                    onClick={() => setSelectedCategory(category)}
-                  >
-                    {category}
-                  </Button>
-                ))}
-              </HStack>
-            </VStack>
-          </CardHeader>
-          
-          <CardBody pt={0} flex="1" overflow="hidden" display="flex" flexDirection="column">
-            <Box flex="1" overflow="auto" pr={2}>
-              {filteredExercises.length === 0 ? (
-                <VStack spacing={4} py={8} textAlign="center">
-                  <div style={{ fontSize: '48px', opacity: 0.5 }}>🔍</div>
-                  <Text color={noExercisesTextColor} fontSize="md" fontWeight="medium">
-                    No exercises found
-                  </Text>
-                  <Text color={noExercisesSubtextColor} fontSize="sm">
-                    Try adjusting your search or category filter
-                  </Text>
-                </VStack>
-              ) : (
-                <VStack spacing={2} align="stretch">
-                  {filteredExercises.map((exercise) => {
-                    const isAlreadyAdded = selectedExercises.some(ex => ex.id === exercise.id);
-                    
-                    return (
-                      <Card
-                        key={exercise.id}
-                        variant="outline"
-                        shadow="none"
-                        bg={isAlreadyAdded ? libraryExerciseAddedBg : libraryExerciseCardBg}
-                        borderColor={isAlreadyAdded ? libraryExerciseAddedBorderColor : libraryExerciseCardBorderColor}
-                        borderWidth="1px"
-                        cursor={isAlreadyAdded ? "not-allowed" : "pointer"}
-                        opacity={isAlreadyAdded ? 0.7 : 1}
-                        onClick={() => !isAlreadyAdded && onAddExercise(exercise)}
-                        _hover={{ 
-                          borderColor: isAlreadyAdded ? undefined : "blue.200"
-                        }}
-                        transition="all 0.2s"
-                        size="sm"
-                      >
-                        <CardBody px={4} pt={2} pb={1}>
-                          <HStack justify="space-between" align="start">
-                            <VStack align="start" spacing={1} flex="1">
-                              <HStack flexWrap="wrap">
-                                <Text fontWeight="bold" fontSize="sm" color={libraryExerciseNameColor}>
-                                  {exercise.name}
-                                </Text>
-                                <Tag size="sm" colorScheme="teal" variant="subtle">
-                                  {exercise.category}
-                                </Tag>
-                                {isAlreadyAdded && (
-                                  <Tag size="sm" colorScheme="green" variant="solid">
-                                    ✓ Added
-                                  </Tag>
-                                )}
-                              </HStack>
-                              <Text fontSize="xs" color={libraryExerciseDescColor} lineHeight="short" noOfLines={1}>
-                                {exercise.description}
-                              </Text>
-                            </VStack>
-                            {!isAlreadyAdded && (
-                              <Button
-                                size="xs"
-                                colorScheme="gray"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onAddExercise(exercise);
-                                }}
-                                leftIcon={<PlusCircle size={12} />}
-                              >
-                                Add
-                              </Button>
-                            )}
-                          </HStack>
-                        </CardBody>
-                      </Card>
-                    );
-                  })}
-                </VStack>
-              )}
-            </Box>
+          <CardBody p={0} height="100%">
+            <ExerciseLibrary
+              exercises={customExercises}
+              onAddExercise={onAddCustomExercise}
+              onUpdateExercise={onUpdateCustomExercise}
+              onDeleteExercise={onDeleteCustomExercise}
+              isLoading={isLoadingExercises}
+              currentUserId={currentUserId}
+              onExerciseSelect={onAddExercise}
+              selectionMode={true}
+              selectedExercises={selectedExercises.map(ex => ex.id)}
+              title="Exercise Library"
+              subtitle="Select exercises to add to your workout"
+              showAddButton={true}
+            />
           </CardBody>
         </Card>
 
