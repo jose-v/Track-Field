@@ -180,8 +180,10 @@ export function useProfile() {
       return false;
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 10 * 60 * 1000, // Increased stale time to 10 minutes
+    gcTime: 30 * 60 * 1000, // Increased garbage collection time to 30 minutes
+    refetchOnWindowFocus: false, // Prevent unnecessary refetches
+    refetchOnMount: false, // Don't refetch on mount if we have cached data
   })
 
   // Increase timeout for loading state fallback
@@ -337,8 +339,31 @@ export function useProfile() {
       errorMessage: profileQuery.error?.message,
       queryStatus: profileQuery.status,
       fallbackUsed: !!timeoutFallback,
-      timeoutFallbackActive: !!timeoutFallback
+      timeoutFallbackActive: !!timeoutFallback,
+      // Additional debugging info
+      authUserId: auth.user?.id,
+      profileId: effectiveProfile?.id,
+      rawProfileData: effectiveProfile,
+      cacheStatus: {
+        hasQueryData: !!profileQuery.data,
+        hasTimeoutFallback: !!timeoutFallback,
+        queryIsFetching: profileQuery.isFetching,
+        queryIsStale: profileQuery.isStale
+      }
     });
+    
+    // Warning for null roles
+    if (effectiveProfile && effectiveProfile.role === null) {
+      console.warn('🚨 useProfile: Profile found but role is NULL - this will cause routing issues');
+      console.log('Profile details:', {
+        id: effectiveProfile.id,
+        email: effectiveProfile.email,
+        first_name: effectiveProfile.first_name,
+        last_name: effectiveProfile.last_name,
+        created_at: effectiveProfile.created_at,
+        role: effectiveProfile.role
+      });
+    }
   }
 
   return {

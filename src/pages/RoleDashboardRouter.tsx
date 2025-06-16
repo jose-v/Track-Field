@@ -33,9 +33,13 @@ export default function RoleDashboardRouter() {
     return <Navigate to="/athlete/dashboard" replace />;
   }
 
-  // Fallback for any other roles or if role is undefined (though profile should have a role)
-  // This could be a generic dashboard or an error/message page.
-  // For now, let's assume AthleteDashboardComponent can serve as a default if no specific role matches for redirection.
-  console.warn('RoleDashboardRouter: Unhandled role or no role, defaulting to AthleteDashboardComponent for /dashboard', profile?.role);
+  // Handle null/undefined roles by redirecting to role selection
+  if (!profile.role) {
+    console.warn('RoleDashboardRouter: Profile has no role assigned, redirecting to role selection', profile?.role);
+    return <Navigate to="/role-selection" replace />;
+  }
+
+  // Fallback for any other unhandled roles
+  console.warn('RoleDashboardRouter: Unhandled role, defaulting to AthleteDashboardComponent for /dashboard', profile?.role);
   return <AthleteDashboardComponent />;
 } 

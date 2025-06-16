@@ -8,7 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { FaEye, FaPlayCircle, FaRunning, FaDumbbell, FaRegClock, FaCalendarAlt, FaListUl, FaLeaf, FaRedo, FaCog, FaPlus, FaCalendarWeek, FaCalendarDay, FaClock, FaChartLine, FaBookOpen, FaHistory, FaFilter } from 'react-icons/fa';
 import { CheckIcon, EditIcon } from '@chakra-ui/icons'; // For exec modal
 import { FiCalendar, FiClock } from 'react-icons/fi';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useWorkoutStore } from '../../lib/workoutStore'; // Import the store
 import { WorkoutCard } from '../../components/WorkoutCard'; // Import our shared card component
 import { supabase } from '../../lib/supabase';
@@ -23,6 +23,7 @@ import { useScrollDirection } from '../../hooks/useScrollDirection';
 import { RunTimeInput } from '../../components/RunTimeInput';
 import { isRunExercise, validateTime } from '../../utils/exerciseUtils';
 import { ExerciseLibrary, Exercise as LibraryExercise } from '../../components/ExerciseLibrary';
+import { getExercisesWithTeamSharing, createExerciseWithSharing, updateExerciseWithSharing } from '../../utils/exerciseQueries';
 
 // Consistent Exercise type
 interface Exercise {
@@ -98,6 +99,7 @@ export function AthleteWorkouts() {
   const pageBackgroundColor = useColorModeValue('gray.50', 'gray.900');
   const headerTextColor = useColorModeValue('gray.800', 'white');
   const headerSubtextColor = useColorModeValue('gray.600', 'gray.300');
+  const iconColor = useColorModeValue('blue.500', 'blue.300');
   
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -129,6 +131,9 @@ export function AthleteWorkouts() {
   // State for custom exercises
   const [customExercises, setCustomExercises] = useState<LibraryExercise[]>([]);
   const [exercisesLoading, setExercisesLoading] = useState(false);
+
+  // Add ref for ExerciseLibrary
+  const exerciseLibraryRef = React.useRef<{ openAddModal: () => void } | null>(null);
 
   // Sidebar state and configuration
   const [activeItem, setActiveItem] = useState('all-workouts');
@@ -352,7 +357,8 @@ export function AthleteWorkouts() {
           id: 'exercise-library',
           label: 'Exercise Library',
           icon: FaBookOpen,
-          description: 'Manage custom exercises'
+          description: 'Manage custom exercises',
+          badge: customExercises.length
         }
       ]
     }
@@ -884,19 +890,13 @@ export function AthleteWorkouts() {
     
     setExercisesLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('custom_exercises')
-        .select('*')
-        .eq('created_by', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setCustomExercises(data || []);
+      const exercises = await getExercisesWithTeamSharing(user.id);
+      setCustomExercises(exercises);
     } catch (error) {
-      console.error('Error loading custom exercises:', error);
+      console.error('Error loading exercises:', error);
       toast({
         title: 'Error loading exercises',
-        description: 'Could not load your custom exercises. Please try again.',
+        description: 'Could not load exercises. Please try again.',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -909,43 +909,22 @@ export function AthleteWorkouts() {
   const handleAddExercise = async (exerciseData: Omit<LibraryExercise, 'id'>) => {
     if (!user?.id) throw new Error('User not authenticated');
 
-    const { data, error } = await supabase
-      .from('custom_exercises')
-      .insert([{
-        ...exerciseData,
-        created_by: user.id,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }])
-      .select()
-      .single();
-
-    if (error) throw error;
-    
-    setCustomExercises(prev => [data, ...prev]);
+    const transformedData = await createExerciseWithSharing(exerciseData, user.id);
+    setCustomExercises(prev => [transformedData, ...prev]);
   };
 
   const handleUpdateExercise = async (id: string, exerciseData: Omit<LibraryExercise, 'id'>) => {
-    const { data, error } = await supabase
-      .from('custom_exercises')
-      .update({
-        ...exerciseData,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .select()
-      .single();
+    if (!user?.id) throw new Error('User not authenticated');
 
-    if (error) throw error;
-    
+    const transformedData = await updateExerciseWithSharing(id, exerciseData, user.id);
     setCustomExercises(prev => 
-      prev.map(ex => ex.id === id ? data : ex)
+      prev.map(ex => ex.id === id ? transformedData : ex)
     );
   };
 
   const handleDeleteExercise = async (id: string) => {
     const { error } = await supabase
-      .from('custom_exercises')
+      .from('exercise_library')
       .delete()
       .eq('id', id);
 
@@ -998,13 +977,16 @@ export function AthleteWorkouts() {
         case 'exercise-library':
           return (
             <ExerciseLibrary
+              ref={exerciseLibraryRef}
               exercises={customExercises}
               onAddExercise={handleAddExercise}
               onUpdateExercise={handleUpdateExercise}
               onDeleteExercise={handleDeleteExercise}
               isLoading={exercisesLoading}
+              currentUserId={user?.id}
               title=""
               subtitle=""
+              showAddButton={false}
             />
           );
         default:
@@ -1020,18 +1002,33 @@ export function AthleteWorkouts() {
       <VStack spacing={6} align="stretch" w="100%">
         {/* Section Header */}
         <VStack spacing={2} align="start" w="100%">
-          <HStack spacing={3} align="center">
-            <Icon
-              as={sectionInfo.icon}
-              boxSize={6}
-              color={useColorModeValue('blue.500', 'blue.300')}
-            />
-            <Heading size="lg" color={headerTextColor}>
-              {sectionInfo.title}
-            </Heading>
+          <HStack spacing={3} align="center" justify="space-between" w="100%">
+            <HStack spacing={3} align="center">
+              <Icon
+                as={sectionInfo.icon}
+                boxSize={6}
+                color={iconColor}
+              />
+              <Heading size="lg" color={headerTextColor}>
+                {sectionInfo.title}
+              </Heading>
+            </HStack>
+            {activeItem === 'exercise-library' && (
+              <Button
+                leftIcon={<FaPlus />}
+                colorScheme="blue"
+                onClick={() => {
+                  if (exerciseLibraryRef.current) {
+                    exerciseLibraryRef.current.openAddModal();
+                  }
+                }}
+              >
+                Add Exercise
+              </Button>
+            )}
           </HStack>
           <Text color={headerSubtextColor} fontSize="md">
-            {sectionInfo.description} ({filteredWorkouts.length} workouts)
+            {sectionInfo.description} ({activeItem === 'exercise-library' ? customExercises.length : filteredWorkouts.length} {activeItem === 'exercise-library' ? 'exercises' : 'workouts'})
           </Text>
         </VStack>
         

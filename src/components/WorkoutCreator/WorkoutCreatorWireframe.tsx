@@ -25,6 +25,7 @@ import { api, type EnhancedWorkoutData } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import WorkoutCreatorNavigation from '../WorkoutCreatorNavigation';
+import { getExercisesWithTeamSharing, createExerciseWithSharing, updateExerciseWithSharing } from '../../utils/exerciseQueries';
 
 // Lazy load step components to improve initial load time
 const Step1WorkoutDetails = lazy(() => import('./Step1WorkoutDetails').then(module => ({ default: module.default })));
@@ -189,22 +190,8 @@ const WorkoutCreatorWireframe: React.FC = () => {
     
     setIsLoadingExercises(true);
     try {
-      const { data, error } = await supabase
-        .from('exercise_library')
-        .select('*')
-        .or(`is_system_exercise.eq.true,and(user_id.eq.${user.id}),and(is_public.eq.true,is_system_exercise.eq.false)`)
-        .order('is_system_exercise', { ascending: false })
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      
-      // Transform data to include created_by_name
-      const transformedData = (data || []).map(exercise => ({
-        ...exercise,
-        created_by_name: exercise.is_system_exercise ? 'System' : 'User'
-      }));
-      
-      setCustomExercises(transformedData);
+      const exercises = await getExercisesWithTeamSharing(user.id);
+      setCustomExercises(exercises);
     } catch (error) {
       console.error('Error loading exercises:', error);
       toast({
@@ -601,49 +588,14 @@ const WorkoutCreatorWireframe: React.FC = () => {
   const handleAddCustomExercise = async (exerciseData: Omit<Exercise, 'id'>) => {
     if (!user?.id) throw new Error('User not authenticated');
 
-    const { data, error } = await supabase
-      .from('exercise_library')
-      .insert([{
-        ...exerciseData,
-        user_id: user.id,
-        is_system_exercise: false,
-        is_public: false, // Private by default
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }])
-      .select('*')
-      .single();
-
-    if (error) throw error;
-    
-    // Transform data to include created_by_name
-    const transformedData = {
-      ...data,
-      created_by_name: 'You'
-    };
-    
+    const transformedData = await createExerciseWithSharing(exerciseData, user.id);
     setCustomExercises(prev => [transformedData, ...prev]);
   };
 
   const handleUpdateCustomExercise = async (id: string, exerciseData: Omit<Exercise, 'id'>) => {
-    const { data, error } = await supabase
-      .from('exercise_library')
-      .update({
-        ...exerciseData,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .select('*')
-      .single();
+    if (!user?.id) throw new Error('User not authenticated');
 
-    if (error) throw error;
-    
-    // Transform data to include created_by_name
-    const transformedData = {
-      ...data,
-      created_by_name: 'You'
-    };
-    
+    const transformedData = await updateExerciseWithSharing(id, exerciseData, user.id);
     setCustomExercises(prev => 
       prev.map(ex => ex.id === id ? transformedData : ex)
     );

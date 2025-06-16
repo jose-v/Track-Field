@@ -24,6 +24,7 @@ import Events from '../pages/Events';
 import Account from '../pages/Account';
 import SpinnerTest from '../pages/SpinnerTest';
 import { CoachInvitation } from '../pages/auth/CoachInvitation';
+import RoleSelectionPage from '../pages/RoleSelectionPage';
 
 // Coach pages
 import { CoachDashboard } from '../pages/coach/Dashboard';
@@ -82,6 +83,9 @@ export default function AppRoutes() {
       {/* Standalone Testing Routes - No Layout */}
       <Route path="sandbox" element={<SandboxPage />} />
       <Route path="test-auth" element={<PrivateRoute><TestAuth /></PrivateRoute>} />
+
+      {/* Role Selection Route - For users with profiles but no roles */}
+      <Route path="/role-selection" element={<PrivateRoute><RoleSelectionPage /></PrivateRoute>} />
 
       {/* Protected Dashboard Route - Highest Priority */}
       <Route path="/dashboard" element={<GeneralLayout><PrivateRoute><RoleDashboardRouter /></PrivateRoute></GeneralLayout>} />
