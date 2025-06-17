@@ -119,22 +119,31 @@ export const useWorkoutStore = create<WorkoutStore>()(
             return state;
           }
           
+          // Clean up the completed array during write operations
+          let cleanedCompleted = existingProgress.completed.filter((idx, pos, arr) => 
+            arr.indexOf(idx) === pos && idx >= 0 && idx < existingProgress.totalExercises
+          );
+          
           // If already completed, do nothing
-          if (existingProgress.completed.includes(exerciseIndex)) {
-            // Disabled for performance
-            // if (process.env.NODE_ENV === 'development') {
-            //   console.log(`[WorkoutStore] Exercise ${exerciseIndex} was already marked as completed for ${workoutId}`);
-            // }
+          if (cleanedCompleted.includes(exerciseIndex)) {
+            // Return with cleaned data if needed
+            if (cleanedCompleted.length !== existingProgress.completed.length) {
+              return {
+                workoutProgress: {
+                  ...state.workoutProgress,
+                  [workoutId]: {
+                    ...existingProgress,
+                    completed: cleanedCompleted,
+                    lastUpdated: Date.now()
+                  }
+                }
+              };
+            }
             return state;
           }
           
           // Add to completed list
-          const updatedCompleted = [...existingProgress.completed, exerciseIndex];
-          
-          // Disabled for performance
-          // if (process.env.NODE_ENV === 'development') {
-          //   console.log(`[WorkoutStore] Marked exercise ${exerciseIndex} as completed for ${workoutId}. Total completed: ${updatedCompleted.length}/${existingProgress.totalExercises}`);
-          // }
+          const updatedCompleted = [...cleanedCompleted, exerciseIndex];
           
           return {
             workoutProgress: {
@@ -147,16 +156,6 @@ export const useWorkoutStore = create<WorkoutStore>()(
             }
           };
         });
-        
-        // Disabled for performance
-        // if (process.env.NODE_ENV === 'development') {
-        //   const currentProgress = get().workoutProgress[workoutId];
-        //   console.log(`[WorkoutStore] Current progress after marking exercise as completed:`, {
-        //     workoutId,
-        //     exerciseIndex,
-        //     currentProgress
-        //   });
-        // }
       },
       
       isExerciseCompleted: (workoutId, exerciseIndex) => {
@@ -174,29 +173,14 @@ export const useWorkoutStore = create<WorkoutStore>()(
         const progress = get().workoutProgress[workoutId];
         if (!progress) return null;
         
-        // Validate and clean up the completed exercises array
+        // Validate and clean up the completed exercises array (read-only)
         let cleanedCompleted = progress.completed.filter((idx, pos, arr) => 
           // Remove duplicates and out-of-bounds indices
           arr.indexOf(idx) === pos && idx >= 0 && idx < progress.totalExercises
         );
         
-        // If we cleaned up any data, update the store
-        if (cleanedCompleted.length !== progress.completed.length) {
-          // Disabled for performance
-          // if (process.env.NODE_ENV === 'development') {
-          //   console.log(`[WorkoutStore] Cleaned up invalid progress for ${workoutId}: ${progress.completed.length} -> ${cleanedCompleted.length}`);
-          // }
-          set((state) => ({
-            workoutProgress: {
-              ...state.workoutProgress,
-              [workoutId]: {
-                ...progress,
-                completed: cleanedCompleted,
-                lastUpdated: Date.now()
-              }
-            }
-          }));
-        }
+        // Note: Removed state update from getter to prevent render-time updates
+        // Data cleanup will happen during next write operation
         
         return {
           currentExerciseIndex: progress.currentExerciseIndex,

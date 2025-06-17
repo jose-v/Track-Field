@@ -317,6 +317,40 @@ export function CoachTrainingPlans() {
     };
   }, [workouts, monthlyPlans, templateWorkouts, draftWorkouts, deletedWorkouts, deletedMonthlyPlans, customExercises, athletes]);
 
+  // Helper functions - MUST be defined before filteredData useMemo to avoid hoisting issues
+  const getWorkoutProgress = React.useCallback((workout: Workout) => {
+    const stats = completionStats?.find(s => s.workoutId === workout.id);
+    if (!stats) {
+      return { completed: 0, total: 0, percentage: 0 };
+    }
+    
+    return {
+      completed: stats.completedCount || 0,
+      total: stats.exerciseCount || 0,
+      percentage: stats.percentage || 0
+    };
+  }, [completionStats]);
+
+  const getAthleteNames = React.useCallback((workout: Workout) => {
+    const workoutAssignments = assignments?.filter(a => a.workout_id === workout.id) || [];
+    if (workoutAssignments.length === 0) {
+      return 'Not assigned';
+    }
+    
+    const athleteNames = workoutAssignments
+      .map(assignment => {
+        const athlete = athletes?.find(a => a.id === assignment.athlete_id);
+        return athlete ? `${athlete.first_name} ${athlete.last_name}`.trim() : 'Unknown Athlete';
+      })
+      .filter(Boolean)
+      .slice(0, 3);
+    
+    const remaining = workoutAssignments.length - athleteNames.length;
+    const nameString = athleteNames.join(', ');
+    
+    return remaining > 0 ? `${nameString} +${remaining} more` : nameString;
+  }, [assignments, athletes]);
+
   // Filter data based on active sidebar item
   const filteredData = useMemo(() => {
     switch (activeItem) {
@@ -324,11 +358,11 @@ export function CoachTrainingPlans() {
         // Apply workout filter within all-workouts
         let filteredWorkouts = workouts?.filter(w => !w.is_draft) || [];
         
-        // Apply workout type filter
+        // Apply workout type filter - FIXED: Use template_type instead of type
         if (workoutFilter === 'single') {
-          filteredWorkouts = filteredWorkouts.filter(w => w.type !== 'weekly');
+          filteredWorkouts = filteredWorkouts.filter(w => w.template_type === 'single' || !w.template_type);
         } else if (workoutFilter === 'weekly') {
-          filteredWorkouts = filteredWorkouts.filter(w => w.type === 'weekly');
+          filteredWorkouts = filteredWorkouts.filter(w => w.template_type === 'weekly');
         } else if (workoutFilter === 'monthly') {
           return { type: 'plans', data: monthlyPlans };
         }
@@ -346,23 +380,23 @@ export function CoachTrainingPlans() {
       case 'speed':
         return { type: 'workouts', data: workouts?.filter(w => !w.is_draft && (w.type?.toLowerCase().includes('speed') || w.type?.toLowerCase().includes('sprint'))) || [] };
       case 'templates':
-        // Apply template filter
+        // Apply template filter - FIXED: Use template_type instead of type
         let filteredTemplates = templateWorkouts;
         if (templateFilter === 'single') {
-          filteredTemplates = templateWorkouts.filter(t => t.type !== 'weekly');
+          filteredTemplates = templateWorkouts.filter(t => t.template_type === 'single' || !t.template_type);
         } else if (templateFilter === 'weekly') {
-          filteredTemplates = templateWorkouts.filter(t => t.type === 'weekly');
+          filteredTemplates = templateWorkouts.filter(t => t.template_type === 'weekly');
         } else if (templateFilter === 'monthly') {
           filteredTemplates = templateWorkouts.filter(t => t.type === 'monthly');
         }
         return { type: 'templates', data: filteredTemplates };
       case 'drafts':
-        // Apply draft filter
+        // Apply draft filter - FIXED: Use template_type instead of type
         let filteredDrafts = draftWorkouts;
         if (draftFilter === 'single') {
-          filteredDrafts = draftWorkouts.filter(d => d.type !== 'weekly');
+          filteredDrafts = draftWorkouts.filter(d => d.template_type === 'single' || !d.template_type);
         } else if (draftFilter === 'weekly') {
-          filteredDrafts = draftWorkouts.filter(d => d.type === 'weekly');
+          filteredDrafts = draftWorkouts.filter(d => d.template_type === 'weekly');
         } else if (draftFilter === 'monthly') {
           filteredDrafts = draftWorkouts.filter(d => d.type === 'monthly');
         }
@@ -376,7 +410,7 @@ export function CoachTrainingPlans() {
       default:
         return { type: 'workouts', data: workouts?.filter(w => !w.is_draft) || [] };
     }
-  }, [activeItem, workouts, monthlyPlans, templateWorkouts, draftWorkouts, deletedWorkouts, deletedMonthlyPlans, customExercises, selectedAthlete, workoutFilter, templateFilter, draftFilter]);
+  }, [activeItem, workouts, monthlyPlans, templateWorkouts, draftWorkouts, deletedWorkouts, deletedMonthlyPlans, customExercises, selectedAthlete, workoutFilter, templateFilter, draftFilter, getAthleteNames]);
 
   // Sidebar configuration for coaches
   const coachSections: WorkoutsSection[] = [
@@ -614,39 +648,7 @@ export function CoachTrainingPlans() {
     }
   };
 
-  // Workout progress and athlete assignment functions (moved from CoachWorkouts)
-  const getWorkoutProgress = (workout: Workout) => {
-    const stats = completionStats?.find(s => s.workoutId === workout.id);
-    if (!stats) {
-      return { completed: 0, total: 0, percentage: 0 };
-    }
-    
-    return {
-      completed: stats.completedCount || 0,
-      total: stats.exerciseCount || 0,
-      percentage: stats.percentage || 0
-    };
-  };
 
-  const getAthleteNames = (workout: Workout) => {
-    const workoutAssignments = assignments?.filter(a => a.workout_id === workout.id) || [];
-    if (workoutAssignments.length === 0) {
-      return 'Not assigned';
-    }
-    
-    const athleteNames = workoutAssignments
-      .map(assignment => {
-        const athlete = athletes?.find(a => a.id === assignment.athlete_id);
-        return athlete ? `${athlete.first_name} ${athlete.last_name}`.trim() : 'Unknown Athlete';
-      })
-      .filter(Boolean)
-      .slice(0, 3);
-    
-    const remaining = workoutAssignments.length - athleteNames.length;
-    const nameString = athleteNames.join(', ');
-    
-    return remaining > 0 ? `${nameString} +${remaining} more` : nameString;
-  };
 
   // Handle clearing all filters
   const handleClearFilters = () => {
@@ -934,9 +936,9 @@ export function CoachTrainingPlans() {
       
       // Apply template type filter
       if (workoutFilter === 'single') {
-        filteredWorkouts = filteredWorkouts.filter(workout => workout.type === 'single' || !workout.type);
+        filteredWorkouts = filteredWorkouts.filter(workout => workout.template_type === 'single' || !workout.template_type);
       } else if (workoutFilter === 'weekly') {
-        filteredWorkouts = filteredWorkouts.filter(workout => workout.type === 'weekly');
+        filteredWorkouts = filteredWorkouts.filter(workout => workout.template_type === 'weekly');
       }
       // 'all' shows everything (no additional filtering)
 

@@ -29,6 +29,8 @@ import { isRunExercise, validateTime } from '../utils/exerciseUtils';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { useWorkoutStore } from '../lib/workoutStore';
+import { saveTrainingLoadEntry } from '../services/analytics/injuryRiskService';
 
 interface Exercise {
   name: string;
@@ -98,6 +100,14 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
   const toast = useToast();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const timerValueRef = useRef(timer);
+  
+  // Workout store for shared completion state
+  const { 
+    getProgress, 
+    isExerciseCompleted: storeIsExerciseCompleted, 
+    markExerciseCompleted: storeMarkCompleted, 
+    updateProgress 
+  } = useWorkoutStore();
 
   // State for run time tracking
   const [runTime, setRunTime] = useState({
@@ -118,6 +128,12 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
     targetReps: number;
   }>>([]);
 
+  // Helper function to get workout ID
+  const getWorkoutId = () => {
+    const workoutId = workout?.id || 'current-workout';
+    return workoutId;
+  };
+
   // Theme colors
   const cardBg = useColorModeValue('white', 'gray.800');
   const modalHeaderBg = useColorModeValue('gray.50', 'gray.700');
@@ -126,6 +142,19 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
   const modalTextColor = useColorModeValue('gray.500', 'gray.400');
   const modalSpanColor = useColorModeValue('gray.500', 'gray.400');
   const modalIconBg = useColorModeValue('white', 'gray.800');
+
+  // Initialize workout progress when modal opens
+  useEffect(() => {
+    if (isOpen && workout) {
+      const workoutId = getWorkoutId();
+      const filteredExercises = getFilteredExercises();
+      
+      // Initialize progress if needed
+      if (!getProgress(workoutId) && filteredExercises.length > 0) {
+        updateProgress(workoutId, exerciseIdx, filteredExercises.length);
+      }
+    }
+  }, [isOpen, workout, exerciseIdx]);
 
   // Initialize set data when exercise changes
   useEffect(() => {
@@ -193,15 +222,49 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
     return setData.filter(set => set.completed).length;
   };
 
+  const markExerciseCompleted = (exerciseIndex: number) => {
+    const workoutId = getWorkoutId();
+    const filteredExercises = getFilteredExercises();
+    
+    // Initialize progress if needed
+    if (!getProgress(workoutId)) {
+      updateProgress(workoutId, 0, filteredExercises.length);
+    }
+    
+    // Mark exercise as completed
+    storeMarkCompleted(workoutId, exerciseIndex);
+  };
+
+  const isExerciseCompleted = (exerciseIndex: number) => {
+    const workoutId = getWorkoutId();
+    return storeIsExerciseCompleted(workoutId, exerciseIndex);
+  };
+
+  const getCompletionProgress = () => {
+    const workoutId = getWorkoutId();
+    const progress = getProgress(workoutId);
+    const filteredExercises = getFilteredExercises();
+    const completed = progress?.completedExercises?.length || 0;
+    
+    return {
+      completed,
+      total: filteredExercises.length,
+      percentage: filteredExercises.length > 0 ? (completed / filteredExercises.length) * 100 : 0
+    };
+  };
+
   const isStrengthExercise = (exerciseName: string) => {
     return !isRunExercise(exerciseName);
   };
 
   const handleDone = async () => {
-    if (!workout || !workout.exercises[exerciseIdx]) return;
+    if (!filteredExercises[exerciseIdx]) return;
     
-    const currentExercise = workout.exercises[exerciseIdx];
-    const totalExercises = workout.exercises.length;
+    // Mark current exercise as completed
+    markExerciseCompleted(exerciseIdx);
+    
+    const currentExercise = filteredExercises[exerciseIdx];
+    const totalExercises = filteredExercises.length;
     const isRun = isRunExercise(currentExercise.name);
     
     // Validate and save data based on exercise type
@@ -317,34 +380,50 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
 
     setIsLoggingRPE(true);
     try {
-      // console.log('ExerciseExecutionModal: Logging RPE', selectedRPE, 'for workout', workout.id);
+      console.log('ExerciseExecutionModal: Logging RPE', selectedRPE, 'for workout', workout.id);
+      console.log('ExerciseExecutionModal: Workout object:', workout);
+      console.log('ExerciseExecutionModal: User ID:', user.id);
       
-      const insertData = {
-        athlete_id: user.id,
-        workout_id: workout.id,
-        exercise_index: 0,
-        exercise_name: 'Workout RPE',
-        rpe_rating: selectedRPE,
-        notes: `Overall workout RPE: ${selectedRPE}/10`,
-        completed_at: new Date().toISOString()
-      };
+      // Calculate workout duration in minutes from timer (timer is in seconds)
+      const durationMinutes = Math.max(1, Math.round(timer / 60)); // At least 1 minute
+      console.log('ExerciseExecutionModal: Duration minutes:', durationMinutes);
       
-      // Log the RPE rating in exercise_results table
-      const { data: insertedData, error: rpeError } = await supabase
-        .from('exercise_results')
-        .insert(insertData)
-        .select();
-
-      if (rpeError) {
-        console.error('ExerciseExecutionModal: Error inserting RPE:', rpeError);
-        throw new Error('Failed to log RPE rating');
+      // Check if this is a daily workout ID (starts with 'daily-')
+      let actualWorkoutId = workout.id;
+      if (workout.id.startsWith('daily-')) {
+        // Extract the actual workout ID from the daily workout ID
+        actualWorkoutId = workout.id.replace('daily-', '');
+        console.log('ExerciseExecutionModal: Converted daily workout ID', workout.id, 'to actual workout ID', actualWorkoutId);
       }
+      
+      // Verify the workout exists in the database
+      const { data: workoutData, error: workoutError } = await supabase
+        .from('workouts')
+        .select('id, name')
+        .eq('id', actualWorkoutId)
+        .single();
+      
+      if (workoutError || !workoutData) {
+        console.error('ExerciseExecutionModal: Workout not found in database:', actualWorkoutId, workoutError);
+        throw new Error(`Workout not found in database: ${actualWorkoutId}`);
+      }
+      
+      console.log('ExerciseExecutionModal: Verified workout exists:', workoutData);
+      
+      // Use the proper RPE system to save training load entry
+      await saveTrainingLoadEntry(
+        user.id,
+        actualWorkoutId,
+        selectedRPE,
+        durationMinutes,
+        (workout as any).type || 'general'
+      );
 
-              // console.log('ExerciseExecutionModal: Successfully logged RPE rating, inserted data:', insertedData);
+      console.log('ExerciseExecutionModal: Successfully logged RPE and training load');
 
       toast({
         title: 'Great job! 💪',
-        description: `Workout completed with ${selectedRPE}/10 RPE`,
+        description: `Workout completed with ${selectedRPE}/10 RPE (${durationMinutes} min)`,
         status: 'success',
         duration: 4000,
         isClosable: true,
@@ -359,11 +438,14 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
       
     } catch (error) {
       console.error('Error logging RPE:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('ExerciseExecutionModal: Full error details:', errorMessage);
+      
       toast({
         title: 'Error logging RPE',
-        description: 'RPE rating could not be saved, but workout completion was recorded.',
+        description: `RPE rating could not be saved: ${errorMessage}. Workout completion was recorded.`,
         status: 'warning',
-        duration: 4000,
+        duration: 6000,
         isClosable: true,
       });
       
@@ -411,17 +493,126 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
     return null;
   }
 
-  const currentExercise = workout.exercises[exerciseIdx];
+  // Filter exercises to match the workout day if it's a weekly plan
+  const getFilteredExercises = () => {
+    const workoutName = workout.name.toLowerCase();
+    const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    
+    // Check if workout name contains a day
+    const targetDay = dayNames.find(day => workoutName.includes(day));
+    
+    if (targetDay) {
+      // This is a daily workout from a weekly plan
+      const dayExercises = workout.exercises.filter((exercise: any) => {
+        return exercise && typeof exercise === 'object' && 
+               exercise.day && exercise.day.toLowerCase() === targetDay;
+      });
+      
+             if (dayExercises.length > 0) {
+         // Return the exercises for this specific day
+         const dayData = dayExercises[0] as any;
+         if (dayData.exercises && Array.isArray(dayData.exercises)) {
+           return dayData.exercises;
+         }
+       }
+    }
+    
+    // If not a weekly plan or no day match, return original exercises
+    return workout.exercises;
+  };
+
+  const filteredExercises = getFilteredExercises();
   
-  // Debug logging (reduced for performance)
-  if (process.env.NODE_ENV === 'development' && !currentExercise?.name) {
-    console.warn('ExerciseExecutionModal - Missing exercise name:', {
-      workout: workout?.name,
-      exerciseIdx,
-      hasCurrentExercise: !!currentExercise,
-      totalExercises: workout?.exercises?.length
-    });
+  // Use filtered exercises instead of original workout exercises
+  if (!filteredExercises[exerciseIdx]) {
+    return null;
   }
+
+  // Handle both old and new exercise data formats
+  const getRawExercise = () => {
+    const rawExercise = filteredExercises[exerciseIdx];
+    
+    // If it's a number (old format with indices), create a fallback exercise
+    if (typeof rawExercise === 'number') {
+      return {
+        name: `Exercise ${rawExercise + 1}`,
+        sets: 3,
+        reps: 10,
+        weight: null,
+        notes: 'Legacy exercise - please update workout'
+      };
+    }
+    
+    // If it's an object, check what type of object it is
+    if (rawExercise && typeof rawExercise === 'object') {
+      const rawExerciseAny = rawExercise as any;
+      
+      // Handle weekly workout format: {day: "wednesday", exercises: [...], isRestDay: false}
+      if (rawExerciseAny.day && Array.isArray(rawExerciseAny.exercises)) {
+        const dayName = rawExerciseAny.day;
+        const dayExercises = rawExerciseAny.exercises;
+        
+        if (rawExerciseAny.isRestDay) {
+          return {
+            name: `Rest Day - ${dayName.charAt(0).toUpperCase() + dayName.slice(1)}`,
+            sets: 0,
+            reps: 0,
+            weight: null,
+            notes: 'Rest and recovery day'
+          };
+        }
+        
+        if (dayExercises.length === 0) {
+          return {
+            name: `${dayName.charAt(0).toUpperCase() + dayName.slice(1)} - No exercises planned`,
+            sets: 0,
+            reps: 0,
+            weight: null,
+            notes: 'No exercises scheduled for this day'
+          };
+        }
+        
+        // If there are exercises for this day, return the first one (or could be modified to handle multiple)
+        const firstExercise = dayExercises[0];
+        return {
+          name: firstExercise.name || `${dayName.charAt(0).toUpperCase() + dayName.slice(1)} Exercise`,
+          sets: firstExercise.sets || 3,
+          reps: firstExercise.reps || 10,
+          weight: firstExercise.weight || null,
+          notes: firstExercise.notes || `Exercise for ${dayName}`
+        };
+      }
+      
+      // Handle old format: {id: "complex-id", name: "Exercise Name", ...}
+      if (rawExerciseAny.id && typeof rawExerciseAny.id === 'string' && rawExerciseAny.id.includes('-')) {
+        return {
+          name: rawExercise.name || `Exercise ${exerciseIdx + 1}`,
+          sets: rawExercise.sets || 3,
+          reps: rawExercise.reps || 10,
+          weight: rawExercise.weight || null,
+          notes: rawExercise.notes || ''
+        };
+      }
+      
+      // Handle new format: {name: "Exercise Name", sets: "3", reps: "10", ...}
+      if (rawExerciseAny.name) {
+        return rawExercise;
+      }
+    }
+    
+    // Fallback for any other format
+    return {
+      name: `Exercise ${exerciseIdx + 1}`,
+      sets: 3,
+      reps: 10,
+      weight: null,
+      notes: 'Unknown exercise format'
+    };
+  };
+
+  const currentExercise = getRawExercise();
+  
+
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered size={{ base: 'full', md: 'md' }} motionPreset="none">
@@ -537,7 +728,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
           {/* Progress Bar */}
           <Box position="absolute" bottom="0" left="0" right="0">
             <Progress 
-              value={showRPEScreen ? 100 : (((exerciseIdx + 1) / workout.exercises.length) * 100)} 
+              value={showRPEScreen ? 100 : (((exerciseIdx + 1) / filteredExercises.length) * 100)} 
               size="sm" 
               height="8px"
               colorScheme={showRPEScreen ? "green" : (running ? "green" : "blue")} 
@@ -738,12 +929,36 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                         >
                           Exercise
                         </Text>
+                        <HStack spacing={2}>
+                          <Text 
+                            fontWeight="bold" 
+                            fontSize="xl"
+                            color={modalHeadingColor}
+                          >
+                            {exerciseIdx + 1}/{filteredExercises.length}
+                          </Text>
+                          {isExerciseCompleted(exerciseIdx) && (
+                            <Icon as={CheckIcon} color="green.500" boxSize={5} />
+                          )}
+                        </HStack>
+                      </VStack>
+                      
+                      <VStack spacing={1}>
+                        <Text 
+                          color={modalTextColor} 
+                          fontSize="sm"
+                          fontWeight="medium"
+                          textTransform="uppercase"
+                          letterSpacing="wider"
+                        >
+                          Completed
+                        </Text>
                         <Text 
                           fontWeight="bold" 
                           fontSize="xl"
-                          color={modalHeadingColor}
+                          color={getCompletionProgress().completed === getCompletionProgress().total ? "green.500" : modalHeadingColor}
                         >
-                          {exerciseIdx + 1}/{workout.exercises.length}
+                          {getCompletionProgress().completed}/{getCompletionProgress().total}
                         </Text>
                       </VStack>
                       
@@ -910,7 +1125,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                         fontSize="2xl"
                         color={modalHeadingColor}
                       >
-                        {exerciseIdx + 1}/{workout.exercises.length}
+                        {exerciseIdx + 1}/{filteredExercises.length}
                       </Text>
                     </VStack>
                     
@@ -1058,7 +1273,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                     _hover={{ transform: 'translateY(-2px)', boxShadow: 'xl' }}
                     transition="all 0.2s"
                   >
-                    {exerciseIdx + 1 < workout.exercises.length ? 'Next' : 'Finish'}
+                    {exerciseIdx + 1 < filteredExercises.length ? 'Next' : 'Finish'}
                   </Button>
                 </HStack>
                 

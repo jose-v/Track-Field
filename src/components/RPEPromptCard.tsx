@@ -16,6 +16,7 @@ import {
 import { FaDumbbell, FaExclamationTriangle, FaClock } from 'react-icons/fa';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { saveTrainingLoadEntry } from '../services/analytics/injuryRiskService';
 
 interface RPEPromptCardProps {
   onLogComplete?: () => void;
@@ -233,36 +234,57 @@ export const RPEPromptCard: React.FC<RPEPromptCardProps> = ({ onLogComplete }) =
   };
 
   const handleRPELog = async () => {
-    if (!selectedWorkout || selectedRPE === null) return;
+    if (!selectedWorkout || selectedRPE === null || !user) return;
 
     setIsLogging(true);
     try {
       console.log('RPEPromptCard: Logging RPE', selectedRPE, 'for workout', selectedWorkout.workout_name);
       
-      const insertData = {
-        athlete_id: user.id,
-        workout_id: selectedWorkout.id,
-        exercise_index: 0,
-        exercise_name: 'Workout RPE',
-        rpe_rating: selectedRPE,
-        notes: `Overall workout RPE: ${selectedRPE}/10`,
-        completed_at: new Date().toISOString()
-      };
+      // Get workout details to determine workout_id properly
+      let workoutId = selectedWorkout.id;
       
-      console.log('RPEPromptCard: Inserting data:', insertData);
+      console.log('RPEPromptCard: Initial workout ID:', workoutId);
+      console.log('RPEPromptCard: Selected workout object:', selectedWorkout);
       
-      // Log the RPE rating in exercise_results table
-      const { data: insertedData, error: rpeError } = await supabase
-        .from('exercise_results')
-        .insert(insertData)
-        .select(); // Return the inserted data
-
-      if (rpeError) {
-        console.error('RPEPromptCard: Error inserting RPE:', rpeError);
-        throw new Error('Failed to log RPE rating');
+      // If this is an athlete_workout assignment ID, get the actual workout_id
+      const { data: assignmentData, error: assignmentError } = await supabase
+        .from('athlete_workouts')
+        .select('workout_id')
+        .eq('id', selectedWorkout.id)
+        .single();
+      
+      if (assignmentError) {
+        console.warn('RPEPromptCard: Could not fetch assignment data:', assignmentError);
+        // This might be a direct workout ID, continue with original ID
+      } else if (assignmentData?.workout_id) {
+        workoutId = assignmentData.workout_id;
+        console.log('RPEPromptCard: Found actual workout_id:', workoutId);
       }
+      
+      // Verify the workout exists in the database
+      const { data: workoutData, error: workoutError } = await supabase
+        .from('workouts')
+        .select('id, name')
+        .eq('id', workoutId)
+        .single();
+      
+      if (workoutError || !workoutData) {
+        console.error('RPEPromptCard: Workout not found in database:', workoutId, workoutError);
+        throw new Error(`Workout not found in database: ${workoutId}`);
+      }
+      
+      console.log('RPEPromptCard: Verified workout exists:', workoutData);
+      
+      // Use the proper training load entry system
+      await saveTrainingLoadEntry(
+        user.id,
+        workoutId,
+        selectedRPE,
+        60, // Default duration - could be made configurable
+        'general' // workout type
+      );
 
-      console.log('RPEPromptCard: Successfully logged RPE rating, inserted data:', insertedData);
+      console.log('RPEPromptCard: Successfully logged training load entry');
 
       toast({
         title: 'RPE rating logged successfully!',
@@ -289,7 +311,7 @@ export const RPEPromptCard: React.FC<RPEPromptCardProps> = ({ onLogComplete }) =
       console.error('Error logging RPE:', error);
       toast({
         title: 'Error logging RPE',
-        description: 'Please try again',
+        description: error instanceof Error ? error.message : 'Please try again',
         status: 'error',
         duration: 3000,
         isClosable: true,

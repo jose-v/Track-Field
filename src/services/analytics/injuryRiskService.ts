@@ -174,11 +174,13 @@ export async function triggerMetricsRecalculation(athleteId: string): Promise<vo
     });
 
     if (error) {
-      console.error('Error triggering metrics recalculation:', error);
+      console.warn('Metrics recalculation unavailable:', error.message || 'Edge function not accessible');
       // Don't throw - this is optional optimization
+    } else {
+      console.log('Metrics recalculation triggered successfully for athlete:', athleteId);
     }
   } catch (error) {
-    console.error('Failed to trigger metrics recalculation:', error);
+    console.warn('Metrics recalculation service temporarily unavailable:', error instanceof Error ? error.message : 'Network error');
     // Don't throw - this is optional optimization
   }
 }

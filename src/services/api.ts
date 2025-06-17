@@ -67,7 +67,7 @@ export const api = {
     async getAll(): Promise<Workout[]> {
       const { data, error } = await supabase
         .from('workouts')
-        .select('id, name, description, type, date, time, duration, location, created_at, user_id, created_by, is_template, template_type')
+        .select('id, name, description, type, date, time, duration, location, created_at, user_id, created_by, is_template, template_type, exercises')
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -78,7 +78,7 @@ export const api = {
       if (!userId) return [];
       const { data, error } = await supabase
         .from('workouts')
-        .select('id, name, description, type, date, time, duration, location, created_at, user_id, created_by, is_template, template_type')
+        .select('id, name, description, type, date, time, duration, location, created_at, user_id, created_by, is_template, template_type, exercises')
         .eq('user_id', userId)
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
@@ -269,7 +269,7 @@ export const api = {
         if (user.id === athleteId) {
           const { data: ownWorkouts, error: createdError } = await supabase
             .from('workouts')
-            .select('*')
+            .select('id, name, description, type, date, time, duration, location, created_at, user_id, created_by, is_template, template_type, exercises')
             .eq('user_id', athleteId)
             .order('created_at', { ascending: false });
             
@@ -292,7 +292,7 @@ export const api = {
           
           const { data: assignedWorkouts, error: fetchError } = await supabase
             .from('workouts')
-            .select('*')
+            .select('id, name, description, type, date, time, duration, location, created_at, user_id, created_by, is_template, template_type, exercises')
             .in('id', workoutIds);
             
           if (fetchError) {
@@ -2567,7 +2567,7 @@ export const api = {
               status
             `)
             .eq('athlete_id', athleteId)
-            .eq('status', 'active')
+            .in('status', ['assigned', 'in_progress'])
             .limit(1);
           
           if (assignmentError) {
@@ -2596,7 +2596,7 @@ export const api = {
           }
           
           if (!assignmentData || assignmentData.length === 0) {
-            console.log('🔍 No active training plan assignments found');
+            console.log('🔍 No assigned or in-progress training plan assignments found');
             
             // Fallback: Look for individual workouts for today
             const { data: individualWorkouts, error: workoutError } = await supabase
@@ -2642,7 +2642,7 @@ export const api = {
           
           const { data: planData, error: planError } = await supabase
             .from('training_plans')
-            .select('id, name, start_date, end_date, weekly_workout_ids')
+            .select('id, name, start_date, end_date, weekly_workout_ids, weeks')
             .eq('id', assignment.training_plan_id)
             .single();
           
@@ -2688,8 +2688,54 @@ export const api = {
           
           // Get weekly workout IDs (should be an array)
           const weeklyWorkoutIds = plan.weekly_workout_ids || [];
+          
           if (!Array.isArray(weeklyWorkoutIds) || weeklyWorkoutIds.length === 0) {
             console.warn('No weekly workout IDs found in plan');
+            
+                         // Try to get weekly workouts from the 'weeks' property (alternative structure)
+             const weeks = plan.weeks || [];
+             if (Array.isArray(weeks) && weeks.length > 0) {
+               // Try to extract workout IDs from weeks structure
+               const workoutIds = weeks
+                 .filter(week => week.workout_id || week.weekly_workout_id)
+                 .map(week => week.workout_id || week.weekly_workout_id);
+               
+               if (workoutIds.length > 0) {
+                 const currentWeeklyWorkoutId = workoutIds[weekNumber % workoutIds.length];
+                
+                // Jump to weekly workout retrieval with this ID
+                if (currentWeeklyWorkoutId) {
+                                     try {
+                     const { data: weeklyWorkout, error: weeklyError } = await supabase
+                       .from('workouts')
+                       .select('*')
+                       .eq('id', currentWeeklyWorkoutId)
+                       .single();
+                    
+                                         if (!weeklyError && weeklyWorkout) {
+                      
+                      return {
+                        hasWorkout: true,
+                        primaryWorkout: {
+                          title: plan.name || 'Training Plan',
+                          description: 'Your training plan for today',
+                          exercises: [
+                            { name: 'Scheduled training', sets: 1, reps: 'As planned', weight: null, notes: 'Complete your assigned workout' }
+                          ],
+                          progress: { completed: false },
+                          monthlyPlan: { name: plan.name, id: plan.id },
+                          weeklyWorkout: { name: weeklyWorkout.name, id: weeklyWorkout.id },
+                          dailyResult: null
+                        }
+                      };
+                    }
+                  } catch (err) {
+                    console.error('Error fetching weekly workout from weeks structure:', err);
+                  }
+                }
+              }
+            }
+            
             return {
               hasWorkout: true,
               primaryWorkout: {
@@ -2700,7 +2746,7 @@ export const api = {
                 ],
                 progress: { completed: false },
                 monthlyPlan: { name: plan.name, id: plan.id },
-                weeklyWorkout: null,
+                weeklyWorkout: { name: 'No weekly workout configured', id: 'none' },
                 dailyResult: null
               }
             };
@@ -2717,7 +2763,7 @@ export const api = {
           // Try to get weekly workout with timeout protection
           try {
             const { data: weeklyWorkout, error: weeklyError } = await supabase
-              .from('weekly_workouts')
+              .from('workouts')
               .select('*')
               .eq('id', currentWeeklyWorkoutId)
               .single();
@@ -2751,27 +2797,21 @@ export const api = {
             
             console.log('🔍 Found weekly workout:', weeklyWorkout);
             
-            // Get daily workout for today
-            const dailyWorkouts = weeklyWorkout.daily_workouts || [];
-            const todayWorkout = dailyWorkouts[dayOfWeek];
-            
-            if (!todayWorkout) {
-              console.log('🔍 No workout scheduled for today');
-              return { hasWorkout: false, primaryWorkout: null };
-            }
-            
-            console.log('🔍 Today\'s workout:', todayWorkout);
-            
+            // Since this is a workout from the workouts table, use it directly
             return {
               hasWorkout: true,
               primaryWorkout: {
-                title: todayWorkout.name || plan.name || 'Today\'s Workout',
-                description: todayWorkout.description || 'Your workout for today',
-                exercises: todayWorkout.exercises || [],
+                title: weeklyWorkout.name || plan.name || 'Today\'s Workout',
+                description: weeklyWorkout.description || 'Your workout for today',
+                exercises: weeklyWorkout.exercises || [],
                 progress: { completed: false },
                 monthlyPlan: { name: plan.name, id: plan.id },
                 weeklyWorkout: { name: weeklyWorkout.name, id: weeklyWorkout.id },
-                dailyResult: null
+                dailyResult: {
+                  dailyWorkout: {
+                    exercises: weeklyWorkout.exercises || []
+                  }
+                }
               }
             };
             

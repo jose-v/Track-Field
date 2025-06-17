@@ -535,9 +535,15 @@ export function AthleteWorkouts() {
       // Update database assignment status
       if (user?.id) {
         try {
-          await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutId, 'completed');
+          // Extract actual workout ID if this is a daily workout ID
+          let actualWorkoutId = workoutId;
+          if (workoutId.startsWith('daily-')) {
+            actualWorkoutId = workoutId.replace('daily-', '');
+          }
+          
+          await api.athleteWorkouts.updateAssignmentStatus(user.id, actualWorkoutId, 'completed');
           if (process.env.NODE_ENV === 'development') {
-      console.log(`Workout ${workoutId} marked as completed in database`);
+      console.log(`Workout ${workoutId} (actual: ${actualWorkoutId}) marked as completed in database`);
     }
         } catch (error) {
           console.error('Error updating workout completion status:', error);
@@ -562,9 +568,15 @@ export function AthleteWorkouts() {
       // Mark as in_progress instead
       if (user?.id) {
         try {
-          await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutId, 'in_progress');
+          // Extract actual workout ID if this is a daily workout ID
+          let actualWorkoutId = workoutId;
+          if (workoutId.startsWith('daily-')) {
+            actualWorkoutId = workoutId.replace('daily-', '');
+          }
+          
+          await api.athleteWorkouts.updateAssignmentStatus(user.id, actualWorkoutId, 'in_progress');
           if (process.env.NODE_ENV === 'development') {
-      console.log(`Workout ${workoutId} marked as in_progress in database`);
+      console.log(`Workout ${workoutId} (actual: ${actualWorkoutId}) marked as in_progress in database`);
     }
         } catch (error) {
           console.error('Error updating workout progress status:', error);
@@ -610,9 +622,15 @@ export function AthleteWorkouts() {
       // Also reset in the database if the user has an assignment
       if (user?.id) {
         try {
-          await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutToReset.id, 'assigned');
+          // Extract actual workout ID if this is a daily workout ID
+          let actualWorkoutId = workoutToReset.id;
+          if (workoutToReset.id.startsWith('daily-')) {
+            actualWorkoutId = workoutToReset.id.replace('daily-', '');
+          }
+          
+          await api.athleteWorkouts.updateAssignmentStatus(user.id, actualWorkoutId, 'assigned');
           if (process.env.NODE_ENV === 'development') {
-        console.log(`Workout ${workoutToReset.id} status reset to 'assigned' in database`);
+        console.log(`Workout ${workoutToReset.id} (actual: ${actualWorkoutId}) status reset to 'assigned' in database`);
       }
         } catch (error) {
           console.error('Error resetting workout status in database:', error);
