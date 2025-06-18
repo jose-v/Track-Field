@@ -605,6 +605,8 @@ export function CoachMeets() {
       
       // Refresh events for this meet
       await fetchMeetEvents(currentMeet.id);
+      // Refresh the main track meets data to update event counts
+      await fetchTrackMeets();
       onEventDrawerClose();
       // Reset the form after successful submission
       resetEvent();

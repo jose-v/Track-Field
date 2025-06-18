@@ -2,7 +2,7 @@
  * Custom hook for managing meet events functionality
  */
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useToast } from '@chakra-ui/react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -17,7 +17,9 @@ interface UseMeetEventsReturn {
   toggleEventSelection: (eventId: string) => void;
   saveEventSelections: () => Promise<void>;
   handleCreateEvent: (meetId: string) => Promise<void>;
+  handleUpdateEvent: (eventId: string) => Promise<void>;
   resetEventForm: () => void;
+  loadEventForEdit: (event: any) => void;
 }
 
 const defaultEventFormData: EventFormData = {
@@ -193,9 +195,25 @@ export const useMeetEvents = (): UseMeetEventsReturn => {
         
       if (error) throw error;
       
+      // Automatically assign the athlete to the event they created
+      if (newEvent && newEvent.length > 0 && user?.id) {
+        const { error: assignmentError } = await supabase
+          .from('athlete_meet_events')
+          .insert([{
+            athlete_id: user.id,
+            meet_event_id: newEvent[0].id,
+            assigned_by: user.id // Self-assigned
+          }]);
+        
+        if (assignmentError) {
+          console.error('Error auto-assigning athlete to event:', assignmentError);
+          // Don't throw error - event was created successfully, assignment failed
+        }
+      }
+      
       toast({
         title: 'Event created',
-        description: 'Event has been added to the meet',
+        description: 'Event has been added to the meet and you have been assigned to it',
         status: 'success',
         duration: 2000,
         isClosable: true
@@ -219,10 +237,80 @@ export const useMeetEvents = (): UseMeetEventsReturn => {
     }
   };
 
-  // Reset event form
-  const resetEventForm = () => {
-    setEventFormData(defaultEventFormData);
+  // Handle updating an existing event
+  const handleUpdateEvent = async (eventId: string) => {
+    try {
+      // Validate form
+      if (!eventFormData.event_name.trim()) {
+        toast({
+          title: 'Event name is required',
+          status: 'error',
+          duration: 2000,
+          isClosable: true
+        });
+        return;
+      }
+
+      // Prepare the data with proper type conversion
+      const eventData = {
+        event_name: eventFormData.event_name.trim(),
+        event_date: eventFormData.event_date || null,
+        event_day: eventFormData.event_day ? parseInt(eventFormData.event_day, 10) : null,
+        start_time: eventFormData.start_time || null,
+        heat: eventFormData.heat ? parseInt(eventFormData.heat.toString(), 10) : null,
+        event_type: eventFormData.event_type || null,
+        run_time: eventFormData.run_time || null
+      };
+
+      // Update the event
+      const { error } = await supabase
+        .from('meet_events')
+        .update(eventData)
+        .eq('id', eventId);
+        
+      if (error) throw error;
+      
+      toast({
+        title: 'Event updated',
+        description: 'Event has been updated successfully',
+        status: 'success',
+        duration: 2000,
+        isClosable: true
+      });
+
+      // Clear form
+      resetEventForm();
+      
+    } catch (error) {
+      console.error('Error updating event:', error);
+      toast({
+        title: 'Error updating event',
+        description: (error as Error).message,
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
+
+  // Load event data for editing
+  const loadEventForEdit = useCallback((event: any) => {
+    console.log('Loading event for edit:', event);
+    setEventFormData({
+      event_name: event.event_name || '',
+      event_date: event.event_date || '',
+      event_day: event.event_day?.toString() || '',
+      start_time: event.start_time || '',
+      heat: event.heat?.toString() || '',
+      event_type: event.event_type || '',
+      run_time: event.run_time || ''
+    });
+  }, []);
+
+  // Reset event form
+  const resetEventForm = useCallback(() => {
+    setEventFormData(defaultEventFormData);
+  }, []);
 
   return {
     meetEvents,
@@ -233,6 +321,8 @@ export const useMeetEvents = (): UseMeetEventsReturn => {
     toggleEventSelection,
     saveEventSelections,
     handleCreateEvent,
-    resetEventForm
+    handleUpdateEvent,
+    resetEventForm,
+    loadEventForEdit
   };
 }; 

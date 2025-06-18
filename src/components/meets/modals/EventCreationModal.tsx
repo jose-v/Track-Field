@@ -2,7 +2,7 @@
  * Modal component for creating new events
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -26,24 +26,58 @@ interface EventCreationModalProps {
   isOpen: boolean;
   onClose: () => void;
   meet: TrackMeet | null;
+  onEventCreated?: () => void;
+  editEvent?: {
+    id: string;
+    event_name: string;
+    event_date?: string;
+    event_day?: number;
+    start_time?: string;
+    heat?: number;
+    event_type?: string;
+    run_time?: string;
+  } | null;
+  isEditMode?: boolean;
 }
 
 export const EventCreationModal: React.FC<EventCreationModalProps> = ({
   isOpen,
   onClose,
-  meet
+  meet,
+  onEventCreated,
+  editEvent = null,
+  isEditMode = false
 }) => {
   const {
     eventFormData,
     setEventFormData,
     handleCreateEvent,
-    resetEventForm
+    handleUpdateEvent,
+    resetEventForm,
+    loadEventForEdit
   } = useMeetEvents();
 
+  // Load event data when in edit mode
+  useEffect(() => {
+    if (isEditMode && editEvent) {
+      loadEventForEdit(editEvent);
+    } else if (!isEditMode) {
+      resetEventForm();
+    }
+  }, [isEditMode, editEvent, loadEventForEdit, resetEventForm]);
+
   const handleSubmit = async () => {
-    if (!meet?.id) return;
+    if (isEditMode && editEvent) {
+      await handleUpdateEvent(editEvent.id);
+    } else {
+      if (!meet?.id) return;
+      await handleCreateEvent(meet.id);
+    }
     
-    await handleCreateEvent(meet.id);
+    if (onEventCreated) {
+      onEventCreated();
+    }
+    
     onClose();
   };
 
@@ -56,7 +90,9 @@ export const EventCreationModal: React.FC<EventCreationModalProps> = ({
     <Modal isOpen={isOpen} onClose={handleClose} size="md">
       <ModalOverlay />
       <ModalContent>
-        <ModalHeader>Add New Event to {meet?.name}</ModalHeader>
+        <ModalHeader>
+          {isEditMode ? `Edit Event: ${editEvent?.event_name}` : `Add New Event to ${meet?.name}`}
+        </ModalHeader>
         <ModalCloseButton />
         <ModalBody>
           <VStack spacing={4} align="stretch">
@@ -74,7 +110,7 @@ export const EventCreationModal: React.FC<EventCreationModalProps> = ({
             </FormControl>
             
             <HStack spacing={4}>
-              <FormControl flex="1">
+              <FormControl>
                 <FormLabel htmlFor="event_date">Event Date</FormLabel>
                 <Input 
                   id="event_date" 
@@ -87,25 +123,24 @@ export const EventCreationModal: React.FC<EventCreationModalProps> = ({
                 />
               </FormControl>
               
-              <FormControl flex="1">
+              <FormControl>
                 <FormLabel htmlFor="event_day">Day Number</FormLabel>
-                <Select 
+                <Input 
                   id="event_day" 
+                  type="number"
+                  min="1"
                   value={eventFormData.event_day}
                   onChange={(e) => setEventFormData({
                     ...eventFormData, 
                     event_day: e.target.value
                   })}
-                >
-                  {[1, 2, 3, 4, 5].map(day => (
-                    <option key={day} value={day}>Day {day}</option>
-                  ))}
-                </Select>
+                  placeholder="1"
+                />
               </FormControl>
             </HStack>
             
             <HStack spacing={4}>
-              <FormControl flex="1">
+              <FormControl>
                 <FormLabel htmlFor="start_time">Start Time</FormLabel>
                 <Input 
                   id="start_time" 
@@ -118,65 +153,60 @@ export const EventCreationModal: React.FC<EventCreationModalProps> = ({
                 />
               </FormControl>
                 
-              <FormControl flex="1">
+              <FormControl>
                 <FormLabel htmlFor="heat">Heat Number</FormLabel>
                 <Input 
                   id="heat" 
                   type="number"
+                  min="1"
                   value={eventFormData.heat}
                   onChange={(e) => setEventFormData({
                     ...eventFormData, 
                     heat: e.target.value
                   })}
-                  placeholder="1, 2, 3..."
+                  placeholder="1"
                 />
               </FormControl>
             </HStack>
             
-            <HStack spacing={4}>
-              <FormControl flex="1">
-                <FormLabel htmlFor="event_type">Event Type</FormLabel>
-                <Select 
-                  id="event_type" 
-                  value={eventFormData.event_type}
-                  onChange={(e) => setEventFormData({
-                    ...eventFormData, 
-                    event_type: e.target.value
-                  })}
-                  placeholder="Select event type"
-                >
-                  <option value="Preliminary">Preliminary</option>
-                  <option value="Qualifier">Qualifier</option>
-                  <option value="Semifinal">Semifinal</option>
-                  <option value="Finals">Finals</option>
-                </Select>
-              </FormControl>
-              
-              <FormControl flex="1">
-                <FormLabel htmlFor="run_time">Run Time (Post-Event)</FormLabel>
-                <Input 
-                  id="run_time" 
-                  value={eventFormData.run_time}
-                  onChange={(e) => setEventFormData({
-                    ...eventFormData, 
-                    run_time: e.target.value
-                  })}
-                  placeholder="e.g. 10.85, 2:05.43"
-                />
-              </FormControl>
-            </HStack>
+            <FormControl>
+              <FormLabel htmlFor="event_type">Event Type</FormLabel>
+              <Select 
+                id="event_type" 
+                value={eventFormData.event_type}
+                onChange={(e) => setEventFormData({
+                  ...eventFormData, 
+                  event_type: e.target.value
+                })}
+                placeholder="Select event type"
+              >
+                <option value="Preliminary">Preliminary</option>
+                <option value="Qualifier">Qualifier</option>
+                <option value="Semifinal">Semifinal</option>
+                <option value="Finals">Finals</option>
+              </Select>
+            </FormControl>
+            
+            <FormControl>
+              <FormLabel htmlFor="run_time">Run Time (Post-Event)</FormLabel>
+              <Input 
+                id="run_time" 
+                value={eventFormData.run_time}
+                onChange={(e) => setEventFormData({
+                  ...eventFormData, 
+                  run_time: e.target.value
+                })}
+                placeholder="e.g., 10.85, 2:05.43"
+              />
+            </FormControl>
           </VStack>
         </ModalBody>
         <ModalFooter>
-          <Button variant="ghost" mr={3} onClick={handleClose}>
+          <Button variant="outline" mr={3} onClick={handleClose}>
             Cancel
           </Button>
-          <Button 
-            colorScheme="green" 
-            onClick={handleSubmit}
-            isDisabled={!eventFormData.event_name.trim()}
-          >
-            Create Event
+          <Button colorScheme="blue" onClick={handleSubmit}>
+            {isEditMode ? 'Update Event' : 'Add Event'}
           </Button>
         </ModalFooter>
       </ModalContent>

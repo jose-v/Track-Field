@@ -76,6 +76,12 @@ export function AthleteMeets() {
     onDeleteConfirmOpen();
   };
 
+  // Handle event creation callback
+  const handleEventCreated = () => {
+    // Refresh all meet data to update event counts
+    fetchTrackMeets();
+  };
+
   // Handle meet form submission
   const handleMeetSubmit = async (data: TrackMeetFormData) => {
     try {
@@ -190,6 +196,7 @@ export function AthleteMeets() {
         isOpen={isAddEventOpen}
         onClose={onAddEventClose}
         meet={currentMeet}
+        onEventCreated={handleEventCreated}
       />
       
       {/* Create/Edit Track Meet Modal */}

@@ -95,6 +95,7 @@ import { LocationSetup } from '../components/LocationSetup';
 import { CurrentLocationDisplay } from '../components/CurrentLocationDisplay';
 import { RunTimeModal } from '../components/meets/RunTimeModal';
 import { useMeetPDFGenerator } from '../components/meets/MeetPDFGenerator';
+import { EventCreationModal } from '../components/meets/modals/EventCreationModal';
 
 // Info Badge Component - Shows database stats
 const InfoBadge: React.FC<{ children: React.ReactNode; count?: number }> = ({ children, count }) => (
@@ -221,11 +222,23 @@ interface MeetCardProps {
   onDelete?: (meet: TrackMeet) => void;
   onAssignAthletes?: (meet: TrackMeet) => void;
   onManageEvents?: (meet: TrackMeet) => void;
+  onRefresh?: () => void;
   onOpenRunTimeModal?: (eventData: { eventId: string; eventName: string; currentTime?: string }) => void;
+  onEditEvent?: (event: any, meet: TrackMeet) => void;
   athleteCount?: number;
   eventCount?: number;
   athleteNames?: string[];
-  myAssignedEvents?: Array<{ id: string; name: string; time: string | null }>;
+  myAssignedEvents?: Array<{ 
+    id: string; 
+    name: string; 
+    time: string | null;
+    event_date?: string;
+    event_day?: number;
+    start_time?: string;
+    heat?: number;
+    event_type?: string;
+    run_time?: string;
+  }>;
   assignedByCoach?: string | null;
   coachPhone?: string | null;
   coachEmail?: string | null;
@@ -249,7 +262,9 @@ const MeetCard: React.FC<MeetCardProps> = ({
   onDelete, 
   onAssignAthletes, 
   onManageEvents, 
+  onRefresh,
   onOpenRunTimeModal,
+  onEditEvent,
   athleteCount = 0, 
   eventCount = 0, 
   athleteNames = [], 
@@ -268,6 +283,8 @@ const MeetCard: React.FC<MeetCardProps> = ({
   assistantCoach3Email = null,
   distance 
 }) => {
+  const { user } = useAuth();
+  const toast = useToast();
   const [showToolbar, setShowToolbar] = useState(false);
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
 
@@ -736,54 +753,210 @@ const MeetCard: React.FC<MeetCardProps> = ({
           {/* Separator line */}
           <Box bg="gray.600" h="1px" my={4} />
 
-          <VStack align="start" spacing={2} w="full">
-            <HStack spacing={2} color="white">
-              <FaRunning size={20} color="currentColor" />
-              <Text fontSize="md" fontWeight="medium" color="white">Your Events ({myAssignedEvents.length})</Text>
+                      <VStack align="start" spacing={2} w="full">
+                        <HStack spacing={2} justify="space-between" w="full" color="white">
+              <HStack spacing={2}>
+                <FaRunning size={20} color="currentColor" />
+                <Text fontSize="md" fontWeight="medium" color="white">Your Events ({myAssignedEvents.length})</Text>
+              </HStack>
             </HStack>
             <VStack align="start" spacing={0} pl={6} w="full">
               {myAssignedEvents.map((event, index) => (
                 <React.Fragment key={event.id}>
-                  <HStack 
-                    spacing={2} 
-                    justify="space-between" 
+                  <VStack 
+                    spacing={1} 
+                    align="stretch"
                     w="full"
                     py={2}
                   >
-                    <Text fontSize="sm" color="gray.300" flex="1">{event.name}</Text>
-                    
-                    {/* Time display or Add Time button */}
-                    {event.time ? (
+                    {/* Main event row */}
+                    <HStack 
+                      spacing={2} 
+                      justify="space-between" 
+                      w="full"
+                    >
+                      <Text fontSize="sm" color="gray.300" flex="1" fontWeight="medium">{event.name}</Text>
+                      
                       <HStack spacing={2}>
-                        <Text fontSize="xs" fontWeight="medium" color="green.300">{event.time}</Text>
+                        {/* Time display or Add Time button */}
+                        {event.time ? (
+                          <HStack spacing={2}>
+                            <Text fontSize="xs" fontWeight="medium" color="green.300">{event.time}</Text>
+                            <Button
+                              size="xs"
+                              variant="ghost"
+                              colorScheme="blue"
+                              onClick={() => onOpenRunTimeModal?.({
+                                eventId: event.id,
+                                eventName: event.name,
+                                currentTime: event.time || undefined
+                              })}
+                            >
+                              Edit
+                            </Button>
+                          </HStack>
+                        ) : (
+                          <Button
+                            size="xs"
+                            colorScheme="blue"
+                            variant="outline"
+                            leftIcon={<FaPlus size={8} />}
+                            onClick={() => onOpenRunTimeModal?.({
+                              eventId: event.id,
+                              eventName: event.name
+                            })}
+                          >
+                            Add Time
+                          </Button>
+                        )}
+                        
+                        {/* Edit/Delete buttons */}
                         <Button
                           size="xs"
                           variant="ghost"
                           colorScheme="blue"
-                          onClick={() => onOpenRunTimeModal?.({
-                            eventId: event.id,
-                            eventName: event.name,
-                            currentTime: event.time || undefined
-                          })}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              // Fetch full event data from database
+                              const { data: fullEventData, error } = await supabase
+                                .from('meet_events')
+                                .select('*')
+                                .eq('id', event.id)
+                                .single();
+
+                              if (error) {
+                                console.error('Error fetching event data:', error);
+                                toast({
+                                  title: 'Error',
+                                  description: 'Failed to load event data for editing',
+                                  status: 'error',
+                                  duration: 3000,
+                                  isClosable: true,
+                                });
+                                return;
+                              }
+
+                              onEditEvent?.(fullEventData, meet);
+                            } catch (error) {
+                              console.error('Unexpected error:', error);
+                              toast({
+                                title: 'Error',
+                                description: 'An unexpected error occurred',
+                                status: 'error',
+                                duration: 3000,
+                                isClosable: true,
+                              });
+                            }
+                          }}
+                          aria-label={`Edit ${event.name}`}
                         >
-                          Edit
+                          <FaEdit />
+                        </Button>
+                        
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          colorScheme="red"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (window.confirm(`Are you sure you want to delete the event "${event.name}"?`)) {
+                              try {
+                                // First, delete the athlete assignment
+                                const { error: assignmentError } = await supabase
+                                  .from('athlete_meet_events')
+                                  .delete()
+                                  .eq('meet_event_id', event.id)
+                                  .eq('athlete_id', user?.id);
+
+                                if (assignmentError) {
+                                  console.error('Error deleting assignment:', assignmentError);
+                                  toast({
+                                    title: 'Error',
+                                    description: 'Failed to delete event assignment',
+                                    status: 'error',
+                                    duration: 3000,
+                                    isClosable: true,
+                                  });
+                                  return;
+                                }
+
+                                // Then delete the event itself
+                                const { error: eventError } = await supabase
+                                  .from('meet_events')
+                                  .delete()
+                                  .eq('id', event.id);
+
+                                if (eventError) {
+                                  console.error('Error deleting event:', eventError);
+                                  toast({
+                                    title: 'Error',
+                                    description: 'Failed to delete event',
+                                    status: 'error',
+                                    duration: 3000,
+                                    isClosable: true,
+                                  });
+                                  return;
+                                }
+
+                                toast({
+                                  title: 'Success',
+                                  description: `Event "${event.name}" deleted successfully`,
+                                  status: 'success',
+                                  duration: 3000,
+                                  isClosable: true,
+                                });
+
+                                // Refresh the meets data
+                                onRefresh?.();
+                              } catch (error) {
+                                console.error('Unexpected error deleting event:', error);
+                                toast({
+                                  title: 'Error',
+                                  description: 'An unexpected error occurred',
+                                  status: 'error',
+                                  duration: 3000,
+                                  isClosable: true,
+                                });
+                              }
+                            }
+                          }}
+                          aria-label={`Delete ${event.name}`}
+                        >
+                          <FaTrash />
                         </Button>
                       </HStack>
-                    ) : (
-                      <Button
-                        size="xs"
-                        colorScheme="blue"
-                        variant="outline"
-                        leftIcon={<FaPlus size={8} />}
-                        onClick={() => onOpenRunTimeModal?.({
-                          eventId: event.id,
-                          eventName: event.name
-                        })}
-                      >
-                        Add Time
-                      </Button>
-                    )}
-                  </HStack>
+                    </HStack>
+
+                    {/* Event details row */}
+                    <HStack spacing={4} pl={2} wrap="wrap">
+                      {event.event_date && (
+                        <Text fontSize="xs" color="gray.500">
+                          Date: {new Date(event.event_date).toLocaleDateString()}
+                        </Text>
+                      )}
+                      {event.event_day && (
+                        <Text fontSize="xs" color="gray.500">
+                          Day: {event.event_day}
+                        </Text>
+                      )}
+                      {event.start_time && (
+                        <Text fontSize="xs" color="gray.500">
+                          Start: {event.start_time.slice(0, 5)}
+                        </Text>
+                      )}
+                      {event.heat && (
+                        <Text fontSize="xs" color="gray.500">
+                          Heat: {event.heat}
+                        </Text>
+                      )}
+                      {event.event_type && (
+                        <Text fontSize="xs" color="gray.500">
+                          Type: {event.event_type}
+                        </Text>
+                      )}
+                    </HStack>
+                  </VStack>
                   
                   {/* Dotted separator line with equal margins */}
                   {index < myAssignedEvents.length - 1 && (
@@ -1212,6 +1385,7 @@ export const Meets: React.FC = () => {
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
   const { isOpen: isEventDrawerOpen, onOpen: onEventDrawerOpen, onClose: onEventDrawerClose } = useDisclosure();
   const { isOpen: isAssignDrawerOpen, onOpen: onAssignDrawerOpen, onClose: onAssignDrawerClose } = useDisclosure();
+  const { isOpen: isAddEventOpen, onOpen: onAddEventOpen, onClose: onAddEventClose } = useDisclosure();
   const { isOpen: isLocationSetupOpen, onOpen: onLocationSetupOpen, onClose: onLocationSetupClose } = useDisclosure();
   
   // State
@@ -1224,7 +1398,17 @@ export const Meets: React.FC = () => {
     athleteCount: number; 
     eventCount: number; 
     athleteNames: string[]; 
-    myAssignedEvents: Array<{ id: string; name: string; time: string | null }>;
+    myAssignedEvents: Array<{ 
+      id: string; 
+      name: string; 
+      time: string | null;
+      event_date?: string;
+      event_day?: number;
+      start_time?: string;
+      heat?: number;
+      event_type?: string;
+      run_time?: string;
+    }>;
     assignedByCoach: string | null;
     coachPhone: string | null;
     coachEmail: string | null;
@@ -1255,6 +1439,11 @@ export const Meets: React.FC = () => {
   const [currentEventForTime, setCurrentEventForTime] = useState<any>(null);
   const [runTimeInput, setRunTimeInput] = useState('');
   const [isSubmittingTime, setIsSubmittingTime] = useState(false);
+
+  // Edit event modal state
+  const [isEditEventModalOpen, setIsEditEventModalOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<any>(null);
+  const [editingMeet, setEditingMeet] = useState<any>(null);
 
   // Form hooks for event management
   const {
@@ -1369,7 +1558,13 @@ export const Meets: React.FC = () => {
                 onDelete={handleDeleteMeet}
                 onAssignAthletes={handleAssignAthletes}
                 onManageEvents={handleManageEvents}
+                onRefresh={fetchMeets}
                 onOpenRunTimeModal={openRunTimeModal}
+                onEditEvent={(event, meet) => {
+                  setEditingEvent(event);
+                  setEditingMeet(meet);
+                  setIsEditEventModalOpen(true);
+                }}
                 athleteCount={meetData[meet.id]?.athleteCount || 0}
                 eventCount={meetData[meet.id]?.eventCount || 0}
                 athleteNames={meetData[meet.id]?.athleteNames || []}
@@ -1502,14 +1697,24 @@ export const Meets: React.FC = () => {
             // Get assigned athletes for this meet
             const { data: meetEvents } = await supabase
               .from('meet_events')
-              .select('id, event_name')
+              .select('id, event_name, event_date, event_day, start_time, heat, event_type, run_time')
               .eq('meet_id', meet.id);
             
             const eventIds = meetEvents?.map(event => event.id) || [];
             
             let athleteCount = 0;
             let athleteNames: string[] = [];
-            let myAssignedEvents: Array<{ id: string; name: string; time: string | null }> = [];
+            let myAssignedEvents: Array<{ 
+              id: string; 
+              name: string; 
+              time: string | null;
+              event_date?: string;
+              event_day?: number;
+              start_time?: string;
+              heat?: number;
+              event_type?: string;
+              run_time?: string;
+            }> = [];
             let assignedByCoach: string | null = null;
             let coachPhone: string | null = null;
             let coachEmail: string | null = null;
@@ -1567,8 +1772,28 @@ export const Meets: React.FC = () => {
                       return {
                         id: e.id,
                         name: e.event_name,
-                        time: assignment?.result || null
+                        time: assignment?.result || null,
+                        event_date: e.event_date,
+                        event_day: e.event_day,
+                        start_time: e.start_time,
+                        heat: e.heat,
+                        event_type: e.event_type,
+                        run_time: e.run_time
                       };
+                    }).sort((a, b) => {
+                      // Sort by date first, then by time
+                      const dateA = a.event_date ? new Date(a.event_date) : new Date(0);
+                      const dateB = b.event_date ? new Date(b.event_date) : new Date(0);
+                      
+                      if (dateA.getTime() !== dateB.getTime()) {
+                        return dateA.getTime() - dateB.getTime();
+                      }
+                      
+                      // If dates are the same (or both null), sort by start_time
+                      const timeA = a.start_time || '00:00:00';
+                      const timeB = b.start_time || '00:00:00';
+                      
+                      return timeA.localeCompare(timeB);
                     });
                     
                     // Get coach who assigned (use the first assignment's coach)
@@ -1889,6 +2114,17 @@ export const Meets: React.FC = () => {
     onEventDrawerOpen();
   }, [onEventDrawerOpen]);
 
+  const handleAddEvent = useCallback((meet: TrackMeet) => {
+    setCurrentMeet(meet);
+    onAddEventOpen();
+  }, [onAddEventOpen]);
+
+  const handleEventCreated = useCallback(async () => {
+    // Refresh all meet data to update event counts and assignments
+    await fetchMeets();
+    onAddEventClose();
+  }, [onAddEventClose]);
+
   // Run time modal handlers for athletes - memoized
   const openRunTimeModal = useCallback((eventData: { eventId: string; eventName: string; currentTime?: string }) => {
     setCurrentEventForTime(eventData);
@@ -2043,11 +2279,28 @@ export const Meets: React.FC = () => {
         });
       } else {
         // Create new event
-        const { error } = await supabase
+        const { data: newEvent, error } = await supabase
           .from('meet_events')
-          .insert([eventData]);
+          .insert([eventData])
+          .select();
         
         if (error) throw error;
+        
+        // Auto-assign the athlete to the event they created (if user is athlete)
+        if (newEvent && newEvent.length > 0 && user?.id && !userIsCoach) {
+          const { error: assignmentError } = await supabase
+            .from('athlete_meet_events')
+            .insert([{
+              athlete_id: user.id,
+              meet_event_id: newEvent[0].id,
+              assigned_by: user.id // Self-assigned
+            }]);
+          
+          if (assignmentError) {
+            console.error('Error auto-assigning athlete to event:', assignmentError);
+            // Don't throw error - event was created successfully, assignment failed
+          }
+        }
         
         toast({
           title: 'Event added',
@@ -2059,6 +2312,8 @@ export const Meets: React.FC = () => {
       
       // Refresh events for this meet
       await fetchMeetEventsForManagement(currentMeet.id);
+      // Refresh the main meets data to update event counts
+      await fetchMeets();
       onEventDrawerClose();
       // Reset the form after successful submission
       resetEvent();
@@ -2724,6 +2979,22 @@ export const Meets: React.FC = () => {
         setRunTime={setRunTimeInput}
         onSubmit={handleRunTimeSubmit}
         isSubmitting={isSubmittingTime}
+      />
+
+      {/* Edit Event Modal */}
+      <EventCreationModal
+        isOpen={isEditEventModalOpen}
+        onClose={() => {
+          setIsEditEventModalOpen(false);
+          setEditingEvent(null);
+          setEditingMeet(null);
+        }}
+        meet={editingMeet}
+        editEvent={editingEvent}
+        isEditMode={true}
+        onEventCreated={() => {
+          fetchMeets();
+        }}
       />
     </Box>
   );

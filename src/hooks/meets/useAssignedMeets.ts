@@ -46,114 +46,106 @@ export const useAssignedMeets = (): UseAssignedMeetsReturn => {
     
     try {
       setRefreshing(true);
+      console.log('fetchMyEvents - Starting fetch for user:', user.id);
       
-      // 1. Get all event assignments for this athlete
+      // NEW APPROACH: Get all meets the athlete can access, not just assigned ones
+      // 1. First get meets where athlete has assignments
       const { data: assignments, error: assignmentsError } = await supabase
         .from('athlete_meet_events')
         .select('meet_event_id, assigned_by')
         .eq('athlete_id', user.id);
         
+      console.log('fetchMyEvents - assignments query result:', { assignments, assignmentsError });
+        
       if (assignmentsError) {
         console.error('Error fetching assignments:', assignmentsError);
-        throw assignmentsError;
+        // Don't throw here, continue to get all accessible meets
       }
       
-      if (!assignments || assignments.length === 0) {
-        setMyEvents([]);
-        setLoading(false);
-        setRefreshing(false);
-        return;
-      }
-      
-      // 2. Get coach profiles for non-null assigned_by values
-      const coachIds = [...new Set(assignments
-        .map(a => a.assigned_by)
-        .filter(Boolean))] as string[];
-      
-      let coachProfiles: any[] = [];
-      if (coachIds.length > 0) {
-        const { data: coaches, error: coachError } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name')
-          .in('id', coachIds);
-        
-        if (coachError) {
-          console.error('Error fetching coach profiles:', coachError);
-          // Don't throw here, continue without coach info
-        } else {
-          coachProfiles = coaches || [];
-        }
-      }
-      
-      // 3. Get the details of these events
-      const eventIds = assignments.map(a => a.meet_event_id);
-      
-      const { data: eventDetails, error: eventsError } = await supabase
-        .from('meet_events')
-        .select('*, meet_id')
-        .in('id', eventIds);
-        
-      if (eventsError) {
-        console.error('Error fetching event details:', eventsError);
-        throw eventsError;
-      }
-      
-      if (!eventDetails || eventDetails.length === 0) {
-        setMyEvents([]);
-        setLoading(false);
-        setRefreshing(false);
-        return;
-      }
-      
-      // 4. Get unique meet IDs
-      const meetIds = [...new Set(eventDetails.map(e => e.meet_id))];
-      
-      // 5. Get meet details
-      const { data: meetDetails, error: meetsError } = await supabase
+      // 2. Get all meets that are accessible (not just ones with assignments)
+      // For now, we'll get all upcoming meets. In the future, this could be filtered by team/coach relationship
+      const { data: allMeets, error: meetsError } = await supabase
         .from('track_meets')
         .select('*')
-        .in('id', meetIds);
-        
+        .gte('meet_date', new Date().toISOString().split('T')[0]) // Only upcoming meets
+        .order('meet_date', { ascending: true });
+      
+      console.log('fetchMyEvents - all accessible meets:', { allMeets, meetsError });
+      
       if (meetsError) {
-        console.error('Error fetching meet details:', meetsError);
+        console.error('Error fetching meets:', meetsError);
         throw meetsError;
       }
       
-      // 6. Group events by meet and add coach information
-      const eventsGroupedByMeet = meetDetails?.map(meet => {
-        const meetEvents = eventDetails.filter(event => event.meet_id === meet.id);
+      if (!allMeets || allMeets.length === 0) {
+        console.log('fetchMyEvents - No accessible meets found');
+        setMyEvents([]);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+      
+      // 3. For each meet, get events and check which ones the athlete is assigned to
+      const meetWithEventsPromises = allMeets.map(async (meet) => {
+        // Get all events for this meet
+        const { data: meetEvents, error: eventsError } = await supabase
+          .from('meet_events')
+          .select('*')
+          .eq('meet_id', meet.id);
         
-        // Find the coach who assigned this athlete to events in this meet
-        const assignmentWithCoach = assignments.find(assignment => 
-          meetEvents.some(event => event.id === assignment.meet_event_id) &&
-          assignment.assigned_by
-        );
-        
-        let assignedByCoach: string | undefined;
-        if (assignmentWithCoach?.assigned_by) {
-          const coachProfile = coachProfiles.find(coach => 
-            coach.id === assignmentWithCoach.assigned_by
-          );
-          if (coachProfile) {
-            assignedByCoach = formatAthleteName(coachProfile);
-          }
+        if (eventsError) {
+          console.error(`Error fetching events for meet ${meet.id}:`, eventsError);
+          return null;
         }
         
+        // Filter to only events this athlete is assigned to
+        const assignedEvents = meetEvents?.filter(event => 
+          assignments?.some(assignment => assignment.meet_event_id === event.id)
+        ) || [];
+        
+        console.log(`Meet "${meet.name}": ${meetEvents?.length || 0} total events, ${assignedEvents.length} assigned to athlete`);
+        
+        // Only include meets that have assigned events OR are accessible for adding events
+        // For now, we'll include all meets so athletes can add events
         return {
           meet,
-          events: meetEvents,
-          assignedByCoach
+          events: assignedEvents, // Only show events they're assigned to
+          assignedByCoach: assignments?.find(a => 
+            assignedEvents.some(e => e.id === a.meet_event_id) && a.assigned_by
+          )?.assigned_by ? 'Coach' : undefined // Simplified for now
         };
-      }) || [];
+      });
       
-      // 7. Sort by date (most recent/upcoming first)
-      eventsGroupedByMeet.sort((a, b) => {
+      const meetWithEventsResults = await Promise.all(meetWithEventsPromises);
+      const validMeetWithEvents = meetWithEventsResults.filter(result => result !== null);
+      
+      console.log('fetchMyEvents - Final grouped events:', validMeetWithEvents);
+      
+      // 4. Sort by date (most recent/upcoming first)
+      validMeetWithEvents.sort((a, b) => {
         const dateA = new Date(a.meet.meet_date).getTime();
         const dateB = new Date(b.meet.meet_date).getTime();
         return dateA - dateB; // Ascending order (upcoming events first)
       });
       
-      setMyEvents(eventsGroupedByMeet);
+      console.log('fetchMyEvents - Setting final events data:', validMeetWithEvents);
+      
+      // Add detailed logging before setting state
+      console.log('=== ABOUT TO SET STATE ===');
+      console.log('validMeetWithEvents length:', validMeetWithEvents.length);
+      validMeetWithEvents.forEach((meetWithEvents, index) => {
+        console.log(`State data ${index + 1}:`, {
+          meetName: meetWithEvents.meet.name,
+          meetId: meetWithEvents.meet.id,
+          eventsCount: meetWithEvents.events.length,
+          eventDetails: meetWithEvents.events
+        });
+      });
+      console.log('=== CALLING setMyEvents ===');
+      
+      setMyEvents(validMeetWithEvents);
+      
+      console.log('=== setMyEvents CALLED ===');
       
     } catch (error) {
       console.error('Error fetching my events:', error);
@@ -175,6 +167,57 @@ export const useAssignedMeets = (): UseAssignedMeetsReturn => {
     if (user?.id) {
       fetchMyEvents();
     }
+  }, [user?.id]);
+
+  // Set up real-time subscriptions for data updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    console.log('Setting up real-time subscriptions for user:', user.id);
+
+    // Subscribe to athlete_meet_events changes for this athlete
+    const athleteEventsSubscription = supabase
+      .channel('athlete_meet_events_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'athlete_meet_events',
+          filter: `athlete_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('Real-time update - athlete_meet_events:', payload);
+          // Refetch data when assignments change
+          fetchMyEvents();
+        }
+      )
+      .subscribe();
+
+    // Subscribe to meet_events changes (when new events are added to meets)
+    const meetEventsSubscription = supabase
+      .channel('meet_events_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'meet_events'
+        },
+        (payload) => {
+          console.log('Real-time update - meet_events:', payload);
+          // Refetch data when events are added/updated/deleted
+          fetchMyEvents();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscriptions on unmount
+    return () => {
+      console.log('Cleaning up real-time subscriptions');
+      supabase.removeChannel(athleteEventsSubscription);
+      supabase.removeChannel(meetEventsSubscription);
+    };
   }, [user?.id]);
   
   // Open run time modal
