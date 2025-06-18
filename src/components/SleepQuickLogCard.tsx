@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Text,
@@ -48,50 +48,115 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
 
   // Check if there are any sleep logs for today or yesterday
   const existingLogs = useMemo(() => {
-    const today = new Date();
-    const todayStr = today.getFullYear() + '-' + 
-      String(today.getMonth() + 1).padStart(2, '0') + '-' + 
-      String(today.getDate()).padStart(2, '0');
+    // Get current date in local timezone
+    const now = new Date();
     
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.getFullYear() + '-' + 
-      String(yesterday.getMonth() + 1).padStart(2, '0') + '-' + 
-      String(yesterday.getDate()).padStart(2, '0');
+    // Format today's date in local timezone (YYYY-MM-DD)
+    const todayStr = now.getFullYear() + '-' + 
+      String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+      String(now.getDate()).padStart(2, '0');
+    
+    // Get yesterday's date in local timezone  
+    const lastNight = new Date(now);
+    lastNight.setDate(lastNight.getDate() - 1);
+    const lastNightStr = lastNight.getFullYear() + '-' + 
+      String(lastNight.getMonth() + 1).padStart(2, '0') + '-' + 
+      String(lastNight.getDate()).padStart(2, '0');
     
     const todayLogs = recentRecords.filter(record => record.sleep_date === todayStr);
-    const yesterdayLogs = recentRecords.filter(record => record.sleep_date === yesterdayStr);
+    const lastNightLogs = recentRecords.filter(record => record.sleep_date === lastNightStr);
     
     return {
       today: todayLogs,
-      yesterday: yesterdayLogs,
+      lastNight: lastNightLogs,
       hasTodayLogs: todayLogs.length > 0,
-      hasYesterdayLogs: yesterdayLogs.length > 0
+      hasLastNightLogs: lastNightLogs.length > 0
     };
   }, [recentRecords]);
+
+  // Load existing values when there's a record for last night
+  useEffect(() => {
+    if (existingLogs.hasLastNightLogs && existingLogs.lastNight.length > 0) {
+      const lastLog = existingLogs.lastNight[0];
+      
+      try {
+        // Calculate duration from start_time and end_time
+        if (lastLog.start_time && lastLog.end_time) {
+          // Parse times in HH:MM:SS format
+          const startTime = new Date(`2000-01-01T${lastLog.start_time}`);
+          const endTime = new Date(`2000-01-01T${lastLog.end_time}`);
+          
+          if (!isNaN(startTime.getTime()) && !isNaN(endTime.getTime())) {
+            let durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+            
+            // Handle overnight sleep (end time is next day)
+            if (durationHours < 0) {
+              durationHours += 24;
+            }
+            
+            // Validate the duration is a valid number and within reasonable bounds
+            if (!isNaN(durationHours) && durationHours > 0 && durationHours <= 24) {
+              const validDuration = Math.round(durationHours * 2) / 2; // Round to nearest 0.5
+              const clampedDuration = Math.max(4, Math.min(12, validDuration)); // Clamp between 4-12 hours
+              setDuration(clampedDuration);
+            } else {
+              setDuration(8); // Default fallback
+            }
+          } else {
+            setDuration(8); // Default fallback
+          }
+          
+          // Set quality with validation
+          const validQuality = lastLog.quality && !isNaN(lastLog.quality) ? lastLog.quality : 3;
+          const clampedQuality = Math.max(1, Math.min(4, validQuality)); // Clamp between 1-4
+          setQuality(clampedQuality);
+          
+        } else {
+          setDuration(8); // Default fallback
+        }
+        
+      } catch (error) {
+        setDuration(8); // Default fallback
+        setQuality(3); // Default fallback
+      }
+    }
+  }, [existingLogs]);
+
+  // Validate and set duration with bounds checking
+  const setValidDuration = (value: number) => {
+    const validValue = !isNaN(value) ? Math.max(4, Math.min(12, value)) : 8;
+    setDuration(validValue);
+  };
+
+  // Validate and set quality with bounds checking
+  const setValidQuality = (value: number) => {
+    const validValue = !isNaN(value) ? Math.max(1, Math.min(4, value)) : 3;
+    setQuality(validValue);
+  };
 
   const handleQuickLog = async () => {
     if (!user) return;
 
     setIsLogging(true);
     try {
-      // Use local timezone to avoid date shifting issues
-      const today = new Date();
-      const targetDate = new Date(today);
-      targetDate.setDate(targetDate.getDate() - 1); // Set to yesterday
+      // Use consistent local timezone date handling
+      const now = new Date();
+      const lastNight = new Date(now);
+      lastNight.setDate(lastNight.getDate() - 1);
       
-      // Format date as YYYY-MM-DD in local timezone
-      const sleepDate = targetDate.getFullYear() + '-' + 
-        String(targetDate.getMonth() + 1).padStart(2, '0') + '-' + 
-        String(targetDate.getDate()).padStart(2, '0');
+      // Format date as YYYY-MM-DD in local timezone (same as in existingLogs check)
+      const sleepDate = lastNight.getFullYear() + '-' + 
+        String(lastNight.getMonth() + 1).padStart(2, '0') + '-' + 
+        String(lastNight.getDate()).padStart(2, '0');
       
       // Calculate start and end times based on duration
       // Assume they woke up at current time and calculate backwards
       const wakeTime = new Date();
       const sleepTime = new Date(wakeTime.getTime() - (duration * 60 * 60 * 1000));
       
-      const startTime = sleepTime.toTimeString().slice(0, 5); // HH:MM format
-      const endTime = wakeTime.toTimeString().slice(0, 5); // HH:MM format
+      // Format times as HH:MM:SS to match database format
+      const startTime = sleepTime.toTimeString().slice(0, 8); // HH:MM:SS format
+      const endTime = wakeTime.toTimeString().slice(0, 8); // HH:MM:SS format
 
       const recordData = {
         athlete_id: user.id,
@@ -102,25 +167,31 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
         notes: 'Quick log from dashboard'
       };
 
-      const { data: insertedData, error } = await supabase
-        .from('sleep_records')
-        .insert(recordData)
-        .select(); // Add select to return the inserted data
+      let error;
+      
+      if (existingLogs.hasLastNightLogs) {
+        // Update existing record
+        const result = await supabase
+          .from('sleep_records')
+          .update({
+            start_time: startTime,
+            end_time: endTime,
+            quality: quality,
+            notes: 'Updated from dashboard'
+          })
+          .eq('athlete_id', user.id)
+          .eq('sleep_date', sleepDate);
+        error = result.error;
+      } else {
+        // Insert new record
+        const result = await supabase
+          .from('sleep_records')
+          .insert(recordData)
+          .select();
+        error = result.error;
+      }
 
       if (error) throw error;
-
-      // Verify the data was saved by checking the database
-      const { data: verifyData, error: verifyError } = await supabase
-        .from('sleep_records')
-        .select('*')
-        .eq('athlete_id', user.id)
-        .eq('sleep_date', sleepDate)
-        .order('created_at', { ascending: false })
-        .limit(1);
-      
-      if (verifyError) {
-        console.error('Error verifying saved record:', verifyError);
-      }
 
       // Completely clear and refetch sleep data
       try {
@@ -131,36 +202,53 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
           }
         });
         
-        // Method 2: Wait a moment then force fresh fetch
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Method 3: Trigger fresh fetch of all sleep data
-        await queryClient.fetchQuery({
-          queryKey: ['sleepRecords', user?.id],
-          queryFn: async () => {
-            const { data, error } = await supabase
-              .from('sleep_records')
-              .select('*')
-              .eq('athlete_id', user?.id)
-              .order('sleep_date', { ascending: false });
-            
-            if (error) throw error;
-            return data || [];
-          },
-          staleTime: 0,
+        // Method 2: Immediately invalidate and refetch all sleep queries
+        await queryClient.invalidateQueries({
+          queryKey: ['sleepRecords'],
+          refetchType: 'all'
         });
         
-        // Method 4: Force reload the page if we're on the sleep page
-        if (window.location.pathname.includes('/athlete/sleep')) {
-          setTimeout(() => window.location.reload(), 500);
-        }
+        // Method 3: Force immediate refetch of the specific queries used by components
+        const refreshPromises = [
+          // Refresh main sleep records
+          queryClient.refetchQueries({
+            queryKey: ['sleepRecords', user.id],
+            type: 'active'
+          }),
+          // Refresh limited sleep records (used by stats)
+          queryClient.refetchQueries({
+            queryKey: ['sleepRecords', user.id, 7],
+            type: 'active'
+          })
+        ];
+        
+        await Promise.all(refreshPromises);
+        
+        // Method 4: Wait a moment then trigger a final invalidation
+        setTimeout(() => {
+          queryClient.invalidateQueries({
+            queryKey: ['sleepRecords'],
+            refetchType: 'all'
+          });
+        }, 500);
+        
+        // Method 5: Force a complete cache reset for this specific data
+        setTimeout(() => {
+          queryClient.resetQueries({
+            queryKey: ['sleepRecords', user.id, 7],
+            exact: true
+          });
+        }, 1000);
+        
       } catch (cacheError) {
         console.error('Error refreshing cache:', cacheError);
       }
 
       toast({
         title: 'Sleep logged successfully!',
-        description: `${duration}h sleep, ${getSleepQualityText(quality)} quality`,
+        description: existingLogs.hasLastNightLogs ? 
+          `Sleep updated: ${duration}h, ${getSleepQualityText(quality)} quality` :
+          `${duration}h sleep, ${getSleepQualityText(quality)} quality`,
         status: 'success',
         duration: 3000,
         isClosable: true,
@@ -210,7 +298,7 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
                 How did you sleep?
               </Text>
               <Text fontSize="sm" color={statLabelColor}>
-                Log yesterday's sleep
+                Log last night's sleep
               </Text>
             </VStack>
           </HStack>
@@ -226,11 +314,11 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
         </HStack>
 
         {/* Existing Logs Alert */}
-        {existingLogs.hasYesterdayLogs && (
+        {existingLogs.hasLastNightLogs && (
           <Alert status="info" borderRadius="md" py={2}>
             <AlertIcon as={FaCheckCircle} />
             <Text fontSize="sm" color={alertTextColor}>
-              You already logged sleep for yesterday ({existingLogs.yesterday[0]?.quality && getSleepQualityText(existingLogs.yesterday[0].quality)} quality)
+              You already logged sleep for last night ({existingLogs.lastNight[0]?.quality && getSleepQualityText(existingLogs.lastNight[0].quality)} quality)
             </Text>
           </Alert>
         )}
@@ -250,7 +338,7 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
           </HStack>
           <Slider
             value={duration}
-            onChange={setDuration}
+            onChange={setValidDuration}
             min={4}
             max={12}
             step={0.5}
@@ -291,7 +379,7 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
                 boxSize={6}
                 color={rating <= quality ? getQualityColor(quality) : 'gray.300'}
                 cursor="pointer"
-                onClick={() => setQuality(rating)}
+                onClick={() => setValidQuality(rating)}
                 _hover={{ transform: 'scale(1.1)' }}
                 transition="all 0.2s"
               />
@@ -307,9 +395,9 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
           isLoading={isLogging}
           loadingText="Logging..."
           leftIcon={<Icon as={FaBed} />}
-          variant={existingLogs.hasYesterdayLogs ? "outline" : "solid"}
+          variant={existingLogs.hasLastNightLogs ? "outline" : "solid"}
         >
-          {existingLogs.hasYesterdayLogs ? "Log Again" : "Log Sleep"}
+          {existingLogs.hasLastNightLogs ? "Update" : "Log Sleep"}
         </Button>
       </VStack>
     </Box>

@@ -14,10 +14,12 @@ import {
   Badge,
   Icon,
 } from '@chakra-ui/react';
-import { FaBed, FaArrowRight, FaArrowUp, FaArrowDown, FaMinus } from 'react-icons/fa';
+import { FaBed, FaArrowRight, FaArrowUp, FaArrowDown, FaMinus, FaSync } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { useSleepStats } from '../hooks/useSleepRecords';
 import { formatSleepDuration, getSleepQualityText } from '../utils/analytics/performance';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SleepStatsCardProps {
   viewAllLink?: string;
@@ -27,7 +29,9 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
   viewAllLink = "/athlete/sleep"
 }) => {
   // Fetch sleep stats using React Query
-  const { stats: sleepStats, isLoading, error } = useSleepStats();
+  const { stats: sleepStats, isLoading, error, refetch } = useSleepStats();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   // Color mode values matching quick-log cards - MUST be at the top before any conditional logic
   const cardBg = useColorModeValue('white', 'gray.800');
@@ -41,27 +45,40 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
   // Log the data for debugging
   useEffect(() => {
     if (!isLoading && !error) {
-      console.log("Sleep stats from DB:", sleepStats);
-      console.log("Average duration:", sleepStats.averageDuration);
       if (sleepStats.recentRecord) {
-        console.log("Latest quality:", sleepStats.recentRecord.quality, 
-          "which maps to:", getSleepQualityText(sleepStats.recentRecord.quality));
-        console.log("Last recorded date:", sleepStats.recentRecord.sleep_date);
+        // Data is available and valid
       }
     }
   }, [sleepStats, isLoading, error]);
   
+  // Auto-refresh data when component mounts to ensure latest data
+  useEffect(() => {
+    if (user?.id) {
+      // Small delay to ensure component is fully mounted
+      const timer = setTimeout(() => {
+        handleRefresh();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [user?.id]); // Only run when user ID changes
+  
   // Format date as MM/DD/YYYY
   const formatDate = (dateString: string) => {
     try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
+      // Parse date string as local date to avoid timezone issues
+      // dateString format is "YYYY-MM-DD"
+      const [year, month, day] = dateString.split('-').map(Number);
+      const date = new Date(year, month - 1, day); // month is 0-indexed
+      
+      const formattedDate = date.toLocaleDateString('en-US', {
         month: 'numeric',
         day: 'numeric',
         year: 'numeric'
       });
+      
+      return formattedDate;
     } catch (e) {
-      console.error("Error formatting date:", e);
       return dateString;
     }
   };
@@ -75,6 +92,31 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
         return { icon: FaArrowDown, color: 'red.500', text: 'Declining' };
       default:
         return { icon: FaMinus, color: 'gray.500', text: 'Stable' };
+    }
+  };
+
+  // Manual refresh function
+  const handleRefresh = async () => {
+    if (!user?.id) return;
+    
+    try {
+      // Force refresh all sleep-related queries
+      await queryClient.invalidateQueries({
+        queryKey: ['sleepRecords'],
+        refetchType: 'all'
+      });
+      
+      // Also force refetch the specific query this component uses
+      await queryClient.refetchQueries({
+        queryKey: ['sleepRecords', user.id, 7],
+        type: 'active'
+      });
+      
+      // Force refetch of this specific hook
+      await refetch();
+      
+    } catch (error) {
+      console.error('SleepStatsCard: Error refreshing sleep data:', error);
     }
   };
 
@@ -120,6 +162,7 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
 
   return (
     <Box
+      key={sleepStats.recentRecord?.id || 'no-data'}
       bg={cardBg}
       borderRadius="xl"
       p={6}
@@ -144,15 +187,26 @@ export const SleepStatsCard: React.FC<SleepStatsCardProps> = ({
               </Text>
             </VStack>
           </HStack>
-          <Badge 
-            colorScheme="purple" 
-            variant="solid" 
-            fontSize="xs"
-            px={2}
-            py={1}
-          >
-            Last 7 Days
-          </Badge>
+          <HStack spacing={2}>
+            <Badge 
+              colorScheme="purple" 
+              variant="solid" 
+              fontSize="xs"
+              px={2}
+              py={1}
+            >
+              Last 7 Days
+            </Badge>
+            <Button
+              size="xs"
+              variant="ghost"
+              onClick={handleRefresh}
+              aria-label="Refresh sleep data"
+              title="Refresh sleep data"
+            >
+              <Icon as={FaSync} boxSize={3} />
+            </Button>
+          </HStack>
         </HStack>
 
         {/* Main Stats */}

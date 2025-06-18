@@ -54,15 +54,17 @@ export function useSleepRecords(limit?: number) {
       return records || [];
     },
     enabled: !!user?.id,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 30, // Reduced to 30 seconds for more frequent updates
     refetchOnMount: true,
     refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 1000 * 60, // Refetch every minute when component is active
   });
 }
 
 // Get sleep stats using centralized analytics
 export function useSleepStats() {
-  const { data: records, isLoading, error } = useSleepRecords(7); // Last 7 records
+  const { data: records, isLoading, error, refetch } = useSleepRecords(7); // Last 7 records
   
   const stats = {
     averageDuration: 0,
@@ -80,8 +82,6 @@ export function useSleepStats() {
   };
 
   if (records && records.length > 0) {
-    console.log("Processing sleep records for stats:", records);
-    
     // Prepare data for analytics
     const sleepData = records.map(record => {
       const duration = calculateSleepDuration(record.start_time, record.end_time);
@@ -102,7 +102,6 @@ export function useSleepStats() {
     records.forEach(record => {
       if (record.quality) {
         const qualityText = getSleepQualityText(record.quality);
-        console.log(`Record quality: ${record.quality} maps to: ${qualityText}`);
         if (qualityText in stats.countByQuality) {
           stats.countByQuality[qualityText as keyof typeof stats.countByQuality]++;
         }
@@ -111,7 +110,6 @@ export function useSleepStats() {
     
     // Get most recent record
     stats.recentRecord = records[0];
-    console.log("Most recent sleep record:", stats.recentRecord);
 
     // Find best quality
     const qualityOrder = ['poor', 'fair', 'good', 'excellent'];
@@ -129,5 +127,5 @@ export function useSleepStats() {
     }
   }
 
-  return { stats, isLoading, error };
+  return { stats, isLoading, error, refetch };
 } 
