@@ -92,6 +92,7 @@ import { useForm } from 'react-hook-form';
 import type { MeetEventFormData } from '../types/trackMeets';
 import { calculateTravelTimes, getUserLocation, geocodeLocation, geocodeLocationFallback } from '../services/travelTime';
 import { LocationSetup } from '../components/LocationSetup';
+import { categorizeMeetsByDate } from '../utils/meets';
 import { CurrentLocationDisplay } from '../components/CurrentLocationDisplay';
 import { RunTimeModal } from '../components/meets/RunTimeModal';
 import { useMeetPDFGenerator } from '../components/meets/MeetPDFGenerator';
@@ -627,26 +628,157 @@ const MeetCard: React.FC<MeetCardProps> = ({
         {meet.name}
       </Heading>
 
-      {/* 3-Column Layout */}
-      <Grid templateColumns="40% 30% 30%" gap={8} color="white" alignItems="end" minH="120px">
-        {/* Column 1: Event Info */}
-        <VStack align="start" spacing={3} pr={6}>
+      {/* Responsive Layout - Grid on desktop, VStack on mobile */}
+      <Box color="white">
+        {/* Desktop Layout (md and up) */}
+        <Grid 
+          templateColumns="40% 30% 30%" 
+          gap={8} 
+          alignItems="end" 
+          minH="120px"
+          display={{ base: "none", md: "grid" }}
+        >
+          {/* Column 1: Event Info */}
+          <VStack align="start" spacing={3} pr={6}>
+            {/* Date */}
+            <HStack spacing={2} color="white">
+              <FaCalendarAlt size={20} color="currentColor" />
+              <Text fontSize="md" color="white">
+                {formatDate(meet.meet_date)}
+              </Text>
+            </HStack>
+
+            {/* Location */}
+            <HStack spacing={2} color="white" align="start">
+              <FaMapMarkerAlt size={20} color="currentColor" />
+              <VStack align="start" spacing={1}>
+                <Text fontSize="md" color="white">{meet.venue_name || "Venue TBD"}</Text>
+                <HStack spacing={2}>
+                  <Text fontSize="md" color="white">—</Text>
+                  <Text fontSize="md" color="white">
+                    {[meet.city, meet.state].filter(Boolean).join(', ') || "Location TBD"}
+                  </Text>
+                  {meet.venue_name && (
+                    <Link
+                      href={generateMapsLink()}
+                      isExternal
+                      color="blue.400"
+                      _hover={{ color: "blue.200" }}
+                    >
+                      <FaExternalLinkAlt size={13} color="currentColor" />
+                    </Link>
+                  )}
+                </HStack>
+              </VStack>
+            </HStack>
+          </VStack>
+
+          {/* Column 2: Travel & Registration */}
+          <VStack align="start" spacing={4} borderX="1px solid" borderColor="gray.700" px={8}>
+            <TravelTimeForMeetsCard
+              city={meet.city}
+              state={meet.state}
+              venueName={meet.venue_name}
+            />
+
+            {/* Registration */}
+            <HStack spacing={2} color="white">
+              <FaFileAlt size={20} color="currentColor" />
+              {meet.join_link ? (
+                <Link
+                  href={meet.join_link}
+                  isExternal
+                  color="white"
+                  _hover={{ color: "gray.300" }}
+                  fontSize="md"
+                  fontWeight="medium"
+                >
+                  Registration
+                </Link>
+              ) : (
+                <Text fontSize="md" color="gray.400">No Registration</Text>
+              )}
+            </HStack>
+          </VStack>
+
+          {/* Column 3: Info Panel */}
+          <VStack spacing={4} align="start" pl={0}>
+            {/* Notes */}
+            <Tooltip 
+              label={meet.description || "No notes"} 
+              placement="top"
+              bg="gray.600"
+              color="white"
+              p={3}
+              borderRadius="md"
+              fontSize="sm"
+            >
+              <HStack spacing={2} color="white" cursor="pointer">
+                <FaStickyNote size={20} color="currentColor" />
+                <Text fontSize="md" fontWeight="medium" color="white">Notes</Text>
+              </HStack>
+            </Tooltip>
+
+            {/* Events display for both coaches and athletes */}
+            <HStack spacing={2} color="white">
+              <FaRunning size={20} color="currentColor" />
+              <Text fontSize="md" fontWeight="medium" color="white">Events</Text>
+              <Text fontSize="md" color="white">({eventCount})</Text>
+            </HStack>
+
+            {/* Athletes with Tooltip - Show for both coaches and athletes */}
+            <Tooltip 
+              label={
+                athleteNames.length > 0 ? (
+                  <VStack align="start" spacing={1}>
+                    {athleteNames.map((name, idx) => (
+                      <Text key={idx} fontSize="sm" color="white">
+                        {name}
+                      </Text>
+                    ))}
+                  </VStack>
+                ) : (
+                  "No athletes assigned"
+                )
+              }
+              placement="top"
+              bg="gray.600"
+              color="white"
+              p={3}
+              borderRadius="md"
+            >
+              <HStack spacing={2} color="white" cursor="pointer">
+                <FaUsers size={20} color="currentColor" />
+                <Text fontSize="md" fontWeight="medium" color="white">Athletes</Text>
+                <Text fontSize="md" color="white">({athleteCount})</Text>
+              </HStack>
+            </Tooltip>
+          </VStack>
+        </Grid>
+
+        {/* Mobile Layout (base to sm) */}
+        <VStack 
+          spacing={4} 
+          align="stretch" 
+          display={{ base: "flex", md: "none" }}
+        >
           {/* Date */}
-          <HStack spacing={2} color="white">
-            <FaCalendarAlt size={20} color="currentColor" />
-            <Text fontSize="md" color="white">
+          <HStack spacing={3} color="white">
+            <FaCalendarAlt size={18} color="currentColor" />
+            <Text fontSize="md" color="white" fontWeight="medium">
               {formatDate(meet.meet_date)}
             </Text>
           </HStack>
 
           {/* Location */}
-          <HStack spacing={2} color="white" align="start">
-            <FaMapMarkerAlt size={20} color="currentColor" />
+          <HStack spacing={3} color="white" align="start">
+            <FaMapMarkerAlt size={18} color="currentColor" />
             <VStack align="start" spacing={1}>
-              <Text fontSize="md" color="white">{meet.venue_name || "Venue TBD"}</Text>
+              <Text fontSize="md" color="white" fontWeight="medium">
+                {meet.venue_name || "Venue TBD"}
+              </Text>
               <HStack spacing={2}>
-                <Text fontSize="md" color="white">—</Text>
-                <Text fontSize="md" color="white">
+                <Text fontSize="sm" color="gray.300">
                   {[meet.city, meet.state].filter(Boolean).join(', ') || "Location TBD"}
                 </Text>
                 {meet.venue_name && (
@@ -656,16 +788,14 @@ const MeetCard: React.FC<MeetCardProps> = ({
                     color="blue.400"
                     _hover={{ color: "blue.200" }}
                   >
-                    <FaExternalLinkAlt size={13} color="currentColor" />
+                    <FaExternalLinkAlt size={12} color="currentColor" />
                   </Link>
                 )}
               </HStack>
             </VStack>
           </HStack>
-        </VStack>
 
-        {/* Column 2: Travel & Registration */}
-        <VStack align="start" spacing={4} borderX="1px solid" borderColor="gray.700" px={8}>
+          {/* Travel Distance */}
           <TravelTimeForMeetsCard
             city={meet.city}
             state={meet.state}
@@ -673,14 +803,14 @@ const MeetCard: React.FC<MeetCardProps> = ({
           />
 
           {/* Registration */}
-          <HStack spacing={2} color="white">
-            <FaFileAlt size={20} color="currentColor" />
+          <HStack spacing={3} color="white">
+            <FaFileAlt size={18} color="currentColor" />
             {meet.join_link ? (
               <Link
                 href={meet.join_link}
                 isExternal
-                color="white"
-                _hover={{ color: "gray.300" }}
+                color="blue.400"
+                _hover={{ color: "blue.200" }}
                 fontSize="md"
                 fontWeight="medium"
               >
@@ -690,62 +820,30 @@ const MeetCard: React.FC<MeetCardProps> = ({
               <Text fontSize="md" color="gray.400">No Registration</Text>
             )}
           </HStack>
-        </VStack>
 
-        {/* Column 3: Info Panel */}
-        <VStack spacing={4} align="start" pl={0}>
           {/* Notes */}
-          <Tooltip 
-            label={meet.description || "No notes"} 
-            placement="top"
-            bg="gray.600"
-            color="white"
-            p={3}
-            borderRadius="md"
-            fontSize="sm"
-          >
-            <HStack spacing={2} color="white" cursor="pointer">
-              <FaStickyNote size={20} color="currentColor" />
-              <Text fontSize="md" fontWeight="medium" color="white">Notes</Text>
-            </HStack>
-          </Tooltip>
-
-          {/* Events display for both coaches and athletes */}
-          <HStack spacing={2} color="white">
-            <FaRunning size={20} color="currentColor" />
-            <Text fontSize="md" fontWeight="medium" color="white">Events</Text>
-            <Text fontSize="md" color="white">({eventCount})</Text>
+          <HStack spacing={3} color="white">
+            <FaStickyNote size={18} color="currentColor" />
+            <Text fontSize="md" fontWeight="medium" color="white">Notes</Text>
           </HStack>
 
-          {/* Athletes with Tooltip - Show for both coaches and athletes */}
-          <Tooltip 
-            label={
-              athleteNames.length > 0 ? (
-                <VStack align="start" spacing={1}>
-                  {athleteNames.map((name, idx) => (
-                    <Text key={idx} fontSize="sm" color="white">
-                      {name}
-                    </Text>
-                  ))}
-                </VStack>
-              ) : (
-                "No athletes assigned"
-              )
-            }
-            placement="top"
-            bg="gray.600"
-            color="white"
-            p={3}
-            borderRadius="md"
-          >
-            <HStack spacing={2} color="white" cursor="pointer">
-              <FaUsers size={20} color="currentColor" />
-              <Text fontSize="md" fontWeight="medium" color="white">Athletes</Text>
-              <Text fontSize="md" color="white">({athleteCount})</Text>
-            </HStack>
-          </Tooltip>
+          {/* Events count */}
+          <HStack spacing={3} color="white">
+            <FaRunning size={18} color="currentColor" />
+            <Text fontSize="md" fontWeight="medium" color="white">
+              Events ({eventCount})
+            </Text>
+          </HStack>
+
+          {/* Athletes count */}
+          <HStack spacing={3} color="white">
+            <FaUsers size={18} color="currentColor" />
+            <Text fontSize="md" fontWeight="medium" color="white">
+              Athletes ({athleteCount})
+            </Text>
+          </HStack>
         </VStack>
-      </Grid>
+      </Box>
 
       {/* Separator line and Your Events section - Only for athletes */}
       {!isCoach && myAssignedEvents.length > 0 && (
@@ -1468,35 +1566,10 @@ export const Meets: React.FC = () => {
   const assignDrawerHeaderBg = useColorModeValue('green.50', 'green.900');
   const assignDrawerHeaderColor = useColorModeValue('green.700', 'green.200');
 
-  // Meet filtering logic
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Start of today
-
+  // Meet filtering logic using timezone-aware utilities
   const filteredMeets = useMemo(() => {
-    // Sort meets by date
-    const sortedMeets = [...meets].sort((a, b) => 
-      new Date(a.meet_date).getTime() - new Date(b.meet_date).getTime()
-    );
-
-    const nextMeet = sortedMeets.find(meet => 
-      new Date(meet.meet_date) >= today
-    );
-
-    const upcomingMeets = sortedMeets.filter(meet => 
-      new Date(meet.meet_date) >= today
-    );
-
-    const pastMeets = sortedMeets.filter(meet => 
-      new Date(meet.meet_date) < today
-    );
-
-    return {
-      nextMeet: nextMeet ? [nextMeet] : [],
-      upcoming: upcomingMeets,
-      past: pastMeets,
-      all: sortedMeets
-    };
-  }, [meets, today]);
+    return categorizeMeetsByDate(meets);
+  }, [meets]);
 
   // Helper function to render meets with badges
   const renderMeets = (meetsToRender: TrackMeet[], showBadges = false) => {
@@ -1527,6 +1600,10 @@ export const Meets: React.FC = () => {
         </Box>
       );
     }
+
+    // Get today's date for comparison
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     return (
       <VStack spacing={4} align="stretch">
@@ -2430,7 +2507,7 @@ export const Meets: React.FC = () => {
               <TabList>
                 <Tab>
                   <Icon as={FaFire} mr={2} />
-                  Next Meet
+                  {filteredMeets.isCurrentMeet ? 'Current Meet' : 'Next Meet'}
                   <Badge ml={2} colorScheme="red" variant="solid">
                     {filteredMeets.nextMeet.length}
                   </Badge>
@@ -2459,25 +2536,30 @@ export const Meets: React.FC = () => {
               </TabList>
 
               <TabPanels>
-                {/* Next Meet Tab */}
+                {/* Next/Current Meet Tab */}
                 <TabPanel px={0}>
                   {filteredMeets.nextMeet.length > 0 && (
                     <Box 
                       bg="gray.800" 
                       borderLeft="4px solid" 
-                      borderColor="blue.400" 
+                      borderColor={filteredMeets.isCurrentMeet ? "green.400" : "blue.400"} 
                       p={3} 
                       mb={4}
                       borderRadius="md"
                     >
                       <HStack spacing={2}>
-                        <Icon as={FaCalendarAlt} color="blue.400" size="sm" />
-                        <Text fontSize="sm" fontWeight="medium" color="blue.300">
-                          Next Meet:
+                        <Icon as={FaCalendarAlt} color={filteredMeets.isCurrentMeet ? "green.400" : "blue.400"} size="sm" />
+                        <Text fontSize="sm" fontWeight="medium" color={filteredMeets.isCurrentMeet ? "green.300" : "blue.300"}>
+                          {filteredMeets.isCurrentMeet ? 'Current Meet:' : 'Next Meet:'}
                         </Text>
                         <Text fontSize="sm" color="gray.300">
                           {format(parseISO(filteredMeets.nextMeet[0].meet_date), 'MMM d, yyyy')}
                         </Text>
+                        {filteredMeets.isCurrentMeet && (
+                          <Badge colorScheme="green" variant="solid" fontSize="xs" ml={2}>
+                            TODAY
+                          </Badge>
+                        )}
                       </HStack>
                     </Box>
                   )}

@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useToast } from '@chakra-ui/react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { sortMeetsByDate, formatAthleteName } from '../../utils/meets';
+import { sortMeetsByDate, formatAthleteName, getLocalDateString } from '../../utils/meets';
 import type { MeetWithEvents, MeetEvent } from '../../types/meetTypes';
 
 interface UseAssignedMeetsReturn {
@@ -64,10 +64,13 @@ export const useAssignedMeets = (): UseAssignedMeetsReturn => {
       
       // 2. Get all meets that are accessible (not just ones with assignments)
       // For now, we'll get all upcoming meets. In the future, this could be filtered by team/coach relationship
+      // Use local timezone for date comparison to handle international meets
+      const localDateString = getLocalDateString();
+      
       const { data: allMeets, error: meetsError } = await supabase
         .from('track_meets')
         .select('*')
-        .gte('meet_date', new Date().toISOString().split('T')[0]) // Only upcoming meets
+        .gte('meet_date', localDateString) // Use local date for comparison
         .order('meet_date', { ascending: true });
       
       console.log('fetchMyEvents - all accessible meets:', { allMeets, meetsError });

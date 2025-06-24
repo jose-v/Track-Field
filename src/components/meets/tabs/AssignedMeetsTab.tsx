@@ -18,7 +18,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogContent,
-  AlertDialogOverlay
+  AlertDialogOverlay,
+  Badge
 } from '@chakra-ui/react';
 import { FaPlus } from 'react-icons/fa';
 import { useAssignedMeets } from '../../../hooks/meets';
@@ -26,6 +27,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { MeetCard, EventsList, AthleteAssignmentInfo, RunTimeModal, EmptyState } from '../index';
 import { EventCreationModal } from '../modals';
 import type { TrackMeet } from '../../../types/meetTypes';
+import { isMeetToday } from '../../../utils/meets';
 
 export const AssignedMeetsTab: React.FC = () => {
   const { user } = useAuth();
@@ -97,10 +99,6 @@ export const AssignedMeetsTab: React.FC = () => {
     }
   };
 
-
-
-
-
   if (loading) {
     return (
       <Flex justify="center" my={8}>
@@ -120,54 +118,80 @@ export const AssignedMeetsTab: React.FC = () => {
 
       </Flex>
 
-
-
       {myEvents.length === 0 ? (
         <EmptyState
           title="You haven't been assigned to any events yet."
           description="Create a meet or ask your coach to assign you to events."
         />
       ) : (
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 2 }} spacing={6}>
-          {myEvents.map(({ meet, events, assignedByCoach }) => (
-            <MeetCard
-              key={meet.id}
-              meet={meet}
-              showTravelTime={true}
+        <>
+          {/* Show current/next meet indicator */}
+          {myEvents.length > 0 && (
+            <Box 
+              bg="gray.800" 
+              borderLeft="4px solid" 
+              borderColor={isMeetToday(myEvents[0].meet.meet_date) ? "green.400" : "blue.400"} 
+              p={3} 
+              mb={4}
+              borderRadius="md"
             >
-              {/* Coach Assignment Info */}
-              <AthleteAssignmentInfo assignedByCoach={assignedByCoach} />
-              
-              {/* Events List */}
-              <EventsList
-                events={events}
-                title="Your Events"
-                maxDisplayed={10}
-                showRunTime={true}
-                onEventClick={openRunTimeModal}
-                onEditEvent={handleEditEvent}
-                onDeleteEvent={handleDeleteEvent}
-                showEditDelete={true}
-              />
-
-              {/* Action buttons for the meet */}
-              <HStack spacing={2} mt={4}>
-                <Button
-                  leftIcon={<FaPlus />}
-                  onClick={() => {
-                    setSelectedMeet(meet);
-                    onEventCreationOpen();
-                  }}
-                  variant="outline"
-                  size="sm"
-                  colorScheme="blue"
-                >
-                  Add New Event
-                </Button>
+              <HStack spacing={2}>
+                <Text fontSize="sm" fontWeight="medium" color={isMeetToday(myEvents[0].meet.meet_date) ? "green.300" : "blue.300"}>
+                  {isMeetToday(myEvents[0].meet.meet_date) ? 'Current Meet:' : 'Next Meet:'}
+                </Text>
+                <Text fontSize="sm" color="gray.300">
+                  {myEvents[0].meet.name}
+                </Text>
+                {isMeetToday(myEvents[0].meet.meet_date) && (
+                  <Badge colorScheme="green" variant="solid" fontSize="xs" ml={2}>
+                    TODAY
+                  </Badge>
+                )}
               </HStack>
-            </MeetCard>
-          ))}
-        </SimpleGrid>
+            </Box>
+          )}
+          
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 2 }} spacing={6}>
+            {myEvents.map(({ meet, events, assignedByCoach }) => (
+              <MeetCard
+                key={meet.id}
+                meet={meet}
+                showTravelTime={true}
+              >
+                {/* Coach Assignment Info */}
+                <AthleteAssignmentInfo assignedByCoach={assignedByCoach} />
+                
+                {/* Events List */}
+                <EventsList
+                  events={events}
+                  title="Your Events"
+                  maxDisplayed={10}
+                  showRunTime={true}
+                  onEventClick={openRunTimeModal}
+                  onEditEvent={handleEditEvent}
+                  onDeleteEvent={handleDeleteEvent}
+                  showEditDelete={true}
+                />
+
+                {/* Action buttons for the meet */}
+                <HStack spacing={2} mt={4}>
+                  <Button
+                    leftIcon={<FaPlus />}
+                    onClick={() => {
+                      setSelectedMeet(meet);
+                      onEventCreationOpen();
+                    }}
+                    variant="outline"
+                    size="sm"
+                    colorScheme="blue"
+                  >
+                    Add New Event
+                  </Button>
+                </HStack>
+              </MeetCard>
+            ))}
+          </SimpleGrid>
+        </>
       )}
       
       {/* Event Creation Modal - For creating new events */}
