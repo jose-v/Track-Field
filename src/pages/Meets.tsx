@@ -330,6 +330,14 @@ const MeetCard: React.FC<MeetCardProps> = ({
     }
   };
 
+  const formatEventDate = (dateString: string) => {
+    try {
+      return format(parseISO(dateString), 'EEEE d, yyyy');
+    } catch {
+      return dateString;
+    }
+  };
+
   const assignDrawerHeaderBg = useColorModeValue('green.50', 'green.900');
   const assignDrawerHeaderColor = useColorModeValue('green.700', 'green.200');
 
@@ -1030,7 +1038,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
                     <HStack spacing={4} pl={2} wrap="wrap">
                       {event.event_date && (
                         <Text fontSize="xs" color="gray.500">
-                          Date: {new Date(event.event_date).toLocaleDateString()}
+                          {formatEventDate(event.event_date)}
                         </Text>
                       )}
                       {event.event_day && (
