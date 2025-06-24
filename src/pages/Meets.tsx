@@ -1120,131 +1120,251 @@ const MeetCard: React.FC<MeetCardProps> = ({
           <VStack spacing={1} align="start" w="full">
             {/* Assistant Coach 1 */}
             {assistantCoach1Name && (
-              <HStack spacing={2} color="white">
-                <FaUserTie size={16} color="currentColor" />
-                <Text fontSize="sm" color="gray.400">Assistant:</Text>
-                <Text fontSize="sm" color="gray.200">{assistantCoach1Name}</Text>
-                
-                {/* Assistant Coach 1 Phone */}
-                {assistantCoach1Phone && (
-                  <>
-                    <Text fontSize="sm" color="gray.500">|</Text>
-                    <FaPhoneAlt size={14} color="currentColor" />
-                    <Text fontSize="sm" color="gray.300">
-                      {(() => {
-                        const phone = assistantCoach1Phone.replace(/\D/g, '');
-                        if (phone.length === 10) {
-                          return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
-                        }
-                        return assistantCoach1Phone;
-                      })()}
-                    </Text>
-                  </>
-                )}
-                
-                {/* Assistant Coach 1 Email */}
-                {assistantCoach1Email && (
-                  <>
-                    <Text fontSize="sm" color="gray.500">|</Text>
-                    <FaAt size={14} color="currentColor" />
-                    <Text 
-                      fontSize="sm" 
-                      color="blue.400"
-                      _hover={{ color: "blue.300" }}
-                      cursor="pointer"
-                      onClick={() => window.open(`mailto:${assistantCoach1Email}`, '_blank')}
-                    >
-                      {assistantCoach1Email}
-                    </Text>
-                  </>
-                )}
-              </HStack>
+              <VStack align="start" spacing={1} color="white">
+                {/* Desktop Layout */}
+                <HStack spacing={2} color="white" display={{ base: "none", md: "flex" }}>
+                  <FaUserTie size={16} color="currentColor" />
+                  <Text fontSize="sm" color="gray.400">Assistant:</Text>
+                  <Text fontSize="sm" color="gray.200">{assistantCoach1Name}</Text>
+                  
+                  {/* Assistant Coach 1 Phone */}
+                  {assistantCoach1Phone && (
+                    <>
+                      <Text fontSize="sm" color="gray.500">|</Text>
+                      <FaPhoneAlt size={14} color="currentColor" />
+                      <Text fontSize="sm" color="gray.300">
+                        {(() => {
+                          const phone = assistantCoach1Phone.replace(/\D/g, '');
+                          if (phone.length === 10) {
+                            return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+                          }
+                          return assistantCoach1Phone;
+                        })()}
+                      </Text>
+                    </>
+                  )}
+                  
+                  {/* Assistant Coach 1 Email */}
+                  {assistantCoach1Email && (
+                    <>
+                      <Text fontSize="sm" color="gray.500">|</Text>
+                      <FaAt size={14} color="currentColor" />
+                      <Text 
+                        fontSize="sm" 
+                        color="blue.400"
+                        _hover={{ color: "blue.300" }}
+                        cursor="pointer"
+                        onClick={() => window.open(`mailto:${assistantCoach1Email}`, '_blank')}
+                      >
+                        {assistantCoach1Email}
+                      </Text>
+                    </>
+                  )}
+                </HStack>
+
+                {/* Mobile Layout */}
+                <VStack align="start" spacing={1} display={{ base: "flex", md: "none" }}>
+                  <HStack spacing={2}>
+                    <FaUserTie size={16} color="currentColor" />
+                    <Text fontSize="sm" color="gray.400">Assistant:</Text>
+                    <Text fontSize="sm" color="gray.200">{assistantCoach1Name}</Text>
+                  </HStack>
+                  {assistantCoach1Phone && (
+                    <HStack spacing={2} pl={6}>
+                      <FaPhoneAlt size={14} color="currentColor" />
+                      <Text fontSize="sm" color="gray.300">
+                        {(() => {
+                          const phone = assistantCoach1Phone.replace(/\D/g, '');
+                          if (phone.length === 10) {
+                            return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+                          }
+                          return assistantCoach1Phone;
+                        })()}
+                      </Text>
+                    </HStack>
+                  )}
+                  {assistantCoach1Email && (
+                    <HStack spacing={2} pl={6}>
+                      <FaAt size={14} color="currentColor" />
+                      <Text 
+                        fontSize="sm" 
+                        color="blue.400"
+                        _hover={{ color: "blue.300" }}
+                        cursor="pointer"
+                        onClick={() => window.open(`mailto:${assistantCoach1Email}`, '_blank')}
+                      >
+                        {assistantCoach1Email}
+                      </Text>
+                    </HStack>
+                  )}
+                </VStack>
+              </VStack>
             )}
             
             {/* Assistant Coach 2 */}
             {assistantCoach2Name && (
-              <HStack spacing={2} color="white">
-                <FaUserTie size={16} color="currentColor" />
-                <Text fontSize="sm" color="gray.400">Assistant:</Text>
-                <Text fontSize="sm" color="gray.200">{assistantCoach2Name}</Text>
-                
-                {/* Assistant Coach 2 Phone */}
-                {assistantCoach2Phone && (
-                  <>
-                    <Text fontSize="sm" color="gray.500">|</Text>
-                    <FaPhoneAlt size={14} color="currentColor" />
-                    <Text fontSize="sm" color="gray.300">
-                      {(() => {
-                        const phone = assistantCoach2Phone.replace(/\D/g, '');
-                        if (phone.length === 10) {
-                          return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
-                        }
-                        return assistantCoach2Phone;
-                      })()}
-                    </Text>
-                  </>
-                )}
-                
-                {/* Assistant Coach 2 Email */}
-                {assistantCoach2Email && (
-                  <>
-                    <Text fontSize="sm" color="gray.500">|</Text>
-                    <FaAt size={14} color="currentColor" />
-                    <Text 
-                      fontSize="sm" 
-                      color="blue.400"
-                      _hover={{ color: "blue.300" }}
-                      cursor="pointer"
-                      onClick={() => window.open(`mailto:${assistantCoach2Email}`, '_blank')}
-                    >
-                      {assistantCoach2Email}
-                    </Text>
-                  </>
-                )}
-              </HStack>
+              <VStack align="start" spacing={1} color="white">
+                {/* Desktop Layout */}
+                <HStack spacing={2} color="white" display={{ base: "none", md: "flex" }}>
+                  <FaUserTie size={16} color="currentColor" />
+                  <Text fontSize="sm" color="gray.400">Assistant:</Text>
+                  <Text fontSize="sm" color="gray.200">{assistantCoach2Name}</Text>
+                  
+                  {/* Assistant Coach 2 Phone */}
+                  {assistantCoach2Phone && (
+                    <>
+                      <Text fontSize="sm" color="gray.500">|</Text>
+                      <FaPhoneAlt size={14} color="currentColor" />
+                      <Text fontSize="sm" color="gray.300">
+                        {(() => {
+                          const phone = assistantCoach2Phone.replace(/\D/g, '');
+                          if (phone.length === 10) {
+                            return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+                          }
+                          return assistantCoach2Phone;
+                        })()}
+                      </Text>
+                    </>
+                  )}
+                  
+                  {/* Assistant Coach 2 Email */}
+                  {assistantCoach2Email && (
+                    <>
+                      <Text fontSize="sm" color="gray.500">|</Text>
+                      <FaAt size={14} color="currentColor" />
+                      <Text 
+                        fontSize="sm" 
+                        color="blue.400"
+                        _hover={{ color: "blue.300" }}
+                        cursor="pointer"
+                        onClick={() => window.open(`mailto:${assistantCoach2Email}`, '_blank')}
+                      >
+                        {assistantCoach2Email}
+                      </Text>
+                    </>
+                  )}
+                </HStack>
+
+                {/* Mobile Layout */}
+                <VStack align="start" spacing={1} display={{ base: "flex", md: "none" }}>
+                  <HStack spacing={2}>
+                    <FaUserTie size={16} color="currentColor" />
+                    <Text fontSize="sm" color="gray.400">Assistant:</Text>
+                    <Text fontSize="sm" color="gray.200">{assistantCoach2Name}</Text>
+                  </HStack>
+                  {assistantCoach2Phone && (
+                    <HStack spacing={2} pl={6}>
+                      <FaPhoneAlt size={14} color="currentColor" />
+                      <Text fontSize="sm" color="gray.300">
+                        {(() => {
+                          const phone = assistantCoach2Phone.replace(/\D/g, '');
+                          if (phone.length === 10) {
+                            return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+                          }
+                          return assistantCoach2Phone;
+                        })()}
+                      </Text>
+                    </HStack>
+                  )}
+                  {assistantCoach2Email && (
+                    <HStack spacing={2} pl={6}>
+                      <FaAt size={14} color="currentColor" />
+                      <Text 
+                        fontSize="sm" 
+                        color="blue.400"
+                        _hover={{ color: "blue.300" }}
+                        cursor="pointer"
+                        onClick={() => window.open(`mailto:${assistantCoach2Email}`, '_blank')}
+                      >
+                        {assistantCoach2Email}
+                      </Text>
+                    </HStack>
+                  )}
+                </VStack>
+              </VStack>
             )}
             
             {/* Assistant Coach 3 */}
             {assistantCoach3Name && (
-              <HStack spacing={2} color="white">
-                <FaUserTie size={16} color="currentColor" />
-                <Text fontSize="sm" color="gray.400">Assistant:</Text>
-                <Text fontSize="sm" color="gray.200">{assistantCoach3Name}</Text>
-                
-                {/* Assistant Coach 3 Phone */}
-                {assistantCoach3Phone && (
-                  <>
-                    <Text fontSize="sm" color="gray.500">|</Text>
-                    <FaPhoneAlt size={14} color="currentColor" />
-                    <Text fontSize="sm" color="gray.300">
-                      {(() => {
-                        const phone = assistantCoach3Phone.replace(/\D/g, '');
-                        if (phone.length === 10) {
-                          return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
-                        }
-                        return assistantCoach3Phone;
-                      })()}
-                    </Text>
-                  </>
-                )}
-                
-                {/* Assistant Coach 3 Email */}
-                {assistantCoach3Email && (
-                  <>
-                    <Text fontSize="sm" color="gray.500">|</Text>
-                    <FaAt size={14} color="currentColor" />
-                    <Text 
-                      fontSize="sm" 
-                      color="blue.400"
-                      _hover={{ color: "blue.300" }}
-                      cursor="pointer"
-                      onClick={() => window.open(`mailto:${assistantCoach3Email}`, '_blank')}
-                    >
-                      {assistantCoach3Email}
-                    </Text>
-                  </>
-                )}
-              </HStack>
+              <VStack align="start" spacing={1} color="white">
+                {/* Desktop Layout */}
+                <HStack spacing={2} color="white" display={{ base: "none", md: "flex" }}>
+                  <FaUserTie size={16} color="currentColor" />
+                  <Text fontSize="sm" color="gray.400">Assistant:</Text>
+                  <Text fontSize="sm" color="gray.200">{assistantCoach3Name}</Text>
+                  
+                  {/* Assistant Coach 3 Phone */}
+                  {assistantCoach3Phone && (
+                    <>
+                      <Text fontSize="sm" color="gray.500">|</Text>
+                      <FaPhoneAlt size={14} color="currentColor" />
+                      <Text fontSize="sm" color="gray.300">
+                        {(() => {
+                          const phone = assistantCoach3Phone.replace(/\D/g, '');
+                          if (phone.length === 10) {
+                            return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+                          }
+                          return assistantCoach3Phone;
+                        })()}
+                      </Text>
+                    </>
+                  )}
+                  
+                  {/* Assistant Coach 3 Email */}
+                  {assistantCoach3Email && (
+                    <>
+                      <Text fontSize="sm" color="gray.500">|</Text>
+                      <FaAt size={14} color="currentColor" />
+                      <Text 
+                        fontSize="sm" 
+                        color="blue.400"
+                        _hover={{ color: "blue.300" }}
+                        cursor="pointer"
+                        onClick={() => window.open(`mailto:${assistantCoach3Email}`, '_blank')}
+                      >
+                        {assistantCoach3Email}
+                      </Text>
+                    </>
+                  )}
+                </HStack>
+
+                {/* Mobile Layout */}
+                <VStack align="start" spacing={1} display={{ base: "flex", md: "none" }}>
+                  <HStack spacing={2}>
+                    <FaUserTie size={16} color="currentColor" />
+                    <Text fontSize="sm" color="gray.400">Assistant:</Text>
+                    <Text fontSize="sm" color="gray.200">{assistantCoach3Name}</Text>
+                  </HStack>
+                  {assistantCoach3Phone && (
+                    <HStack spacing={2} pl={6}>
+                      <FaPhoneAlt size={14} color="currentColor" />
+                      <Text fontSize="sm" color="gray.300">
+                        {(() => {
+                          const phone = assistantCoach3Phone.replace(/\D/g, '');
+                          if (phone.length === 10) {
+                            return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+                          }
+                          return assistantCoach3Phone;
+                        })()}
+                      </Text>
+                    </HStack>
+                  )}
+                  {assistantCoach3Email && (
+                    <HStack spacing={2} pl={6}>
+                      <FaAt size={14} color="currentColor" />
+                      <Text 
+                        fontSize="sm" 
+                        color="blue.400"
+                        _hover={{ color: "blue.300" }}
+                        cursor="pointer"
+                        onClick={() => window.open(`mailto:${assistantCoach3Email}`, '_blank')}
+                      >
+                        {assistantCoach3Email}
+                      </Text>
+                    </HStack>
+                  )}
+                </VStack>
+              </VStack>
             )}
           </VStack>
         </>
@@ -1257,7 +1377,8 @@ const MeetCard: React.FC<MeetCardProps> = ({
           <Box bg="gray.600" h="1px" w="full" my={3} />
           
           <VStack spacing={1} align="start" pt={2} w="full">
-            <HStack spacing={2} color="white">
+            {/* Desktop Layout */}
+            <HStack spacing={2} color="white" display={{ base: "none", md: "flex" }}>
               <FaChalkboardTeacher size={16} color="currentColor" />
               <Text fontSize="sm" color="gray.300">Coach:</Text>
               <Text fontSize="sm" fontWeight="medium" color="white">{assignedByCoach}</Text>
@@ -1297,6 +1418,43 @@ const MeetCard: React.FC<MeetCardProps> = ({
                 </>
               )}
             </HStack>
+
+            {/* Mobile Layout */}
+            <VStack align="start" spacing={1} display={{ base: "flex", md: "none" }}>
+              <HStack spacing={2}>
+                <FaChalkboardTeacher size={16} color="currentColor" />
+                <Text fontSize="sm" color="gray.300">Coach:</Text>
+                <Text fontSize="sm" fontWeight="medium" color="white">{assignedByCoach}</Text>
+              </HStack>
+              {coachPhone && (
+                <HStack spacing={2} pl={6}>
+                  <FaPhoneAlt size={14} color="currentColor" />
+                  <Text fontSize="sm" color="gray.300">
+                    {(() => {
+                      const phone = coachPhone.replace(/\D/g, '');
+                      if (phone.length === 10) {
+                        return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+                      }
+                      return coachPhone;
+                    })()}
+                  </Text>
+                </HStack>
+              )}
+              {coachEmail && (
+                <HStack spacing={2} pl={6}>
+                  <FaAt size={14} color="currentColor" />
+                  <Text 
+                    fontSize="sm" 
+                    color="blue.400"
+                    _hover={{ color: "blue.300" }}
+                    cursor="pointer"
+                    onClick={() => window.open(`mailto:${coachEmail}`, '_blank')}
+                  >
+                    {coachEmail}
+                  </Text>
+                </HStack>
+              )}
+            </VStack>
           </VStack>
         </>
       )}
@@ -1313,151 +1471,296 @@ const MeetCard: React.FC<MeetCardProps> = ({
               <Text fontSize="sm" color="gray.300" fontWeight="medium">Lodging:</Text>
             </HStack>
             
-            {/* 3-Column Layout for Lodging */}
-            <Grid templateColumns="1fr 1fr 1fr" gap={4} w="full" pl={6}>
-              {/* Column 1: Address Information */}
-              <VStack align="start" spacing={1}>
-                <Text fontSize="sm" color="gray.400" fontWeight="bold" textTransform="uppercase">
-                  Address
-                </Text>
+            {/* Responsive Lodging Layout */}
+            <Box w="full" pl={6}>
+              {/* Desktop Layout (md and up) */}
+              <Grid 
+                templateColumns="1fr 1fr 1fr" 
+                gap={4} 
+                w="full" 
+                display={{ base: "none", md: "grid" }}
+              >
+                {/* Column 1: Address Information */}
+                <VStack align="start" spacing={1}>
+                  <Text fontSize="sm" color="gray.400" fontWeight="bold" textTransform="uppercase">
+                    Address
+                  </Text>
+                  
+                  {/* Place name and type */}
+                  <Text fontSize="sm" fontWeight="medium" color="white">
+                    {meet.lodging_place_name ? `${meet.lodging_place_name} (${meet.lodging_type})` : meet.lodging_type}
+                  </Text>
+                  
+                  {/* Complete address block */}
+                  <VStack align="start" spacing={0} w="full">
+                    {/* Street address */}
+                    {meet.lodging_address && (
+                      <Text fontSize="sm" color="gray.300">
+                        {meet.lodging_address}
+                      </Text>
+                    )}
+                    
+                    {/* City, State, Zip on one line */}
+                    {(meet.lodging_city || meet.lodging_state || meet.lodging_zip) && (
+                      <Text fontSize="sm" color="gray.300">
+                        {[meet.lodging_city, meet.lodging_state, meet.lodging_zip].filter(Boolean).join(', ')}
+                      </Text>
+                    )}
+                  </VStack>
+                  
+                  {/* Fallback if no address info */}
+                  {!meet.lodging_address && !meet.lodging_city && !meet.lodging_state && !meet.lodging_zip && (
+                    <Text fontSize="sm" color="gray.500">
+                      No address provided
+                    </Text>
+                  )}
+                </VStack>
                 
+                {/* Column 2: Contact Information */}
+                <VStack align="start" spacing={1}>
+                  <Text fontSize="sm" color="gray.400" fontWeight="bold" textTransform="uppercase">
+                    Contact
+                  </Text>
+                  {meet.lodging_phone && (
+                    <HStack spacing={2}>
+                      <FaPhoneAlt size={12} color="currentColor" />
+                      <Text fontSize="sm" color="gray.300">
+                        {(() => {
+                          // Format phone as (999) 999-9999
+                          const phone = meet.lodging_phone.replace(/\D/g, '');
+                          if (phone.length === 10) {
+                            return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+                          }
+                          return meet.lodging_phone;
+                        })()}
+                      </Text>
+                    </HStack>
+                  )}
+                  {meet.lodging_website && (
+                    <HStack 
+                      as="a" 
+                      href={meet.lodging_website} 
+                      target="_blank" 
+                      spacing={2}
+                      color="blue.400"
+                      _hover={{ color: "blue.300" }}
+                      cursor="pointer"
+                    >
+                      <FaGlobe size={12} color="currentColor" />
+                      <Text fontSize="sm">Website</Text>
+                    </HStack>
+                  )}
+                  {!meet.lodging_phone && !meet.lodging_website && (
+                    <Text fontSize="sm" color="gray.500">
+                      No contact info
+                    </Text>
+                  )}
+                </VStack>
+                
+                {/* Column 3: Check-in/Check-out */}
+                <VStack align="start" spacing={1}>
+                  <Text fontSize="sm" color="gray.400" fontWeight="bold" textTransform="uppercase">
+                    Schedule
+                  </Text>
+                  {meet.lodging_checkin_date && (
+                    <Text fontSize="sm" color="gray.300">
+                      Check-in: {(() => {
+                        try {
+                          const date = new Date(meet.lodging_checkin_date);
+                          const formattedDate = date.toLocaleDateString('en-US', { 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                          });
+                          let result = formattedDate;
+                          if (meet.lodging_checkin_time) {
+                            const time = new Date(`2000-01-01T${meet.lodging_checkin_time}`);
+                            const formattedTime = time.toLocaleTimeString('en-US', {
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true
+                            });
+                            result += ` at ${formattedTime}`;
+                          }
+                          return result;
+                        } catch (e) {
+                          return meet.lodging_checkin_date + (meet.lodging_checkin_time ? ` at ${meet.lodging_checkin_time}` : '');
+                        }
+                      })()}
+                    </Text>
+                  )}
+                  {meet.lodging_checkout_date && (
+                    <Text fontSize="sm" color="gray.300">
+                      Check-out: {(() => {
+                        try {
+                          const date = new Date(meet.lodging_checkout_date);
+                          const formattedDate = date.toLocaleDateString('en-US', { 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                          });
+                          let result = formattedDate;
+                          if (meet.lodging_checkout_time) {
+                            const time = new Date(`2000-01-01T${meet.lodging_checkout_time}`);
+                            const formattedTime = time.toLocaleTimeString('en-US', {
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true
+                            });
+                            result += ` at ${formattedTime}`;
+                          }
+                          return result;
+                        } catch (e) {
+                          return meet.lodging_checkout_date + (meet.lodging_checkout_time ? ` at ${meet.lodging_checkout_time}` : '');
+                        }
+                      })()}
+                    </Text>
+                  )}
+                  {!meet.lodging_checkin_date && !meet.lodging_checkout_date && (
+                    <Text fontSize="sm" color="gray.500">
+                      No schedule set
+                    </Text>
+                  )}
+                </VStack>
+              </Grid>
+
+              {/* Mobile Layout (base to sm) */}
+              <VStack 
+                spacing={4} 
+                align="stretch" 
+                w="full"
+                display={{ base: "flex", md: "none" }}
+              >
                 {/* Place name and type */}
-                <Text fontSize="sm" fontWeight="medium" color="white">
-                  {meet.lodging_place_name ? `${meet.lodging_place_name} (${meet.lodging_type})` : meet.lodging_type}
-                </Text>
-                
-                {/* Complete address block */}
-                <VStack align="start" spacing={0} w="full">
-                  {/* Street address */}
+                <VStack align="start" spacing={1}>
+                  <Text fontSize="sm" fontWeight="medium" color="white">
+                    {meet.lodging_place_name ? `${meet.lodging_place_name} (${meet.lodging_type})` : meet.lodging_type}
+                  </Text>
+                </VStack>
+
+                {/* Address */}
+                <VStack align="start" spacing={1}>
+                  <Text fontSize="sm" color="gray.400" fontWeight="bold" textTransform="uppercase">
+                    Address
+                  </Text>
                   {meet.lodging_address && (
                     <Text fontSize="sm" color="gray.300">
                       {meet.lodging_address}
                     </Text>
                   )}
-                  
-                  {/* City, State, Zip on one line */}
                   {(meet.lodging_city || meet.lodging_state || meet.lodging_zip) && (
                     <Text fontSize="sm" color="gray.300">
                       {[meet.lodging_city, meet.lodging_state, meet.lodging_zip].filter(Boolean).join(', ')}
                     </Text>
                   )}
-                </VStack>
-                
-                {/* Fallback if no address info */}
-                {!meet.lodging_address && !meet.lodging_city && !meet.lodging_state && !meet.lodging_zip && (
-                  <Text fontSize="sm" color="gray.500">
-                    No address provided
-                  </Text>
-                )}
-              </VStack>
-              
-              {/* Column 2: Contact Information */}
-              <VStack align="start" spacing={1}>
-                <Text fontSize="sm" color="gray.400" fontWeight="bold" textTransform="uppercase">
-                  Contact
-                </Text>
-                {meet.lodging_phone && (
-                  <HStack spacing={2}>
-                    <FaPhoneAlt size={12} color="currentColor" />
-                    <Text fontSize="sm" color="gray.300">
-                      {(() => {
-                        // Format phone as (999) 999-9999
-                        const phone = meet.lodging_phone.replace(/\D/g, '');
-                        if (phone.length === 10) {
-                          return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
-                        }
-                        return meet.lodging_phone;
-                      })()}
+                  {!meet.lodging_address && !meet.lodging_city && !meet.lodging_state && !meet.lodging_zip && (
+                    <Text fontSize="sm" color="gray.500">
+                      No address provided
                     </Text>
-                  </HStack>
+                  )}
+                </VStack>
+
+                {/* Contact */}
+                {(meet.lodging_phone || meet.lodging_website) && (
+                  <VStack align="start" spacing={2}>
+                    <Text fontSize="sm" color="gray.400" fontWeight="bold" textTransform="uppercase">
+                      Contact
+                    </Text>
+                    {meet.lodging_phone && (
+                      <HStack spacing={2}>
+                        <FaPhoneAlt size={12} color="currentColor" />
+                        <Text fontSize="sm" color="gray.300">
+                          {(() => {
+                            const phone = meet.lodging_phone.replace(/\D/g, '');
+                            if (phone.length === 10) {
+                              return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+                            }
+                            return meet.lodging_phone;
+                          })()}
+                        </Text>
+                      </HStack>
+                    )}
+                    {meet.lodging_website && (
+                      <HStack 
+                        as="a" 
+                        href={meet.lodging_website} 
+                        target="_blank" 
+                        spacing={2}
+                        color="blue.400"
+                        _hover={{ color: "blue.300" }}
+                        cursor="pointer"
+                      >
+                        <FaGlobe size={12} color="currentColor" />
+                        <Text fontSize="sm">Website</Text>
+                      </HStack>
+                    )}
+                  </VStack>
                 )}
-                {meet.lodging_website && (
-                  <HStack 
-                    as="a" 
-                    href={meet.lodging_website} 
-                    target="_blank" 
-                    spacing={2}
-                    color="blue.400"
-                    _hover={{ color: "blue.300" }}
-                    cursor="pointer"
-                  >
-                    <FaGlobe size={12} color="currentColor" />
-                    <Text fontSize="sm">Website</Text>
-                  </HStack>
-                )}
-                {!meet.lodging_phone && !meet.lodging_website && (
-                  <Text fontSize="sm" color="gray.500">
-                    No contact info
-                  </Text>
+
+                {/* Schedule */}
+                {(meet.lodging_checkin_date || meet.lodging_checkout_date) && (
+                  <VStack align="start" spacing={2}>
+                    <Text fontSize="sm" color="gray.400" fontWeight="bold" textTransform="uppercase">
+                      Schedule
+                    </Text>
+                    {meet.lodging_checkin_date && (
+                      <Text fontSize="sm" color="gray.300">
+                        Check-in: {(() => {
+                          try {
+                            const date = new Date(meet.lodging_checkin_date);
+                            const formattedDate = date.toLocaleDateString('en-US', { 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            });
+                            let result = formattedDate;
+                            if (meet.lodging_checkin_time) {
+                              const time = new Date(`2000-01-01T${meet.lodging_checkin_time}`);
+                              const formattedTime = time.toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true
+                              });
+                              result += ` at ${formattedTime}`;
+                            }
+                            return result;
+                          } catch (e) {
+                            return meet.lodging_checkin_date + (meet.lodging_checkin_time ? ` at ${meet.lodging_checkin_time}` : '');
+                          }
+                        })()}
+                      </Text>
+                    )}
+                    {meet.lodging_checkout_date && (
+                      <Text fontSize="sm" color="gray.300">
+                        Check-out: {(() => {
+                          try {
+                            const date = new Date(meet.lodging_checkout_date);
+                            const formattedDate = date.toLocaleDateString('en-US', { 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            });
+                            let result = formattedDate;
+                            if (meet.lodging_checkout_time) {
+                              const time = new Date(`2000-01-01T${meet.lodging_checkout_time}`);
+                              const formattedTime = time.toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true
+                              });
+                              result += ` at ${formattedTime}`;
+                            }
+                            return result;
+                          } catch (e) {
+                            return meet.lodging_checkout_date + (meet.lodging_checkout_time ? ` at ${meet.lodging_checkout_time}` : '');
+                          }
+                        })()}
+                      </Text>
+                    )}
+                  </VStack>
                 )}
               </VStack>
-              
-              {/* Column 3: Check-in/Check-out */}
-              <VStack align="start" spacing={1}>
-                <Text fontSize="sm" color="gray.400" fontWeight="bold" textTransform="uppercase">
-                  Schedule
-                </Text>
-                {meet.lodging_checkin_date && (
-                  <Text fontSize="sm" color="gray.300">
-                    Check-in: {(() => {
-                      try {
-                        const date = new Date(meet.lodging_checkin_date);
-                        const formattedDate = date.toLocaleDateString('en-US', { 
-                          year: 'numeric', 
-                          month: 'long', 
-                          day: 'numeric' 
-                        });
-                        let result = formattedDate;
-                        if (meet.lodging_checkin_time) {
-                          const time = new Date(`2000-01-01T${meet.lodging_checkin_time}`);
-                          const formattedTime = time.toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true
-                          });
-                          result += ` at ${formattedTime}`;
-                        }
-                        return result;
-                      } catch (e) {
-                        return meet.lodging_checkin_date + (meet.lodging_checkin_time ? ` at ${meet.lodging_checkin_time}` : '');
-                      }
-                    })()}
-                  </Text>
-                )}
-                {meet.lodging_checkout_date && (
-                  <Text fontSize="sm" color="gray.300">
-                    Check-out: {(() => {
-                      try {
-                        const date = new Date(meet.lodging_checkout_date);
-                        const formattedDate = date.toLocaleDateString('en-US', { 
-                          year: 'numeric', 
-                          month: 'long', 
-                          day: 'numeric' 
-                        });
-                        let result = formattedDate;
-                        if (meet.lodging_checkout_time) {
-                          const time = new Date(`2000-01-01T${meet.lodging_checkout_time}`);
-                          const formattedTime = time.toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true
-                          });
-                          result += ` at ${formattedTime}`;
-                        }
-                        return result;
-                      } catch (e) {
-                        return meet.lodging_checkout_date + (meet.lodging_checkout_time ? ` at ${meet.lodging_checkout_time}` : '');
-                      }
-                    })()}
-                  </Text>
-                )}
-                {!meet.lodging_checkin_date && !meet.lodging_checkout_date && (
-                  <Text fontSize="sm" color="gray.500">
-                    No schedule set
-                  </Text>
-                )}
-              </VStack>
-            </Grid>
+            </Box>
             
             {/* Additional details - full width below columns */}
             {meet.lodging_details && (
