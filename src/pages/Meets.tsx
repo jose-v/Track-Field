@@ -1336,7 +1336,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
                     <Text fontSize="sm" color="gray.200">{assistantCoach3Name}</Text>
                   </HStack>
                   {assistantCoach3Phone && (
-                    <HStack spacing={2} 0}>
+                    <HStack spacing={2} pl={0}>
                       <FaPhoneAlt size={14} color="currentColor" />
                       <Text fontSize="sm" color="gray.300">
                         {(() => {
