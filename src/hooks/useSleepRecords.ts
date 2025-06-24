@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   calculateSleepDuration, 
@@ -7,6 +6,7 @@ import {
   SLEEP_QUALITY_MAPPING,
   analyzeSleepTrends 
 } from '../utils/analytics/performance';
+import { ServiceMigration } from '../utils/migration/ServiceMigration';
 
 export interface SleepRecord {
   id: string;
@@ -35,23 +35,12 @@ export function useSleepRecords(limit?: number) {
         throw new Error('No user ID available');
       }
 
-      let query = supabase
-        .from('sleep_records')
-        .select('*')
-        .eq('athlete_id', user.id)
-        .order('sleep_date', { ascending: false });
-
-      if (limit) {
-        query = query.limit(limit);
-      }
-
-      const { data: records, error } = await query;
-
-      if (error) {
-        throw error;
-      }
-
-      return records || [];
+      // Use migration layer for gradual transition
+      const records = await ServiceMigration.sleep.getRecords(user.id, limit || 30);
+      
+      // The service layer now returns data in the correct format
+      // No transformation needed since both new and legacy services return the same schema
+      return records as SleepRecord[];
     },
     enabled: !!user?.id,
     staleTime: 1000 * 30, // Reduced to 30 seconds for more frequent updates

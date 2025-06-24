@@ -57,6 +57,7 @@ import { Sleep } from '../pages/athlete/Sleep';
 import { Calendar as AthleteCalendar } from '../pages/athlete/Calendar';
 import AthleteProfile from "../pages/athlete/Profile";
 import AthleteSettings from "../pages/athlete/Settings";
+
 import Analytics from '../pages/Analytics';
 
 // Team-related pages
@@ -76,6 +77,7 @@ import DynamicLayoutWithFeedback from '../layouts/DynamicLayoutWithFeedback';
 import NotificationsPage from '../pages/NotificationsPage';
 import SandboxPage from '../../pages/sandbox';
 import TestAuth from '../pages/TestAuth';
+import { Debug } from '../pages/Debug';
 
 export default function AppRoutes() {
   return (
@@ -83,6 +85,7 @@ export default function AppRoutes() {
       {/* Standalone Testing Routes - No Layout */}
       <Route path="sandbox" element={<SandboxPage />} />
       <Route path="test-auth" element={<PrivateRoute><TestAuth /></PrivateRoute>} />
+      <Route path="/debug" element={<PrivateRoute><Debug /></PrivateRoute>} />
 
       {/* Role Selection Route - DISABLED: Auto-fix handles NULL roles now */}
       {/* <Route path="/role-selection" element={<PrivateRoute><RoleSelectionPage /></PrivateRoute>} /> */}

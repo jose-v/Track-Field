@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Text,
@@ -14,8 +14,10 @@ import {
   useColorModeValue,
   useToast,
   SimpleGrid,
+  Alert,
+  AlertIcon,
 } from '@chakra-ui/react';
-import { FaHeart, FaBolt, FaBrain, FaRunning } from 'react-icons/fa';
+import { FaHeart, FaBolt, FaBrain, FaRunning, FaCheckCircle } from 'react-icons/fa';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -38,6 +40,7 @@ export const WellnessQuickLogCard: React.FC<WellnessQuickLogCardProps> = ({ onLo
   const [stress, setStress] = useState(5);
   const [motivation, setMotivation] = useState(7);
   const [isLogging, setIsLogging] = useState(false);
+  const [recentWellnessRecords, setRecentWellnessRecords] = useState<any[]>([]);
   const { user } = useAuth();
   const toast = useToast();
 
@@ -46,6 +49,56 @@ export const WellnessQuickLogCard: React.FC<WellnessQuickLogCardProps> = ({ onLo
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const statLabelColor = useColorModeValue('gray.600', 'gray.300');
   const statNumberColor = useColorModeValue('gray.900', 'gray.100');
+  const alertTextColor = useColorModeValue('gray.800', 'white');
+
+  // Fetch recent wellness records
+  useEffect(() => {
+    const fetchRecentWellness = async () => {
+      if (!user) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('athlete_wellness_surveys')
+          .select('*')
+          .eq('athlete_id', user.id)
+          .order('survey_date', { ascending: false })
+          .limit(7);
+
+        if (error) throw error;
+        setRecentWellnessRecords(data || []);
+      } catch (error) {
+        console.error('Error fetching wellness records:', error);
+      }
+    };
+
+    fetchRecentWellness();
+  }, [user]);
+
+  // Check if there are any wellness logs for today
+  const existingLogs = useMemo(() => {
+    const today = new Date();
+    const todayStr = today.getFullYear() + '-' + 
+      String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+      String(today.getDate()).padStart(2, '0');
+    
+    const todayLogs = recentWellnessRecords.filter(record => record.survey_date === todayStr);
+    
+    return {
+      today: todayLogs,
+      hasTodayLogs: todayLogs.length > 0
+    };
+  }, [recentWellnessRecords]);
+
+  // Load last logged values when there's an existing log for today
+  useEffect(() => {
+    if (existingLogs.hasTodayLogs && existingLogs.today.length > 0) {
+      const lastLog = existingLogs.today[0];
+      setFatigue(lastLog.fatigue_level || 5);
+      setSoreness(lastLog.muscle_soreness || 5);
+      setStress(lastLog.stress_level || 5);
+      setMotivation(lastLog.motivation_level || 7);
+    }
+  }, [existingLogs]);
 
   const metrics: WellnessMetric[] = [
     {
@@ -88,25 +141,50 @@ export const WellnessQuickLogCard: React.FC<WellnessQuickLogCardProps> = ({ onLo
     setIsLogging(true);
     try {
       const today = new Date().toISOString().split('T')[0];
+      const wellnessData = {
+        athlete_id: user.id,
+        survey_date: today,
+        fatigue_level: fatigue,
+        muscle_soreness: soreness,
+        stress_level: stress,
+        motivation_level: motivation,
+        overall_feeling: Math.round(((10 - fatigue) + (10 - soreness) + (10 - stress) + motivation) / 4),
+        notes: 'Quick check-in from dashboard'
+      };
 
-      const { error } = await supabase
-        .from('athlete_wellness_surveys')
-        .insert({
-          athlete_id: user.id,
-          survey_date: today,
-          fatigue_level: fatigue,
-          muscle_soreness: soreness,
-          stress_level: stress,
-          motivation_level: motivation,
-          overall_feeling: Math.round(((10 - fatigue) + (10 - soreness) + (10 - stress) + motivation) / 4),
-          notes: 'Quick check-in from dashboard'
-        });
+      let error;
+      
+      if (existingLogs.hasTodayLogs) {
+        // Update existing record
+        const result = await supabase
+          .from('athlete_wellness_surveys')
+          .update(wellnessData)
+          .eq('athlete_id', user.id)
+          .eq('survey_date', today);
+        error = result.error;
+      } else {
+        // Insert new record
+        const result = await supabase
+          .from('athlete_wellness_surveys')
+          .insert(wellnessData);
+        error = result.error;
+      }
 
       if (error) throw error;
 
+      // Refresh wellness records
+      const { data: updatedRecords } = await supabase
+        .from('athlete_wellness_surveys')
+        .select('*')
+        .eq('athlete_id', user.id)
+        .order('survey_date', { ascending: false })
+        .limit(7);
+      
+      setRecentWellnessRecords(updatedRecords || []);
+
       toast({
         title: 'Wellness logged successfully!',
-        description: 'Daily check-in complete',
+        description: existingLogs.hasTodayLogs ? 'Daily check-in updated' : 'Daily check-in complete',
         status: 'success',
         duration: 3000,
         isClosable: true,
@@ -179,6 +257,16 @@ export const WellnessQuickLogCard: React.FC<WellnessQuickLogCardProps> = ({ onLo
           </Badge>
         </HStack>
 
+        {/* Existing Logs Alert */}
+        {existingLogs.hasTodayLogs && (
+          <Alert status="info" borderRadius="md" py={2}>
+            <AlertIcon as={FaCheckCircle} />
+            <Text fontSize="sm" color={alertTextColor}>
+              You already logged wellness for today (Overall: {existingLogs.today[0]?.overall_feeling || 'N/A'}/10)
+            </Text>
+          </Alert>
+        )}
+
         {/* Wellness Metrics */}
         <SimpleGrid columns={2} spacing={4}>
           {metrics.map((metric) => {
@@ -250,10 +338,11 @@ export const WellnessQuickLogCard: React.FC<WellnessQuickLogCardProps> = ({ onLo
           size="md"
           onClick={handleQuickLog}
           isLoading={isLogging}
-          loadingText="Logging..."
+          loadingText={existingLogs.hasTodayLogs ? "Updating..." : "Logging..."}
           leftIcon={<Icon as={FaHeart} />}
+          variant={existingLogs.hasTodayLogs ? "outline" : "solid"}
         >
-          Complete Check-in
+          {existingLogs.hasTodayLogs ? "Update Check-in" : "Complete Check-in"}
         </Button>
       </VStack>
     </Box>

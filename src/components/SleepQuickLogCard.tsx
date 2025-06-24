@@ -19,10 +19,10 @@ import {
 } from '@chakra-ui/react';
 import { FaMoon, FaStar, FaBed, FaClock, FaCheckCircle } from 'react-icons/fa';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { getSleepQualityText } from '../utils/analytics/performance';
 import { useSleepRecords } from '../hooks/useSleepRecords';
+import { ServiceMigration } from '../utils/migration/ServiceMigration';
 
 interface SleepQuickLogCardProps {
   onLogComplete?: () => void;
@@ -164,34 +164,11 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
         start_time: startTime,
         end_time: endTime,
         quality: quality, // Numeric value as per database schema
-        notes: 'Quick log from dashboard'
+        notes: existingLogs.hasLastNightLogs ? 'Updated from dashboard' : 'Quick log from dashboard'
       };
 
-      let error;
-      
-      if (existingLogs.hasLastNightLogs) {
-        // Update existing record
-        const result = await supabase
-          .from('sleep_records')
-          .update({
-            start_time: startTime,
-            end_time: endTime,
-            quality: quality,
-            notes: 'Updated from dashboard'
-          })
-          .eq('athlete_id', user.id)
-          .eq('sleep_date', sleepDate);
-        error = result.error;
-      } else {
-        // Insert new record
-        const result = await supabase
-          .from('sleep_records')
-          .insert(recordData)
-          .select();
-        error = result.error;
-      }
-
-      if (error) throw error;
+      // Use the new service layer through ServiceMigration
+      await ServiceMigration.sleep.createRecord(recordData);
 
       // Completely clear and refetch sleep data
       try {

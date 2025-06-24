@@ -1170,7 +1170,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
                     <Text fontSize="sm" color="gray.200">{assistantCoach1Name}</Text>
                   </HStack>
                   {assistantCoach1Phone && (
-                    <HStack spacing={2} pl={6}>
+                    <HStack spacing={2} pl={0}>
                       <FaPhoneAlt size={14} color="currentColor" />
                       <Text fontSize="sm" color="gray.300">
                         {(() => {
@@ -1184,7 +1184,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
                     </HStack>
                   )}
                   {assistantCoach1Email && (
-                    <HStack spacing={2} pl={6}>
+                    <HStack spacing={2} pl={0}>
                       <FaAt size={14} color="currentColor" />
                       <Text 
                         fontSize="sm" 
@@ -1253,7 +1253,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
                     <Text fontSize="sm" color="gray.200">{assistantCoach2Name}</Text>
                   </HStack>
                   {assistantCoach2Phone && (
-                    <HStack spacing={2} pl={6}>
+                    <HStack spacing={2} pl={0}>
                       <FaPhoneAlt size={14} color="currentColor" />
                       <Text fontSize="sm" color="gray.300">
                         {(() => {
@@ -1267,7 +1267,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
                     </HStack>
                   )}
                   {assistantCoach2Email && (
-                    <HStack spacing={2} pl={6}>
+                    <HStack spacing={2} pl={0}>
                       <FaAt size={14} color="currentColor" />
                       <Text 
                         fontSize="sm" 
@@ -1336,7 +1336,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
                     <Text fontSize="sm" color="gray.200">{assistantCoach3Name}</Text>
                   </HStack>
                   {assistantCoach3Phone && (
-                    <HStack spacing={2} pl={6}>
+                    <HStack spacing={2} 0}>
                       <FaPhoneAlt size={14} color="currentColor" />
                       <Text fontSize="sm" color="gray.300">
                         {(() => {
@@ -1350,7 +1350,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
                     </HStack>
                   )}
                   {assistantCoach3Email && (
-                    <HStack spacing={2} pl={6}>
+                    <HStack spacing={2} pl={0}>
                       <FaAt size={14} color="currentColor" />
                       <Text 
                         fontSize="sm" 
@@ -1427,7 +1427,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
                 <Text fontSize="sm" fontWeight="medium" color="white">{assignedByCoach}</Text>
               </HStack>
               {coachPhone && (
-                <HStack spacing={2} pl={6}>
+                <HStack spacing={2} pl={0}>
                   <FaPhoneAlt size={14} color="currentColor" />
                   <Text fontSize="sm" color="gray.300">
                     {(() => {
@@ -1441,7 +1441,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
                 </HStack>
               )}
               {coachEmail && (
-                <HStack spacing={2} pl={6}>
+                <HStack spacing={2} pl={0}>
                   <FaAt size={14} color="currentColor" />
                   <Text 
                     fontSize="sm" 
@@ -2933,9 +2933,9 @@ export const Meets: React.FC = () => {
                   flexDirection={{ base: "column", md: "row" }}
                   alignItems="center"
                   justifyContent="center"
-                  py={{ base: 2, md: 1 }}
-                  px={{ base: 3, md: 6 }}
-                  minH={{ base: "40px", md: "32px" }}
+                  py={{ base: 3, md: 2 }}
+                  px={{ base: 2, md: 4 }}
+                  minH={{ base: "60px", md: "auto" }}
                   flex={{ base: "1", md: "unset" }}
                   fontSize={{ base: "xs", md: "sm" }}
                   fontWeight="medium"
