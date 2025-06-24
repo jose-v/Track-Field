@@ -2803,7 +2803,6 @@ export const Meets: React.FC = () => {
                 gap={{ base: 0, md: "unset" }}
                 borderBottom="0px solid"
                 borderColor="gray.600"
-                bg="gray.800"
                 borderRadius="lg"
                 p={{ base: 2, md: 0 }}
               >
@@ -2817,13 +2816,13 @@ export const Meets: React.FC = () => {
                   flex={{ base: "1", md: "unset" }}
                   fontSize={{ base: "xs", md: "sm" }}
                   fontWeight="medium"
+                  borderRadius="full"
                   _selected={{
-                    bg: "blue.600",
+                    bg: "gray.800",
                     color: "white",
-                    borderColor: "blue.500"
+                    borderColor: "gray.700"
                   }}
                 >
-                  <Icon as={FaFire} size={16} mb={{ base: 1, md: 0 }} mr={{ base: 0, md: 2 }} />
                   <Text textAlign="center" lineHeight="1.2">
                     {filteredMeets.isCurrentMeet ? 'Current' : 'Next'}
                   </Text>
@@ -2853,20 +2852,20 @@ export const Meets: React.FC = () => {
                   flex={{ base: "1", md: "unset" }}
                   fontSize={{ base: "xs", md: "sm" }}
                   fontWeight="medium"
+                  borderRadius="full"
                   _selected={{
-                    bg: "blue.600",
+                    bg: "gray.800",
                     color: "white",
-                    borderColor: "blue.500"
+                    borderColor: "gray.700"
                   }}
                 >
-                  <Icon as={FaClock} size={16} mb={{ base: 1, md: 0 }} mr={{ base: 0, md: 2 }} />
                   <Text textAlign="center" lineHeight="1.2">
                     Upcoming
                   </Text>
                   <Badge 
                     ml={{ base: 0, md: 2 }} 
                     mt={{ base: 1, md: 0 }}
-                    colorScheme="blue" 
+                    colorScheme="red" 
                     variant="solid"
                     fontSize="xs"
                     minW="18px"
@@ -2889,20 +2888,20 @@ export const Meets: React.FC = () => {
                   flex={{ base: "1", md: "unset" }}
                   fontSize={{ base: "xs", md: "sm" }}
                   fontWeight="medium"
+                  borderRadius="full"
                   _selected={{
-                    bg: "blue.600",
+                    bg: "gray.800",
                     color: "white",
-                    borderColor: "blue.500"
+                    borderColor: "gray.700"
                   }}
                 >
-                  <Icon as={FaHistory} size={16} mb={{ base: 1, md: 0 }} mr={{ base: 0, md: 2 }} />
                   <Text textAlign="center" lineHeight="1.2">
                     Past
                   </Text>
                   <Badge 
                     ml={{ base: 0, md: 2 }} 
                     mt={{ base: 1, md: 0 }}
-                    colorScheme="gray" 
+                    colorScheme="red" 
                     variant="solid"
                     fontSize="xs"
                     minW="18px"
@@ -2925,20 +2924,20 @@ export const Meets: React.FC = () => {
                   flex={{ base: "1", md: "unset" }}
                   fontSize={{ base: "xs", md: "sm" }}
                   fontWeight="medium"
+                  borderRadius="full"
                   _selected={{
-                    bg: "blue.600",
+                    bg: "gray.800",
                     color: "white",
-                    borderColor: "blue.500"
+                    borderColor: "gray.700"
                   }}
                 >
-                  <Icon as={FaClipboardList} size={16} mb={{ base: 1, md: 0 }} mr={{ base: 0, md: 2 }} />
                   <Text textAlign="center" lineHeight="1.2">
                     All
                   </Text>
                   <Badge 
                     ml={{ base: 0, md: 2 }} 
                     mt={{ base: 1, md: 0 }}
-                    colorScheme="purple" 
+                    colorScheme="red" 
                     variant="solid"
                     fontSize="xs"
                     minW="18px"
