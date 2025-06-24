@@ -1170,7 +1170,7 @@ export function AthleteWorkouts() {
         pt={isHeaderVisible ? "-2px" : "-82px"}
         transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
         minH="100vh"
-        px={0} // Remove padding since AthleteLayout already adds it
+        px={{ base: "10px", md: 0 }} // Add 10px padding on mobile, remove on desktop
         py={8}
       >
         {isLoading && (
