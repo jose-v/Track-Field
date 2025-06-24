@@ -2810,13 +2810,13 @@ export const Meets: React.FC = () => {
                   flexDirection={{ base: "column", md: "row" }}
                   alignItems="center"
                   justifyContent="center"
-                  py={{ base: 3, md: 2 }}
-                  px={{ base: 2, md: 4 }}
-                  minH={{ base: "60px", md: "auto" }}
+                  py={{ base: 2, md: 1 }}
+                  px={{ base: 3, md: 6 }}
+                  minH={{ base: "40px", md: "32px" }}
                   flex={{ base: "1", md: "unset" }}
                   fontSize={{ base: "xs", md: "sm" }}
                   fontWeight="medium"
-                  borderRadius="full"
+                  borderRadius="36"
                   position="relative"
                   _selected={{
                     bg: "gray.800",
@@ -2851,13 +2851,13 @@ export const Meets: React.FC = () => {
                   flexDirection={{ base: "column", md: "row" }}
                   alignItems="center"
                   justifyContent="center"
-                  py={{ base: 3, md: 2 }}
-                  px={{ base: 2, md: 4 }}
-                  minH={{ base: "60px", md: "auto" }}
+                  py={{ base: 2, md: 1 }}
+                  px={{ base: 3, md: 6 }}
+                  minH={{ base: "40px", md: "32px" }}
                   flex={{ base: "1", md: "unset" }}
                   fontSize={{ base: "xs", md: "sm" }}
                   fontWeight="medium"
-                  borderRadius="full"
+                  borderRadius="2xl"
                   position="relative"
                   _selected={{
                     bg: "gray.800",
@@ -2892,13 +2892,13 @@ export const Meets: React.FC = () => {
                   flexDirection={{ base: "column", md: "row" }}
                   alignItems="center"
                   justifyContent="center"
-                  py={{ base: 3, md: 2 }}
-                  px={{ base: 2, md: 4 }}
-                  minH={{ base: "60px", md: "auto" }}
+                  py={{ base: 2, md: 1 }}
+                  px={{ base: 3, md: 6 }}
+                  minH={{ base: "40px", md: "32px" }}
                   flex={{ base: "1", md: "unset" }}
                   fontSize={{ base: "xs", md: "sm" }}
                   fontWeight="medium"
-                  borderRadius="full"
+                  borderRadius="2xl"
                   position="relative"
                   _selected={{
                     bg: "gray.800",
@@ -2933,13 +2933,13 @@ export const Meets: React.FC = () => {
                   flexDirection={{ base: "column", md: "row" }}
                   alignItems="center"
                   justifyContent="center"
-                  py={{ base: 3, md: 2 }}
-                  px={{ base: 2, md: 4 }}
-                  minH={{ base: "60px", md: "auto" }}
+                  py={{ base: 2, md: 1 }}
+                  px={{ base: 3, md: 6 }}
+                  minH={{ base: "40px", md: "32px" }}
                   flex={{ base: "1", md: "unset" }}
                   fontSize={{ base: "xs", md: "sm" }}
                   fontWeight="medium"
-                  borderRadius="full"
+                  borderRadius="2xl"
                   position="relative"
                   _selected={{
                     bg: "gray.800",
