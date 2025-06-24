@@ -1034,8 +1034,9 @@ const MeetCard: React.FC<MeetCardProps> = ({
                       </HStack>
                     </HStack>
 
-                    {/* Event details row */}
-                    <HStack spacing={4} pl={2} wrap="wrap">
+                    {/* Event details - Desktop: horizontal row, Mobile: vertical list */}
+                    {/* Desktop Layout */}
+                    <HStack spacing={4} pl={2} wrap="wrap" display={{ base: "none", md: "flex" }}>
                       {event.event_date && (
                         <Text fontSize="xs" color="gray.500">
                           {formatEventDate(event.event_date)}
@@ -1048,7 +1049,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
                       )}
                       {event.start_time && (
                         <Text fontSize="xs" color="gray.500">
-                          Start: {event.start_time.slice(0, 5)}
+                          Time: {event.start_time.slice(0, 5)}
                         </Text>
                       )}
                       {event.heat && (
@@ -1062,6 +1063,30 @@ const MeetCard: React.FC<MeetCardProps> = ({
                         </Text>
                       )}
                     </HStack>
+
+                    {/* Mobile Layout - Vertical List */}
+                    <VStack spacing={1} align="start" pl={2} display={{ base: "flex", md: "none" }}>
+                      {event.event_date && (
+                        <Text fontSize="xs" color="gray.500">
+                          {formatEventDate(event.event_date)}
+                        </Text>
+                      )}
+                      {event.event_day && (
+                        <Text fontSize="xs" color="gray.500">
+                          Day: {event.event_day}
+                        </Text>
+                      )}
+                      {event.start_time && (
+                        <Text fontSize="xs" color="gray.500">
+                          Time: {event.start_time.slice(0, 5)}
+                        </Text>
+                      )}
+                      {event.event_type && (
+                        <Text fontSize="xs" color="gray.500">
+                          Type: {event.event_type}
+                        </Text>
+                      )}
+                    </VStack>
                   </VStack>
                   
                   {/* Dotted separator line with equal margins */}
