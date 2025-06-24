@@ -412,18 +412,30 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
               <Box bg={dailyWorkoutBg} p={4} borderRadius="lg" border="1px solid" borderColor={dailyWorkoutBorder}>
                 <VStack spacing={4} align="stretch">
                   {/* Daily Workout Header */}
-                  <HStack justify="space-between" align="center">
-                    <HStack spacing={3}>
-                      <Icon as={FaFire} color="teal.500" boxSize={5} />
-                      <VStack align="start" spacing={0}>
-                        <Text fontSize="lg" fontWeight="bold" color={textColor}>
-                          Today's Training Plan
-                        </Text>
+                  <Flex 
+                    direction={{ base: "column", md: "row" }} 
+                    justify="space-between" 
+                    align={{ base: "start", md: "center" }}
+                    gap={{ base: 3, md: 0 }}
+                  >
+                    <HStack spacing={3} flex="1">
+                      <VStack align="start" spacing={0} flex="1">
+                        <HStack spacing={2} align="center">
+                          <Icon as={FaFire} color="teal.500" boxSize={5} />
+                          <Text fontSize="lg" fontWeight="bold" color={textColor}>
+                            Today's Training Plan
+                          </Text>
+                        </HStack>
                         <Text fontSize="sm" color={subtitleColor}>
                           {dailyWorkout.primaryWorkout?.description}
                         </Text>
                         {/* Add Monthly Plan and Weekly Workout Names */}
-                        <HStack spacing={2} mt={1}>
+                        <Flex 
+                          direction={{ base: "column", sm: "row" }} 
+                          gap={2} 
+                          mt={1}
+                          wrap="wrap"
+                        >
                           {dailyWorkout.primaryWorkout?.monthlyPlan?.name && (
                             <Badge colorScheme="blue" variant="outline" fontSize="xs" px={2} py={1}>
                               Plan: {dailyWorkout.primaryWorkout.monthlyPlan.name}
@@ -434,10 +446,10 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                               Week: {dailyWorkout.primaryWorkout.weeklyWorkout.name}
                             </Badge>
                           )}
-                        </HStack>
+                        </Flex>
                       </VStack>
                     </HStack>
-                    <VStack spacing={1} align="end">
+                    <VStack spacing={1} align={{ base: "start", md: "end" }}>
                       <Badge colorScheme="teal" variant="solid" fontSize="xs" px={2} py={1}>
                         {getDayName()}
                       </Badge>
@@ -445,10 +457,13 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                         Week {dailyWorkout.primaryWorkout?.progress?.currentWeek} of {dailyWorkout.primaryWorkout?.progress?.totalWeeks}
                       </Text>
                     </VStack>
-                  </HStack>
+                  </Flex>
 
-                  {/* Progress */}
-                  <HStack spacing={4}>
+                  {/* Progress - Stack vertically on mobile */}
+                  <Flex 
+                    direction={{ base: "column", md: "row" }} 
+                    gap={4}
+                  >
                     <Box flex="1">
                       <HStack justify="space-between" mb={1}>
                         <Text fontSize="sm" color={subtitleColor}>Today's Progress</Text>
@@ -484,128 +499,148 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                         borderRadius="full"
                       />
                     </Box>
-                  </HStack>
+                  </Flex>
 
                   {/* Workout Details */}
                   {dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises && (
-                    <Card 
-                      bg={cardBg} 
-                      borderColor={borderColor} 
-                      borderWidth="1px"
-                      boxShadow="sm"
+                    <Box
+                      bg={{ base: "transparent", md: cardBg }}
+                      borderColor={{ base: "transparent", md: borderColor }}
+                      borderWidth={{ base: "0", md: "1px" }}
+                      boxShadow={{ base: "none", md: "sm" }}
+                      borderRadius={{ base: "none", md: "md" }}
+                      p={{ base: 0, md: 4 }}
                     >
-                      <CardBody p={4}>
-                        <VStack spacing={4} align="stretch">
-                          {/* Header with exercise count */}
-                          <HStack justify="space-between" align="center">
-                            <VStack align="start" spacing={1}>
-                              <HStack spacing={2}>
-                                <Text fontSize="md" fontWeight="semibold" color={textColor}>
-                                  {getExerciseCountText(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises)}
-                                </Text>
-                                <Badge 
-                                  colorScheme={(() => {
-                                    const todaysExercises = getTodaysExercises(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises);
-                                    return getCompletedExercisesCount() === todaysExercises.length ? "green" : "orange";
-                                  })()} 
-                                  variant="outline" 
-                                  fontSize="xs"
-                                >
-                                  {(() => {
-                                    const todaysExercises = getTodaysExercises(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises);
-                                    return `${getCompletedExercisesCount()}/${todaysExercises.length} Done`;
-                                  })()}
-                                </Badge>
-                              </HStack>
-                              <Text fontSize="sm" color={subtitleColor}>
-                                From: {dailyWorkout.primaryWorkout?.monthlyPlan?.name}
+                      <VStack spacing={4} align="stretch">
+                        {/* Header with exercise count - Stack on mobile */}
+                        <Flex 
+                          direction={{ base: "column", md: "row" }} 
+                          justify="space-between" 
+                          align={{ base: "start", md: "center" }}
+                          gap={{ base: 3, md: 0 }}
+                        >
+                          <VStack align="start" spacing={1} flex="1">
+                            <HStack spacing={2} flexWrap="wrap">
+                              <Text fontSize="md" fontWeight="semibold" color={textColor}>
+                                {getExerciseCountText(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises)}
                               </Text>
-                            </VStack>
-                            <HStack spacing={2}>
-                              <Button
-                                size="sm"
-                                colorScheme="teal"
-                                leftIcon={<Icon as={FaRunning} />}
-                                onClick={() => {
-                                  // Get only today's exercises for the modal
+                              <Badge 
+                                colorScheme={(() => {
                                   const todaysExercises = getTodaysExercises(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises);
-                                  
-                                  // Create a workout-like object to pass to existing handler
-                                  const workoutObj = {
-                                    id: `daily-${dailyWorkout.primaryWorkout?.weeklyWorkout?.id || 'unknown'}`,
-                                    name: `${getDayName()}'s Training`,
-                                    exercises: todaysExercises, // Use filtered exercises instead of full weekly plan
-                                    description: dailyWorkout.primaryWorkout.description,
-                                    type: 'Daily Training',
-                                    duration: dailyWorkout.primaryWorkout?.weeklyWorkout?.duration || '45 mins'
-                                  };
-                                  handleStartWorkout(workoutObj);
-                                }}
+                                  return getCompletedExercisesCount() === todaysExercises.length ? "green" : "orange";
+                                })()} 
+                                variant="outline" 
+                                fontSize="xs"
                               >
-                                Start Training
-                              </Button>
-                              
-                              {/* Test button to simulate completion */}
-                              <Button
-                                size="sm"
-                                colorScheme="green"
-                                variant="outline"
-                                onClick={() => {
-                                  // Mark first few exercises as completed for testing
-                                  const todaysExercises = getTodaysExercises(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises);
-                                  const nextExercise = getCompletedExercisesCount();
-                                  if (nextExercise < todaysExercises.length) {
-                                    markExerciseCompleted(nextExercise);
-                                  }
-                                }}
-                              >
-                                Test Complete
-                              </Button>
-                              
-                              {/* Reset button for testing */}
-                              <Button
-                                size="sm"
-                                colorScheme="red"
-                                variant="outline"
-                                onClick={resetWorkoutProgress}
-                              >
-                                Reset
-                              </Button>
-                            </HStack>
-                          </HStack>
-
-                          {/* Two Column Layout: Today's Exercises + Weekly Overview */}
-                          <HStack spacing={4} align="start">
-                            {/* Today's Exercises */}
-                            <VStack spacing={2} align="stretch" flex="2">
-                              <Text fontSize="sm" fontWeight="medium" color={textColor}>
-                                Today's Exercises:
-                              </Text>
-                              <VStack spacing={1} align="stretch" maxH="200px" overflowY="auto">
                                 {(() => {
                                   const todaysExercises = getTodaysExercises(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises);
-                                  return todaysExercises.map((exercise: any, index: number) => {
-                                    const isCompleted = isExerciseCompletedByIndex(index);
-                                    return (
-                                      <HStack key={index} spacing={3} p={2} bg={exerciseBg} borderRadius="md" opacity={isCompleted ? 0.7 : 1}>
-                                        <Badge 
-                                          colorScheme={isCompleted ? "green" : "teal"} 
-                                          variant="solid" 
-                                          fontSize="xs" 
-                                          minW="20px" 
-                                          textAlign="center"
-                                          borderRadius="full"
-                                        >
-                                          {isCompleted ? <Icon as={FaCheck} boxSize={2} /> : index + 1}
-                                        </Badge>
-                                        <Text 
-                                          fontSize="sm" 
-                                          color={textColor} 
-                                          flex="1"
-                                          textDecoration={isCompleted ? "line-through" : "none"}
-                                        >
-                                          {exercise.name || `Exercise ${index + 1}`}
-                                        </Text>
+                                  return `${getCompletedExercisesCount()}/${todaysExercises.length} Done`;
+                                })()}
+                              </Badge>
+                            </HStack>
+                            <Text fontSize="sm" color={subtitleColor}>
+                              From: {dailyWorkout.primaryWorkout?.monthlyPlan?.name}
+                            </Text>
+                          </VStack>
+                          <Flex 
+                            direction={{ base: "row", md: "row" }} 
+                            gap={2}
+                            flexWrap="wrap"
+                            justify={{ base: "start", md: "end" }}
+                          >
+                            <Button
+                              size="sm"
+                              colorScheme="teal"
+                              leftIcon={<Icon as={FaRunning} />}
+                              onClick={() => {
+                                // Get only today's exercises for the modal
+                                const todaysExercises = getTodaysExercises(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises);
+                                
+                                // Create a workout-like object to pass to existing handler
+                                const workoutObj = {
+                                  id: `daily-${dailyWorkout.primaryWorkout?.weeklyWorkout?.id || 'unknown'}`,
+                                  name: `${getDayName()}'s Training`,
+                                  exercises: todaysExercises, // Use filtered exercises instead of full weekly plan
+                                  description: dailyWorkout.primaryWorkout.description,
+                                  type: 'Daily Training',
+                                  duration: dailyWorkout.primaryWorkout?.weeklyWorkout?.duration || '45 mins'
+                                };
+                                handleStartWorkout(workoutObj);
+                              }}
+                            >
+                              Start Training
+                            </Button>
+                            
+                            {/* Test button to simulate completion */}
+                            <Button
+                              size="sm"
+                              colorScheme="green"
+                              variant="outline"
+                              onClick={() => {
+                                // Mark first few exercises as completed for testing
+                                const todaysExercises = getTodaysExercises(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises);
+                                const nextExercise = getCompletedExercisesCount();
+                                if (nextExercise < todaysExercises.length) {
+                                  markExerciseCompleted(nextExercise);
+                                }
+                              }}
+                            >
+                              Test Complete
+                            </Button>
+                            
+                            {/* Reset button for testing */}
+                            <Button
+                              size="sm"
+                              colorScheme="red"
+                              variant="outline"
+                              onClick={resetWorkoutProgress}
+                            >
+                              Reset
+                            </Button>
+                          </Flex>
+                        </Flex>
+
+                        {/* Two Column Layout: Today's Exercises + Weekly Overview - Stack on mobile */}
+                        <Flex 
+                          direction={{ base: "column", lg: "row" }} 
+                          gap={4} 
+                          align="start"
+                        >
+                          {/* Today's Exercises */}
+                          <VStack spacing={2} align="stretch" flex={{ base: "1", lg: "2" }}>
+                            <Text fontSize="sm" fontWeight="medium" color={textColor}>
+                              Today's Exercises:
+                            </Text>
+                            <VStack spacing={1} align="stretch" maxH="200px" overflowY="auto">
+                              {(() => {
+                                const todaysExercises = getTodaysExercises(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises);
+                                return todaysExercises.map((exercise: any, index: number) => {
+                                  const isCompleted = isExerciseCompletedByIndex(index);
+                                  return (
+                                    <HStack key={index} spacing={3} p={2} bg={exerciseBg} borderRadius="md" opacity={isCompleted ? 0.7 : 1}>
+                                      <Badge 
+                                        colorScheme={isCompleted ? "green" : "teal"} 
+                                        variant="solid" 
+                                        fontSize="xs" 
+                                        minW="20px" 
+                                        textAlign="center"
+                                        borderRadius="full"
+                                      >
+                                        {isCompleted ? <Icon as={FaCheck} boxSize={2} /> : index + 1}
+                                      </Badge>
+                                      <Text 
+                                        fontSize="sm" 
+                                        color={textColor} 
+                                        flex="1"
+                                        textDecoration={isCompleted ? "line-through" : "none"}
+                                      >
+                                        {exercise.name || `Exercise ${index + 1}`}
+                                      </Text>
+                                      <Flex 
+                                        direction={{ base: "column", sm: "row" }} 
+                                        gap={1}
+                                        align={{ base: "end", sm: "center" }}
+                                      >
                                         {exercise.sets && exercise.reps && (
                                           <Text fontSize="xs" color={subtitleColor}>
                                             {exercise.sets} × {exercise.reps}
@@ -616,65 +651,66 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                                             {exercise.distance}
                                           </Text>
                                         )}
-                                        {isCompleted && (
-                                          <Icon as={FaCheck} color="green.500" boxSize={3} />
-                                        )}
-                                      </HStack>
-                                    );
-                                  });
-                                })()}
-                              </VStack>
+                                      </Flex>
+                                      {isCompleted && (
+                                        <Icon as={FaCheck} color="green.500" boxSize={3} />
+                                      )}
+                                    </HStack>
+                                  );
+                                });
+                              })()}
                             </VStack>
+                          </VStack>
 
-                            {/* Weekly Overview */}
-                            <VStack spacing={2} align="stretch" flex="1">
-                              <Text fontSize="sm" fontWeight="medium" color={textColor}>
-                                This Week:
-                              </Text>
-                              <VStack spacing={1} align="stretch">
-                                {getWeeklyOverview(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises).map((dayInfo, index) => (
-                                  <HStack 
-                                    key={index} 
-                                    spacing={2} 
-                                    p={2} 
-                                    bg={dayInfo.isToday ? todayBg : exerciseBg} 
-                                    borderRadius="md" 
-                                    border={dayInfo.isToday ? '1px solid' : 'none'} 
-                                    borderColor={dayInfo.isToday ? todayBorder : 'transparent'}
+                          {/* Weekly Overview - Full width on mobile */}
+                          <VStack spacing={2} align="stretch" flex="1" w={{ base: "100%", lg: "auto" }}>
+                            <Text fontSize="sm" fontWeight="medium" color={textColor}>
+                              This Week:
+                            </Text>
+                            <VStack spacing={1} align="stretch">
+                              {getWeeklyOverview(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises).map((dayInfo, index) => (
+                                <HStack 
+                                  key={index} 
+                                  spacing={2} 
+                                  p={2} 
+                                  bg={dayInfo.isToday ? todayBg : exerciseBg} 
+                                  borderRadius="md" 
+                                  border={dayInfo.isToday ? '1px solid' : 'none'} 
+                                  borderColor={dayInfo.isToday ? todayBorder : 'transparent'}
+                                  w="100%"
+                                >
+                                  <Badge 
+                                    colorScheme={dayInfo.isToday ? "teal" : "gray"} 
+                                    variant={dayInfo.isToday ? "solid" : "outline"}
+                                    fontSize="xs" 
+                                    minW="16px"
+                                    textAlign="center"
+                                    borderRadius="full"
                                   >
-                                    <Badge 
-                                      colorScheme={dayInfo.isToday ? "teal" : "gray"} 
-                                      variant={dayInfo.isToday ? "solid" : "outline"}
-                                      fontSize="xs" 
-                                      minW="16px"
-                                      textAlign="center"
-                                      borderRadius="full"
-                                    >
-                                      {dayInfo.day.charAt(0).toUpperCase()}
-                                    </Badge>
-                                    <Text 
-                                      fontSize="xs" 
-                                      color={dayInfo.isToday ? todayTextColor : textColor} 
-                                      flex="1"
-                                      fontWeight={dayInfo.isToday ? "semibold" : "normal"}
-                                    >
-                                      {dayInfo.day.charAt(0).toUpperCase() + dayInfo.day.slice(1)}
-                                    </Text>
-                                    <Text 
-                                      fontSize="xs" 
-                                      color={dayInfo.isToday ? todaySubtextColor : subtitleColor}
-                                      fontWeight={dayInfo.isToday ? "medium" : "normal"}
-                                    >
-                                      {dayInfo.isRestDay ? 'Rest' : `${dayInfo.exerciseCount} ex`}
-                                    </Text>
-                                  </HStack>
-                                ))}
-                              </VStack>
+                                    {dayInfo.day.charAt(0).toUpperCase()}
+                                  </Badge>
+                                  <Text 
+                                    fontSize="xs" 
+                                    color={dayInfo.isToday ? todayTextColor : textColor} 
+                                    flex="1"
+                                    fontWeight={dayInfo.isToday ? "semibold" : "normal"}
+                                  >
+                                    {dayInfo.day.charAt(0).toUpperCase() + dayInfo.day.slice(1)}
+                                  </Text>
+                                  <Text 
+                                    fontSize="xs" 
+                                    color={dayInfo.isToday ? todaySubtextColor : subtitleColor}
+                                    fontWeight={dayInfo.isToday ? "medium" : "normal"}
+                                  >
+                                    {dayInfo.isRestDay ? 'Rest' : `${dayInfo.exerciseCount} ex`}
+                                  </Text>
+                                </HStack>
+                              ))}
                             </VStack>
-                          </HStack>
-                        </VStack>
-                      </CardBody>
-                    </Card>
+                          </VStack>
+                        </Flex>
+                      </VStack>
+                    </Box>
                   )}
                 </VStack>
               </Box>
