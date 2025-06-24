@@ -409,7 +409,13 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                 <Skeleton height="16px" width="100%" />
               </Box>
             ) : dailyWorkout?.hasWorkout ? (
-              <Box bg={dailyWorkoutBg} p={4} borderRadius="lg" border="1px solid" borderColor={dailyWorkoutBorder}>
+              <Box 
+                bg={{ base: "transparent", md: dailyWorkoutBg }} 
+                p={{ base: 2, md: 4 }} 
+                borderRadius={{ base: "none", md: "lg" }} 
+                border={{ base: "none", md: "1px solid" }} 
+                borderColor={{ base: "transparent", md: dailyWorkoutBorder }}
+              >
                 <VStack spacing={4} align="stretch">
                   {/* Daily Workout Header */}
                   <Flex 
