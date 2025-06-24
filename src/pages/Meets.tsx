@@ -2726,16 +2726,6 @@ export const Meets: React.FC = () => {
         <Container maxW="7xl">
           <Flex justify="space-between" align="center">
             <HStack spacing={4}>
-              <Button
-                leftIcon={<FaArrowLeft size={14} />}
-                variant="ghost"
-                onClick={() => navigate(-1)}
-                size="sm"
-                color="gray.300"
-                _hover={{ color: "white", bg: "gray.700" }}
-              >
-                Back
-              </Button>
               <Heading size="lg" color="white">Track Meets</Heading>
             </HStack>
             
@@ -2807,32 +2797,157 @@ export const Meets: React.FC = () => {
             </Box>
           ) : (
             <Tabs variant="enclosed" colorScheme="blue">
-              <TabList>
-                <Tab>
-                  <Icon as={FaFire} mr={2} />
-                  {filteredMeets.isCurrentMeet ? 'Current Meet' : 'Next Meet'}
-                  <Badge ml={2} colorScheme="red" variant="solid">
+              <TabList 
+                display={{ base: "grid", md: "flex" }}
+                gridTemplateColumns={{ base: "repeat(4, 1fr)", md: "unset" }}
+                gap={{ base: 0, md: "unset" }}
+                borderBottom="0px solid"
+                borderColor="gray.600"
+                bg="gray.800"
+                borderRadius="lg"
+                p={{ base: 2, md: 0 }}
+              >
+                <Tab 
+                  flexDirection={{ base: "column", md: "row" }}
+                  alignItems="center"
+                  justifyContent="center"
+                  py={{ base: 3, md: 2 }}
+                  px={{ base: 2, md: 4 }}
+                  minH={{ base: "60px", md: "auto" }}
+                  flex={{ base: "1", md: "unset" }}
+                  fontSize={{ base: "xs", md: "sm" }}
+                  fontWeight="medium"
+                  _selected={{
+                    bg: "blue.600",
+                    color: "white",
+                    borderColor: "blue.500"
+                  }}
+                >
+                  <Icon as={FaFire} size={16} mb={{ base: 1, md: 0 }} mr={{ base: 0, md: 2 }} />
+                  <Text textAlign="center" lineHeight="1.2">
+                    {filteredMeets.isCurrentMeet ? 'Current' : 'Next'}
+                  </Text>
+                  <Badge 
+                    ml={{ base: 0, md: 2 }} 
+                    mt={{ base: 1, md: 0 }}
+                    colorScheme="red" 
+                    variant="solid"
+                    fontSize="xs"
+                    minW="18px"
+                    h="18px"
+                    borderRadius="full"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                  >
                     {filteredMeets.nextMeet.length}
                   </Badge>
                 </Tab>
-                <Tab>
-                  <Icon as={FaClock} mr={2} />
-                  Upcoming
-                  <Badge ml={2} colorScheme="blue" variant="solid">
+                <Tab 
+                  flexDirection={{ base: "column", md: "row" }}
+                  alignItems="center"
+                  justifyContent="center"
+                  py={{ base: 3, md: 2 }}
+                  px={{ base: 2, md: 4 }}
+                  minH={{ base: "60px", md: "auto" }}
+                  flex={{ base: "1", md: "unset" }}
+                  fontSize={{ base: "xs", md: "sm" }}
+                  fontWeight="medium"
+                  _selected={{
+                    bg: "blue.600",
+                    color: "white",
+                    borderColor: "blue.500"
+                  }}
+                >
+                  <Icon as={FaClock} size={16} mb={{ base: 1, md: 0 }} mr={{ base: 0, md: 2 }} />
+                  <Text textAlign="center" lineHeight="1.2">
+                    Upcoming
+                  </Text>
+                  <Badge 
+                    ml={{ base: 0, md: 2 }} 
+                    mt={{ base: 1, md: 0 }}
+                    colorScheme="blue" 
+                    variant="solid"
+                    fontSize="xs"
+                    minW="18px"
+                    h="18px"
+                    borderRadius="full"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                  >
                     {filteredMeets.upcoming.length}
                   </Badge>
                 </Tab>
-                <Tab>
-                  <Icon as={FaHistory} mr={2} />
-                  Past
-                  <Badge ml={2} colorScheme="gray" variant="solid">
+                <Tab 
+                  flexDirection={{ base: "column", md: "row" }}
+                  alignItems="center"
+                  justifyContent="center"
+                  py={{ base: 3, md: 2 }}
+                  px={{ base: 2, md: 4 }}
+                  minH={{ base: "60px", md: "auto" }}
+                  flex={{ base: "1", md: "unset" }}
+                  fontSize={{ base: "xs", md: "sm" }}
+                  fontWeight="medium"
+                  _selected={{
+                    bg: "blue.600",
+                    color: "white",
+                    borderColor: "blue.500"
+                  }}
+                >
+                  <Icon as={FaHistory} size={16} mb={{ base: 1, md: 0 }} mr={{ base: 0, md: 2 }} />
+                  <Text textAlign="center" lineHeight="1.2">
+                    Past
+                  </Text>
+                  <Badge 
+                    ml={{ base: 0, md: 2 }} 
+                    mt={{ base: 1, md: 0 }}
+                    colorScheme="gray" 
+                    variant="solid"
+                    fontSize="xs"
+                    minW="18px"
+                    h="18px"
+                    borderRadius="full"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                  >
                     {filteredMeets.past.length}
                   </Badge>
                 </Tab>
-                <Tab>
-                  <Icon as={FaClipboardList} mr={2} />
-                  All
-                  <Badge ml={2} colorScheme="purple" variant="solid">
+                <Tab 
+                  flexDirection={{ base: "column", md: "row" }}
+                  alignItems="center"
+                  justifyContent="center"
+                  py={{ base: 3, md: 2 }}
+                  px={{ base: 2, md: 4 }}
+                  minH={{ base: "60px", md: "auto" }}
+                  flex={{ base: "1", md: "unset" }}
+                  fontSize={{ base: "xs", md: "sm" }}
+                  fontWeight="medium"
+                  _selected={{
+                    bg: "blue.600",
+                    color: "white",
+                    borderColor: "blue.500"
+                  }}
+                >
+                  <Icon as={FaClipboardList} size={16} mb={{ base: 1, md: 0 }} mr={{ base: 0, md: 2 }} />
+                  <Text textAlign="center" lineHeight="1.2">
+                    All
+                  </Text>
+                  <Badge 
+                    ml={{ base: 0, md: 2 }} 
+                    mt={{ base: 1, md: 0 }}
+                    colorScheme="purple" 
+                    variant="solid"
+                    fontSize="xs"
+                    minW="18px"
+                    h="18px"
+                    borderRadius="full"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                  >
                     {filteredMeets.all.length}
                   </Badge>
                 </Tab>
