@@ -2810,13 +2810,14 @@ export const Meets: React.FC = () => {
                   flexDirection={{ base: "column", md: "row" }}
                   alignItems="center"
                   justifyContent="center"
-                  py={{ base: 2, md: 1 }}
+                  py={{ base: 1, md: 0.5 }}
                   px={{ base: 3, md: 6 }}
-                  minH={{ base: "40px", md: "32px" }}
+                  minH={{ base: "28px", md: "24px" }}
+                  minW={{ base: "auto", md: "70px" }}
                   flex={{ base: "1", md: "unset" }}
                   fontSize={{ base: "xs", md: "sm" }}
                   fontWeight="medium"
-                  borderRadius="36"
+                  borderRadius="30"
                   position="relative"
                   _selected={{
                     bg: "gray.800",
@@ -2830,7 +2831,7 @@ export const Meets: React.FC = () => {
                   <Badge 
                     position={{ base: "absolute", md: "static" }}
                     top={{ base: "-6px", md: "auto" }}
-                    right={{ base: "-6px", md: "auto" }}
+                    right={{ base: "2px", md: "auto" }}
                     ml={{ base: 0, md: 2 }} 
                     mt={{ base: 0, md: 0 }}
                     colorScheme="red" 
@@ -2842,7 +2843,7 @@ export const Meets: React.FC = () => {
                     display="flex"
                     alignItems="center"
                     justifyContent="center"
-                    zIndex={1}
+                    zIndex={2}
                   >
                     {filteredMeets.nextMeet.length}
                   </Badge>
@@ -2851,13 +2852,14 @@ export const Meets: React.FC = () => {
                   flexDirection={{ base: "column", md: "row" }}
                   alignItems="center"
                   justifyContent="center"
-                  py={{ base: 2, md: 1 }}
+                  py={{ base: 1, md: 0.5 }}
                   px={{ base: 3, md: 6 }}
-                  minH={{ base: "40px", md: "32px" }}
+                  minH={{ base: "28px", md: "24px" }}
+                  minW={{ base: "auto", md: "70px" }}
                   flex={{ base: "1", md: "unset" }}
                   fontSize={{ base: "xs", md: "sm" }}
                   fontWeight="medium"
-                  borderRadius="2xl"
+                  borderRadius="30"
                   position="relative"
                   _selected={{
                     bg: "gray.800",
@@ -2871,7 +2873,7 @@ export const Meets: React.FC = () => {
                   <Badge 
                     position={{ base: "absolute", md: "static" }}
                     top={{ base: "-6px", md: "auto" }}
-                    right={{ base: "-6px", md: "auto" }}
+                    right={{ base: "2px", md: "auto" }}
                     ml={{ base: 0, md: 2 }} 
                     mt={{ base: 0, md: 0 }}
                     colorScheme="red" 
@@ -2883,7 +2885,7 @@ export const Meets: React.FC = () => {
                     display="flex"
                     alignItems="center"
                     justifyContent="center"
-                    zIndex={1}
+                    zIndex={2}
                   >
                     {filteredMeets.upcoming.length}
                   </Badge>
@@ -2892,13 +2894,14 @@ export const Meets: React.FC = () => {
                   flexDirection={{ base: "column", md: "row" }}
                   alignItems="center"
                   justifyContent="center"
-                  py={{ base: 2, md: 1 }}
+                  py={{ base: 1, md: 0.5 }}
                   px={{ base: 3, md: 6 }}
-                  minH={{ base: "40px", md: "32px" }}
+                  minH={{ base: "28px", md: "24px" }}
+                  minW={{ base: "auto", md: "70px" }}
                   flex={{ base: "1", md: "unset" }}
                   fontSize={{ base: "xs", md: "sm" }}
                   fontWeight="medium"
-                  borderRadius="2xl"
+                  borderRadius="30"
                   position="relative"
                   _selected={{
                     bg: "gray.800",
@@ -2912,7 +2915,7 @@ export const Meets: React.FC = () => {
                   <Badge 
                     position={{ base: "absolute", md: "static" }}
                     top={{ base: "-6px", md: "auto" }}
-                    right={{ base: "-6px", md: "auto" }}
+                    right={{ base: "2px", md: "auto" }}
                     ml={{ base: 0, md: 2 }} 
                     mt={{ base: 0, md: 0 }}
                     colorScheme="red" 
@@ -2924,7 +2927,7 @@ export const Meets: React.FC = () => {
                     display="flex"
                     alignItems="center"
                     justifyContent="center"
-                    zIndex={1}
+                    zIndex={2}
                   >
                     {filteredMeets.past.length}
                   </Badge>
@@ -2933,13 +2936,14 @@ export const Meets: React.FC = () => {
                   flexDirection={{ base: "column", md: "row" }}
                   alignItems="center"
                   justifyContent="center"
-                  py={{ base: 3, md: 2 }}
-                  px={{ base: 2, md: 4 }}
-                  minH={{ base: "60px", md: "auto" }}
+                  py={{ base: 1, md: 0.5 }}
+                  px={{ base: 3, md: 6 }}
+                  minH={{ base: "28px", md: "24px" }}
+                  minW={{ base: "auto", md: "70px" }}
                   flex={{ base: "1", md: "unset" }}
                   fontSize={{ base: "xs", md: "sm" }}
                   fontWeight="medium"
-                  borderRadius="2xl"
+                  borderRadius="30"
                   position="relative"
                   _selected={{
                     bg: "gray.800",
@@ -2953,7 +2957,7 @@ export const Meets: React.FC = () => {
                   <Badge 
                     position={{ base: "absolute", md: "static" }}
                     top={{ base: "-6px", md: "auto" }}
-                    right={{ base: "-6px", md: "auto" }}
+                    right={{ base: "2px", md: "auto" }}
                     ml={{ base: 0, md: 2 }} 
                     mt={{ base: 0, md: 0 }}
                     colorScheme="red" 
@@ -2965,7 +2969,7 @@ export const Meets: React.FC = () => {
                     display="flex"
                     alignItems="center"
                     justifyContent="center"
-                    zIndex={1}
+                    zIndex={2}
                   >
                     {filteredMeets.all.length}
                   </Badge>
