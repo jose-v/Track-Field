@@ -31,7 +31,7 @@ export {
   getDisplayedAthletes,
   hasCompleteLocationInfo,
   abbreviateEventName
-} from './meetHelpers';
+} from './meetHelpers'; 
 
 /**
  * Determines if a meet is happening today (current meet) considering timezones

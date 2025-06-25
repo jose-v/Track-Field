@@ -19,6 +19,7 @@ import {
 } from '@chakra-ui/react';
 import { FaCalendarAlt, FaMapMarkerAlt, FaRunning } from 'react-icons/fa';
 import { TravelTimeDisplay } from '../TravelTimeDisplay';
+import { EventsListSection } from './EventsListSection';
 import { 
   formatMeetDate, 
   generateMapsLink, 
@@ -28,6 +29,19 @@ import {
 } from '../../utils/meets';
 import type { TrackMeet } from '../../types/meetTypes';
 
+export interface EventWithAthletes {
+  id: string;
+  event_name: string;
+  event_date?: string;
+  event_day?: number;
+  start_time?: string;
+  heat?: number;
+  event_type?: string;
+  run_time?: string;
+  athleteCount?: number;
+  athleteNames?: string[];
+}
+
 interface MeetCardProps {
   meet: TrackMeet;
   eventCount?: number;
@@ -35,6 +49,12 @@ interface MeetCardProps {
   children?: React.ReactNode;
   showTravelTime?: boolean;
   onClick?: () => void;
+  // Events section
+  allEvents?: EventWithAthletes[];
+  onEditEvent?: (event: EventWithAthletes) => void;
+  onAssignAthletesToEvent?: (event: EventWithAthletes) => void;
+  onDeleteEvent?: (event: EventWithAthletes) => void;
+  showEventActions?: boolean;
 }
 
 export const MeetCard: React.FC<MeetCardProps> = ({
@@ -43,7 +63,12 @@ export const MeetCard: React.FC<MeetCardProps> = ({
   actionButtons,
   children,
   showTravelTime = false,
-  onClick
+  onClick,
+  allEvents,
+  onEditEvent,
+  onAssignAthletesToEvent,
+  onDeleteEvent,
+  showEventActions = true
 }) => {
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
@@ -209,6 +234,25 @@ export const MeetCard: React.FC<MeetCardProps> = ({
                 {meet.description}
               </Text>
             </Box>
+          )}
+          
+          {/* Events List Section */}
+          {allEvents && allEvents.length > 0 && (
+            <>
+              <Divider my={2} />
+              <Box>
+                <Text fontSize="sm" fontWeight="semibold" color={mutedTextColor} mb={3}>
+                  Events ({allEvents.length})
+                </Text>
+                <EventsListSection
+                  events={allEvents}
+                  onEditEvent={onEditEvent}
+                  onAssignAthletes={onAssignAthletesToEvent}
+                  onDeleteEvent={onDeleteEvent}
+                  showActions={showEventActions}
+                />
+              </Box>
+            </>
           )}
           
           {/* Children content (events, assignments, etc.) */}

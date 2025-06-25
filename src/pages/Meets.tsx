@@ -97,6 +97,9 @@ import { CurrentLocationDisplay } from '../components/CurrentLocationDisplay';
 import { RunTimeModal } from '../components/meets/RunTimeModal';
 import { useMeetPDFGenerator } from '../components/meets/MeetPDFGenerator';
 import { EventCreationModal } from '../components/meets/modals/EventCreationModal';
+import { CoachEventBulkCreator } from '../components/meets/CoachEventBulkCreator';
+import { CoachAthleteEventManager } from '../components/meets/CoachAthleteEventManager';
+import { EventsListSection } from '../components/meets/EventsListSection';
 
 // Info Badge Component - Shows database stats
 const InfoBadge: React.FC<{ children: React.ReactNode; count?: number }> = ({ children, count }) => (
@@ -223,9 +226,11 @@ interface MeetCardProps {
   onDelete?: (meet: TrackMeet) => void;
   onAssignAthletes?: (meet: TrackMeet) => void;
   onManageEvents?: (meet: TrackMeet) => void;
+  onAddEvents?: (meet: TrackMeet) => void;
   onRefresh?: () => void;
   onOpenRunTimeModal?: (eventData: { eventId: string; eventName: string; currentTime?: string }) => void;
   onEditEvent?: (event: any, meet: TrackMeet) => void;
+  onAssignAthletesToEvent?: (event: any, meet: TrackMeet) => void;
   athleteCount?: number;
   eventCount?: number;
   athleteNames?: string[];
@@ -239,6 +244,18 @@ interface MeetCardProps {
     heat?: number;
     event_type?: string;
     run_time?: string;
+  }>;
+  allEvents?: Array<{
+    id: string;
+    event_name: string;
+    event_date?: string;
+    event_day?: number;
+    start_time?: string;
+    heat?: number;
+    event_type?: string;
+    run_time?: string;
+    athleteCount?: number;
+    athleteNames?: string[];
   }>;
   assignedByCoach?: string | null;
   coachPhone?: string | null;
@@ -262,14 +279,17 @@ const MeetCard: React.FC<MeetCardProps> = ({
   onEdit, 
   onDelete, 
   onAssignAthletes, 
-  onManageEvents, 
+  onManageEvents,
+  onAddEvents,
   onRefresh,
   onOpenRunTimeModal,
   onEditEvent,
+  onAssignAthletesToEvent,
   athleteCount = 0, 
   eventCount = 0, 
   athleteNames = [], 
   myAssignedEvents = [],
+  allEvents = [],
   assignedByCoach = null,
   coachPhone = null,
   coachEmail = null,
@@ -415,28 +435,28 @@ const MeetCard: React.FC<MeetCardProps> = ({
                 borderColor="gray.500"
                 shadow="xl"
               >
-                {/* Assign Athletes */}
-                <Tooltip label="Assign athletes to events" placement="top" bg="gray.700" color="white" p={2}>
+                {/* Add Events */}
+                <Tooltip label="Add events to meet" placement="top" bg="gray.700" color="white" p={2}>
+                  <IconButton
+                    icon={<FaPlus size={22} color="currentColor" />}
+                    variant="ghost"
+                    size="lg"
+                    color="white"
+                    _hover={{ color: "gray.300" }}
+                    aria-label="Add events"
+                    onClick={() => onAddEvents?.(meet)}
+                  />
+                </Tooltip>
+
+                {/* Manage Athletes */}
+                <Tooltip label="Manage athlete assignments" placement="top" bg="gray.700" color="white" p={2}>
                   <IconButton
                     icon={<FaUsers size={22} color="currentColor" />}
                     variant="ghost"
                     size="lg"
                     color="white"
                     _hover={{ color: "gray.300" }}
-                    aria-label="Assign athletes"
-                    onClick={() => onAssignAthletes?.(meet)}
-                  />
-                </Tooltip>
-
-                {/* Manage Events */}
-                <Tooltip label="Manage events" placement="top" bg="gray.700" color="white" p={2}>
-                  <IconButton
-                    icon={<FaRunning size={22} color="currentColor" />}
-                    variant="ghost"
-                    size="lg"
-                    color="white"
-                    _hover={{ color: "gray.300" }}
-                    aria-label="Manage events"
+                    aria-label="Manage athletes"
                     onClick={() => onManageEvents?.(meet)}
                   />
                 </Tooltip>
@@ -1105,42 +1125,61 @@ const MeetCard: React.FC<MeetCardProps> = ({
         </>
       )}
 
-      {/* Athletes Assigned section - Only for coaches */}
-      {isCoach && athleteNames.length > 0 && (
+      {/* Events List section - Only for coaches */}
+      {isCoach && allEvents.length > 0 && (
         <>
           {/* Separator line */}
           <Box bg="gray.600" h="1px" my={4} />
 
-          <VStack align="start" spacing={2} w="full">
-            <HStack spacing={2} color="white">
-              <FaUserFriends size={20} color="currentColor" />
-              <Text fontSize="md" fontWeight="medium" color="white">Athletes Assigned ({athleteNames.length})</Text>
-            </HStack>
-            <VStack align="start" spacing={0} pl={6} w="full">
-              {athleteNames.map((athleteName, index) => (
-                <React.Fragment key={index}>
-                  <HStack 
-                    spacing={2} 
-                    justify="flex-start" 
-                    w="full"
-                    py={2}
-                  >
-                    <Text fontSize="sm" color="gray.300">{athleteName}</Text>
-                  </HStack>
-                  
-                  {/* Dotted separator line with equal margins */}
-                  {index < athleteNames.length - 1 && (
-                    <Box
-                      w="full"
-                      borderBottom="1px dotted"
-                      borderColor="gray.600"
-                      my={3}
-                    />
-                  )}
-                </React.Fragment>
-              ))}
-            </VStack>
-          </VStack>
+          <Box color="white">
+            <EventsListSection
+              events={allEvents}
+              onEditEvent={(event) => onEditEvent?.(event, meet)}
+              onAssignAthletes={(event) => onAssignAthletesToEvent?.(event, meet)}
+              onDeleteEvent={async (event) => {
+                if (window.confirm(`Are you sure you want to delete "${event.event_name}"?`)) {
+                  try {
+                    const { error } = await supabase
+                      .from('meet_events')
+                      .delete()
+                      .eq('id', event.id);
+
+                    if (error) {
+                      toast({
+                        title: 'Error',
+                        description: 'Failed to delete event',
+                        status: 'error',
+                        duration: 3000,
+                        isClosable: true,
+                      });
+                      return;
+                    }
+
+                    toast({
+                      title: 'Success',
+                      description: `Event "${event.event_name}" deleted successfully`,
+                      status: 'success',
+                      duration: 3000,
+                      isClosable: true,
+                    });
+
+                    // Refresh the meets data
+                    onRefresh?.();
+                  } catch (error) {
+                    console.error('Unexpected error deleting event:', error);
+                    toast({
+                      title: 'Error',
+                      description: 'An unexpected error occurred',
+                      status: 'error',
+                      duration: 3000,
+                      isClosable: true,
+                    });
+                  }
+                }
+              }}
+              showActions={true}
+            />
+          </Box>
         </>
       )}
 
@@ -1821,6 +1860,8 @@ export const Meets: React.FC = () => {
   const { isOpen: isAssignDrawerOpen, onOpen: onAssignDrawerOpen, onClose: onAssignDrawerClose } = useDisclosure();
   const { isOpen: isAddEventOpen, onOpen: onAddEventOpen, onClose: onAddEventClose } = useDisclosure();
   const { isOpen: isLocationSetupOpen, onOpen: onLocationSetupOpen, onClose: onLocationSetupClose } = useDisclosure();
+  const { isOpen: isBulkCreatorOpen, onOpen: onBulkCreatorOpen, onClose: onBulkCreatorClose } = useDisclosure();
+  const { isOpen: isAthleteManagerOpen, onOpen: onAthleteManagerOpen, onClose: onAthleteManagerClose } = useDisclosure();
   
   // State
   const [meets, setMeets] = useState<TrackMeet[]>([]);
@@ -1836,6 +1877,16 @@ export const Meets: React.FC = () => {
       id: string; 
       name: string; 
       time: string | null;
+      event_date?: string;
+      event_day?: number;
+      start_time?: string;
+      heat?: number;
+      event_type?: string;
+      run_time?: string;
+    }>;
+    allEvents: Array<{
+      id: string;
+      event_name: string;
       event_date?: string;
       event_day?: number;
       start_time?: string;
@@ -1971,6 +2022,7 @@ export const Meets: React.FC = () => {
                 onDelete={handleDeleteMeet}
                 onAssignAthletes={handleAssignAthletes}
                 onManageEvents={handleManageEvents}
+                onAddEvents={handleAddEvents}
                 onRefresh={fetchMeets}
                 onOpenRunTimeModal={openRunTimeModal}
                 onEditEvent={(event, meet) => {
@@ -1978,10 +2030,15 @@ export const Meets: React.FC = () => {
                   setEditingMeet(meet);
                   setIsEditEventModalOpen(true);
                 }}
+                onAssignAthletesToEvent={(event, meet) => {
+                  // TODO: Open athlete assignment drawer
+                  console.log('Assign athletes to event:', event.event_name);
+                }}
                 athleteCount={meetData[meet.id]?.athleteCount || 0}
                 eventCount={meetData[meet.id]?.eventCount || 0}
                 athleteNames={meetData[meet.id]?.athleteNames || []}
                 myAssignedEvents={meetData[meet.id]?.myAssignedEvents || []}
+                allEvents={meetData[meet.id]?.allEvents || []}
                 assignedByCoach={meetData[meet.id]?.assignedByCoach}
                 coachPhone={meetData[meet.id]?.coachPhone}
                 coachEmail={meetData[meet.id]?.coachEmail}
@@ -2272,11 +2329,87 @@ export const Meets: React.FC = () => {
               distance = `${meet.city}, ${meet.state}`;
             }
             
+            // For coaches, fetch per-event athlete counts
+            let allEventsWithAthletes = meetEvents || [];
+            if (isCoachUser && meetEvents && meetEvents.length > 0) {
+              try {
+                // Get athlete assignments per event - try different query approach
+                const { data: eventAssignments, error: assignmentError } = await supabase
+                  .from('athlete_meet_events')
+                  .select(`
+                    meet_event_id,
+                    athlete_id
+                  `)
+                  .in('meet_event_id', meetEvents.map(e => e.id));
+                
+                // If we have assignments, fetch the profile data separately
+                let enrichedAssignments: any[] = [];
+                if (eventAssignments && eventAssignments.length > 0) {
+                  const athleteIds = [...new Set(eventAssignments.map(a => a.athlete_id))];
+                  const { data: profilesData, error: profilesError } = await supabase
+                    .from('profiles')
+                    .select('id, first_name, last_name')
+                    .in('id', athleteIds);
+                  
+                  if (profilesData) {
+                    // Create a map of athlete_id to profile
+                    const profileMap = profilesData.reduce((acc, profile) => {
+                      acc[profile.id] = profile;
+                      return acc;
+                    }, {} as Record<string, any>);
+                    
+                    // Enrich assignments with profile data
+                    enrichedAssignments = eventAssignments.map(assignment => ({
+                      ...assignment,
+                      profiles: profileMap[assignment.athlete_id]
+                    }));
+                  }
+                } else {
+                  enrichedAssignments = eventAssignments || [];
+                }
+                
+                if (assignmentError) {
+                  console.error('Assignment query error:', assignmentError);
+                  throw assignmentError;
+                }
+                
+                // Group assignments by event
+                const assignmentsByEvent = enrichedAssignments.reduce((acc, assignment: any) => {
+                  if (!acc[assignment.meet_event_id]) {
+                    acc[assignment.meet_event_id] = [];
+                  }
+                  acc[assignment.meet_event_id].push({
+                    id: assignment.athlete_id,
+                    name: assignment.profiles ? 
+                      `${assignment.profiles.first_name || ''} ${assignment.profiles.last_name || ''}`.trim() :
+                      'Unknown Athlete'
+                  });
+                  return acc;
+                }, {} as Record<string, Array<{id: string, name: string}>>);
+                
+                // Add athlete data to events
+                allEventsWithAthletes = meetEvents.map(event => ({
+                  ...event,
+                  athleteCount: assignmentsByEvent[event.id]?.length || 0,
+                  athleteNames: assignmentsByEvent[event.id]?.map(a => a.name) || []
+                }));
+              } catch (error) {
+                console.warn('Failed to fetch per-event athlete assignments:', error);
+                // Use events without athlete data
+                allEventsWithAthletes = meetEvents.map(event => ({
+                  ...event,
+                  athleteCount: 0,
+                  athleteNames: []
+                }));
+              }
+            }
+            
             dataMap[meet.id] = {
               athleteCount,
               eventCount: eventCount || 0,
               athleteNames,
               myAssignedEvents,
+              allEvents: allEventsWithAthletes,
               assignedByCoach,
               coachPhone,
               coachEmail,
@@ -2300,6 +2433,7 @@ export const Meets: React.FC = () => {
               eventCount: 0,
               athleteNames: [],
               myAssignedEvents: [],
+              allEvents: [],
               assignedByCoach: null,
               coachPhone: null,
               coachEmail: null,
@@ -2522,21 +2656,37 @@ export const Meets: React.FC = () => {
 
   const handleManageEvents = useCallback((meet: TrackMeet) => {
     setCurrentMeet(meet);
-    // Fetch events for this meet
-    fetchMeetEventsForManagement(meet.id);
-    onEventDrawerOpen();
-  }, [onEventDrawerOpen]);
+    // Open the new athlete event manager for coaches
+    if (userIsCoach) {
+      onAthleteManagerOpen();
+    } else {
+      // Keep original behavior for athletes
+      fetchMeetEventsForManagement(meet.id);
+      onEventDrawerOpen();
+    }
+  }, [userIsCoach, onAthleteManagerOpen, onEventDrawerOpen]);
 
   const handleAddEvent = useCallback((meet: TrackMeet) => {
     setCurrentMeet(meet);
     onAddEventOpen();
   }, [onAddEventOpen]);
 
+  const handleAddEvents = useCallback((meet: TrackMeet) => {
+    setCurrentMeet(meet);
+    onBulkCreatorOpen();
+  }, [onBulkCreatorOpen]);
+
   const handleEventCreated = useCallback(async () => {
     // Refresh all meet data to update event counts and assignments
     await fetchMeets();
     onAddEventClose();
   }, [onAddEventClose]);
+
+  const handleBulkEventsCreated = useCallback(async () => {
+    // Refresh all meet data to update event counts and assignments
+    await fetchMeets();
+    onBulkCreatorClose();
+  }, [fetchMeets, onBulkCreatorClose]);
 
   // Run time modal handlers for athletes - memoized
   const openRunTimeModal = useCallback((eventData: { eventId: string; eventName: string; currentTime?: string }) => {
@@ -3551,6 +3701,22 @@ export const Meets: React.FC = () => {
         onEventCreated={() => {
           fetchMeets();
         }}
+      />
+
+      {/* Coach Event Bulk Creator */}
+      <CoachEventBulkCreator
+        isOpen={isBulkCreatorOpen}
+        onClose={onBulkCreatorClose}
+        meet={currentMeet}
+        onEventsCreated={handleBulkEventsCreated}
+      />
+
+      {/* Coach Athlete Event Manager */}
+      <CoachAthleteEventManager
+        isOpen={isAthleteManagerOpen}
+        onClose={onAthleteManagerClose}
+        meet={currentMeet}
+        onRefresh={fetchMeets}
       />
     </Box>
   );

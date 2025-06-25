@@ -1,0 +1,50 @@
+{
+  "sprints": [
+    { "id": "100m", "name": "100m", "category": "sprints" },
+    { "id": "200m", "name": "200m", "category": "sprints" },
+    { "id": "400m", "name": "400m", "category": "sprints" },
+    { "id": "60m", "name": "60m", "category": "sprints" },
+    { "id": "110mh", "name": "110m Hurdles", "category": "sprints" },
+    { "id": "100mh", "name": "100m Hurdles", "category": "sprints" },
+    { "id": "400mh", "name": "400m Hurdles", "category": "sprints" }
+  ],
+  "middle_distance": [
+    { "id": "800m", "name": "800m", "category": "middle_distance" },
+    { "id": "1500m", "name": "1500m", "category": "middle_distance" },
+    { "id": "mile", "name": "Mile", "category": "middle_distance" },
+    { "id": "3000m", "name": "3000m", "category": "middle_distance" },
+    { "id": "3000msc", "name": "3000m Steeplechase", "category": "middle_distance" }
+  ],
+  "distance": [
+    { "id": "5000m", "name": "5000m", "category": "distance" },
+    { "id": "10000m", "name": "10000m", "category": "distance" },
+    { "id": "half_marathon", "name": "Half Marathon", "category": "distance" },
+    { "id": "marathon", "name": "Marathon", "category": "distance" }
+  ],
+  "relays": [
+    { "id": "4x100m", "name": "4x100m Relay", "category": "relays" },
+    { "id": "4x200m", "name": "4x200m Relay", "category": "relays" },
+    { "id": "4x400m", "name": "4x400m Relay", "category": "relays" },
+    { "id": "4x800m", "name": "4x800m Relay", "category": "relays" },
+    { "id": "sprint_medley", "name": "Sprint Medley Relay", "category": "relays" },
+    { "id": "distance_medley", "name": "Distance Medley Relay", "category": "relays" }
+  ],
+  "field_jumping": [
+    { "id": "high_jump", "name": "High Jump", "category": "field_jumping" },
+    { "id": "long_jump", "name": "Long Jump", "category": "field_jumping" },
+    { "id": "triple_jump", "name": "Triple Jump", "category": "field_jumping" },
+    { "id": "pole_vault", "name": "Pole Vault", "category": "field_jumping" }
+  ],
+  "field_throwing": [
+    { "id": "shot_put", "name": "Shot Put", "category": "field_throwing" },
+    { "id": "discus", "name": "Discus", "category": "field_throwing" },
+    { "id": "javelin", "name": "Javelin", "category": "field_throwing" },
+    { "id": "hammer", "name": "Hammer Throw", "category": "field_throwing" },
+    { "id": "weight_throw", "name": "Weight Throw", "category": "field_throwing" }
+  ],
+  "multi_events": [
+    { "id": "decathlon", "name": "Decathlon", "category": "multi_events" },
+    { "id": "heptathlon", "name": "Heptathlon", "category": "multi_events" },
+    { "id": "pentathlon", "name": "Pentathlon", "category": "multi_events" }
+  ]
+} 

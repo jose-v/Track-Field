@@ -20,6 +20,7 @@ interface UseMeetEventsReturn {
   handleUpdateEvent: (eventId: string) => Promise<void>;
   resetEventForm: () => void;
   loadEventForEdit: (event: any) => void;
+  handleCreateEventWithData: (meetId: string, eventData: Partial<EventFormData>) => Promise<any>;
 }
 
 const defaultEventFormData: EventFormData = {
@@ -158,6 +159,50 @@ export const useMeetEvents = (): UseMeetEventsReturn => {
         duration: 3000,
         isClosable: true,
       });
+    }
+  };
+
+  // Handle creating a new event with provided data (for bulk creation)
+  const handleCreateEventWithData = async (meetId: string, eventData: Partial<EventFormData>) => {
+    try {
+      // Validate event name
+      if (!eventData.event_name?.trim()) {
+        toast({
+          title: 'Event name is required',
+          status: 'error',
+          duration: 2000,
+          isClosable: true
+        });
+        return;
+      }
+
+      // Prepare the data with proper type conversion
+      const eventDbData = {
+        meet_id: meetId,
+        event_name: eventData.event_name.trim(),
+        event_date: eventData.event_date || null,
+        event_day: eventData.event_day ? parseInt(eventData.event_day.toString(), 10) : null,
+        start_time: eventData.start_time || null,
+        heat: eventData.heat ? parseInt(eventData.heat.toString(), 10) : null,
+        event_type: eventData.event_type || null,
+        run_time: eventData.run_time || null
+      };
+
+      // Create the event
+      const { data: newEvent, error } = await supabase
+        .from('meet_events')
+        .insert([eventDbData])
+        .select();
+        
+      if (error) throw error;
+      
+      // Don't auto-assign for bulk creation (coach is creating for athletes)
+      
+      return newEvent?.[0]; // Return the created event
+      
+    } catch (error) {
+      console.error('Error creating event:', error);
+      throw error; // Re-throw to be handled by bulk creator
     }
   };
 
@@ -323,6 +368,7 @@ export const useMeetEvents = (): UseMeetEventsReturn => {
     handleCreateEvent,
     handleUpdateEvent,
     resetEventForm,
-    loadEventForEdit
+    loadEventForEdit,
+    handleCreateEventWithData
   };
 }; 
