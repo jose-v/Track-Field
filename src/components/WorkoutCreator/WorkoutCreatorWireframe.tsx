@@ -164,6 +164,8 @@ const WorkoutCreatorWireframe: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [currentDay, setCurrentDay] = useState('monday');
+  const [selectedDays, setSelectedDays] = useState<string[]>(['monday']);
+  const [multiSelectGroups, setMultiSelectGroups] = useState<Record<string, string[]>>({});
   
   const [restDays, setRestDays] = useState<Record<string, boolean>>(() => ({
     monday: false,
@@ -528,10 +530,31 @@ const WorkoutCreatorWireframe: React.FC = () => {
       rpe: '',
       notes: '',
     };
-    setSelectedExercises(prev => ({
-      ...prev,
-      [currentDay]: [...(prev[currentDay] || []), newExercise]
-    }));
+    
+    // If multiple days are selected, add to all selected days
+    if (selectedDays.length > 1) {
+      setSelectedExercises(prev => {
+        const updatedExercises = { ...prev };
+        selectedDays.forEach(day => {
+          // Create a unique instance for each day
+          const daySpecificExercise = {
+            ...newExercise,
+            instanceId: `${exercise.id}-${day}-${Date.now()}-${Math.random()}`
+          };
+          updatedExercises[day] = [...(updatedExercises[day] || []), daySpecificExercise];
+        });
+        return updatedExercises;
+      });
+      
+      // Save the multi-select group for future reference
+      saveMultiSelectGroup(selectedDays);
+    } else {
+      // Single day selection - add to current day only
+      setSelectedExercises(prev => ({
+        ...prev,
+        [currentDay]: [...(prev[currentDay] || []), newExercise]
+      }));
+    }
   };
 
   const handleRemoveExercise = (instanceId: string) => {
@@ -602,6 +625,93 @@ const WorkoutCreatorWireframe: React.FC = () => {
       ...prev,
       [toDay]: [...(prev[toDay] || []), ...copiedExercises]
     }));
+  };
+
+  // Custom day selection handler with group memory
+  const handleDaySelection = (day: string) => {
+    // Check if this day is part of an existing multi-select group
+    const existingGroup = multiSelectGroups[day];
+    
+    if (existingGroup && existingGroup.length > 1) {
+      // Restore the multi-select group if all days in the group still have the same exercises
+      const groupHasSameExercises = existingGroup.every(groupDay => {
+        const dayExercises = selectedExercises[groupDay] || [];
+        const firstDayExercises = selectedExercises[existingGroup[0]] || [];
+        
+        // Check if exercises are the same (by name and order)
+        if (dayExercises.length !== firstDayExercises.length) return false;
+        
+        return dayExercises.every((ex, index) => {
+          const firstEx = firstDayExercises[index];
+          return ex.name === firstEx.name && ex.sets === firstEx.sets && ex.reps === firstEx.reps;
+        });
+      });
+      
+      if (groupHasSameExercises) {
+        // Restore the group selection
+        setSelectedDays(existingGroup);
+        setCurrentDay(day);
+        return;
+      }
+    }
+    
+    // Default single day selection
+    setSelectedDays([day]);
+    setCurrentDay(day);
+  };
+
+  // Save multi-select groups when exercises are added to multiple days
+  const saveMultiSelectGroup = (days: string[]) => {
+    if (days.length > 1) {
+      const updatedGroups = { ...multiSelectGroups };
+      days.forEach(day => {
+        updatedGroups[day] = days;
+      });
+      setMultiSelectGroups(updatedGroups);
+    }
+  };
+
+  // Clear exercises from currently selected day(s)
+  const handleClearDay = () => {
+    setSelectedExercises(prev => {
+      const updated = { ...prev };
+      selectedDays.forEach(day => {
+        updated[day] = [];
+      });
+      return updated;
+    });
+    
+    // Clear multi-select groups for the cleared days
+    if (selectedDays.length > 1) {
+      setMultiSelectGroups(prev => {
+        const updated = { ...prev };
+        selectedDays.forEach(day => {
+          delete updated[day];
+        });
+        return updated;
+      });
+    }
+  };
+
+  // Clear all exercises from all days
+  const handleClearAllExercises = () => {
+    const emptyExercises = {
+      monday: [],
+      tuesday: [],
+      wednesday: [],
+      thursday: [],
+      friday: [],
+      saturday: [],
+      sunday: []
+    };
+    
+    setSelectedExercises(emptyExercises);
+    
+    // Clear multi-select groups as well
+    setMultiSelectGroups({});
+    
+    // Reset to single day selection
+    setSelectedDays([currentDay]);
   };
 
   // Athlete functions
@@ -1536,6 +1646,10 @@ const WorkoutCreatorWireframe: React.FC = () => {
               setSelectedCategory={setSelectedCategory}
               currentDay={currentDay}
               setCurrentDay={setCurrentDay}
+              selectedDays={selectedDays}
+              setSelectedDays={setSelectedDays}
+              allSelectedExercises={selectedExercises}
+              onDaySelection={handleDaySelection}
               templateType={templateType}
               isRestDay={restDays[currentDay]}
               customExercises={customExercises}
@@ -1547,6 +1661,8 @@ const WorkoutCreatorWireframe: React.FC = () => {
               userTeams={userTeams}
               onToggleRestDay={handleToggleRestDay}
               onCopyExercises={handleCopyExercises}
+              onClearDay={handleClearDay}
+              onClearAllExercises={handleClearAllExercises}
             />
           </Suspense>
         );

@@ -43,11 +43,11 @@ export function useSleepRecords(limit?: number) {
       return records as SleepRecord[];
     },
     enabled: !!user?.id,
-    staleTime: 1000 * 30, // Reduced to 30 seconds for more frequent updates
+    staleTime: 1000 * 60 * 5, // 5 minutes - more reasonable cache time
     refetchOnMount: true,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    refetchInterval: 1000 * 60, // Refetch every minute when component is active
+    refetchInterval: false, // 🚨 DISABLED - was causing 1.4K+ requests/day!
   });
 }
 

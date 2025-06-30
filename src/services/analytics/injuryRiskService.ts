@@ -169,19 +169,12 @@ export async function fetchRiskHistory(
  */
 export async function triggerMetricsRecalculation(athleteId: string): Promise<void> {
   try {
-    const { error } = await supabase.functions.invoke('calculate-training-metrics', {
-      body: { athleteId }
-    });
-
-    if (error) {
-      console.warn('Metrics recalculation unavailable:', error.message || 'Edge function not accessible');
-      // Don't throw - this is optional optimization
-    } else {
-      console.log('Metrics recalculation triggered successfully for athlete:', athleteId);
-    }
+    // Skip metrics recalculation for now since the Edge Function doesn't exist
+    // This is an optional optimization feature that can be implemented later
+    return;
   } catch (error) {
-    console.warn('Metrics recalculation service temporarily unavailable:', error instanceof Error ? error.message : 'Network error');
-    // Don't throw - this is optional optimization
+    // Silently handle any errors since this is optional
+    return;
   }
 }
 

@@ -1,6 +1,6 @@
 import {
   Box, Heading, Text, SimpleGrid, Spinner, useDisclosure, Button, HStack, IconButton, useToast,
-  Skeleton, SkeletonText, Card, CardBody, useColorModeValue
+  Skeleton, SkeletonText, Card, CardBody, useColorModeValue, Drawer, DrawerOverlay, DrawerContent, DrawerCloseButton, DrawerBody
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
 import { useWorkouts } from '../../hooks/useWorkouts'; 
@@ -11,6 +11,9 @@ import type { WorkoutFormData } from '../../components/WorkoutModal'; // Import 
 import { useWorkoutCompletionStats } from '../../hooks/useWorkoutCompletionStats'; // Import our new hook
 import { api } from '../../services/api'; // Import the API instance
 import { WorkoutCard } from '../../components/WorkoutCard'; // Import our shared card component
+import { WorkoutDeletionWarningModal } from '../../components/WorkoutDeletionWarningModal';
+import { WorkoutDetailView } from '../../components/WorkoutDetailView';
+import { AssignmentModal } from '../../components/AssignmentModal';
 import { supabase } from '../../lib/supabase'; // Import supabase client
 import { RepeatIcon, AddIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
@@ -98,7 +101,20 @@ const WorkoutSkeletonCard = () => {
 
 export function CoachWorkouts() {
   // useWorkouts returns Workout[] (imported type from api.ts via useWorkouts.ts)
-  const { workouts, isLoading, deleteWorkout, createWorkout, updateWorkout, refetch } = useWorkouts(); 
+  const { 
+    workouts, 
+    isLoading, 
+    deleteWorkout, 
+    createWorkout, 
+    updateWorkout, 
+    refetch,
+    checkMonthlyPlanUsage,
+    batchCheckMonthlyPlanUsage,
+    removeFromMonthlyPlans,
+    isCheckingUsage,
+    isBatchCheckingUsage,
+    isRemovingFromPlans
+  } = useWorkouts(); 
   const { data: coachAthletes, isLoading: athletesLoading } = useCoachAthletes();
   const { user } = useAuth();
   const [editingWorkout, setEditingWorkout] = useState<ApiWorkout | null>(null); // Use imported ApiWorkout
@@ -106,6 +122,25 @@ export function CoachWorkouts() {
   const toast = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  
+  // State for deletion warning modal
+  const { isOpen: isWarningOpen, onOpen: onWarningOpen, onClose: onWarningClose } = useDisclosure();
+  const [workoutToDelete, setWorkoutToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [monthlyPlansUsing, setMonthlyPlansUsing] = useState<{ id: string; name: string }[]>([]);
+  
+  // State for assignment modal
+  const { isOpen: isAssignmentOpen, onOpen: onAssignmentOpen, onClose: onAssignmentClose } = useDisclosure();
+  const [workoutToAssign, setWorkoutToAssign] = useState<ApiWorkout | null>(null);
+  
+  // State for detail view
+  const { isOpen: isDetailViewOpen, onOpen: onDetailViewOpen, onClose: onDetailViewClose } = useDisclosure();
+  const [workoutToView, setWorkoutToView] = useState<ApiWorkout | null>(null);
+  
+  // State for monthly plan usage display
+  const [monthlyPlanUsageData, setMonthlyPlanUsageData] = useState<Record<string, {
+    isUsed: boolean;
+    monthlyPlans: { id: string; name: string }[];
+  }>>({});
   
   // State to track assignments
   const [assignments, setAssignments] = useState<AthleteAssignment[]>([]);
@@ -157,11 +192,12 @@ export function CoachWorkouts() {
       }
     };
     
-    // Reduced frequency from 10 seconds to 60 seconds to reduce performance impact
-    const intervalId = setInterval(refreshData, 60000);
+    // Reduced frequency to 5 minutes to improve performance
+    // 🚨 DISABLED - Auto-refresh was causing excessive database load
+    // const intervalId = setInterval(refreshData, 300000);
     refreshData();
 
-    return () => clearInterval(intervalId);
+    // return () => clearInterval(intervalId); // Disabled with auto-refresh
   }, [queryClient, JSON.stringify(workoutIds)]);
   
   // Fetch assignments when workouts change
@@ -385,6 +421,25 @@ export function CoachWorkouts() {
     }
   }, [refetchStats]); // Only depend on refetchStats function
 
+  // 🚨 DISABLED - Batch monthly plan usage check was causing excessive database load
+  // Monthly plan usage is now checked only when deleting (just-in-time approach)
+  // This prevents 100+ database requests on page load and improves performance
+  // useEffect(() => {
+  //   const fetchMonthlyPlanUsage = async () => {
+  //     if (workoutIds.length === 0) {
+  //       setMonthlyPlanUsageData({});
+  //       return;
+  //     }
+  //     try {
+  //       const usageData = await batchCheckMonthlyPlanUsage(workoutIds);
+  //       setMonthlyPlanUsageData(usageData);
+  //     } catch (error) {
+  //       console.error('❌ Error fetching monthly plan usage:', error);
+  //     }
+  //   };
+  //   fetchMonthlyPlanUsage();
+  // }, [workoutIds, batchCheckMonthlyPlanUsage]);
+
   // Log for debugging - reduced frequency
   useEffect(() => {
     if (process.env.NODE_ENV === 'development' && workouts?.length === 0) {
@@ -440,6 +495,104 @@ export function CoachWorkouts() {
         isClosable: true,
       });
     }
+  };
+
+  // Handle deletion with monthly plan usage check
+  const handleDeleteWorkout = async (workout: ApiWorkout) => {
+    try {
+      // First check if the workout is used in any monthly plans
+      const usage = await checkMonthlyPlanUsage(workout.id);
+      
+      if (usage.isUsed) {
+        // Show warning modal
+        setWorkoutToDelete({ id: workout.id, name: workout.name });
+        setMonthlyPlansUsing(usage.monthlyPlans);
+        onWarningOpen();
+      } else {
+        // Safe to delete immediately
+        deleteWorkout(workout.id);
+      }
+    } catch (error) {
+      console.error('Error checking workout usage:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to check workout usage. Please try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  // Handle removing workout from monthly plans
+  const handleRemoveFromPlans = async () => {
+    if (!workoutToDelete) return;
+    
+    try {
+      const planIds = monthlyPlansUsing.map(plan => plan.id);
+      await removeFromMonthlyPlans({ workoutId: workoutToDelete.id, planIds });
+      
+      // Clear monthly plans list to enable deletion
+      setMonthlyPlansUsing([]);
+      
+      toast({
+        title: 'Success',
+        description: `Workout removed from ${planIds.length} monthly plan(s). You can now delete it.`,
+        status: 'success',
+        duration: 4000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error('Error removing from monthly plans:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to remove workout from monthly plans. Please try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  // Handle final deletion after removal from monthly plans
+  const handleProceedWithDeletion = () => {
+    if (!workoutToDelete) return;
+    
+    deleteWorkout(workoutToDelete.id);
+    
+    // Close modal and reset state
+    onWarningClose();
+    setWorkoutToDelete(null);
+    setMonthlyPlansUsing([]);
+  };
+
+  // Handle modal close
+  const handleWarningClose = () => {
+    onWarningClose();
+    setWorkoutToDelete(null);
+    setMonthlyPlansUsing([]);
+  };
+
+  const handleAssignWorkout = (workout: ApiWorkout) => {
+    setWorkoutToAssign(workout);
+    onAssignmentOpen();
+  };
+
+  const handleAssignmentSuccess = () => {
+    onAssignmentClose();
+    // Refresh data to show updated assignments
+    refetch();
+    refetchStats();
+  };
+
+  const handleViewWorkout = (workout: ApiWorkout) => {
+    setWorkoutToView(workout);
+    onDetailViewOpen();
+  };
+
+  const handleEditWorkoutFromDetail = (workout: ApiWorkout) => {
+    onDetailViewClose();
+    navigate(`/coach/workout-creator?edit=${workout.id}`);
   };
 
   return (
@@ -529,19 +682,61 @@ export function CoachWorkouts() {
                 key={workout.id}
                 workout={workout}
                 isCoach={true}
-                progress={progress}
                 assignedTo={athleteNames}
                 onEdit={() => navigate(`/coach/workout-creator?edit=${workout.id}`)}
-                onDelete={() => deleteWorkout(workout.id)}
-                onRefresh={handleRefresh}
-                showRefresh={true}
-                statsLoading={statsLoading || assignmentsLoading}
-                detailedProgress={true}
+                onDelete={() => handleDeleteWorkout(workout)}
+                onAssign={() => handleAssignWorkout(workout)}
+                onViewDetails={() => handleViewWorkout(workout)}
+                // monthlyPlanUsage disabled - checked just-in-time during deletion
               />
             );
           })
         )}
       </SimpleGrid>
+
+      {/* Workout Deletion Warning Modal */}
+      <WorkoutDeletionWarningModal
+        isOpen={isWarningOpen}
+        onClose={handleWarningClose}
+        workoutName={workoutToDelete?.name || ''}
+        monthlyPlans={monthlyPlansUsing}
+        onRemoveFromPlans={handleRemoveFromPlans}
+        onProceedWithDeletion={handleProceedWithDeletion}
+        isRemoving={isRemovingFromPlans}
+      />
+
+      {/* Assignment Modal */}
+      {workoutToAssign && (
+        <AssignmentModal
+          isOpen={isAssignmentOpen}
+          onClose={onAssignmentClose}
+          onSuccess={handleAssignmentSuccess}
+          workout={workoutToAssign}
+        />
+      )}
+
+      {/* Workout Detail View Drawer */}
+      <Drawer
+        isOpen={isDetailViewOpen}
+        placement="right"
+        onClose={onDetailViewClose}
+        size="xl"
+      >
+        <DrawerOverlay />
+        <DrawerContent>
+          <DrawerCloseButton />
+          <DrawerBody p={0}>
+            {workoutToView && (
+              <WorkoutDetailView
+                workout={workoutToView}
+                onBack={onDetailViewClose}
+                onAssign={() => handleAssignWorkout(workoutToView)}
+                onEdit={() => handleEditWorkoutFromDetail(workoutToView)}
+              />
+            )}
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
     </Box>
   );
 } 

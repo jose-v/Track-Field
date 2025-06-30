@@ -117,6 +117,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
   // Refs for intervals
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
+  const [countdownType, setCountdownType] = useState<'initial' | 'progression' | null>(null);
 
   // Theme colors - MUST be called before any conditional returns
   const cardBg = useColorModeValue('white', 'gray.800');
@@ -137,7 +138,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
       }, 1000);
     } else {
       if (timerRef.current) {
-      clearInterval(timerRef.current);
+        clearInterval(timerRef.current);
         timerRef.current = null;
       }
     }
@@ -146,44 +147,76 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
     };
   }, [running, isPaused, countdown, timer, onUpdateTimer]);
 
-  // Countdown effect - triggers when countdown > 0
-  useEffect(() => {
-    if (countdown > 0) {
+  // Function to start countdown
+  const startCountdownTimer = useCallback(() => {
+    // Don't start if countdown is already running
+    if (countdownRef.current || countdown > 0) {
+      return;
+    }
+    
+    // Set initial countdown value
+    setCountdown(3);
+    
+    // Start new countdown
     countdownRef.current = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
-          if (countdownRef.current) {
-            clearInterval(countdownRef.current);
-            countdownRef.current = null;
-          }
+          clearInterval(countdownRef.current!);
+          countdownRef.current = null;
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
-    }
+  }, [countdown]);
+  
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
       if (countdownRef.current) {
         clearInterval(countdownRef.current);
         countdownRef.current = null;
       }
     };
-  }, [countdown]);
+  }, []);
 
   // Initial countdown when modal opens
   useEffect(() => {
-    if (isOpen) {
-      setCountdown(3);
-      onUpdateRunning(false); // Ensure timer doesn't start until countdown finishes
+    if (isOpen && countdownType === null) {
+      onUpdateRunning(false);
+      setCountdownType('initial');
+      startCountdownTimer();
     }
-  }, [isOpen, onUpdateRunning]);
-
-  // Start timer when countdown reaches 0
+  }, [isOpen]); // Only depend on isOpen
+  
+  // Reset on close
   useEffect(() => {
-    if (countdown === 0 && isOpen) {
-      onUpdateRunning(true);
+    if (!isOpen) {
+      setCountdownType(null);
     }
-  }, [countdown, isOpen, onUpdateRunning]);
+  }, [isOpen]);
+  
+
+
+  // Handle countdown completion
+  useEffect(() => {
+    if (countdown === 0 && isOpen && countdownType) {
+      // Use setTimeout to prevent immediate re-renders from interfering
+      const timer = setTimeout(() => {
+        if (countdownType === 'initial') {
+          // Initial countdown completed - start the timer
+          setCountdownType(null);
+          onUpdateRunning(true);
+        } else if (countdownType === 'progression') {
+          // Progression countdown completed - start the timer
+          setCountdownType(null);
+          onUpdateRunning(true);
+        }
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [countdown, isOpen, countdownType, onUpdateRunning]);
 
   // ALL useCallback hooks MUST be here before any conditional returns
   const handleTimeChange = useCallback((minutes: number, seconds: number, hundredths: number) => {
@@ -253,37 +286,39 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
       if (exerciseIdx + 1 >= workout.exercises.length) {
         // Completed all exercises in this round
         if (currentRound < circuitRounds) {
-          // More rounds to go - show countdown before next round
+          // More rounds to go - update UI immediately, then countdown before starting timer
+          setCurrentRound(prev => prev + 1);
+          setCurrentSet(1);
+          setCurrentRep(1);
+          setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
+          onUpdateTimer(0); // Reset timer
           onUpdateRunning(false); // Pause timer during countdown
-          setCountdown(3);
-          setTimeout(() => {
-            setCurrentRound(prev => prev + 1);
-            setCurrentSet(1);
-            setCurrentRep(1);
-            setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
-            // Reset to first exercise (will be handled by parent)
-            if (exerciseIdx > 0) {
-              // We need to reset to exercise 0, but the parent component handles this
-              // For now, just show RPE screen to finish the workout
-              setShowRPEScreen(true);
-            }
-            onUpdateRunning(true); // Resume timer
-          }, 3000);
+          
+          // Reset to first exercise (will be handled by parent)
+          if (exerciseIdx > 0) {
+            // We need to reset to exercise 0, but the parent component handles this
+            // For now, just show RPE screen to finish the workout
+            setShowRPEScreen(true);
+            return; // Don't start countdown if finishing workout
+          }
+          
+          setCountdownType('progression');
+          startCountdownTimer();
         } else {
           // All rounds complete - finish workout
           setShowRPEScreen(true);
         }
       } else {
-        // Show countdown before next exercise in current round
+        // Move to next exercise in current round - update UI immediately, then countdown
+        setCurrentSet(1);
+        setCurrentRep(1);
+        setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
+        onNextExercise(); // Update UI to show next exercise
+        onUpdateTimer(0); // Reset timer
         onUpdateRunning(false); // Pause timer during countdown
-        setCountdown(3);
-        setTimeout(() => {
-          setCurrentSet(1);
-          setCurrentRep(1);
-          setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
-          onNextExercise();
-          onUpdateRunning(true); // Resume timer
-        }, 3000);
+        
+        setCountdownType('progression');
+        startCountdownTimer();
       }
     } else {
       // Sequential Flow: Complete all sets/reps before moving to next exercise (original behavior)
@@ -291,39 +326,39 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
       const maxReps = currentExercise.reps || 1;
       
       if (currentRep < maxReps) {
-        // More reps in current set - show countdown before next rep
+        // More reps in current set - update UI immediately, then countdown before starting timer
+        setCurrentRep(prev => prev + 1);
+        setRunTime({ minutes: 0, seconds: 0, hundredths: 0 }); // Reset time for next rep
+        onUpdateTimer(0); // Reset timer
         onUpdateRunning(false); // Pause timer during countdown
-        setCountdown(3);
-        setTimeout(() => {
-          setCurrentRep(prev => prev + 1);
-          setRunTime({ minutes: 0, seconds: 0, hundredths: 0 }); // Reset time for next rep
-          onUpdateRunning(true); // Resume timer
-        }, 3000);
+        
+        setCountdownType('progression');
+        startCountdownTimer();
       } else if (currentSet < maxSets) {
-        // Show countdown before next set
+        // Next set - update UI immediately, then countdown before starting timer
+        setCurrentSet(prev => prev + 1);
+        setCurrentRep(1);
+        setRunTime({ minutes: 0, seconds: 0, hundredths: 0 }); // Reset time for next set
+        onUpdateTimer(0); // Reset timer
         onUpdateRunning(false); // Pause timer during countdown
-        setCountdown(3);
-        setTimeout(() => {
-          setCurrentSet(prev => prev + 1);
-          setCurrentRep(1);
-          setRunTime({ minutes: 0, seconds: 0, hundredths: 0 }); // Reset time for next set
-          onUpdateRunning(true); // Resume timer
-        }, 3000);
+        
+        setCountdownType('progression');
+        startCountdownTimer();
       } else {
         // Exercise complete - move to next exercise or finish workout
         if (exerciseIdx + 1 >= workout.exercises.length) {
       setShowRPEScreen(true);
     } else {
-          // Show countdown before next exercise
+          // Move to next exercise - update UI immediately, then countdown before starting timer
+          setCurrentSet(1);
+          setCurrentRep(1);
+          setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
+          onNextExercise(); // Update UI to show next exercise
+          onUpdateTimer(0); // Reset timer
           onUpdateRunning(false); // Pause timer during countdown
-          setCountdown(3);
-          setTimeout(() => {
-            setCurrentSet(1);
-            setCurrentRep(1);
-            setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
-            onNextExercise();
-            onUpdateRunning(true); // Resume timer
-          }, 3000);
+          
+          setCountdownType('progression');
+          startCountdownTimer();
         }
       }
     }
@@ -501,10 +536,10 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
               <Box /> {/* Spacer for left side */}
               
               <VStack spacing={0} textAlign="center">
-                {showRPEScreen ? (
+            {showRPEScreen ? (
                   <Text textAlign="center">Rate Your Effort</Text>
-                ) : (
-                  <>
+            ) : (
+              <>
                     <Text textAlign="center" fontSize="lg" fontWeight="medium">
                       {exerciseName}
                     </Text>
@@ -534,11 +569,11 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                         
                         return `Next: ${nextText}`;
                       })()}
-                    </Text>
-                  </>
-                )}
-              </VStack>
-              
+                </Text>
+              </>
+            )}
+          </VStack>
+          
               {!showRPEScreen && (
                 <Badge 
                   colorScheme={isCircuitFlow ? "purple" : "blue"} 
@@ -556,7 +591,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
         {!showRPEScreen && (
           <Box px={6} pb={4}>
             <HStack spacing={1} w="full" justify="center">
-              {(() => {
+            {(() => {
                 const currentExerciseReps = currentExercise.reps || 1;
                 const bars = [];
                 
@@ -651,12 +686,12 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                       <VStack spacing={1} align="center">
                         <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textTransform="uppercase" textAlign="center">
                           Exercise
-                          </Text>
+                        </Text>
                         <Text fontSize="lg" fontWeight="normal" textAlign="center">
                           {exerciseIdx + 1}/{workout.exercises.length}
                           </Text>
-                        </VStack>
-
+                      </VStack>
+                      
                       {/* Completed */}
                       <VStack spacing={1} align="center">
                         <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textTransform="uppercase" textAlign="center">
@@ -667,8 +702,8 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                             ? `${completionProgress.completed}/${completionProgress.total}`
                             : `${completionProgress.completed}/${completionProgress.total}`
                           }
-                          </Text>
-                        </VStack>
+                        </Text>
+                      </VStack>
                     </SimpleGrid>
                       </Box>
                       
@@ -695,10 +730,10 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                                     : "Next Exercise"))
                         : "Timer"
                       }
-                    </Text>
-                    <Text 
+                          </Text>
+                          <Text 
                       fontSize="6xl" 
-                      fontWeight="bold" 
+                            fontWeight="bold" 
                       color={countdown > 0 ? "red.500" : (isPaused ? "gray.400" : "blue.500")} 
                       lineHeight="1"
                       fontFamily="mono"
@@ -710,7 +745,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                         ? countdown.toString().padStart(2, '0')
                         : `${Math.floor(timer / 60).toString().padStart(2, '0')}:${(timer % 60).toString().padStart(2, '0')}`
                       }
-                    </Text>
+                          </Text>
                     
                     {/* Timer Controls - always visible but disabled during countdown */}
                     <HStack justify="center" spacing={4} mt={4}>
@@ -718,7 +753,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                         aria-label={isPaused ? "Resume timer" : "Pause timer"}
                         icon={<Icon as={isPaused ? FaPlay : FaPause} />}
                         onClick={handlePauseResume}
-                        variant="outline"
+                          variant="outline"
                         size="sm"
                         borderRadius="full"
                         isDisabled={countdown > 0}
@@ -728,14 +763,14 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                         aria-label="Reset timer"
                         icon={<Icon as={FaRedo} />}
                         onClick={handleResetTimer}
-                        variant="outline"
+                          variant="outline"
                         size="sm"
                         borderRadius="full"
                         isDisabled={countdown > 0}
                         opacity={countdown > 0 ? 0.4 : 1}
                       />
-                    </HStack>
-                  </Box>
+                      </HStack>
+                </Box>
 
                   {/* Time Input for Running Exercises */}
                   {isRunExercise(exerciseName) && (
@@ -806,7 +841,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                       })()}
                 </Button>
                   </SimpleGrid>
-                </VStack>
+              </VStack>
             </VStack>
           )}
         </ModalBody>

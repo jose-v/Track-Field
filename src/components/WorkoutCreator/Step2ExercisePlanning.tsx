@@ -24,6 +24,12 @@ import {
   ModalFooter,
   ModalBody,
   ModalCloseButton,
+  AlertDialog,
+  AlertDialogOverlay,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogBody,
+  AlertDialogFooter,
   useDisclosure,
   Textarea,
   useColorModeValue,
@@ -34,7 +40,7 @@ import {
   MenuItem,
   ButtonGroup,
 } from '@chakra-ui/react';
-import { Search, PlusCircle, X, Library, FileText, Moon, Plus, Copy, ChevronDown, GripVertical } from 'lucide-react';
+import { Search, PlusCircle, X, Library, FileText, Moon, Plus, Copy, ChevronDown, GripVertical, Trash2 } from 'lucide-react';
 import { ExerciseLibrary } from '../ExerciseLibrary/ExerciseLibrary';
 import {
   DndContext,
@@ -96,10 +102,16 @@ interface Step2ExercisePlanningProps {
   setSelectedCategory: (category: string) => void;
   currentDay: string;
   setCurrentDay: (day: string) => void;
+  selectedDays: string[];
+  setSelectedDays: (days: string[]) => void;
+  allSelectedExercises: Record<string, SelectedExercise[]>;
+  onDaySelection?: (day: string) => void;
   templateType: 'single' | 'weekly';
   isRestDay: boolean;
   onToggleRestDay?: (day: string, isRest: boolean) => void;
   onCopyExercises?: (fromDay: string, toDay: string) => void;
+  onClearDay?: () => void;
+  onClearAllExercises?: () => void;
   customExercises: Exercise[];
   onAddCustomExercise: (exercise: Omit<Exercise, 'id'>) => Promise<void>;
   onUpdateCustomExercise: (id: string, exercise: Omit<Exercise, 'id'>) => Promise<void>;
@@ -355,10 +367,16 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
   setSelectedCategory,
   currentDay,
   setCurrentDay,
+  selectedDays,
+  setSelectedDays,
+  allSelectedExercises,
+  onDaySelection,
   templateType,
   isRestDay,
   onToggleRestDay,
   onCopyExercises,
+  onClearDay,
+  onClearAllExercises,
   customExercises,
   onAddCustomExercise,
   onUpdateCustomExercise,
@@ -368,8 +386,10 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
   userTeams,
 }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isClearAllOpen, onOpen: onClearAllOpen, onClose: onClearAllClose } = useDisclosure();
   const [newExerciseName, setNewExerciseName] = useState('');
   const [newExerciseDescription, setNewExerciseDescription] = useState('');
+  const cancelRef = React.useRef<HTMLButtonElement>(null);
 
   // DnD Sensors
   const sensors = useSensors(
@@ -399,6 +419,7 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
   const cardBg = useColorModeValue('white', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   const textColor = useColorModeValue('gray.700', 'gray.100');
+  const subtitleColor = useColorModeValue('gray.600', 'gray.300');
   const headingColor = useColorModeValue('gray.700', 'gray.100');
   const exerciseCardBg = useColorModeValue('white', 'gray.600');
   const exerciseCardBorderColor = useColorModeValue('gray.200', 'gray.500');
@@ -456,6 +477,78 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
     }
   };
 
+  // Handle day selection with multi-select support
+  const handleDaySelection = (dayValue: string, event: React.MouseEvent) => {
+    const isMultiSelect = event.metaKey || event.ctrlKey; // Cmd on Mac, Ctrl on Windows
+    
+    if (!isMultiSelect) {
+      // Single selection - use custom handler if available, otherwise use default
+      if (onDaySelection) {
+        onDaySelection(dayValue);
+      } else {
+        setSelectedDays([dayValue]);
+        setCurrentDay(dayValue);
+      }
+      return;
+    }
+    
+    // Multi-select logic
+    const currentlySelected = selectedDays.includes(dayValue);
+    
+    if (currentlySelected) {
+      // Remove from selection
+      const newSelection = selectedDays.filter(day => day !== dayValue);
+      
+      if (newSelection.length === 0) {
+        // If no days left selected, reset to single-day mode with the clicked day
+        setSelectedDays([dayValue]);
+        setCurrentDay(dayValue);
+      } else {
+        // Update selection and current day
+        setSelectedDays(newSelection);
+        // If we deselected the current day, switch to first remaining selected day
+        if (currentDay === dayValue) {
+          setCurrentDay(newSelection[0]);
+        }
+      }
+    } else {
+      // Add to selection - but only if all selected days (including this one) have no exercises
+      const allDaysToCheck = [...selectedDays, dayValue];
+      const hasExercises = allDaysToCheck.some(day => 
+        allSelectedExercises[day] && allSelectedExercises[day].length > 0
+      );
+      
+      if (hasExercises) {
+        // Don't allow multi-select if any day has exercises
+        setSelectedDays([dayValue]);
+        setCurrentDay(dayValue);
+        return;
+      }
+      
+      // Add to selection
+      const newSelection = [...selectedDays, dayValue];
+      setSelectedDays(newSelection);
+      setCurrentDay(dayValue);
+    }
+  };
+
+  // Check if a day can be multi-selected (has no exercises)
+  const canMultiSelect = (dayValue: string) => {
+    return !allSelectedExercises[dayValue] || allSelectedExercises[dayValue].length === 0;
+  };
+
+  // Get the display state for multi-selection
+  const getMultiSelectDisplay = () => {
+    if (selectedDays.length <= 1) return null;
+    
+    const dayLabels = selectedDays
+      .map(day => DAYS_OF_WEEK.find(d => d.value === day)?.label)
+      .filter(Boolean)
+      .join(', ');
+    
+    return `Planning for: ${dayLabels}`;
+  };
+
   // Get current day name for heading
   const currentDayName = DAYS_OF_WEEK.find(d => d.value === currentDay)?.label || 'Day';
   const workoutHeading = templateType === 'weekly' ? `${currentDayName} Exercises` : 'Workout Exercises';
@@ -507,24 +600,55 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
                 <VStack spacing={3} align="stretch">
                   {/* Day Selector Buttons */}
                   <VStack spacing={2} align="stretch">
-                    <Text fontSize="sm" fontWeight="bold" color={textColor}>
-                      Select Day to Plan:
-                    </Text>
+                    <VStack spacing={1} align="stretch">
+                      <Text fontSize="sm" fontWeight="bold" color={textColor}>
+                        Select Day to Plan:
+                      </Text>
+                      <Text fontSize="xs" color={subtitleColor}>
+                        Hold Cmd/Ctrl to select multiple empty days
+                      </Text>
+
+                    </VStack>
                     <ButtonGroup size="sm" isAttached variant="outline" spacing={0}>
-                      {DAYS_OF_WEEK.map((day) => (
-                        <Button
-                          key={day.value}
-                          onClick={() => setCurrentDay(day.value)}
-                          variant={currentDay === day.value ? "solid" : "outline"}
-                          colorScheme={currentDay === day.value ? "blue" : "gray"}
-                          size="sm"
-                          flex="1"
-                          fontWeight={currentDay === day.value ? "bold" : "normal"}
-                          fontSize="xs"
-                        >
-                          {day.label.slice(0, 3)}
-                        </Button>
-                      ))}
+                      {DAYS_OF_WEEK.map((day) => {
+                        const isSelected = selectedDays.includes(day.value);
+                        const isCurrent = currentDay === day.value;
+                        const hasExercises = allSelectedExercises[day.value] && allSelectedExercises[day.value].length > 0;
+                        
+                        return (
+                          <Button
+                            key={day.value}
+                            onClick={(e) => handleDaySelection(day.value, e)}
+                            variant={isSelected ? "solid" : "outline"}
+                            colorScheme={isCurrent ? "blue" : isSelected ? "green" : "gray"}
+                            size="sm"
+                            flex="1"
+                            fontWeight={isSelected ? "bold" : "normal"}
+                            fontSize="xs"
+                            opacity={hasExercises && selectedDays.length > 1 && !isSelected ? 0.5 : 1}
+                            title={
+                              hasExercises && selectedDays.length > 1 && !isSelected 
+                                ? "Cannot multi-select days with exercises"
+                                : selectedDays.length > 1 
+                                  ? "Hold Cmd/Ctrl to modify selection"
+                                  : "Click to select, Cmd/Ctrl+click for multi-select"
+                            }
+                          >
+                            {day.label.slice(0, 3)}
+                            {hasExercises && (
+                              <Box
+                                as="span"
+                                ml={1}
+                                width="4px"
+                                height="4px"
+                                borderRadius="full"
+                                bg="orange.400"
+                                display="inline-block"
+                              />
+                            )}
+                          </Button>
+                        );
+                      })}
                     </ButtonGroup>
                   </VStack>
 
@@ -539,10 +663,23 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
                       <Text fontSize="sm" color={textColor}>Rest Day</Text>
                     </Checkbox>
 
-                    {/* Copy Options */}
-                    {selectedExercises.length > 0 && !isRestDay && (
+                    {/* Action Buttons */}
+                    <HStack spacing={2}>
+                      {/* Copy Options */}
                       <Menu>
-                        <MenuButton as={Button} size="sm" variant="outline" leftIcon={<Copy size={14} />} rightIcon={<ChevronDown size={14} />}>
+                        <MenuButton 
+                          as={Button} 
+                          size="sm" 
+                          variant="outline" 
+                          borderWidth="0.25px"
+                          borderColor="white"
+                          color="white"
+                          fontWeight="normal"
+                          _hover={{ bg: "gray.100", color: "gray.800", borderColor: "gray.300" }}
+                          leftIcon={<Copy size={14} />} 
+                          rightIcon={<ChevronDown size={14} />}
+                          isDisabled={selectedExercises.length === 0 || isRestDay}
+                        >
                           Copy to...
                         </MenuButton>
                         <MenuList>
@@ -557,7 +694,39 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
                           ))}
                         </MenuList>
                       </Menu>
-                    )}
+
+                      {/* Clear Day Button */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        borderWidth="0.25px"
+                        borderColor="white"
+                        color="white"
+                        fontWeight="normal"
+                        _hover={{ bg: "gray.100", color: "gray.800", borderColor: "gray.300" }}
+                        leftIcon={<X size={14} />}
+                        onClick={onClearDay}
+                        isDisabled={!selectedDays.some(day => allSelectedExercises[day] && allSelectedExercises[day].length > 0)}
+                      >
+                        Clear {selectedDays.length > 1 ? 'Days' : 'Day'}
+                      </Button>
+
+                      {/* Clear All Exercises Button */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        borderWidth="0.25px"
+                        borderColor="white"
+                        color="white"
+                        fontWeight="normal"
+                        _hover={{ bg: "gray.100", color: "gray.800", borderColor: "gray.300" }}
+                        leftIcon={<Trash2 size={14} />}
+                        onClick={onClearAllOpen}
+                        isDisabled={!Object.values(allSelectedExercises).some(dayExercises => dayExercises.length > 0)}
+                      >
+                        Clear All
+                      </Button>
+                    </HStack>
                   </HStack>
                 </VStack>
               )}
@@ -657,6 +826,44 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
           </CardBody>
         </Card>
       </HStack>
+
+      {/* Clear All Confirmation Modal */}
+      <AlertDialog
+        isOpen={isClearAllOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onClearAllClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Clear All Exercises
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              <VStack spacing={4} align="stretch">
+                <Text>
+                  This will delete all exercises from every day in this workout plan. Are you sure you want to continue?
+                </Text>
+                
+                <HStack spacing={3} justify="flex-end">
+                  <Button ref={cancelRef} onClick={onClearAllClose}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    colorScheme="red" 
+                    onClick={() => {
+                      onClearAllExercises?.();
+                      onClearAllClose();
+                    }}
+                  >
+                    Clear All
+                  </Button>
+                </HStack>
+              </VStack>
+            </AlertDialogBody>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
 
       {/* Add Custom Exercise Modal */}
       <Modal isOpen={isOpen} onClose={onClose} size="lg">

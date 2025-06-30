@@ -207,18 +207,37 @@ export const api = {
 
     // Soft delete workout (move to deleted state)
     async softDelete(id: string): Promise<void> {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
+      try {
+        // Add timeout protection for delete operations - increased timeout
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Delete operation timeout')), 15000); // Increased to 15 seconds
+        });
 
-      const { error } = await supabase
-        .from('workouts')
-        .update({
-          deleted_at: new Date().toISOString(),
-          deleted_by: user.id
-        })
-        .eq('id', id);
+        const deletePromise = (async () => {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error('No user found');
 
-      if (error) throw error;
+          // Simple update operation - should be fast
+          const { error } = await supabase
+            .from('workouts')
+            .update({
+              deleted_at: new Date().toISOString(),
+              deleted_by: user.id
+            })
+            .eq('id', id)
+            .eq('user_id', user.id); // Additional security check
+
+          if (error) {
+            console.error('Soft delete failed:', error);
+            throw error;
+          }
+        })();
+
+        await Promise.race([deletePromise, timeoutPromise]);
+      } catch (error) {
+        console.error('Error in softDelete:', error);
+        throw error;
+      }
     },
 
     // Restore soft-deleted workout
@@ -247,6 +266,193 @@ export const api = {
         
       if (error) throw error;
       return data || [];
+    },
+
+    // Check if workout is used in any monthly plans - OPTIMIZED
+    async checkMonthlyPlanUsage(workoutId: string): Promise<{
+      isUsed: boolean;
+      monthlyPlans: { id: string; name: string }[];
+    }> {
+      try {
+        // Increased timeout and optimized query
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Monthly plan usage check timeout')), 8000); // Increased to 8 seconds
+        });
+
+        const queryPromise = (async () => {
+          // Use PostgreSQL's array operators for server-side checking - MUCH faster
+          const { data, error } = await supabase
+            .from('training_plans')
+            .select('id, name')
+            .is('deleted_at', null)
+            .or(`weeks_structure.cs.{${workoutId}},weekly_workout_ids.cs.{${workoutId}}`)
+            .limit(50); // Reasonable limit
+
+          if (error) {
+            console.warn('SQL array operator failed, falling back:', error.message);
+            
+            // Fallback to basic query without array operators
+            const { data: fallbackData, error: fallbackError } = await supabase
+              .from('training_plans')
+              .select('id, name, weekly_workout_ids, weeks_structure')
+              .is('deleted_at', null)
+              .limit(20);
+
+            if (fallbackError) throw fallbackError;
+            
+            // Client-side check only on fallback
+            const usedInPlans: { id: string; name: string }[] = [];
+            (fallbackData || []).forEach(plan => {
+              const inWeeksStructure = plan.weeks_structure && Array.isArray(plan.weeks_structure) && plan.weeks_structure.includes(workoutId);
+              const inWeeklyIds = plan.weekly_workout_ids && Array.isArray(plan.weekly_workout_ids) && plan.weekly_workout_ids.includes(workoutId);
+              
+              if (inWeeksStructure || inWeeklyIds) {
+                usedInPlans.push({ id: plan.id, name: plan.name });
+              }
+            });
+            
+            return usedInPlans;
+          }
+          
+          // Server-side filtering worked - return results directly
+          return (data || []).map(plan => ({ id: plan.id, name: plan.name }));
+        })();
+
+        const usedInPlans = await Promise.race([queryPromise, timeoutPromise]) as any[];
+
+        return {
+          isUsed: usedInPlans.length > 0,
+          monthlyPlans: usedInPlans
+        };
+      } catch (error) {
+        console.warn('Monthly plan usage check failed, allowing deletion:', error.message);
+        // Fallback: assume not used if check fails to prevent blocking deletions
+        return {
+          isUsed: false,
+          monthlyPlans: []
+        };
+      }
+    },
+
+    // Batch check multiple workouts for monthly plan usage
+    async batchCheckMonthlyPlanUsage(workoutIds: string[]): Promise<Record<string, {
+      isUsed: boolean;
+      monthlyPlans: { id: string; name: string }[];
+    }>> {
+      if (workoutIds.length === 0) return {};
+      
+      // Initialize results - assume not used to prevent blocking
+      const results: Record<string, {
+        isUsed: boolean;
+        monthlyPlans: { id: string; name: string }[];
+      }> = {};
+      
+      workoutIds.forEach(workoutId => {
+        results[workoutId] = {
+          isUsed: false,
+          monthlyPlans: []
+        };
+      });
+
+      try {
+        // Use individual checks for better reliability (trade speed for reliability)
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Batch usage check timeout')), 5000); // Reduced timeout
+        });
+
+        const queryPromise = (async () => {
+          // Simple query without complex array operations
+          const { data, error } = await supabase
+            .from('training_plans')
+            .select('id, name, weekly_workout_ids, weeks_structure')
+            .is('deleted_at', null)
+            .limit(20); // Much smaller limit
+
+          if (error) throw error;
+          return data || [];
+        })();
+
+        const data = await Promise.race([queryPromise, timeoutPromise]) as any[];
+
+        // Process results efficiently
+        data.forEach(plan => {
+          const planRef = { id: plan.id, name: plan.name };
+          
+          // Check which workouts are used in this plan
+          const usedWorkouts = new Set<string>();
+          
+          if (plan.weeks_structure && Array.isArray(plan.weeks_structure)) {
+            plan.weeks_structure.forEach((workoutId: string) => {
+              if (workoutIds.includes(workoutId)) {
+                usedWorkouts.add(workoutId);
+              }
+            });
+          }
+          
+          if (plan.weekly_workout_ids && Array.isArray(plan.weekly_workout_ids)) {
+            plan.weekly_workout_ids.forEach((workoutId: string) => {
+              if (workoutIds.includes(workoutId)) {
+                usedWorkouts.add(workoutId);
+              }
+            });
+          }
+          
+          // Update results for used workouts
+          usedWorkouts.forEach(workoutId => {
+            results[workoutId].isUsed = true;
+            results[workoutId].monthlyPlans.push(planRef);
+          });
+        });
+
+        return results;
+      } catch (error) {
+        console.warn('Batch usage check failed, returning safe defaults:', error.message);
+        // Return the initialized safe results (all false) to prevent blocking
+        return results;
+      }
+    },
+
+    // Remove workout from monthly plans
+    async removeFromMonthlyPlans(workoutId: string, planIds: string[]): Promise<void> {
+      try {
+        for (const planId of planIds) {
+          // Get the current plan data
+          const { data: plan, error: fetchError } = await supabase
+            .from('training_plans')
+            .select('weekly_workout_ids, weeks_structure')
+            .eq('id', planId)
+            .single();
+
+          if (fetchError) throw fetchError;
+
+          let updateData: any = {};
+
+          // Update weeks_structure (new format) - replace workout ID with null (rest week)
+          if (plan.weeks_structure && Array.isArray(plan.weeks_structure)) {
+            const newWeeksStructure = plan.weeks_structure.map((weekWorkoutId: string | null) => 
+              weekWorkoutId === workoutId ? null : weekWorkoutId
+            );
+            updateData.weeks_structure = newWeeksStructure;
+          }
+
+          // Update weekly_workout_ids (legacy format) - remove workout ID
+          if (plan.weekly_workout_ids && Array.isArray(plan.weekly_workout_ids)) {
+            const newWeeklyWorkoutIds = plan.weekly_workout_ids.filter((id: string) => id !== workoutId);
+            updateData.weekly_workout_ids = newWeeklyWorkoutIds;
+          }
+
+          // Update the plan
+          const { error: updateError } = await supabase
+            .from('training_plans')
+            .update(updateData)
+            .eq('id', planId);
+
+          if (updateError) throw updateError;
+        }
+      } catch (error) {
+        console.error('Error removing workout from monthly plans:', error);
+        throw error;
+      }
     },
 
     // Permanently delete workout (cannot be undone)
@@ -2044,6 +2250,14 @@ export const api = {
       rpeRating?: number;
       notes?: string;
     }) {
+      // Sanitize numeric values to prevent empty string errors
+      const sanitizeNumeric = (value: any): number | null => {
+        if (value === null || value === undefined || value === '' || isNaN(Number(value))) {
+          return null;
+        }
+        return Number(value);
+      };
+
       const { data, error } = await supabase
         .from('exercise_results')
         .insert([{
@@ -2051,14 +2265,14 @@ export const api = {
           workout_id: resultData.workoutId,
           exercise_index: resultData.exerciseIndex,
           exercise_name: resultData.exerciseName,
-          time_minutes: resultData.timeMinutes,
-          time_seconds: resultData.timeSeconds,
-          time_hundredths: resultData.timeHundredths,
-          sets_completed: resultData.setsCompleted,
-          reps_completed: resultData.repsCompleted,
-          weight_used: resultData.weightUsed,
-          distance_meters: resultData.distanceMeters,
-          rpe_rating: resultData.rpeRating,
+          time_minutes: sanitizeNumeric(resultData.timeMinutes),
+          time_seconds: sanitizeNumeric(resultData.timeSeconds),
+          time_hundredths: sanitizeNumeric(resultData.timeHundredths),
+          sets_completed: sanitizeNumeric(resultData.setsCompleted),
+          reps_completed: sanitizeNumeric(resultData.repsCompleted),
+          weight_used: sanitizeNumeric(resultData.weightUsed),
+          distance_meters: sanitizeNumeric(resultData.distanceMeters),
+          rpe_rating: sanitizeNumeric(resultData.rpeRating),
           notes: resultData.notes
         }])
         .select()

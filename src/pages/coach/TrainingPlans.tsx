@@ -13,8 +13,11 @@ import { api } from '../../services/api';
 import { MonthlyPlanCard } from '../../components/MonthlyPlanCard';
 import { MonthlyPlanCreator } from '../../components/MonthlyPlanCreator';
 import { PlanAssignmentModal } from '../../components/PlanAssignmentModal';
+import { AssignmentModal } from '../../components/AssignmentModal';
 import { PlanDetailView } from '../../components/PlanDetailView';
+import { WorkoutDetailView } from '../../components/WorkoutDetailView';
 import { WorkoutCard } from '../../components/WorkoutCard';
+import { WorkoutDeletionWarningModal } from '../../components/WorkoutDeletionWarningModal';
 import type { TrainingPlan } from '../../services/dbSchema';
 import type { Workout } from '../../services/api';
 import { useCoachAthletes } from '../../hooks/useCoachAthletes';
@@ -125,6 +128,18 @@ export function CoachTrainingPlans() {
   // Modal state
   const { isOpen: isCreatorOpen, onOpen: onCreatorOpen, onClose: onCreatorClose } = useDisclosure();
   const { isOpen: isAssignmentOpen, onOpen: onAssignmentOpen, onClose: onAssignmentClose } = useDisclosure();
+  const { isOpen: isWorkoutAssignmentOpen, onOpen: onWorkoutAssignmentOpen, onClose: onWorkoutAssignmentClose } = useDisclosure();
+  const { isOpen: isWarningOpen, onOpen: onWarningOpen, onClose: onWarningClose } = useDisclosure();
+  
+  // State for deletion warning modal
+  const [workoutToDelete, setWorkoutToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [monthlyPlansUsing, setMonthlyPlansUsing] = useState<{ id: string; name: string }[]>([]);
+  
+  // State for monthly plan usage display
+  const [monthlyPlanUsageData, setMonthlyPlanUsageData] = useState<Record<string, {
+    isUsed: boolean;
+    monthlyPlans: { id: string; name: string }[];
+  }>>({});
   
   // Tab state - handle URL parameters for direct navigation
   const getInitialTab = () => {
@@ -160,9 +175,25 @@ export function CoachTrainingPlans() {
   const [selectedPlanForAssignment, setSelectedPlanForAssignment] = useState<TrainingPlan | null>(null);
   const [selectedPlanForView, setSelectedPlanForView] = useState<TrainingPlan | null>(null);
   const [showDetailView, setShowDetailView] = useState(false);
+  const [selectedWorkoutForView, setSelectedWorkoutForView] = useState<Workout | null>(null);
+  const [showWorkoutDetailView, setShowWorkoutDetailView] = useState(false);
+  const [workoutToAssign, setWorkoutToAssign] = useState<Workout | null>(null);
 
   // Data state for workouts (moved from CoachWorkouts)
-  const { workouts, isLoading: workoutsLoading, deleteWorkout, createWorkout, updateWorkout, refetch: refetchWorkouts } = useWorkouts();
+  const { 
+    workouts, 
+    isLoading: workoutsLoading, 
+    deleteWorkout, 
+    createWorkout, 
+    updateWorkout, 
+    refetch: refetchWorkouts,
+    checkMonthlyPlanUsage,
+    batchCheckMonthlyPlanUsage,
+    removeFromMonthlyPlans,
+    isCheckingUsage,
+    isBatchCheckingUsage,
+    isRemovingFromPlans
+  } = useWorkouts();
   const [editingWorkout, setEditingWorkout] = useState<Workout | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [assignments, setAssignments] = useState<AthleteAssignment[]>([]);
@@ -925,6 +956,106 @@ export function CoachTrainingPlans() {
     }
   };
 
+  // Handle deletion with monthly plan usage check
+  const handleDeleteWorkout = async (workout: Workout) => {
+    try {
+      // First check if the workout is used in any monthly plans
+      const usage = await checkMonthlyPlanUsage(workout.id);
+      
+      if (usage.isUsed) {
+        // Show warning modal
+        setWorkoutToDelete({ id: workout.id, name: workout.name });
+        setMonthlyPlansUsing(usage.monthlyPlans);
+        onWarningOpen();
+      } else {
+        // Safe to delete immediately
+        deleteWorkout(workout.id);
+      }
+    } catch (error) {
+      console.error('Error checking workout usage:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to check workout usage. Please try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  // Handle removing workout from monthly plans
+  const handleRemoveFromPlans = async () => {
+    if (!workoutToDelete) return;
+    
+    try {
+      const planIds = monthlyPlansUsing.map(plan => plan.id);
+      await removeFromMonthlyPlans({ workoutId: workoutToDelete.id, planIds });
+      
+      // Clear monthly plans list to enable deletion
+      setMonthlyPlansUsing([]);
+      
+      // Also refresh the monthly plans to reflect the changes
+      await loadMonthlyPlans();
+      
+      toast({
+        title: 'Success',
+        description: `Workout removed from ${planIds.length} monthly plan(s). You can now delete it.`,
+        status: 'success',
+        duration: 4000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error('Error removing from monthly plans:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to remove workout from monthly plans. Please try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  // Handle final deletion after removal from monthly plans
+  const handleProceedWithDeletion = () => {
+    if (!workoutToDelete) return;
+    
+    deleteWorkout(workoutToDelete.id);
+    
+    // Close modal and reset state
+    onWarningClose();
+    setWorkoutToDelete(null);
+    setMonthlyPlansUsing([]);
+  };
+
+  // Handle modal close
+  const handleWarningClose = () => {
+    onWarningClose();
+    setWorkoutToDelete(null);
+    setMonthlyPlansUsing([]);
+  };
+
+  const handleAssignWorkout = (workout: Workout) => {
+    setWorkoutToAssign(workout);
+    onWorkoutAssignmentOpen();
+  };
+
+  const handleWorkoutAssignmentSuccess = () => {
+    onWorkoutAssignmentClose();
+    refetchWorkouts();
+    refetchWorkoutStats();
+  };
+
+  const handleViewWorkout = (workout: Workout) => {
+    setSelectedWorkoutForView(workout);
+    setShowWorkoutDetailView(true);
+  };
+
+  const handleEditWorkoutFromDetail = (workout: Workout) => {
+    setShowWorkoutDetailView(false);
+    navigate(`/coach/workout-creator?edit=${workout.id}`);
+  };
+
   // Render functions for each tab content
   const renderWorkouts = () => {
     if (workoutsLoading || athletesLoading) {
@@ -1016,14 +1147,12 @@ export function CoachTrainingPlans() {
               key={workout.id}
               workout={workout}
               isCoach={true}
-              progress={progress}
               assignedTo={athleteNames}
               onEdit={() => navigate(`/coach/workout-creator?edit=${workout.id}`)}
-              onDelete={() => deleteWorkout(workout.id)}
-              onRefresh={handleWorkoutsRefresh}
-              showRefresh={true}
-              statsLoading={workoutStatsLoading || assignmentsLoading}
-              detailedProgress={true}
+              onDelete={() => handleDeleteWorkout(workout)}
+              onAssign={() => handleAssignWorkout(workout)}
+              onViewDetails={() => handleViewWorkout(workout)}
+              // monthlyPlanUsage disabled - checked just-in-time during deletion
             />
           );
         })}
@@ -1146,9 +1275,10 @@ export function CoachTrainingPlans() {
                 isCoach={true}
                 isTemplate={true}
                 onEdit={() => navigate(`/coach/workout-creator?edit=${template.id}`)}
-                onDelete={() => deleteWorkout(template.id)}
-                onRefresh={handleTemplateRefresh}
-                showRefresh={false}
+                onDelete={() => handleDeleteWorkout(template)}
+                onAssign={() => handleAssignWorkout(template)}
+                onViewDetails={() => handleViewWorkout(template)}
+                monthlyPlanUsage={monthlyPlanUsageData[template.id]}
               />
             ))}
           </SimpleGrid>
@@ -1272,7 +1402,10 @@ export function CoachTrainingPlans() {
                 isCoach={true}
                 isTemplate={true}
                 onEdit={() => navigate(`/coach/workout-creator?edit=${draft.id}`)}
-                onDelete={() => deleteWorkout(draft.id)}
+                onDelete={() => handleDeleteWorkout(draft)}
+                onAssign={() => handleAssignWorkout(draft)}
+                onViewDetails={() => handleViewWorkout(draft)}
+                monthlyPlanUsage={monthlyPlanUsageData[draft.id]}
               />
             ))}
           </SimpleGrid>
@@ -1353,6 +1486,25 @@ export function CoachTrainingPlans() {
       refetchWorkoutStats();
     }
   }, [refetchWorkoutStats]);
+
+  // 🚨 DISABLED - Batch monthly plan usage check was causing excessive database load
+  // Monthly plan usage is now checked only when deleting (just-in-time approach)
+  // This prevents 100+ database requests on page load and improves performance
+  // useEffect(() => {
+  //   const fetchMonthlyPlanUsage = async () => {
+  //     if (workoutIds.length === 0) {
+  //       setMonthlyPlanUsageData({});
+  //       return;
+  //     }
+  //     try {
+  //       const usageData = await batchCheckMonthlyPlanUsage(workoutIds);
+  //       setMonthlyPlanUsageData(usageData);
+  //     } catch (error) {
+  //       console.error('❌ [TrainingPlans] Error fetching monthly plan usage:', error);
+  //     }
+  //   };
+  //   fetchMonthlyPlanUsage();
+  // }, [workoutIds, batchCheckMonthlyPlanUsage]);
 
   // Exercise Library Functions
   const loadCustomExercises = async () => {
@@ -1788,14 +1940,12 @@ export function CoachTrainingPlans() {
                             key={`workout-${workout.id}`}
                             workout={workout}
                             isCoach={true}
-                            progress={progress}
                             assignedTo={athleteNames}
                             onEdit={() => navigate(`/coach/workout-creator?edit=${workout.id}`)}
-                            onDelete={() => deleteWorkout(workout.id)}
-                            onRefresh={handleWorkoutsRefresh}
-                            showRefresh={true}
-                            statsLoading={workoutStatsLoading || assignmentsLoading}
-                            detailedProgress={true}
+                            onDelete={() => handleDeleteWorkout(workout)}
+                            onAssign={() => handleAssignWorkout(workout)}
+                            onViewDetails={() => handleViewWorkout(workout)}
+                            monthlyPlanUsage={monthlyPlanUsageData[workout.id]}
                           />
                         );
                       }
@@ -1964,6 +2114,50 @@ export function CoachTrainingPlans() {
                 onBack={() => setShowDetailView(false)}
                 onAssign={() => handleAssignPlan(selectedPlanForView)}
                 onEdit={() => handleEditPlan(selectedPlanForView)}
+              />
+            )}
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Workout Deletion Warning Modal */}
+      <WorkoutDeletionWarningModal
+        isOpen={isWarningOpen}
+        onClose={handleWarningClose}
+        workoutName={workoutToDelete?.name || ''}
+        monthlyPlans={monthlyPlansUsing}
+        onRemoveFromPlans={handleRemoveFromPlans}
+        onProceedWithDeletion={handleProceedWithDeletion}
+        isRemoving={isRemovingFromPlans}
+      />
+
+      {/* Workout Assignment Modal */}
+      {workoutToAssign && (
+        <AssignmentModal
+          isOpen={isWorkoutAssignmentOpen}
+          onClose={onWorkoutAssignmentClose}
+          onSuccess={handleWorkoutAssignmentSuccess}
+          workout={workoutToAssign}
+        />
+      )}
+
+      {/* Workout Detail View Drawer */}
+      <Drawer
+        isOpen={showWorkoutDetailView}
+        placement="right"
+        onClose={() => setShowWorkoutDetailView(false)}
+        size="xl"
+      >
+        <DrawerOverlay />
+        <DrawerContent>
+          <DrawerCloseButton />
+          <DrawerBody p={0}>
+            {selectedWorkoutForView && (
+              <WorkoutDetailView
+                workout={selectedWorkoutForView}
+                onBack={() => setShowWorkoutDetailView(false)}
+                onAssign={() => handleAssignWorkout(selectedWorkoutForView)}
+                onEdit={() => handleEditWorkoutFromDetail(selectedWorkoutForView)}
               />
             )}
           </DrawerBody>

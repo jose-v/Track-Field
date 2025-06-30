@@ -50,10 +50,10 @@ export function useWorkouts() {
       }
     },
     enabled: !!user?.id && !profileLoading, // Don't run while profile is loading
-    staleTime: 1000, // Reduce stale time for faster updates
+    staleTime: 30000, // 30 seconds - more reasonable cache time
     refetchOnMount: true,
     refetchOnWindowFocus: true,
-    refetchInterval: 5000,
+    refetchInterval: false, // 🚨 DISABLED - was causing 17K+ requests/day!
     retry: 3, // Add retry attempts
   })
 
@@ -125,6 +125,80 @@ export function useWorkouts() {
     },
   })
 
+  const checkMonthlyPlanUsage = useMutation<
+    { isUsed: boolean; monthlyPlans: { id: string; name: string }[] },
+    Error,
+    string
+  >({
+    mutationFn: async (workoutId) => {
+      return await callApiWithAuth(async () => {
+        return api.workouts.checkMonthlyPlanUsage(workoutId);
+      }, { maxRetries: 2 });
+    },
+    onError: (error) => {
+      console.error('Error checking monthly plan usage:', error);
+      refreshSession();
+      
+      toast({
+        title: 'Error',
+        description: 'Failed to check workout usage',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+    },
+  })
+
+  const batchCheckMonthlyPlanUsage = useMutation<
+    Record<string, { isUsed: boolean; monthlyPlans: { id: string; name: string }[] }>,
+    Error,
+    string[]
+  >({
+    mutationFn: async (workoutIds) => {
+      return await callApiWithAuth(async () => {
+        return api.workouts.batchCheckMonthlyPlanUsage(workoutIds);
+      }, { maxRetries: 2 });
+    },
+    onError: (error) => {
+      console.error('Error batch checking monthly plan usage:', error);
+      refreshSession();
+    },
+  })
+
+  const removeFromMonthlyPlans = useMutation<
+    void,
+    Error,
+    { workoutId: string; planIds: string[] }
+  >({
+    mutationFn: async ({ workoutId, planIds }) => {
+      return await callApiWithAuth(async () => {
+        return api.workouts.removeFromMonthlyPlans(workoutId, planIds);
+      }, { maxRetries: 2 });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['monthlyPlans'] })
+      toast({
+        title: 'Success',
+        description: 'Workout removed from monthly plans',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      })
+    },
+    onError: (error) => {
+      console.error('Error removing from monthly plans:', error);
+      refreshSession();
+      
+      toast({
+        title: 'Error',
+        description: 'Failed to remove workout from monthly plans',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+    },
+  })
+
   const deleteWorkout = useMutation<
     void,
     Error,
@@ -181,5 +255,11 @@ export function useWorkouts() {
     },
     updateWorkout: updateWorkout.mutate,
     deleteWorkout: deleteWorkout.mutate,
+    checkMonthlyPlanUsage: checkMonthlyPlanUsage.mutateAsync,
+    batchCheckMonthlyPlanUsage: batchCheckMonthlyPlanUsage.mutateAsync,
+    removeFromMonthlyPlans: removeFromMonthlyPlans.mutateAsync,
+    isCheckingUsage: checkMonthlyPlanUsage.isPending,
+    isBatchCheckingUsage: batchCheckMonthlyPlanUsage.isPending,
+    isRemovingFromPlans: removeFromMonthlyPlans.isPending,
   }
 } 

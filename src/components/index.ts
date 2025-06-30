@@ -1,6 +1,7 @@
 // Export all components 
 export { default as TeamCard } from './TeamCard';
 export { WorkoutCard } from './WorkoutCard';
+export { WorkoutDeletionWarningModal } from './WorkoutDeletionWarningModal';
 export { default as SleepStatsCard } from './SleepStatsCard';
 export { default as NutritionStatsCard } from './NutritionStatsCard';
 export { default as WeatherCard } from './WeatherCard';
@@ -57,4 +58,5 @@ export { MonthlyPlanAssignments } from './athlete/MonthlyPlanAssignments';
 export { WorkoutsSidebar } from './workouts';
 export type { WorkoutsSection, WorkoutsItem } from './workouts';
 
-export { DateTimePicker } from './DateTimePicker' 
+export { DateTimePicker } from './DateTimePicker'
+export { AssignmentModal } from './AssignmentModal' 

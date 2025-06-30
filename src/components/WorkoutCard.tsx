@@ -4,7 +4,7 @@ import {
   Button, Badge, IconButton, useColorModeValue, Tooltip,
   Menu, MenuButton, MenuList, MenuItem
 } from '@chakra-ui/react';
-import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaEdit, FaTrash, FaPlayCircle, FaCalendarAlt, FaClock, FaMapMarkerAlt, FaUsers, FaTasks, FaUndo, FaLayerGroup, FaEllipsisV } from 'react-icons/fa';
+import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaEdit, FaTrash, FaPlayCircle, FaCalendarAlt, FaClock, FaMapMarkerAlt, FaUsers, FaTasks, FaUndo, FaLayerGroup, FaEllipsisV, FaEye } from 'react-icons/fa';
 import type { Workout, Exercise } from '../services/api';
 import { dateUtils } from '../utils/date';
 import { ProgressBar } from './ProgressBar';
@@ -86,6 +86,8 @@ interface WorkoutCardProps {
   assignedTo?: string;
   onEdit?: () => void;
   onDelete?: () => void;
+  onAssign?: () => void;
+  onViewDetails?: () => void;
   onStart?: () => void;
   onRefresh?: () => void;
   showRefresh?: boolean;
@@ -93,6 +95,10 @@ interface WorkoutCardProps {
   detailedProgress?: boolean;
   onReset?: () => void;
   isTemplate?: boolean;
+  monthlyPlanUsage?: {
+    isUsed: boolean;
+    monthlyPlans: { id: string; name: string }[];
+  };
 }
 
 export function WorkoutCard({
@@ -102,29 +108,43 @@ export function WorkoutCard({
   assignedTo = 'Unassigned',
   onEdit,
   onDelete,
+  onAssign,
+  onViewDetails,
   onStart,
   onRefresh,
   showRefresh = false,
   statsLoading = false,
   detailedProgress = false,
   onReset,
-  isTemplate = false
+  isTemplate = false,
+  monthlyPlanUsage
 }: WorkoutCardProps) {
+  // All useColorModeValue calls must be at the top level to follow Rules of Hooks
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const iconBgColor = useColorModeValue('white', 'gray.800');
-  const typeColorBase = getTypeColor(workout.type);
-  const typeColor = `${typeColorBase}.500`; // Use the 500 variant for stronger color
-  const typeName = getTypeName(workout.type);
   const cardBg = useColorModeValue('white', 'gray.800');
-  // Header colors for different workout types - more distinct and visible colors
   const singleWorkoutBg = useColorModeValue('blue.500', 'blue.500');
   const weeklyWorkoutBg = useColorModeValue('blue.600', 'blue.600');
-  const headerBg = workout.template_type === 'weekly' ? weeklyWorkoutBg : singleWorkoutBg;
   const infoColor = useColorModeValue('gray.600', 'gray.200');
   const loadingTextColor = useColorModeValue('gray.500', 'gray.300');
   const titleColor = useColorModeValue('gray.800', 'gray.100');
   const exerciseTextColor = useColorModeValue('gray.700', 'gray.200');
   const cardShadow = useColorModeValue('none', 'lg');
+  
+  // Monthly plan usage colors
+  const monthlyPlanBg = useColorModeValue('orange.50', 'orange.900');
+  const monthlyPlanBorder = useColorModeValue('orange.200', 'orange.700');
+  const monthlyPlanText = useColorModeValue('orange.700', 'orange.300');
+  const monthlyPlanItemText = useColorModeValue('orange.600', 'orange.400');
+  
+  // Description box colors
+  const descriptionBg = useColorModeValue('gray.50', 'gray.700');
+  
+  // Derived values
+  const typeColorBase = getTypeColor(workout.type);
+  const typeColor = `${typeColorBase}.500`; // Use the 500 variant for stronger color
+  const typeName = getTypeName(workout.type);
+  const headerBg = workout.template_type === 'weekly' ? weeklyWorkoutBg : singleWorkoutBg;
   
   // Format schedule date
   const formattedScheduleDate = workout.date 
@@ -215,6 +235,16 @@ export function WorkoutCard({
                 Edit
               </MenuItem>
             )}
+            {onViewDetails && (
+              <MenuItem icon={<FaEye />} onClick={onViewDetails}>
+                View Details
+              </MenuItem>
+            )}
+            {onAssign && (
+              <MenuItem icon={<FaUsers />} onClick={onAssign}>
+                Assign Athletes
+              </MenuItem>
+            )}
             {!isTemplate && showRefresh && onRefresh && (
               <MenuItem icon={<FaRedo />} onClick={onRefresh}>
                 Refresh progress
@@ -235,6 +265,53 @@ export function WorkoutCard({
           <VStack align="start" spacing={4} width="100%">
             {/* Title */}
             <Heading size="lg" mt={1} noOfLines={1} color={titleColor}>{workout.name}</Heading>
+            
+            {/* Template badge - Show for templates */}
+            {isTemplate && (
+              <Badge 
+                colorScheme="purple" 
+                size="sm" 
+                fontSize="xs"
+                fontWeight="bold"
+                px={2}
+                py={1}
+                borderRadius="md"
+                alignSelf="flex-start"
+              >
+                TEMPLATE
+              </Badge>
+            )}
+            
+            {/* Monthly Plan Usage - Show for coaches when workout is used in monthly plans */}
+            {isCoach && monthlyPlanUsage?.isUsed && (
+              <Box
+                width="100%"
+                bg={monthlyPlanBg}
+                border="1px solid"
+                borderColor={monthlyPlanBorder}
+                borderRadius="md"
+                p={3}
+              >
+                <Flex align="center" mb={1}>
+                  <Icon as={FaCalendarAlt} mr={2} color="orange.500" boxSize={4} />
+                  <Text fontSize="sm" fontWeight="medium" color={monthlyPlanText}>
+                    Used in {monthlyPlanUsage.monthlyPlans.length} Monthly Plan{monthlyPlanUsage.monthlyPlans.length !== 1 ? 's' : ''}
+                  </Text>
+                </Flex>
+                <VStack align="start" spacing={1} pl={6}>
+                  {monthlyPlanUsage.monthlyPlans.slice(0, 2).map((plan) => (
+                    <Text key={plan.id} fontSize="xs" color={monthlyPlanItemText} noOfLines={1}>
+                      • {plan.name}
+                    </Text>
+                  ))}
+                  {monthlyPlanUsage.monthlyPlans.length > 2 && (
+                    <Text fontSize="xs" color={monthlyPlanItemText} fontStyle="italic">
+                      +{monthlyPlanUsage.monthlyPlans.length - 2} more...
+                    </Text>
+                  )}
+                </VStack>
+              </Box>
+            )}
             
             {/* Date and time - Hide for templates */}
             {!isTemplate && (
@@ -272,27 +349,39 @@ export function WorkoutCard({
               </HStack>
             )}
             
-            {/* Exercises info */}
-            <Box width="100%" py={2}>
-              <Flex align="center" mb={2}>
+            {/* Exercises info - Hide for coaches */}
+            {!isCoach && (
+              <Box width="100%" py={2}>
+                <Flex align="center" mb={2}>
+                  <Icon as={FaTasks} mr={2} color={typeColor} boxSize={4} />
+                  <Text fontSize="md" fontWeight="medium" color={exerciseTextColor}>
+                    Exercises: {allExercises.length}
+                  </Text>
+                </Flex>
+                {displayExercises.length > 0 && (
+                  <Box maxH="100px" overflowY="auto" fontSize="sm" color={infoColor} pl={6}>
+                    {displayExercises.slice(0, 3).map((ex, idx) => (
+                      <Text key={idx} noOfLines={1} mb={1} color={exerciseTextColor}>
+                        • {ex.name} {ex.sets && ex.reps ? `(${ex.sets}×${ex.reps})` : ''}
+                      </Text>
+                    ))}
+                    {allExercises.length > 3 && (
+                      <Text fontStyle="italic" color={exerciseTextColor}>+{allExercises.length - 3} more...</Text>
+                    )}
+                  </Box>
+                )}
+              </Box>
+            )}
+            
+            {/* Exercise count only for coaches - simplified display */}
+            {isCoach && (
+              <Flex align="center" width="100%">
                 <Icon as={FaTasks} mr={2} color={typeColor} boxSize={4} />
-                <Text fontSize="md" fontWeight="medium" color={exerciseTextColor}>
-                  Exercises: {allExercises.length}
+                <Text fontSize="md" color={infoColor}>
+                  {allExercises.length} Exercise{allExercises.length !== 1 ? 's' : ''}
                 </Text>
               </Flex>
-              {displayExercises.length > 0 && (
-                <Box maxH="100px" overflowY="auto" fontSize="sm" color={infoColor} pl={6}>
-                  {displayExercises.slice(0, 3).map((ex, idx) => (
-                    <Text key={idx} noOfLines={1} mb={1} color={exerciseTextColor}>
-                      • {ex.name} {ex.sets && ex.reps ? `(${ex.sets}×${ex.reps})` : ''}
-                    </Text>
-                  ))}
-                  {allExercises.length > 3 && (
-                    <Text fontStyle="italic" color={exerciseTextColor}>+{allExercises.length - 3} more...</Text>
-                  )}
-                </Box>
-              )}
-            </Box>
+            )}
             
             {/* Assigned to (for coach view) - Hide for templates */}
             {!isTemplate && isCoach && (
@@ -316,7 +405,7 @@ export function WorkoutCard({
             
             {/* Card description/notes */}
             {(workout.notes || workout.description) && (
-              <Box width="100%" bg={useColorModeValue('gray.50', 'gray.700')} p={3} borderRadius="md">
+              <Box width="100%" bg={descriptionBg} p={3} borderRadius="md">
                 <Text fontSize="sm" color={infoColor} noOfLines={3}>
                   {workout.notes || workout.description}
                 </Text>
@@ -324,23 +413,16 @@ export function WorkoutCard({
             )}
           </VStack>
           
-          {/* Bottom section with progress bar and action button - Hide progress for templates */}
+          {/* Bottom section with progress bar and action button - Hide progress for templates and coaches */}
           <VStack width="100%" spacing={2}>
-            {/* Progress bar - Only show for non-templates */}
-            {!isTemplate && (
+            {/* Progress bar - Only show for non-templates and non-coaches */}
+            {!isTemplate && !isCoach && (
               <Box width="100%">
                 <Flex justifyContent="space-between" alignItems="center" mb={2}>
-                  {!detailedProgress && (
-                    <Text fontSize="sm" color={infoColor} fontWeight="medium">
-                      {isCoach ? 'Athlete Completion' : 'Your Progress'}
-                    </Text>
-                  )}
-                  {detailedProgress && (
-                    <Text fontSize="sm" color={infoColor} fontWeight="medium">
-                      Progress
-                    </Text>
-                  )}
-                  {!detailedProgress && showRefresh && onRefresh && (
+                  <Text fontSize="sm" color={infoColor} fontWeight="medium">
+                    Your Progress
+                  </Text>
+                  {showRefresh && onRefresh && (
                     <IconButton
                       icon={<FaRedo />}
                       aria-label="Sync progress"
@@ -355,34 +437,14 @@ export function WorkoutCard({
                   )}
                 </Flex>
                 
-                {detailedProgress && isCoach ? (
-                  <>
-                    <ProgressBar
-                      completed={progress.completed}
-                      total={progress.total}
-                      percentage={progress.percentage}
-                      colorScheme={progress.completed === progress.total && progress.total > 0 ? "green" : "primary"}
-                      itemLabel="athlete(s)"
-                      textColor={infoColor}
-                      showText={false}
-                    />
-                    
-                    {statsLoading && (
-                      <Text fontSize="xs" color={loadingTextColor} mt={1}>
-                        Updating progress...
-                      </Text>
-                    )}
-                  </>
-                ) : (
-                  <ProgressBar
-                    completed={progress.completed}
-                    total={progress.total}
-                    percentage={progress.percentage}
-                    colorScheme={progress.completed === progress.total && progress.total > 0 ? "green" : "primary"}
-                    itemLabel={isCoach ? "athlete(s)" : "exercises"}
-                    textColor={infoColor}
-                  />
-                )}
+                <ProgressBar
+                  completed={progress.completed}
+                  total={progress.total}
+                  percentage={progress.percentage}
+                  colorScheme={progress.completed === progress.total && progress.total > 0 ? "green" : "primary"}
+                  itemLabel="exercises"
+                  textColor={infoColor}
+                />
               </Box>
             )}
             

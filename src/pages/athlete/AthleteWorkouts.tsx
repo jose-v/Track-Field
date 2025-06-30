@@ -8,7 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { FaEye, FaPlayCircle, FaRunning, FaDumbbell, FaRegClock, FaCalendarAlt, FaListUl, FaLeaf, FaRedo, FaCog, FaPlus, FaCalendarWeek, FaCalendarDay, FaClock, FaChartLine, FaBookOpen, FaHistory, FaFilter } from 'react-icons/fa';
 import { CheckIcon, EditIcon } from '@chakra-ui/icons'; // For exec modal
 import { FiCalendar, FiClock } from 'react-icons/fi';
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useWorkoutStore } from '../../lib/workoutStore'; // Import the store
 import { WorkoutCard } from '../../components/WorkoutCard'; // Import our shared card component
 import { supabase } from '../../lib/supabase';
@@ -466,15 +466,15 @@ export function AthleteWorkouts() {
   ) || [];
 
   // Modal control functions for shared component
-  const handleUpdateTimer = (newTimer: number) => {
+  const handleUpdateTimer = useCallback((newTimer: number) => {
     setExecModal(prev => ({ ...prev, timer: newTimer }));
-  };
+  }, []);
 
-  const handleUpdateRunning = (newRunning: boolean) => {
+  const handleUpdateRunning = useCallback((newRunning: boolean) => {
     setExecModal(prev => ({ ...prev, running: newRunning }));
-  };
+  }, []);
 
-  const handleNextExercise = () => {
+  const handleNextExercise = useCallback(() => {
     const workoutId = execModal.workout!.id;
     const exIdx = execModal.exerciseIdx;
     const totalExercises = execModal.workout!.exercises.length;
@@ -492,9 +492,9 @@ export function AthleteWorkouts() {
       timer: 0,
       running: true,
     }));
-  };
+  }, [execModal.workout, execModal.exerciseIdx]);
 
-  const handlePreviousExercise = () => {
+  const handlePreviousExercise = useCallback(() => {
     const workoutId = execModal.workout!.id;
     const exIdx = execModal.exerciseIdx;
     
@@ -508,7 +508,7 @@ export function AthleteWorkouts() {
         running: false, // Pause when going back
       }));
     }
-  };
+  }, [execModal.exerciseIdx]);
 
   const handleFinishWorkout = async () => {
     if (!execModal.workout) return;

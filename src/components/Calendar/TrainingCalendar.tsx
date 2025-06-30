@@ -761,16 +761,17 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
     
     fetchData();
     
-    // Set up automatic refresh every 30 seconds to catch new assignments
-    const refreshInterval = setInterval(() => {
-      console.log('Auto-refreshing calendar data...');
-      fetchData();
-    }, 30000);
+    // 🚨 DISABLED - Auto-refresh was causing 2,880+ database requests per day!
+    // This was refreshing every 30 seconds = massive database load
+    // const refreshInterval = setInterval(() => {
+    //   console.log('Auto-refreshing calendar data...');
+    //   fetchData();
+    // }, 30000);
     
     // Cleanup function to handle component unmount
     return () => {
       isMounted = false;
-      clearInterval(refreshInterval);
+      // clearInterval(refreshInterval); // Disabled with auto-refresh
     };
   }, [currentYear, user, athleteId, isCoach]);
   

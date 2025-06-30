@@ -268,13 +268,13 @@ export function CoachDashboard() {
   // Add a refresh mechanism to ensure stats stay current
   useEffect(() => {
     // Set up periodic refresh
-    const refreshInterval = setInterval(() => {
-      // Refresh athlete data which will update completion stats
-      queryClient.invalidateQueries({ queryKey: ['coachAthletes'] });
-    }, 30000); // Every 30 seconds
+    // 🚨 DISABLED - Auto-refresh was causing excessive database load
+    // const refreshInterval = setInterval(() => {
+    //   queryClient.invalidateQueries({ queryKey: ['coachAthletes'] });
+    // }, 300000); // Every 5 minutes
     
     // Clean up on unmount
-    return () => clearInterval(refreshInterval);
+    // return () => clearInterval(refreshInterval); // Disabled with auto-refresh
   }, [queryClient]);
 
   // Force refresh when returning to the page

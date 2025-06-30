@@ -41,11 +41,11 @@ export function useWorkoutCompletionStats(workoutIds: string[]) {
       }
     },
     enabled: workoutIds && workoutIds.length > 0,
-    staleTime: 1000, // Reduced stale time to 1 second
-    refetchInterval: 3000, // Reduce refetch interval to 3 seconds
-    refetchOnWindowFocus: true, // Refetch when window gains focus
-    refetchOnMount: true, // Refetch when component mounts
-    retry: 3, // Add retry attempts
+    staleTime: 60000, // 1 minute stale time for better performance
+    refetchInterval: false, // Disable automatic refetching to improve performance
+    refetchOnWindowFocus: false, // Disable refetch on focus for better performance  
+    refetchOnMount: true, // Only refetch when component mounts
+    retry: 2, // Reduce retry attempts
   });
 
   // Function to manually force a refresh of stats

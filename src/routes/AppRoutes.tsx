@@ -32,7 +32,7 @@ import { CoachStats } from '../pages/coach/Stats';
 import { CoachAthletes } from '../pages/coach/Athletes';
 import { CreateWorkout } from '../pages/coach/CreateWorkout';
 import { ImportWorkout } from '../pages/coach/ImportWorkout';
-import { EditWorkout } from '../pages/coach/EditWorkout';
+
 import { Calendar as CoachCalendar } from '../pages/coach/Calendar';
 import CoachProfile from "../pages/coach/Profile";
 import { CoachTrainingPlans } from '../pages/coach/TrainingPlans';
@@ -131,7 +131,7 @@ export default function AppRoutes() {
         <Route path="/coach/workouts" element={<RoleProtectedRoute allowedRoles={['coach']}><CoachTrainingPlans /></RoleProtectedRoute>} />
         <Route path="/coach/workouts/new" element={<RoleProtectedRoute allowedRoles={['coach']}><CreateWorkout /></RoleProtectedRoute>} />
         <Route path="/coach/workouts/import" element={<RoleProtectedRoute allowedRoles={['coach']}><ImportWorkout /></RoleProtectedRoute>} />
-        <Route path="/coach/workouts/edit/:id" element={<RoleProtectedRoute allowedRoles={['coach']}><EditWorkout /></RoleProtectedRoute>} />
+        
         <Route path="/coach/stats" element={<RoleProtectedRoute allowedRoles={['coach']}><CoachStats /></RoleProtectedRoute>} />
         <Route path="/coach/profile" element={<RoleProtectedRoute allowedRoles={['coach']}><CoachProfile /></RoleProtectedRoute>} />
         <Route path="/coach/calendar" element={<RoleProtectedRoute allowedRoles={['coach']}><CoachCalendar /></RoleProtectedRoute>} />
@@ -168,7 +168,7 @@ export default function AppRoutes() {
         <Route path="/athlete/dashboard" element={<RoleProtectedRoute allowedRoles={['athlete']}><AthleteDashboard /></RoleProtectedRoute>} />
         <Route path="/athlete/profile" element={<RoleProtectedRoute allowedRoles={['athlete']}><AthleteProfile /></RoleProtectedRoute>} />
         <Route path="/athlete/workouts" element={<RoleProtectedRoute allowedRoles={['athlete']}><AthleteWorkouts /></RoleProtectedRoute>} />
-        <Route path="/athlete/workouts/edit/:id" element={<RoleProtectedRoute allowedRoles={['athlete']}><EditWorkout /></RoleProtectedRoute>} />
+        
         <Route path="/athlete/calendar" element={<RoleProtectedRoute allowedRoles={['athlete']}><AthleteCalendar /></RoleProtectedRoute>} />
         <Route path="/athlete/stats" element={<RoleProtectedRoute allowedRoles={['athlete']}><NotFound /></RoleProtectedRoute>} />
         <Route path="/athlete/nutrition" element={<RoleProtectedRoute allowedRoles={['athlete']}><Nutrition /></RoleProtectedRoute>} />

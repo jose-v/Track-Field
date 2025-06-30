@@ -11,6 +11,7 @@ import {
   Input,
   InputGroup,
   InputLeftElement,
+  InputRightElement,
   Button,
   Tag,
   Badge,
@@ -43,7 +44,8 @@ import {
   Filter, 
   ChevronDown,
   BookOpen,
-  Dumbbell
+  Dumbbell,
+  X
 } from 'lucide-react';
 import { ExerciseModal } from './ExerciseModal';
 
@@ -380,6 +382,19 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
                   borderColor={borderColor}
                   _focus={{ borderColor: 'blue.400', boxShadow: '0 0 0 1px var(--chakra-colors-blue-400)' }}
                 />
+                {searchTerm && (
+                  <InputRightElement>
+                    <IconButton
+                      aria-label="Clear search"
+                      icon={<X size={16} />}
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setSearchTerm('')}
+                      color={searchIconColor}
+                      _hover={{ color: textColor }}
+                    />
+                  </InputRightElement>
+                )}
               </InputGroup>
               <Button
                 size="lg"
