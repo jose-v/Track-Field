@@ -361,17 +361,30 @@ export function CoachTrainingPlans() {
         // Apply workout type filter - FIXED: Use template_type instead of type
         if (workoutFilter === 'single') {
           filteredWorkouts = filteredWorkouts.filter(w => w.template_type === 'single' || !w.template_type);
+          // Apply athlete filter
+          if (selectedAthlete !== 'all') {
+            filteredWorkouts = filteredWorkouts.filter(w => getAthleteNames(w).includes(selectedAthlete));
+          }
+          return { type: 'workouts', data: filteredWorkouts };
         } else if (workoutFilter === 'weekly') {
           filteredWorkouts = filteredWorkouts.filter(w => w.template_type === 'weekly');
+          // Apply athlete filter
+          if (selectedAthlete !== 'all') {
+            filteredWorkouts = filteredWorkouts.filter(w => getAthleteNames(w).includes(selectedAthlete));
+          }
+          return { type: 'workouts', data: filteredWorkouts };
         } else if (workoutFilter === 'monthly') {
           return { type: 'plans', data: monthlyPlans };
+        } else if (workoutFilter === 'all') {
+          // When 'all' is selected, show both workouts and monthly plans
+          // Apply athlete filter to workouts
+          if (selectedAthlete !== 'all') {
+            filteredWorkouts = filteredWorkouts.filter(w => getAthleteNames(w).includes(selectedAthlete));
+          }
+          return { type: 'mixed', data: [...filteredWorkouts, ...monthlyPlans] };
         }
         
-        // Apply athlete filter
-        if (selectedAthlete !== 'all') {
-          filteredWorkouts = filteredWorkouts.filter(w => getAthleteNames(w).includes(selectedAthlete));
-        }
-        
+        // Fallback (shouldn't reach here)
         return { type: 'workouts', data: filteredWorkouts };
       case 'strength':
         return { type: 'workouts', data: workouts?.filter(w => !w.is_draft && (w.type?.toLowerCase().includes('strength') || w.type?.toLowerCase().includes('weight'))) || [] };
@@ -1723,6 +1736,70 @@ export function CoachTrainingPlans() {
                         statsLoading={statsLoading}
                       />
                     ))}
+                  </SimpleGrid>
+                )
+              ) : filteredData.type === 'mixed' ? (
+                // Mixed Content Grid (All filter - both workouts and monthly plans)
+                filteredData.data.length === 0 ? (
+                  <Alert status="info" borderRadius="md">
+                    <AlertIcon />
+                    <VStack align="start" spacing={0}>
+                      <Text fontWeight="medium">No Content Found</Text>
+                      <Text fontSize="sm">Create workouts or training plans to get started.</Text>
+                    </VStack>
+                  </Alert>
+                ) : (
+                  <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+                    {filteredData.data.map((item: any) => {
+                      // Check if it's a monthly plan (has weeks property) or workout
+                      if ('weeks' in item) {
+                        // It's a monthly plan
+                        const plan = item as MonthlyPlanWithStats;
+                        return (
+                          <MonthlyPlanCard
+                            key={`plan-${plan.id}`}
+                            monthlyPlan={plan}
+                            isCoach={true}
+                            onView={() => handleViewPlan(plan)}
+                            onEdit={() => handleEditPlan(plan)}
+                            onAssign={() => handleAssignPlan(plan)}
+                            onDelete={() => handleDeletePlan(plan)}
+                            completionStats={{
+                              totalAssigned: plan.totalAssignments || 0,
+                              completed: plan.completedAssignments || 0,
+                              inProgress: (plan.activeAssignments || 0) - (plan.completedAssignments || 0),
+                              percentage: (plan.totalAssignments || 0) > 0 ? ((plan.completedAssignments || 0) / (plan.totalAssignments || 0)) * 100 : 0
+                            }}
+                            statsLoading={statsLoading}
+                          />
+                        );
+                      } else {
+                        // It's a workout
+                        const workout = item as Workout;
+                        const progress = workoutStatsLoading 
+                          ? { completed: 0, total: 0, percentage: 0 }
+                          : getWorkoutProgress(workout);
+                        const athleteNames = assignmentsLoading
+                          ? 'Loading assignments...'
+                          : getAthleteNames(workout);
+
+                        return (
+                          <WorkoutCard
+                            key={`workout-${workout.id}`}
+                            workout={workout}
+                            isCoach={true}
+                            progress={progress}
+                            assignedTo={athleteNames}
+                            onEdit={() => navigate(`/coach/workout-creator?edit=${workout.id}`)}
+                            onDelete={() => deleteWorkout(workout.id)}
+                            onRefresh={handleWorkoutsRefresh}
+                            showRefresh={true}
+                            statsLoading={workoutStatsLoading || assignmentsLoading}
+                            detailedProgress={true}
+                          />
+                        );
+                      }
+                    })}
                   </SimpleGrid>
                 )
               ) : (

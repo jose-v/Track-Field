@@ -1,9 +1,10 @@
 import React from 'react';
 import {
   Box, Card, CardBody, Heading, Text, Icon, Flex, HStack, VStack, 
-  Button, Badge, IconButton, useColorModeValue, Tooltip
+  Button, Badge, IconButton, useColorModeValue, Tooltip,
+  Menu, MenuButton, MenuList, MenuItem
 } from '@chakra-ui/react';
-import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaEdit, FaTrash, FaPlayCircle, FaCalendarAlt, FaClock, FaMapMarkerAlt, FaUsers, FaTasks, FaUndo, FaLayerGroup } from 'react-icons/fa';
+import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaEdit, FaTrash, FaPlayCircle, FaCalendarAlt, FaClock, FaMapMarkerAlt, FaUsers, FaTasks, FaUndo, FaLayerGroup, FaEllipsisV } from 'react-icons/fa';
 import type { Workout, Exercise } from '../services/api';
 import { dateUtils } from '../utils/date';
 import { ProgressBar } from './ProgressBar';
@@ -115,10 +116,10 @@ export function WorkoutCard({
   const typeColor = `${typeColorBase}.500`; // Use the 500 variant for stronger color
   const typeName = getTypeName(workout.type);
   const cardBg = useColorModeValue('white', 'gray.800');
-  const headerBg = useColorModeValue(
-    `${typeColorBase}.400`,    // light mode
-    `${typeColorBase}.900`     // dark mode
-  );
+  // Header colors for different workout types - more distinct and visible colors
+  const singleWorkoutBg = useColorModeValue('blue.500', 'blue.500');
+  const weeklyWorkoutBg = useColorModeValue('blue.600', 'blue.600');
+  const headerBg = workout.template_type === 'weekly' ? weeklyWorkoutBg : singleWorkoutBg;
   const infoColor = useColorModeValue('gray.600', 'gray.200');
   const loadingTextColor = useColorModeValue('gray.500', 'gray.300');
   const titleColor = useColorModeValue('gray.800', 'gray.100');
@@ -184,55 +185,48 @@ export function WorkoutCard({
                 px={3}
                 borderRadius="md"
           >
-            {isTemplate ? 'Template' : typeName}
+            {workout.template_type === 'weekly' ? 'Weekly Plan' : isTemplate ? 'Template' : typeName}
           </Badge>
         </HStack>
         
-        {/* Action buttons */}
-        <HStack>
-          {isCoach && onEdit && (
-            <IconButton 
-              icon={<FaEdit />} 
-              aria-label="Edit" 
-              size="md" 
-              variant="ghost" 
-              color="white" 
-              onClick={onEdit} 
-            />
-          )}
-          {!isCoach && (
-            <IconButton 
-              icon={<FaEdit />} 
-              aria-label="Edit" 
-              size="md" 
-              variant="ghost" 
-              color="white" 
-              as={RouterLink}
-              to={`/athlete/workout-creator?edit=${workout.id}`}
-            />
-          )}
-          {isCoach && onDelete && (
-            <IconButton 
-              icon={<FaTrash />} 
-              aria-label="Delete" 
-              size="md" 
-              variant="ghost" 
-              color="white" 
-              onClick={onDelete} 
-            />
-          )}
-          {!isTemplate && showRefresh && onRefresh && (
-            <IconButton 
-              icon={<FaRedo />} 
-              aria-label="Refresh progress" 
-              size="md" 
-              variant="ghost" 
-              color="white" 
-              onClick={onRefresh}
-              title="Sync progress with database" 
-            />
-          )}
-        </HStack>
+        {/* Action menu */}
+        <Menu>
+          <MenuButton
+            as={IconButton}
+            icon={<FaEllipsisV />}
+            variant="ghost"
+            color="white"
+            size="sm"
+            aria-label="Workout actions"
+            _hover={{ bg: 'rgba(255, 255, 255, 0.1)' }}
+          />
+          <MenuList>
+            {isCoach && onEdit && (
+              <MenuItem icon={<FaEdit />} onClick={onEdit}>
+                Edit
+              </MenuItem>
+            )}
+            {!isCoach && (
+              <MenuItem 
+                icon={<FaEdit />} 
+                as={RouterLink}
+                to={`/athlete/workout-creator?edit=${workout.id}`}
+              >
+                Edit
+              </MenuItem>
+            )}
+            {!isTemplate && showRefresh && onRefresh && (
+              <MenuItem icon={<FaRedo />} onClick={onRefresh}>
+                Refresh progress
+              </MenuItem>
+            )}
+            {isCoach && onDelete && (
+              <MenuItem icon={<FaTrash />} onClick={onDelete} color="red.500">
+                Delete
+              </MenuItem>
+            )}
+          </MenuList>
+        </Menu>
       </Box>
       
       {/* Card content */}

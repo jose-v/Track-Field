@@ -60,7 +60,7 @@ export function MonthlyPlanCard({
 }: MonthlyPlanCardProps) {
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const cardBg = useColorModeValue('white', 'gray.800');
-  const headerBg = useColorModeValue('teal.500', 'teal.400');
+  const headerBg = useColorModeValue('blue.700', 'blue.700');
   const infoColor = useColorModeValue('gray.600', 'gray.200');
   const loadingTextColor = useColorModeValue('gray.500', 'gray.300');
   const titleColor = useColorModeValue('gray.800', 'gray.100');
