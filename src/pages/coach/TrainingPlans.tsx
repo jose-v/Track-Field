@@ -172,6 +172,7 @@ export function CoachTrainingPlans() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [monthlyPlanAssignments, setMonthlyPlanAssignments] = useState<any[]>([]);
   const [selectedPlanForAssignment, setSelectedPlanForAssignment] = useState<TrainingPlan | null>(null);
   const [selectedPlanForView, setSelectedPlanForView] = useState<TrainingPlan | null>(null);
   const [showDetailView, setShowDetailView] = useState(false);
@@ -382,6 +383,30 @@ export function CoachTrainingPlans() {
     return remaining > 0 ? `${nameString} +${remaining} more` : nameString;
   }, [assignments, athletes]);
 
+  // Helper function to check if a workout is assigned to a specific athlete ID
+  const isWorkoutAssignedToAthlete = React.useCallback((workout: Workout, athleteId: string) => {
+    if (athleteId === 'all') return true;
+    const workoutAssignments = assignments?.filter(a => a.workout_id === workout.id) || [];
+    return workoutAssignments.some(assignment => assignment.athlete_id === athleteId);
+  }, [assignments]);
+
+  // Helper function to filter monthly plans by athlete
+  const getMonthlyPlansForAthlete = React.useCallback((selectedAthleteId: string) => {
+    if (selectedAthleteId === 'all') {
+      return monthlyPlans;
+    }
+    
+    // Filter monthly plans that are assigned to the selected athlete
+    const plansForAthlete = monthlyPlans.filter(plan => {
+      const planAssignments = monthlyPlanAssignments.filter(
+        assignment => assignment.training_plan_id === plan.id || assignment.monthly_plan_id === plan.id
+      );
+      return planAssignments.some(assignment => assignment.athlete_id === selectedAthleteId);
+    });
+    
+    return plansForAthlete;
+  }, [monthlyPlans, monthlyPlanAssignments]);
+
   // Filter data based on active sidebar item
   const filteredData = useMemo(() => {
     switch (activeItem) {
@@ -394,25 +419,29 @@ export function CoachTrainingPlans() {
           filteredWorkouts = filteredWorkouts.filter(w => w.template_type === 'single' || !w.template_type);
           // Apply athlete filter
           if (selectedAthlete !== 'all') {
-            filteredWorkouts = filteredWorkouts.filter(w => getAthleteNames(w).includes(selectedAthlete));
+            filteredWorkouts = filteredWorkouts.filter(w => isWorkoutAssignedToAthlete(w, selectedAthlete));
           }
           return { type: 'workouts', data: filteredWorkouts };
         } else if (workoutFilter === 'weekly') {
           filteredWorkouts = filteredWorkouts.filter(w => w.template_type === 'weekly');
           // Apply athlete filter
           if (selectedAthlete !== 'all') {
-            filteredWorkouts = filteredWorkouts.filter(w => getAthleteNames(w).includes(selectedAthlete));
+            filteredWorkouts = filteredWorkouts.filter(w => isWorkoutAssignedToAthlete(w, selectedAthlete));
           }
           return { type: 'workouts', data: filteredWorkouts };
         } else if (workoutFilter === 'monthly') {
-          return { type: 'plans', data: monthlyPlans };
+          // Apply athlete filter to monthly plans
+          const filteredMonthlyPlans = getMonthlyPlansForAthlete(selectedAthlete);
+          return { type: 'plans', data: filteredMonthlyPlans };
         } else if (workoutFilter === 'all') {
           // When 'all' is selected, show both workouts and monthly plans
           // Apply athlete filter to workouts
           if (selectedAthlete !== 'all') {
-            filteredWorkouts = filteredWorkouts.filter(w => getAthleteNames(w).includes(selectedAthlete));
+            filteredWorkouts = filteredWorkouts.filter(w => isWorkoutAssignedToAthlete(w, selectedAthlete));
           }
-          return { type: 'mixed', data: [...filteredWorkouts, ...monthlyPlans] };
+          // Apply athlete filter to monthly plans
+          const filteredMonthlyPlans = getMonthlyPlansForAthlete(selectedAthlete);
+          return { type: 'mixed', data: [...filteredWorkouts, ...filteredMonthlyPlans] };
         }
         
         // Fallback (shouldn't reach here)
@@ -450,11 +479,14 @@ export function CoachTrainingPlans() {
       case 'exercise-library':
         return { type: 'exercises', data: customExercises };
       case 'by-athlete':
-        return { type: 'workouts', data: workouts?.filter(w => !w.is_draft && (selectedAthlete === 'all' || getAthleteNames(w).includes(selectedAthlete))) || [] };
+        // Filter both workouts and monthly plans by athlete
+        const filteredAthleteWorkouts = workouts?.filter(w => !w.is_draft && (selectedAthlete === 'all' || isWorkoutAssignedToAthlete(w, selectedAthlete))) || [];
+        const filteredAthleteMonthlyPlans = getMonthlyPlansForAthlete(selectedAthlete);
+        return { type: 'mixed', data: [...filteredAthleteWorkouts, ...filteredAthleteMonthlyPlans] };
       default:
         return { type: 'workouts', data: workouts?.filter(w => !w.is_draft) || [] };
     }
-  }, [activeItem, workouts, monthlyPlans, templateWorkouts, draftWorkouts, deletedWorkouts, deletedMonthlyPlans, customExercises, selectedAthlete, workoutFilter, templateFilter, draftFilter, getAthleteNames]);
+  }, [activeItem, workouts, monthlyPlans, templateWorkouts, draftWorkouts, deletedWorkouts, deletedMonthlyPlans, customExercises, selectedAthlete, workoutFilter, templateFilter, draftFilter, getAthleteNames, getMonthlyPlansForAthlete, isWorkoutAssignedToAthlete]);
 
   // Sidebar configuration for coaches
   const coachSections: WorkoutsSection[] = [
@@ -654,11 +686,17 @@ export function CoachTrainingPlans() {
     try {
       setStatsLoading(true);
       
+      // Store all assignments for filtering
+      const allAssignments: any[] = [];
+      
       // Load assignment stats for each plan
       const plansWithStats = await Promise.all(
         plans.map(async (plan) => {
           try {
             const assignments = await api.monthlyPlanAssignments.getByPlan(plan.id);
+            
+            // Add assignments to our collection for filtering
+            allAssignments.push(...assignments);
             
             // Calculate stats
             const totalAssigned = assignments.length;
@@ -685,6 +723,7 @@ export function CoachTrainingPlans() {
       );
       
       setMonthlyPlans(plansWithStats);
+      setMonthlyPlanAssignments(allAssignments);
     } catch (error) {
       console.error('Error loading assignment stats:', error);
     } finally {
@@ -1088,10 +1127,7 @@ export function CoachTrainingPlans() {
 
       // Apply athlete filter
       if (selectedAthlete !== 'all') {
-        filteredWorkouts = filteredWorkouts.filter(workout => {
-          const workoutAssignments = assignments?.filter(a => a.workout_id === workout.id) || [];
-          return workoutAssignments.some(assignment => assignment.athlete_id === selectedAthlete);
-        });
+        filteredWorkouts = filteredWorkouts.filter(workout => isWorkoutAssignedToAthlete(workout, selectedAthlete));
       }
     }
 
