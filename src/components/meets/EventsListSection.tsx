@@ -17,7 +17,7 @@ import {
   Divider
 } from '@chakra-ui/react';
 import { FaCog, FaUsers, FaTrash } from 'react-icons/fa';
-import { formatMeetDate } from '../../utils/meets/meetFormatters';
+import { formatMeetDate, formatEventDate } from '../../utils/meets/meetFormatters';
 
 interface EventWithAthletes {
   id: string;
@@ -63,7 +63,7 @@ export const EventsListSection: React.FC<EventsListSectionProps> = ({
       const dayKey = event.event_day 
         ? `Day ${event.event_day}` 
         : event.event_date 
-          ? formatMeetDate(event.event_date)
+          ? formatEventDate(event.event_date)
           : 'Unscheduled';
       
       if (!acc[dayKey]) {
@@ -114,7 +114,7 @@ export const EventsListSection: React.FC<EventsListSectionProps> = ({
             {dayLabel}
             {dayEvents[0]?.event_date && dayEvents[0]?.event_day && (
               <Text as="span" fontSize="xs" color={subtextColor} ml={2}>
-                ({formatMeetDate(dayEvents[0].event_date)})
+                ({formatEventDate(dayEvents[0].event_date)})
               </Text>
             )}
           </Text>

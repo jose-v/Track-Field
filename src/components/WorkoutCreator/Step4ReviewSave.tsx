@@ -181,7 +181,7 @@ const DraggableExercise: React.FC<DraggableExerciseProps> = ({
     exercise.distance,
     exercise.rest,
     exercise.rpe
-  ].filter(field => field && field.trim() !== '').length;
+  ].filter(field => field && String(field).trim() !== '').length;
 
   return (
     <Box
@@ -388,7 +388,7 @@ const DraggableSingleDayExercise: React.FC<DraggableSingleDayExerciseProps> = ({
     exercise.distance,
     exercise.rest,
     exercise.rpe
-  ].filter(field => field && field.trim() !== '').length;
+  ].filter(field => field && String(field).trim() !== '').length;
 
   return (
     <Card

@@ -17,21 +17,7 @@ interface MonthlyPlanCreatorProps {
   editingPlan?: any; // For future editing functionality
 }
 
-const CURRENT_YEAR = new Date().getFullYear();
-const MONTHS = [
-  { value: 1, name: 'January' },
-  { value: 2, name: 'February' },
-  { value: 3, name: 'March' },
-  { value: 4, name: 'April' },
-  { value: 5, name: 'May' },
-  { value: 6, name: 'June' },
-  { value: 7, name: 'July' },
-  { value: 8, name: 'August' },
-  { value: 9, name: 'September' },
-  { value: 10, name: 'October' },
-  { value: 11, name: 'November' },
-  { value: 12, name: 'December' }
-];
+
 
 export function MonthlyPlanCreator({
   isOpen,
@@ -43,12 +29,22 @@ export function MonthlyPlanCreator({
   const titleColor = useColorModeValue('gray.800', 'gray.100');
   const infoColor = useColorModeValue('gray.600', 'gray.200');
 
+  // Helper function to format date without timezone issues
+  const formatLocalDate = (dateString: string): string => {
+    const [year, month, day] = dateString.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    return date.toLocaleDateString();
+  };
+
   // Form state
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    month: new Date().getMonth() + 1, // Current month
-    year: CURRENT_YEAR,
+    startDate: (() => {
+      // Default to today's date
+      const today = new Date();
+      return today.toISOString().split('T')[0]; // YYYY-MM-DD format
+    })(),
     weeks: [
       { week_number: 1, workout_id: '', is_rest_week: false },
       { week_number: 2, workout_id: '', is_rest_week: false },
@@ -75,6 +71,28 @@ export function MonthlyPlanCreator({
     }
   }, [isOpen, editingPlan]);
 
+  // Reset form completely when modal closes to ensure clean state
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset to fresh state when modal closes
+      setFormData({
+        name: '',
+        description: '',
+        startDate: (() => {
+          const today = new Date();
+          return today.toISOString().split('T')[0];
+        })(),
+        weeks: [
+          { week_number: 1, workout_id: '', is_rest_week: false },
+          { week_number: 2, workout_id: '', is_rest_week: false },
+          { week_number: 3, workout_id: '', is_rest_week: false },
+          { week_number: 4, workout_id: '', is_rest_week: false }
+        ]
+      });
+      setErrors({});
+    }
+  }, [isOpen]);
+
   const loadAvailableWorkouts = async () => {
     try {
       setWorkoutsLoading(true);
@@ -97,11 +115,23 @@ export function MonthlyPlanCreator({
 
   const loadEditingPlan = () => {
     if (editingPlan) {
+      // Use start_date from database directly
+      let startDate;
+      if (editingPlan.start_date) {
+        startDate = editingPlan.start_date;
+      } else if (editingPlan.startDate) {
+        // Fallback for different naming
+        startDate = editingPlan.startDate;
+      } else {
+        // Default to today
+        const today = new Date();
+        startDate = today.toISOString().split('T')[0];
+      }
+
       setFormData({
         name: editingPlan.name || '',
         description: editingPlan.description || '',
-        month: editingPlan.month || new Date().getMonth() + 1,
-        year: editingPlan.year || CURRENT_YEAR,
+        startDate: startDate,
         weeks: editingPlan.weeks || [
           { week_number: 1, workout_id: '', is_rest_week: false },
           { week_number: 2, workout_id: '', is_rest_week: false },
@@ -118,8 +148,10 @@ export function MonthlyPlanCreator({
       setFormData({
         name: '',
         description: '',
-        month: new Date().getMonth() + 1,
-        year: CURRENT_YEAR,
+        startDate: (() => {
+          const today = new Date();
+          return today.toISOString().split('T')[0];
+        })(),
         weeks: [
           { week_number: 1, workout_id: '', is_rest_week: false },
           { week_number: 2, workout_id: '', is_rest_week: false },
@@ -139,12 +171,19 @@ export function MonthlyPlanCreator({
       newErrors.name = 'Plan name is required';
     }
 
-    if (formData.month < 1 || formData.month > 12) {
-      newErrors.month = 'Please select a valid month';
-    }
-
-    if (formData.year < CURRENT_YEAR) {
-      newErrors.year = 'Year cannot be in the past';
+    if (!formData.startDate) {
+      newErrors.startDate = 'Start date is required';
+    } else {
+      // Get today's date in YYYY-MM-DD format (same format as input)
+      const today = new Date();
+      const todayString = today.getFullYear() + '-' + 
+        String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+        String(today.getDate()).padStart(2, '0');
+      
+      // Compare date strings directly to avoid timezone issues
+      if (formData.startDate < todayString) {
+        newErrors.startDate = 'Start date cannot be in the past';
+      }
     }
 
     // Check that non-rest weeks have workouts selected
@@ -172,11 +211,24 @@ export function MonthlyPlanCreator({
     try {
       setLoading(true);
 
+      // Calculate end_date based on start_date and number of weeks
+      const [yearStr, monthStr, dayStr] = formData.startDate.split('-');
+      const startYear = parseInt(yearStr, 10);
+      const startMonth = parseInt(monthStr, 10) - 1; // Month is 0-indexed in Date constructor
+      const startDay = parseInt(dayStr, 10);
+      
+      const startDate = new Date(startYear, startMonth, startDay);
+      const numberOfWeeks = formData.weeks.length;
+      const endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + (numberOfWeeks * 7) - 1); // -1 to include the start day
+
       const planData = {
         name: formData.name.trim(),
         description: formData.description.trim(),
-        month: formData.month,
-        year: formData.year,
+        start_date: formData.startDate,
+        end_date: endDate.getFullYear() + '-' + 
+          String(endDate.getMonth() + 1).padStart(2, '0') + '-' + 
+          String(endDate.getDate()).padStart(2, '0'),
         weeks: formData.weeks.map(week => ({
           week_number: week.week_number,
           workout_id: week.is_rest_week ? '' : week.workout_id,
@@ -190,7 +242,7 @@ export function MonthlyPlanCreator({
         result = await api.monthlyPlans.update(editingPlan.id, planData);
         toast({
           title: 'Monthly plan updated successfully!',
-          description: `"${planData.name}" has been updated for ${MONTHS.find(m => m.value === planData.month)?.name} ${planData.year}`,
+          description: `"${planData.name}" has been updated starting ${formatLocalDate(formData.startDate)}`,
           status: 'success',
           duration: 5000,
           isClosable: true
@@ -200,7 +252,7 @@ export function MonthlyPlanCreator({
         result = await api.monthlyPlans.create(planData);
         toast({
           title: 'Monthly plan created successfully!',
-          description: `"${planData.name}" has been created for ${MONTHS.find(m => m.value === planData.month)?.name} ${planData.year}`,
+          description: `"${planData.name}" has been created starting ${formatLocalDate(formData.startDate)}`,
           status: 'success',
           duration: 5000,
           isClosable: true
@@ -274,39 +326,17 @@ export function MonthlyPlanCreator({
                   />
                 </FormControl>
 
-                <HStack spacing={4}>
-                  <FormControl isInvalid={!!errors.month}>
-                    <FormLabel>Month</FormLabel>
-                    <Select
-                      value={formData.month}
-                      onChange={(e) => setFormData({ ...formData, month: parseInt(e.target.value) })}
-                      disabled={loading}
-                    >
-                      {MONTHS.map(month => (
-                        <option key={month.value} value={month.value}>
-                          {month.name}
-                        </option>
-                      ))}
-                    </Select>
-                    <FormErrorMessage>{errors.month}</FormErrorMessage>
-                  </FormControl>
-
-                  <FormControl isInvalid={!!errors.year}>
-                    <FormLabel>Year</FormLabel>
-                    <Select
-                      value={formData.year}
-                      onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) })}
-                      disabled={loading}
-                    >
-                      {[CURRENT_YEAR, CURRENT_YEAR + 1, CURRENT_YEAR + 2].map(year => (
-                        <option key={year} value={year}>
-                          {year}
-                        </option>
-                      ))}
-                    </Select>
-                    <FormErrorMessage>{errors.year}</FormErrorMessage>
-                  </FormControl>
-                </HStack>
+                <FormControl isInvalid={!!errors.startDate}>
+                  <FormLabel>Training Start Date</FormLabel>
+                  <Input
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    disabled={loading}
+                    min={new Date().toISOString().split('T')[0]} // Minimum today's date
+                  />
+                  <FormErrorMessage>{errors.startDate}</FormErrorMessage>
+                </FormControl>
               </VStack>
             </Box>
 
@@ -320,7 +350,7 @@ export function MonthlyPlanCreator({
                     Weekly Schedule
                   </Text>
                   <Badge colorScheme="teal" px={3} py={1} borderRadius="md">
-                    {MONTHS.find(m => m.value === formData.month)?.name} {formData.year}
+                    Starting {formatLocalDate(formData.startDate)}
                   </Badge>
                 </HStack>
 

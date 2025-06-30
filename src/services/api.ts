@@ -35,6 +35,8 @@ export interface Workout {
   is_draft?: boolean
   template_category?: string
   template_tags?: string[]
+  flow_type?: 'sequential' | 'circuit'
+  circuit_rounds?: number
 }
 
 interface TeamPost {
@@ -55,6 +57,8 @@ export interface EnhancedWorkoutData {
   duration?: string
   exercises?: Exercise[]
   is_template?: boolean
+  flow_type?: 'sequential' | 'circuit'
+  circuit_rounds?: number
   weekly_plan?: {
     day: string
     exercises: Exercise[]
@@ -104,21 +108,34 @@ export const api = {
           time?: string;
           location?: string;
           template_type?: string;
+          is_template?: boolean;
         } = {
           name: workout.name,
           description: workout.notes || workout.description || '',
           user_id: user.id,
           created_by: user.id,
-          exercises: workout.exercises || []
+          exercises: workout.exercises || [],
+          is_template: workout.is_template || false
         };
         
         // Add optional fields if they exist
         if (workout.type) workoutData.type = workout.type;
-        if (workout.date) workoutData.date = workout.date;
-        if (workout.duration) workoutData.duration = workout.duration;
-        if (workout.time) workoutData.time = workout.time;
-        if (workout.location) workoutData.location = workout.location;
         if (workout.template_type) workoutData.template_type = workout.template_type;
+        
+        // Handle date fields - templates should always have null date fields
+        if (workout.is_template) {
+          // Templates don't have specific dates
+          workoutData.date = null;
+          workoutData.time = null;
+          workoutData.duration = null;
+          workoutData.location = workout.location || null;
+        } else {
+          // Regular workouts can have date fields
+          if (workout.date && workout.date.trim() !== '') workoutData.date = workout.date;
+          if (workout.time && workout.time.trim() !== '') workoutData.time = workout.time;
+          if (workout.duration && workout.duration.trim() !== '') workoutData.duration = workout.duration;
+          if (workout.location && workout.location.trim() !== '') workoutData.location = workout.location;
+        }
         
         const { data, error } = await supabase
           .from('workouts')
@@ -144,15 +161,39 @@ export const api = {
     },
 
     async update(id: string, workout: Partial<Workout>): Promise<Workout> {
+      // Helper function to convert empty strings to null for date fields
+      const sanitizeValue = (value: any): any => {
+        if (value === '' || value === undefined) return null;
+        return value;
+      };
+
+      // Sanitize the workout data before sending to database
+      const sanitizedWorkout = {
+        ...workout,
+        // Sanitize date-related fields that might be empty strings
+        date: sanitizeValue(workout.date),
+        time: sanitizeValue(workout.time),
+        duration: sanitizeValue(workout.duration),
+        location: sanitizeValue(workout.location),
+        description: sanitizeValue(workout.description || workout.notes),
+        notes: undefined // Remove notes since we use description in DB
+      };
+
       const { data, error } = await supabase
         .from('workouts')
-        .update(workout)
+        .update(sanitizedWorkout)
         .eq('id', id)
         .select()
         .single()
 
       if (error) throw error
-      return data
+      
+      // Return with app-expected structure
+      return {
+        ...data,
+        notes: data.description || '', // Map description back to notes for app
+        exercises: data.exercises || []
+      };
     },
 
     async delete(id: string): Promise<void> {
@@ -366,9 +407,10 @@ export const api = {
           type: workoutData.type,
           template_type: workoutData.template_type,
           location: workoutData.location,
-          date: workoutData.date && workoutData.date.trim() !== '' ? workoutData.date : null,
-          time: workoutData.time && workoutData.time.trim() !== '' ? workoutData.time : null,
-          duration: workoutData.duration && workoutData.duration.trim() !== '' ? workoutData.duration : null,
+          // Templates should always have null date fields since they don't have specific dates
+          date: workoutData.is_template ? null : (workoutData.date && workoutData.date.trim() !== '' ? workoutData.date : null),
+          time: workoutData.is_template ? null : (workoutData.time && workoutData.time.trim() !== '' ? workoutData.time : null),
+          duration: workoutData.is_template ? null : (workoutData.duration && workoutData.duration.trim() !== '' ? workoutData.duration : null),
           is_template: workoutData.is_template || false,
           exercises: workoutData.template_type === 'single' ? (workoutData.exercises || []) : []
         };
@@ -524,9 +566,10 @@ export const api = {
         type: workoutData.type || 'Strength',
         template_type: workoutData.template_type || 'single',
         location: workoutData.location || null,
-        date: workoutData.date || null,
-        time: workoutData.time || null,
-        duration: workoutData.duration || null,
+        // Templates should always have null date fields
+        date: workoutData.is_template ? null : (workoutData.date || null),
+        time: workoutData.is_template ? null : (workoutData.time || null),
+        duration: workoutData.is_template ? null : (workoutData.duration || null),
         is_template: workoutData.is_template || false,
         is_draft: true,
         exercises: exercisesToStore,
@@ -595,10 +638,10 @@ export const api = {
         weekly_plan: finalWeeklyPlan,
         is_draft: false, // This is the key change - promoting from draft to final
         is_template: finalWorkoutData.is_template || false,
-        // Sanitize date fields that might be empty strings
-        date: sanitizeValue(finalWorkoutData.date),
-        time: sanitizeValue(finalWorkoutData.time),
-        duration: sanitizeValue(finalWorkoutData.duration),
+        // Templates should always have null date fields, otherwise sanitize empty strings
+        date: finalWorkoutData.is_template ? null : sanitizeValue(finalWorkoutData.date),
+        time: finalWorkoutData.is_template ? null : sanitizeValue(finalWorkoutData.time),
+        duration: finalWorkoutData.is_template ? null : sanitizeValue(finalWorkoutData.duration),
         location: sanitizeValue(finalWorkoutData.location)
         // Removed updated_at since it's automatically handled by database triggers
       };
@@ -2137,16 +2180,30 @@ export const api = {
       if (error) throw error
       
       // Convert the data to match the expected format for the UI
+      let weeks: { week_number: number; workout_id: string; is_rest_week: boolean }[] = [];
+      
+      if (data.weeks_structure && Array.isArray(data.weeks_structure)) {
+        // Use the new structured format that preserves week positions and rest weeks
+        weeks = data.weeks_structure.map((workoutId: string | null, index: number) => ({
+          week_number: index + 1,
+          workout_id: workoutId || '',
+          is_rest_week: workoutId === null
+        }));
+      } else if (data.weekly_workout_ids && Array.isArray(data.weekly_workout_ids)) {
+        // Fallback to legacy format
+        weeks = data.weekly_workout_ids.map((workoutId: string, index: number) => ({
+          week_number: index + 1,
+          workout_id: workoutId,
+          is_rest_week: false
+        }));
+      }
+      
       return {
         ...data,
         // Convert start_date back to month/year for UI compatibility
         month: data.start_date ? new Date(data.start_date).getMonth() + 1 : 1,
         year: data.start_date ? new Date(data.start_date).getFullYear() : new Date().getFullYear(),
-        weeks: data.weekly_workout_ids ? data.weekly_workout_ids.map((workoutId: string, index: number) => ({
-          week_number: index + 1,
-          workout_id: workoutId,
-          is_rest_week: false
-        })) : []
+        weeks
       }
     },
 
@@ -2168,10 +2225,23 @@ export const api = {
       const startDate = new Date(planData.year, planData.month - 1, 1)
       const endDate = new Date(planData.year, planData.month, 0) // Last day of the month
 
-      // Extract workout IDs from weeks data for the weekly_workout_ids column
+      // Extract workout IDs from weeks data for the weekly_workout_ids column (legacy format)
       const workoutIds = planData.weeks
         .filter(week => !week.is_rest_week && week.workout_id)
         .map(week => week.workout_id)
+      
+      // Create structured weeks format that preserves rest weeks and exact positions
+      const sortedWeeks = [...planData.weeks].sort((a, b) => a.week_number - b.week_number);
+      const weeksStructure: (string | null)[] = [];
+      
+      sortedWeeks.forEach(week => {
+        const arrayIndex = week.week_number - 1; // Convert to 0-indexed
+        if (week.is_rest_week) {
+          weeksStructure[arrayIndex] = null; // Use null to indicate rest week
+        } else {
+          weeksStructure[arrayIndex] = week.workout_id || null;
+        }
+      });
 
       const { data, error } = await supabase
         .from('training_plans')
@@ -2181,7 +2251,8 @@ export const api = {
           coach_id: user.id,
           start_date: startDate.toISOString().split('T')[0], // YYYY-MM-DD format
           end_date: endDate.toISOString().split('T')[0],
-          weekly_workout_ids: workoutIds,
+          weekly_workout_ids: workoutIds, // Legacy format for backward compatibility
+          weeks_structure: weeksStructure, // New structured format
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }])
@@ -2191,24 +2262,69 @@ export const api = {
       if (error) throw error
       
       // Convert the response to match the expected format
+      let weeks: { week_number: number; workout_id: string; is_rest_week: boolean }[] = [];
+      
+      if (data.weeks_structure && Array.isArray(data.weeks_structure)) {
+        // Use the new structured format that preserves week positions and rest weeks
+        weeks = data.weeks_structure.map((workoutId: string | null, index: number) => ({
+          week_number: index + 1,
+          workout_id: workoutId || '',
+          is_rest_week: workoutId === null
+        }));
+      } else if (data.weekly_workout_ids && Array.isArray(data.weekly_workout_ids)) {
+        // Fallback to legacy format
+        weeks = data.weekly_workout_ids.map((workoutId: string, index: number) => ({
+          week_number: index + 1,
+          workout_id: workoutId,
+          is_rest_week: false
+        }));
+      }
+      
       return {
         ...data,
         // Convert start_date back to month/year for UI compatibility
         month: data.start_date ? new Date(data.start_date).getMonth() + 1 : planData.month,
         year: data.start_date ? new Date(data.start_date).getFullYear() : planData.year,
-        weeks: data.weekly_workout_ids ? data.weekly_workout_ids.map((workoutId: string, index: number) => ({
-          week_number: index + 1,
-          workout_id: workoutId,
-          is_rest_week: false
-        })) : []
+        weeks
       }
     },
 
     async update(id: string, updateData: any) {
+      // Process the update data to handle weeks structure if provided
+      const processedUpdateData = { ...updateData };
+      
+      // If weeks data is provided, convert it to both legacy and new formats
+      if (updateData.weeks && Array.isArray(updateData.weeks)) {
+        // Extract workout IDs from weeks data for the weekly_workout_ids column (legacy format)
+        const workoutIds = updateData.weeks
+          .filter((week: any) => !week.is_rest_week && week.workout_id)
+          .map((week: any) => week.workout_id);
+        
+        // Create structured weeks format that preserves rest weeks and exact positions
+        const sortedWeeks = [...updateData.weeks].sort((a: any, b: any) => a.week_number - b.week_number);
+        const weeksStructure: (string | null)[] = [];
+        
+        sortedWeeks.forEach((week: any) => {
+          const arrayIndex = week.week_number - 1; // Convert to 0-indexed
+          if (week.is_rest_week) {
+            weeksStructure[arrayIndex] = null; // Use null to indicate rest week
+          } else {
+            weeksStructure[arrayIndex] = week.workout_id || null;
+          }
+        });
+        
+        // Add both formats to the update data
+        processedUpdateData.weekly_workout_ids = workoutIds; // Legacy format for backward compatibility
+        processedUpdateData.weeks_structure = weeksStructure; // New structured format
+        
+        // Remove the original weeks field as it's not a database column
+        delete processedUpdateData.weeks;
+      }
+
       const { data, error } = await supabase
         .from('training_plans')
         .update({
-          ...updateData,
+          ...processedUpdateData,
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
@@ -2218,16 +2334,30 @@ export const api = {
       if (error) throw error
       
       // Convert the response to match the expected format
+      let weeks: { week_number: number; workout_id: string; is_rest_week: boolean }[] = [];
+      
+      if (data.weeks_structure && Array.isArray(data.weeks_structure)) {
+        // Use the new structured format that preserves week positions and rest weeks
+        weeks = data.weeks_structure.map((workoutId: string | null, index: number) => ({
+          week_number: index + 1,
+          workout_id: workoutId || '',
+          is_rest_week: workoutId === null
+        }));
+      } else if (data.weekly_workout_ids && Array.isArray(data.weekly_workout_ids)) {
+        // Fallback to legacy format
+        weeks = data.weekly_workout_ids.map((workoutId: string, index: number) => ({
+          week_number: index + 1,
+          workout_id: workoutId,
+          is_rest_week: false
+        }));
+      }
+      
       return {
         ...data,
         // Convert start_date back to month/year for UI compatibility
         month: data.start_date ? new Date(data.start_date).getMonth() + 1 : 1,
         year: data.start_date ? new Date(data.start_date).getFullYear() : new Date().getFullYear(),
-        weeks: data.weekly_workout_ids ? data.weekly_workout_ids.map((workoutId: string, index: number) => ({
-          week_number: index + 1,
-          workout_id: workoutId,
-          is_rest_week: false
-        })) : []
+        weeks
       }
     },
 
@@ -2278,17 +2408,33 @@ export const api = {
       if (error) throw error
       
       // Convert the data to match the expected format for the UI
-      return data.map(plan => ({
-        ...plan,
-        // Convert start_date back to month/year for compatibility with the UI
-        month: plan.start_date ? new Date(plan.start_date).getMonth() + 1 : 1,
-        year: plan.start_date ? new Date(plan.start_date).getFullYear() : new Date().getFullYear(),
-        weeks: plan.weekly_workout_ids ? plan.weekly_workout_ids.map((workoutId: string, index: number) => ({
-          week_number: index + 1,
-          workout_id: workoutId,
-          is_rest_week: false
-        })) : []
-      }))
+      return data.map(plan => {
+        let weeks: { week_number: number; workout_id: string; is_rest_week: boolean }[] = [];
+        
+        if (plan.weeks_structure && Array.isArray(plan.weeks_structure)) {
+          // Use the new structured format that preserves week positions and rest weeks
+          weeks = plan.weeks_structure.map((workoutId: string | null, index: number) => ({
+            week_number: index + 1,
+            workout_id: workoutId || '',
+            is_rest_week: workoutId === null
+          }));
+        } else if (plan.weekly_workout_ids && Array.isArray(plan.weekly_workout_ids)) {
+          // Fallback to legacy format
+          weeks = plan.weekly_workout_ids.map((workoutId: string, index: number) => ({
+            week_number: index + 1,
+            workout_id: workoutId,
+            is_rest_week: false
+          }));
+        }
+        
+        return {
+          ...plan,
+          // Convert start_date back to month/year for compatibility with the UI
+          month: plan.start_date ? new Date(plan.start_date).getMonth() + 1 : 1,
+          year: plan.start_date ? new Date(plan.start_date).getFullYear() : new Date().getFullYear(),
+          weeks
+        };
+      })
     },
 
     async permanentDelete(id: string): Promise<void> {
@@ -2313,15 +2459,32 @@ export const api = {
     },
 
     async updateWeeks(id: string, weeks: { week_number: number; workout_id: string; is_rest_week: boolean }[]) {
-      // Convert weeks format to weekly_workout_ids array format
-      const workoutIds = weeks
+      // Sort weeks by week_number to ensure proper order
+      const sortedWeeks = [...weeks].sort((a, b) => a.week_number - b.week_number);
+      
+      // Create an array where each index corresponds to the week number (0-indexed)
+      // This preserves the exact week structure including rest weeks
+      const weeklyWorkoutIds: (string | null)[] = [];
+      
+      sortedWeeks.forEach(week => {
+        const arrayIndex = week.week_number - 1; // Convert to 0-indexed
+        if (week.is_rest_week) {
+          weeklyWorkoutIds[arrayIndex] = null; // Use null to indicate rest week
+        } else {
+          weeklyWorkoutIds[arrayIndex] = week.workout_id || null;
+        }
+      });
+      
+      // Store both the legacy format for backward compatibility and the new structured format
+      const legacyWorkoutIds = sortedWeeks
         .filter(week => !week.is_rest_week && week.workout_id)
-        .map(week => week.workout_id)
+        .map(week => week.workout_id);
         
       const { data, error } = await supabase
         .from('training_plans')
         .update({
-          weekly_workout_ids: workoutIds, // Use the correct column name
+          weekly_workout_ids: legacyWorkoutIds, // Keep legacy format for compatibility
+          weeks_structure: weeklyWorkoutIds, // New structured format that preserves week positions
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
@@ -2330,14 +2493,28 @@ export const api = {
 
       if (error) throw error
       
-      // Convert the response to match the expected format
-      return {
-        ...data,
-        weeks: data.weekly_workout_ids ? data.weekly_workout_ids.map((workoutId: string, index: number) => ({
+      // Convert the response to match the expected format, using the structured format if available
+      let reconstructedWeeks: { week_number: number; workout_id: string; is_rest_week: boolean }[] = [];
+      
+      if (data.weeks_structure && Array.isArray(data.weeks_structure)) {
+        // Use the new structured format
+        reconstructedWeeks = data.weeks_structure.map((workoutId: string | null, index: number) => ({
+          week_number: index + 1,
+          workout_id: workoutId || '',
+          is_rest_week: workoutId === null
+        }));
+      } else {
+        // Fallback to legacy format
+        reconstructedWeeks = (data.weekly_workout_ids || []).map((workoutId: string, index: number) => ({
           week_number: index + 1,
           workout_id: workoutId,
           is_rest_week: false
-        })) : []
+        }));
+      }
+      
+      return {
+        ...data,
+        weeks: reconstructedWeeks
       }
     }
   },
@@ -2479,7 +2656,7 @@ export const api = {
       // Fetch training plans separately to avoid relationship conflicts
       const { data: trainingPlans, error: plansError } = await supabase
         .from('training_plans')
-        .select('id, name, description, start_date, end_date, weekly_workout_ids, coach_id')
+        .select('id, name, description, start_date, end_date, weekly_workout_ids, weeks_structure, coach_id')
         .in('id', planIds);
         
       if (plansError) throw plansError;
@@ -2494,19 +2671,41 @@ export const api = {
       return assignments.map(assignment => {
         const plan = plansMap.get(assignment.training_plan_id);
         
+        if (!plan) {
+          return {
+            ...assignment,
+            training_plans: null
+          };
+        }
+        
+        // Handle weeks structure with the new format
+        let weeks: { week_number: number; workout_id: string; is_rest_week: boolean }[] = [];
+        
+        if (plan.weeks_structure && Array.isArray(plan.weeks_structure)) {
+          // Use the new structured format that preserves week positions and rest weeks
+          weeks = plan.weeks_structure.map((workoutId: string | null, index: number) => ({
+            week_number: index + 1,
+            workout_id: workoutId || '',
+            is_rest_week: workoutId === null
+          }));
+        } else if (plan.weekly_workout_ids && Array.isArray(plan.weekly_workout_ids)) {
+          // Fallback to legacy format
+          weeks = plan.weekly_workout_ids.map((workoutId: string, index: number) => ({
+            week_number: index + 1,
+            workout_id: workoutId,
+            is_rest_week: false
+          }));
+        }
+        
         return {
           ...assignment,
-          training_plans: plan ? {
+          training_plans: {
             ...plan,
             // Convert start_date back to month/year for UI compatibility
             month: plan.start_date ? new Date(plan.start_date).getMonth() + 1 : 1,
             year: plan.start_date ? new Date(plan.start_date).getFullYear() : new Date().getFullYear(),
-            weeks: plan.weekly_workout_ids ? plan.weekly_workout_ids.map((workoutId: string, index: number) => ({
-              week_number: index + 1,
-              workout_id: workoutId,
-              is_rest_week: false
-            })) : []
-          } : null
+            weeks
+          }
         };
       });
     },
@@ -2543,7 +2742,6 @@ export const api = {
     },
 
     async getTodaysWorkout(athleteId: string) {
-      console.log('🔍 getTodaysWorkout called for athlete:', athleteId);
       
       try {
         // Add timeout protection - increased timeout for better reliability
@@ -2556,8 +2754,8 @@ export const api = {
           
           console.log('🔍 Looking for workouts on date:', today);
           
-          // Get today's training plan assignment with timeout resilience
-          const { data: assignmentData, error: assignmentError } = await supabase
+          // Get all training plan assignments for this athlete
+          const { data: allAssignments, error: assignmentError } = await supabase
             .from('training_plan_assignments')
             .select(`
               id,
@@ -2567,9 +2765,8 @@ export const api = {
               status
             `)
             .eq('athlete_id', athleteId)
-            .in('status', ['assigned', 'in_progress'])
-            .limit(1);
-          
+            .in('status', ['assigned', 'in_progress']);
+
           if (assignmentError) {
             console.error('Assignment query error:', assignmentError);
             
@@ -2594,8 +2791,8 @@ export const api = {
             }
             throw assignmentError;
           }
-          
-          if (!assignmentData || assignmentData.length === 0) {
+
+          if (!allAssignments || allAssignments.length === 0) {
             console.log('🔍 No assigned or in-progress training plan assignments found');
             
             // Fallback: Look for individual workouts for today
@@ -2629,53 +2826,62 @@ export const api = {
               primaryWorkout: null
             };
           }
-          
-          const assignment = assignmentData[0];
-          
-          // Now fetch the training plan separately to avoid relationship conflicts
-          if (!assignment.training_plan_id) {
-            console.error('No training plan ID in assignment');
-            return { hasWorkout: false, primaryWorkout: null };
-          }
-          
-          console.log('🔍 Fetching training plan:', assignment.training_plan_id);
-          
-          const { data: planData, error: planError } = await supabase
+
+          // Get training plans for all assignments to check dates
+          const planIds = allAssignments.map(a => a.training_plan_id);
+          const { data: allPlans, error: plansError } = await supabase
             .from('training_plans')
             .select('id, name, start_date, end_date, weekly_workout_ids, weeks')
-            .eq('id', assignment.training_plan_id)
-            .single();
-          
-          if (planError) {
-            console.error('Training plan query error:', planError);
-            
-            // If it's a timeout, provide fallback
-            if (planError.code === '57014' || planError.message?.includes('timeout')) {
-              console.warn('🚨 Training plan query timeout - returning fallback workout');
-              return {
-                hasWorkout: true,
-                primaryWorkout: {
-                  title: 'Training Plan',
-                  description: 'Your assigned training plan',
-                  exercises: [
-                    { name: 'Scheduled workout', sets: 1, reps: 'As planned', weight: null, notes: 'Complete your assigned training' }
-                  ],
-                  progress: { completed: false },
-                  monthlyPlan: { name: 'Training Plan', id: assignment.training_plan_id },
-                  weeklyWorkout: { name: 'Current Week', id: 'fallback' },
-                  dailyResult: null
-                }
-              };
+            .in('id', planIds);
+
+          if (plansError) {
+            console.error('Training plans query error:', plansError);
+            throw plansError;
+          }
+
+          // Find the currently active plan (today falls within start_date and end_date)
+          let activeAssignment = null;
+          let activePlan = null;
+
+          for (const assignment of allAssignments) {
+            const plan = allPlans?.find(p => p.id === assignment.training_plan_id);
+            if (plan) {
+              const startDate = new Date(plan.start_date);
+              const endDate = plan.end_date ? new Date(plan.end_date) : null;
+              const todayDate = new Date(today);
+
+              console.log(`🔍 Checking plan "${plan.name}": start=${plan.start_date}, end=${plan.end_date}, today=${today}`);
+
+              // Check if today falls within the plan's date range
+              if (todayDate >= startDate && (!endDate || todayDate <= endDate)) {
+                console.log(`✅ Found active plan: ${plan.name}`);
+                activeAssignment = assignment;
+                activePlan = plan;
+                break;
+              }
             }
-            throw planError;
+          }
+
+          // If no plan is currently active, use the most recently assigned one as fallback
+          if (!activeAssignment) {
+            console.log('⚠️ No plan is currently active based on dates, using most recently assigned');
+            activeAssignment = allAssignments.sort((a, b) => new Date(b.assigned_at).getTime() - new Date(a.assigned_at).getTime())[0];
+            activePlan = allPlans?.find(p => p.id === activeAssignment.training_plan_id);
+          }
+
+          const assignmentData = [activeAssignment];
+          const assignment = activeAssignment;
+          const plan = activePlan;
+          
+          if (!assignment || !plan) {
+            console.log('🔍 No active training plan found');
+            return {
+              hasWorkout: false,
+              primaryWorkout: null
+            };
           }
           
-          const plan = planData;
-          
-          if (!plan) {
-            console.error('Training plan not found');
-            return { hasWorkout: false, primaryWorkout: null };
-          }
+          console.log('🔍 Using active training plan:', plan.name);
           
           // Calculate which week we're in
           const startDate = new Date(plan.start_date);
@@ -2684,10 +2890,13 @@ export const api = {
           const weekNumber = Math.floor(daysDiff / 7);
           const dayOfWeek = daysDiff % 7;
           
-          console.log('🔍 Plan timing:', { daysDiff, weekNumber, dayOfWeek });
+
           
           // Get weekly workout IDs (should be an array)
-          const weeklyWorkoutIds = plan.weekly_workout_ids || [];
+          let weeklyWorkoutIds = plan.weekly_workout_ids || [];
+          
+          // Filter out any null/empty entries
+          weeklyWorkoutIds = weeklyWorkoutIds.filter(id => id && id.trim());
           
           if (!Array.isArray(weeklyWorkoutIds) || weeklyWorkoutIds.length === 0) {
             console.warn('No weekly workout IDs found in plan');
@@ -2747,17 +2956,65 @@ export const api = {
                 progress: { completed: false },
                 monthlyPlan: { name: plan.name, id: plan.id },
                 weeklyWorkout: { name: 'No weekly workout configured', id: 'none' },
-                dailyResult: null
+                dailyResult: {
+                  dailyWorkout: {
+                    exercises: [
+                      { name: 'Rest day or consult coach', sets: 0, reps: '0', weight: null, notes: 'Check with your coach for today\'s workout' }
+                    ]
+                  }
+                }
               }
             };
           }
           
-          // Get the weekly workout for current week
-          const currentWeeklyWorkoutId = weeklyWorkoutIds[weekNumber % weeklyWorkoutIds.length];
+          // Get the weekly workout for current week with better logic
+          let weekIndex;
+          let currentWeeklyWorkoutId;
+          
+          if (weekNumber < 0) {
+            // Before start date - use first week
+            weekIndex = 0;
+          } else if (weekNumber >= weeklyWorkoutIds.length) {
+            // After plan end - use last week or cycle through
+            weekIndex = weekNumber % weeklyWorkoutIds.length;
+          } else {
+            // Normal case - use calculated week
+            weekIndex = weekNumber;
+          }
+          
+          currentWeeklyWorkoutId = weeklyWorkoutIds[weekIndex];
+          
+          // If still no ID, try the first available workout
+          if (!currentWeeklyWorkoutId && weeklyWorkoutIds.length > 0) {
+            weekIndex = 0;
+            currentWeeklyWorkoutId = weeklyWorkoutIds[0];
+          }
+          
+
           
           if (!currentWeeklyWorkoutId) {
-            console.warn('No weekly workout ID for current week');
-            return { hasWorkout: false, primaryWorkout: null };
+            console.warn('No weekly workout ID for current week, using plan data anyway');
+            // Return plan data even without specific weekly workout
+            return {
+              hasWorkout: true,
+              primaryWorkout: {
+                title: plan.name || 'Training Plan',
+                description: 'Your training plan for today',
+                exercises: [
+                  { name: 'Scheduled workout', sets: 1, reps: 'As planned', weight: null, notes: 'Complete your training for today' }
+                ],
+                progress: { completed: false },
+                monthlyPlan: { name: plan.name, id: plan.id },
+                weeklyWorkout: { name: `Week ${weekNumber + 1}`, id: 'week-' + weekNumber },
+                dailyResult: {
+                  dailyWorkout: {
+                    exercises: [
+                      { name: 'Scheduled workout', sets: 1, reps: 'As planned', weight: null, notes: 'Complete your training for today' }
+                    ]
+                  }
+                }
+              }
+            };
           }
           
           // Try to get weekly workout with timeout protection
@@ -2783,7 +3040,13 @@ export const api = {
                     progress: { completed: false },
                     monthlyPlan: { name: plan.name, id: plan.id },
                     weeklyWorkout: { name: 'Week ' + (weekNumber + 1), id: currentWeeklyWorkoutId },
-                    dailyResult: null
+                    dailyResult: {
+                      dailyWorkout: {
+                        exercises: [
+                          { name: 'Scheduled training', sets: 1, reps: 'As planned', weight: null, notes: 'Complete your assigned workout' }
+                        ]
+                      }
+                    }
                   }
                 };
               }
@@ -2795,25 +3058,173 @@ export const api = {
               return { hasWorkout: false, primaryWorkout: null };
             }
             
-            console.log('🔍 Found weekly workout:', weeklyWorkout);
+
             
             // Since this is a workout from the workouts table, use it directly
-            return {
+            let exercises = weeklyWorkout.exercises || [];
+            
+            // Check if this is a weekly structure with days
+            if (exercises.length > 0 && exercises[0].day && exercises[0].exercises) {
+              // Smart day logic that handles training weeks starting on different days
+              const today = new Date();
+              const currentDayOfWeek = today.getDay(); // 0=Sunday, 1=Monday, etc.
+              const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+              
+              // Check if this weekly workout has Monday-Sunday structure (most common)
+              const hasMonday = exercises.some(dayObj => dayObj.day?.toLowerCase() === 'monday');
+              const hasSunday = exercises.some(dayObj => dayObj.day?.toLowerCase() === 'sunday');
+              
+                             let targetDay;
+               let isRestDay = false;
+               let previewTomorrowsWorkout = false;
+               let noTrainingToday = false;
+               
+               if (hasMonday && !hasSunday && currentDayOfWeek === 0) {
+                 // This is a Monday-Friday/Saturday workout and today is Sunday
+                 // No training scheduled today, but show preview of Monday's workout
+                 targetDay = 'monday';
+                 previewTomorrowsWorkout = true;
+                 noTrainingToday = true; // Today has no scheduled training
+               } else if (hasMonday && hasSunday) {
+                 // Full week structure - use today's day
+                 targetDay = dayNames[currentDayOfWeek];
+               } else {
+                 // Default to today's day
+                 targetDay = dayNames[currentDayOfWeek];
+               }
+              
+              console.log(`🔍 Day logic: currentDay=${dayNames[currentDayOfWeek]}, targetDay=${targetDay}, preview=${previewTomorrowsWorkout}`);
+              
+                             // Find the target day's exercises
+               const targetData = exercises.find(dayObj => dayObj.day?.toLowerCase() === targetDay.toLowerCase());
+               
+               if (targetData) {
+                 if (targetData.isRestDay || (!targetData.exercises || targetData.exercises.length === 0)) {
+                   if (noTrainingToday) {
+                     // No training scheduled today (e.g., Sunday when training starts Monday)
+                     exercises = targetData.exercises || [];
+                   } else {
+                     // It's an actual scheduled rest day
+                     isRestDay = true;
+                     exercises = [];
+                   }
+                 } else {
+                   // Found exercises for target day
+                   exercises = targetData.exercises;
+                 }
+               } else {
+                 // Target day not found
+                 if (noTrainingToday) {
+                   // This is expected - no training today, find tomorrow's exercises for preview
+                   const firstDayWithExercises = exercises.find(dayObj => 
+                     dayObj.exercises && dayObj.exercises.length > 0 && !dayObj.isRestDay
+                   );
+                   exercises = firstDayWithExercises?.exercises || [];
+                 } else {
+                   // Unexpected case - try to find any exercises
+                   const firstDayWithExercises = exercises.find(dayObj => 
+                     dayObj.exercises && dayObj.exercises.length > 0 && !dayObj.isRestDay
+                   );
+                   exercises = firstDayWithExercises?.exercises || [];
+                   if (!firstDayWithExercises) {
+                     isRestDay = true;
+                   }
+                 }
+               }
+               
+               // Create appropriate messaging based on the scenario
+               if (isRestDay && !noTrainingToday) {
+                 // Actual scheduled rest day
+                 exercises = [{
+                   name: 'Rest Day',
+                   sets: 0,
+                   reps: '0',
+                   notes: 'Today is a rest day. Take time to recover and prepare for tomorrow\'s training.'
+                 }];
+               } else if (noTrainingToday && exercises.length === 0) {
+                 // No training scheduled today, no exercises to preview
+                 exercises = [{
+                   name: 'No Training Today',
+                   sets: 0,
+                   reps: '0',
+                   notes: 'No exercises scheduled for today. Your training week starts tomorrow.'
+                 }];
+               } else if (noTrainingToday && exercises.length > 0) {
+                 // No training today, but show preview of tomorrow's exercises
+                 exercises = exercises.map(exercise => ({
+                   ...exercise,
+                   notes: `Tomorrow's workout: ${exercise.notes || ''}`
+                 }));
+               }
+            }
+            
+            // Process exercises to ensure they have proper names
+            exercises = exercises.map((exercise, index) => {
+              // Try to get a name from various possible fields
+              const name = exercise.name || 
+                          exercise.exercise_name || 
+                          exercise.description || 
+                          exercise.type || 
+                          exercise.category ||
+                          `Exercise ${index + 1}`;
+              
+              return {
+                ...exercise,
+                name: name
+              };
+            });
+            
+            if (exercises.length === 0) {
+              console.warn('🔍 Weekly workout has no exercises, creating placeholder');
+              exercises = [
+                { name: 'Warm-up', sets: '1', reps: '10 minutes', notes: 'Dynamic stretching' },
+                { name: 'Main workout', sets: '1', reps: 'As prescribed', notes: 'Follow your training plan' },
+                { name: 'Cool-down', sets: '1', reps: '10 minutes', notes: 'Static stretching' }
+              ];
+            }
+            
+            // Determine appropriate title and description based on context
+            let workoutTitle = plan.name || weeklyWorkout.name || 'Today\'s Workout';
+            let workoutDescription = weeklyWorkout.description || `Week ${weekIndex + 1} training`;
+            
+            // Check the different scenarios
+            const isPreview = exercises.length > 0 && exercises[0].notes?.includes("Tomorrow's workout:");
+            const isRestDay = exercises.length === 1 && exercises[0].name === 'Rest Day';
+            const isNoTrainingToday = exercises.length === 1 && exercises[0].name === 'No Training Today';
+            
+            if (isNoTrainingToday) {
+              workoutTitle = `${plan.name} - No Training Today`;
+              workoutDescription = `No exercises scheduled for today. Your training week starts tomorrow.`;
+            } else if (isPreview) {
+              workoutTitle = `${plan.name} - Tomorrow's Training`;
+              workoutDescription = `Preview of tomorrow's workout. Training starts Monday.`;
+            } else if (isRestDay) {
+              workoutTitle = `${plan.name} - Rest Day`;
+              workoutDescription = `Today is a rest day in your training plan.`;
+            }
+
+            const successResult = {
               hasWorkout: true,
               primaryWorkout: {
-                title: weeklyWorkout.name || plan.name || 'Today\'s Workout',
-                description: weeklyWorkout.description || 'Your workout for today',
-                exercises: weeklyWorkout.exercises || [],
+                title: workoutTitle,
+                description: workoutDescription,
+                exercises: exercises,
                 progress: { completed: false },
                 monthlyPlan: { name: plan.name, id: plan.id },
-                weeklyWorkout: { name: weeklyWorkout.name, id: weeklyWorkout.id },
+                weeklyWorkout: { name: weeklyWorkout.name || `Week ${weekIndex + 1}`, id: weeklyWorkout.id },
                 dailyResult: {
                   dailyWorkout: {
-                    exercises: weeklyWorkout.exercises || []
-                  }
+                    exercises: exercises
+                  },
+                  originalWeeklyData: weeklyWorkout.exercises || [],
+                  isPreview: isPreview,
+                  isRestDay: isRestDay,
+                  isNoTrainingToday: isNoTrainingToday
                 }
               }
             };
+            
+            return successResult;
             
           } catch (weeklyWorkoutError) {
             console.error('Error fetching weekly workout:', weeklyWorkoutError);
@@ -2830,7 +3241,13 @@ export const api = {
                 progress: { completed: false },
                 monthlyPlan: { name: plan.name, id: plan.id },
                 weeklyWorkout: { name: 'Current week', id: currentWeeklyWorkoutId },
-                dailyResult: null
+                dailyResult: {
+                  dailyWorkout: {
+                    exercises: [
+                      { name: 'Planned workout', sets: 1, reps: 'Check with coach', weight: null, notes: 'Contact your coach for today\'s specific workout details' }
+                    ]
+                  }
+                }
               }
             };
           }
@@ -2848,6 +3265,8 @@ export const api = {
             error.message?.includes('canceling statement')) {
           console.warn('🚨 getTodaysWorkout infrastructure timeout - providing fallback');
           
+
+          
           return {
             hasWorkout: true,
             primaryWorkout: {
@@ -2861,7 +3280,15 @@ export const api = {
               progress: { completed: false },
               monthlyPlan: { name: 'Current Training Plan', id: 'fallback' },
               weeklyWorkout: { name: 'This Week', id: 'fallback' },
-              dailyResult: null
+              dailyResult: {
+                dailyWorkout: {
+                  exercises: [
+                    { name: 'Warm-up', sets: 1, reps: '10-15 minutes', weight: null, notes: 'Dynamic stretching and light movement' },
+                    { name: 'Main workout', sets: 1, reps: 'As assigned', weight: null, notes: 'Complete your planned training session' },
+                    { name: 'Cool-down', sets: 1, reps: '10 minutes', weight: null, notes: 'Static stretching and recovery' }
+                  ]
+                }
+              }
             }
           };
         }

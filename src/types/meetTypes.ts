@@ -19,6 +19,7 @@ export interface TrackMeet {
 export interface MeetEvent {
   id: string;
   event_name: string;
+  event_date?: string;
   event_day?: number;
   start_time?: string;
   meet_id: string;

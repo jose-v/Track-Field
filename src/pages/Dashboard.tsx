@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Box, Container, Flex, Heading, Text, VStack, Grid, GridItem, Icon, Badge, Card, CardHeader, CardBody, Image, Tag,
   Button, SimpleGrid, Progress, HStack, Stack, Spinner, Divider, Stat, StatLabel, StatNumber, StatHelpText, useToast,
@@ -202,15 +202,15 @@ export function Dashboard() {
   const [videoModal, setVideoModal] = useState({ isOpen: false, videoUrl: '', exerciseName: '' });
 
   // Modal control functions
-  const handleUpdateTimer = (newTimer: number) => {
+  const handleUpdateTimer = useCallback((newTimer: number) => {
     setExecModal(prev => ({ ...prev, timer: newTimer }));
-  };
+  }, []);
 
-  const handleUpdateRunning = (newRunning: boolean) => {
+  const handleUpdateRunning = useCallback((newRunning: boolean) => {
     setExecModal(prev => ({ ...prev, running: newRunning }));
-  };
+  }, []);
 
-  const handleNextExercise = () => {
+  const handleNextExercise = useCallback(() => {
     const workoutId = execModal.workout.id;
     const exIdx = execModal.exerciseIdx;
     
@@ -227,9 +227,9 @@ export function Dashboard() {
       timer: 0,
       running: true,
     }));
-  };
+  }, [execModal.workout, execModal.exerciseIdx]);
 
-  const handlePreviousExercise = () => {
+  const handlePreviousExercise = useCallback(() => {
     const exIdx = execModal.exerciseIdx;
     
     // Only allow going back if not on the first exercise
@@ -242,7 +242,7 @@ export function Dashboard() {
         running: false, // Pause when going back
       }));
     }
-  };
+  }, [execModal.exerciseIdx]);
 
   const handleFinishWorkout = async () => {
     if (!execModal.workout) return;

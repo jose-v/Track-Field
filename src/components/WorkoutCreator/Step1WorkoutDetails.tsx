@@ -18,7 +18,7 @@ import {
   Alert,
   AlertIcon,
 } from '@chakra-ui/react';
-import { Target, Calendar, FileText, Dumbbell, Zap, Heart, Clock, User, MapPin, BookOpen } from 'lucide-react';
+import { Target, Calendar, FileText, Dumbbell, Zap, Heart, Clock, User, MapPin, BookOpen, ArrowDown, RotateCcw } from 'lucide-react';
 import { DateTimePicker } from '../DateTimePicker';
 
 interface Step1WorkoutDetailsProps {
@@ -38,6 +38,10 @@ interface Step1WorkoutDetailsProps {
   setLocation: (location: string) => void;
   isTemplate?: boolean;
   setIsTemplate?: (isTemplate: boolean) => void;
+  flowType?: 'sequential' | 'circuit';
+  setFlowType?: (type: 'sequential' | 'circuit') => void;
+  circuitRounds?: number;
+  setCircuitRounds?: (rounds: number) => void;
 }
 
 const TEMPLATE_TYPES = [
@@ -69,7 +73,11 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
   location,
   setLocation,
   isTemplate,
-  setIsTemplate
+  setIsTemplate,
+  flowType = 'sequential',
+  setFlowType,
+  circuitRounds = 3,
+  setCircuitRounds
 }) => {
   // Add state for time selection
   const [startTime, setStartTime] = React.useState<string>('');
@@ -555,6 +563,184 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
                       </Card>
                     ))}
                   </SimpleGrid>
+                </VStack>
+              </CardBody>
+            </Card>
+
+            {/* Workout Flow Type Selection */}
+            <Card 
+              variant="outline" 
+              shadow="none" 
+              bg={cardBg} 
+              borderColor={borderColor}
+              h="fit-content"
+              minH={{ xl: "400px" }}
+            >
+              <CardBody p={{ base: 4, lg: 6 }}>
+                <VStack spacing={{ base: 4, lg: 6 }} align="stretch">
+                  <VStack spacing={2} align="start">
+                    <HStack>
+                      <ArrowDown size={24} color="var(--chakra-colors-purple-500)" />
+                      <Heading size="md" color={textColor}>
+                        Workout Flow
+                      </Heading>
+                    </HStack>
+                    <Text fontSize="sm" color={subtitleColor}>
+                      How should exercises be performed?
+                    </Text>
+                  </VStack>
+                  
+                  <VStack spacing={4}>
+                    {/* Sequential Flow Option */}
+                    <Card
+                      variant="outline"
+                      shadow="none"
+                      cursor="pointer"
+                      onClick={() => setFlowType?.('sequential')}
+                      bg={flowType === 'sequential' ? selectedBg : cardBg}
+                      borderColor={flowType === 'sequential' ? selectedBorderColor : borderColor}
+                      borderWidth="2px"
+                      _hover={{ 
+                        borderColor: flowType === 'sequential' ? "blue.500" : "blue.300",
+                        bg: flowType === 'sequential' ? selectedHoverBg : hoverBg
+                      }}
+                      transition="all 0.2s"
+                      w="100%"
+                      minH="100px"
+                      position="relative"
+                    >
+                      <CardBody p={4} display="flex" alignItems="center" h="100%">
+                        <HStack spacing={4} w="100%" align="start">
+                          <Box 
+                            color={flowType === 'sequential' ? "blue.500" : useColorModeValue("gray.500", "gray.400")}
+                            flexShrink={0}
+                          >
+                            <ArrowDown size={28} />
+                          </Box>
+                          <VStack spacing={2} align="start" flex="1">
+                            <HStack>
+                              <Heading size="sm" color={flowType === 'sequential' ? "blue.700" : textColor}>
+                                Sequential
+                              </Heading>
+                              <Badge colorScheme="green" size="sm">Default</Badge>
+                            </HStack>
+                            <Text fontSize="xs" color={subtitleColor} lineHeight="1.4">
+                              Complete all sets of one exercise before moving to the next
+                            </Text>
+                          </VStack>
+                        </HStack>
+                        {flowType === 'sequential' && (
+                          <Box
+                            position="absolute"
+                            top={2}
+                            right={2}
+                            bg="blue.500"
+                            color="white"
+                            borderRadius="full"
+                            w={5}
+                            h={5}
+                            display="flex"
+                            alignItems="center"
+                            justifyContent="center"
+                          >
+                            <Text fontSize="xs" fontWeight="bold">✓</Text>
+                          </Box>
+                        )}
+                      </CardBody>
+                    </Card>
+
+                    {/* Circuit Flow Option */}
+                    <Card
+                      variant="outline"
+                      shadow="none"
+                      cursor="pointer"
+                      onClick={() => setFlowType?.('circuit')}
+                      bg={flowType === 'circuit' ? selectedBg : cardBg}
+                      borderColor={flowType === 'circuit' ? selectedBorderColor : borderColor}
+                      borderWidth="2px"
+                      _hover={{ 
+                        borderColor: flowType === 'circuit' ? "blue.500" : "blue.300",
+                        bg: flowType === 'circuit' ? selectedHoverBg : hoverBg
+                      }}
+                      transition="all 0.2s"
+                      w="100%"
+                      minH="100px"
+                      position="relative"
+                    >
+                      <CardBody p={4} display="flex" alignItems="center" h="100%">
+                        <HStack spacing={4} w="100%" align="start">
+                          <Box 
+                            color={flowType === 'circuit' ? "blue.500" : useColorModeValue("gray.500", "gray.400")}
+                            flexShrink={0}
+                          >
+                            <RotateCcw size={28} />
+                          </Box>
+                          <VStack spacing={2} align="start" flex="1">
+                            <Heading size="sm" color={flowType === 'circuit' ? "blue.700" : textColor}>
+                              Circuit
+                            </Heading>
+                            <Text fontSize="xs" color={subtitleColor} lineHeight="1.4">
+                              Repeat selected exercises in sequence for multiple rounds
+                            </Text>
+                          </VStack>
+                        </HStack>
+                        {flowType === 'circuit' && (
+                          <Box
+                            position="absolute"
+                            top={2}
+                            right={2}
+                            bg="blue.500"
+                            color="white"
+                            borderRadius="full"
+                            w={5}
+                            h={5}
+                            display="flex"
+                            alignItems="center"
+                            justifyContent="center"
+                          >
+                            <Text fontSize="xs" fontWeight="bold">✓</Text>
+                          </Box>
+                        )}
+                      </CardBody>
+                    </Card>
+
+                    {/* Circuit Rounds Input - Show only when Circuit is selected */}
+                    {flowType === 'circuit' && setCircuitRounds && (
+                      <Card
+                        variant="outline"
+                        shadow="none"
+                        bg={cardBg}
+                        borderColor={borderColor}
+                        borderWidth="2px"
+                        w="100%"
+                      >
+                        <CardBody p={4}>
+                          <VStack spacing={3} align="start">
+                            <Text fontSize="sm" fontWeight="medium" color={textColor}>
+                              Number of Rounds
+                            </Text>
+                            <HStack spacing={3} w="100%">
+                              <Input
+                                type="number"
+                                value={circuitRounds}
+                                onChange={(e) => setCircuitRounds(Math.max(1, parseInt(e.target.value) || 1))}
+                                min={1}
+                                max={20}
+                                size="sm"
+                                w="80px"
+                                bg={inputBg}
+                                borderColor={borderColor}
+                                _focus={{ borderColor: "blue.400" }}
+                              />
+                              <Text fontSize="sm" color={subtitleColor}>
+                                rounds (1-20)
+                              </Text>
+                            </HStack>
+                          </VStack>
+                        </CardBody>
+                      </Card>
+                    )}
+                  </VStack>
                 </VStack>
               </CardBody>
             </Card>

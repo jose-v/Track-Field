@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Card, CardBody, Heading, Text, Icon, Flex, HStack, VStack, 
-  Button, Badge, IconButton, useColorModeValue, Tooltip, SimpleGrid, Skeleton
+  Button, Badge, IconButton, useColorModeValue, Tooltip, SimpleGrid, Skeleton,
+  Menu, MenuButton, MenuList, MenuItem
 } from '@chakra-ui/react';
-import { FaCalendarAlt, FaEdit, FaTrash, FaUsers, FaClock, FaPlayCircle, FaDumbbell, FaChartLine, FaListAlt } from 'react-icons/fa';
+import { FaCalendarAlt, FaEdit, FaTrash, FaUsers, FaClock, FaPlayCircle, FaDumbbell, FaChartLine, FaListAlt, FaEllipsisV, FaEye } from 'react-icons/fa';
 import type { TrainingPlan } from '../services/dbSchema';
 import { dateUtils } from '../utils/date';
 import { api } from '../services/api';
@@ -73,7 +74,11 @@ export function MonthlyPlanCard({
   const [workoutNames, setWorkoutNames] = useState<string[]>([]);
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
 
-  const monthName = getMonthName(monthlyPlan.month);
+  // Extract month and year from start_date
+  const startDate = new Date(monthlyPlan.start_date);
+  const monthName = getMonthName(startDate.getMonth() + 1); // getMonth() returns 0-11, so add 1
+  const year = startDate.getFullYear();
+  
   const activeWeeks = getActiveWeekCount(monthlyPlan.weeks);
   const restWeeks = getRestWeekCount(monthlyPlan.weeks);
   const totalWeeks = monthlyPlan.weeks.length;
@@ -181,39 +186,42 @@ export function MonthlyPlanCard({
           </Badge>
         </HStack>
         
-        {/* Action buttons */}
-        <HStack>
-          {isCoach && onEdit && (
-            <IconButton 
-              icon={<FaEdit />} 
-              aria-label="Edit plan" 
-              size="md" 
-              variant="ghost" 
-              color="white" 
-              onClick={onEdit} 
+        {/* Action menu */}
+        {isCoach && (
+          <Menu>
+            <MenuButton
+              as={IconButton}
+              icon={<FaEllipsisV />}
+              variant="ghost"
+              color="white"
+              size="sm"
+              aria-label="Plan actions"
+              _hover={{ bg: 'rgba(255, 255, 255, 0.1)' }}
             />
-          )}
-          {isCoach && onAssign && (
-            <IconButton 
-              icon={<FaUsers />} 
-              aria-label="Assign to athletes" 
-              size="md" 
-              variant="ghost" 
-              color="white" 
-              onClick={onAssign} 
-            />
-          )}
-          {isCoach && onDelete && (
-            <IconButton 
-              icon={<FaTrash />} 
-              aria-label="Delete plan" 
-              size="md" 
-              variant="ghost" 
-              color="white" 
-              onClick={onDelete} 
-            />
-          )}
-        </HStack>
+            <MenuList>
+              {onAssign && (
+                <MenuItem icon={<FaUsers />} onClick={onAssign}>
+                  Assign Athletes
+                </MenuItem>
+              )}
+              {onEdit && (
+                <MenuItem icon={<FaEdit />} onClick={onEdit}>
+                  Edit
+                </MenuItem>
+              )}
+              {onView && (
+                <MenuItem icon={<FaEye />} onClick={onView}>
+                  View Details
+                </MenuItem>
+              )}
+              {onDelete && (
+                <MenuItem icon={<FaTrash />} onClick={onDelete} color="red.500">
+                  Delete
+                </MenuItem>
+              )}
+            </MenuList>
+          </Menu>
+        )}
       </Box>
 
       <CardBody p={5}>
@@ -227,7 +235,7 @@ export function MonthlyPlanCard({
               <HStack spacing={1}>
                 <Icon as={FaCalendarAlt} color={infoColor} boxSize={4} />
                 <Text fontSize="sm" color={infoColor} fontWeight="medium">
-                  {monthName} {monthlyPlan.year}
+                  {monthName} {year}
                 </Text>
               </HStack>
               <HStack spacing={1}>
@@ -384,35 +392,7 @@ export function MonthlyPlanCard({
             </VStack>
           )}
 
-          {/* Action buttons */}
-          <Flex justify="space-between" pt={2}>
-            {onView && (
-              <Button
-                size="sm"
-                variant="outline"
-                colorScheme="teal"
-                leftIcon={<FaChartLine />}
-                onClick={onView}
-                flex={1}
-                mr={onAssign ? 2 : 0}
-              >
-                View Details
-              </Button>
-            )}
-            
-            {isCoach && onAssign && (
-              <Button
-                size="sm"
-                colorScheme="teal"
-                leftIcon={<FaUsers />}
-                onClick={onAssign}
-                flex={1}
-                ml={onView ? 2 : 0}
-              >
-                {completionStats?.totalAssigned ? 'Manage Athletes' : 'Assign Plan'}
-              </Button>
-            )}
-          </Flex>
+
         </VStack>
       </CardBody>
     </Card>

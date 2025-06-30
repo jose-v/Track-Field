@@ -26,6 +26,37 @@ export const formatMeetDate = (dateString: string | Date, includeYear = true): s
 };
 
 /**
+ * Format event date without timezone conversion issues
+ * Specifically handles YYYY-MM-DD format strings
+ */
+export const formatEventDate = (dateString: string | Date): string => {
+  try {
+    if (typeof dateString === 'string') {
+      // Parse date manually to avoid timezone issues
+      // Assuming dateString is in format YYYY-MM-DD
+      const [year, month, day] = dateString.split('-').map(Number);
+      if (year && month && day) {
+        const date = new Date(year, month - 1, day); // month is 0-indexed
+        return format(date, 'EEEE d, yyyy');
+      }
+    }
+    
+    // Fallback to regular date handling
+    const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
+    
+    if (!isValid(date)) {
+      console.warn('Invalid date provided to formatEventDate:', dateString);
+      return 'Invalid Date';
+    }
+    
+    return format(date, 'EEEE d, yyyy');
+  } catch (error) {
+    console.error('Error formatting event date:', error);
+    return 'Date Error';
+  }
+};
+
+/**
  * Format event time for display with enhanced validation for both HH:MM and HH:MM:SS formats
  */
 export const formatEventTime = (timeString: string): string => {

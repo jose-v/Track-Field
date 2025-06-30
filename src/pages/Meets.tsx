@@ -2089,6 +2089,7 @@ export const Meets: React.FC = () => {
           .from('track_meets')
           .select(`
             *, 
+            end_date,
             lodging_type, lodging_place_name, lodging_address, lodging_city, lodging_state, lodging_zip, 
             lodging_phone, lodging_website, lodging_checkin_date, lodging_checkout_date, 
             lodging_checkin_time, lodging_checkout_time, lodging_details,
@@ -2124,6 +2125,7 @@ export const Meets: React.FC = () => {
               .from('track_meets')
               .select(`
                 *, 
+                end_date,
                 lodging_type, lodging_place_name, lodging_address, lodging_city, lodging_state, lodging_zip, 
                 lodging_phone, lodging_website, lodging_checkin_date, lodging_checkout_date, 
                 lodging_checkin_time, lodging_checkout_time, lodging_details,

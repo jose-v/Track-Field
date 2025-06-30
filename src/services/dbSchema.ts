@@ -143,8 +143,8 @@ export interface TrainingPlan {
   name: string;
   description?: string;
   coach_id: string;
-  month: number; // 1-12
-  year: number;
+  start_date: string; // YYYY-MM-DD format
+  end_date: string;   // YYYY-MM-DD format
   weeks: {
     week_number: number;
     workout_id: string;

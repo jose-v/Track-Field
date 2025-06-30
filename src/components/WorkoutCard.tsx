@@ -23,10 +23,10 @@ export function getTypeIcon(type: string | undefined) {
 
 export function getTypeColor(type: string | undefined) {
   switch (type) {
-    case 'Strength': return 'purple';
+    case 'Strength': return 'blue';
     case 'Running': return 'blue';
-    case 'Flexibility': return 'green';
-    case 'Recovery': return 'orange';
+    case 'Flexibility': return 'blue';
+    case 'Recovery': return 'blue';
     default: return 'blue';
   }
 }
@@ -116,8 +116,8 @@ export function WorkoutCard({
   const typeName = getTypeName(workout.type);
   const cardBg = useColorModeValue('white', 'gray.800');
   const headerBg = useColorModeValue(
-    `${typeColorBase}.500`,
-    `${typeColorBase}.400`
+    `${typeColorBase}.400`,    // light mode
+    `${typeColorBase}.900`     // dark mode
   );
   const infoColor = useColorModeValue('gray.600', 'gray.200');
   const loadingTextColor = useColorModeValue('gray.500', 'gray.300');

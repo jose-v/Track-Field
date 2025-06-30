@@ -41,16 +41,15 @@ export {
  */
 export const isMeetToday = (meetDate: string, meetTimezone?: string): boolean => {
   try {
+    // Parse the meet date as a local date (not UTC)
+    const [year, month, day] = meetDate.split('-').map(Number);
+    const meetDateObj = new Date(year, month - 1, day); // month is 0-indexed
+    
+    // Get today's date in local timezone
     const today = new Date();
-    const meetDateObj = new Date(meetDate + 'T00:00:00');
+    const todayObj = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     
-    // If we have a meet timezone, we should ideally convert to that timezone
-    // For now, we'll use local timezone comparison
-    const todayString = today.getFullYear() + '-' + 
-      String(today.getMonth() + 1).padStart(2, '0') + '-' + 
-      String(today.getDate()).padStart(2, '0');
-    
-    return meetDate === todayString;
+    return meetDateObj.getTime() === todayObj.getTime();
   } catch (error) {
     console.error('Error comparing meet date:', error);
     return false;
@@ -74,27 +73,61 @@ export const getLocalDateString = (): string => {
  * @returns object with nextMeet, isCurrentMeet, and categorized meets
  */
 export const categorizeMeetsByDate = (meets: any[]) => {
-  const localToday = getLocalDateString();
+  // Get today's date as a Date object for proper comparison
+  const today = new Date();
+  const todayObj = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const todayTime = todayObj.getTime();
   
   // Sort meets by date
-  const sortedMeets = [...meets].sort((a, b) => 
-    new Date(a.meet_date).getTime() - new Date(b.meet_date).getTime()
-  );
+  const sortedMeets = [...meets].sort((a, b) => {
+    const dateA = new Date(a.meet_date + 'T00:00:00').getTime();
+    const dateB = new Date(b.meet_date + 'T00:00:00').getTime();
+    return dateA - dateB;
+  });
 
+  // Helper function to parse meet date properly
+  const parseMeetDate = (meetDate: string) => {
+    const [year, month, day] = meetDate.split('-').map(Number);
+    return new Date(year, month - 1, day).getTime(); // month is 0-indexed
+  };
+
+  // Helper function to check if a meet is currently active (for multi-day meets)
+  const isMeetActive = (meet: any) => {
+    const startTime = parseMeetDate(meet.meet_date);
+    
+    // If no end_date, it's a single-day meet
+    if (!meet.end_date) {
+      return startTime === todayTime; // Only active on the exact day
+    }
+    
+    // For multi-day meets, check if today is between start and end dates (inclusive)
+    const endTime = parseMeetDate(meet.end_date);
+    return todayTime >= startTime && todayTime <= endTime;
+  };
+
+  // Helper function to check if a meet is upcoming (starts in the future)
+  const isMeetUpcoming = (meet: any) => {
+    const startTime = parseMeetDate(meet.meet_date);
+    return startTime > todayTime;
+  };
+
+  // Helper function to check if a meet is past (completely finished)
+  const isMeetPast = (meet: any) => {
+    // If no end_date, use start_date
+    const endTime = meet.end_date ? parseMeetDate(meet.end_date) : parseMeetDate(meet.meet_date);
+    return endTime < todayTime;
+  };
+
+  // Find the next meet (either currently active or upcoming)
   const nextMeet = sortedMeets.find(meet => 
-    meet.meet_date >= localToday
+    isMeetActive(meet) || isMeetUpcoming(meet)
   );
 
-  // Check if the next meet is happening today (current meet)
-  const isCurrentMeet = nextMeet && isMeetToday(nextMeet.meet_date);
+  // Check if the next meet is currently active (happening today)
+  const isCurrentMeet = nextMeet && isMeetActive(nextMeet);
 
-  const upcomingMeets = sortedMeets.filter(meet => 
-    meet.meet_date > localToday
-  );
-
-  const pastMeets = sortedMeets.filter(meet => 
-    meet.meet_date < localToday
-  );
+  const upcomingMeets = sortedMeets.filter(meet => isMeetUpcoming(meet));
+  const pastMeets = sortedMeets.filter(meet => isMeetPast(meet));
 
   return {
     nextMeet: nextMeet ? [nextMeet] : [],

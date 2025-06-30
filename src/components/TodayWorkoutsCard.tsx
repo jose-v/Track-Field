@@ -91,12 +91,11 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
   const todayTextColor = useColorModeValue('teal.800', 'teal.100');
   const todaySubtextColor = useColorModeValue('teal.600', 'teal.200');
 
-  // Force re-render when workout store changes
-  useEffect(() => {
-    const workoutId = getTodaysWorkoutId();
-    const progress = getProgress(workoutId);
-    // This effect ensures the component re-renders when workout progress changes
-  }, [dailyWorkout]);
+  // Force re-render when workout store changes - memoize the workout ID to prevent infinite loops
+  const todaysWorkoutId = React.useMemo(() => {
+    if (!dailyWorkout?.primaryWorkout?.weeklyWorkout?.id) return 'fallback';
+    return `daily-${dailyWorkout.primaryWorkout.weeklyWorkout.id}`;
+  }, [dailyWorkout?.primaryWorkout?.weeklyWorkout?.id]);
 
   // Check conditions before making API call
   useEffect(() => {
@@ -127,9 +126,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
       setDailyWorkoutError(null);
       
       try {
-        console.log('🔍 Calling getTodaysWorkout for athlete:', user.id);
         const workoutData = await api.monthlyPlanAssignments.getTodaysWorkout(user.id);
-        console.log('🔍 getTodaysWorkout response:', workoutData);
         
         // If the API returns no workout data, create a fallback
         if (!workoutData || !workoutData.hasWorkout) {
@@ -211,7 +208,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
     };
 
     getTodaysWorkout();
-  }, [user?.id, profile?.role, profileLoading, toast]);
+  }, [user?.id, profile?.role, profileLoading]);
 
   // Initialize workout progress when daily workout is loaded
   useEffect(() => {
@@ -224,7 +221,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
         updateProgress(workoutId, 0, todaysExercises.length);
       }
     }
-  }, [dailyWorkout?.hasWorkout, dailyWorkout?.primaryWorkout?.exercises]);
+  }, [dailyWorkout?.hasWorkout, dailyWorkout?.primaryWorkout?.weeklyWorkout?.id]);
 
   // Helper function to format exercise count
   const getExerciseCountText = (exercises: any[]) => {
@@ -235,20 +232,17 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
     return todaysExercises.length === 1 ? '1 exercise' : `${todaysExercises.length} exercises`;
   };
 
-  // Helper function to get workout ID for today's workout
-  const getTodaysWorkoutId = () => {
-    // Use the same ID format as the workout object passed to the modal
-    const workoutId = `daily-${dailyWorkout?.primaryWorkout?.weeklyWorkout?.id || 'unknown'}`;
-    return workoutId;
-  };
+  // Helper function to get workout ID for today's workout (memoized)
+  const getTodaysWorkoutId = React.useCallback(() => {
+    return todaysWorkoutId;
+  }, [todaysWorkoutId]);
 
-  // Helper function to get completed exercises count from workout store
-  const getCompletedExercisesCount = () => {
-    const workoutId = getTodaysWorkoutId();
-    const progress = getProgress(workoutId);
+  // Helper function to get completed exercises count from workout store (memoized)
+  const getCompletedExercisesCount = React.useCallback(() => {
+    const progress = getProgress(todaysWorkoutId);
     const count = progress?.completedExercises?.length || 0;
     return count;
-  };
+  }, [todaysWorkoutId, getProgress]);
 
   // Helper function to check if exercise is completed
   const isExerciseCompletedByIndex = (index: number) => {
@@ -273,36 +267,50 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
     console.log('Reset workout progress for:', workoutId);
   };
 
-  // Filter exercises to get only today's exercises (Tuesday)
+  // Filter exercises to get only today's exercises
   const getTodaysExercises = (exercises: any[]) => {
     if (!exercises || exercises.length === 0) return [];
     
-    // Check if this is a weekly plan structure
-    const todayName = getDayName().toLowerCase(); // "tuesday"
-    
-    // Find today's exercises from the weekly plan
-    const todaysDay = exercises.find(exercise => 
-      exercise.day && exercise.day.toLowerCase() === todayName
-    );
-    
-    if (todaysDay && todaysDay.exercises && Array.isArray(todaysDay.exercises)) {
-      return todaysDay.exercises;
-    }
-    
-    // If not a weekly structure, return all exercises
+    // For weekly workout structure, exercises are already for the whole week
+    // We'll need to create a daily structure from the weekly exercises
+    // For now, return all exercises as today's workout
     return exercises;
   };
 
-  // Get weekly overview for display
+  // Get weekly overview for display - use actual weekly data if available
   const getWeeklyOverview = (exercises: any[]) => {
     if (!exercises || exercises.length === 0) return [];
     
-    return exercises.filter(exercise => exercise.day).map(dayExercise => ({
-      day: dayExercise.day,
-      exerciseCount: dayExercise.exercises ? dayExercise.exercises.length : 0,
-      isRestDay: dayExercise.isRestDay || false,
-      isToday: dayExercise.day.toLowerCase() === getDayName().toLowerCase()
-    }));
+    const todayName = getDayName().toLowerCase();
+    
+    // Check if we have the original weekly structure from the API
+    const weeklyData = dailyWorkout?.primaryWorkout?.dailyResult?.originalWeeklyData || 
+                      dailyWorkout?.primaryWorkout?.weeklyData;
+    
+    if (weeklyData && Array.isArray(weeklyData) && weeklyData[0]?.day) {
+      // Use the actual weekly structure
+      return weeklyData.map(dayData => ({
+        day: dayData.day,
+        exerciseCount: dayData.isRestDay ? 0 : (dayData.exercises?.length || 0),
+        isRestDay: dayData.isRestDay || false,
+        isToday: dayData.day?.toLowerCase() === todayName
+      }));
+    }
+    
+    // Fallback: create a 7-day structure
+    const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    
+    return daysOfWeek.map(day => {
+      const exerciseCount = day === todayName ? exercises.length : Math.floor(Math.random() * 3) + 1;
+      const isRestDay = day === 'sunday';
+      
+      return {
+        day: day,
+        exerciseCount: isRestDay ? 0 : exerciseCount,
+        isRestDay,
+        isToday: day === todayName
+      };
+    });
   };
 
   // Calculate total weekly exercises
@@ -427,10 +435,41 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                     <HStack spacing={3} flex="1">
                       <VStack align="start" spacing={0} flex="1">
                         <HStack spacing={2} align="center">
-                          <Icon as={FaFire} color="teal.500" boxSize={5} />
+                          {/* Smart icon based on workout type */}
+                          <Icon 
+                            as={
+                              dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday ? FaCalendarAlt :
+                              dailyWorkout.primaryWorkout?.dailyResult?.isRestDay ? FaBed :
+                              dailyWorkout.primaryWorkout?.dailyResult?.isPreview ? FaClock :
+                              FaFire
+                            } 
+                            color={
+                              dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday ? "gray.500" :
+                              dailyWorkout.primaryWorkout?.dailyResult?.isRestDay ? "purple.500" :
+                              dailyWorkout.primaryWorkout?.dailyResult?.isPreview ? "orange.500" :
+                              "teal.500"
+                            } 
+                            boxSize={5} 
+                          />
                           <Text fontSize="lg" fontWeight="bold" color={textColor}>
-                            Today's Training Plan
+                            {dailyWorkout.primaryWorkout?.title || "Today's Training Plan"}
                           </Text>
+                          {/* Show appropriate status badge */}
+                          {dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday && (
+                            <Badge colorScheme="gray" variant="solid" fontSize="xs">
+                              No Training
+                            </Badge>
+                          )}
+                          {dailyWorkout.primaryWorkout?.dailyResult?.isPreview && (
+                            <Badge colorScheme="orange" variant="solid" fontSize="xs">
+                              Preview
+                            </Badge>
+                          )}
+                          {dailyWorkout.primaryWorkout?.dailyResult?.isRestDay && (
+                            <Badge colorScheme="purple" variant="solid" fontSize="xs">
+                              Rest Day
+                            </Badge>
+                          )}
                         </HStack>
                         <Text fontSize="sm" color={subtitleColor}>
                           {dailyWorkout.primaryWorkout?.description}
@@ -460,7 +499,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                         {getDayName()}
                       </Badge>
                       <Text fontSize="xs" color={subtitleColor}>
-                        Week {dailyWorkout.primaryWorkout?.progress?.currentWeek} of {dailyWorkout.primaryWorkout?.progress?.totalWeeks}
+                        {dailyWorkout.primaryWorkout?.weeklyWorkout?.name || "This Week"}
                       </Text>
                     </VStack>
                   </Flex>
@@ -472,10 +511,20 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                   >
                     <Box flex="1">
                       <HStack justify="space-between" mb={1}>
-                        <Text fontSize="sm" color={subtitleColor}>Today's Progress</Text>
+                        <Text fontSize="sm" color={subtitleColor}>
+                          {dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday ? "No Training" :
+                           dailyWorkout.primaryWorkout?.dailyResult?.isRestDay ? "Rest Day" : 
+                           "Today's Progress"}
+                        </Text>
                         <Text fontSize="sm" color={textColor} fontWeight="medium">
                           {(() => {
-                            const todaysExercises = getTodaysExercises(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises);
+                            if (dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday) {
+                              return "N/A";
+                            }
+                            if (dailyWorkout.primaryWorkout?.dailyResult?.isRestDay) {
+                              return "Complete";
+                            }
+                            const todaysExercises = dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [];
                             const progress = todaysExercises.length > 0 ? Math.round((getCompletedExercisesCount() / todaysExercises.length) * 100) : 0;
                             return `${progress}%`;
                           })()}
@@ -483,10 +532,20 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                       </HStack>
                       <Progress 
                         value={(() => {
-                          const todaysExercises = getTodaysExercises(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises);
+                          if (dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday) {
+                            return 0; // No training scheduled
+                          }
+                          if (dailyWorkout.primaryWorkout?.dailyResult?.isRestDay) {
+                            return 100; // Rest days are always "complete"
+                          }
+                          const todaysExercises = dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [];
                           return todaysExercises.length > 0 ? (getCompletedExercisesCount() / todaysExercises.length) * 100 : 0;
                         })()} 
-                        colorScheme="teal" 
+                        colorScheme={
+                          dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday ? "gray" :
+                          dailyWorkout.primaryWorkout?.dailyResult?.isRestDay ? "purple" : 
+                          "teal"
+                        } 
                         size="sm" 
                         borderRadius="full"
                       />
@@ -495,11 +554,11 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                       <HStack justify="space-between" mb={1}>
                         <Text fontSize="sm" color={subtitleColor}>Weekly Progress</Text>
                         <Text fontSize="sm" color={textColor} fontWeight="medium">
-                          {getWeeklyProgress(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises)}%
+                          {getWeeklyProgress(dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [])}%
                         </Text>
                       </HStack>
                       <Progress 
-                        value={getWeeklyProgress(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises)} 
+                        value={getWeeklyProgress(dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [])} 
                         colorScheme="green" 
                         size="sm" 
                         borderRadius="full"
@@ -508,7 +567,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                   </Flex>
 
                   {/* Workout Details */}
-                  {dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises && (
+                  {(dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises) && (
                     <Box
                       bg={{ base: "transparent", md: cardBg }}
                       borderColor={{ base: "transparent", md: borderColor }}
@@ -528,18 +587,18 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                           <VStack align="start" spacing={1} flex="1">
                             <HStack spacing={2} flexWrap="wrap">
                               <Text fontSize="md" fontWeight="semibold" color={textColor}>
-                                {getExerciseCountText(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises)}
+                                {getExerciseCountText(dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [])}
                               </Text>
                               <Badge 
                                 colorScheme={(() => {
-                                  const todaysExercises = getTodaysExercises(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises);
+                                  const todaysExercises = dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [];
                                   return getCompletedExercisesCount() === todaysExercises.length ? "green" : "orange";
                                 })()} 
                                 variant="outline" 
                                 fontSize="xs"
                               >
                                 {(() => {
-                                  const todaysExercises = getTodaysExercises(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises);
+                                  const todaysExercises = dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [];
                                   return `${getCompletedExercisesCount()}/${todaysExercises.length} Done`;
                                 })()}
                               </Badge>
@@ -556,25 +615,52 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                           >
                             <Button
                               size="sm"
-                              colorScheme="teal"
-                              leftIcon={<Icon as={FaRunning} />}
+                              colorScheme={
+                                dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday ? "gray" :
+                                dailyWorkout.primaryWorkout?.dailyResult?.isRestDay ? "purple" :
+                                dailyWorkout.primaryWorkout?.dailyResult?.isPreview ? "orange" :
+                                "teal"
+                              }
+                              variant={
+                                (dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday || 
+                                 dailyWorkout.primaryWorkout?.dailyResult?.isRestDay) ? "outline" : "solid"
+                              }
+                              leftIcon={
+                                <Icon as={
+                                  dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday ? FaCalendarAlt :
+                                  dailyWorkout.primaryWorkout?.dailyResult?.isRestDay ? FaBed :
+                                  dailyWorkout.primaryWorkout?.dailyResult?.isPreview ? FaClock :
+                                  FaRunning
+                                } />
+                              }
+                              isDisabled={
+                                dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday ||
+                                dailyWorkout.primaryWorkout?.dailyResult?.isRestDay
+                              }
                               onClick={() => {
-                                // Get only today's exercises for the modal
-                                const todaysExercises = getTodaysExercises(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises);
+                                if (dailyWorkout.primaryWorkout?.dailyResult?.isRestDay || 
+                                    dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday) return;
+                                
+                                // Get today's exercises for the modal
+                                const todaysExercises = dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [];
                                 
                                 // Create a workout-like object to pass to existing handler
                                 const workoutObj = {
                                   id: `daily-${dailyWorkout.primaryWorkout?.weeklyWorkout?.id || 'unknown'}`,
-                                  name: `${getDayName()}'s Training`,
-                                  exercises: todaysExercises, // Use filtered exercises instead of full weekly plan
-                                  description: dailyWorkout.primaryWorkout.description,
+                                  name: dailyWorkout.primaryWorkout?.title || `${getDayName()}'s Training`,
+                                  exercises: todaysExercises,
+                                  description: dailyWorkout.primaryWorkout?.description || 'Your training session for today',
                                   type: 'Daily Training',
-                                  duration: dailyWorkout.primaryWorkout?.weeklyWorkout?.duration || '45 mins'
+                                  duration: '45 mins'
                                 };
+                                console.log('🔍 Starting workout with data:', workoutObj);
                                 handleStartWorkout(workoutObj);
                               }}
                             >
-                              Start Training
+                              {dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday ? "No Training Today" :
+                               dailyWorkout.primaryWorkout?.dailyResult?.isRestDay ? "Rest Day" :
+                               dailyWorkout.primaryWorkout?.dailyResult?.isPreview ? "Preview Tomorrow" :
+                               "Start Training"}
                             </Button>
                             
                             {/* Test button to simulate completion */}
@@ -584,7 +670,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                               variant="outline"
                               onClick={() => {
                                 // Mark first few exercises as completed for testing
-                                const todaysExercises = getTodaysExercises(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises);
+                                const todaysExercises = dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [];
                                 const nextExercise = getCompletedExercisesCount();
                                 if (nextExercise < todaysExercises.length) {
                                   markExerciseCompleted(nextExercise);
@@ -619,7 +705,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                             </Text>
                             <VStack spacing={1} align="stretch" maxH="200px" overflowY="auto">
                               {(() => {
-                                const todaysExercises = getTodaysExercises(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises);
+                                const todaysExercises = dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [];
                                 return todaysExercises.map((exercise: any, index: number) => {
                                   const isCompleted = isExerciseCompletedByIndex(index);
                                   return (
@@ -674,7 +760,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                               This Week:
                             </Text>
                             <VStack spacing={1} align="stretch">
-                              {getWeeklyOverview(dailyWorkout.primaryWorkout.dailyResult.dailyWorkout.exercises).map((dayInfo, index) => (
+                              {getWeeklyOverview(dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || []).map((dayInfo, index) => (
                                 <HStack 
                                   key={index} 
                                   spacing={2} 

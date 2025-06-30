@@ -500,7 +500,12 @@ export const CoachAthleteEventManager: React.FC<CoachAthleteEventManagerProps> =
   const formatDate = (dateString?: string) => {
     if (!dateString) return '';
     try {
-      return new Date(dateString).toLocaleDateString('en-US', {
+      // Parse date manually to avoid timezone issues
+      // Assuming dateString is in format YYYY-MM-DD
+      const [year, month, day] = dateString.split('-').map(Number);
+      const date = new Date(year, month - 1, day); // month is 0-indexed
+      
+      return date.toLocaleDateString('en-US', {
         weekday: 'short',
         month: 'short',
         day: 'numeric'

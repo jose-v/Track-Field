@@ -4,32 +4,29 @@ import {
   ModalOverlay,
   ModalContent,
   ModalBody,
+  ModalHeader,
+  ModalFooter,
   Box,
   VStack,
   HStack,
   Text,
-  Heading,
   Button,
   IconButton,
   Icon,
   Progress,
-  Divider,
   useColorModeValue,
-  useToast,
+  useBreakpointValue,
   Circle,
   SimpleGrid,
-  Badge,
-  Flex,
-  Input
+  Badge
 } from '@chakra-ui/react';
-import { FaRegClock, FaRunning, FaPlayCircle, FaDumbbell, FaCheckCircle } from 'react-icons/fa';
-import { CheckIcon, ChevronLeftIcon } from '@chakra-ui/icons';
+import { FaRegClock, FaRunning, FaDumbbell, FaCheckCircle, FaPlay, FaPause, FaRedo, FaChevronLeft } from 'react-icons/fa';
+import { ChevronLeftIcon } from '@chakra-ui/icons';
 import { RunTimeInput } from './RunTimeInput';
 import { isRunExercise, validateTime } from '../utils/exerciseUtils';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { useWorkoutStore } from '../lib/workoutStore';
 import { saveTrainingLoadEntry } from '../services/analytics/injuryRiskService';
 
 interface Exercise {
@@ -46,6 +43,8 @@ interface Workout {
   id: string;
   name: string;
   exercises: Exercise[];
+  flow_type?: 'sequential' | 'circuit';
+  circuit_rounds?: number;
 }
 
 interface ExerciseExecutionModalProps {
@@ -63,7 +62,6 @@ interface ExerciseExecutionModalProps {
   onShowVideo: (exerciseName: string, videoUrl: string) => void;
 }
 
-// Helper function to get video URL for an exercise
 function getVideoUrl(exerciseName: string): string {
   const exercise = exerciseName.toLowerCase();
   if (exercise.includes('sprint') || exercise.includes('dash')) return 'https://www.youtube.com/embed/6kNvYDTT-NU';
@@ -96,283 +94,239 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
   onFinishWorkout,
   onShowVideo
 }) => {
+  // ALL HOOKS MUST BE CALLED FIRST - before any conditional returns
   const { user } = useAuth();
-  const toast = useToast();
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const timerValueRef = useRef(timer);
   
-  // Workout store for shared completion state
-  const { 
-    getProgress, 
-    isExerciseCompleted: storeIsExerciseCompleted, 
-    markExerciseCompleted: storeMarkCompleted, 
-    updateProgress 
-  } = useWorkoutStore();
-
-  // State for run time tracking
-  const [runTime, setRunTime] = useState({
-    minutes: 0,
-    seconds: 0,
-    hundredths: 0
-  });
-
-  // State for RPE rating
+  // Simple state only
+  const [runTime, setRunTime] = useState({ minutes: 0, seconds: 0, hundredths: 0 });
   const [showRPEScreen, setShowRPEScreen] = useState(false);
   const [selectedRPE, setSelectedRPE] = useState<number | null>(null);
   const [isLoggingRPE, setIsLoggingRPE] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  
+  // Add state for tracking sets and reps within current exercise
+  const [currentSet, setCurrentSet] = useState(1);
+  const [currentRep, setCurrentRep] = useState(1);
+  
+  // Add state for tracking circuit rounds
+  const [currentRound, setCurrentRound] = useState(1);
+  
+  // Add state for pause functionality
+  const [isPaused, setIsPaused] = useState(false);
 
-  // State for set tracking
-  const [setData, setSetData] = useState<Array<{
-    completed: boolean;
-    actualReps: number;
-    targetReps: number;
-  }>>([]);
+  // Refs for intervals
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Helper function to get workout ID
-  const getWorkoutId = () => {
-    const workoutId = workout?.id || 'current-workout';
-    return workoutId;
-  };
-
-  // Theme colors
+  // Theme colors - MUST be called before any conditional returns
   const cardBg = useColorModeValue('white', 'gray.800');
   const modalHeaderBg = useColorModeValue('gray.50', 'gray.700');
-  const modalHeaderBorderColor = useColorModeValue('gray.200', 'gray.600');
-  const modalHeadingColor = useColorModeValue('gray.800', 'white');
   const modalTextColor = useColorModeValue('gray.500', 'gray.400');
-  const modalSpanColor = useColorModeValue('gray.500', 'gray.400');
-  const modalIconBg = useColorModeValue('white', 'gray.800');
+  const sectionBg = useColorModeValue('gray.50', 'gray.700');
+  
+  // Responsive modal settings
+  const modalSize = useBreakpointValue({ base: 'full', md: 'md' }) as 'full' | 'md';
+  const isCentered = useBreakpointValue({ base: false, md: true }) as boolean;
+  const motionPreset = useBreakpointValue({ base: 'slideInBottom', md: 'scale' }) as 'slideInBottom' | 'scale';
 
-  // Initialize workout progress when modal opens
+  // Enhanced timer effect with pause functionality and countdown
   useEffect(() => {
-    if (isOpen && workout) {
-      const workoutId = getWorkoutId();
-      const filteredExercises = getFilteredExercises();
-      
-      // Initialize progress if needed
-      if (!getProgress(workoutId) && filteredExercises.length > 0) {
-        updateProgress(workoutId, exerciseIdx, filteredExercises.length);
-      }
-    }
-  }, [isOpen, workout, exerciseIdx]);
-
-  // Initialize set data when exercise changes
-  useEffect(() => {
-    if (workout && workout.exercises[exerciseIdx]) {
-      const currentExercise = workout.exercises[exerciseIdx];
-      
-      // Get exercise data from nested structure
-      const exerciseData = (currentExercise as any)?.exercises?.[0] || 
-                          (workout as any)?.exercises?.[exerciseIdx] ||
-                          (workout as any)?.exercises?.[exerciseIdx]?.exercises?.[0] ||
-                          currentExercise;
-      
-      const sets = parseInt(exerciseData?.sets || currentExercise?.sets || '3');
-      const reps = parseInt(exerciseData?.reps || currentExercise?.reps || '10');
-      
-      const newSetData = Array(sets).fill(null).map(() => ({
-        completed: false,
-        actualReps: reps,
-        targetReps: reps
-      }));
-      setSetData(newSetData);
-    }
-  }, [exerciseIdx, workout]);
-
-  // Update timer ref whenever timer changes
-  useEffect(() => {
-    timerValueRef.current = timer;
-  }, [timer]);
-
-  // Timer effect
-  useEffect(() => {
-    if (isOpen && running) {
+    if (running && !isPaused && countdown === 0) {
       timerRef.current = setInterval(() => {
-        onUpdateTimer(timerValueRef.current + 1);
+        onUpdateTimer(timer + 1);
       }, 1000);
-    } else if (timerRef.current) {
+    } else {
+      if (timerRef.current) {
       clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isOpen, running]);
+  }, [running, isPaused, countdown, timer, onUpdateTimer]);
 
-  // Reset run time when exercise changes
+  // Countdown effect - triggers when countdown > 0
+  useEffect(() => {
+    if (countdown > 0) {
+    countdownRef.current = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          if (countdownRef.current) {
+            clearInterval(countdownRef.current);
+            countdownRef.current = null;
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    }
+    return () => {
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+        countdownRef.current = null;
+      }
+    };
+  }, [countdown]);
+
+  // Initial countdown when modal opens
   useEffect(() => {
     if (isOpen) {
-      setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
+      setCountdown(3);
+      onUpdateRunning(false); // Ensure timer doesn't start until countdown finishes
     }
-  }, [exerciseIdx, isOpen]);
+  }, [isOpen, onUpdateRunning]);
 
-  // Helper functions for set tracking
-  const handleSetComplete = (setIndex: number) => {
-    setSetData(prev => prev.map((set, idx) => 
-      idx === setIndex ? { ...set, completed: !set.completed } : set
-    ));
-  };
-
-  const handleRepsChange = (setIndex: number, reps: number) => {
-    setSetData(prev => prev.map((set, idx) => 
-      idx === setIndex ? { ...set, actualReps: Math.max(0, reps) } : set
-    ));
-  };
-
-  const getCompletedSetsCount = () => {
-    return setData.filter(set => set.completed).length;
-  };
-
-  const markExerciseCompleted = (exerciseIndex: number) => {
-    const workoutId = getWorkoutId();
-    const filteredExercises = getFilteredExercises();
-    
-    // Initialize progress if needed
-    if (!getProgress(workoutId)) {
-      updateProgress(workoutId, 0, filteredExercises.length);
+  // Start timer when countdown reaches 0
+  useEffect(() => {
+    if (countdown === 0 && isOpen) {
+      onUpdateRunning(true);
     }
-    
-    // Mark exercise as completed
-    storeMarkCompleted(workoutId, exerciseIndex);
-  };
+  }, [countdown, isOpen, onUpdateRunning]);
 
-  const isExerciseCompleted = (exerciseIndex: number) => {
-    const workoutId = getWorkoutId();
-    return storeIsExerciseCompleted(workoutId, exerciseIndex);
-  };
+  // ALL useCallback hooks MUST be here before any conditional returns
+  const handleTimeChange = useCallback((minutes: number, seconds: number, hundredths: number) => {
+    setRunTime({ minutes, seconds, hundredths });
+  }, []);
 
-  const getCompletionProgress = () => {
-    const workoutId = getWorkoutId();
-    const progress = getProgress(workoutId);
-    const filteredExercises = getFilteredExercises();
-    const completed = progress?.completedExercises?.length || 0;
-    
-    return {
-      completed,
-      total: filteredExercises.length,
-      percentage: filteredExercises.length > 0 ? (completed / filteredExercises.length) * 100 : 0
-    };
-  };
+  // Reset set/rep counters when exercise changes
+  useEffect(() => {
+    setCurrentSet(1);
+    setCurrentRep(1);
+    setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
+    // Don't reset round counter when exercise changes in circuit flow
+  }, [exerciseIdx]);
 
-  const isStrengthExercise = (exerciseName: string) => {
-    return !isRunExercise(exerciseName);
-  };
+  // Simple validation - AFTER all hooks are called
+  if (!isOpen || !workout || !workout.exercises || workout.exercises.length === 0) {
+    return null;
+  }
+
+  const currentExercise = workout.exercises[exerciseIdx] || { name: 'Exercise', sets: 1, reps: 10 };
+  const exerciseName = currentExercise.name || 'Exercise';
 
   const handleDone = async () => {
-    if (!filteredExercises[exerciseIdx]) return;
-    
-    // Mark current exercise as completed
-    markExerciseCompleted(exerciseIdx);
-    
-    const currentExercise = filteredExercises[exerciseIdx];
-    const totalExercises = filteredExercises.length;
-    const isRun = isRunExercise(currentExercise.name);
-    
-    // Validate and save data based on exercise type
-    if (isRun) {
-      // Handle run exercise validation and saving
-      let timeValidation: { isValid: boolean; error?: string } = { isValid: true };
-      
-      if (runTime.minutes > 0 || runTime.seconds > 0 || runTime.hundredths > 0) {
-        timeValidation = validateTime(runTime.minutes, runTime.seconds, runTime.hundredths);
-        
-        if (!timeValidation.isValid) {
-          toast({
-            title: 'Invalid Time',
-            description: timeValidation.error || 'Please enter a valid time',
-            status: 'error',
-            duration: 3000,
-            isClosable: true,
-          });
-          return;
+    // Save exercise result for this rep/set completion
+    if (user?.id) {
+      try {
+        // Strip "daily-" prefix from workout ID for database storage
+        let actualWorkoutId = workout.id;
+        if (workout.id.startsWith('daily-')) {
+          actualWorkoutId = workout.id.replace('daily-', '');
         }
-      }
-      
-      // Save exercise result if time was recorded for run exercise
-      if (timeValidation.isValid && user?.id && (runTime.minutes > 0 || runTime.seconds > 0 || runTime.hundredths > 0)) {
-        try {
+
+        if (isRunExercise(exerciseName)) {
+          const timeValidation = validateTime(runTime.minutes, runTime.seconds, runTime.hundredths);
+          if (timeValidation.isValid && (runTime.minutes > 0 || runTime.seconds > 0 || runTime.hundredths > 0)) {
+            await api.exerciseResults.save({
+              athleteId: user.id,
+              workoutId: actualWorkoutId,
+              exerciseIndex: exerciseIdx,
+              exerciseName: exerciseName,
+              timeMinutes: runTime.minutes,
+              timeSeconds: runTime.seconds,
+              timeHundredths: runTime.hundredths,
+              notes: `Set ${currentSet}, Rep ${currentRep} - Timer: ${Math.floor(timer / 60)}:${(timer % 60).toString().padStart(2, '0')}`
+            });
+          }
+        } else {
           await api.exerciseResults.save({
             athleteId: user.id,
-            workoutId: workout.id,
-            exerciseIndex: exerciseIdx,
-            exerciseName: currentExercise.name,
-            timeMinutes: runTime.minutes,
-            timeSeconds: runTime.seconds,
-            timeHundredths: runTime.hundredths,
-            notes: `Workout timer: ${Math.floor(timer / 60)}:${(timer % 60).toString().padStart(2, '0')}`
-          });
-          
-          toast({
-            title: 'Time Recorded!',
-            description: `Your time of ${runTime.minutes.toString().padStart(2, '0')}:${runTime.seconds.toString().padStart(2, '0')}.${runTime.hundredths.toString().padStart(2, '0')} has been saved.`,
-            status: 'success',
-            duration: 3000,
-            isClosable: true,
-          });
-        } catch (error) {
-          console.error('Error saving exercise result:', error);
-          toast({
-            title: 'Error Saving Time',
-            description: 'Your time could not be saved, but exercise completion was recorded.',
-            status: 'warning',
-            duration: 3000,
-            isClosable: true,
-          });
-        }
-      }
-    } else {
-      // Handle strength exercise - save set/rep data
-      const completedSets = getCompletedSetsCount();
-      const totalSets = setData.length;
-      
-      if (user?.id && completedSets > 0) {
-        try {
-          // Create notes with set/rep breakdown
-          const setBreakdown = setData
-            .map((set, idx) => `Set ${idx + 1}: ${set.actualReps}/${set.targetReps} reps ${set.completed ? '✓' : '○'}`)
-            .join(', ');
-          
-          const exerciseName = currentExercise?.name || (currentExercise as any)?.exercises?.[0]?.name || (workout as any)?.exercises?.[exerciseIdx]?.name || (workout as any)?.exercises?.[exerciseIdx]?.exercises?.[0]?.name || (currentExercise as any)?.title || (currentExercise as any)?.exercise_name || (currentExercise as any)?.exerciseName || (currentExercise as any)?.label || `Exercise ${exerciseIdx + 1}`;
-          
-          await api.exerciseResults.save({
-            athleteId: user.id,
-            workoutId: workout.id,
+            workoutId: actualWorkoutId,
             exerciseIndex: exerciseIdx,
             exerciseName: exerciseName,
-            setsCompleted: completedSets,
-            repsCompleted: setData.reduce((total, set) => total + (set.completed ? set.actualReps : 0), 0),
-            notes: `${setBreakdown}. Workout timer: ${Math.floor(timer / 60)}:${(timer % 60).toString().padStart(2, '0')}`
+            repsCompleted: 1, // This completion
+            setsCompleted: currentSet,
+            weightUsed: currentExercise.weight,
+            notes: `Set ${currentSet}, Rep ${currentRep} - Timer: ${Math.floor(timer / 60)}:${(timer % 60).toString().padStart(2, '0')}`
           });
-          
-          toast({
-            title: 'Sets Recorded!',
-            description: `${completedSets}/${totalSets} sets completed`,
-            status: 'success',
-            duration: 3000,
-            isClosable: true,
-          });
-        } catch (error) {
-          console.error('Error saving exercise result:', error);
-          toast({
-            title: 'Error Saving Data',
-            description: 'Your set data could not be saved, but exercise completion was recorded.',
-            status: 'warning',
-            duration: 3000,
-            isClosable: true,
-          });
+        }
+      } catch (error) {
+        console.error('Error saving exercise result:', error);
+      }
+    }
+
+    // Handle progression based on flow type
+    if (isCircuitFlow) {
+      // Circuit Flow: Move to next exercise after completing one set, track rounds
+      if (exerciseIdx + 1 >= workout.exercises.length) {
+        // Completed all exercises in this round
+        if (currentRound < circuitRounds) {
+          // More rounds to go - show countdown before next round
+          onUpdateRunning(false); // Pause timer during countdown
+          setCountdown(3);
+          setTimeout(() => {
+            setCurrentRound(prev => prev + 1);
+            setCurrentSet(1);
+            setCurrentRep(1);
+            setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
+            // Reset to first exercise (will be handled by parent)
+            if (exerciseIdx > 0) {
+              // We need to reset to exercise 0, but the parent component handles this
+              // For now, just show RPE screen to finish the workout
+              setShowRPEScreen(true);
+            }
+            onUpdateRunning(true); // Resume timer
+          }, 3000);
+        } else {
+          // All rounds complete - finish workout
+          setShowRPEScreen(true);
+        }
+      } else {
+        // Show countdown before next exercise in current round
+        onUpdateRunning(false); // Pause timer during countdown
+        setCountdown(3);
+        setTimeout(() => {
+          setCurrentSet(1);
+          setCurrentRep(1);
+          setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
+          onNextExercise();
+          onUpdateRunning(true); // Resume timer
+        }, 3000);
+      }
+    } else {
+      // Sequential Flow: Complete all sets/reps before moving to next exercise (original behavior)
+      const maxSets = currentExercise.sets || 1;
+      const maxReps = currentExercise.reps || 1;
+      
+      if (currentRep < maxReps) {
+        // More reps in current set - show countdown before next rep
+        onUpdateRunning(false); // Pause timer during countdown
+        setCountdown(3);
+        setTimeout(() => {
+          setCurrentRep(prev => prev + 1);
+          setRunTime({ minutes: 0, seconds: 0, hundredths: 0 }); // Reset time for next rep
+          onUpdateRunning(true); // Resume timer
+        }, 3000);
+      } else if (currentSet < maxSets) {
+        // Show countdown before next set
+        onUpdateRunning(false); // Pause timer during countdown
+        setCountdown(3);
+        setTimeout(() => {
+          setCurrentSet(prev => prev + 1);
+          setCurrentRep(1);
+          setRunTime({ minutes: 0, seconds: 0, hundredths: 0 }); // Reset time for next set
+          onUpdateRunning(true); // Resume timer
+        }, 3000);
+      } else {
+        // Exercise complete - move to next exercise or finish workout
+        if (exerciseIdx + 1 >= workout.exercises.length) {
+      setShowRPEScreen(true);
+    } else {
+          // Show countdown before next exercise
+          onUpdateRunning(false); // Pause timer during countdown
+          setCountdown(3);
+          setTimeout(() => {
+            setCurrentSet(1);
+            setCurrentRep(1);
+            setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
+            onNextExercise();
+            onUpdateRunning(true); // Resume timer
+          }, 3000);
         }
       }
     }
-    
-    // Check if there are more exercises
-    if (exerciseIdx + 1 < totalExercises) {
-      // Reset run time for next exercise
-      setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
-      onNextExercise();
-      return;
-    }
-    
-    // Last exercise completed - show RPE rating screen
-    setShowRPEScreen(true);
   };
 
   const handleRPESubmit = async () => {
@@ -380,23 +334,13 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
 
     setIsLoggingRPE(true);
     try {
-      console.log('ExerciseExecutionModal: Logging RPE', selectedRPE, 'for workout', workout.id);
-      console.log('ExerciseExecutionModal: Workout object:', workout);
-      console.log('ExerciseExecutionModal: User ID:', user.id);
-      
-      // Calculate workout duration in minutes from timer (timer is in seconds)
-      const durationMinutes = Math.max(1, Math.round(timer / 60)); // At least 1 minute
-      console.log('ExerciseExecutionModal: Duration minutes:', durationMinutes);
-      
-      // Check if this is a daily workout ID (starts with 'daily-')
+      const durationMinutes = Math.max(1, Math.round(timer / 60));
       let actualWorkoutId = workout.id;
+      
       if (workout.id.startsWith('daily-')) {
-        // Extract the actual workout ID from the daily workout ID
         actualWorkoutId = workout.id.replace('daily-', '');
-        console.log('ExerciseExecutionModal: Converted daily workout ID', workout.id, 'to actual workout ID', actualWorkoutId);
       }
       
-      // Verify the workout exists in the database
       const { data: workoutData, error: workoutError } = await supabase
         .from('workouts')
         .select('id, name')
@@ -404,13 +348,9 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
         .single();
       
       if (workoutError || !workoutData) {
-        console.error('ExerciseExecutionModal: Workout not found in database:', actualWorkoutId, workoutError);
-        throw new Error(`Workout not found in database: ${actualWorkoutId}`);
+        throw new Error(`Workout not found: ${actualWorkoutId}`);
       }
       
-      console.log('ExerciseExecutionModal: Verified workout exists:', workoutData);
-      
-      // Use the proper RPE system to save training load entry
       await saveTrainingLoadEntry(
         user.id,
         actualWorkoutId,
@@ -419,37 +359,12 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
         (workout as any).type || 'general'
       );
 
-      console.log('ExerciseExecutionModal: Successfully logged RPE and training load');
-
-      toast({
-        title: 'Great job! 💪',
-        description: `Workout completed with ${selectedRPE}/10 RPE (${durationMinutes} min)`,
-        status: 'success',
-        duration: 4000,
-        isClosable: true,
-      });
-
-      // Complete the workout
       onFinishWorkout();
-      
-      // Reset RPE state
       setShowRPEScreen(false);
       setSelectedRPE(null);
       
     } catch (error) {
       console.error('Error logging RPE:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      console.error('ExerciseExecutionModal: Full error details:', errorMessage);
-      
-      toast({
-        title: 'Error logging RPE',
-        description: `RPE rating could not be saved: ${errorMessage}. Workout completion was recorded.`,
-        status: 'warning',
-        duration: 6000,
-        isClosable: true,
-      });
-      
-      // Still complete the workout even if RPE fails
       onFinishWorkout();
       setShowRPEScreen(false);
       setSelectedRPE(null);
@@ -459,17 +374,29 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
   };
 
   const handleSkipRPE = () => {
-    // Complete workout without RPE rating
     onFinishWorkout();
     setShowRPEScreen(false);
     setSelectedRPE(null);
   };
 
-  const getRPEColor = (rating: number) => {
-    if (rating <= 3) return 'green.500';
-    if (rating <= 6) return 'yellow.500';
-    if (rating <= 8) return 'orange.500';
-    return 'red.500';
+  const handleVideoClick = () => {
+    const videoUrl = getVideoUrl(exerciseName);
+    onShowVideo(exerciseName, videoUrl);
+  };
+
+  const handlePauseResume = () => {
+    setIsPaused(!isPaused);
+  };
+
+  const handleResetTimer = () => {
+    onUpdateTimer(0);
+    setIsPaused(false);
+  };
+
+  const handlePrevious = () => {
+    if (exerciseIdx > 0) {
+      onPreviousExercise();
+    }
   };
 
   const getRPELabel = (rating: number) => {
@@ -480,821 +407,428 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
     return 'Max Effort';
   };
 
-  const handleVideoClick = () => {
-    if (workout && workout.exercises[exerciseIdx]) {
-      const currentExercise = workout.exercises[exerciseIdx];
-      const exerciseName = currentExercise?.name || (currentExercise as any)?.exercises?.[0]?.name || (workout as any)?.exercises?.[exerciseIdx]?.name || (workout as any)?.exercises?.[exerciseIdx]?.exercises?.[0]?.name || (currentExercise as any)?.title || (currentExercise as any)?.exercise_name || (currentExercise as any)?.exerciseName || (currentExercise as any)?.label || `Exercise ${exerciseIdx + 1}`;
-      const videoUrl = getVideoUrl(exerciseName);
-      onShowVideo(exerciseName, videoUrl);
-    }
-  };
-
-  if (!workout || !workout.exercises[exerciseIdx]) {
-    return null;
-  }
-
-  // Filter exercises to match the workout day if it's a weekly plan
-  const getFilteredExercises = () => {
-    const workoutName = workout.name.toLowerCase();
-    const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-    
-    // Check if workout name contains a day
-    const targetDay = dayNames.find(day => workoutName.includes(day));
-    
-    if (targetDay) {
-      // This is a daily workout from a weekly plan
-      const dayExercises = workout.exercises.filter((exercise: any) => {
-        return exercise && typeof exercise === 'object' && 
-               exercise.day && exercise.day.toLowerCase() === targetDay;
-      });
-      
-             if (dayExercises.length > 0) {
-         // Return the exercises for this specific day
-         const dayData = dayExercises[0] as any;
-         if (dayData.exercises && Array.isArray(dayData.exercises)) {
-           return dayData.exercises;
-         }
-       }
-    }
-    
-    // If not a weekly plan or no day match, return original exercises
-    return workout.exercises;
-  };
-
-  const filteredExercises = getFilteredExercises();
+  // Determine flow type and calculate progress accordingly
+  const flowType = workout.flow_type || 'sequential';
+  const isCircuitFlow = flowType === 'circuit';
+  const circuitRounds = workout.circuit_rounds || 3;
   
-  // Use filtered exercises instead of original workout exercises
-  if (!filteredExercises[exerciseIdx]) {
-    return null;
-  }
-
-  // Handle both old and new exercise data formats
-  const getRawExercise = () => {
-    const rawExercise = filteredExercises[exerciseIdx];
+  const currentExerciseSets = currentExercise.sets || 1;
+  const currentExerciseReps = currentExercise.reps || 1;
+  
+  let completionProgress;
+  
+  if (isCircuitFlow) {
+    // Circuit Flow: Track progress across all exercises for multiple rounds
+    const totalExercises = workout.exercises.length;
+    const totalCompletions = totalExercises * circuitRounds;
+    const currentCompletion = ((currentRound - 1) * totalExercises) + exerciseIdx;
     
-    // If it's a number (old format with indices), create a fallback exercise
-    if (typeof rawExercise === 'number') {
-      return {
-        name: `Exercise ${rawExercise + 1}`,
-        sets: 3,
-        reps: 10,
-        weight: null,
-        notes: 'Legacy exercise - please update workout'
-      };
-    }
-    
-    // If it's an object, check what type of object it is
-    if (rawExercise && typeof rawExercise === 'object') {
-      const rawExerciseAny = rawExercise as any;
-      
-      // Handle weekly workout format: {day: "wednesday", exercises: [...], isRestDay: false}
-      if (rawExerciseAny.day && Array.isArray(rawExerciseAny.exercises)) {
-        const dayName = rawExerciseAny.day;
-        const dayExercises = rawExerciseAny.exercises;
-        
-        if (rawExerciseAny.isRestDay) {
-          return {
-            name: `Rest Day - ${dayName.charAt(0).toUpperCase() + dayName.slice(1)}`,
-            sets: 0,
-            reps: 0,
-            weight: null,
-            notes: 'Rest and recovery day'
-          };
-        }
-        
-        if (dayExercises.length === 0) {
-          return {
-            name: `${dayName.charAt(0).toUpperCase() + dayName.slice(1)} - No exercises planned`,
-            sets: 0,
-            reps: 0,
-            weight: null,
-            notes: 'No exercises scheduled for this day'
-          };
-        }
-        
-        // If there are exercises for this day, return the first one (or could be modified to handle multiple)
-        const firstExercise = dayExercises[0];
-        return {
-          name: firstExercise.name || `${dayName.charAt(0).toUpperCase() + dayName.slice(1)} Exercise`,
-          sets: firstExercise.sets || 3,
-          reps: firstExercise.reps || 10,
-          weight: firstExercise.weight || null,
-          notes: firstExercise.notes || `Exercise for ${dayName}`
-        };
-      }
-      
-      // Handle old format: {id: "complex-id", name: "Exercise Name", ...}
-      if (rawExerciseAny.id && typeof rawExerciseAny.id === 'string' && rawExerciseAny.id.includes('-')) {
-        return {
-          name: rawExercise.name || `Exercise ${exerciseIdx + 1}`,
-          sets: rawExercise.sets || 3,
-          reps: rawExercise.reps || 10,
-          weight: rawExercise.weight || null,
-          notes: rawExercise.notes || ''
-        };
-      }
-      
-      // Handle new format: {name: "Exercise Name", sets: "3", reps: "10", ...}
-      if (rawExerciseAny.name) {
-        return rawExercise;
-      }
-    }
-    
-    // Fallback for any other format
-    return {
-      name: `Exercise ${exerciseIdx + 1}`,
-      sets: 3,
-      reps: 10,
-      weight: null,
-      notes: 'Unknown exercise format'
+    completionProgress = {
+      completed: currentCompletion,
+      total: totalCompletions,
+      percentage: totalCompletions > 0 ? (currentCompletion / totalCompletions) * 100 : 0,
+      setInfo: `Round ${currentRound} of ${circuitRounds} - Exercise ${exerciseIdx + 1} of ${totalExercises}`
     };
-  };
-
-  const currentExercise = getRawExercise();
-  
-
+  } else {
+    // Sequential Flow: Calculate overall workout progress across all exercises
+    let totalRepsInWorkout = 0;
+    let completedRepsInWorkout = 0;
+    
+    workout.exercises.forEach((exercise, exIndex) => {
+      const exerciseSets = exercise.sets || 1;
+      const exerciseReps = exercise.reps || 1;
+      const totalRepsForThisExercise = exerciseSets * exerciseReps;
+      
+      totalRepsInWorkout += totalRepsForThisExercise;
+      
+      if (exIndex < exerciseIdx) {
+        // Completely finished exercises
+        completedRepsInWorkout += totalRepsForThisExercise;
+      } else if (exIndex === exerciseIdx) {
+        // Current exercise - add completed reps only
+        const completedRepsInCurrentExercise = ((currentSet - 1) * exerciseReps) + (currentRep - 1);
+        completedRepsInWorkout += completedRepsInCurrentExercise;
+      }
+      // Future exercises contribute 0 completed reps
+    });
+    
+    completionProgress = {
+      completed: completedRepsInWorkout,
+      total: totalRepsInWorkout,
+      percentage: totalRepsInWorkout > 0 ? (completedRepsInWorkout / totalRepsInWorkout) * 100 : 0,
+      setInfo: `Set ${currentSet} of ${currentExerciseSets}, Rep ${currentRep} of ${currentExerciseReps}`
+    };
+  }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} isCentered size={{ base: 'full', md: 'md' }} motionPreset="none">
-      <ModalOverlay 
-        bg={{ base: 'blackAlpha.700', md: 'blackAlpha.600' }}
-        backdropFilter={{ base: 'none', md: 'blur(10px)' }}
-      />
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      isCentered={isCentered}
+      size={modalSize}
+      motionPreset={motionPreset}
+    >
+      <ModalOverlay />
       <ModalContent 
-        borderRadius={{ base: '0', md: '2xl' }}
-        overflow="hidden"
-        boxShadow={{ base: 'none', md: '2xl' }}
         bg={cardBg}
-        mx={{ base: 0, md: 4 }}
-        w={{ base: '100vw', md: undefined }}
-        h={{ base: '100vh', md: 'auto' }}
-        maxW={{ base: '100vw', md: '500px' }}
-        maxH={{ base: '100vh', md: '85vh' }}
-        p={0}
+        h={{ base: "100vh", md: "auto" }}
+        maxH={{ base: "100vh", md: "90vh" }}
+        borderRadius={{ base: 0, md: "md" }}
+        m={{ base: 0, md: 4 }}
       >
-        {/* Conditional Header - Different for RPE screen */}
-        <Box 
-          h="120px" 
-          bg={showRPEScreen 
-            ? "linear-gradient(135deg, #38A169 0%, #68D391 50%, #4FD1C7 100%)" 
-            : (running 
-              ? "linear-gradient(135deg, #38A169 0%, #68D391 50%, #4FD1C7 100%)" 
-              : "linear-gradient(135deg, #4299E1 0%, #90CDF4 50%, #A78BFA 100%)"
-            )
-          } 
-          position="relative"
-          overflow="hidden"
-        >
-          {/* Animated background pattern */}
-          <Box
-            position="absolute"
-            top="0"
-            left="0"
-            right="0"
-            bottom="0"
-            opacity="0.1"
-            bgImage="radial-gradient(circle at 2px 2px, white 1px, transparent 0)"
-            bgSize="20px 20px"
-          />
-          
-          {/* Header Content */}
-          <VStack 
-            position="absolute" 
-            top="50%" 
-            left="50%" 
-            transform="translate(-50%, -50%)"
-            spacing={1}
-            zIndex="2"
-          >
-            {showRPEScreen ? (
-              <>
-                <Heading 
-                  size="lg" 
-                  textAlign="center"
-                  color="white"
-                  lineHeight="shorter"
-                  fontWeight="bold"
-                >
-                  Workout Complete! 🎉
-                </Heading>
-                <Text 
-                  fontSize="sm" 
-                  fontWeight="medium" 
-                  color="white"
-                  textTransform="uppercase"
-                  letterSpacing="wider"
-                  opacity="0.9"
-                >
-                  Rate Your Effort
-                </Text>
-              </>
-            ) : (
-              <>
-                <Heading 
-                  size="lg" 
-                  textAlign="center"
-                  color="white"
-                  lineHeight="shorter"
-                  fontWeight="bold"
-                  mb={2}
-                  width="100%"
-                >
-                  {
-                    currentExercise?.name || 
-                    (currentExercise as any)?.exercises?.[0]?.name ||
-                    (workout as any)?.exercises?.[exerciseIdx]?.name ||
-                    (workout as any)?.exercises?.[exerciseIdx]?.exercises?.[0]?.name ||
-                    (currentExercise as any)?.title || 
-                    (currentExercise as any)?.exercise_name || 
-                    (currentExercise as any)?.exerciseName ||
-                    (currentExercise as any)?.label ||
-                    `Exercise ${exerciseIdx + 1}`
-                  }
-                </Heading>
-                <Text 
-                  fontSize="sm" 
-                  fontWeight="medium" 
-                  color="white"
-                  textTransform="uppercase"
-                  letterSpacing="wider"
-                  opacity="0.9"
-                >
-                  Exercise Execution
-                </Text>
-              </>
-            )}
-          </VStack>
-          
-          {/* Progress Bar */}
-          <Box position="absolute" bottom="0" left="0" right="0">
-            <Progress 
-              value={showRPEScreen ? 100 : (((exerciseIdx + 1) / filteredExercises.length) * 100)} 
-              size="sm" 
-              height="8px"
-              colorScheme={showRPEScreen ? "green" : (running ? "green" : "blue")} 
-              backgroundColor="rgba(255,255,255,0.2)"
+        {/* Overall Progress Bar - Flush to top */}
+        {!showRPEScreen && (
+          <Box w="full" h="3px" bg="gray.200" position="relative">
+            <Box
+              h="full"
+              bg="blue.400"
               borderRadius="0"
+              width={`${completionProgress.percentage}%`}
+              transition="width 0.3s ease"
             />
           </Box>
-          
-          {/* Close Button */}
+        )}
+        
+        <ModalHeader>
+          <HStack>
           <IconButton
-            aria-label="Close"
-            icon={<Box as="span" fontSize="24px" color="white">×</Box>}
-            position="absolute"
-            top={4}
-            right={4}
+              aria-label="Back"
+              icon={<ChevronLeftIcon />}
             variant="ghost"
-            colorScheme="whiteAlpha"
-            size="lg"
             onClick={onClose}
-            _hover={{ bg: 'whiteAlpha.200' }}
-            zIndex="3"
-          />
-        </Box>
-
-        {/* Modal Body - Conditional Content */}
-        <ModalBody p={{ base: 6, md: 8 }} overflowY="auto">
-          {showRPEScreen ? (
-            /* RPE Rating Screen */
-            <VStack spacing={6} align="stretch">
-              {/* Success Message */}
-              <VStack spacing={3} textAlign="center">
-                <Icon as={FaCheckCircle} boxSize={12} color="green.500" />
-                <Heading size="lg" color={modalHeadingColor}>
-                  {workout.name}
-                </Heading>
-                <Text color={modalTextColor} fontSize="lg">
-                  All exercises completed!
-                </Text>
-                <Text color={modalTextColor} fontSize="sm">
-                  How hard was this workout overall?
-                </Text>
-              </VStack>
-
-              {/* RPE Scale */}
-              <VStack spacing={4}>
-                <Text fontSize="md" fontWeight="semibold" color={modalHeadingColor}>
-                  Rate Perceived Exertion (1-10):
-                </Text>
-                
-                <SimpleGrid columns={5} spacing={3} w="100%">
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rating) => (
-                    <Circle
-                      key={rating}
-                      size="50px"
-                      bg={selectedRPE === rating ? getRPEColor(rating) : 'gray.100'}
-                      color={selectedRPE === rating ? 'white' : 'gray.600'}
-                      cursor="pointer"
-                      onClick={() => setSelectedRPE(rating)}
-                      _hover={{ 
-                        bg: selectedRPE === rating ? getRPEColor(rating) : 'gray.200',
-                        transform: 'scale(1.05)'
-                      }}
-                      _dark={{
-                        bg: selectedRPE === rating ? getRPEColor(rating) : 'gray.600',
-                        color: selectedRPE === rating ? 'white' : 'gray.300',
-                        _hover: {
-                          bg: selectedRPE === rating ? getRPEColor(rating) : 'gray.500'
+            />
+            <HStack flex={1} justify="space-between" align="center">
+              <Box /> {/* Spacer for left side */}
+              
+              <VStack spacing={0} textAlign="center">
+                {showRPEScreen ? (
+                  <Text textAlign="center">Rate Your Effort</Text>
+                ) : (
+                  <>
+                    <Text textAlign="center" fontSize="lg" fontWeight="medium">
+                      {exerciseName}
+                    </Text>
+                    <Text textAlign="center" fontSize="sm" color={modalTextColor}>
+                      {(() => {
+                        let nextText = '';
+                        
+                        if (isCircuitFlow) {
+                          if (exerciseIdx + 1 >= workout.exercises.length) {
+                            if (currentRound < circuitRounds) {
+                              nextText = `Round ${currentRound + 1}`;
+                            } else {
+                              nextText = 'Finish';
+                            }
+                          } else {
+                            const nextExercise = workout.exercises[exerciseIdx + 1];
+                            nextText = nextExercise?.name || 'Exercise';
+                          }
+                        } else {
+                          if (exerciseIdx + 1 >= workout.exercises.length) {
+                            nextText = 'Finish';
+                          } else {
+                            const nextExercise = workout.exercises[exerciseIdx + 1];
+                            nextText = nextExercise?.name || 'Exercise';
+                          }
                         }
-                      }}
-                      transition="all 0.2s"
-                      fontWeight="bold"
-                      fontSize="lg"
-                    >
-                      {rating}
-                    </Circle>
-                  ))}
-                </SimpleGrid>
-
-                {selectedRPE && (
-                  <Flex justify="center">
-                    <Badge 
-                      colorScheme={getRPEColor(selectedRPE).split('.')[0]} 
-                      variant="solid"
-                      px={4}
-                      py={2}
-                      borderRadius="full"
-                      fontSize="sm"
-                    >
-                      {getRPELabel(selectedRPE)}
-                    </Badge>
-                  </Flex>
+                        
+                        return `Next: ${nextText}`;
+                      })()}
+                    </Text>
+                  </>
                 )}
               </VStack>
+              
+              {!showRPEScreen && (
+                <Badge 
+                  colorScheme={isCircuitFlow ? "purple" : "blue"} 
+                  size="sm"
+                  borderRadius="full"
+                >
+                  {isCircuitFlow ? "Circuit" : "Sequential"}
+                </Badge>
+              )}
+            </HStack>
+          </HStack>
+        </ModalHeader>
 
-              {/* Action Buttons */}
-              <VStack spacing={3} pt={4}>
-                <Button
-                  colorScheme="green"
-                  size="lg"
-                  onClick={handleRPESubmit}
-                  isLoading={isLoggingRPE}
-                  loadingText="Saving..."
-                  leftIcon={<Icon as={FaDumbbell} />}
-                  isDisabled={!selectedRPE}
-                  borderRadius="xl"
-                  px={8}
-                  py={6}
-                  fontWeight="semibold"
-                  boxShadow="lg"
-                  _hover={{ transform: 'translateY(-2px)', boxShadow: 'xl' }}
-                  transition="all 0.2s"
-                  w="100%"
-                >
-                  Complete Workout
-                </Button>
+        {/* Current Exercise Rep Progress Bars */}
+        {!showRPEScreen && (
+          <Box px={6} pb={4}>
+            <HStack spacing={1} w="full" justify="center">
+              {(() => {
+                const currentExerciseReps = currentExercise.reps || 1;
+                const bars = [];
                 
-                <Button
-                  variant="ghost"
-                  size="md"
-                  onClick={handleSkipRPE}
-                  color={modalTextColor}
-                  _hover={{ bg: 'gray.100' }}
-                  _dark={{ _hover: { bg: 'gray.600' } }}
-                >
-                  Skip RPE Rating
-                </Button>
-              </VStack>
+                // Show only the current exercise's reps
+                for (let rep = 1; rep <= currentExerciseReps; rep++) {
+                  let barColor = 'gray.300'; // Not done yet
+                  
+                  if (rep < currentRep) {
+                    barColor = 'green.400'; // Completed rep
+                  } else if (rep === currentRep) {
+                    barColor = 'blue.400'; // Current rep
+                  }
+                  
+                  bars.push(
+                    <Box
+                      key={`current-rep-${rep}`}
+                      flex={1}
+                      h="4px"
+                      bg={barColor}
+                        borderRadius="full"
+                    />
+                  );
+                }
+                
+                return bars;
+            })()}
+          </HStack>
+        </Box>
+        )}
+
+        <ModalBody>
+          {showRPEScreen ? (
+            <VStack spacing={6}>
+              <Text textAlign="center" color={modalTextColor}>
+                How hard was your workout? (1 = Very Easy, 10 = Maximum Effort)
+                </Text>
+              <SimpleGrid columns={5} spacing={3} w="full">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rating) => (
+                  <Button
+                      key={rating}
+                    size="lg"
+                    variant={selectedRPE === rating ? 'solid' : 'outline'}
+                    colorScheme={selectedRPE === rating ? 'blue' : 'gray'}
+                      onClick={() => setSelectedRPE(rating)}
+                    >
+                      {rating}
+                  </Button>
+                  ))}
+                </SimpleGrid>
+                {selectedRPE && (
+                <Badge colorScheme="blue" fontSize="md" p={2}>
+                      {getRPELabel(selectedRPE)}
+                    </Badge>
+              )}
             </VStack>
           ) : (
-            /* Original Exercise Execution Content */
-            <VStack spacing={6} align="stretch">
-              {isStrengthExercise(currentExercise.name) ? (
-                /* Interactive Set Tracker for Strength Exercises */
-                <Box 
-                  bg={modalHeaderBg} 
-                  borderRadius="2xl" 
-                  p={6}
-                  border="1px solid"
-                  borderColor={modalHeaderBorderColor}
-                >
-                  <VStack spacing={4}>
-                    {/* Exercise Summary */}
-                    <HStack justify="space-between" width="100%">
-                      <VStack spacing={1}>
-                        <Text 
-                          color={modalTextColor} 
-                          fontSize="sm"
-                          fontWeight="medium"
-                          textTransform="uppercase"
-                          letterSpacing="wider"
-                        >
-                          Progress
+                                    <VStack spacing={6}>
+              {/* Always show the same layout */}
+                <VStack spacing={6} w="full">
+                  {/* Detailed Progress Section */}
+                  <Box 
+                    w="full" 
+                    bg={sectionBg} 
+                    borderRadius="xl" 
+                    p={4}
+                  >
+                    <SimpleGrid columns={4} spacing={2} w="full">
+                      {/* Sets Stats */}
+                      <VStack spacing={1} align="center">
+                        <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textTransform="uppercase" textAlign="center">
+                          Sets
                         </Text>
-                        <Text 
-                          fontWeight="bold" 
-                          fontSize="xl"
-                          color={modalHeadingColor}
-                        >
-                          {getCompletedSetsCount()}/{currentExercise.sets} Sets
+                        <Text fontSize="lg" fontWeight="normal" textAlign="center">
+                          {isCircuitFlow 
+                            ? `${currentRound - 1}/${circuitRounds}`
+                            : `${currentSet - 1}/${currentExerciseSets}`
+                          }
                         </Text>
                       </VStack>
                       
-                      <VStack spacing={1}>
-                        <Text 
-                          color={modalTextColor} 
-                          fontSize="sm"
-                          fontWeight="medium"
-                          textTransform="uppercase"
-                          letterSpacing="wider"
-                        >
+                      {/* Target Reps */}
+                      <VStack spacing={1} align="center">
+                        <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textTransform="uppercase" textAlign="center">
                           Target Reps
                         </Text>
-                        <Text 
-                          fontWeight="bold" 
-                          fontSize="xl"
-                          color={modalHeadingColor}
-                        >
-                          {(() => {
-                            // Get sets and reps from the nested exercise structure
-                            const exerciseData = (currentExercise as any)?.exercises?.[exerciseIdx] || 
-                                                (currentExercise as any)?.exercises?.[0] || 
-                                                (workout?.exercises?.[0] as any)?.exercises?.[exerciseIdx] ||
-                                                currentExercise;
-                            const sets = parseInt(exerciseData?.sets || currentExercise?.sets || '0');
-                            const reps = parseInt(exerciseData?.reps || currentExercise?.reps || '0');
-                            return sets * reps;
-                          })()}
+                        <Text fontSize="lg" fontWeight="normal" textAlign="center">
+                          {currentExerciseReps}
                         </Text>
                       </VStack>
                       
-                      <VStack spacing={1}>
-                        <Text 
-                          color={modalTextColor} 
-                          fontSize="sm"
-                          fontWeight="medium"
-                          textTransform="uppercase"
-                          letterSpacing="wider"
-                        >
+                      {/* Exercise Progress */}
+                      <VStack spacing={1} align="center">
+                        <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textTransform="uppercase" textAlign="center">
                           Exercise
-                        </Text>
-                        <HStack spacing={2}>
-                          <Text 
-                            fontWeight="bold" 
-                            fontSize="xl"
-                            color={modalHeadingColor}
-                          >
-                            {exerciseIdx + 1}/{filteredExercises.length}
                           </Text>
-                          {isExerciseCompleted(exerciseIdx) && (
-                            <Icon as={CheckIcon} color="green.500" boxSize={5} />
-                          )}
-                        </HStack>
-                      </VStack>
-                      
-                      <VStack spacing={1}>
-                        <Text 
-                          color={modalTextColor} 
-                          fontSize="sm"
-                          fontWeight="medium"
-                          textTransform="uppercase"
-                          letterSpacing="wider"
-                        >
+                        <Text fontSize="lg" fontWeight="normal" textAlign="center">
+                          {exerciseIdx + 1}/{workout.exercises.length}
+                          </Text>
+                        </VStack>
+
+                      {/* Completed */}
+                      <VStack spacing={1} align="center">
+                        <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textTransform="uppercase" textAlign="center">
                           Completed
                         </Text>
-                        <Text 
-                          fontWeight="bold" 
-                          fontSize="xl"
-                          color={getCompletionProgress().completed === getCompletionProgress().total ? "green.500" : modalHeadingColor}
-                        >
-                          {getCompletionProgress().completed}/{getCompletionProgress().total}
-                        </Text>
-                      </VStack>
-                      
-                      {currentExercise.weight && (
-                        <VStack spacing={1}>
-                          <Text 
-                            color={modalTextColor} 
-                            fontSize="sm"
-                            fontWeight="medium"
-                            textTransform="uppercase"
-                            letterSpacing="wider"
-                          >
-                            Weight
-                          </Text>
-                          <Text 
-                            fontWeight="bold" 
-                            fontSize="xl"
-                            color={modalHeadingColor}
-                          >
-                            {currentExercise.weight}
-                            <Text as="span" fontSize="md" color={modalSpanColor}>
-                              kg
-                            </Text>
+                        <Text fontSize="lg" fontWeight="normal" textAlign="center">
+                          {isCircuitFlow 
+                            ? `${completionProgress.completed}/${completionProgress.total}`
+                            : `${completionProgress.completed}/${completionProgress.total}`
+                          }
                           </Text>
                         </VStack>
-                      )}
-                    </HStack>
-                    
-                    <Divider />
-                    
-                    {/* Individual Set Tracking */}
-                    <VStack spacing={3} width="100%">
-                      <Text 
-                        color={modalTextColor} 
-                        fontSize="sm"
-                        fontWeight="medium"
-                        textTransform="uppercase"
-                        letterSpacing="wider"
-                        alignSelf="flex-start"
-                      >
-                        Set Tracking
-                      </Text>
+                    </SimpleGrid>
+                      </Box>
                       
-                      {setData.map((set, index) => (
-                        <HStack 
-                          key={index} 
-                          spacing={4} 
-                          width="100%" 
-                          p={3}
-                          bg={set.completed ? 
-                            useColorModeValue('green.50', 'green.900') : 
-                            cardBg
-                          }
-                          borderRadius="lg"
-                          border="1px solid"
-                          borderColor={set.completed ? 
-                            useColorModeValue('green.200', 'green.600') : 
-                            modalHeaderBorderColor
-                          }
-                        >
-                          <Flex minWidth="60px" align="center">
-                            <Text fontWeight="semibold" color={modalHeadingColor}>
-                              Set {index + 1}
-                            </Text>
-                          </Flex>
-                          
-                          <HStack spacing={2} flex={1}>
-                            <Text fontSize="sm" color={modalTextColor}>
-                              Reps:
-                            </Text>
-                            <Input
-                              type="number"
-                              value={set.actualReps}
-                              onChange={(e) => handleRepsChange(index, parseInt(e.target.value) || 0)}
-                              size="sm"
-                              width="70px"
-                              textAlign="center"
-                              min={0}
-                              bg={cardBg}
-                              isDisabled={set.completed}
-                            />
-                            <Text fontSize="sm" color={modalTextColor}>
-                              / {set.targetReps}
-                            </Text>
-                          </HStack>
-                          
-                          <IconButton
-                            aria-label={set.completed ? "Mark incomplete" : "Mark complete"}
-                            icon={<CheckIcon />}
-                            colorScheme={set.completed ? "green" : "gray"}
-                            variant={set.completed ? "solid" : "outline"}
-                            size="sm"
-                            onClick={() => handleSetComplete(index)}
-                          />
-                        </HStack>
-                      ))}
-                    </VStack>
-                  </VStack>
-                </Box>
-              ) : (
-                /* Static Display for Run Exercises */
-                <Box 
-                  bg={modalHeaderBg} 
-                  borderRadius="2xl" 
-                  p={6}
-                  border="1px solid"
-                  borderColor={modalHeaderBorderColor}
-                >
-                  <HStack justify="space-around" align="center" spacing={6}>
-                    <VStack spacing={1}>
-                      <Text 
-                        color={modalTextColor} 
-                        fontSize="sm"
-                        fontWeight="medium"
-                        textTransform="uppercase"
-                        letterSpacing="wider"
-                      >
-                        Sets
-                      </Text>
-                      <Text 
-                        fontWeight="bold" 
-                        fontSize="2xl"
-                        color={modalHeadingColor}
-                      >
-                        {currentExercise.sets}
-                      </Text>
-                    </VStack>
-                    
-                    <Divider orientation="vertical" h="50px" />
-                    
-                    <VStack spacing={1}>
-                      <Text 
-                        color={modalTextColor} 
-                        fontSize="sm"
-                        fontWeight="medium"
-                        textTransform="uppercase"
-                        letterSpacing="wider"
-                      >
-                        Reps
-                      </Text>
-                      <Text 
-                        fontWeight="bold" 
-                        fontSize="2xl"
-                        color={modalHeadingColor}
-                      >
-                        {currentExercise.reps}
-                      </Text>
-                    </VStack>
-                    
-                    <Divider orientation="vertical" h="50px" />
-                    
-                    <VStack spacing={1}>
-                      <Text 
-                        color={modalTextColor} 
-                        fontSize="sm"
-                        fontWeight="medium"
-                        textTransform="uppercase"
-                        letterSpacing="wider"
-                      >
-                        Exercise
-                      </Text>
-                      <Text 
-                        fontWeight="bold" 
-                        fontSize="2xl"
-                        color={modalHeadingColor}
-                      >
-                        {exerciseIdx + 1}/{filteredExercises.length}
-                      </Text>
-                    </VStack>
-                    
-                    {currentExercise.weight && (
-                      <>
-                        <Divider orientation="vertical" h="50px" />
-                        <VStack spacing={1}>
-                          <Text 
-                            color={modalTextColor} 
-                            fontSize="sm"
-                            fontWeight="medium"
-                            textTransform="uppercase"
-                            letterSpacing="wider"
-                          >
-                            Weight
-                          </Text>
-                          <Text 
-                            fontWeight="bold" 
-                            fontSize="2xl"
-                            color={modalHeadingColor}
-                          >
-                            {currentExercise.weight}
-                            <Text as="span" fontSize="lg" color={modalSpanColor}>
-                              kg
-                            </Text>
-                          </Text>
-                        </VStack>
-                      </>
-                    )}
-                  </HStack>
-                </Box>
-              )}
-
-              {/* Timer Display */}
-              <VStack spacing={1} w="100%">
-                <Text 
-                  color={modalTextColor} 
-                  fontSize="sm"
-                  fontWeight="medium"
-                  textTransform="uppercase"
-                  letterSpacing="wider"
-                >
-                  Timer
-                </Text>
-                <Box 
-                  bg={modalHeaderBg} 
-                  borderRadius="xl" 
-                  p={6}
-                  border="1px solid"
-                  borderColor={modalHeaderBorderColor}
-                  w="100%"
-                >
-                  <Text 
-                    fontSize="4xl" 
-                    fontWeight="bold" 
-                    color={modalHeadingColor}
+                                    {/* Timer Section */}
+                  <Box 
+                    w="full" 
+                    bg={sectionBg} 
+                    borderRadius="xl" 
+                    p={8}
                     textAlign="center"
-                    fontFamily="mono"
                   >
-                    {Math.floor(timer / 60).toString().padStart(2, '0')}:
-                    {(timer % 60).toString().padStart(2, '0')}
-                  </Text>
-                </Box>
-              </VStack>
+                    <Text fontSize="xs" color={modalTextColor} fontWeight="bold" textTransform="uppercase" mb={2}>
+                      {countdown > 0 
+                        ? (exerciseIdx === 0 && currentSet === 1 && currentRep === 1 
+                            ? "Get Ready!" 
+                            : isCircuitFlow
+                              ? (exerciseIdx + 1 >= workout.exercises.length 
+                                  ? `Next Round ${currentRound + 1}/${circuitRounds}`
+                                  : "Next Exercise")
+                              : (currentRep < (currentExercise.reps || 1)
+                                  ? "Next Rep"
+                                  : currentSet < (currentExercise.sets || 1)
+                                    ? "Next Set" 
+                                    : "Next Exercise"))
+                        : "Timer"
+                      }
+                    </Text>
+                    <Text 
+                      fontSize="6xl" 
+                      fontWeight="bold" 
+                      color={countdown > 0 ? "red.500" : (isPaused ? "gray.400" : "blue.500")} 
+                      lineHeight="1"
+                      fontFamily="mono"
+                      letterSpacing={countdown > 0 ? "0.2em" : "normal"}
+                      textAlign="center"
+                      minW={countdown > 0 ? "120px" : "auto"}
+                    >
+                      {countdown > 0 
+                        ? countdown.toString().padStart(2, '0')
+                        : `${Math.floor(timer / 60).toString().padStart(2, '0')}:${(timer % 60).toString().padStart(2, '0')}`
+                      }
+                    </Text>
+                    
+                    {/* Timer Controls - always visible but disabled during countdown */}
+                    <HStack justify="center" spacing={4} mt={4}>
+                      <IconButton
+                        aria-label={isPaused ? "Resume timer" : "Pause timer"}
+                        icon={<Icon as={isPaused ? FaPlay : FaPause} />}
+                        onClick={handlePauseResume}
+                        variant="outline"
+                        size="sm"
+                        borderRadius="full"
+                        isDisabled={countdown > 0}
+                        opacity={countdown > 0 ? 0.4 : 1}
+                      />
+                      <IconButton
+                        aria-label="Reset timer"
+                        icon={<Icon as={FaRedo} />}
+                        onClick={handleResetTimer}
+                        variant="outline"
+                        size="sm"
+                        borderRadius="full"
+                        isDisabled={countdown > 0}
+                        opacity={countdown > 0 ? 0.4 : 1}
+                      />
+                    </HStack>
+                  </Box>
 
-              {/* Run Time Input - Only show for run exercises */}
-              {isRunExercise(currentExercise.name) && (
+                  {/* Time Input for Running Exercises */}
+                  {isRunExercise(exerciseName) && (
+                    <Box w="full">
                 <RunTimeInput
-                  onTimeChange={(minutes, seconds, hundredths) => {
-                    setRunTime({ minutes, seconds, hundredths });
-                  }}
+                        onTimeChange={handleTimeChange}
                   initialMinutes={runTime.minutes}
                   initialSeconds={runTime.seconds}
                   initialHundredths={runTime.hundredths}
-                  placeholder={`${currentExercise.name} - Record Time`}
+                        placeholder="Enter your run time"
                 />
+                    </Box>
               )}
 
               {/* Action Buttons */}
-              <VStack spacing={4} width="100%">
-                <HStack spacing={3} width="100%" justify="center">
-                  {/* Previous Button - Only show if not on first exercise */}
-                  {exerciseIdx > 0 && (
+                  <SimpleGrid columns={3} spacing={3} w="full">
                     <Button 
-                      colorScheme="gray" 
                       size="lg"
-                      leftIcon={<Icon as={ChevronLeftIcon} />} 
-                      onClick={onPreviousExercise}
-                      borderRadius="xl"
-                      px={6}
-                      py={6}
-                      fontWeight="semibold"
-                      boxShadow="lg"
-                      _hover={{ transform: 'translateY(-2px)', boxShadow: 'xl' }}
-                      transition="all 0.2s"
+                      variant="outline"
+                      onClick={handlePrevious}
+                      isDisabled={countdown > 0 || exerciseIdx === 0}
+                      leftIcon={<Icon as={FaChevronLeft} />}
                     >
                       Previous
                     </Button>
-                  )}
 
-                  {running ? (
                     <Button 
-                      colorScheme="yellow" 
                       size="lg"
-                      leftIcon={<Icon as={FaRegClock} />} 
-                      onClick={() => onUpdateRunning(false)}
-                      borderRadius="xl"
-                      px={8}
-                      py={6}
-                      fontWeight="semibold"
-                      boxShadow="lg"
-                      _hover={{ transform: 'translateY(-2px)', boxShadow: 'xl' }}
-                      transition="all 0.2s"
+                      variant="outline"
+                      onClick={handleVideoClick}
+                      leftIcon={<Icon as={FaRunning} />}
                     >
-                      Pause
+                      Tutorial
                     </Button>
-                  ) : (
-                    <Button 
-                      colorScheme="blue" 
-                      size="lg"
-                      leftIcon={<Icon as={FaRunning} />} 
-                      onClick={() => onUpdateRunning(true)}
-                      borderRadius="xl"
-                      px={8}
-                      py={6}
-                      fontWeight="semibold"
-                      boxShadow="lg"
-                      _hover={{ transform: 'translateY(-2px)', boxShadow: 'xl' }}
-                      transition="all 0.2s"
-                    >
-                      Start
-                    </Button>
-                  )}
                   
                   <Button 
-                    colorScheme="green" 
-                    size="lg"
-                    leftIcon={<Icon as={CheckIcon} />} 
+                      size="lg"
+                      colorScheme="blue"
                     onClick={handleDone}
-                    borderRadius="xl"
-                    px={8}
-                    py={6}
-                    fontWeight="semibold"
-                    boxShadow="lg"
-                    _hover={{ transform: 'translateY(-2px)', boxShadow: 'xl' }}
-                    transition="all 0.2s"
-                  >
-                    {exerciseIdx + 1 < filteredExercises.length ? 'Next' : 'Finish'}
-                  </Button>
-                </HStack>
-                
-                <Button 
-                  colorScheme="purple" 
-                  variant="outline"
-                  size="md"
-                  leftIcon={<Icon as={FaPlayCircle} />} 
-                  onClick={handleVideoClick}
-                  borderRadius="xl"
-                  px={6}
-                  fontWeight="medium"
-                  _hover={{ bg: 'purple.50', transform: 'translateY(-1px)' }}
-                  transition="all 0.2s"
-                >
-                  Watch Tutorial
+                      isDisabled={countdown > 0}
+                      leftIcon={<Icon as={FaCheckCircle} />}
+                    >
+                      {(() => {
+                        if (isCircuitFlow) {
+                          if (exerciseIdx + 1 >= workout.exercises.length) {
+                            if (currentRound < circuitRounds) {
+                              return 'Next Round';
+                            } else {
+                              return 'Finish';
+                            }
+                          } else {
+                            return 'Next';
+                          }
+                        } else {
+                          const maxSets = currentExercise.sets || 1;
+                          const maxReps = currentExercise.reps || 1;
+                          
+                          if (currentRep < maxReps) {
+                            return 'Next Rep';
+                          } else if (currentSet < maxSets) {
+                            return 'Next Set';
+                          } else if (exerciseIdx + 1 >= workout.exercises.length) {
+                            return 'Finish';
+                          } else {
+                            return 'Next';
+                          }
+                        }
+                      })()}
                 </Button>
-              </VStack>
+                  </SimpleGrid>
+                </VStack>
             </VStack>
           )}
         </ModalBody>
+
+        <ModalFooter>
+          {showRPEScreen && (
+            <HStack spacing={3} w="full">
+              <Button variant="outline" onClick={handleSkipRPE} flex={1}>
+                Skip
+              </Button>
+              <Button 
+                colorScheme="blue" 
+                onClick={handleRPESubmit} 
+                isDisabled={!selectedRPE}
+                isLoading={isLoggingRPE}
+                flex={1}
+              >
+                Submit
+              </Button>
+            </HStack>
+          )}
+        </ModalFooter>
       </ModalContent>
     </Modal>
   );

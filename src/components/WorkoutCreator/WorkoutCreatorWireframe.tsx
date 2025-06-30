@@ -142,10 +142,12 @@ const WorkoutCreatorWireframe: React.FC = () => {
   const [templateType, setTemplateType] = useState<'single' | 'weekly'>('weekly');
   const [workoutType, setWorkoutType] = useState('Strength');
   const [date, setDate] = useState(''); // Use single date field as per schema
-  const [time, setTime] = useState(''); // Use single time field as per schema  
+  const [time, setTime] = useState('');   // Use single time field as per schema  
   const [duration, setDuration] = useState(''); // Add duration field
   const [location, setLocation] = useState('');
   const [isTemplate, setIsTemplate] = useState(false); // Add isTemplate state
+  const [flowType, setFlowType] = useState<'sequential' | 'circuit'>('sequential');
+  const [circuitRounds, setCircuitRounds] = useState(3);
   
   // Lazy initialize complex state objects
   const [selectedExercises, setSelectedExercises] = useState<Record<string, SelectedExercise[]>>(() => ({
@@ -306,6 +308,8 @@ const WorkoutCreatorWireframe: React.FC = () => {
         setDuration(data.duration || '');
         setLocation(data.location || '');
         setIsTemplate(data.is_template || false);
+        setFlowType(data.flow_type || 'sequential');
+        setCircuitRounds(data.circuit_rounds || 3);
         
         // Handle exercises and weekly plan data
         if (data.exercises && Array.isArray(data.exercises)) {
@@ -805,6 +809,8 @@ const WorkoutCreatorWireframe: React.FC = () => {
         duration: duration,
         location: location,
         is_template: isTemplate,
+        flow_type: flowType,
+        circuit_rounds: circuitRounds,
         description: templateType === 'weekly' ? 'Weekly Training Plan' : 'Single Day Workout',
         exercises: templateType === 'single' ? (selectedExercises.monday || []) : [],
         weekly_plan: templateType === 'weekly' ? Object.keys(selectedExercises).map(day => ({
@@ -925,6 +931,12 @@ const WorkoutCreatorWireframe: React.FC = () => {
       exercisesToStore = workoutData.weekly_plan;
     }
     
+    // Helper function to sanitize values
+    const sanitizeValue = (value: any): any => {
+      if (value === '' || value === undefined) return null;
+      return value;
+    };
+
     // Use Supabase transaction pattern
     const { error: updateError } = await supabase
       .from('workouts')
@@ -932,10 +944,11 @@ const WorkoutCreatorWireframe: React.FC = () => {
         name: workoutData.name,
         type: workoutData.type,
         template_type: workoutData.template_type,
-        date: workoutData.date,
-        time: workoutData.time,
-        duration: workoutData.duration,
-        location: workoutData.location,
+        // Templates should always have null date fields, otherwise sanitize empty strings
+        date: workoutData.is_template ? null : sanitizeValue(workoutData.date),
+        time: workoutData.is_template ? null : sanitizeValue(workoutData.time),
+        duration: workoutData.is_template ? null : sanitizeValue(workoutData.duration),
+        location: sanitizeValue(workoutData.location),
         description: workoutData.description,
         is_template: workoutData.is_template,
         exercises: exercisesToStore, // Store exercises or weekly plan data
@@ -1500,6 +1513,10 @@ const WorkoutCreatorWireframe: React.FC = () => {
               setLocation={setLocation}
               isTemplate={isTemplate}
               setIsTemplate={setIsTemplate}
+              flowType={flowType}
+              setFlowType={setFlowType}
+              circuitRounds={circuitRounds}
+              setCircuitRounds={setCircuitRounds}
             />
           </Suspense>
         );
