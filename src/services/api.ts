@@ -37,6 +37,8 @@ export interface Workout {
   template_tags?: string[]
   flow_type?: 'sequential' | 'circuit'
   circuit_rounds?: number
+  deleted_at?: string
+  deleted_by?: string
 }
 
 interface TeamPost {
@@ -217,8 +219,8 @@ export const api = {
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) throw new Error('No user found');
 
-          // Simple update operation - should be fast
-          const { error } = await supabase
+          // 1. Mark workout as deleted
+          const { error: workoutError } = await supabase
             .from('workouts')
             .update({
               deleted_at: new Date().toISOString(),
@@ -227,9 +229,23 @@ export const api = {
             .eq('id', id)
             .eq('user_id', user.id); // Additional security check
 
-          if (error) {
-            console.error('Soft delete failed:', error);
-            throw error;
+          if (workoutError) {
+            console.error('Soft delete failed:', workoutError);
+            throw workoutError;
+          }
+
+          // 2. 🔧 CRITICAL FIX: Remove athlete assignments for deleted workout
+          const { error: assignmentError } = await supabase
+            .from('athlete_workouts')
+            .delete()
+            .eq('workout_id', id);
+
+          if (assignmentError) {
+            console.error('Failed to clean up athlete assignments:', assignmentError);
+            // Don't throw here - workout is already deleted, just log the issue
+            console.warn(`Workout ${id} deleted but athlete assignments cleanup failed. This may cause orphaned assignments.`);
+          } else {
+            console.log(`✅ Cleaned up athlete assignments for deleted workout ${id}`);
           }
         })();
 
@@ -457,12 +473,126 @@ export const api = {
 
     // Permanently delete workout (cannot be undone)
     async permanentDelete(id: string): Promise<void> {
-      const { error } = await supabase
-        .from('workouts')
-        .delete()
-        .eq('id', id);
+      try {
+        // 1. 🔧 CRITICAL FIX: Remove athlete assignments first
+        const { error: assignmentError } = await supabase
+          .from('athlete_workouts')
+          .delete()
+          .eq('workout_id', id);
 
-      if (error) throw error;
+        if (assignmentError) {
+          console.error('Failed to clean up athlete assignments before permanent delete:', assignmentError);
+          // Continue with deletion but log the issue
+          console.warn(`Proceeding with workout deletion but athlete assignments cleanup failed for workout ${id}`);
+        } else {
+          console.log(`✅ Cleaned up athlete assignments before permanent delete of workout ${id}`);
+        }
+
+        // 2. Remove exercise results for this workout
+        const { error: resultsError } = await supabase
+          .from('exercise_results')
+          .delete()
+          .eq('workout_id', id);
+
+        if (resultsError) {
+          console.error('Failed to clean up exercise results:', resultsError);
+          console.warn(`Proceeding with workout deletion but exercise results cleanup failed for workout ${id}`);
+        } else {
+          console.log(`✅ Cleaned up exercise results for workout ${id}`);
+        }
+
+        // 3. Finally delete the workout itself
+        const { error: workoutError } = await supabase
+          .from('workouts')
+          .delete()
+          .eq('id', id);
+
+        if (workoutError) {
+          console.error('Permanent delete failed:', workoutError);
+          throw workoutError;
+        }
+
+        console.log(`✅ Permanently deleted workout ${id} and all related data`);
+      } catch (error) {
+        console.error('Error in permanentDelete:', error);
+        throw error;
+      }
+    },
+
+    // 🔧 NEW: Clean up orphaned athlete assignments (for existing data inconsistencies)
+    async cleanupOrphanedAssignments(): Promise<{ removedCount: number; details: any[] }> {
+      try {
+        console.log('🧹 Starting cleanup of orphaned athlete workout assignments...');
+        
+        // Get all athlete workout assignments
+        const { data: allAssignments, error: assignmentError } = await supabase
+          .from('athlete_workouts')
+          .select('id, workout_id, athlete_id');
+
+        if (assignmentError) {
+          console.error('Error fetching assignments:', assignmentError);
+          throw assignmentError;
+        }
+
+        if (!allAssignments || allAssignments.length === 0) {
+          console.log('✅ No assignments found - nothing to clean up');
+          return { removedCount: 0, details: [] };
+        }
+
+        // Get all existing non-deleted workouts
+        const workoutIds = [...new Set(allAssignments.map(a => a.workout_id))];
+        const { data: existingWorkouts, error: workoutError } = await supabase
+          .from('workouts')
+          .select('id')
+          .in('id', workoutIds)
+          .is('deleted_at', null);
+
+        if (workoutError) {
+          console.error('Error fetching existing workouts:', workoutError);
+          throw workoutError;
+        }
+
+        const existingWorkoutIds = new Set((existingWorkouts || []).map(w => w.id));
+        
+        // Find orphaned assignments (pointing to deleted or non-existent workouts)
+        const orphanedAssignments = allAssignments.filter(assignment => 
+          !existingWorkoutIds.has(assignment.workout_id)
+        );
+
+        if (orphanedAssignments.length === 0) {
+          console.log('✅ No orphaned assignments found - database is clean!');
+          return { removedCount: 0, details: [] };
+        }
+
+        console.log(`🚨 Found ${orphanedAssignments.length} orphaned assignments to clean up`);
+
+        // Remove the orphaned assignments
+        const orphanedIds = orphanedAssignments.map(assignment => assignment.id);
+        const { error: deleteError } = await supabase
+          .from('athlete_workouts')
+          .delete()
+          .in('id', orphanedIds);
+
+        if (deleteError) {
+          console.error('Error removing orphaned assignments:', deleteError);
+          throw deleteError;
+        }
+
+        console.log(`✅ Successfully removed ${orphanedAssignments.length} orphaned athlete workout assignments`);
+        
+        return {
+          removedCount: orphanedAssignments.length,
+          details: orphanedAssignments.map(assignment => ({
+            assignmentId: assignment.id,
+            workoutId: assignment.workout_id,
+            athleteId: assignment.athlete_id
+          }))
+        };
+      } catch (error) {
+        console.error('Error in cleanupOrphanedAssignments:', error);
+        // Don't throw here - this is a utility function that shouldn't break the app
+        return { removedCount: 0, details: [] };
+      }
     },
 
     async getAssignedToAthlete(athleteId: string) {
@@ -518,6 +648,7 @@ export const api = {
             .from('workouts')
             .select('id, name, description, type, date, time, duration, location, created_at, user_id, created_by, is_template, template_type, exercises')
             .eq('user_id', athleteId)
+            .is('deleted_at', null) // 🔧 CRITICAL FIX: Filter out deleted workouts
             .order('created_at', { ascending: false });
             
           if (createdError) {
@@ -540,7 +671,8 @@ export const api = {
           const { data: assignedWorkouts, error: fetchError } = await supabase
             .from('workouts')
             .select('id, name, description, type, date, time, duration, location, created_at, user_id, created_by, is_template, template_type, exercises')
-            .in('id', workoutIds);
+            .in('id', workoutIds)
+            .is('deleted_at', null); // 🔧 CRITICAL FIX: Filter out deleted workouts
             
           if (fetchError) {
             console.error('Error fetching assigned workout details:', fetchError);

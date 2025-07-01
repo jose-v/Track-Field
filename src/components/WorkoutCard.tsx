@@ -95,6 +95,7 @@ interface WorkoutCardProps {
   detailedProgress?: boolean;
   onReset?: () => void;
   isTemplate?: boolean;
+  currentUserId?: string; // For athlete permission checking
   monthlyPlanUsage?: {
     isUsed: boolean;
     monthlyPlans: { id: string; name: string }[];
@@ -117,6 +118,7 @@ export function WorkoutCard({
   detailedProgress = false,
   onReset,
   isTemplate = false,
+  currentUserId,
   monthlyPlanUsage
 }: WorkoutCardProps) {
   // All useColorModeValue calls must be at the top level to follow Rules of Hooks
@@ -252,6 +254,17 @@ export function WorkoutCard({
             )}
             {isCoach && onDelete && (
               <MenuItem icon={<FaTrash />} onClick={onDelete} color="red.500">
+                Delete
+              </MenuItem>
+            )}
+            {!isCoach && onDelete && currentUserId && (
+              <MenuItem 
+                icon={<FaTrash />} 
+                onClick={onDelete} 
+                color="red.500"
+                isDisabled={workout.user_id !== currentUserId}
+                opacity={workout.user_id !== currentUserId ? 0.6 : 1}
+              >
                 Delete
               </MenuItem>
             )}

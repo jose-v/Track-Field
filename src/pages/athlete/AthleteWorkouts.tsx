@@ -1,11 +1,12 @@
 import {
-  Box, Heading, Text, Spinner, Alert, AlertIcon, Stack, Card, CardBody, Button, Flex, HStack, Progress, Tag, VStack, Divider, Center, Icon, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, IconButton, SimpleGrid, Container, Tooltip, useDisclosure, Tabs, TabList, TabPanels, Tab, TabPanel, useToast, useColorModeValue, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter
+  Box, Heading, Text, Spinner, Alert, AlertIcon, Stack, Card, CardBody, Button, Flex, HStack, Progress, Tag, VStack, Divider, Center, Icon, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, IconButton, SimpleGrid, Container, Tooltip, useDisclosure, Tabs, TabList, TabPanels, Tab, TabPanel, useToast, useColorModeValue, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, Select
 } from '@chakra-ui/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
+import type { Workout, Exercise } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { FaEye, FaPlayCircle, FaRunning, FaDumbbell, FaRegClock, FaCalendarAlt, FaListUl, FaLeaf, FaRedo, FaCog, FaPlus, FaCalendarWeek, FaCalendarDay, FaClock, FaChartLine, FaBookOpen, FaHistory, FaFilter } from 'react-icons/fa';
+import { FaEye, FaPlayCircle, FaRunning, FaDumbbell, FaRegClock, FaCalendarAlt, FaListUl, FaLeaf, FaRedo, FaCog, FaPlus, FaCalendarWeek, FaCalendarDay, FaClock, FaChartLine, FaBookOpen, FaHistory, FaFilter, FaTrash } from 'react-icons/fa';
 import { CheckIcon, EditIcon } from '@chakra-ui/icons'; // For exec modal
 import { FiCalendar, FiClock } from 'react-icons/fi';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
@@ -24,32 +25,11 @@ import { RunTimeInput } from '../../components/RunTimeInput';
 import { isRunExercise, validateTime } from '../../utils/exerciseUtils';
 import { ExerciseLibrary, Exercise as LibraryExercise } from '../../components/ExerciseLibrary';
 import { getExercisesWithTeamSharing, createExerciseWithSharing, updateExerciseWithSharing } from '../../utils/exerciseQueries';
+import { DeletedWorkoutsView } from '../../components/deleted';
 
-// Consistent Exercise type
-interface Exercise {
-  name: string;
-  sets: number;
-  reps: number;
-  weight?: number;
-  rest?: number;
-  distance?: number;
-  notes?: string;
-}
+// Using Exercise type from api.ts (imported above)
 
-// Consistent Workout type (matching api.ts and Workouts.tsx structure)
-interface Workout {
-  id: string;
-  user_id: string; // Creator
-  name: string;
-  type: string;
-  date: string; // Planned date
-  duration: string;
-  time?: string;
-  notes: string;
-  created_at: string; // When defined
-  exercises: Exercise[];
-  // Progress will be handled by the store
-}
+  // Using shared Workout type from api.ts (imported at top)
 
 // Helper: get video URL for an exercise based on its name (copied from Workouts.tsx)
 function getVideoUrl(exerciseName: string) {
@@ -115,7 +95,7 @@ export function AthleteWorkouts() {
 
   const [execModal, setExecModal] = useState({
     isOpen: false,
-    workout: null as Workout | null, // Typed workout
+    workout: null as any, // Using any to avoid type conflicts
     exerciseIdx: 0,
     timer: 0,
     running: false,
@@ -145,6 +125,13 @@ export function AthleteWorkouts() {
     return savedSidebarState === 'true' ? 70 : 200;
   });
   const { isHeaderVisible } = useScrollDirection(15);
+
+  // Enhanced filtering states
+  const [workoutFilter, setWorkoutFilter] = useState<'all' | 'single' | 'weekly' | 'monthly'>('all');
+  const [creatorFilter, setCreatorFilter] = useState<'all' | 'mine' | 'coaches'>('all');
+
+  // State for deleted workouts count
+  const [deletedCount, setDeletedCount] = useState(0);
 
   const { 
     data: assignedWorkouts, 
@@ -229,7 +216,7 @@ export function AthleteWorkouts() {
     };
   }, [assignedWorkouts, workoutStore]);
 
-  // Filter workouts based on active sidebar item
+  // Filter workouts based on active sidebar item and filters
   const filteredWorkouts = useMemo(() => {
     if (!assignedWorkouts) return [];
     
@@ -238,41 +225,74 @@ export function AthleteWorkouts() {
     startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
     const startOfWeekStr = dateUtils.localDateString(startOfWeek);
     
+    // First filter by sidebar item
+    let workouts = assignedWorkouts;
+    
     switch (activeItem) {
       case 'today':
-        return assignedWorkouts.filter(w => formatDateForComparison(w.date) === today);
+        workouts = assignedWorkouts.filter(w => formatDateForComparison(w.date) === today);
+        break;
       case 'this-week':
-        return assignedWorkouts.filter(w => {
+        workouts = assignedWorkouts.filter(w => {
           const workoutDate = formatDateForComparison(w.date);
           return workoutDate >= startOfWeekStr && workoutDate <= today;
         });
+        break;
       case 'upcoming':
-        return assignedWorkouts.filter(w => formatDateForComparison(w.date) > today);
+        workouts = assignedWorkouts.filter(w => formatDateForComparison(w.date) > today);
+        break;
       case 'completed':
-        return assignedWorkouts.filter(w => {
+        workouts = assignedWorkouts.filter(w => {
           const progress = workoutStore.getProgress(w.id);
           const totalExercises = w.exercises?.length || 0;
           const completedExercises = progress ? progress.completedExercises.length : 0;
           return totalExercises > 0 && completedExercises === totalExercises;
         });
+        break;
       case 'in-progress':
-        return assignedWorkouts.filter(w => {
+        workouts = assignedWorkouts.filter(w => {
           const progress = workoutStore.getProgress(w.id);
           const totalExercises = w.exercises?.length || 0;
           const completedExercises = progress ? progress.completedExercises.length : 0;
           return completedExercises > 0 && completedExercises < totalExercises;
         });
+        break;
       case 'strength':
-        return assignedWorkouts.filter(w => w.type?.toLowerCase().includes('strength') || w.type?.toLowerCase().includes('weight'));
+        workouts = assignedWorkouts.filter(w => w.type?.toLowerCase().includes('strength') || w.type?.toLowerCase().includes('weight'));
+        break;
       case 'cardio':
-        return assignedWorkouts.filter(w => w.type?.toLowerCase().includes('cardio') || w.type?.toLowerCase().includes('running') || w.type?.toLowerCase().includes('endurance'));
+        workouts = assignedWorkouts.filter(w => w.type?.toLowerCase().includes('cardio') || w.type?.toLowerCase().includes('running') || w.type?.toLowerCase().includes('endurance'));
+        break;
       case 'speed':
-        return assignedWorkouts.filter(w => w.type?.toLowerCase().includes('speed') || w.type?.toLowerCase().includes('sprint'));
+        workouts = assignedWorkouts.filter(w => w.type?.toLowerCase().includes('speed') || w.type?.toLowerCase().includes('sprint'));
+        break;
       case 'all-workouts':
       default:
-        return assignedWorkouts;
+        workouts = assignedWorkouts;
+        break;
     }
-  }, [assignedWorkouts, activeItem, workoutStore]);
+
+    // Then apply additional filters
+    if (workoutFilter !== 'all') {
+      if (workoutFilter === 'single') {
+        workouts = workouts.filter(w => w.template_type === 'single' || !w.template_type);
+      } else if (workoutFilter === 'weekly') {
+        workouts = workouts.filter(w => w.template_type === 'weekly');
+      }
+      // Note: Monthly filter would be for monthly plans, not individual workouts
+    }
+
+    // Filter by creator
+    if (creatorFilter !== 'all' && user?.id) {
+      if (creatorFilter === 'mine') {
+        workouts = workouts.filter(w => w.user_id === user.id);
+      } else if (creatorFilter === 'coaches') {
+        workouts = workouts.filter(w => w.user_id !== user.id);
+      }
+    }
+
+    return workouts;
+  }, [assignedWorkouts, activeItem, workoutStore, workoutFilter, creatorFilter, user?.id]);
 
   // Sidebar configuration
   const workoutsSections: WorkoutsSection[] = [
@@ -349,6 +369,19 @@ export function AthleteWorkouts() {
           label: 'Speed',
           icon: FaLeaf,
           description: 'Sprint and speed training'
+        }
+      ]
+    },
+    {
+      id: 'management',
+      title: 'Management',
+      items: [
+        {
+          id: 'deleted',
+          label: 'Deleted Workouts',
+          icon: FaHistory,
+          description: 'Restore or permanently delete workouts',
+          badge: deletedCount
         }
       ]
     },
@@ -659,6 +692,48 @@ export function AthleteWorkouts() {
     }
   };
 
+  // Handle deleting workouts (only ones created by the athlete)
+  const handleDeleteWorkout = async (workout: Workout) => {
+    if (!user?.id) return;
+    
+    // Only allow deleting workouts created by this athlete
+    if (workout.user_id !== user.id) {
+      toast({
+        title: "Cannot delete workout",
+        description: "You can only delete workouts you created yourself.",
+        status: "error",
+        duration: 4000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      await api.workouts.softDelete(workout.id);
+      
+      // Refresh the workouts list and deleted count
+      await refetch();
+      await loadDeletedCount();
+      
+      toast({
+        title: "Workout deleted",
+        description: `"${workout.name}" has been moved to deleted items.`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error('Error deleting workout:', error);
+      toast({
+        title: "Error deleting workout",
+        description: "Could not delete the workout. Please try again.",
+        status: "error",
+        duration: 4000,
+        isClosable: true,
+      });
+    }
+  };
+
   const renderWorkoutCards = (workouts: Workout[]) => {
     if (!workouts || workouts.length === 0) {
       return (
@@ -731,6 +806,8 @@ export function AthleteWorkouts() {
               onRefresh={() => forceRefreshWorkoutProgress(workout.id)}
               showRefresh={true}
               onReset={() => handleResetProgress(workout.id, workout.name)}
+              onDelete={() => handleDeleteWorkout(workout)}
+              currentUserId={user?.id}
             />
           );
         })}
@@ -1009,11 +1086,23 @@ export function AthleteWorkouts() {
     }
   };
 
-  // Load custom exercises on component mount
+  // Load custom exercises and deleted count on component mount
   useEffect(() => {
     loadCustomExercises();
     loadUserTeams();
+    loadDeletedCount();
   }, [user?.id]);
+
+  // Load deleted workouts count
+  const loadDeletedCount = async () => {
+    if (!user?.id) return;
+    try {
+      const deletedWorkouts = await api.workouts.getDeleted(user.id);
+      setDeletedCount(deletedWorkouts.length);
+    } catch (error) {
+      console.error('Error loading deleted count:', error);
+    }
+  };
 
   // Function to render content based on active sidebar item
   const renderContent = () => {
@@ -1039,6 +1128,8 @@ export function AthleteWorkouts() {
           return { title: 'Monthly Plans', description: 'Training plan assignments', icon: FaCalendarAlt };
         case 'exercise-library':
           return { title: 'Exercise Library', description: 'Manage your custom exercises', icon: FaBookOpen };
+        case 'deleted':
+          return { title: 'Deleted Workouts', description: 'Restore or permanently delete workouts', icon: FaHistory };
         case 'all-workouts':
         default:
           return { title: 'All Workouts', description: 'Your complete training schedule', icon: FaListUl };
@@ -1067,11 +1158,67 @@ export function AthleteWorkouts() {
               showAddButton={false}
             />
           );
+        case 'deleted':
+          return (
+            <DeletedWorkoutsView
+              userId={user?.id || ''}
+              userRole="athlete"
+              title="Deleted Workouts"
+              subtitle="Restore or permanently delete your workouts"
+            />
+          );
         default:
           return (
-            <Box>
-              {renderWorkoutCards(filteredWorkouts)}
-            </Box>
+            <VStack spacing={6} align="stretch">
+              {/* Filter Controls */}
+              {activeItem === 'all-workouts' && (
+                <HStack spacing={4} wrap="wrap" align="center">
+                  <Text fontSize="sm" fontWeight="medium" color={headerSubtextColor}>
+                    Filters:
+                  </Text>
+                  
+                  <Select
+                    value={workoutFilter}
+                    onChange={(e) => setWorkoutFilter(e.target.value as typeof workoutFilter)}
+                    size="sm"
+                    maxW="150px"
+                    bg={cardBg}
+                  >
+                    <option value="all">All Types</option>
+                    <option value="single">Single</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </Select>
+
+                  <Select
+                    value={creatorFilter}
+                    onChange={(e) => setCreatorFilter(e.target.value as typeof creatorFilter)}
+                    size="sm"
+                    maxW="150px"
+                    bg={cardBg}
+                  >
+                    <option value="all">All Workouts</option>
+                    <option value="mine">My Workouts</option>
+                    <option value="coaches">Coach Workouts</option>
+                  </Select>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    leftIcon={<FaRedo />}
+                    onClick={handleRefresh}
+                    isLoading={isLoading}
+                  >
+                    Refresh
+                  </Button>
+                </HStack>
+              )}
+
+              {/* Workout Cards */}
+              <Box>
+                {renderWorkoutCards(filteredWorkouts)}
+              </Box>
+            </VStack>
           );
       }
     };
@@ -1106,7 +1253,13 @@ export function AthleteWorkouts() {
             )}
           </HStack>
           <Text color={headerSubtextColor} fontSize="md">
-            {sectionInfo.description} ({activeItem === 'exercise-library' ? customExercises.length : filteredWorkouts.length} {activeItem === 'exercise-library' ? 'exercises' : 'workouts'})
+            {sectionInfo.description} ({
+              activeItem === 'exercise-library' 
+                ? `${customExercises.length} exercises`
+                : activeItem === 'deleted'
+                ? `${deletedCount} deleted workouts`
+                : `${filteredWorkouts.length} workouts`
+            })
           </Text>
         </VStack>
         

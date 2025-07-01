@@ -244,6 +244,18 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
     return count;
   }, [todaysWorkoutId, getProgress]);
 
+  // Helper function to safely calculate today's progress percentage
+  const getTodaysProgressPercentage = React.useCallback((todaysExercises: any[]) => {
+    if (!todaysExercises || todaysExercises.length === 0) return 0;
+    
+    const completedCount = getCompletedExercisesCount();
+    const totalCount = todaysExercises.length;
+    
+    // Ensure we don't exceed 100% and handle edge cases
+    const percentage = Math.min(100, Math.max(0, (completedCount / totalCount) * 100));
+    return Math.round(percentage);
+  }, [getCompletedExercisesCount]);
+
   // Helper function to check if exercise is completed
   const isExerciseCompletedByIndex = (index: number) => {
     const workoutId = getTodaysWorkoutId();
@@ -313,29 +325,39 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
     });
   };
 
-  // Calculate total weekly exercises
+  // Calculate total weekly exercises - simplified and more robust
   const getTotalWeeklyExercises = (exercises: any[]) => {
     if (!exercises || exercises.length === 0) return 0;
     
-    return exercises
-      .filter(exercise => exercise.day && !exercise.isRestDay)
-      .reduce((total, dayExercise) => {
-        return total + (dayExercise.exercises ? dayExercise.exercises.length : 0);
-      }, 0);
+    // Check if exercises have a weekly structure (with .day property)
+    const hasWeeklyStructure = exercises.some(ex => ex.day);
+    
+    if (hasWeeklyStructure) {
+      return exercises
+        .filter(exercise => exercise.day && !exercise.isRestDay)
+        .reduce((total, dayExercise) => {
+          return total + (dayExercise.exercises ? dayExercise.exercises.length : 0);
+        }, 0);
+    } else {
+      // If no weekly structure, assume exercises are for today only
+      // Estimate weekly total as 7x today's exercises (simple approximation)
+      return exercises.length * 5; // 5 workout days per week
+    }
   };
 
-  // Calculate weekly progress based on completed exercises
+  // Calculate weekly progress based on completed exercises - simplified and safer
   const getWeeklyProgress = (exercises: any[]) => {
-    const totalExercises = getTotalWeeklyExercises(exercises);
-    if (totalExercises === 0) return 0;
+    if (!exercises || exercises.length === 0) return 0;
     
-    // For now, we'll use today's completed exercises as a proxy
-    // In a full implementation, this would track completion across all days
-    const todaysExercises = getTodaysExercises(exercises);
-    const todaysWeight = todaysExercises.length / totalExercises;
-    const todaysProgress = getCompletedExercisesCount() / todaysExercises.length;
+    const totalWeeklyExercises = getTotalWeeklyExercises(exercises);
+    if (totalWeeklyExercises === 0) return 0;
     
-    return Math.round(todaysProgress * todaysWeight * 100);
+    const completedToday = getCompletedExercisesCount();
+    
+    // Simple calculation: today's completed exercises as a fraction of weekly total
+    const weeklyProgressPercentage = Math.min(100, Math.max(0, (completedToday / totalWeeklyExercises) * 100));
+    
+    return Math.round(weeklyProgressPercentage);
   };
 
   // Helper function to get day name
@@ -525,7 +547,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                               return "Complete";
                             }
                             const todaysExercises = dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [];
-                            const progress = todaysExercises.length > 0 ? Math.round((getCompletedExercisesCount() / todaysExercises.length) * 100) : 0;
+                            const progress = getTodaysProgressPercentage(todaysExercises);
                             return `${progress}%`;
                           })()}
                         </Text>
@@ -539,7 +561,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                             return 100; // Rest days are always "complete"
                           }
                           const todaysExercises = dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [];
-                          return todaysExercises.length > 0 ? (getCompletedExercisesCount() / todaysExercises.length) * 100 : 0;
+                          return getTodaysProgressPercentage(todaysExercises);
                         })()} 
                         colorScheme={
                           dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday ? "gray" :
@@ -592,14 +614,16 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                               <Badge 
                                 colorScheme={(() => {
                                   const todaysExercises = dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [];
-                                  return getCompletedExercisesCount() === todaysExercises.length ? "green" : "orange";
+                                  const completedCount = Math.min(getCompletedExercisesCount(), todaysExercises.length);
+                                  return completedCount === todaysExercises.length ? "green" : "orange";
                                 })()} 
                                 variant="outline" 
                                 fontSize="xs"
                               >
                                 {(() => {
                                   const todaysExercises = dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [];
-                                  return `${getCompletedExercisesCount()}/${todaysExercises.length} Done`;
+                                  const completedCount = Math.min(getCompletedExercisesCount(), todaysExercises.length);
+                                  return `${completedCount}/${todaysExercises.length} Done`;
                                 })()}
                               </Badge>
                             </HStack>
