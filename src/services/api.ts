@@ -216,16 +216,16 @@ export const api = {
         });
 
         const deletePromise = (async () => {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) throw new Error('No user found');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
 
           // 1. Mark workout as deleted
           const { error: workoutError } = await supabase
-            .from('workouts')
-            .update({
-              deleted_at: new Date().toISOString(),
-              deleted_by: user.id
-            })
+        .from('workouts')
+        .update({
+          deleted_at: new Date().toISOString(),
+          deleted_by: user.id
+        })
             .eq('id', id)
             .eq('user_id', user.id); // Additional security check
 
@@ -503,9 +503,9 @@ export const api = {
 
         // 3. Finally delete the workout itself
         const { error: workoutError } = await supabase
-          .from('workouts')
-          .delete()
-          .eq('id', id);
+        .from('workouts')
+        .delete()
+        .eq('id', id);
 
         if (workoutError) {
           console.error('Permanent delete failed:', workoutError);
@@ -2774,10 +2774,10 @@ export const api = {
         }
         
         return {
-          ...plan,
-          // Convert start_date back to month/year for compatibility with the UI
-          month: plan.start_date ? new Date(plan.start_date).getMonth() + 1 : 1,
-          year: plan.start_date ? new Date(plan.start_date).getFullYear() : new Date().getFullYear(),
+        ...plan,
+        // Convert start_date back to month/year for compatibility with the UI
+        month: plan.start_date ? new Date(plan.start_date).getMonth() + 1 : 1,
+        year: plan.start_date ? new Date(plan.start_date).getFullYear() : new Date().getFullYear(),
           weeks
         };
       })
@@ -3018,8 +3018,8 @@ export const api = {
         const plan = plansMap.get(assignment.training_plan_id);
         
         if (!plan) {
-          return {
-            ...assignment,
+        return {
+          ...assignment,
             training_plans: null
           };
         }
@@ -3112,7 +3112,7 @@ export const api = {
             `)
             .eq('athlete_id', athleteId)
             .in('status', ['assigned', 'in_progress']);
-
+          
           if (assignmentError) {
             console.error('Assignment query error:', assignmentError);
             
@@ -3137,7 +3137,7 @@ export const api = {
             }
             throw assignmentError;
           }
-
+          
           if (!allAssignments || allAssignments.length === 0) {
             console.log('🔍 No assigned or in-progress training plan assignments found');
             
@@ -3172,14 +3172,14 @@ export const api = {
               primaryWorkout: null
             };
           }
-
+          
           // Get training plans for all assignments to check dates
           const planIds = allAssignments.map(a => a.training_plan_id);
           const { data: allPlans, error: plansError } = await supabase
             .from('training_plans')
             .select('id, name, start_date, end_date, weekly_workout_ids, weeks')
             .in('id', planIds);
-
+          
           if (plansError) {
             console.error('Training plans query error:', plansError);
             throw plansError;
@@ -3514,7 +3514,7 @@ export const api = {
                           exercise.category ||
                           `Exercise ${index + 1}`;
               
-              return {
+            return {
                 ...exercise,
                 name: name
               };

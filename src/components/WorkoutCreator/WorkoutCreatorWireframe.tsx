@@ -550,10 +550,10 @@ const WorkoutCreatorWireframe: React.FC = () => {
       saveMultiSelectGroup(selectedDays);
     } else {
       // Single day selection - add to current day only
-      setSelectedExercises(prev => ({
-        ...prev,
-        [currentDay]: [...(prev[currentDay] || []), newExercise]
-      }));
+    setSelectedExercises(prev => ({
+      ...prev,
+      [currentDay]: [...(prev[currentDay] || []), newExercise]
+    }));
     }
   };
 
@@ -1046,7 +1046,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
       if (value === '' || value === undefined) return null;
       return value;
     };
-
+    
     // Use Supabase transaction pattern
     const { error: updateError } = await supabase
       .from('workouts')

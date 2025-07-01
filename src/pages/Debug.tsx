@@ -21,7 +21,7 @@ import { OrphanedAssignmentsCleanup } from '../components/debug/OrphanedAssignme
 
 export const Debug: React.FC = () => {
   const bgColor = useColorModeValue('gray.50', 'gray.900');
-  
+
   return (
     <Box bg={bgColor} minH="100vh" py={8}>
       <Container maxW="container.md">
@@ -33,12 +33,12 @@ export const Debug: React.FC = () => {
             </Heading>
             <Text color="gray.500" textAlign="center" maxW="md">
               Administrative tools for maintaining data integrity and troubleshooting.
-            </Text>
+        </Text>
           </VStack>
 
           {/* Warning */}
           <Alert status="warning" borderRadius="md">
-            <AlertIcon />
+              <AlertIcon />
             <Box>
               <AlertTitle>Administrative Use Only</AlertTitle>
               <AlertDescription>
@@ -46,7 +46,7 @@ export const Debug: React.FC = () => {
                 Use with caution in production environments.
               </AlertDescription>
             </Box>
-          </Alert>
+            </Alert>
 
           {/* Cleanup Component */}
           <VStack spacing={4} align="stretch">
@@ -59,7 +59,7 @@ export const Debug: React.FC = () => {
             Debug page • Use only when needed • Changes may affect live data
           </Text>
         </VStack>
-      </Container>
+    </Container>
     </Box>
   );
 }; 

@@ -55,7 +55,7 @@ import {
   Checkbox,
   Icon
 } from '@chakra-ui/react';
-import { FaPlus, FaEdit, FaTrash, FaCalendarAlt, FaMapMarkerAlt, FaEllipsisV, FaUserPlus, FaRunning } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaCalendarAlt, FaMapMarkerAlt, FaEllipsisV, FaUserPlus, FaRunning, FaMoneyBillWave, FaClock } from 'react-icons/fa';
 import { supabase } from '../../lib/supabase';
 import { format } from 'date-fns';
 import { useForm } from 'react-hook-form';
@@ -734,29 +734,69 @@ export function CoachMeets() {
                   
                   {/* Date Information */}
                   <VStack align="start" spacing={2} w="full">
-                    <HStack spacing={3}>
-                      <Icon as={FaCalendarAlt} color="blue.500" boxSize={5} />
-                      <VStack align="start" spacing={1}>
-                        <Text fontSize="md" color={subtextColor} fontWeight="medium">
-                          {format(new Date(meet.meet_date), 'MMMM d, yyyy')}
+                    {/* Multi Events Date Range */}
+                    {(meet.multi_events_start_date || meet.multi_events_end_date) && (
+                      <HStack spacing={3}>
+                                               <Icon as={FaCalendarAlt} color="blue.500" boxSize={5} />
+                       <VStack align="start" spacing={1}>
+                         <Text fontSize="sm" color="blue.600" fontWeight="medium">Multi Events</Text>
+                          <Text fontSize="md" color={subtextColor} fontWeight="medium">
+                            {meet.multi_events_start_date && format(new Date(meet.multi_events_start_date), 'MMMM d, yyyy')}
+                                                         {meet.multi_events_end_date && meet.multi_events_start_date !== meet.multi_events_end_date && (
+                               <Text as="span" color="blue.500" fontWeight="semibold">
+                                {' → ' + format(new Date(meet.multi_events_end_date), 'MMMM d, yyyy')}
+                              </Text>
+                            )}
+                          </Text>
+                        </VStack>
+                      </HStack>
+                    )}
+                    
+                    {/* Track & Field Date Range */}
+                    {(meet.track_field_start_date || meet.track_field_end_date) && (
+                      <HStack spacing={3}>
+                        <Icon as={FaCalendarAlt} color="blue.500" boxSize={5} />
+                        <VStack align="start" spacing={1}>
+                          <Text fontSize="sm" color="blue.600" fontWeight="medium">Track & Field</Text>
+                          <Text fontSize="md" color={subtextColor} fontWeight="medium">
+                            {meet.track_field_start_date && format(new Date(meet.track_field_start_date), 'MMMM d, yyyy')}
+                            {meet.track_field_end_date && meet.track_field_start_date !== meet.track_field_end_date && (
+                              <Text as="span" color="blue.500" fontWeight="semibold">
+                                {' → ' + format(new Date(meet.track_field_end_date), 'MMMM d, yyyy')}
+                              </Text>
+                            )}
+                          </Text>
+                        </VStack>
+                      </HStack>
+                    )}
+                    
+                    {/* Fallback to original date if no new dates */}
+                    {!meet.multi_events_start_date && !meet.multi_events_end_date && 
+                     !meet.track_field_start_date && !meet.track_field_end_date && (
+                      <HStack spacing={3}>
+                        <Icon as={FaCalendarAlt} color="blue.500" boxSize={5} />
+                        <VStack align="start" spacing={1}>
+                          <Text fontSize="md" color={subtextColor} fontWeight="medium">
+                            {format(new Date(meet.meet_date), 'MMMM d, yyyy')}
+                            {meet.end_date && meet.end_date !== meet.meet_date && (
+                              <Text as="span" color="blue.500" fontWeight="semibold">
+                                {' → ' + format(new Date(meet.end_date), 'MMMM d, yyyy')}
+                              </Text>
+                            )}
+                          </Text>
                           {meet.end_date && meet.end_date !== meet.meet_date && (
-                            <Text as="span" color="blue.500" fontWeight="semibold">
-                              {' → ' + format(new Date(meet.end_date), 'MMMM d, yyyy')}
+                            <Text fontSize="sm" color="blue.600" fontWeight="medium">
+                              Multi-day event
                             </Text>
                           )}
-                        </Text>
-                        {meet.end_date && meet.end_date !== meet.meet_date && (
-                          <Text fontSize="sm" color="blue.600" fontWeight="medium">
-                            Multi-day event
-                          </Text>
-                        )}
-                      </VStack>
-                    </HStack>
+                        </VStack>
+                      </HStack>
+                    )}
                     
                     {/* Location Information */}
-                    {(meet.city || meet.state || meet.venue_name) && (
-                      <HStack spacing={3} align="start">
-                        <Icon as={FaMapMarkerAlt} color="red.500" boxSize={5} />
+                                         {(meet.city || meet.state || meet.venue_name) && (
+                       <HStack spacing={3} align="start">
+                         <Icon as={FaMapMarkerAlt} color="blue.500" boxSize={5} />
                         <VStack align="start" spacing={1} flex="1">
                           {meet.venue_name && (
                             <Text fontSize="md" color={subtextColor} fontWeight="medium">
@@ -801,11 +841,11 @@ export function CoachMeets() {
                     )}
                     
                     {/* Athletes Attending */}
-                    {meetAthletes[meet.id] && meetAthletes[meet.id].length > 0 && (
-                      <HStack spacing={3} align="start">
-                        <Icon as={FaRunning} color="orange.500" boxSize={5} />
-                        <VStack align="start" spacing={1} flex="1">
-                          <Text fontSize="md" color="orange.600" fontWeight="medium">
+                                         {meetAthletes[meet.id] && meetAthletes[meet.id].length > 0 && (
+                       <HStack spacing={3} align="start">
+                         <Icon as={FaRunning} color="blue.500" boxSize={5} />
+                         <VStack align="start" spacing={1} flex="1">
+                           <Text fontSize="md" color="blue.600" fontWeight="medium">
                             Athletes Attending ({meetAthletes[meet.id].length})
                           </Text>
                           <Box>
@@ -831,10 +871,55 @@ export function CoachMeets() {
                       </HStack>
                     )}
                     
+                    {/* Registration Information */}
+                    {(meet.registration_fee || meet.processing_fee || meet.entry_deadline_date) && (
+                      <VStack align="start" spacing={2} w="full">
+                        {/* Registration Fees */}
+                                                 {(meet.registration_fee || meet.processing_fee) && (
+                           <HStack spacing={3}>
+                             <Icon as={FaMoneyBillWave} color="blue.500" boxSize={4} />
+                             <VStack align="start" spacing={0}>
+                               <Text fontSize="sm" color="blue.600" fontWeight="medium">Registration Fees</Text>
+                              <HStack spacing={4}>
+                                {meet.registration_fee && (
+                                  <Text fontSize="sm" color={subtextColor}>
+                                    Entry: <Text as="span" color={textColor} fontWeight="bold">${meet.registration_fee}</Text>
+                                  </Text>
+                                )}
+                                {meet.processing_fee && (
+                                  <Text fontSize="sm" color={subtextColor}>
+                                    Processing: <Text as="span" color={textColor} fontWeight="bold">${meet.processing_fee}</Text>
+                                  </Text>
+                                )}
+                              </HStack>
+                            </VStack>
+                          </HStack>
+                        )}
+                        
+                        {/* Entry Deadline */}
+                                                 {meet.entry_deadline_date && (
+                           <HStack spacing={3}>
+                             <Icon as={FaClock} color="blue.500" boxSize={4} />
+                             <VStack align="start" spacing={0}>
+                               <Text fontSize="sm" color="blue.600" fontWeight="medium">Entry Deadline</Text>
+                              <Text fontSize="sm" color={subtextColor}>
+                                {format(new Date(meet.entry_deadline_date), 'MMMM d, yyyy')}
+                                {meet.entry_deadline_time && (
+                                  <Text as="span" color={textColor} fontWeight="bold">
+                                    {' at ' + meet.entry_deadline_time}
+                                  </Text>
+                                )}
+                              </Text>
+                            </VStack>
+                          </HStack>
+                        )}
+                      </VStack>
+                    )}
+
                     {/* Event Count and Join Link */}
-                    <HStack spacing={6}>
-                      <HStack spacing={2}>
-                        <Icon as={FaRunning} color="green.500" boxSize={4} />
+                                         <HStack spacing={6}>
+                       <HStack spacing={2}>
+                         <Icon as={FaRunning} color="blue.500" boxSize={4} />
                         <Text fontSize="sm" color={subtextColor} fontWeight="medium">
                           Events: <Text as="span" color={textColor} fontWeight="bold">
                             {meetEventCounts[meet.id] || 0}
@@ -1192,7 +1277,7 @@ export function CoachMeets() {
         size="xl"
       >
         <DrawerOverlay bg="blackAlpha.600" />
-        <DrawerContent bg={bgColor} borderLeft="3px solid" borderColor="green.500">
+                  <DrawerContent bg={bgColor} borderLeft="3px solid" borderColor="blue.500">
           <DrawerHeader 
             borderBottomWidth="2px" 
             borderColor={borderColor}
@@ -1212,7 +1297,7 @@ export function CoachMeets() {
           <DrawerBody py={6}>
             {assignmentLoading ? (
               <Flex justify="center" my={8}>
-                <Spinner size="xl" color="green.500" thickness="4px" />
+                <Spinner size="xl" color="blue.500" thickness="4px" />
               </Flex>
             ) : meetEvents.length === 0 ? (
               <Box 

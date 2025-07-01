@@ -192,8 +192,8 @@ export function MonthlyPlanCard({
             <MenuButton
               as={IconButton}
               icon={<FaEllipsisV />}
-              variant="ghost"
-              color="white"
+              variant="ghost" 
+              color="white" 
               size="sm"
               aria-label="Plan actions"
               _hover={{ bg: 'rgba(255, 255, 255, 0.1)' }}
@@ -208,7 +208,7 @@ export function MonthlyPlanCard({
                 <MenuItem icon={<FaEdit />} onClick={onEdit}>
                   Edit
                 </MenuItem>
-              )}
+          )}
               {onView && (
                 <MenuItem icon={<FaEye />} onClick={onView}>
                   View Details
@@ -218,7 +218,7 @@ export function MonthlyPlanCard({
                 <MenuItem icon={<FaTrash />} onClick={onDelete} color="red.500">
                   Delete
                 </MenuItem>
-              )}
+          )}
             </MenuList>
           </Menu>
         )}

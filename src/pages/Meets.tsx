@@ -80,7 +80,12 @@ import {
   FaFire,
   FaClock,
   FaHistory,
-  FaClipboardList
+  FaClipboardList,
+  FaDollarSign,
+  FaInfoCircle,
+  FaBoxOpen,
+  FaTicketAlt,
+  FaBook
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -351,11 +356,81 @@ const MeetCard: React.FC<MeetCardProps> = ({
   };
 
   const formatEventDate = (dateString: string) => {
-    try {
-      return format(parseISO(dateString), 'EEEE d, yyyy');
-    } catch {
-      return dateString;
-    }
+    const date = new Date(dateString);
+    return format(date, 'MMM d, yyyy');
+  };
+
+  // Format fees to show proper currency format
+  const formatFee = (fee: string | number | undefined): string => {
+    if (!fee) return '';
+    const numericFee = typeof fee === 'string' ? parseFloat(fee) : fee;
+    return `$${numericFee.toFixed(2)}`;
+  };
+
+  // Format address in the requested format
+  const formatAddress = (
+    address?: string, 
+    city?: string, 
+    state?: string, 
+    zip?: string, 
+    country?: string
+  ): JSX.Element | null => {
+    if (!address && !city && !state && !zip && !country) return null;
+    
+    return (
+      <VStack align="start" spacing={0}>
+        {address && <Text fontSize="xs" color="gray.300">{address}</Text>}
+        <Text fontSize="xs" color="gray.300">
+          {[city, state].filter(Boolean).join(' ')}
+          {zip && `, ${zip}`}
+        </Text>
+        {country && <Text fontSize="xs" color="gray.300">{country}</Text>}
+      </VStack>
+    );
+  };
+
+  // Convert time from 24-hour to 12-hour format and remove seconds
+  const formatTime = (timeString?: string): string => {
+    if (!timeString) return '';
+    
+    // Remove seconds if present (e.g., "23:59:00" -> "23:59")
+    const timeWithoutSeconds = timeString.split(':').slice(0, 2).join(':');
+    
+    // Parse the time
+    const [hours, minutes] = timeWithoutSeconds.split(':').map(Number);
+    
+    if (isNaN(hours) || isNaN(minutes)) return timeString;
+    
+    // Convert to 12-hour format
+    const period = hours >= 12 ? 'pm' : 'am';
+    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    
+    return `${displayHours}:${minutes.toString().padStart(2, '0')}${period}`;
+  };
+
+  // Generate Google Maps link for packet pickup address
+  const generatePacketPickupMapsLink = (
+    address?: string,
+    city?: string,
+    state?: string,
+    zip?: string,
+    country?: string
+  ): string => {
+    const addressParts = [address, city, state, zip, country].filter(Boolean);
+    const fullAddress = addressParts.join(', ');
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
+  };
+
+  // Generate Google Maps link for lodging address
+  const generateLodgingMapsLink = (): string => {
+    const addressParts = [
+      meet.lodging_address,
+      meet.lodging_city,
+      meet.lodging_state,
+      meet.lodging_zip
+    ].filter(Boolean);
+    const fullAddress = addressParts.join(', ');
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
   };
 
   const assignDrawerHeaderBg = useColorModeValue('green.50', 'green.900');
@@ -662,54 +737,100 @@ const MeetCard: React.FC<MeetCardProps> = ({
         <Grid 
           templateColumns="40% 30% 30%" 
           gap={8} 
-          alignItems="end" 
+          alignItems="start" 
           minH="120px"
           display={{ base: "none", md: "grid" }}
         >
           {/* Column 1: Event Info */}
           <VStack align="start" spacing={3} pr={6}>
-            {/* Date */}
+            {/* Event Date Ranges */}
+            <VStack align="start" spacing={2}>
+              {/* Multi Events Date Range */}
+              {(meet.multi_events_start_date || meet.multi_events_end_date) && (
+                <HStack spacing={2} color="white">
+                  <FaCalendarAlt size={20} color="blue.400" />
+                  <VStack align="start" spacing={0}>
+                    <Text fontSize="sm" color="blue.400" fontWeight="medium">Multi Events</Text>
+                    <Text fontSize="md" color="white">
+                      {meet.multi_events_start_date && formatDate(meet.multi_events_start_date)}
+                      {meet.multi_events_end_date && meet.multi_events_start_date !== meet.multi_events_end_date && 
+                        ` - ${formatDate(meet.multi_events_end_date)}`}
+                    </Text>
+                  </VStack>
+                </HStack>
+              )}
+              
+              {/* Track & Field Date Range */}
+              {(meet.track_field_start_date || meet.track_field_end_date) && (
+                <HStack spacing={2} color="white">
+                  <FaCalendarAlt size={20} color="blue.400" />
+                  <VStack align="start" spacing={0}>
+                    <Text fontSize="sm" color="blue.400" fontWeight="medium">Track & Field</Text>
+                    <Text fontSize="md" color="white">
+                      {meet.track_field_start_date && formatDate(meet.track_field_start_date)}
+                      {meet.track_field_end_date && meet.track_field_start_date !== meet.track_field_end_date && 
+                        ` - ${formatDate(meet.track_field_end_date)}`}
+                    </Text>
+                  </VStack>
+                </HStack>
+              )}
+              
+              {/* Fallback to original meet_date if no new dates */}
+              {!meet.multi_events_start_date && !meet.multi_events_end_date && 
+               !meet.track_field_start_date && !meet.track_field_end_date && (
             <HStack spacing={2} color="white">
               <FaCalendarAlt size={20} color="currentColor" />
               <Text fontSize="md" color="white">
                 {formatDate(meet.meet_date)}
               </Text>
             </HStack>
+              )}
+            </VStack>
 
             {/* Location */}
             <HStack spacing={2} color="white" align="start">
               <FaMapMarkerAlt size={20} color="currentColor" />
-              <VStack align="start" spacing={1}>
-                <Text fontSize="md" color="white">{meet.venue_name || "Venue TBD"}</Text>
-                <HStack spacing={2}>
-                  <Text fontSize="md" color="white">—</Text>
-                  <Text fontSize="md" color="white">
-                    {[meet.city, meet.state].filter(Boolean).join(', ') || "Location TBD"}
-                  </Text>
-                  {meet.venue_name && (
-                    <Link
-                      href={generateMapsLink()}
-                      isExternal
-                      color="blue.400"
-                      _hover={{ color: "blue.200" }}
-                    >
-                      <FaExternalLinkAlt size={13} color="currentColor" />
-                    </Link>
-                  )}
-                </HStack>
+              <VStack align="start" spacing={0}>
+                <Text fontSize="md" color="white" fontWeight="medium">{meet.venue_name || "Venue TBD"}</Text>
+                <Link 
+                  href={generateMapsLink()}
+                  isExternal
+                  color="blue.400"
+                  _hover={{ color: "blue.200", textDecorationColor: "blue.200" }}
+                  textDecoration="underline"
+                  textDecorationColor="blue.400"
+                >
+                  <VStack align="start" spacing={0}>
+                    {meet.address ? (
+                      <Text fontSize="xs">{meet.address}</Text>
+                    ) : (
+                      <Text fontSize="xs" color="gray.500" fontStyle="italic">No street address</Text>
+                    )}
+                    <Text fontSize="xs">
+                      {[meet.city, meet.state].filter(Boolean).join(' ') || "Location TBD"}
+                      {meet.zip && `, ${meet.zip}`}
+                    </Text>
+                    {meet.country && meet.country !== 'United States' && (
+                      <Text fontSize="xs">{meet.country}</Text>
+                    )}
+                  </VStack>
+                </Link>
               </VStack>
             </HStack>
-          </VStack>
 
-          {/* Column 2: Travel & Registration */}
-          <VStack align="start" spacing={4} borderX="1px solid" borderColor="gray.700" px={8}>
+            {/* Travel Distance/Time */}
             <TravelTimeForMeetsCard
               city={meet.city}
               state={meet.state}
               venueName={meet.venue_name}
             />
+          </VStack>
 
-            {/* Registration */}
+          {/* Column 2: Registration */}
+          <VStack align="start" spacing={4} borderX="1px solid" borderColor="gray.700" px={8}>
+            {/* Registration Info */}
+            <VStack align="start" spacing={3}>
+              {/* Registration Link */}
             <HStack spacing={2} color="white">
               <FaFileAlt size={20} color="currentColor" />
               {meet.join_link ? (
@@ -727,6 +848,89 @@ const MeetCard: React.FC<MeetCardProps> = ({
                 <Text fontSize="md" color="gray.400">No Registration</Text>
               )}
             </HStack>
+
+              {/* Registration Fees */}
+              {(meet.registration_fee || meet.processing_fee) && (
+                <HStack spacing={2} color="white">
+                  <FaDollarSign size={20} color="blue.400" />
+                  <VStack align="start" spacing={0}>
+                    <Text fontSize="sm" color="blue.400" fontWeight="medium">Fees</Text>
+                    <VStack align="start" spacing={0} width="full" maxW="180px">
+                      {meet.registration_fee && (
+                        <Flex justify="space-between" width="full">
+                          <Text fontSize="sm" color="white">Registration:</Text>
+                          <Text fontSize="sm" color="white" textAlign="right" ml={4}>{formatFee(meet.registration_fee)}</Text>
+                        </Flex>
+                      )}
+                      {meet.processing_fee && (
+                        <Flex justify="space-between" width="full">
+                          <Text fontSize="sm" color="white">Processing:</Text>
+                          <Text fontSize="sm" color="white" textAlign="right" ml={4}>{formatFee(meet.processing_fee)}</Text>
+                        </Flex>
+                      )}
+                    </VStack>
+                  </VStack>
+                </HStack>
+              )}
+
+              {/* Entry Deadline */}
+              {meet.entry_deadline_date && (
+                <HStack spacing={2} color="white">
+                  <FaClock size={20} color="blue.400" />
+                  <VStack align="start" spacing={0}>
+                    <Text fontSize="sm" color="blue.400" fontWeight="medium">Entry Deadline</Text>
+                    <Text fontSize="sm" color="white">
+                      {formatDate(meet.entry_deadline_date)}
+                      {meet.entry_deadline_time && ` at ${formatTime(meet.entry_deadline_time)}`}
+                    </Text>
+                  </VStack>
+                </HStack>
+              )}
+
+              {/* Packet Pickup Info */}
+              {meet.packet_pickup_date && (
+                <HStack spacing={2} color="white" align="start">
+                  <FaBoxOpen size={20} color="blue.400" />
+                  <VStack align="start" spacing={0}>
+                    <Text fontSize="sm" color="blue.400" fontWeight="medium">Packet Pickup</Text>
+                    <Text fontSize="sm" color="white">{formatDate(meet.packet_pickup_date)}</Text>
+                    {(meet.packet_pickup_address || meet.packet_pickup_city) && (
+                      <Link
+                        href={generatePacketPickupMapsLink(
+                          meet.packet_pickup_address,
+                          meet.packet_pickup_city,
+                          meet.packet_pickup_state,
+                          meet.packet_pickup_zip,
+                          meet.packet_pickup_country
+                        )}
+                        isExternal
+                        color="blue.400"
+                        _hover={{ color: "blue.200", textDecorationColor: "blue.200" }}
+                        textDecoration="underline"
+                        textDecorationColor="blue.400"
+                      >
+                        <VStack align="start" spacing={0}>
+                          {meet.packet_pickup_address && (
+                            <Text fontSize="xs">
+                              {meet.packet_pickup_address}
+                            </Text>
+                          )}
+                          <Text fontSize="xs">
+                            {[meet.packet_pickup_city, meet.packet_pickup_state].filter(Boolean).join(' ')}
+                            {meet.packet_pickup_zip && `, ${meet.packet_pickup_zip}`}
+                          </Text>
+                          {meet.packet_pickup_country && (
+                            <Text fontSize="xs">
+                              {meet.packet_pickup_country}
+                            </Text>
+                          )}
+                        </VStack>
+                      </Link>
+                    )}
+                  </VStack>
+                </HStack>
+              )}
+            </VStack>
           </VStack>
 
           {/* Column 3: Info Panel */}
@@ -781,6 +985,44 @@ const MeetCard: React.FC<MeetCardProps> = ({
                 <Text fontSize="md" color="white">({athleteCount})</Text>
               </HStack>
             </Tooltip>
+
+
+
+            {/* Web Links */}
+            {(meet.tickets_link || meet.visitor_guide_link) && (
+              <VStack align="start" spacing={2}>
+                {meet.tickets_link && (
+                  <HStack spacing={2} color="white">
+                    <FaTicketAlt size={20} color="blue.400" />
+                    <Link
+                      href={meet.tickets_link}
+                      isExternal
+                      color="blue.400"
+                      _hover={{ color: "blue.200" }}
+                      fontSize="sm"
+                      fontWeight="medium"
+                    >
+                      Tickets <FaExternalLinkAlt size={10} color="currentColor" />
+                    </Link>
+                  </HStack>
+                )}
+                {meet.visitor_guide_link && (
+                  <HStack spacing={2} color="white">
+                    <FaBook size={20} color="blue.400" />
+                    <Link
+                      href={meet.visitor_guide_link}
+                      isExternal
+                      color="blue.400"
+                      _hover={{ color: "blue.200" }}
+                      fontSize="sm"
+                      fontWeight="medium"
+                    >
+                      Visitor Guide <FaExternalLinkAlt size={10} color="currentColor" />
+                    </Link>
+                  </HStack>
+                )}
+              </VStack>
+            )}
           </VStack>
         </Grid>
 
@@ -790,36 +1032,78 @@ const MeetCard: React.FC<MeetCardProps> = ({
           align="stretch" 
           display={{ base: "flex", md: "none" }}
         >
-          {/* Date */}
+          {/* Event Date Ranges */}
+          {/* Multi Events Date Range */}
+          {(meet.multi_events_start_date || meet.multi_events_end_date) && (
+            <HStack spacing={3} color="white">
+              <FaCalendarAlt size={18} color="blue.400" />
+              <VStack align="start" spacing={0}>
+                <Text fontSize="sm" color="blue.400" fontWeight="medium">Multi Events</Text>
+                <Text fontSize="md" color="white">
+                  {meet.multi_events_start_date && formatDate(meet.multi_events_start_date)}
+                  {meet.multi_events_end_date && meet.multi_events_start_date !== meet.multi_events_end_date && 
+                    ` - ${formatDate(meet.multi_events_end_date)}`}
+                </Text>
+              </VStack>
+            </HStack>
+          )}
+          
+          {/* Track & Field Date Range */}
+          {(meet.track_field_start_date || meet.track_field_end_date) && (
+            <HStack spacing={3} color="white">
+              <FaCalendarAlt size={18} color="blue.400" />
+              <VStack align="start" spacing={0}>
+                <Text fontSize="sm" color="blue.400" fontWeight="medium">Track & Field</Text>
+                <Text fontSize="md" color="white">
+                  {meet.track_field_start_date && formatDate(meet.track_field_start_date)}
+                  {meet.track_field_end_date && meet.track_field_start_date !== meet.track_field_end_date && 
+                    ` - ${formatDate(meet.track_field_end_date)}`}
+                </Text>
+              </VStack>
+            </HStack>
+          )}
+          
+          {/* Fallback to original meet_date if no new dates */}
+          {!meet.multi_events_start_date && !meet.multi_events_end_date && 
+           !meet.track_field_start_date && !meet.track_field_end_date && (
           <HStack spacing={3} color="white">
             <FaCalendarAlt size={18} color="currentColor" />
             <Text fontSize="md" color="white" fontWeight="medium">
               {formatDate(meet.meet_date)}
             </Text>
           </HStack>
+          )}
 
           {/* Location */}
           <HStack spacing={3} color="white" align="start">
             <FaMapMarkerAlt size={18} color="currentColor" />
-            <VStack align="start" spacing={1}>
+            <VStack align="start" spacing={0}>
               <Text fontSize="md" color="white" fontWeight="medium">
                 {meet.venue_name || "Venue TBD"}
               </Text>
-              <HStack spacing={2}>
-                <Text fontSize="sm" color="gray.300">
-                  {[meet.city, meet.state].filter(Boolean).join(', ') || "Location TBD"}
-                </Text>
-                {meet.venue_name && (
-                  <Link
-                    href={generateMapsLink()}
-                    isExternal
-                    color="blue.400"
-                    _hover={{ color: "blue.200" }}
-                  >
-                    <FaExternalLinkAlt size={12} color="currentColor" />
-                  </Link>
-                )}
-              </HStack>
+              <Link 
+                href={generateMapsLink()}
+                isExternal
+                color="blue.400"
+                _hover={{ color: "blue.200", textDecorationColor: "blue.200" }}
+                textDecoration="underline"
+                textDecorationColor="blue.400"
+              >
+                <VStack align="start" spacing={0}>
+                  {meet.address ? (
+                    <Text fontSize="xs">{meet.address}</Text>
+                  ) : (
+                    <Text fontSize="xs" color="gray.500" fontStyle="italic">No street address</Text>
+                  )}
+                  <Text fontSize="xs">
+                    {[meet.city, meet.state].filter(Boolean).join(' ') || "Location TBD"}
+                    {meet.zip && `, ${meet.zip}`}
+                  </Text>
+                  {meet.country && meet.country !== 'United States' && (
+                    <Text fontSize="xs">{meet.country}</Text>
+                  )}
+                </VStack>
+              </Link>
             </VStack>
           </HStack>
 
@@ -849,6 +1133,119 @@ const MeetCard: React.FC<MeetCardProps> = ({
             )}
           </HStack>
 
+          {/* Registration Fees */}
+          {(meet.registration_fee || meet.processing_fee) && (
+            <HStack spacing={3} color="white" align="start">
+              <FaDollarSign size={18} color="blue.400" />
+              <VStack align="start" spacing={0} width="full" maxW="180px">
+                <Text fontSize="sm" color="blue.400" fontWeight="medium">Fees</Text>
+                {meet.registration_fee && (
+                  <Flex justify="space-between" width="full">
+                    <Text fontSize="sm" color="white">Registration:</Text>
+                    <Text fontSize="sm" color="white" textAlign="right" ml={4}>{formatFee(meet.registration_fee)}</Text>
+                  </Flex>
+                )}
+                {meet.processing_fee && (
+                  <Flex justify="space-between" width="full">
+                    <Text fontSize="sm" color="white">Processing:</Text>
+                    <Text fontSize="sm" color="white" textAlign="right" ml={4}>{formatFee(meet.processing_fee)}</Text>
+                  </Flex>
+                )}
+              </VStack>
+            </HStack>
+          )}
+
+          {/* Entry Deadline */}
+          {meet.entry_deadline_date && (
+            <HStack spacing={3} color="white" align="start">
+              <FaClock size={18} color="blue.400" />
+              <VStack align="start" spacing={0}>
+                <Text fontSize="sm" color="blue.400" fontWeight="medium">Entry Deadline</Text>
+                <Text fontSize="sm" color="white">
+                  {formatDate(meet.entry_deadline_date)}
+                  {meet.entry_deadline_time && ` at ${formatTime(meet.entry_deadline_time)}`}
+                </Text>
+              </VStack>
+            </HStack>
+          )}
+
+          {/* Packet Pickup Info */}
+          {meet.packet_pickup_date && (
+            <HStack spacing={3} color="white" align="start">
+              <FaBoxOpen size={18} color="blue.400" />
+              <VStack align="start" spacing={0}>
+                <Text fontSize="sm" color="blue.400" fontWeight="medium">Packet Pickup</Text>
+                <Text fontSize="sm" color="white">{formatDate(meet.packet_pickup_date)}</Text>
+                {(meet.packet_pickup_address || meet.packet_pickup_city) && (
+                  <Link
+                    href={generatePacketPickupMapsLink(
+                      meet.packet_pickup_address,
+                      meet.packet_pickup_city,
+                      meet.packet_pickup_state,
+                      meet.packet_pickup_zip,
+                      meet.packet_pickup_country
+                    )}
+                    isExternal
+                    color="blue.400"
+                    _hover={{ color: "blue.200", textDecorationColor: "blue.200" }}
+                    textDecoration="underline"
+                    textDecorationColor="blue.400"
+                  >
+                    <VStack align="start" spacing={0}>
+                      {meet.packet_pickup_address && (
+                        <Text fontSize="xs">
+                          {meet.packet_pickup_address}
+                        </Text>
+                      )}
+                      <Text fontSize="xs">
+                        {[meet.packet_pickup_city, meet.packet_pickup_state].filter(Boolean).join(' ')}
+                        {meet.packet_pickup_zip && `, ${meet.packet_pickup_zip}`}
+                      </Text>
+                      {meet.packet_pickup_country && (
+                        <Text fontSize="xs">
+                          {meet.packet_pickup_country}
+                        </Text>
+                      )}
+                    </VStack>
+                  </Link>
+                )}
+              </VStack>
+            </HStack>
+          )}
+
+          {/* Web Links */}
+          {meet.tickets_link && (
+            <HStack spacing={3} color="white">
+              <FaTicketAlt size={18} color="blue.400" />
+              <Link
+                href={meet.tickets_link}
+                isExternal
+                color="blue.400"
+                _hover={{ color: "blue.200" }}
+                fontSize="sm"
+                fontWeight="medium"
+              >
+                Tickets <FaExternalLinkAlt size={10} color="currentColor" />
+              </Link>
+            </HStack>
+          )}
+
+          {meet.visitor_guide_link && (
+            <HStack spacing={3} color="white">
+              <FaBook size={18} color="blue.400" />
+              <Link
+                href={meet.visitor_guide_link}
+                isExternal
+                color="blue.400"
+                _hover={{ color: "blue.200" }}
+                fontSize="sm"
+                fontWeight="medium"
+              >
+                Visitor Guide <FaExternalLinkAlt size={10} color="currentColor" />
+              </Link>
+            </HStack>
+          )}
+
           {/* Notes */}
           <HStack spacing={3} color="white">
             <FaStickyNote size={18} color="currentColor" />
@@ -870,6 +1267,325 @@ const MeetCard: React.FC<MeetCardProps> = ({
               Athletes ({athleteCount})
             </Text>
           </HStack>
+
+          {/* Coach Contact Info - For athletes only */}
+          {!isCoach && assignedByCoach && (
+            <>
+              <Box bg="gray.600" h="1px" my={4} />
+              <VStack align="start" spacing={1}>
+                <HStack spacing={2}>
+                  <FaChalkboardTeacher size={16} color="currentColor" />
+                  <Text fontSize="sm" color="gray.300">Coach:</Text>
+                  <Text fontSize="sm" fontWeight="medium" color="white">{assignedByCoach}</Text>
+                </HStack>
+                {coachPhone && (
+                  <HStack spacing={2} pl={0}>
+                    <FaPhoneAlt size={14} color="currentColor" />
+                    <Text fontSize="sm" color="gray.300">
+                      {(() => {
+                        const phone = coachPhone.replace(/\D/g, '');
+                        if (phone.length === 10) {
+                          return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+                        }
+                        return coachPhone;
+                      })()}
+                    </Text>
+                  </HStack>
+                )}
+                {coachEmail && (
+                  <HStack spacing={2} pl={0}>
+                    <FaAt size={14} color="currentColor" />
+                    <Text 
+                      fontSize="sm" 
+                      color="blue.400"
+                      _hover={{ color: "blue.300" }}
+                      cursor="pointer"
+                      onClick={() => window.open(`mailto:${coachEmail}`, '_blank')}
+                    >
+                      {coachEmail}
+                    </Text>
+                  </HStack>
+                )}
+              </VStack>
+            </>
+          )}
+
+          {/* Assistant Coaches */}
+          {(assistantCoach1Name || assistantCoach2Name || assistantCoach3Name) && (
+            <>
+              <Box bg="gray.600" h="1px" my={4} />
+              <VStack spacing={1} align="start" w="full">
+                {assistantCoach1Name && (
+                  <VStack align="start" spacing={1} color="white">
+                    <HStack spacing={2}>
+                      <FaUserTie size={16} color="currentColor" />
+                      <Text fontSize="sm" color="gray.400">Assistant:</Text>
+                      <Text fontSize="sm" color="gray.200">{assistantCoach1Name}</Text>
+                    </HStack>
+                    {assistantCoach1Phone && (
+                      <HStack spacing={2} pl={0}>
+                        <FaPhoneAlt size={14} color="currentColor" />
+                        <Text fontSize="sm" color="gray.300">
+                          {(() => {
+                            const phone = assistantCoach1Phone.replace(/\D/g, '');
+                            if (phone.length === 10) {
+                              return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+                            }
+                            return assistantCoach1Phone;
+                          })()}
+                        </Text>
+                      </HStack>
+                    )}
+                    {assistantCoach1Email && (
+                      <HStack spacing={2} pl={0}>
+                        <FaAt size={14} color="currentColor" />
+                        <Text 
+                          fontSize="sm" 
+                          color="blue.400"
+                          _hover={{ color: "blue.300" }}
+                          cursor="pointer"
+                          onClick={() => window.open(`mailto:${assistantCoach1Email}`, '_blank')}
+                        >
+                          {assistantCoach1Email}
+                        </Text>
+                      </HStack>
+                    )}
+                  </VStack>
+                )}
+
+                {assistantCoach2Name && (
+                  <VStack align="start" spacing={1} color="white">
+                    <HStack spacing={2}>
+                      <FaUserTie size={16} color="currentColor" />
+                      <Text fontSize="sm" color="gray.400">Assistant:</Text>
+                      <Text fontSize="sm" color="gray.200">{assistantCoach2Name}</Text>
+                    </HStack>
+                    {assistantCoach2Phone && (
+                      <HStack spacing={2} pl={0}>
+                        <FaPhoneAlt size={14} color="currentColor" />
+                        <Text fontSize="sm" color="gray.300">
+                          {(() => {
+                            const phone = assistantCoach2Phone.replace(/\D/g, '');
+                            if (phone.length === 10) {
+                              return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+                            }
+                            return assistantCoach2Phone;
+                          })()}
+                        </Text>
+                      </HStack>
+                    )}
+                    {assistantCoach2Email && (
+                      <HStack spacing={2} pl={0}>
+                        <FaAt size={14} color="currentColor" />
+                        <Text 
+                          fontSize="sm" 
+                          color="blue.400"
+                          _hover={{ color: "blue.300" }}
+                          cursor="pointer"
+                          onClick={() => window.open(`mailto:${assistantCoach2Email}`, '_blank')}
+                        >
+                          {assistantCoach2Email}
+                        </Text>
+                      </HStack>
+                    )}
+                  </VStack>
+                )}
+
+                {assistantCoach3Name && (
+                  <VStack align="start" spacing={1} color="white">
+                    <HStack spacing={2}>
+                      <FaUserTie size={16} color="currentColor" />
+                      <Text fontSize="sm" color="gray.400">Assistant:</Text>
+                      <Text fontSize="sm" color="gray.200">{assistantCoach3Name}</Text>
+                    </HStack>
+                    {assistantCoach3Phone && (
+                      <HStack spacing={2} pl={0}>
+                        <FaPhoneAlt size={14} color="currentColor" />
+                        <Text fontSize="sm" color="gray.300">
+                          {(() => {
+                            const phone = assistantCoach3Phone.replace(/\D/g, '');
+                            if (phone.length === 10) {
+                              return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+                            }
+                            return assistantCoach3Phone;
+                          })()}
+                        </Text>
+                      </HStack>
+                    )}
+                    {assistantCoach3Email && (
+                      <HStack spacing={2} pl={0}>
+                        <FaAt size={14} color="currentColor" />
+                        <Text 
+                          fontSize="sm" 
+                          color="blue.400"
+                          _hover={{ color: "blue.300" }}
+                          cursor="pointer"
+                          onClick={() => window.open(`mailto:${assistantCoach3Email}`, '_blank')}
+                        >
+                          {assistantCoach3Email}
+                        </Text>
+                      </HStack>
+                    )}
+                  </VStack>
+                )}
+              </VStack>
+            </>
+          )}
+
+          {/* Lodging Information */}
+          {meet.lodging_type && (
+            <>
+              <Box bg="gray.600" h="1px" my={4} />
+              <VStack spacing={2} align="start" w="full">
+                <HStack spacing={2} color="white">
+                  <FaBed size={16} color="currentColor" />
+                  <Text fontSize="sm" color="gray.300" fontWeight="medium">Lodging:</Text>
+                </HStack>
+                
+                <VStack align="start" spacing={3} pl={6} w="full">
+                  {/* Place name and type */}
+                  <Text fontSize="sm" fontWeight="medium" color="white">
+                    {meet.lodging_place_name ? `${meet.lodging_place_name} (${meet.lodging_type})` : meet.lodging_type}
+                  </Text>
+
+                  {/* Address */}
+                  <VStack align="start" spacing={1}>
+                    <Text fontSize="sm" color="gray.400" fontWeight="bold" textTransform="uppercase">
+                      Address
+                    </Text>
+                    {(meet.lodging_address || meet.lodging_city || meet.lodging_state || meet.lodging_zip) ? (
+                      <Link
+                        href={generateLodgingMapsLink()}
+                        isExternal
+                        color="blue.400"
+                        _hover={{ color: "blue.200", textDecorationColor: "blue.200" }}
+                        textDecoration="underline"
+                        textDecorationColor="blue.400"
+                        w="full"
+                      >
+                        <VStack align="start" spacing={0}>
+                          {meet.lodging_address && (
+                            <Text fontSize="sm">
+                              {meet.lodging_address}
+                            </Text>
+                          )}
+                          {(meet.lodging_city || meet.lodging_state || meet.lodging_zip) && (
+                            <Text fontSize="sm">
+                              {[meet.lodging_city, meet.lodging_state, meet.lodging_zip].filter(Boolean).join(', ')}
+                            </Text>
+                          )}
+                        </VStack>
+                      </Link>
+                    ) : (
+                      <Text fontSize="sm" color="gray.500">
+                        No address provided
+                      </Text>
+                    )}
+                  </VStack>
+
+                  {/* Contact */}
+                  {(meet.lodging_phone || meet.lodging_website) && (
+                    <VStack align="start" spacing={2}>
+                      <Text fontSize="sm" color="gray.400" fontWeight="bold" textTransform="uppercase">
+                        Contact
+                      </Text>
+                      {meet.lodging_phone && (
+                        <HStack spacing={2}>
+                          <FaPhoneAlt size={12} color="currentColor" />
+                          <Text fontSize="sm" color="gray.300">
+                            {(() => {
+                              const phone = meet.lodging_phone.replace(/\D/g, '');
+                              if (phone.length === 10) {
+                                return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+                              }
+                              return meet.lodging_phone;
+                            })()}
+                          </Text>
+                        </HStack>
+                      )}
+                      {meet.lodging_website && (
+                        <HStack 
+                          as="a" 
+                          href={meet.lodging_website} 
+                          target="_blank" 
+                          spacing={2}
+                          color="blue.400"
+                          _hover={{ color: "blue.300" }}
+                          cursor="pointer"
+                        >
+                          <FaGlobe size={12} color="currentColor" />
+                          <Text fontSize="sm">Website</Text>
+                        </HStack>
+                      )}
+                    </VStack>
+                  )}
+
+                  {/* Schedule */}
+                  {(meet.lodging_checkin_date || meet.lodging_checkout_date) && (
+                    <VStack align="start" spacing={1}>
+                      <Text fontSize="sm" color="gray.400" fontWeight="bold" textTransform="uppercase">
+                        Schedule
+                      </Text>
+                      {meet.lodging_checkin_date && (
+                        <Text fontSize="sm" color="gray.300">
+                          Check-in: {(() => {
+                            try {
+                              const date = new Date(meet.lodging_checkin_date);
+                              const formattedDate = date.toLocaleDateString('en-US', { 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric' 
+                              });
+                              let result = formattedDate;
+                              if (meet.lodging_checkin_time) {
+                                const time = new Date(`2000-01-01T${meet.lodging_checkin_time}`);
+                                const formattedTime = time.toLocaleTimeString('en-US', {
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                  hour12: true
+                                });
+                                result += ` at ${formattedTime}`;
+                              }
+                              return result;
+                            } catch (e) {
+                              return meet.lodging_checkin_date + (meet.lodging_checkin_time ? ` at ${meet.lodging_checkin_time}` : '');
+                            }
+                          })()}
+                        </Text>
+                      )}
+                      {meet.lodging_checkout_date && (
+                        <Text fontSize="sm" color="gray.300">
+                          Check-out: {(() => {
+                            try {
+                              const date = new Date(meet.lodging_checkout_date);
+                              const formattedDate = date.toLocaleDateString('en-US', { 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric' 
+                              });
+                              let result = formattedDate;
+                              if (meet.lodging_checkout_time) {
+                                const time = new Date(`2000-01-01T${meet.lodging_checkout_time}`);
+                                const formattedTime = time.toLocaleTimeString('en-US', {
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                  hour12: true
+                                });
+                                result += ` at ${formattedTime}`;
+                              }
+                              return result;
+                            } catch (e) {
+                              return meet.lodging_checkout_date + (meet.lodging_checkout_time ? ` at ${meet.lodging_checkout_time}` : '');
+                            }
+                          })()}
+                        </Text>
+                      )}
+                    </VStack>
+                  )}
+                </VStack>
+              </VStack>
+            </>
+          )}
         </VStack>
       </Box>
 
@@ -1564,24 +2280,33 @@ const MeetCard: React.FC<MeetCardProps> = ({
                   </Text>
                   
                   {/* Complete address block */}
-                  <VStack align="start" spacing={0} w="full">
-                    {/* Street address */}
-                    {meet.lodging_address && (
-                      <Text fontSize="sm" color="gray.300">
-                        {meet.lodging_address}
-                      </Text>
-                    )}
-                    
-                    {/* City, State, Zip on one line */}
-                    {(meet.lodging_city || meet.lodging_state || meet.lodging_zip) && (
-                      <Text fontSize="sm" color="gray.300">
-                        {[meet.lodging_city, meet.lodging_state, meet.lodging_zip].filter(Boolean).join(', ')}
-                      </Text>
-                    )}
-                  </VStack>
-                  
-                  {/* Fallback if no address info */}
-                  {!meet.lodging_address && !meet.lodging_city && !meet.lodging_state && !meet.lodging_zip && (
+                  {(meet.lodging_address || meet.lodging_city || meet.lodging_state || meet.lodging_zip) ? (
+                    <Link
+                      href={generateLodgingMapsLink()}
+                      isExternal
+                      color="blue.400"
+                      _hover={{ color: "blue.200", textDecorationColor: "blue.200" }}
+                      textDecoration="underline"
+                      textDecorationColor="blue.400"
+                      w="full"
+                    >
+                      <VStack align="start" spacing={0}>
+                        {/* Street address */}
+                        {meet.lodging_address && (
+                          <Text fontSize="sm">
+                            {meet.lodging_address}
+                          </Text>
+                        )}
+                        
+                        {/* City, State, Zip on one line */}
+                        {(meet.lodging_city || meet.lodging_state || meet.lodging_zip) && (
+                          <Text fontSize="sm">
+                            {[meet.lodging_city, meet.lodging_state, meet.lodging_zip].filter(Boolean).join(', ')}
+                          </Text>
+                        )}
+                      </VStack>
+                    </Link>
+                  ) : (
                     <Text fontSize="sm" color="gray.500">
                       No address provided
                     </Text>
@@ -1715,17 +2440,30 @@ const MeetCard: React.FC<MeetCardProps> = ({
                   <Text fontSize="sm" color="gray.400" fontWeight="bold" textTransform="uppercase">
                     Address
                   </Text>
-                  {meet.lodging_address && (
-                    <Text fontSize="sm" color="gray.300">
-                      {meet.lodging_address}
-                    </Text>
-                  )}
-                  {(meet.lodging_city || meet.lodging_state || meet.lodging_zip) && (
-                    <Text fontSize="sm" color="gray.300">
-                      {[meet.lodging_city, meet.lodging_state, meet.lodging_zip].filter(Boolean).join(', ')}
-                    </Text>
-                  )}
-                  {!meet.lodging_address && !meet.lodging_city && !meet.lodging_state && !meet.lodging_zip && (
+                  {(meet.lodging_address || meet.lodging_city || meet.lodging_state || meet.lodging_zip) ? (
+                    <Link
+                      href={generateLodgingMapsLink()}
+                      isExternal
+                      color="blue.400"
+                      _hover={{ color: "blue.200", textDecorationColor: "blue.200" }}
+                      textDecoration="underline"
+                      textDecorationColor="blue.400"
+                      w="full"
+                    >
+                      <VStack align="start" spacing={0}>
+                        {meet.lodging_address && (
+                          <Text fontSize="sm">
+                            {meet.lodging_address}
+                          </Text>
+                        )}
+                        {(meet.lodging_city || meet.lodging_state || meet.lodging_zip) && (
+                          <Text fontSize="sm">
+                            {[meet.lodging_city, meet.lodging_state, meet.lodging_zip].filter(Boolean).join(', ')}
+                          </Text>
+                        )}
+                      </VStack>
+                    </Link>
+                  ) : (
                     <Text fontSize="sm" color="gray.500">
                       No address provided
                     </Text>
@@ -1961,6 +2699,9 @@ export const Meets: React.FC = () => {
   // Helper function to render meets with badges
   const renderMeets = (meetsToRender: TrackMeet[], showBadges = false) => {
     if (meetsToRender.length === 0) {
+      // Check if this is truly the first meet (no meets at all) or just an empty filter
+      const isFirstMeet = meets.length === 0;
+      
       return (
         <Box
           bg="gray.800"
@@ -1973,7 +2714,10 @@ export const Meets: React.FC = () => {
           <FaCalendarAlt size={48} color="gray.600" style={{ margin: '0 auto 16px' }} />
           <Heading size="md" color="gray.400" mb={2}>No meets found</Heading>
           <Text color="gray.500" mb={6}>
-            {userIsCoach ? "Create your first track meet to get started." : "No meets have been assigned to you yet."}
+            {userIsCoach 
+              ? (isFirstMeet ? "Create your first track meet to get started." : "No meets found in this category.")
+              : "No meets have been assigned to you yet."
+            }
           </Text>
           {userIsCoach && (
             <Button
@@ -1981,7 +2725,7 @@ export const Meets: React.FC = () => {
               colorScheme="blue"
               onClick={handleCreateMeet}
             >
-              Create First Meet
+              {isFirstMeet ? "Create First Meet" : "Create Meet"}
             </Button>
           )}
         </Box>

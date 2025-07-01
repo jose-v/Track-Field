@@ -34,6 +34,32 @@ function formatDate(dateStr?: string): string {
   }
 }
 
+// Format fees to show proper currency format
+function formatFee(fee: string | number | undefined): string {
+  if (!fee) return '';
+  const numericFee = typeof fee === 'string' ? parseFloat(fee) : fee;
+  return `$${numericFee.toFixed(2)}`;
+}
+
+// Convert time from 24-hour to 12-hour format and remove seconds
+function formatTime(timeString?: string): string {
+  if (!timeString) return '';
+  
+  // Remove seconds if present (e.g., "23:59:00" -> "23:59")
+  const timeWithoutSeconds = timeString.split(':').slice(0, 2).join(':');
+  
+  // Parse the time
+  const [hours, minutes] = timeWithoutSeconds.split(':').map(Number);
+  
+  if (isNaN(hours) || isNaN(minutes)) return timeString;
+  
+  // Convert to 12-hour format
+  const period = hours >= 12 ? 'pm' : 'am';
+  const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+  
+  return `${displayHours}:${minutes.toString().padStart(2, '0')}${period}`;
+}
+
 // Meet event interface
 interface MeetEvent {
   id: string;
@@ -58,6 +84,14 @@ interface TrackMeet {
   assigned_events_count?: number;
   assigned_athletes?: { id: string; name: string }[];
   assigned_athletes_count?: number;
+  multi_events_start_date?: string;
+  multi_events_end_date?: string;
+  track_field_start_date?: string;
+  track_field_end_date?: string;
+  registration_fee?: number;
+  processing_fee?: number;
+  entry_deadline_date?: string;
+  entry_deadline_time?: string;
 }
 
 interface TrackMeetsCardProps extends CardProps {
@@ -397,14 +431,60 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
                           <Text fontSize="sm" fontWeight="bold" color={textColor} noOfLines={1}>
                             {meet.name}
                           </Text>
-                          <Text fontSize="xs" color={subtitleColor}>
-                            {formatDate(meet.meet_date)}
-                          </Text>
+                          
+                          {/* Show separate date ranges if available */}
+                          {meet.multi_events_start_date && (
+                            <Text fontSize="xs" color="blue.500">
+                              Multi Events: {formatDate(meet.multi_events_start_date)}
+                              {meet.multi_events_end_date && meet.multi_events_start_date !== meet.multi_events_end_date && 
+                                ` - ${formatDate(meet.multi_events_end_date)}`}
+                            </Text>
+                          )}
+                          {meet.track_field_start_date && (
+                            <Text fontSize="xs" color="blue.500">
+                              Track & Field: {formatDate(meet.track_field_start_date)}
+                              {meet.track_field_end_date && meet.track_field_start_date !== meet.track_field_end_date && 
+                                ` - ${formatDate(meet.track_field_end_date)}`}
+                            </Text>
+                          )}
+                          
+                          {/* Fallback to original date if no new dates */}
+                          {!meet.multi_events_start_date && !meet.track_field_start_date && (
+                            <Text fontSize="xs" color={subtitleColor}>
+                              {formatDate(meet.meet_date)}
+                            </Text>
+                          )}
+                          
                           {meet.city && meet.state && (
                             <Text fontSize="xs" color={subtitleColor}>
                               {meet.city}, {meet.state}
                             </Text>
                           )}
+                          
+                          {/* Show registration fee if available */}
+                          {meet.registration_fee && (
+                            <VStack align="start" spacing={0} width="full" maxW="120px">
+                              <Flex justify="space-between" width="full">
+                                <Text fontSize="xs" color="blue.500">Registration:</Text>
+                                <Text fontSize="xs" color="blue.500" textAlign="right" ml={3}>{formatFee(meet.registration_fee)}</Text>
+                              </Flex>
+                              {meet.processing_fee && (
+                                <Flex justify="space-between" width="full">
+                                  <Text fontSize="xs" color="blue.500">Processing:</Text>
+                                  <Text fontSize="xs" color="blue.500" textAlign="right" ml={3}>{formatFee(meet.processing_fee)}</Text>
+                                </Flex>
+                              )}
+                            </VStack>
+                          )}
+                          
+                          {/* Show entry deadline if available */}
+                          {meet.entry_deadline_date && (
+                            <Text fontSize="xs" color="blue.500">
+                              Deadline: {formatDate(meet.entry_deadline_date)}
+                              {meet.entry_deadline_time && ` at ${formatTime(meet.entry_deadline_time)}`}
+                            </Text>
+                          )}
+                          
                           {meet.lodging_type && (
                             <Text fontSize="xs" color={subtitleColor}>
                               Lodging: {meet.lodging_type}{meet.lodging_address ? ` - ${meet.lodging_address}` : ''}
@@ -499,14 +579,60 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
                           <Text fontSize="sm" fontWeight="bold" color={textColor} noOfLines={1}>
                             {meet.name}
                           </Text>
-                          <Text fontSize="xs" color={subtitleColor}>
-                            {formatDate(meet.meet_date)}
-                          </Text>
+                          
+                          {/* Show separate date ranges if available */}
+                          {meet.multi_events_start_date && (
+                            <Text fontSize="xs" color="blue.500">
+                              Multi Events: {formatDate(meet.multi_events_start_date)}
+                              {meet.multi_events_end_date && meet.multi_events_start_date !== meet.multi_events_end_date && 
+                                ` - ${formatDate(meet.multi_events_end_date)}`}
+                            </Text>
+                          )}
+                          {meet.track_field_start_date && (
+                            <Text fontSize="xs" color="blue.500">
+                              Track & Field: {formatDate(meet.track_field_start_date)}
+                              {meet.track_field_end_date && meet.track_field_start_date !== meet.track_field_end_date && 
+                                ` - ${formatDate(meet.track_field_end_date)}`}
+                            </Text>
+                          )}
+                          
+                          {/* Fallback to original date if no new dates */}
+                          {!meet.multi_events_start_date && !meet.track_field_start_date && (
+                            <Text fontSize="xs" color={subtitleColor}>
+                              {formatDate(meet.meet_date)}
+                            </Text>
+                          )}
+                          
                           {meet.city && meet.state && (
                             <Text fontSize="xs" color={subtitleColor}>
                               {meet.city}, {meet.state}
                             </Text>
                           )}
+                          
+                          {/* Show registration fee if available */}
+                          {meet.registration_fee && (
+                            <VStack align="start" spacing={0} width="full" maxW="120px">
+                              <Flex justify="space-between" width="full">
+                                <Text fontSize="xs" color="blue.500">Registration:</Text>
+                                <Text fontSize="xs" color="blue.500" textAlign="right" ml={3}>{formatFee(meet.registration_fee)}</Text>
+                              </Flex>
+                              {meet.processing_fee && (
+                                <Flex justify="space-between" width="full">
+                                  <Text fontSize="xs" color="blue.500">Processing:</Text>
+                                  <Text fontSize="xs" color="blue.500" textAlign="right" ml={3}>{formatFee(meet.processing_fee)}</Text>
+                                </Flex>
+                              )}
+                            </VStack>
+                          )}
+                          
+                          {/* Show entry deadline if available */}
+                          {meet.entry_deadline_date && (
+                            <Text fontSize="xs" color="blue.500">
+                              Deadline: {formatDate(meet.entry_deadline_date)}
+                              {meet.entry_deadline_time && ` at ${formatTime(meet.entry_deadline_time)}`}
+                            </Text>
+                          )}
+                          
                           {meet.lodging_type && (
                             <Text fontSize="xs" color={subtitleColor}>
                               Lodging: {meet.lodging_type}{meet.lodging_address ? ` - ${meet.lodging_address}` : ''}

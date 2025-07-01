@@ -1215,9 +1215,9 @@ export function AthleteWorkouts() {
               )}
 
               {/* Workout Cards */}
-              <Box>
-                {renderWorkoutCards(filteredWorkouts)}
-              </Box>
+            <Box>
+              {renderWorkoutCards(filteredWorkouts)}
+            </Box>
             </VStack>
           );
       }

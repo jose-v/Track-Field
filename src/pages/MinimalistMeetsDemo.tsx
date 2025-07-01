@@ -610,7 +610,10 @@ export const Meets: React.FC = () => {
               <FaCalendarAlt size={48} color="gray.600" style={{ margin: '0 auto 16px' }} />
               <Heading size="md" color="gray.400" mb={2}>No meets found</Heading>
               <Text color="gray.500" mb={6}>
-                {isCoach ? "Create your first track meet to get started." : "No meets have been assigned to you yet."}
+                {isCoach 
+                  ? (meets.length === 0 ? "Create your first track meet to get started." : "No meets found in this category.")
+                  : "No meets have been assigned to you yet."
+                }
               </Text>
               {isCoach && (
                 <Button
@@ -618,7 +621,7 @@ export const Meets: React.FC = () => {
                   colorScheme="blue"
                   onClick={handleCreateMeet}
                 >
-                  Create First Meet
+                  {meets.length === 0 ? "Create First Meet" : "Create Meet"}
                 </Button>
               )}
             </Box>

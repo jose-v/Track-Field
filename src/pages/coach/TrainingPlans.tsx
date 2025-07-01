@@ -424,8 +424,8 @@ export function CoachTrainingPlans() {
           return { type: 'workouts', data: filteredWorkouts };
         } else if (workoutFilter === 'weekly') {
           filteredWorkouts = filteredWorkouts.filter(w => w.template_type === 'weekly');
-          // Apply athlete filter
-          if (selectedAthlete !== 'all') {
+        // Apply athlete filter
+        if (selectedAthlete !== 'all') {
             filteredWorkouts = filteredWorkouts.filter(w => isWorkoutAssignedToAthlete(w, selectedAthlete));
           }
           return { type: 'workouts', data: filteredWorkouts };
@@ -438,7 +438,7 @@ export function CoachTrainingPlans() {
           // Apply athlete filter to workouts
           if (selectedAthlete !== 'all') {
             filteredWorkouts = filteredWorkouts.filter(w => isWorkoutAssignedToAthlete(w, selectedAthlete));
-          }
+        }
           // Apply athlete filter to monthly plans
           const filteredMonthlyPlans = getMonthlyPlansForAthlete(selectedAthlete);
           return { type: 'mixed', data: [...filteredWorkouts, ...filteredMonthlyPlans] };

@@ -601,9 +601,9 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
                   {/* Day Selector Buttons */}
                   <VStack spacing={2} align="stretch">
                     <VStack spacing={1} align="stretch">
-                      <Text fontSize="sm" fontWeight="bold" color={textColor}>
-                        Select Day to Plan:
-                      </Text>
+                    <Text fontSize="sm" fontWeight="bold" color={textColor}>
+                      Select Day to Plan:
+                    </Text>
                       <Text fontSize="xs" color={subtitleColor}>
                         Hold Cmd/Ctrl to select multiple empty days
                       </Text>
@@ -616,15 +616,15 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
                         const hasExercises = allSelectedExercises[day.value] && allSelectedExercises[day.value].length > 0;
                         
                         return (
-                          <Button
-                            key={day.value}
+                        <Button
+                          key={day.value}
                             onClick={(e) => handleDaySelection(day.value, e)}
                             variant={isSelected ? "solid" : "outline"}
                             colorScheme={isCurrent ? "blue" : isSelected ? "green" : "gray"}
-                            size="sm"
-                            flex="1"
+                          size="sm"
+                          flex="1"
                             fontWeight={isSelected ? "bold" : "normal"}
-                            fontSize="xs"
+                          fontSize="xs"
                             opacity={hasExercises && selectedDays.length > 1 && !isSelected ? 0.5 : 1}
                             title={
                               hasExercises && selectedDays.length > 1 && !isSelected 
@@ -633,8 +633,8 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
                                   ? "Hold Cmd/Ctrl to modify selection"
                                   : "Click to select, Cmd/Ctrl+click for multi-select"
                             }
-                          >
-                            {day.label.slice(0, 3)}
+                        >
+                          {day.label.slice(0, 3)}
                             {hasExercises && (
                               <Box
                                 as="span"
@@ -646,7 +646,7 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
                                 display="inline-block"
                               />
                             )}
-                          </Button>
+                        </Button>
                         );
                       })}
                     </ButtonGroup>
@@ -665,7 +665,7 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
 
                     {/* Action Buttons */}
                     <HStack spacing={2}>
-                      {/* Copy Options */}
+                    {/* Copy Options */}
                       <Menu>
                         <MenuButton 
                           as={Button} 

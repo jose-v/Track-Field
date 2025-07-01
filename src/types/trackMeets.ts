@@ -5,6 +5,7 @@ export interface TrackMeet {
   address?: string;
   city?: string;
   state?: string;
+  country?: string;
   zip?: string;
   website?: string;
   contact_name?: string;
@@ -13,7 +14,7 @@ export interface TrackMeet {
   coach_id?: string;
   athlete_id?: string;
   school?: string;
-  meet_type?: string;
+  meet_type?: 'track_field' | 'multi_events';
   sanctioning_body?: string;
   host_organization?: string;
   status: string;
@@ -25,6 +26,32 @@ export interface TrackMeet {
   venue_name?: string; // TF Stadium/venue name
   join_link?: string; // Optional link to join the meet
   description?: string; // Additional details about the meet
+  
+  // New date fields for Multi Events and Track & Field
+  multi_events_start_date?: string;
+  multi_events_end_date?: string;
+  track_field_start_date?: string;
+  track_field_end_date?: string;
+  
+  // Registration information  
+  registration_fee?: number;
+  processing_fee?: number;
+  entry_deadline_date?: string;
+  entry_deadline_time?: string;
+  
+  // Packet pickup information
+  packet_pickup_date?: string;
+  packet_pickup_location?: string;
+  packet_pickup_address?: string;
+  packet_pickup_city?: string;
+  packet_pickup_state?: string;
+  packet_pickup_country?: string;
+  packet_pickup_zip?: string;
+  
+  // Web links
+  tickets_link?: string;
+  visitor_guide_link?: string;
+  
   arrival_date?: string;
   departure_date?: string;
   transportation_modes?: string[];
@@ -34,6 +61,7 @@ export interface TrackMeet {
   lodging_address?: string;
   lodging_city?: string;
   lodging_state?: string;
+  lodging_country?: string;
   lodging_zip?: string;
   lodging_phone?: string;
   lodging_website?: string;
@@ -66,6 +94,7 @@ export interface TrackMeetFormData {
   address?: string;
   city?: string;
   state?: string;
+  country?: string;
   zip?: string;
   website?: string;
   contact_name?: string;
@@ -73,7 +102,7 @@ export interface TrackMeetFormData {
   contact_phone?: string;
   coach_id?: string; // Only for athletes to select a coach
   school?: string;
-  meet_type?: string;
+  meet_type?: 'track_field' | 'multi_events';
   sanctioning_body?: string;
   host_organization?: string;
   status: string;
@@ -85,6 +114,32 @@ export interface TrackMeetFormData {
   venue_name?: string; // TF Stadium/venue name
   join_link?: string; // Optional link to join the meet
   description?: string; // Additional details about the meet
+  
+  // New date fields for Multi Events and Track & Field
+  multi_events_start_date?: string;
+  multi_events_end_date?: string;
+  track_field_start_date?: string;
+  track_field_end_date?: string;
+  
+  // Registration information  
+  registration_fee?: number;
+  processing_fee?: number;
+  entry_deadline_date?: string;
+  entry_deadline_time?: string;
+  
+  // Packet pickup information
+  packet_pickup_date?: string;
+  packet_pickup_location?: string;
+  packet_pickup_address?: string;
+  packet_pickup_city?: string;
+  packet_pickup_state?: string;
+  packet_pickup_country?: string;
+  packet_pickup_zip?: string;
+  
+  // Web links
+  tickets_link?: string;
+  visitor_guide_link?: string;
+  
   arrival_date?: string;
   departure_date?: string;
   transportation_modes?: string[];
@@ -94,6 +149,7 @@ export interface TrackMeetFormData {
   lodging_address?: string;
   lodging_city?: string;
   lodging_state?: string;
+  lodging_country?: string;
   lodging_zip?: string;
   lodging_phone?: string;
   lodging_website?: string;

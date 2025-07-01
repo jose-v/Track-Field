@@ -333,11 +333,11 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
     const hasWeeklyStructure = exercises.some(ex => ex.day);
     
     if (hasWeeklyStructure) {
-      return exercises
-        .filter(exercise => exercise.day && !exercise.isRestDay)
-        .reduce((total, dayExercise) => {
-          return total + (dayExercise.exercises ? dayExercise.exercises.length : 0);
-        }, 0);
+    return exercises
+      .filter(exercise => exercise.day && !exercise.isRestDay)
+      .reduce((total, dayExercise) => {
+        return total + (dayExercise.exercises ? dayExercise.exercises.length : 0);
+      }, 0);
     } else {
       // If no weekly structure, assume exercises are for today only
       // Estimate weekly total as 7x today's exercises (simple approximation)

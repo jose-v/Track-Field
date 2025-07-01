@@ -58,5 +58,5 @@ export { MonthlyPlanAssignments } from './athlete/MonthlyPlanAssignments';
 export { WorkoutsSidebar } from './workouts';
 export type { WorkoutsSection, WorkoutsItem } from './workouts';
 
-export { DateTimePicker } from './DateTimePicker'
+export { DateTimePicker } from './DateTimePicker' 
 export { AssignmentModal } from './AssignmentModal' 

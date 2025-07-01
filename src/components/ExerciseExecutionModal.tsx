@@ -107,10 +107,10 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
   // Add state for tracking sets and reps within current exercise
   const [currentSet, setCurrentSet] = useState(1);
   const [currentRep, setCurrentRep] = useState(1);
-  
+
   // Add state for tracking circuit rounds
   const [currentRound, setCurrentRound] = useState(1);
-  
+
   // Add state for pause functionality
   const [isPaused, setIsPaused] = useState(false);
 
@@ -118,7 +118,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   const [countdownType, setCountdownType] = useState<'initial' | 'progression' | null>(null);
-
+    
   // Theme colors - MUST be called before any conditional returns
   const cardBg = useColorModeValue('white', 'gray.800');
   const modalHeaderBg = useColorModeValue('gray.50', 'gray.700');
@@ -138,7 +138,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
       }, 1000);
     } else {
       if (timerRef.current) {
-        clearInterval(timerRef.current);
+      clearInterval(timerRef.current);
         timerRef.current = null;
       }
     }
@@ -162,14 +162,14 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
       setCountdown(prev => {
         if (prev <= 1) {
           clearInterval(countdownRef.current!);
-          countdownRef.current = null;
+            countdownRef.current = null;
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
   }, [countdown]);
-  
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -230,7 +230,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
     setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
     // Don't reset round counter when exercise changes in circuit flow
   }, [exerciseIdx]);
-
+    
   // Simple validation - AFTER all hooks are called
   if (!isOpen || !workout || !workout.exercises || workout.exercises.length === 0) {
     return null;
@@ -520,7 +520,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
               borderRadius="0"
               width={`${completionProgress.percentage}%`}
               transition="width 0.3s ease"
-            />
+          />
           </Box>
         )}
         
@@ -606,14 +606,14 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                   }
                   
                   bars.push(
-                    <Box
+                      <Box
                       key={`current-rep-${rep}`}
                       flex={1}
                       h="4px"
                       bg={barColor}
                         borderRadius="full"
-                    />
-                  );
+                      />
+                    );
                 }
                 
                 return bars;
@@ -645,14 +645,14 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                 <Badge colorScheme="blue" fontSize="md" p={2}>
                       {getRPELabel(selectedRPE)}
                     </Badge>
-              )}
+                )}
             </VStack>
           ) : (
                                     <VStack spacing={6}>
               {/* Always show the same layout */}
                 <VStack spacing={6} w="full">
                   {/* Detailed Progress Section */}
-                  <Box 
+                <Box 
                     w="full" 
                     bg={sectionBg} 
                     borderRadius="xl" 
@@ -746,7 +746,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                         : `${Math.floor(timer / 60).toString().padStart(2, '0')}:${(timer % 60).toString().padStart(2, '0')}`
                       }
                           </Text>
-                    
+                      
                     {/* Timer Controls - always visible but disabled during countdown */}
                     <HStack justify="center" spacing={4} mt={4}>
                       <IconButton
