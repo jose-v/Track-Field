@@ -1,3 +1,5 @@
+import { MeetFile } from './meetFiles';
+
 // Track Meet Types
 export interface TrackMeet {
   id: string;
@@ -64,6 +66,7 @@ export interface TrackMeet {
   lodging_country?: string;
   lodging_zip?: string;
   lodging_phone?: string;
+  lodging_email?: string;
   lodging_website?: string;
   lodging_checkin_date?: string;
   lodging_checkout_date?: string;
@@ -84,6 +87,8 @@ export interface TrackMeet {
   assistant_coach_1_id?: string;
   assistant_coach_2_id?: string;
   assistant_coach_3_id?: string;
+  // Files associated with this meet
+  files?: MeetFile[];
   created_at: string;
   updated_at: string;
 }
@@ -152,6 +157,7 @@ export interface TrackMeetFormData {
   lodging_country?: string;
   lodging_zip?: string;
   lodging_phone?: string;
+  lodging_email?: string;
   lodging_website?: string;
   lodging_checkin_date?: string;
   lodging_checkout_date?: string;
@@ -172,6 +178,8 @@ export interface TrackMeetFormData {
   assistant_coach_1_id?: string;
   assistant_coach_2_id?: string;
   assistant_coach_3_id?: string;
+  // Files associated with this meet
+  files?: MeetFile[];
 }
 
 // Meet Event Types

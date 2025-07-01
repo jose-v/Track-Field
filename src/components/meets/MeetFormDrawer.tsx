@@ -25,7 +25,10 @@ import {
   Badge
 } from '@chakra-ui/react';
 import { useForm } from 'react-hook-form';
-import { FaHotel, FaChevronDown, FaChevronUp, FaUserTie, FaCalendarAlt, FaInfoCircle, FaDollarSign } from 'react-icons/fa';
+import { FaHotel, FaChevronDown, FaChevronUp, FaUserTie, FaCalendarAlt, FaInfoCircle, FaDollarSign, FaFolder } from 'react-icons/fa';
+import { FileUploadSection } from './FileUploadSection';
+import { MeetFile } from '../../types/meetFiles';
+import { MeetFilesService } from '../../services/meetFilesService';
 
 export interface TrackMeetFormData {
   name: string;
@@ -73,6 +76,7 @@ export interface TrackMeetFormData {
   lodging_country?: string;
   lodging_zip?: string;
   lodging_phone?: string;
+  lodging_email?: string;
   lodging_website?: string;
   lodging_checkin_date?: string;
   lodging_checkout_date?: string;
@@ -92,6 +96,8 @@ export interface TrackMeetFormData {
   assistant_coach_1_id?: string;
   assistant_coach_2_id?: string;
   assistant_coach_3_id?: string;
+  // Files associated with this meet
+  files?: MeetFile[];
 }
 
 export interface TrackMeetData {
@@ -142,6 +148,7 @@ export interface TrackMeetData {
   lodging_country?: string;
   lodging_zip?: string;
   lodging_phone?: string;
+  lodging_email?: string;
   lodging_website?: string;
   lodging_checkin_date?: string;
   lodging_checkout_date?: string;
@@ -161,6 +168,8 @@ export interface TrackMeetData {
   assistant_coach_1_id?: string;
   assistant_coach_2_id?: string;
   assistant_coach_3_id?: string;
+  // Files associated with this meet
+  files?: MeetFile[];
 }
 
 interface Coach {
@@ -216,11 +225,15 @@ export function MeetFormDrawer({
   const [showRegistrationDetails, setShowRegistrationDetails] = useState(false);
   const [showLodging, setShowLodging] = useState(false);
   const [showAssistantCoaches, setShowAssistantCoaches] = useState(false);
+  const [showFiles, setShowFiles] = useState(false);
   
   // State for assistant coach mode toggles (existing vs new)
   const [assistantCoach1UseExisting, setAssistantCoach1UseExisting] = useState(false);
   const [assistantCoach2UseExisting, setAssistantCoach2UseExisting] = useState(false);
   const [assistantCoach3UseExisting, setAssistantCoach3UseExisting] = useState(false);
+
+  // File management state
+  const [meetFiles, setMeetFiles] = useState<MeetFile[]>([]);
 
   const {
     handleSubmit,
@@ -271,6 +284,7 @@ export function MeetFormDrawer({
       lodging_country: currentMeet.lodging_country || '',
       lodging_zip: currentMeet.lodging_zip || '',
       lodging_phone: currentMeet.lodging_phone || '',
+      lodging_email: currentMeet.lodging_email || '',
       lodging_website: currentMeet.lodging_website || '',
       lodging_checkin_date: currentMeet.lodging_checkin_date || '',
       lodging_checkout_date: currentMeet.lodging_checkout_date || '',
@@ -373,6 +387,7 @@ export function MeetFormDrawer({
         lodging_country: currentMeet.lodging_country || '',
         lodging_zip: currentMeet.lodging_zip || '',
         lodging_phone: currentMeet.lodging_phone || '',
+        lodging_email: currentMeet.lodging_email || '',
         lodging_website: currentMeet.lodging_website || '',
         lodging_checkin_date: currentMeet.lodging_checkin_date || '',
         lodging_checkout_date: currentMeet.lodging_checkout_date || '',
@@ -433,6 +448,7 @@ export function MeetFormDrawer({
         lodging_country: '',
         lodging_zip: '',
         lodging_phone: '',
+        lodging_email: '',
         lodging_website: '',
         lodging_checkin_date: '',
         lodging_checkout_date: '',
@@ -454,61 +470,82 @@ export function MeetFormDrawer({
     }
   }, [currentMeet, reset]);
 
+  // Load files when editing a meet
+  React.useEffect(() => {
+    if (currentMeet?.id && isEditing) {
+      MeetFilesService.getFiles(currentMeet.id).then(({ data, error }) => {
+        if (!error) {
+          setMeetFiles(data);
+        }
+      });
+    } else {
+      setMeetFiles([]);
+    }
+  }, [currentMeet?.id, isEditing]);
+
   const handleFormSubmit = async (data: TrackMeetFormData) => {
-    // Clean up empty strings to undefined
+    // Helper function to clean string fields - trims whitespace and converts empty strings to null
+    const cleanString = (value: string | undefined): string | null => {
+      if (!value) return null;
+      const trimmed = value.trim();
+      return trimmed === '' ? null : trimmed;
+    };
+
+    // Clean up empty strings and whitespace to null for proper database updates
     const cleanedData = {
       ...data,
-      end_date: data.end_date || undefined,
-      venue_type: data.venue_type || undefined,
-      venue_name: data.venue_name || undefined,
-      address: data.address || undefined,
-      city: data.city || undefined,
-      state: data.state || undefined,
-      country: data.country || undefined,
-      zip: data.zip || undefined,
-      join_link: data.join_link || undefined,
-      status: data.status || undefined,
-      description: data.description || undefined,
-      coach_id: data.coach_id || undefined,
+      end_date: cleanString(data.end_date),
+      venue_type: data.venue_type || null,
+      venue_name: cleanString(data.venue_name),
+      address: cleanString(data.address),
+      city: cleanString(data.city),
+      state: cleanString(data.state),
+      country: cleanString(data.country),
+      zip: cleanString(data.zip),
+      join_link: cleanString(data.join_link),
+      status: data.status || null,
+      description: cleanString(data.description),
+      coach_id: data.coach_id || null,
       // Registration and Event Details
-      registration_fee: data.registration_fee || undefined,
-      processing_fee: data.processing_fee || undefined,
-      packet_pickup_date: data.packet_pickup_date || undefined,
-      packet_pickup_location: data.packet_pickup_location || undefined,
-      packet_pickup_address: data.packet_pickup_address || undefined,
-      entry_deadline_date: data.entry_deadline_date || undefined,
-      entry_deadline_time: data.entry_deadline_time || undefined,
-      tickets_link: data.tickets_link || undefined,
-      visitor_guide_link: data.visitor_guide_link || undefined,
-      lodging_type: data.lodging_type || undefined,
-      lodging_place_name: data.lodging_place_name || undefined,
-      lodging_address: data.lodging_address || undefined,
-      lodging_city: data.lodging_city || undefined,
-      lodging_state: data.lodging_state || undefined,
-      lodging_country: data.lodging_country || undefined,
-      lodging_zip: data.lodging_zip || undefined,
-      lodging_phone: data.lodging_phone || undefined,
-      lodging_website: data.lodging_website || undefined,
-      lodging_checkin_date: data.lodging_checkin_date || undefined,
-      lodging_checkout_date: data.lodging_checkout_date || undefined,
-      lodging_checkin_time: data.lodging_checkin_time || undefined,
-      lodging_checkout_time: data.lodging_checkout_time || undefined,
-      assistant_coach_1_name: data.assistant_coach_1_name || undefined,
-      assistant_coach_1_phone: data.assistant_coach_1_phone || undefined,
-      assistant_coach_1_email: data.assistant_coach_1_email || undefined,
-      assistant_coach_2_name: data.assistant_coach_2_name || undefined,
-      assistant_coach_2_phone: data.assistant_coach_2_phone || undefined,
-      assistant_coach_2_email: data.assistant_coach_2_email || undefined,
-      assistant_coach_3_name: data.assistant_coach_3_name || undefined,
-      assistant_coach_3_phone: data.assistant_coach_3_phone || undefined,
-      assistant_coach_3_email: data.assistant_coach_3_email || undefined,
-      assistant_coach_1_id: data.assistant_coach_1_id || undefined,
-      assistant_coach_2_id: data.assistant_coach_2_id || undefined,
-      assistant_coach_3_id: data.assistant_coach_3_id || undefined,
-      packet_pickup_city: data.packet_pickup_city || undefined,
-      packet_pickup_state: data.packet_pickup_state || undefined,
-      packet_pickup_country: data.packet_pickup_country || undefined,
-      packet_pickup_zip: data.packet_pickup_zip || undefined
+      registration_fee: cleanString(data.registration_fee),
+      processing_fee: cleanString(data.processing_fee),
+      packet_pickup_date: cleanString(data.packet_pickup_date),
+      packet_pickup_location: cleanString(data.packet_pickup_location),
+      packet_pickup_address: cleanString(data.packet_pickup_address),
+      entry_deadline_date: cleanString(data.entry_deadline_date),
+      entry_deadline_time: cleanString(data.entry_deadline_time),
+      tickets_link: cleanString(data.tickets_link),
+      visitor_guide_link: cleanString(data.visitor_guide_link),
+      lodging_type: cleanString(data.lodging_type),
+      lodging_place_name: cleanString(data.lodging_place_name),
+      lodging_address: cleanString(data.lodging_address),
+      lodging_city: cleanString(data.lodging_city),
+      lodging_state: cleanString(data.lodging_state),
+      lodging_country: cleanString(data.lodging_country),
+      lodging_zip: cleanString(data.lodging_zip),
+      lodging_phone: cleanString(data.lodging_phone),
+      lodging_email: cleanString(data.lodging_email),
+      lodging_website: cleanString(data.lodging_website),
+      lodging_checkin_date: cleanString(data.lodging_checkin_date),
+      lodging_checkout_date: cleanString(data.lodging_checkout_date),
+      lodging_checkin_time: cleanString(data.lodging_checkin_time),
+      lodging_checkout_time: cleanString(data.lodging_checkout_time),
+      assistant_coach_1_name: cleanString(data.assistant_coach_1_name),
+      assistant_coach_1_phone: cleanString(data.assistant_coach_1_phone),
+      assistant_coach_1_email: cleanString(data.assistant_coach_1_email),
+      assistant_coach_2_name: cleanString(data.assistant_coach_2_name),
+      assistant_coach_2_phone: cleanString(data.assistant_coach_2_phone),
+      assistant_coach_2_email: cleanString(data.assistant_coach_2_email),
+      assistant_coach_3_name: cleanString(data.assistant_coach_3_name),
+      assistant_coach_3_phone: cleanString(data.assistant_coach_3_phone),
+      assistant_coach_3_email: cleanString(data.assistant_coach_3_email),
+      assistant_coach_1_id: data.assistant_coach_1_id || null,
+      assistant_coach_2_id: data.assistant_coach_2_id || null,
+      assistant_coach_3_id: data.assistant_coach_3_id || null,
+      packet_pickup_city: cleanString(data.packet_pickup_city),
+      packet_pickup_state: cleanString(data.packet_pickup_state),
+      packet_pickup_country: cleanString(data.packet_pickup_country),
+      packet_pickup_zip: cleanString(data.packet_pickup_zip)
     };
     
     await onSubmit(cleanedData);
@@ -1801,6 +1838,37 @@ export function MeetFormDrawer({
                       </FormErrorMessage>
                     </FormControl>
                     
+                    <FormControl isInvalid={!!errors.lodging_email} flex="1">
+                      <FormLabel 
+                        fontSize="md" 
+                        fontWeight="semibold"
+                        color={labelColor}
+                      >
+                        Email Address
+                      </FormLabel>
+                      <Input 
+                        {...register('lodging_email')} 
+                        placeholder="info@hotel.com"
+                        type="email"
+                        size="lg"
+                        borderWidth="2px"
+                        borderColor={inputBorderColor}
+                        _hover={{ borderColor: inputHoverBorderColor }}
+                        _focus={{ 
+                          borderColor: inputFocusBorderColor, 
+                          boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
+                          bg: inputBg
+                        }}
+                        bg={inputBg}
+                        color={inputTextColor}
+                        _placeholder={{ color: placeholderColor }}
+                        shadow="sm"
+                      />
+                      <FormErrorMessage color="red.500" fontWeight="medium">
+                        {errors.lodging_email?.message}
+                      </FormErrorMessage>
+                    </FormControl>
+                    
                     <FormControl isInvalid={!!errors.lodging_website} flex="1">
                       <FormLabel 
                         fontSize="md" 
@@ -2385,6 +2453,48 @@ export function MeetFormDrawer({
                     )}
                   </Box>
                 </VStack>
+              </Collapse>
+            </Box>
+
+            {/* Files Section */}
+            <Box mb={6}>
+              <Button
+                w="full"
+                h="auto"
+                py={4}
+                leftIcon={<FaFolder />}
+                rightIcon={showFiles ? <FaChevronUp /> : <FaChevronDown />}
+                onClick={() => setShowFiles(!showFiles)}
+                variant="outline"
+                borderWidth="2px"
+                borderColor={borderColor}
+                _hover={{ borderColor: inputHoverBorderColor, bg: bgColor }}
+                justifyContent="space-between"
+                alignItems="center"
+                textAlign="left"
+                bg={bgColor}
+                shadow="sm"
+              >
+                <Text fontSize="lg" fontWeight="semibold" color={labelColor}>
+                  Files & Documents
+                </Text>
+              </Button>
+
+              <Collapse in={showFiles} animateOpacity>
+                <Box mt={4} p={6} borderWidth="2px" borderColor={borderColor} borderRadius="md" bg={bgColor} shadow="sm">
+                  <VStack spacing={4} align="start">
+                    <Text fontSize="md" color={subtextColor}>
+                      Upload schedules, maps, team photos, and other important documents for this meet.
+                    </Text>
+                    
+                    <FileUploadSection
+                      meetId={currentMeet?.id}
+                      files={meetFiles}
+                      onFilesChange={setMeetFiles}
+                      disabled={!isEditing && !currentMeet?.id}
+                    />
+                  </VStack>
+                </Box>
               </Collapse>
             </Box>
           </VStack>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   Flex,
@@ -24,6 +24,7 @@ import { LuMessageSquare, LuMenu, LuBellRing } from 'react-icons/lu';
 import { useFeedback } from './FeedbackProvider';
 import { ShareComponent } from './ShareComponent';
 import { useScrollDirection } from '../hooks/useScrollDirection';
+import { useUnreadNotificationCount } from '../hooks/useUnreadNotificationCount';
 
 interface WorkoutCreatorNavigationProps {
   // Progress bar props
@@ -60,44 +61,19 @@ const WorkoutCreatorNavigation: React.FC<WorkoutCreatorNavigationProps> = ({
   const menuItemHoverColor = useColorModeValue('blue.500', 'blue.300');
 
   // State for notifications
-  const [notificationCount, setNotificationCount] = useState(0);
-  
-  // Get notifications from localStorage based on user role
-  useEffect(() => {
-    let storageKey = 'athleteNotificationCount'; // default
-    if (displayProfile?.role === 'coach') {
-      storageKey = 'coachNotificationCount';
-    } else if (displayProfile?.role === 'team_manager') {
-      storageKey = 'teamManagerNotificationCount';
-    }
-    
-    const storedCount = localStorage.getItem(storageKey);
-    if (storedCount) {
-      setNotificationCount(parseInt(storedCount, 10));
-    } else {
-      // Default notifications
-      const defaultCount = 3;
-      setNotificationCount(defaultCount);
-      localStorage.setItem(storageKey, defaultCount.toString());
-    }
-  }, [displayProfile?.role]);
+  const { unreadCount } = useUnreadNotificationCount();
   
   // Handle viewing notifications
   const handleViewNotifications = () => {
     let notificationsPath = '/athlete/notifications'; // default
-    let storageKey = 'athleteNotificationCount'; // default
     
     if (displayProfile?.role === 'coach') {
       notificationsPath = '/coach/notifications';
-      storageKey = 'coachNotificationCount';
     } else if (displayProfile?.role === 'team_manager') {
       notificationsPath = '/team-manager/notifications';
-      storageKey = 'teamManagerNotificationCount';
     }
     
     window.location.href = notificationsPath;
-    setNotificationCount(0);
-    localStorage.setItem(storageKey, '0');
   };
 
   // Calculate progress percentage
@@ -213,9 +189,9 @@ const WorkoutCreatorNavigation: React.FC<WorkoutCreatorNavigationProps> = ({
               </Tooltip>
               
               {/* Notification Badge */}
-              {notificationCount > 0 && (
+              {unreadCount > 0 && (
                 <Badge {...notificationBadgeProps}>
-                  {notificationCount}
+                  {unreadCount}
                 </Badge>
               )}
             </Box>

@@ -85,7 +85,8 @@ import {
   FaInfoCircle,
   FaBoxOpen,
   FaTicketAlt,
-  FaBook
+  FaBook,
+  FaFolder
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -105,6 +106,7 @@ import { EventCreationModal } from '../components/meets/modals/EventCreationModa
 import { CoachEventBulkCreator } from '../components/meets/CoachEventBulkCreator';
 import { CoachAthleteEventManager } from '../components/meets/CoachAthleteEventManager';
 import { EventsListSection } from '../components/meets/EventsListSection';
+import { MeetFilesList } from '../components/meets/MeetFilesList';
 
 // Info Badge Component - Shows database stats
 const InfoBadge: React.FC<{ children: React.ReactNode; count?: number }> = ({ children, count }) => (
@@ -1002,7 +1004,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
                       fontSize="sm"
                       fontWeight="medium"
                     >
-                      Tickets <FaExternalLinkAlt size={10} color="currentColor" />
+                      Tickets
                     </Link>
                   </HStack>
                 )}
@@ -1021,6 +1023,19 @@ const MeetCard: React.FC<MeetCardProps> = ({
                     </Link>
                   </HStack>
                 )}
+              </VStack>
+            )}
+
+            {/* Files */}
+            {meet.files && meet.files.length > 0 && (
+              <VStack align="start" spacing={2}>
+                <HStack spacing={2} color="white">
+                  <FaFolder size={20} color="blue.400" />
+                  <Text fontSize="sm" color="blue.400" fontWeight="medium">Files</Text>
+                </HStack>
+                <Box w="full">
+                  <MeetFilesList files={meet.files} maxDisplay={5} showActions={false} />
+                </Box>
               </VStack>
             )}
           </VStack>
@@ -1225,7 +1240,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
                 fontSize="sm"
                 fontWeight="medium"
               >
-                Tickets <FaExternalLinkAlt size={10} color="currentColor" />
+                Tickets
               </Link>
             </HStack>
           )}
@@ -1244,6 +1259,19 @@ const MeetCard: React.FC<MeetCardProps> = ({
                 Visitor Guide <FaExternalLinkAlt size={10} color="currentColor" />
               </Link>
             </HStack>
+          )}
+
+          {/* Files */}
+          {meet.files && meet.files.length > 0 && (
+            <VStack align="start" spacing={2}>
+              <HStack spacing={3} color="white">
+                <FaFolder size={18} color="blue.400" />
+                <Text fontSize="sm" color="blue.400" fontWeight="medium">Files</Text>
+              </HStack>
+              <Box w="full" pl={7}>
+                <MeetFilesList files={meet.files} maxDisplay={4} showActions={false} />
+              </Box>
+            </VStack>
           )}
 
           {/* Notes */}
@@ -1484,7 +1512,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
                   </VStack>
 
                   {/* Contact */}
-                  {(meet.lodging_phone || meet.lodging_website) && (
+                  {(meet.lodging_phone || meet.lodging_email || meet.lodging_website) && (
                     <VStack align="start" spacing={2}>
                       <Text fontSize="sm" color="gray.400" fontWeight="bold" textTransform="uppercase">
                         Contact
@@ -1500,6 +1528,20 @@ const MeetCard: React.FC<MeetCardProps> = ({
                               }
                               return meet.lodging_phone;
                             })()}
+                          </Text>
+                        </HStack>
+                      )}
+                      {meet.lodging_email && (
+                        <HStack spacing={2}>
+                          <FaAt size={12} color="currentColor" />
+                          <Text 
+                            fontSize="sm" 
+                            color="blue.400"
+                            _hover={{ color: "blue.300" }}
+                            cursor="pointer"
+                            onClick={() => window.open(`mailto:${meet.lodging_email}`, '_blank')}
+                          >
+                            {meet.lodging_email}
                           </Text>
                         </HStack>
                       )}
@@ -2333,6 +2375,20 @@ const MeetCard: React.FC<MeetCardProps> = ({
                       </Text>
                     </HStack>
                   )}
+                  {meet.lodging_email && (
+                    <HStack spacing={2}>
+                      <FaAt size={12} color="currentColor" />
+                      <Text 
+                        fontSize="sm" 
+                        color="blue.400"
+                        _hover={{ color: "blue.300" }}
+                        cursor="pointer"
+                        onClick={() => window.open(`mailto:${meet.lodging_email}`, '_blank')}
+                      >
+                        {meet.lodging_email}
+                      </Text>
+                    </HStack>
+                  )}
                   {meet.lodging_website && (
                     <HStack 
                       as="a" 
@@ -2347,7 +2403,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
                       <Text fontSize="sm">Website</Text>
                     </HStack>
                   )}
-                  {!meet.lodging_phone && !meet.lodging_website && (
+                  {!meet.lodging_phone && !meet.lodging_email && !meet.lodging_website && (
                     <Text fontSize="sm" color="gray.500">
                       No contact info
                     </Text>
@@ -2471,7 +2527,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
                 </VStack>
 
                 {/* Contact */}
-                {(meet.lodging_phone || meet.lodging_website) && (
+                {(meet.lodging_phone || meet.lodging_email || meet.lodging_website) && (
                   <VStack align="start" spacing={2}>
                     <Text fontSize="sm" color="gray.400" fontWeight="bold" textTransform="uppercase">
                       Contact
@@ -2487,6 +2543,20 @@ const MeetCard: React.FC<MeetCardProps> = ({
                             }
                             return meet.lodging_phone;
                           })()}
+                        </Text>
+                      </HStack>
+                    )}
+                    {meet.lodging_email && (
+                      <HStack spacing={2}>
+                        <FaAt size={12} color="currentColor" />
+                        <Text 
+                          fontSize="sm" 
+                          color="blue.400"
+                          _hover={{ color: "blue.300" }}
+                          cursor="pointer"
+                          onClick={() => window.open(`mailto:${meet.lodging_email}`, '_blank')}
+                        >
+                          {meet.lodging_email}
                         </Text>
                       </HStack>
                     )}
@@ -2839,7 +2909,8 @@ export const Meets: React.FC = () => {
             lodging_checkin_time, lodging_checkout_time, lodging_details,
             assistant_coach_1_name, assistant_coach_1_phone, assistant_coach_1_email,
             assistant_coach_2_name, assistant_coach_2_phone, assistant_coach_2_email,
-            assistant_coach_3_name, assistant_coach_3_phone, assistant_coach_3_email
+            assistant_coach_3_name, assistant_coach_3_phone, assistant_coach_3_email,
+            files:meet_files(*)
           `)
           .eq('coach_id', user.id)
           .order('meet_date', { ascending: true });
@@ -2875,7 +2946,8 @@ export const Meets: React.FC = () => {
                 lodging_checkin_time, lodging_checkout_time, lodging_details,
                 assistant_coach_1_name, assistant_coach_1_phone, assistant_coach_1_email,
                 assistant_coach_2_name, assistant_coach_2_phone, assistant_coach_2_email,
-                assistant_coach_3_name, assistant_coach_3_phone, assistant_coach_3_email
+                assistant_coach_3_name, assistant_coach_3_phone, assistant_coach_3_email,
+                files:meet_files(*)
               `)
               .in('id', meetIds)
               .order('meet_date', { ascending: true });
