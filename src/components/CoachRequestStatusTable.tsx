@@ -33,7 +33,8 @@ import {
   FormControl,
   FormLabel,
   Select,
-  Icon
+  Icon,
+  useColorModeValue
 } from '@chakra-ui/react';
 import { FaTrash, FaComments, FaUsers, FaUserPlus } from 'react-icons/fa';
 import { supabase } from '../lib/supabase';
@@ -78,10 +79,10 @@ const AddAthleteToTeamModal: React.FC<AddAthleteToTeamModalProps> = ({
   const [isAddingToTeam, setIsAddingToTeam] = useState(false);
   const toast = useToast();
 
-  // Use static colors instead of useColorModeValue since we're forcing the same values
-  const bgColor = 'gray.800';
-  const borderColor = 'gray.600';
-  const textColor = 'white';
+  // Color mode values
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const textColor = useColorModeValue('gray.800', 'white');
 
   useEffect(() => {
     if (isOpen && user?.id) {
@@ -333,6 +334,10 @@ const CoachRequestStatusTable: React.FC = () => {
   const [selectedAthleteForTeam, setSelectedAthleteForTeam] = useState<{ id: string; name: string } | null>(null);
   const toast = useToast();
 
+  // Color mode values
+  const textColor = useColorModeValue('gray.800', 'gray.200');
+  const emptyStateColor = useColorModeValue('gray.600', 'gray.400');
+
   // Modal controls
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
   const { isOpen: isTeamModalOpen, onOpen: onTeamModalOpen, onClose: onTeamModalClose } = useDisclosure();
@@ -536,7 +541,7 @@ const CoachRequestStatusTable: React.FC = () => {
   if (requests.length === 0) {
     return (
       <Box textAlign="center" p={4}>
-        <Text>You haven't sent any athlete requests yet</Text>
+        <Text color={emptyStateColor}>You haven't sent any athlete requests yet</Text>
       </Box>
     );
   }
@@ -544,7 +549,7 @@ const CoachRequestStatusTable: React.FC = () => {
   return (
     <>
       <Box overflowX="auto" mt={4}>
-        <Text fontWeight="bold" mb={4}>Athlete Request Status</Text>
+        <Text fontWeight="bold" mb={4} color={textColor}>Athlete Request Status</Text>
         <Table variant="simple">
           <Thead>
             <Tr>

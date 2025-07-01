@@ -74,6 +74,9 @@ const FeedPost: React.FC<FeedPostProps> = ({ post, currentUser, onCommentAdded, 
   const bgColor = useColorModeValue('white', 'gray.800');
   const textColor = useColorModeValue('gray.800', 'white');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const commentsBorderColor = useColorModeValue('blue.100', 'blue.600');
+  const subtitleColor = useColorModeValue('gray.500', 'gray.400');
+  const emptyStateColor = useColorModeValue('gray.500', 'gray.400');
   
   const formattedDate = format(new Date(post.created_at), 'MMM d, yyyy • h:mm a');
   
@@ -272,7 +275,12 @@ const FeedPost: React.FC<FeedPostProps> = ({ post, currentUser, onCommentAdded, 
   };
   
   return (
-    <Box className="feed-post-container">
+    <Box 
+      className="feed-post-container" 
+      bg={bgColor} 
+      borderColor={borderColor}
+      borderWidth="1px"
+    >
       <Box p={4}>
         <Flex justify="space-between" align="flex-start" mb={4}>
           <Flex align="center">
@@ -286,7 +294,7 @@ const FeedPost: React.FC<FeedPostProps> = ({ post, currentUser, onCommentAdded, 
               <Text fontWeight="bold" color={textColor}>
                 {post.user.first_name} {post.user.last_name}
               </Text>
-              <Text fontSize="sm" color="gray.500">
+              <Text fontSize="sm" color={subtitleColor}>
                 {formattedDate}
               </Text>
             </Box>
@@ -344,7 +352,7 @@ const FeedPost: React.FC<FeedPostProps> = ({ post, currentUser, onCommentAdded, 
         <Box mb={2}>
           {post.comments_count > 0 && (
             <Text
-              color="gray.500"
+              color={subtitleColor}
               fontSize="sm"
               fontWeight="medium"
               cursor="pointer"
@@ -360,7 +368,7 @@ const FeedPost: React.FC<FeedPostProps> = ({ post, currentUser, onCommentAdded, 
         {!showComments && previewComments && previewComments.length > 0 && (
           <VStack spacing={2} align="stretch" mb={2}>
             {previewComments.map((comment) => (
-              <Box key={comment.id} pl={4} borderLeft="2px" borderColor="blue.100">
+              <Box key={comment.id} pl={4} borderLeft="2px" borderColor={commentsBorderColor}>
                 <Flex align="center" mb={1}>
                   <Avatar 
                     src={comment.user.avatar_url || 'https://via.placeholder.com/30'} 
@@ -372,12 +380,12 @@ const FeedPost: React.FC<FeedPostProps> = ({ post, currentUser, onCommentAdded, 
                     <Text fontWeight="bold" fontSize="sm">
                       {comment.user.first_name} {comment.user.last_name}
                     </Text>
-                    <Text fontSize="xs" color="gray.500">
+                    <Text fontSize="xs" color={subtitleColor}>
                       {format(new Date(comment.created_at), 'MMM d, yyyy • h:mm a')}
                     </Text>
                   </Box>
                 </Flex>
-                <Text pl={10}>{comment.content}</Text>
+                <Text pl={10} color={textColor}>{comment.content}</Text>
               </Box>
             ))}
             {post.comments_count > previewComments.length && (
@@ -443,11 +451,11 @@ const FeedPost: React.FC<FeedPostProps> = ({ post, currentUser, onCommentAdded, 
             <VStack spacing={4} align="stretch">
               {isLoadingComments ? (
                 <Flex justify="center" py={2}>
-                  <Text>Loading comments...</Text>
+                  <Text color={textColor}>Loading comments...</Text>
                 </Flex>
               ) : comments.length > 0 ? (
                 comments.map((comment) => (
-                  <Box key={comment.id} pl={4} borderLeft="2px" borderColor="blue.200">
+                  <Box key={comment.id} pl={4} borderLeft="2px" borderColor={commentsBorderColor}>
                     <Flex align="center" mb={2}>
                       <Avatar 
                         src={comment.user.avatar_url || 'https://via.placeholder.com/30'} 
@@ -456,19 +464,19 @@ const FeedPost: React.FC<FeedPostProps> = ({ post, currentUser, onCommentAdded, 
                         mr={2} 
                       />
                       <Box>
-                        <Text fontWeight="bold" fontSize="sm">
+                        <Text fontWeight="bold" fontSize="sm" color={textColor}>
                           {comment.user.first_name} {comment.user.last_name}
                         </Text>
-                        <Text fontSize="xs" color="gray.500">
+                        <Text fontSize="xs" color={subtitleColor}>
                           {format(new Date(comment.created_at), 'MMM d, yyyy • h:mm a')}
                         </Text>
                       </Box>
                     </Flex>
-                    <Text pl={10}>{comment.content}</Text>
+                    <Text pl={10} color={textColor}>{comment.content}</Text>
                   </Box>
                 ))
               ) : (
-                <Text fontSize="sm" textAlign="center" color="gray.500">
+                <Text fontSize="sm" textAlign="center" color={emptyStateColor}>
                   No comments yet. Be the first to comment!
                 </Text>
               )}

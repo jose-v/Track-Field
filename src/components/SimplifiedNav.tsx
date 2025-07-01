@@ -22,6 +22,8 @@ import { LuBellRing, LuMessageSquare, LuMenu } from 'react-icons/lu';
 import { useFeedback } from './FeedbackProvider';
 import { ShareComponent } from './ShareComponent';
 import { useScrollDirection } from '../hooks/useScrollDirection';
+import { NotificationsModal } from './NotificationsModal';
+import { useUnreadNotificationCount } from '../hooks/useUnreadNotificationCount';
 
 interface SimplifiedNavProps {
   roleTitle: string;
@@ -71,7 +73,8 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
   const menuItemHoverColor = useColorModeValue('blue.500', 'blue.300');
   
   // State for notifications
-  const [notificationCount, setNotificationCount] = useState(0);
+  const { unreadCount, refreshCount, resetCount } = useUnreadNotificationCount();
+  const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
 
   // Don't render on workout creator routes - those use the unified navigation
   const isWorkoutCreatorRoute = location.pathname.includes('/workout-creator');
@@ -121,26 +124,17 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
     lineHeight: '1'
   };
   
-  // Get notifications from localStorage
-  useEffect(() => {
-    if (user) {
-      const storedCount = localStorage.getItem(storageKey);
-      if (storedCount) {
-        setNotificationCount(parseInt(storedCount, 10));
-      } else {
-        // Default notifications
-        const defaultCount = 3;
-        setNotificationCount(defaultCount);
-        localStorage.setItem(storageKey, defaultCount.toString());
-      }
-    }
-  }, [storageKey, user]);
+  // No longer need localStorage - using real database count
   
   // Handle viewing notifications
   const handleViewNotifications = () => {
-    window.location.href = notificationsPath;
-    setNotificationCount(0);
-    localStorage.setItem(storageKey, '0');
+    setIsNotificationsModalOpen(true);
+  };
+
+  const handleCloseNotificationsModal = () => {
+    setIsNotificationsModalOpen(false);
+    // Refresh the count when modal is closed (in case notifications were read)
+    refreshCount();
   };
   
   // Avatar details - now using lightweight profile data
@@ -197,26 +191,33 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
             }} 
           />
           {/* Notifications Button */}
-          <Box position="relative">
-            <Tooltip label="Notifications" hasArrow>
-              <IconButton
-                aria-label="Notifications"
-                variant="ghost"
-                size="sm"
-                sx={iconStyle}
-                onClick={handleViewNotifications}
-                onFocus={e => e.preventDefault()}
-              >
-                <LuBellRing size="18px" />
-              </IconButton>
-            </Tooltip>
-            {/* Notification Badge */}
-            {notificationCount > 0 && (
-              <Badge {...badgeProps}>
-                {notificationCount}
-              </Badge>
-            )}
-          </Box>
+          <NotificationsModal
+            isOpen={isNotificationsModalOpen}
+            onClose={handleCloseNotificationsModal}
+            notificationsPath={notificationsPath}
+            onNotificationRead={refreshCount}
+          >
+            <Box position="relative">
+              <Tooltip label="Notifications" hasArrow>
+                <IconButton
+                  aria-label="Notifications"
+                  variant="ghost"
+                  size="sm"
+                  sx={iconStyle}
+                  onClick={handleViewNotifications}
+                  onFocus={e => e.preventDefault()}
+                >
+                  <LuBellRing size="18px" />
+                </IconButton>
+              </Tooltip>
+              {/* Notification Badge */}
+              {unreadCount > 0 && (
+                <Badge {...badgeProps}>
+                  {unreadCount}
+                </Badge>
+              )}
+            </Box>
+          </NotificationsModal>
           {/* Only show avatar on public pages */}
           {isPublicPage && (
             <Avatar

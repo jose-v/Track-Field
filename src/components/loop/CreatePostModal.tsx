@@ -57,6 +57,8 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({
   
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const textColor = useColorModeValue('gray.800', 'gray.200');
+  const subtitleColor = useColorModeValue('gray.500', 'gray.400');
   
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setContent(e.target.value);
@@ -284,7 +286,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({
               
               <TabPanel>
                 <Flex justify="center" align="center" p={4}>
-                  <Text color="gray.500">
+                  <Text color={subtitleColor}>
                     Polls coming soon!
                   </Text>
                 </Flex>
@@ -292,7 +294,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({
               
               <TabPanel>
                 <Flex justify="center" align="center" p={4}>
-                  <Text color="gray.500">
+                  <Text color={subtitleColor}>
                     Emoji picker coming soon!
                   </Text>
                 </Flex>

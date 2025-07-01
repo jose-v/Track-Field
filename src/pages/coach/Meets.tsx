@@ -1442,6 +1442,31 @@ export function CoachMeets() {
                         .insert(newAssignments);
                       
                       if (addError) throw addError;
+                      
+                      // Create notifications for the newly assigned athletes
+                      try {
+                        // Import notification service dynamically to avoid circular imports
+                        const { createBulkMeetAssignmentNotifications, getMeetEventDetails, getCoachName } = await import('../../services/notificationService');
+                        
+                        // Get event and meet details
+                        const { eventName, meetName } = await getMeetEventDetails(eventId);
+                        const coachName = user?.id ? await getCoachName(user.id) : 'Your Coach';
+                        
+                        // Create notifications for all newly assigned athletes
+                        await createBulkMeetAssignmentNotifications(
+                          athletesToAdd,
+                          eventId,
+                          eventName,
+                          meetName,
+                          user?.id || '',
+                          coachName
+                        );
+                        
+                        console.log(`Created meet assignment notifications for ${athletesToAdd.length} athletes`);
+                      } catch (notifError) {
+                        console.error('Error creating meet assignment notifications:', notifError);
+                        // Don't throw here - assignment should succeed even if notifications fail
+                      }
                     }
                   }
                   

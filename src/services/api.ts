@@ -2214,6 +2214,38 @@ export const api = {
           throw error;
         }
         
+        // Create notifications for the newly assigned athletes
+        if (newAthleteIds.length > 0) {
+          try {
+            // Get the current user (coach) ID
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            if (!userError && user?.id) {
+              // Import notification service dynamically to avoid circular imports
+              const { createBulkWorkoutAssignmentNotifications, getWorkoutName, getCoachName } = await import('./notificationService');
+              
+              // Get workout and coach details
+              const [workoutName, coachName] = await Promise.all([
+                getWorkoutName(workoutId),
+                getCoachName(user.id)
+              ]);
+              
+              // Create notifications for all newly assigned athletes
+              await createBulkWorkoutAssignmentNotifications(
+                newAthleteIds,
+                workoutId,
+                workoutName,
+                user.id,
+                coachName
+              );
+              
+              console.log(`Created notifications for ${newAthleteIds.length} athletes`);
+            }
+          } catch (notifError) {
+            console.error('Error creating workout assignment notifications:', notifError);
+            // Don't throw here - assignment should succeed even if notifications fail
+          }
+        }
+        
         // Add a slight delay to ensure database consistency
         await new Promise(resolve => setTimeout(resolve, 1000));
         

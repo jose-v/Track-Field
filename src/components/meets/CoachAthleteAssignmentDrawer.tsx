@@ -36,6 +36,7 @@ import {
 } from '@chakra-ui/react';
 import { SearchIcon } from '@chakra-ui/icons';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 import type { MeetEvent } from '../../types/meetTypes';
 
 interface CoachAthleteAssignmentDrawerProps {
@@ -63,6 +64,7 @@ export const CoachAthleteAssignmentDrawer: React.FC<CoachAthleteAssignmentDrawer
   event,
   onAssignmentsUpdated
 }) => {
+  const { user } = useAuth();
   const [athletes, setAthletes] = useState<AthleteWithAssignment[]>([]);
   const [filteredAthletes, setFilteredAthletes] = useState<AthleteWithAssignment[]>([]);
   const [selectedAthletes, setSelectedAthletes] = useState<string[]>([]);
@@ -194,7 +196,8 @@ export const CoachAthleteAssignmentDrawer: React.FC<CoachAthleteAssignmentDrawer
       if (selectedAthletes.length > 0) {
         const assignments = selectedAthletes.map(athleteId => ({
           athlete_id: athleteId,
-          meet_event_id: event.id
+          meet_event_id: event.id,
+          assigned_by: user?.id
         }));
 
         const { error: insertError } = await supabase
@@ -202,6 +205,31 @@ export const CoachAthleteAssignmentDrawer: React.FC<CoachAthleteAssignmentDrawer
           .insert(assignments);
 
         if (insertError) throw insertError;
+        
+        // Create notifications for the newly assigned athletes
+        try {
+          // Import notification service dynamically to avoid circular imports
+          const { createBulkMeetAssignmentNotifications, getMeetEventDetails, getCoachName } = await import('../../services/notificationService');
+          
+          // Get event and meet details
+          const { eventName, meetName } = await getMeetEventDetails(event.id);
+          const coachName = user?.id ? await getCoachName(user.id) : 'Your Coach';
+          
+          // Create notifications for all newly assigned athletes
+          await createBulkMeetAssignmentNotifications(
+            selectedAthletes,
+            event.id,
+            eventName,
+            meetName,
+            user?.id || '',
+            coachName
+          );
+          
+          console.log(`Created meet assignment notifications for ${selectedAthletes.length} athletes`);
+        } catch (notifError) {
+          console.error('Error creating meet assignment notifications:', notifError);
+          // Don't throw here - assignment should succeed even if notifications fail
+        }
       }
 
       // Update event details if changed

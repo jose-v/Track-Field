@@ -32,6 +32,7 @@ import {
   navHeaderStyle,
   notificationBadgeProps
 } from '../../styles/portalStyles';
+import { useUnreadNotificationCount } from '../../hooks/useUnreadNotificationCount';
 
 // Type for navigation link
 export interface NavLink {
@@ -112,26 +113,11 @@ export function BaseLayout({
   const pageBgColor = useColorModeValue('gray.50', 'gray.900');
   
   // State for notifications
-  const [notificationCount, setNotificationCount] = useState(0);
-  
-  // Get notifications from localStorage
-  useEffect(() => {
-    const storedCount = localStorage.getItem(storageKey);
-    if (storedCount) {
-      setNotificationCount(parseInt(storedCount, 10));
-    } else {
-      // Default notifications
-      const defaultCount = 3;
-      setNotificationCount(defaultCount);
-      localStorage.setItem(storageKey, defaultCount.toString());
-    }
-  }, [storageKey]);
+  const { unreadCount } = useUnreadNotificationCount();
   
   // Handle viewing notifications
   const handleViewNotifications = () => {
     window.location.href = notificationsPath;
-    setNotificationCount(0);
-    localStorage.setItem(storageKey, '0');
   };
   
   // Get full name for avatar or fallback to email if profile not loaded yet - now using lightweight profile data
@@ -233,9 +219,9 @@ export function BaseLayout({
                 </Tooltip>
                 
                 {/* Notification Badge */}
-                {notificationCount > 0 && (
+                {unreadCount > 0 && (
                   <Badge {...notificationBadgeProps}>
-                    {notificationCount}
+                    {unreadCount}
                   </Badge>
                 )}
               </Box>
@@ -298,7 +284,7 @@ export function BaseLayout({
                   textAlign="left"
                   justifyContent="flex-start"
                 >
-                  Notifications {notificationCount > 0 && `(${notificationCount})`}
+                  Notifications {unreadCount > 0 && `(${unreadCount})`}
                 </Button>
                 
                 {/* Mobile Share Link */}

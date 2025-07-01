@@ -378,10 +378,36 @@ export const CoachAthleteEventManager: React.FC<CoachAthleteEventManagerProps> =
         .from('athlete_meet_events')
         .insert({
           athlete_id: selectedAthlete.id,
-          meet_event_id: eventId
+          meet_event_id: eventId,
+          assigned_by: user?.id
         });
 
       if (error) throw error;
+
+      // Create notification for the assigned athlete
+      try {
+        // Import notification service dynamically to avoid circular imports
+        const { createMeetAssignmentNotification, getMeetEventDetails, getCoachName } = await import('../../services/notificationService');
+        
+        // Get event and meet details
+        const { eventName, meetName } = await getMeetEventDetails(eventId);
+        const coachName = user?.id ? await getCoachName(user.id) : 'Your Coach';
+        
+        // Create notification for the assigned athlete
+        await createMeetAssignmentNotification(
+          selectedAthlete.id,
+          eventId,
+          eventName,
+          meetName,
+          user?.id || '',
+          coachName
+        );
+        
+        console.log(`Created meet assignment notification for athlete ${selectedAthlete.id}`);
+      } catch (notifError) {
+        console.error('Error creating meet assignment notification:', notifError);
+        // Don't throw here - assignment should succeed even if notifications fail
+      }
 
       toast({
         title: "Event assigned successfully",

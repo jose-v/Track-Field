@@ -59,4 +59,5 @@ export { WorkoutsSidebar } from './workouts';
 export type { WorkoutsSection, WorkoutsItem } from './workouts';
 
 export { DateTimePicker } from './DateTimePicker' 
-export { AssignmentModal } from './AssignmentModal' 
+export { AssignmentModal } from './AssignmentModal'
+export { NotificationsModal } from './NotificationsModal' 

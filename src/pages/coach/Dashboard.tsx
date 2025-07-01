@@ -184,13 +184,22 @@ function useCoachAthleteEvents() {
         // Convert Map to array and sort events by date
         const result = Array.from(athleteMap.values())
           .map(athlete => {
-            // Filter out any test meets
+            // Get today's date for comparison (without time component)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Filter out any test meets and past events
             athlete.events = athlete.events
               .filter(event => !event.name.toLowerCase().includes('test meet'))
+              .filter(event => {
+                const eventDate = new Date(event.date);
+                eventDate.setHours(0, 0, 0, 0);
+                return eventDate >= today; // Only include today and future events
+              })
               .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
             return athlete;
           })
-          // Filter out athletes with no events after removing test meets
+          // Filter out athletes with no events after removing test meets and past events
           .filter(athlete => athlete.events.length > 0);
         
         return result;

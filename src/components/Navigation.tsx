@@ -38,6 +38,7 @@ import {
   navNotificationBadgeStyle
 } from '../styles/navIconStyles'
 import { getProfilePathForRole, getNotificationsPathForRole } from '../utils/roleUtils'
+import { useUnreadNotificationCount } from '../hooks/useUnreadNotificationCount'
 
 const Navigation = () => {
   const { isOpen, onToggle } = useDisclosure()
@@ -61,23 +62,7 @@ const Navigation = () => {
   const borderColor = isPublicPage ? 'transparent' : useColorModeValue('gray.100', 'gray.800')
   
   // State for notifications
-  const [notificationCount, setNotificationCount] = useState(0)
-  
-  // Simulate getting new notifications (in a real app, this would come from a backend service)
-  useEffect(() => {
-    if (user) {
-      // Only show notifications for logged-in users
-      const storedCount = localStorage.getItem('publicNotificationCount')
-      if (storedCount) {
-        setNotificationCount(parseInt(storedCount, 10))
-      } else {
-        // Default to 2 notifications for demo
-        const defaultCount = 2
-        setNotificationCount(defaultCount)
-        localStorage.setItem('publicNotificationCount', defaultCount.toString())
-      }
-    }
-  }, [user])
+  const { unreadCount } = useUnreadNotificationCount()
   
   // Handle viewing notifications
   const handleViewNotifications = () => {
@@ -89,9 +74,6 @@ const Navigation = () => {
     } else {
       window.location.href = '/meets'
     }
-    // Clear notification count when viewed
-    setNotificationCount(0)
-    localStorage.setItem('publicNotificationCount', '0')
   }
 
   // Get first name initial and last name initial for avatar
@@ -352,11 +334,11 @@ const Navigation = () => {
                   </Tooltip>
                   
                   {/* Notification Badge */}
-                  {notificationCount > 0 && (
+                  {unreadCount > 0 && (
                     <Badge 
                       {...navNotificationBadgeStyle}
                     >
-                      {notificationCount}
+                      {unreadCount}
                     </Badge>
                   )}
                 </Box>

@@ -62,6 +62,7 @@ import { useScrollDirection } from '../hooks/useScrollDirection';
 import { useCoachNavigation } from './layout/CoachNavigation';
 import { useTeamManagerNavigation } from './layout/TeamManagerNavigation';
 import { useAthleteNavigation } from './layout/AthleteNavigation';
+import { useUnreadNotificationCount } from '../hooks/useUnreadNotificationCount';
 
 interface NavItemProps {
   icon: React.ElementType;
@@ -78,12 +79,13 @@ interface SidebarProps {
 }
 
 // Mobile-specific nav item component
-const MobileNavItem = ({ icon, label, to, isActive, onClick }: {
+const MobileNavItem = ({ icon, label, to, isActive, onClick, badge }: {
   icon: React.ElementType;
   label: string;
   to: string;
   isActive: boolean;
   onClick?: () => void;
+  badge?: number;
 }) => {
   const activeBg = useColorModeValue('blue.50', 'blue.900');
   const hoverBg = useColorModeValue('gray.100', 'gray.700');
@@ -150,6 +152,20 @@ const MobileNavItem = ({ icon, label, to, isActive, onClick }: {
       />
       <Flex justify="space-between" width="100%" align="center">
         <Text fontSize="md">{label}</Text>
+        {badge && badge > 0 && (
+          <Badge
+            colorScheme="red"
+            borderRadius="full"
+            fontSize="xs"
+            minW="18px"
+            h="18px"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+          >
+            {badge}
+          </Badge>
+        )}
       </Flex>
     </Flex>
   );
@@ -202,12 +218,28 @@ const NavItem = ({ icon, label, to, isActive, isCollapsed, badge, isMobile = fal
           outline: 'none',
         }}
       >
-        <Icon
-          as={icon}
-          fontSize="xl"
-          color={isActive ? activeColor : color}
-          mr={isCollapsed ? 0 : 3}
-        />
+        <Box position="relative">
+          <Icon
+            as={icon}
+            fontSize="xl"
+            color={isActive ? activeColor : color}
+            mr={isCollapsed ? 0 : 3}
+          />
+          {/* Red dot indicator for collapsed sidebar with notifications */}
+          {isCollapsed && badge && (
+            <Box
+              position="absolute"
+              top="-2px"
+              right="-2px"
+              w="8px"
+              h="8px"
+              bg="red.500"
+              borderRadius="full"
+              border="2px solid"
+              borderColor={useColorModeValue('white', 'gray.800')}
+            />
+          )}
+        </Box>
         {!isCollapsed && (
           <Flex justify="space-between" width="100%" align="center">
             <Text fontSize="sm">{label}</Text>
@@ -250,6 +282,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
   const { user, signOut } = useAuth();
   const { profile, displayName, initials } = useProfileDisplay();
   const { showFeedbackModal } = useFeedback();
+  const { unreadCount } = useUnreadNotificationCount();
   
   // Get navigation configurations
   const coachNavigation = useCoachNavigation();
@@ -292,13 +325,14 @@ const Sidebar = ({ userType }: SidebarProps) => {
 
       // Use the athlete navigation configuration from the hook
       return [
-        { icon: FaHome, label: 'Home', to: '/' },
+        { icon: FaHome, label: 'Home', to: '/', badge: undefined },
         ...athleteNavigation.navLinks.map(navItem => ({
           icon: athleteIconMap[navItem.path] || FaTachometerAlt,
           label: navItem.name,
-          to: navItem.path
+          to: navItem.path,
+          badge: navItem.path === '/athlete/notifications' && unreadCount > 0 ? unreadCount.toString() : undefined
         })),
-        { icon: BsChatDots, label: 'Loop', to: '/loop' },
+        { icon: BsChatDots, label: 'Loop', to: '/loop', badge: undefined },
       ];
     } else if (userType === 'team_manager') {
       // Create a mapping of team manager navigation paths to their proper icons
@@ -318,13 +352,14 @@ const Sidebar = ({ userType }: SidebarProps) => {
 
       // Use the team manager navigation configuration from the hook
       return [
-        { icon: FaHome, label: 'Home', to: '/' },
+        { icon: FaHome, label: 'Home', to: '/', badge: undefined },
         ...teamManagerNavigation.navLinks.map(navItem => ({
           icon: teamManagerIconMap[navItem.path] || FaTachometerAlt,
           label: navItem.name,
-          to: navItem.path
+          to: navItem.path,
+          badge: navItem.path === '/team-manager/notifications' && unreadCount > 0 ? unreadCount.toString() : undefined
         })),
-        { icon: BsChatDots, label: 'Loop', to: '/loop' },
+        { icon: BsChatDots, label: 'Loop', to: '/loop', badge: undefined },
       ];
     } else {
       // Create a mapping of coach navigation paths to their proper icons
@@ -343,13 +378,14 @@ const Sidebar = ({ userType }: SidebarProps) => {
 
       // Use the coach navigation configuration from the hook
       return [
-        { icon: FaHome, label: 'Home', to: '/' },
+        { icon: FaHome, label: 'Home', to: '/', badge: undefined },
         ...coachNavigation.navLinks.map(navItem => ({
           icon: coachIconMap[navItem.path] || FaTachometerAlt,
           label: navItem.name,
-          to: navItem.path
+          to: navItem.path,
+          badge: navItem.path === '/coach/notifications' && unreadCount > 0 ? unreadCount.toString() : undefined
         })),
-        { icon: BsChatDots, label: 'Loop', to: '/loop' },
+        { icon: BsChatDots, label: 'Loop', to: '/loop', badge: undefined },
       ];
     }
   };
@@ -550,6 +586,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
                       to={userType === 'athlete' ? '/athlete/notifications' : '/coach/notifications'}
                       isActive={location.pathname.includes('/notifications')}
                       onClick={handleMobileDrawerClose}
+                      badge={unreadCount}
                     />
                     
                     <MobileNavItem
@@ -745,7 +782,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
                 to={item.to}
                 isActive={isActive}
                 isCollapsed={isCollapsed}
-                  badge={undefined}
+                badge={item.badge}
               />
             );
           })}

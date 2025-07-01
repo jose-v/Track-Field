@@ -14,7 +14,8 @@ import {
   Spinner,
   useToast,
   IconButton,
-  Tooltip
+  Tooltip,
+  useColorModeValue
 } from '@chakra-ui/react';
 import { FaCheckCircle, FaTimesCircle, FaEye } from 'react-icons/fa';
 import { supabase } from '../lib/supabase';
@@ -40,6 +41,12 @@ const NotificationsTable: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const toast = useToast();
   const queryClient = useQueryClient();
+
+  // Color mode values
+  const textColor = useColorModeValue('gray.800', 'gray.200');
+  const subtitleColor = useColorModeValue('gray.600', 'gray.400');
+  const unreadRowBg = useColorModeValue('blue.50', 'blue.900');
+  const emptyStateColor = useColorModeValue('gray.600', 'gray.400');
 
   useEffect(() => {
     if (user?.id) {
@@ -436,7 +443,7 @@ const NotificationsTable: React.FC = () => {
   if (notifications.length === 0) {
     return (
       <Box textAlign="center" p={4}>
-        <Text>You have no notifications</Text>
+        <Text color={emptyStateColor}>You have no notifications</Text>
       </Box>
     );
   }
@@ -457,7 +464,7 @@ const NotificationsTable: React.FC = () => {
           {notifications.map(notification => (
             <Tr 
               key={notification.id}
-              bg={notification.is_read ? 'transparent' : 'blue.50'}
+              bg={notification.is_read ? 'transparent' : unreadRowBg}
             >
               <Td>
                 <Badge 
@@ -466,9 +473,13 @@ const NotificationsTable: React.FC = () => {
                       ? 'green' 
                       : notification.type === 'coach_invitation'
                         ? 'purple'
-                        : notification.type === 'system' 
-                          ? 'blue' 
-                          : 'gray'
+                        : notification.type === 'workout_assigned' || notification.type === 'workout_updated'
+                          ? 'orange'
+                          : notification.type === 'meet_assigned' || notification.type === 'meet_updated'
+                            ? 'purple'
+                            : notification.type === 'system' 
+                              ? 'blue' 
+                              : 'gray'
                   }
                 >
                   {notification.type === 'coach_request' 
@@ -479,14 +490,25 @@ const NotificationsTable: React.FC = () => {
                         ? 'Request Approved'
                         : notification.type === 'team_invitation_declined'
                           ? 'Request Declined'
-                          : notification.type}
+                          : notification.type === 'workout_assigned'
+                            ? 'Workout Assigned'
+                            : notification.type === 'workout_updated'
+                              ? 'Workout Updated'
+                              : notification.type === 'meet_assigned'
+                                ? 'Meet Assigned'
+                                : notification.type === 'meet_updated'
+                                  ? 'Meet Updated'
+                                  : notification.type}
                 </Badge>
               </Td>
               <Td>
-                <Text fontWeight={notification.is_read ? 'normal' : 'bold'}>
+                <Text 
+                  fontWeight={notification.is_read ? 'normal' : 'bold'}
+                  color={textColor}
+                >
                   {notification.title}
                 </Text>
-                <Text fontSize="sm" color="gray.600">{notification.message}</Text>
+                <Text fontSize="sm" color={subtitleColor}>{notification.message}</Text>
               </Td>
               <Td>
                 {format(new Date(notification.created_at), 'MMM d, yyyy h:mm a')}

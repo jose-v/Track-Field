@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Icon, Box } from '@chakra-ui/react';
+import { Flex, Icon, Box, useColorModeValue } from '@chakra-ui/react';
 import { FaGlobe, FaImage, FaVideo, FaBookmark, FaThumbsUp } from 'react-icons/fa';
 import '../../styles/Loop.css';
 
@@ -9,6 +9,10 @@ interface FilterBarProps {
 }
 
 const FilterBar: React.FC<FilterBarProps> = ({ activeFilter, onFilterChange }) => {
+  // Color mode values
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  
   const filters = [
     { id: 'all', label: 'All Posts', icon: FaGlobe },
     { id: 'image', label: 'Photos', icon: FaImage },
@@ -18,7 +22,14 @@ const FilterBar: React.FC<FilterBarProps> = ({ activeFilter, onFilterChange }) =
   ];
   
   return (
-    <Box className="loop-filter-bar" bg="white" borderRadius="md" boxShadow="sm">
+    <Box 
+      className="loop-filter-bar" 
+      bg={bgColor} 
+      borderColor={borderColor}
+      borderWidth="1px"
+      borderRadius="md" 
+      boxShadow="sm"
+    >
       {filters.map((filter) => (
         <button
           key={filter.id}

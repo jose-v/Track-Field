@@ -16,7 +16,6 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
-  useDisclosure,
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
@@ -80,6 +79,14 @@ const Loop: React.FC = () => {
   const toast = useToast();
   const navigate = useNavigate();
   
+  // Color mode values
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const textColor = useColorModeValue('gray.800', 'gray.200');
+  const subtitleColor = useColorModeValue('gray.600', 'gray.400');
+  const inputBg = useColorModeValue('gray.50', 'gray.700');
+  const placeholderColor = useColorModeValue('gray.500', 'gray.400');
+  
   // Add state for pagination
   const PAGE_SIZE = 10;
   const [page, setPage] = useState(0);
@@ -88,7 +95,6 @@ const Loop: React.FC = () => {
   
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
-  const { isOpen: isTestOpen, onOpen: onTestOpen, onClose: onTestClose } = useDisclosure();
   
   useEffect(() => {
     // Hide footer when component mounts
@@ -298,7 +304,7 @@ const Loop: React.FC = () => {
             py={10}
             textAlign="center"
           >
-            <Text fontSize="lg" mb={4}>
+            <Text fontSize="lg" mb={4} color={textColor}>
               No posts yet. Be the first to share something with your team!
             </Text>
             <Button
@@ -361,7 +367,7 @@ const Loop: React.FC = () => {
         py={10}
         textAlign="center"
       >
-        <Text fontSize="lg">
+        <Text fontSize="lg" color={textColor}>
           Saved posts feature coming soon!
         </Text>
       </Flex>
@@ -372,68 +378,151 @@ const Loop: React.FC = () => {
     <div className="loop-page-wrapper">
       <div className="loop-content" style={{position: 'relative'}}>
         {/* Team Members Bar */}
-        <div className="team-members-bar">
+        <Box
+          display="flex"
+          alignItems="center"
+          p={3}
+          mb={4}
+          overflowX="auto"
+          bg={bgColor}
+          borderRadius="md"
+          boxShadow="sm"
+          borderWidth="1px"
+          borderColor={borderColor}
+          maxW="600px"
+          w="100%"
+          mx="auto"
+          gap={2}
+          css={{
+            '&::-webkit-scrollbar': { display: 'none' },
+            scrollbarWidth: 'none'
+          }}
+        >
           {teamMembers.map((member) => (
             <Avatar
               key={member.id}
               src={member.avatar_url}
               name={`${member.first_name} ${member.last_name}`}
               size="md"
-              className="team-member-avatar"
+              cursor="pointer"
+              transition="transform 0.2s"
+              border="2px solid"
+              borderColor={borderColor}
+              boxShadow="sm"
+              _hover={{ transform: 'scale(1.05)' }}
               title={`${member.first_name} ${member.last_name}`}
+              flexShrink={0}
             />
           ))}
-        </div>
+        </Box>
         {/* Post Input Bar */}
-        <div className="post-input-bar">
+        <Box
+          display="flex"
+          alignItems="center"
+          bg={bgColor}
+          borderRadius="16px"
+          boxShadow="sm"
+          borderWidth="1px"
+          borderColor={borderColor}
+          p={4}
+          mb={4}
+          maxW="600px"
+          w="100%"
+          mx="auto"
+        >
           <Avatar 
             src={user?.user_metadata?.avatar_url} 
             name={user?.user_metadata?.full_name}
             size="md" 
             mr={4} 
           />
-          <div className="post-input-placeholder" onClick={() => setIsCreatePostOpen(true)}>
+          <Box
+            flex={1}
+            bg={inputBg}
+            borderRadius="md"
+            p={3}
+            color={placeholderColor}
+            cursor="pointer"
+            onClick={() => setIsCreatePostOpen(true)}
+            _hover={{ bg: useColorModeValue('gray.100', 'gray.600') }}
+            transition="background-color 0.2s"
+          >
             {`What's on your mind, ${user?.user_metadata?.first_name || 'there'}?`}
-          </div>
-        </div>
+          </Box>
+        </Box>
         {/* Navigation/Filter Bar */}
-        <div className="nav-filter-bar">
-          <button
-            className={`nav-pill ${activeFilter === 'all' ? 'active' : ''}`}
+        <Box
+          display="flex"
+          gap={2}
+          p={3}
+          bg={bgColor}
+          borderRadius="md"
+          boxShadow="sm"
+          borderWidth="1px"
+          borderColor={borderColor}
+          mb={4}
+          maxW="600px"
+          w="100%"
+          mx="auto"
+          overflowX="auto"
+          css={{
+            '&::-webkit-scrollbar': { display: 'none' },
+            scrollbarWidth: 'none'
+          }}
+        >
+          <Button
+            leftIcon={<FaGlobe />}
+            size="sm"
+            variant={activeFilter === 'all' ? 'solid' : 'ghost'}
+            colorScheme={activeFilter === 'all' ? 'blue' : 'gray'}
             onClick={() => { setActiveFilter('all'); setActiveTab(0); fetchPosts(); }}
+            flexShrink={0}
           >
-            <FaGlobe className="filter-icon" /> All
-          </button>
-          <button
-            className={`nav-pill ${activeFilter === 'image' ? 'active' : ''}`}
+            All
+          </Button>
+          <Button
+            leftIcon={<FaImage />}
+            size="sm"
+            variant={activeFilter === 'image' ? 'solid' : 'ghost'}
+            colorScheme={activeFilter === 'image' ? 'blue' : 'gray'}
             onClick={() => { setActiveFilter('image'); setActiveTab(0); fetchPosts(); }}
+            flexShrink={0}
           >
-            <FaImage className="filter-icon" /> Photos
-          </button>
-          <button
-            className={`nav-pill ${activeFilter === 'video' ? 'active' : ''}`}
+            Photos
+          </Button>
+          <Button
+            leftIcon={<FaVideo />}
+            size="sm"
+            variant={activeFilter === 'video' ? 'solid' : 'ghost'}
+            colorScheme={activeFilter === 'video' ? 'blue' : 'gray'}
             onClick={() => { setActiveFilter('video'); setActiveTab(0); fetchPosts(); }}
+            flexShrink={0}
           >
-            <FaVideo className="filter-icon" /> Videos
-          </button>
-          <button
-            className={`nav-pill ${activeTab === 0 && activeFilter === 'all' ? 'active' : ''}`}
+            Videos
+          </Button>
+          <Button
+            size="sm"
+            variant={activeTab === 0 && activeFilter === 'all' ? 'solid' : 'ghost'}
+            colorScheme={activeTab === 0 && activeFilter === 'all' ? 'blue' : 'gray'}
             onClick={() => { setActiveTab(0); setActiveFilter('all'); fetchPosts(); }}
+            flexShrink={0}
           >
             Team Feed
-          </button>
-          <button
-            className={`nav-pill ${activeTab === 1 ? 'active' : ''}`}
+          </Button>
+          <Button
+            size="sm"
+            variant={activeTab === 1 ? 'solid' : 'ghost'}
+            colorScheme={activeTab === 1 ? 'blue' : 'gray'}
             onClick={() => { setActiveTab(1); setActiveFilter('all'); fetchPosts(); }}
+            flexShrink={0}
           >
             My Feed
-          </button>
-        </div>
+          </Button>
+        </Box>
         <div className="loop-tab-content">
           {renderTabContent()}
         </div>
-        {/* Add a button to open the test modal for debugging */}
-        <Button colorScheme="pink" onClick={onTestOpen} mb={4}>Open Test Modal</Button>
+
       </div>
       <CreatePostModal
         isOpen={isCreatePostOpen}
@@ -450,17 +539,7 @@ const Loop: React.FC = () => {
           currentUser={user}
         />
       )}
-      {/* Minimal test modal for debugging flicker */}
-      {isTestOpen && (
-        <Modal isOpen={isTestOpen} onClose={onTestClose} isCentered>
-          <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>Test Modal</ModalHeader>
-            <ModalBody>Test content</ModalBody>
-            <Box p={4}><Button onClick={onTestClose}>Close</Button></Box>
-          </ModalContent>
-        </Modal>
-      )}
+
     </div>
   );
 };
