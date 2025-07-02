@@ -125,7 +125,7 @@ export function WorkoutCard({
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const iconBgColor = useColorModeValue('white', 'gray.800');
   const cardBg = useColorModeValue('white', 'gray.800');
-  const singleWorkoutBg = useColorModeValue('blue.500', 'blue.500');
+  const singleWorkoutBg = useColorModeValue('red.500', 'blue.500');
   const weeklyWorkoutBg = useColorModeValue('blue.600', 'blue.600');
   const infoColor = useColorModeValue('gray.600', 'gray.200');
   const loadingTextColor = useColorModeValue('gray.500', 'gray.300');
@@ -293,6 +293,24 @@ export function WorkoutCard({
               >
                 TEMPLATE
               </Badge>
+            )}
+
+            {/* Block Mode badge - Show for block-based workouts */}
+            {(workout as any).is_block_based && (
+              <HStack spacing={1} alignSelf="flex-start">
+                <Icon as={FaLayerGroup} boxSize={3} color="green.500" />
+                <Badge 
+                  colorScheme="green" 
+                  size="sm" 
+                  fontSize="xs"
+                  fontWeight="bold"
+                  px={2}
+                  py={1}
+                  borderRadius="md"
+                >
+                  BLOCK MODE
+                </Badge>
+              </HStack>
             )}
             
             {/* Monthly Plan Usage - Show for coaches when workout is used in monthly plans */}

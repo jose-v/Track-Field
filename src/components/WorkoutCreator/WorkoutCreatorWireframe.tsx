@@ -148,6 +148,10 @@ const WorkoutCreatorWireframe: React.FC = () => {
   const [isTemplate, setIsTemplate] = useState(false); // Add isTemplate state
   const [flowType, setFlowType] = useState<'sequential' | 'circuit'>('sequential');
   const [circuitRounds, setCircuitRounds] = useState(3);
+
+  // Block mode state
+  const [isBlockMode, setIsBlockMode] = useState<boolean>(false);
+  const [workoutBlocks, setWorkoutBlocks] = useState<any[]>([]);
   
   // Lazy initialize complex state objects
   const [selectedExercises, setSelectedExercises] = useState<Record<string, SelectedExercise[]>>(() => ({
@@ -313,6 +317,10 @@ const WorkoutCreatorWireframe: React.FC = () => {
         setFlowType(data.flow_type || 'sequential');
         setCircuitRounds(data.circuit_rounds || 3);
         
+        // Handle block mode data
+        setIsBlockMode(data.is_block_based || false);
+        setWorkoutBlocks(data.blocks || []);
+        
         // Handle exercises and weekly plan data
         if (data.exercises && Array.isArray(data.exercises)) {
           // Check if this is weekly plan data stored in exercises (for drafts)
@@ -449,6 +457,10 @@ const WorkoutCreatorWireframe: React.FC = () => {
     setIsDraftMode(false);
     setLastSavedTime(null);
     
+      // Clear block mode state  
+  setIsBlockMode(false);
+  setWorkoutBlocks([]);
+    
     // Clear any existing auto-save timer
     if (autoSaveTimer) {
       clearTimeout(autoSaveTimer);
@@ -517,13 +529,67 @@ const WorkoutCreatorWireframe: React.FC = () => {
     }
   };
 
-  // Exercise functions
+  // Helper function to check if exercise is already added
+  const isExerciseAdded = (exerciseId: string): boolean => {
+    if (isBlockMode) {
+      return workoutBlocks.some(block => 
+        block.exercises.some(ex => ex.id === exerciseId)
+      );
+    } else {
+      // For multi-day selection, check if exercise exists in any selected day
+      if (selectedDays.length > 1) {
+        return selectedDays.some(day => 
+          selectedExercises[day]?.some(ex => ex.id === exerciseId)
+        );
+      } else {
+        return selectedExercises[currentDay]?.some(ex => ex.id === exerciseId) || false;
+      }
+    }
+  };
+
+  // Helper function to remove exercise by ID
+  const removeExerciseById = (exerciseId: string) => {
+    if (isBlockMode) {
+      const updatedBlocks = workoutBlocks.map(block => ({
+        ...block,
+        exercises: block.exercises.filter(ex => ex.id !== exerciseId)
+      })).filter(block => block.exercises.length > 0); // Remove empty blocks
+      
+      setWorkoutBlocks(updatedBlocks);
+    } else {
+      // For multi-day selection, remove from all selected days
+      if (selectedDays.length > 1) {
+        setSelectedExercises(prev => {
+          const updatedExercises = { ...prev };
+          selectedDays.forEach(day => {
+            updatedExercises[day] = (updatedExercises[day] || []).filter(ex => ex.id !== exerciseId);
+          });
+          return updatedExercises;
+        });
+      } else {
+        setSelectedExercises(prev => ({
+          ...prev,
+          [currentDay]: prev[currentDay].filter(ex => ex.id !== exerciseId)
+        }));
+      }
+    }
+  };
+
+  // Exercise functions - Toggle behavior (add if not present, remove if present)
   const handleAddExercise = (exercise: Exercise) => {
+    // Check if exercise is already added
+    if (isExerciseAdded(exercise.id)) {
+      // Remove the exercise
+      removeExerciseById(exercise.id);
+      return;
+    }
+
+    // Add the exercise
     const newExercise: SelectedExercise = {
       ...exercise,
       instanceId: `${exercise.id}-${Date.now()}-${Math.random()}`,
-      sets: '3',
-      reps: '10',
+      sets: '',
+      reps: '',
       weight: '',
       distance: '',
       rest: '',
@@ -531,17 +597,25 @@ const WorkoutCreatorWireframe: React.FC = () => {
       notes: '',
     };
     
-    // If multiple days are selected, add to all selected days
+    // If in block mode, add to blocks instead of exercise array
+    if (isBlockMode) {
+      addExerciseToBlocks(newExercise);
+      return;
+    }
+    
+    // If multiple days are selected, add to all selected days that don't have it
     if (selectedDays.length > 1) {
       setSelectedExercises(prev => {
         const updatedExercises = { ...prev };
         selectedDays.forEach(day => {
-          // Create a unique instance for each day
-          const daySpecificExercise = {
-            ...newExercise,
-            instanceId: `${exercise.id}-${day}-${Date.now()}-${Math.random()}`
-          };
-          updatedExercises[day] = [...(updatedExercises[day] || []), daySpecificExercise];
+          // Only add if not already present in this day
+          if (!(updatedExercises[day] || []).some(ex => ex.id === exercise.id)) {
+            const daySpecificExercise = {
+              ...newExercise,
+              instanceId: `${exercise.id}-${day}-${Date.now()}-${Math.random()}`
+            };
+            updatedExercises[day] = [...(updatedExercises[day] || []), daySpecificExercise];
+          }
         });
         return updatedExercises;
       });
@@ -558,6 +632,17 @@ const WorkoutCreatorWireframe: React.FC = () => {
   };
 
   const handleRemoveExercise = (instanceId: string) => {
+    if (isBlockMode) {
+      // Remove from blocks
+      const updatedBlocks = workoutBlocks.map(block => ({
+        ...block,
+        exercises: block.exercises.filter(ex => ex.instanceId !== instanceId)
+      })).filter(block => block.exercises.length > 0); // Remove empty blocks
+      
+      setWorkoutBlocks(updatedBlocks);
+      return;
+    }
+    
     setSelectedExercises(prev => ({
       ...prev,
       [currentDay]: prev[currentDay].filter(ex => ex.instanceId !== instanceId)
@@ -565,6 +650,19 @@ const WorkoutCreatorWireframe: React.FC = () => {
   };
 
   const handleUpdateExercise = (instanceId: string, field: string, value: string) => {
+    if (isBlockMode) {
+      // Update exercise in blocks
+      const updatedBlocks = workoutBlocks.map(block => ({
+        ...block,
+        exercises: block.exercises.map(ex => 
+          ex.instanceId === instanceId ? { ...ex, [field]: value } : ex
+        )
+      }));
+      
+      setWorkoutBlocks(updatedBlocks);
+      return;
+    }
+    
     setSelectedExercises(prev => ({
       ...prev,
       [currentDay]: prev[currentDay].map(ex => 
@@ -578,6 +676,157 @@ const WorkoutCreatorWireframe: React.FC = () => {
       ...prev,
       [currentDay]: reorderedExercises
     }));
+  };
+
+  // Block mode handlers
+  const handleToggleBlockMode = (blockMode: boolean) => {
+    setIsBlockMode(blockMode);
+    
+    if (blockMode) {
+      // Convert current exercises to blocks (simplified for now)
+      const currentExercises = selectedExercises[currentDay] || [];
+      if (currentExercises.length > 0) {
+        // Import WorkoutMigration dynamically to avoid circular imports
+        import('../../utils/workout-migration').then(({ WorkoutMigration }) => {
+          const blocks = WorkoutMigration.autoCreateBlocks(currentExercises);
+          setWorkoutBlocks(blocks);
+        });
+      }
+    } else {
+      // Convert blocks back to exercises
+      if (workoutBlocks.length > 0) {
+        const flatExercises = workoutBlocks.flatMap(block => 
+          block.exercises.map((ex: any) => ({
+            ...ex,
+            instanceId: ex.instanceId || `${ex.name}-${Date.now()}-${Math.random()}`
+          }))
+        );
+        setSelectedExercises(prev => ({
+          ...prev,
+          [currentDay]: flatExercises
+        }));
+      }
+    }
+  };
+
+  // Wrapper for setTemplateType that also resets block mode
+  const handleTemplateTypeChange = (newTemplateType: 'single' | 'weekly') => {
+    setTemplateType(newTemplateType);
+    
+    // Reset block mode when switching to weekly (blocks only work for single workouts)
+    if (newTemplateType === 'weekly' && isBlockMode) {
+      // Convert blocks back to exercises before switching
+      if (workoutBlocks.length > 0) {
+        const flatExercises = workoutBlocks.flatMap(block => 
+          block.exercises.map((ex: any) => ({
+            ...ex,
+            instanceId: ex.instanceId || `${ex.name}-${Date.now()}-${Math.random()}`
+          }))
+        );
+        setSelectedExercises(prev => ({
+          ...prev,
+          [currentDay]: flatExercises
+        }));
+      }
+      
+      setIsBlockMode(false);
+      setWorkoutBlocks([]);
+    }
+  };
+
+  // Helper function to add exercise to blocks
+  const addExerciseToBlocks = async (exercise: any) => {
+    const { WorkoutMigration } = await import('../../utils/workout-migration');
+    
+    // Use exercise library category first, then fall back to name-based detection
+    let detectedCategory = 'main';
+    
+    // First check the actual category field from exercise library
+    if (exercise.category) {
+      const exerciseCategory = exercise.category.toLowerCase();
+      if (exerciseCategory.includes('warm') || exerciseCategory === 'warm_up') {
+        detectedCategory = 'warmup';
+      } else if (exerciseCategory.includes('cool') || exerciseCategory === 'cool_down') {
+        detectedCategory = 'cooldown';
+      } else if (exerciseCategory.includes('accessory') || exerciseCategory.includes('auxiliary')) {
+        detectedCategory = 'accessory';
+      } else if (exerciseCategory.includes('cardio') || exerciseCategory.includes('conditioning')) {
+        detectedCategory = 'conditioning';
+      }
+    }
+    
+    // Fall back to name-based detection only if category didn't match
+    if (detectedCategory === 'main') {
+      const exerciseName = exercise.name?.toLowerCase() || '';
+      if (exerciseName.includes('warm') || exerciseName.includes('stretch') || 
+          exerciseName.includes('dynamic') || exerciseName.includes('activation')) {
+        detectedCategory = 'warmup';
+      } else if (exerciseName.includes('cool') || exerciseName.includes('recovery') ||
+                 exerciseName.includes('static stretch')) {
+        detectedCategory = 'cooldown';
+      } else if (exerciseName.includes('accessory') || exerciseName.includes('auxiliary')) {
+        detectedCategory = 'accessory';
+      }
+    }
+
+    // Find existing block of same category or create new one
+    const updatedBlocks = [...workoutBlocks];
+    const existingBlockIndex = updatedBlocks.findIndex(block => block.category === detectedCategory);
+
+    if (existingBlockIndex >= 0) {
+      // Add to existing block
+      updatedBlocks[existingBlockIndex] = {
+        ...updatedBlocks[existingBlockIndex],
+        exercises: [...updatedBlocks[existingBlockIndex].exercises, exercise]
+      };
+    } else {
+      // Create new block for this category
+      const categoryNames = {
+        warmup: 'Warm-up',
+        main: 'Main Set',
+        accessory: 'Accessory Work',
+        cooldown: 'Cool-down',
+        conditioning: 'Conditioning'
+      };
+
+      const categoryRest = {
+        warmup: 30,
+        main: 90,
+        accessory: 60,
+        cooldown: 30,
+        conditioning: 75
+      };
+
+      const newBlock = {
+        id: `${detectedCategory}-block-${Date.now()}`,
+        name: categoryNames[detectedCategory] || 'Workout',
+        exercises: [exercise],
+        flow: 'sequential',
+        category: detectedCategory,
+        restBetweenExercises: categoryRest[detectedCategory] || 60,
+      };
+
+      // Insert in logical order: warmup -> main -> conditioning -> accessory -> cooldown
+      const categoryOrder = ['warmup', 'main', 'conditioning', 'accessory', 'cooldown'];
+      const insertIndex = categoryOrder.indexOf(detectedCategory);
+      
+      let insertPosition = updatedBlocks.length;
+      for (let i = 0; i < updatedBlocks.length; i++) {
+        const blockCategoryIndex = categoryOrder.indexOf(updatedBlocks[i].category);
+        if (blockCategoryIndex > insertIndex) {
+          insertPosition = i;
+          break;
+        }
+      }
+      
+      updatedBlocks.splice(insertPosition, 0, newBlock);
+    }
+
+    setWorkoutBlocks(updatedBlocks);
+  };
+
+  const handleUpdateBlocks = (blocks: any[]) => {
+    setWorkoutBlocks(blocks);
   };
 
   // Handle weekly plan updates for drag and drop
@@ -865,7 +1114,11 @@ const WorkoutCreatorWireframe: React.FC = () => {
           day,
           exercises: selectedExercises[day] || [],
           isRestDay: restDays[day] || false
-        })) : undefined
+        })) : undefined,
+        // Add block mode data
+        is_block_based: isBlockMode,
+        blocks: isBlockMode ? workoutBlocks : null,
+        block_version: isBlockMode ? 1 : null
       };
       
       const savedDraft = await api.workouts.saveDraft(draftData);
@@ -927,7 +1180,11 @@ const WorkoutCreatorWireframe: React.FC = () => {
           day,
           exercises: selectedExercises[day] || [],
           isRestDay: restDays[day] || false
-        })) : undefined
+        })) : undefined,
+        // Add block mode data
+        is_block_based: isBlockMode,
+        blocks: isBlockMode ? workoutBlocks : null,
+        block_version: isBlockMode ? 1 : null
       };
 
       // Use atomic transaction for update operations
@@ -953,7 +1210,11 @@ const WorkoutCreatorWireframe: React.FC = () => {
             description: workoutData.description,
             is_template: workoutData.is_template,
             exercises: workoutData.exercises,
-            weekly_plan: workoutData.weekly_plan
+            weekly_plan: workoutData.weekly_plan,
+            // Block mode fields
+            is_block_based: workoutData.is_block_based,
+            blocks: workoutData.blocks,
+            block_version: workoutData.block_version
           },
           p_athlete_ids: athleteIds
         });
@@ -1062,6 +1323,10 @@ const WorkoutCreatorWireframe: React.FC = () => {
         description: workoutData.description,
         is_template: workoutData.is_template,
         exercises: exercisesToStore, // Store exercises or weekly plan data
+        // Block mode fields
+        is_block_based: workoutData.is_block_based,
+        blocks: workoutData.blocks,
+        block_version: workoutData.block_version,
         // Note: not storing weekly_plan since that column doesn't exist
       })
       .eq('id', workoutId);
@@ -1610,7 +1875,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
               workoutName={workoutName}
               setWorkoutName={setWorkoutName}
               templateType={templateType}
-              setTemplateType={setTemplateType}
+              setTemplateType={handleTemplateTypeChange}
               workoutType={workoutType}
               setWorkoutType={setWorkoutType}
               date={date}
@@ -1634,7 +1899,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
         return (
           <Suspense fallback={<LoadingFallback />}>
             <Step2ExercisePlanning
-              exercises={customExercises}
+              exercises={[...MOCK_EXERCISES, ...customExercises]}
               selectedExercises={selectedExercises[currentDay] || []}
               onAddExercise={handleAddExercise}
               onRemoveExercise={handleRemoveExercise}
@@ -1663,6 +1928,11 @@ const WorkoutCreatorWireframe: React.FC = () => {
               onCopyExercises={handleCopyExercises}
               onClearDay={handleClearDay}
               onClearAllExercises={handleClearAllExercises}
+              // Block mode props
+              isBlockMode={isBlockMode}
+              onToggleBlockMode={handleToggleBlockMode}
+              blocks={workoutBlocks}
+              onUpdateBlocks={handleUpdateBlocks}
             />
           </Suspense>
         );
@@ -1713,13 +1983,43 @@ const WorkoutCreatorWireframe: React.FC = () => {
           </Suspense>
         );
       case 4:
+        // Prepare exercises data based on mode
+        const getSingleDayExercises = () => {
+          if (templateType !== 'single') return [];
+          
+          if (isBlockMode && workoutBlocks.length > 0) {
+            // Flatten exercises from blocks
+            return workoutBlocks.flatMap(block => 
+              (block.exercises || []).map((ex: any) => ({
+                ...ex,
+                instanceId: ex.instanceId || `${ex.id}-${Date.now()}-${Math.random()}`,
+                // Ensure we have proper exercise structure
+                id: ex.id || ex.instanceId,
+                name: ex.name || 'Unknown Exercise',
+                category: ex.category || 'General',
+                description: ex.description || '',
+                sets: ex.sets || '',
+                reps: ex.reps || '',
+                weight: ex.weight || '',
+                distance: ex.distance || '',
+                rest: ex.rest || '',
+                rpe: ex.rpe || '',
+                notes: ex.notes || '',
+              }))
+            );
+          } else {
+            // Use regular selected exercises
+            return selectedExercises.monday || [];
+          }
+        };
+
         return (
           <Suspense fallback={<LoadingFallback />}>
             <Step4ReviewSave
               workoutName={workoutName}
               templateType={templateType}
               workoutType={workoutType}
-              selectedExercises={templateType === 'single' ? (selectedExercises.monday || []) : []}
+              selectedExercises={getSingleDayExercises()}
               weeklyPlan={templateType === 'weekly' ? Object.keys(selectedExercises).map(day => ({
                 day,
                 exercises: selectedExercises[day] || [],
@@ -1734,6 +2034,9 @@ const WorkoutCreatorWireframe: React.FC = () => {
               onUpdateWeeklyPlan={handleUpdateWeeklyPlan}
               onUpdateSingleDayExercises={handleUpdateSingleDayExercises}
               isTemplate={isTemplate}
+              // Block mode props
+              isBlockMode={isBlockMode}
+              blocks={workoutBlocks}
             />
           </Suspense>
         );

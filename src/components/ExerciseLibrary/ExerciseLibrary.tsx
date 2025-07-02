@@ -1,51 +1,64 @@
-import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+import { useDraggable } from '@dnd-kit/core';
 import {
   Box,
+  Text,
+  Button,
+  Input,
+  Select,
   VStack,
   HStack,
-  Text,
-  Card,
-  CardBody,
-  CardHeader,
-  Heading,
-  Input,
-  InputGroup,
-  InputLeftElement,
-  InputRightElement,
-  Button,
-  Tag,
   Badge,
   IconButton,
   useColorModeValue,
+  Flex,
+  InputGroup,
+  InputLeftElement,
+  InputRightElement,
+  Center,
+  Spinner,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
+  ModalFooter,
+  useDisclosure,
+  useToast,
+  Heading,
+  Card,
+  CardBody,
+  CardHeader,
   SimpleGrid,
   Menu,
   MenuButton,
   MenuList,
   MenuItem,
-  useDisclosure,
   AlertDialog,
   AlertDialogBody,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogContent,
   AlertDialogOverlay,
-  useToast,
-  Flex,
-  Select,
+  Tag,
   Tooltip,
-  Center,
-  Spinner,
 } from '@chakra-ui/react';
 import { 
   Search, 
   Plus, 
-  Edit3, 
-  Trash2, 
-  Filter, 
+  X, 
+  Activity, 
+  Clock, 
+  Target, 
+  Dumbbell, 
+  Heart,
+  Edit3,
+  Trash2,
+  Filter,
   ChevronDown,
-  BookOpen,
-  Dumbbell,
-  X
+  BookOpen
 } from 'lucide-react';
 import { ExerciseModal } from './ExerciseModal';
 
@@ -85,6 +98,7 @@ interface ExerciseLibraryProps {
   currentUserId?: string; // For filtering "mine" exercises
   userTeams?: Array<{ id: string; name: string }>; // For filtering team exercises
   onAddButtonClick?: (openModal: () => void) => void; // Expose the add button click function
+  enableDrag?: boolean; // Controls whether exercises can be dragged
 }
 
 const PREDEFINED_CATEGORIES = [
@@ -132,6 +146,103 @@ export interface ExerciseLibraryRef {
   openAddModal: () => void;
 }
 
+// Draggable Exercise Card Component
+interface DraggableExerciseCardProps {
+  exercise: Exercise;
+  children: React.ReactNode;
+  isSelectionMode?: boolean;
+}
+
+const DraggableExerciseCard: React.FC<DraggableExerciseCardProps> = ({ 
+  exercise, 
+  children, 
+  isSelectionMode = false 
+}) => {
+  const elementRef = React.useRef<HTMLDivElement>(null);
+  
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    isDragging,
+  } = useDraggable({
+    id: `library-${exercise.id}`,
+    data: {
+      type: 'library-exercise',
+      exercise,
+    },
+    disabled: isSelectionMode, // Disable drag in selection mode to allow click selection
+  });
+
+  // For portal rendering, we need to track the original element position
+  const [originalRect, setOriginalRect] = React.useState<DOMRect | null>(null);
+
+  // Combine refs
+  const combineRefs = React.useCallback((node: HTMLDivElement | null) => {
+    elementRef.current = node;
+    setNodeRef(node);
+  }, [setNodeRef]);
+
+  // Update the original rect when dragging starts
+  React.useEffect(() => {
+    if (isDragging && elementRef.current) {
+      const rect = elementRef.current.getBoundingClientRect();
+      setOriginalRect(rect);
+    }
+  }, [isDragging]);
+
+  // If dragging and we have the original position, render in portal
+  if (isDragging && originalRect && transform && typeof document !== 'undefined') {
+    const x = originalRect.left + transform.x;
+    const y = originalRect.top + transform.y;
+
+    return (
+      <>
+        {/* Original placeholder with reduced opacity */}
+        <div ref={combineRefs} style={{ opacity: 0.3 }}>
+          {children}
+        </div>
+        
+        {/* Dragged element in portal with correct absolute positioning */}
+        {createPortal(
+          <div 
+            style={{
+              position: 'fixed',
+              left: x,
+              top: y,
+              zIndex: 999999,
+              pointerEvents: 'none',
+              opacity: 0.8,
+              width: originalRect.width,
+              height: originalRect.height,
+            }}
+          >
+            {children}
+          </div>,
+          document.body
+        )}
+      </>
+    );
+  }
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    opacity: isDragging ? 0.3 : 1,
+  } : {};
+
+  return (
+    <div 
+      ref={combineRefs} 
+      style={style} 
+      {...listeners} 
+      {...attributes}
+    >
+      {children}
+    </div>
+  );
+};
+
 export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryProps>(({
   exercises,
   onAddExercise,
@@ -147,6 +258,7 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
   currentUserId,
   userTeams,
   onAddButtonClick,
+  enableDrag = false,
 }, ref) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -319,7 +431,8 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
   };
 
   const handleExerciseClick = (exercise: Exercise) => {
-    if (selectionMode && onExerciseSelect) {
+    // Always call onExerciseSelect if provided, regardless of mode
+    if (onExerciseSelect) {
       onExerciseSelect(exercise);
     }
   };
@@ -523,21 +636,25 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
               const selectedTextColor = useColorModeValue('blue.800', 'blue.100');
               
               return (
-                <Card
-                  key={exercise.id}
-                  variant="outline"
-                  bg={isAlreadySelected ? selectedBg : exerciseCardBg}
-                  borderColor={isAlreadySelected ? selectedBorderColor : borderColor}
-                  borderWidth={isAlreadySelected ? '2px' : '1px'}
-                  _hover={{ 
-                    bg: isAlreadySelected ? selectedHoverBg : exerciseCardHoverBg, 
-                    borderColor: selectedBorderColor,
-                    cursor: 'pointer'
-                  }}
-                  transition="all 0.2s"
-                  onClick={() => handleExerciseClick(exercise)}
-                  opacity={1}
+                <DraggableExerciseCard 
+                  key={exercise.id} 
+                  exercise={exercise} 
+                  isSelectionMode={!enableDrag}
                 >
+                  <Card
+                    variant="outline"
+                    bg={isAlreadySelected ? selectedBg : exerciseCardBg}
+                    borderColor={isAlreadySelected ? selectedBorderColor : borderColor}
+                    borderWidth={isAlreadySelected ? '2px' : '1px'}
+                    _hover={{ 
+                      bg: isAlreadySelected ? selectedHoverBg : exerciseCardHoverBg, 
+                      borderColor: selectedBorderColor,
+                      cursor: enableDrag ? 'grab' : 'pointer'
+                    }}
+                    transition="all 0.2s"
+                    onClick={() => handleExerciseClick(exercise)}
+                    opacity={1}
+                  >
                   <CardBody p={3}>
                     <HStack justify="space-between" align="center" spacing={4}>
                       <VStack align="start" spacing={1} flex="1">
@@ -603,6 +720,7 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
                     </HStack>
                   </CardBody>
                 </Card>
+                </DraggableExerciseCard>
               );
             })}
           </VStack>
@@ -610,8 +728,8 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
           // Regular mode: Grid layout for exercise library management
           <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
             {filteredExercises.map((exercise) => (
-              <Card
-                key={exercise.id}
+              <DraggableExerciseCard key={exercise.id} exercise={exercise} isSelectionMode={!enableDrag}>
+                <Card
                 variant="outline"
                 bg={exerciseCardBg}
                 borderColor={borderColor}
@@ -731,6 +849,7 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
                   </VStack>
                 </CardBody>
               </Card>
+              </DraggableExerciseCard>
             ))}
           </SimpleGrid>
         )}

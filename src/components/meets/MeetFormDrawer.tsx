@@ -2457,27 +2457,20 @@ export function MeetFormDrawer({
             </Box>
 
             {/* Files Section */}
-            <Box mb={6}>
+            <Box w="full" mb={6}>
               <Button
-                w="full"
-                h="auto"
-                py={4}
-                leftIcon={<FaFolder />}
-                rightIcon={showFiles ? <FaChevronUp /> : <FaChevronDown />}
-                onClick={() => setShowFiles(!showFiles)}
                 variant="outline"
-                borderWidth="2px"
-                borderColor={borderColor}
-                _hover={{ borderColor: inputHoverBorderColor, bg: bgColor }}
+                colorScheme="blue"
+                leftIcon={showFiles ? <FaChevronUp /> : <FaChevronDown />}
+                rightIcon={<FaFolder />}
+                onClick={() => setShowFiles(!showFiles)}
+                w="full"
                 justifyContent="space-between"
-                alignItems="center"
-                textAlign="left"
-                bg={bgColor}
-                shadow="sm"
+                size="lg"
+                borderWidth="2px"
+                _hover={{ borderColor: inputHoverBorderColor }}
               >
-                <Text fontSize="lg" fontWeight="semibold" color={labelColor}>
-                  Files & Documents
-                </Text>
+                Files & Documents
               </Button>
 
               <Collapse in={showFiles} animateOpacity>

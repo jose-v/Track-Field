@@ -51,12 +51,14 @@ interface FileUploadSectionProps {
 }
 
 const FileIcon: React.FC<{ fileType: string; size?: number }> = ({ fileType, size = 16 }) => {
-  if (fileType.startsWith('image/')) return <FaImage size={size} />;
-  if (fileType === 'application/pdf') return <FaFilePdf size={size} />;
-  if (fileType.includes('word')) return <FaFileWord size={size} />;
-  if (fileType.includes('sheet') || fileType.includes('excel')) return <FaFileExcel size={size} />;
-  if (fileType.includes('text')) return <FaFileAlt size={size} />;
-  return <FaFile size={size} />;
+  const iconColor = "white";
+  
+  if (fileType.startsWith('image/')) return <FaImage size={size} color={iconColor} />;
+  if (fileType === 'application/pdf') return <FaFilePdf size={size} color={iconColor} />;
+  if (fileType.includes('word')) return <FaFileWord size={size} color={iconColor} />;
+  if (fileType.includes('sheet') || fileType.includes('excel')) return <FaFileExcel size={size} color={iconColor} />;
+  if (fileType.includes('text')) return <FaFileAlt size={size} color={iconColor} />;
+  return <FaFile size={size} color={iconColor} />;
 };
 
 const FileViewer: React.FC<{ file: MeetFile; isOpen: boolean; onClose: () => void }> = ({ 
@@ -330,74 +332,83 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
               <HStack spacing={2} mb={2}>
                 <Icon 
                   as={category === 'image' ? FaImage : category === 'document' ? FaFileAlt : category === 'spreadsheet' ? FaTable : FaFile}
-                  color={`${FILE_CATEGORIES[category]?.color}.500`}
+                  color="white"
                 />
-                <Text fontWeight="medium" fontSize="sm">
+                <Text fontWeight="medium" fontSize="sm" color="white">
                   {FILE_CATEGORIES[category]?.name} ({categoryFiles.length})
                 </Text>
               </HStack>
               
-              <Grid templateColumns="repeat(auto-fill, minmax(250px, 1fr))" gap={3}>
+              <VStack spacing={3} w="full">
                 {categoryFiles.map((file) => (
-                  <GridItem key={file.id}>
-                    <Box
-                      p={3}
-                      bg={cardBg}
-                      borderRadius="md"
-                      borderWidth="1px"
-                      borderColor={borderColor}
-                      _hover={{ shadow: 'md' }}
-                      transition="all 0.2s"
-                    >
-                      <HStack spacing={3}>
-                        <FileIcon fileType={file.file_type} />
-                        <VStack align="start" spacing={0} flex="1" minW="0">
-                          <Text fontSize="sm" fontWeight="medium" noOfLines={1}>
-                            {truncateFileName(file.file_name, 30)}
-                          </Text>
-                          <Text fontSize="xs" color="gray.500">
-                            {formatFileSize(file.file_size)}
-                          </Text>
-                        </VStack>
-                        
-                        <HStack spacing={1}>
+                  <Box
+                    key={file.id}
+                    w="full"
+                    p={4}
+                    bg={cardBg}
+                    borderRadius="md"
+                    borderWidth="1px"
+                    borderColor={borderColor}
+                    _hover={{ shadow: 'md' }}
+                    transition="all 0.2s"
+                  >
+                    <HStack spacing={4} align="center" w="full">
+                      <Box flexShrink={0}>
+                        <FileIcon fileType={file.file_type} size={20} />
+                      </Box>
+                      <VStack align="start" spacing={1} flex="1" minW="0" mr={4}>
+                        <Text fontSize="md" fontWeight="medium" noOfLines={1} color="white" w="full">
+                          {file.file_name}
+                        </Text>
+                        <Text fontSize="sm" color="gray.400">
+                          {formatFileSize(file.file_size)}
+                        </Text>
+                      </VStack>
+                      
+                      <HStack spacing={2} flexShrink={0}>
+                        <IconButton
+                          aria-label="View file"
+                          icon={<FaEye />}
+                          size="md"
+                          variant="ghost"
+                          color="white"
+                          _hover={{ bg: "whiteAlpha.200" }}
+                          onClick={() => handleViewFile(file)}
+                        />
+                        <IconButton
+                          aria-label="Download file"
+                          icon={<FaDownload />}
+                          size="md"
+                          variant="ghost"
+                          color="white"
+                          _hover={{ bg: "whiteAlpha.200" }}
+                          onClick={() => MeetFilesService.downloadFile(file.file_path, file.file_name)}
+                        />
+                        <IconButton
+                          aria-label="Print file"
+                          icon={<FaPrint />}
+                          size="md"
+                          variant="ghost"
+                          color="white"
+                          _hover={{ bg: "whiteAlpha.200" }}
+                          onClick={() => MeetFilesService.printFile(file.file_path)}
+                        />
+                        {!disabled && (
                           <IconButton
-                            aria-label="View file"
-                            icon={<FaEye />}
-                            size="sm"
+                            aria-label="Delete file"
+                            icon={<FaTrash />}
+                            size="md"
                             variant="ghost"
-                            onClick={() => handleViewFile(file)}
+                            color="red.300"
+                            _hover={{ bg: "red.800", color: "red.200" }}
+                            onClick={() => handleDeleteFile(file.id)}
                           />
-                          <IconButton
-                            aria-label="Download file"
-                            icon={<FaDownload />}
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => MeetFilesService.downloadFile(file.file_path, file.file_name)}
-                          />
-                          <IconButton
-                            aria-label="Print file"
-                            icon={<FaPrint />}
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => MeetFilesService.printFile(file.file_path)}
-                          />
-                          {!disabled && (
-                            <IconButton
-                              aria-label="Delete file"
-                              icon={<FaTrash />}
-                              size="sm"
-                              variant="ghost"
-                              colorScheme="red"
-                              onClick={() => handleDeleteFile(file.id)}
-                            />
-                          )}
-                        </HStack>
+                        )}
                       </HStack>
-                    </Box>
-                  </GridItem>
+                    </HStack>
+                  </Box>
                 ))}
-              </Grid>
+              </VStack>
             </Box>
           ))}
         </VStack>

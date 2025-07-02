@@ -175,6 +175,7 @@ const NavItem = ({ icon, label, to, isActive, isCollapsed, badge, isMobile = fal
   const activeBg = useColorModeValue('blue.50', 'blue.900');
   const hoverBg = useColorModeValue('gray.100', 'gray.700');
   const activeColor = useColorModeValue('blue.600', 'blue.200');
+  const badgeBorderColor = useColorModeValue('white', 'gray.800');
   const color = '#898989';
   
   if (isMobile) {
@@ -236,7 +237,7 @@ const NavItem = ({ icon, label, to, isActive, isCollapsed, badge, isMobile = fal
               bg="red.500"
               borderRadius="full"
               border="2px solid"
-              borderColor={useColorModeValue('white', 'gray.800')}
+              borderColor={badgeBorderColor}
             />
           )}
         </Box>

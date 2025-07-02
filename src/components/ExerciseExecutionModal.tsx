@@ -39,12 +39,29 @@ interface Exercise {
   notes?: string;
 }
 
+// Block interface for the new system
+interface ExerciseBlock {
+  id: string;
+  name?: string;
+  exercises: Exercise[];
+  flow: 'sequential' | 'circuit' | 'superset' | 'emom' | 'amrap';
+  rounds?: number;
+  restBetweenExercises?: number;
+  restBetweenRounds?: number;
+  restAfterBlock?: number;
+  category?: 'warmup' | 'main' | 'accessory' | 'cooldown' | 'conditioning';
+  notes?: string;
+}
+
 interface Workout {
   id: string;
   name: string;
   exercises: Exercise[];
   flow_type?: 'sequential' | 'circuit';
   circuit_rounds?: number;
+  // New block system fields
+  blocks?: ExerciseBlock[];
+  is_block_based?: boolean;
 }
 
 interface ExerciseExecutionModalProps {
@@ -114,6 +131,10 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
   // Add state for pause functionality
   const [isPaused, setIsPaused] = useState(false);
 
+  // Block-aware state
+  const [currentBlockIndex, setCurrentBlockIndex] = useState(0);
+  const [currentBlockRound, setCurrentBlockRound] = useState(1);
+
   // Refs for intervals
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
@@ -129,6 +150,63 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
   const modalSize = useBreakpointValue({ base: 'full', md: 'md' }) as 'full' | 'md';
   const isCentered = useBreakpointValue({ base: false, md: true }) as boolean;
   const motionPreset = useBreakpointValue({ base: 'slideInBottom', md: 'scale' }) as 'slideInBottom' | 'scale';
+
+  // Block-aware helper functions
+  const isBlockBasedWorkout = workout?.is_block_based && workout?.blocks && workout.blocks.length > 0;
+  
+  const getCurrentBlock = (): ExerciseBlock | null => {
+    if (!isBlockBasedWorkout || !workout?.blocks) return null;
+    return workout.blocks[currentBlockIndex] || null;
+  };
+
+  const getAllExercises = (): Exercise[] => {
+    if (isBlockBasedWorkout && workout?.blocks) {
+      // Flatten exercises from all blocks
+      return workout.blocks.flatMap(block => block.exercises);
+    }
+    return workout?.exercises || [];
+  };
+
+  const getCurrentExercise = (): Exercise | null => {
+    const allExercises = getAllExercises();
+    return allExercises[exerciseIdx] || null;
+  };
+
+  const getExerciseBlockInfo = (globalExerciseIndex: number): { blockIndex: number; localExerciseIndex: number; block: ExerciseBlock } | null => {
+    if (!isBlockBasedWorkout || !workout?.blocks) return null;
+
+    let accumulatedIndex = 0;
+    for (let blockIndex = 0; blockIndex < workout.blocks.length; blockIndex++) {
+      const block = workout.blocks[blockIndex];
+      const blockExerciseCount = block.exercises.length;
+      
+      if (globalExerciseIndex < accumulatedIndex + blockExerciseCount) {
+        return {
+          blockIndex,
+          localExerciseIndex: globalExerciseIndex - accumulatedIndex,
+          block
+        };
+      }
+      accumulatedIndex += blockExerciseCount;
+    }
+    return null;
+  };
+
+  const getBlockProgress = (): { current: number; total: number } => {
+    if (!isBlockBasedWorkout) return { current: 0, total: 0 };
+    return {
+      current: currentBlockIndex + 1,
+      total: workout?.blocks?.length || 0
+    };
+  };
+
+  const getExerciseProgress = (): { current: number; total: number } => {
+    const allExercises = getAllExercises();
+    return {
+      current: exerciseIdx + 1,
+      total: allExercises.length
+    };
+  };
 
   // Enhanced timer effect with pause functionality and countdown
   useEffect(() => {
@@ -223,21 +301,90 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
     setRunTime({ minutes, seconds, hundredths });
   }, []);
 
-  // Reset set/rep counters when exercise changes
+  // Reset set/rep counters when exercise changes and track block changes
   useEffect(() => {
     setCurrentSet(1);
     setCurrentRep(1);
     setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
+    
+    // Update block tracking for block-based workouts
+    if (isBlockBasedWorkout) {
+      const blockInfo = getExerciseBlockInfo(exerciseIdx);
+      if (blockInfo && blockInfo.blockIndex !== currentBlockIndex) {
+        setCurrentBlockIndex(blockInfo.blockIndex);
+        setCurrentBlockRound(1); // Reset block round when entering new block
+      }
+    }
+    
     // Don't reset round counter when exercise changes in circuit flow
   }, [exerciseIdx]);
+
+  // Debug logging only when modal opens
+  useEffect(() => {
+    if (isOpen && workout) {
+      console.log('=== EXERCISE EXECUTION DEBUG ===');
+      console.log('Workout:', workout);
+      console.log('Workout exercises:', workout.exercises);
+      console.log('Exercise count:', workout.exercises?.length || 0);
+      console.log('Current exercise index:', exerciseIdx);
+      console.log('Current exercise:', workout.exercises?.[exerciseIdx]);
+      
+      // Check if it's a weekly template
+      const isWeekly = workout.exercises.length > 0 && 
+                      typeof workout.exercises[0] === 'object' && 
+                      'day' in workout.exercises[0] && 
+                      'exercises' in workout.exercises[0];
+      
+      if (isWeekly) {
+        console.log('🗓️ WEEKLY TEMPLATE DETECTED');
+        const currentDayPlan = workout.exercises[0] as any;
+        console.log('Current day plan:', currentDayPlan);
+        console.log('Actual exercises for today:', currentDayPlan.exercises);
+        console.log('Actual exercise count:', currentDayPlan.exercises?.length || 0);
+      }
+      console.log('================================');
+    }
+  }, [isOpen, workout?.id]); // Only run when modal opens or workout changes
     
   // Simple validation - AFTER all hooks are called
   if (!isOpen || !workout || !workout.exercises || workout.exercises.length === 0) {
     return null;
   }
 
-  const currentExercise = workout.exercises[exerciseIdx] || { name: 'Exercise', sets: 1, reps: 10 };
-  const exerciseName = currentExercise.name || 'Exercise';
+  // Handle weekly workout template structure
+  const isWeeklyTemplate = workout.exercises.length > 0 && 
+                          typeof workout.exercises[0] === 'object' && 
+                          'day' in workout.exercises[0] && 
+                          'exercises' in workout.exercises[0];
+
+  let actualExercises: any[] = [];
+  let currentExercise: any;
+  let exerciseName: string;
+
+  if (isWeeklyTemplate) {
+    // Extract exercises from the current day's plan
+    const currentDayPlan = workout.exercises[0] as any; // Assuming we're always on the first day for now
+    actualExercises = currentDayPlan.exercises || [];
+    currentExercise = actualExercises[exerciseIdx] || { name: 'Exercise', sets: 1, reps: 10 };
+    
+    // Extract exercise name from the actual exercise object
+    exerciseName = currentExercise.name || 
+                  currentExercise.exercise_name || 
+                  currentExercise.description || 
+                  currentExercise.type || 
+                  `Exercise ${exerciseIdx + 1}`;
+  } else {
+    // Regular workout structure
+    actualExercises = workout.exercises;
+    currentExercise = workout.exercises[exerciseIdx] || { name: 'Exercise', sets: 1, reps: 10 };
+    
+    // More robust exercise name extraction
+    exerciseName = currentExercise.name || 
+                  (currentExercise as any).exercise_name || 
+                  (currentExercise as any).description || 
+                  (currentExercise as any).type || 
+                  `Exercise ${exerciseIdx + 1}`;
+  }
 
   const handleDone = async () => {
     // Save exercise result for this rep/set completion
@@ -283,7 +430,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
     // Handle progression based on flow type
     if (isCircuitFlow) {
       // Circuit Flow: Move to next exercise after completing one set, track rounds
-      if (exerciseIdx + 1 >= workout.exercises.length) {
+      if (exerciseIdx + 1 >= actualExercises.length) {
         // Completed all exercises in this round
         if (currentRound < circuitRounds) {
           // More rounds to go - update UI immediately, then countdown before starting timer
@@ -346,7 +493,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
         startCountdownTimer();
       } else {
         // Exercise complete - move to next exercise or finish workout
-        if (exerciseIdx + 1 >= workout.exercises.length) {
+        if (exerciseIdx + 1 >= actualExercises.length) {
       setShowRPEScreen(true);
     } else {
           // Move to next exercise - update UI immediately, then countdown before starting timer
@@ -469,7 +616,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
     let totalRepsInWorkout = 0;
     let completedRepsInWorkout = 0;
     
-    workout.exercises.forEach((exercise, exIndex) => {
+    actualExercises.forEach((exercise, exIndex) => {
       const exerciseSets = exercise.sets || 1;
       const exerciseReps = exercise.reps || 1;
       const totalRepsForThisExercise = exerciseSets * exerciseReps;
@@ -540,30 +687,67 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                   <Text textAlign="center">Rate Your Effort</Text>
             ) : (
               <>
+                    {/* Block Information (if block-based workout) */}
+                    {isBlockBasedWorkout && (
+                      <Text textAlign="center" fontSize="xs" color="blue.500" fontWeight="medium" textTransform="uppercase">
+                        {(() => {
+                          const currentBlock = getCurrentBlock();
+                          const blockProgress = getBlockProgress();
+                          return `${currentBlock?.name || `Block ${blockProgress.current}`} (${blockProgress.current}/${blockProgress.total})`;
+                        })()}
+                      </Text>
+                    )}
+
                     <Text textAlign="center" fontSize="lg" fontWeight="medium">
                       {exerciseName}
                     </Text>
+                    
                     <Text textAlign="center" fontSize="sm" color={modalTextColor}>
                       {(() => {
                         let nextText = '';
                         
-                        if (isCircuitFlow) {
-                          if (exerciseIdx + 1 >= workout.exercises.length) {
+                        if (isBlockBasedWorkout) {
+                          // Block-aware next exercise logic
+                          const exerciseProgress = getExerciseProgress();
+                          if (exerciseProgress.current >= exerciseProgress.total) {
+                            nextText = 'Finish Workout';
+                          } else {
+                            const nextExercise = getAllExercises()[exerciseIdx + 1];
+                            const nextBlockInfo = getExerciseBlockInfo(exerciseIdx + 1);
+                            
+                            if (nextBlockInfo && nextBlockInfo.blockIndex !== currentBlockIndex) {
+                              // Moving to new block
+                              nextText = `Next Block: ${nextBlockInfo.block.name || `Block ${nextBlockInfo.blockIndex + 1}`}`;
+                            } else {
+                              // Same block
+                              nextText = nextExercise?.name || `Exercise ${exerciseIdx + 2}`;
+                            }
+                          }
+                        } else if (isCircuitFlow) {
+                          if (exerciseIdx + 1 >= actualExercises.length) {
                             if (currentRound < circuitRounds) {
                               nextText = `Round ${currentRound + 1}`;
                             } else {
                               nextText = 'Finish';
                             }
                           } else {
-                            const nextExercise = workout.exercises[exerciseIdx + 1];
-                            nextText = nextExercise?.name || 'Exercise';
+                            const nextExercise = actualExercises[exerciseIdx + 1];
+                            nextText = nextExercise?.name || 
+                                      nextExercise?.exercise_name || 
+                                      nextExercise?.description || 
+                                      nextExercise?.type || 
+                                      `Exercise ${exerciseIdx + 2}`;
                           }
                         } else {
-                          if (exerciseIdx + 1 >= workout.exercises.length) {
+                          if (exerciseIdx + 1 >= actualExercises.length) {
                             nextText = 'Finish';
                           } else {
-                            const nextExercise = workout.exercises[exerciseIdx + 1];
-                            nextText = nextExercise?.name || 'Exercise';
+                            const nextExercise = actualExercises[exerciseIdx + 1];
+                            nextText = nextExercise?.name || 
+                                      nextExercise?.exercise_name || 
+                                      nextExercise?.description || 
+                                      nextExercise?.type || 
+                                      `Exercise ${exerciseIdx + 2}`;
                           }
                         }
                         
@@ -576,11 +760,22 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
           
               {!showRPEScreen && (
                 <Badge 
-                  colorScheme={isCircuitFlow ? "purple" : "blue"} 
+                  colorScheme={
+                    isBlockBasedWorkout 
+                      ? "green" 
+                      : isCircuitFlow 
+                        ? "purple" 
+                        : "blue"
+                  } 
                   size="sm"
                   borderRadius="full"
                 >
-                  {isCircuitFlow ? "Circuit" : "Sequential"}
+                  {isBlockBasedWorkout 
+                    ? "Blocks" 
+                    : isCircuitFlow 
+                      ? "Circuit" 
+                      : "Sequential"
+                  }
                 </Badge>
               )}
             </HStack>
@@ -685,11 +880,17 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                       {/* Exercise Progress */}
                       <VStack spacing={1} align="center">
                         <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textTransform="uppercase" textAlign="center">
-                          Exercise
+                          {isBlockBasedWorkout ? "Block Progress" : "Exercise"}
                         </Text>
                         <Text fontSize="lg" fontWeight="normal" textAlign="center">
-                          {exerciseIdx + 1}/{workout.exercises.length}
-                          </Text>
+                          {isBlockBasedWorkout 
+                            ? (() => {
+                                const blockProgress = getBlockProgress();
+                                return `${blockProgress.current}/${blockProgress.total}`;
+                              })()
+                            : `${exerciseIdx + 1}/${actualExercises.length}`
+                          }
+                        </Text>
                       </VStack>
                       
                       {/* Completed */}
@@ -700,12 +901,91 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                         <Text fontSize="lg" fontWeight="normal" textAlign="center">
                           {isCircuitFlow 
                             ? `${completionProgress.completed}/${completionProgress.total}`
-                            : `${completionProgress.completed}/${completionProgress.total}`
+                            : `${exerciseIdx}/${actualExercises.length}`
                           }
                         </Text>
                       </VStack>
                     </SimpleGrid>
                       </Box>
+                      
+                      {/* Block Information Section (for block-based workouts) */}
+                      {isBlockBasedWorkout && (
+                        <Box 
+                          w="full" 
+                          bg={sectionBg} 
+                          borderRadius="xl" 
+                          p={4}
+                        >
+                          <Text fontSize="xs" color={modalTextColor} fontWeight="bold" textTransform="uppercase" mb={2}>
+                            Block Info
+                          </Text>
+                          <SimpleGrid columns={2} spacing={2}>
+                            <VStack spacing={1} align="start">
+                              <Text fontSize="xs" color={modalTextColor} fontWeight="medium">
+                                Flow Type
+                              </Text>
+                              <Text fontSize="sm" color={modalTextColor} textTransform="capitalize">
+                                {getCurrentBlock()?.flow || 'sequential'}
+                              </Text>
+                            </VStack>
+                            <VStack spacing={1} align="start">
+                              <Text fontSize="xs" color={modalTextColor} fontWeight="medium">
+                                Rest Between
+                              </Text>
+                              <Text fontSize="sm" color={modalTextColor}>
+                                {getCurrentBlock()?.restBetweenExercises || 60}s
+                              </Text>
+                            </VStack>
+                            {getCurrentBlock()?.rounds && getCurrentBlock()?.rounds! > 1 && (
+                              <VStack spacing={1} align="start">
+                                <Text fontSize="xs" color={modalTextColor} fontWeight="medium">
+                                  Block Rounds
+                                </Text>
+                                <Text fontSize="sm" color={modalTextColor}>
+                                  {currentBlockRound}/{getCurrentBlock()?.rounds}
+                                </Text>
+                              </VStack>
+                            )}
+                            {getCurrentBlock()?.category && (
+                              <VStack spacing={1} align="start">
+                                <Text fontSize="xs" color={modalTextColor} fontWeight="medium">
+                                  Category
+                                </Text>
+                                <Text fontSize="sm" color={modalTextColor} textTransform="capitalize">
+                                  {getCurrentBlock()?.category}
+                                </Text>
+                              </VStack>
+                            )}
+                          </SimpleGrid>
+                          {getCurrentBlock()?.notes && (
+                            <Box mt={3}>
+                              <Text fontSize="xs" color={modalTextColor} fontWeight="medium" mb={1}>
+                                Block Notes
+                              </Text>
+                              <Text fontSize="sm" color={modalTextColor} lineHeight="1.5">
+                                {getCurrentBlock()?.notes}
+                              </Text>
+                            </Box>
+                          )}
+                        </Box>
+                      )}
+
+                      {/* Exercise Notes Section */}
+                      {currentExercise.notes && (
+                        <Box 
+                          w="full" 
+                          bg={sectionBg} 
+                          borderRadius="xl" 
+                          p={4}
+                        >
+                          <Text fontSize="xs" color={modalTextColor} fontWeight="bold" textTransform="uppercase" mb={2}>
+                            Exercise Notes
+                          </Text>
+                          <Text fontSize="sm" color={modalTextColor} lineHeight="1.5">
+                             {currentExercise.notes}
+                           </Text>
+                        </Box>
+                      )}
                       
                                     {/* Timer Section */}
                   <Box 
@@ -815,7 +1095,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                     >
                       {(() => {
                         if (isCircuitFlow) {
-                          if (exerciseIdx + 1 >= workout.exercises.length) {
+                          if (exerciseIdx + 1 >= actualExercises.length) {
                             if (currentRound < circuitRounds) {
                               return 'Next Round';
                             } else {
@@ -832,7 +1112,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                             return 'Next Rep';
                           } else if (currentSet < maxSets) {
                             return 'Next Set';
-                          } else if (exerciseIdx + 1 >= workout.exercises.length) {
+                          } else if (exerciseIdx + 1 >= actualExercises.length) {
                             return 'Finish';
                           } else {
                             return 'Next';

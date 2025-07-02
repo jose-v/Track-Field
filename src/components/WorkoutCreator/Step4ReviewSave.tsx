@@ -84,6 +84,16 @@ interface Athlete {
   avatar: string;
 }
 
+interface WorkoutBlock {
+  id: string;
+  name: string;
+  exercises: SelectedExercise[];
+  category: string;
+  flow: string;
+  restBetweenExercises: number;
+  rounds?: number;
+}
+
 interface Step4ReviewSaveProps {
   workoutName: string;
   workoutType: string;
@@ -99,6 +109,9 @@ interface Step4ReviewSaveProps {
   endDate?: string;
   location?: string;
   isTemplate?: boolean;
+  // Block mode props
+  isBlockMode?: boolean;
+  blocks?: WorkoutBlock[];
 }
 
 const DAYS_OF_WEEK = [
@@ -161,15 +174,19 @@ const DraggableExercise: React.FC<DraggableExerciseProps> = ({
   const dragHandleHoverBg = useColorModeValue('gray.300', 'gray.500');
   const dragHandleActiveBg = useColorModeValue('gray.400', 'gray.400');
 
-  const sets = parseInt(exercise.sets || '0') || 0;
-  const reps = parseInt(exercise.reps || '0') || 0;
-  const weight = parseFloat(exercise.weight || '0') || 0;
-  const distance = parseFloat(exercise.distance || '0') || 0;
-  const rest = parseInt(exercise.rest || '0') || 0;
-  const rpe = parseInt(exercise.rpe || '0') || 0;
+  // Helper function to check if a value is meaningful (not empty or zero)
+  const hasValue = (value: string | undefined) => value && String(value).trim() !== '' && String(value).trim() !== '0';
   
-  const volume = sets * reps;
-  const totalLoad = weight > 0 ? volume * weight : 0;
+  const sets = hasValue(exercise.sets) ? parseInt(exercise.sets!) : 0;
+  const reps = hasValue(exercise.reps) ? parseInt(exercise.reps!) : 0;
+  const weight = hasValue(exercise.weight) ? parseFloat(exercise.weight!) : 0;
+  const distance = hasValue(exercise.distance) ? parseFloat(exercise.distance!) : 0;
+  const rest = hasValue(exercise.rest) ? parseInt(exercise.rest!) : 0;
+  const rpe = hasValue(exercise.rpe) ? parseInt(exercise.rpe!) : 0;
+  
+  // Only calculate metrics if we have meaningful data
+  const volume = (sets > 0 && reps > 0) ? sets * reps : 0;
+  const totalLoad = (volume > 0 && weight > 0) ? volume * weight : 0;
   const restMinutes = Math.floor(rest / 60);
   const restSeconds = rest % 60;
   const restFormatted = rest > 0 ? (restMinutes > 0 ? `${restMinutes}:${restSeconds.toString().padStart(2, '0')}` : `${rest}s`) : '';
@@ -181,7 +198,7 @@ const DraggableExercise: React.FC<DraggableExerciseProps> = ({
     exercise.distance,
     exercise.rest,
     exercise.rpe
-  ].filter(field => field && String(field).trim() !== '').length;
+  ].filter(field => hasValue(field)).length;
 
   return (
     <Box
@@ -252,38 +269,38 @@ const DraggableExercise: React.FC<DraggableExerciseProps> = ({
         <SimpleGrid columns={{ base: 3, md: 6 }} spacing={3}>
           <VStack align="start" spacing={0.5}>
             <Text fontSize="xs" fontWeight="semibold" color={subtitleColor}>Sets</Text>
-            <Text fontSize="sm" fontWeight="medium" color={exercise.sets ? textColor : noExercisesColor}>
-              {exercise.sets || '-'}
+            <Text fontSize="sm" fontWeight="medium" color={hasValue(exercise.sets) ? textColor : noExercisesColor}>
+              {hasValue(exercise.sets) ? exercise.sets : '-'}
             </Text>
           </VStack>
           <VStack align="start" spacing={0.5}>
             <Text fontSize="xs" fontWeight="semibold" color={subtitleColor}>Reps</Text>
-            <Text fontSize="sm" fontWeight="medium" color={exercise.reps ? textColor : noExercisesColor}>
-              {exercise.reps || '-'}
+            <Text fontSize="sm" fontWeight="medium" color={hasValue(exercise.reps) ? textColor : noExercisesColor}>
+              {hasValue(exercise.reps) ? exercise.reps : '-'}
             </Text>
           </VStack>
           <VStack align="start" spacing={0.5}>
             <Text fontSize="xs" fontWeight="semibold" color={subtitleColor}>Weight</Text>
-            <Text fontSize="sm" fontWeight="medium" color={exercise.weight ? textColor : noExercisesColor}>
-              {exercise.weight ? `${exercise.weight}kg` : '-'}
+            <Text fontSize="sm" fontWeight="medium" color={hasValue(exercise.weight) ? textColor : noExercisesColor}>
+              {hasValue(exercise.weight) ? `${exercise.weight}kg` : '-'}
             </Text>
           </VStack>
           <VStack align="start" spacing={0.5}>
             <Text fontSize="xs" fontWeight="semibold" color={subtitleColor}>Distance</Text>
-            <Text fontSize="sm" fontWeight="medium" color={exercise.distance ? textColor : noExercisesColor}>
-              {exercise.distance ? `${exercise.distance}m` : '-'}
+            <Text fontSize="sm" fontWeight="medium" color={hasValue(exercise.distance) ? textColor : noExercisesColor}>
+              {hasValue(exercise.distance) ? `${exercise.distance}m` : '-'}
             </Text>
           </VStack>
           <VStack align="start" spacing={0.5}>
             <Text fontSize="xs" fontWeight="semibold" color={subtitleColor}>Rest</Text>
-            <Text fontSize="sm" fontWeight="medium" color={exercise.rest ? textColor : noExercisesColor}>
+            <Text fontSize="sm" fontWeight="medium" color={hasValue(exercise.rest) ? textColor : noExercisesColor}>
               {restFormatted || '-'}
             </Text>
           </VStack>
           <VStack align="start" spacing={0.5}>
             <Text fontSize="xs" fontWeight="semibold" color={subtitleColor}>RPE</Text>
-            <Text fontSize="sm" fontWeight="medium" color={exercise.rpe ? textColor : noExercisesColor}>
-              {exercise.rpe || '-'}
+            <Text fontSize="sm" fontWeight="medium" color={hasValue(exercise.rpe) ? textColor : noExercisesColor}>
+              {hasValue(exercise.rpe) ? exercise.rpe : '-'}
             </Text>
           </VStack>
         </SimpleGrid>
@@ -321,6 +338,152 @@ const DraggableExercise: React.FC<DraggableExerciseProps> = ({
         _hover={{ transform: 'scale(1.1)' }}
       />
     </Box>
+  );
+};
+
+// Block Display Component
+interface BlockDisplayProps {
+  block: WorkoutBlock;
+  onEdit: (exercise: SelectedExercise) => void;
+}
+
+const BlockDisplay: React.FC<BlockDisplayProps> = ({ block, onEdit }) => {
+  const cardBg = useColorModeValue('white', 'gray.700');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const textColor = useColorModeValue('gray.700', 'gray.100');
+  const subtitleColor = useColorModeValue('gray.600', 'gray.300');
+  const blockHeaderBg = useColorModeValue('gray.50', 'gray.600');
+  
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'warmup': return 'orange';
+      case 'main': return 'blue';
+      case 'conditioning': return 'green';
+      case 'accessory': return 'purple';
+      case 'cooldown': return 'cyan';
+      default: return 'gray';
+    }
+  };
+
+  return (
+    <Card bg={cardBg} borderColor={borderColor} borderWidth="1px">
+      <CardHeader bg={blockHeaderBg} py={3}>
+        <HStack justify="space-between" align="center">
+          <VStack align="start" spacing={1}>
+            <HStack spacing={3}>
+              <Text fontSize="lg" fontWeight="bold" color={textColor}>
+                {block.name}
+              </Text>
+              <Badge colorScheme={getCategoryColor(block.category)} size="sm">
+                {block.category}
+              </Badge>
+              <Badge variant="outline" size="sm">
+                {block.flow}
+                {block.rounds && block.rounds > 1 && ` (${block.rounds}x)`}
+              </Badge>
+            </HStack>
+            <Text fontSize="sm" color={subtitleColor}>
+              {block.exercises.length} exercise{block.exercises.length !== 1 ? 's' : ''} • {block.restBetweenExercises}s rest between exercises
+            </Text>
+          </VStack>
+        </HStack>
+      </CardHeader>
+      <CardBody>
+        <VStack spacing={3} align="stretch">
+          {block.exercises.map((exercise, index) => (
+            <Box
+              key={exercise.instanceId}
+              p={3}
+              bg={useColorModeValue('gray.50', 'gray.600')}
+              borderRadius="md"
+              borderLeft="3px solid"
+              borderLeftColor={`${getCategoryColor(block.category)}.400`}
+            >
+              <VStack spacing={2} align="stretch">
+                {/* Exercise Header */}
+                <HStack justify="space-between" align="start">
+                  <VStack align="start" spacing={1} flex={1}>
+                    <HStack spacing={2}>
+                      <Text fontSize="md" fontWeight="bold" color={textColor}>
+                        {index + 1}. {exercise.name}
+                      </Text>
+                      <Badge colorScheme="blue" variant="subtle" fontSize="xs">
+                        {exercise.category}
+                      </Badge>
+                    </HStack>
+                    <Text fontSize="xs" color={subtitleColor} noOfLines={1}>
+                      {exercise.description}
+                    </Text>
+                  </VStack>
+                  
+                  <IconButton
+                    size="sm"
+                    icon={<Eye size={16} />}
+                    variant="ghost"
+                    onClick={() => onEdit(exercise)}
+                    aria-label="Edit exercise"
+                  />
+                </HStack>
+                
+                {/* Exercise Parameters */}
+                <SimpleGrid columns={{ base: 3, md: 6 }} spacing={2}>
+                  <VStack align="start" spacing={0.5}>
+                    <Text fontSize="xs" fontWeight="semibold" color={subtitleColor}>Sets</Text>
+                    <Text fontSize="sm" fontWeight="medium" color={exercise.sets && exercise.sets.trim() !== '' && exercise.sets !== '0' ? textColor : subtitleColor}>
+                      {exercise.sets && exercise.sets.trim() !== '' && exercise.sets !== '0' ? exercise.sets : '-'}
+                    </Text>
+                  </VStack>
+                  <VStack align="start" spacing={0.5}>
+                    <Text fontSize="xs" fontWeight="semibold" color={subtitleColor}>Reps</Text>
+                    <Text fontSize="sm" fontWeight="medium" color={exercise.reps && exercise.reps.trim() !== '' && exercise.reps !== '0' ? textColor : subtitleColor}>
+                      {exercise.reps && exercise.reps.trim() !== '' && exercise.reps !== '0' ? exercise.reps : '-'}
+                    </Text>
+                  </VStack>
+                  <VStack align="start" spacing={0.5}>
+                    <Text fontSize="xs" fontWeight="semibold" color={subtitleColor}>Weight</Text>
+                    <Text fontSize="sm" fontWeight="medium" color={exercise.weight && exercise.weight.trim() !== '' && exercise.weight !== '0' ? textColor : subtitleColor}>
+                      {exercise.weight && exercise.weight.trim() !== '' && exercise.weight !== '0' ? `${exercise.weight}kg` : '-'}
+                    </Text>
+                  </VStack>
+                  <VStack align="start" spacing={0.5}>
+                    <Text fontSize="xs" fontWeight="semibold" color={subtitleColor}>Distance</Text>
+                    <Text fontSize="sm" fontWeight="medium" color={exercise.distance && exercise.distance.trim() !== '' && exercise.distance !== '0' ? textColor : subtitleColor}>
+                      {exercise.distance && exercise.distance.trim() !== '' && exercise.distance !== '0' ? `${exercise.distance}m` : '-'}
+                    </Text>
+                  </VStack>
+                  <VStack align="start" spacing={0.5}>
+                    <Text fontSize="xs" fontWeight="semibold" color={subtitleColor}>Rest</Text>
+                    <Text fontSize="sm" fontWeight="medium" color={exercise.rest && exercise.rest.trim() !== '' && exercise.rest !== '0' ? textColor : subtitleColor}>
+                      {exercise.rest && exercise.rest.trim() !== '' && exercise.rest !== '0' ? 
+                        (parseInt(exercise.rest) >= 60 ? 
+                          `${Math.floor(parseInt(exercise.rest) / 60)}:${(parseInt(exercise.rest) % 60).toString().padStart(2, '0')}` : 
+                          `${exercise.rest}s`
+                        ) : '-'
+                      }
+                    </Text>
+                  </VStack>
+                  <VStack align="start" spacing={0.5}>
+                    <Text fontSize="xs" fontWeight="semibold" color={subtitleColor}>RPE</Text>
+                    <Text fontSize="sm" fontWeight="medium" color={exercise.rpe && exercise.rpe.trim() !== '' && exercise.rpe !== '0' ? textColor : subtitleColor}>
+                      {exercise.rpe && exercise.rpe.trim() !== '' && exercise.rpe !== '0' ? exercise.rpe : '-'}
+                    </Text>
+                  </VStack>
+                </SimpleGrid>
+                
+                {/* Coach Notes */}
+                {exercise.notes && exercise.notes.trim() !== '' && (
+                  <Box pt={1}>
+                    <Text fontSize="xs" color={textColor} fontStyle="italic">
+                      "{exercise.notes}"
+                    </Text>
+                  </Box>
+                )}
+              </VStack>
+            </Box>
+          ))}
+        </VStack>
+      </CardBody>
+    </Card>
   );
 };
 
@@ -703,6 +866,9 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
   endDate,
   location,
   isTemplate,
+  // Block mode props
+  isBlockMode = false,
+  blocks = [],
 }) => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [copyExercise, setCopyExercise] = useState<{exercise: SelectedExercise, fromDay: string} | null>(null);
@@ -1232,27 +1398,49 @@ const Step4ReviewSave: React.FC<Step4ReviewSaveProps> = ({
         <VStack spacing={6} align="stretch">
           <HStack justify="space-between" align="center">
             <Heading size="lg" color={headingColor}>
-              {templateType === 'single' ? 'Exercise Details' : 'Weekly Training Plan'}
+              {templateType === 'single' 
+                ? (isBlockMode && blocks.length > 0 ? 'Training Blocks' : 'Exercise Details')
+                : 'Weekly Training Plan'
+              }
             </Heading>
+            {templateType === 'single' && isBlockMode && blocks.length > 0 && (
+              <Badge colorScheme="green" size="lg" px={3} py={1}>
+                Block Mode
+              </Badge>
+            )}
         </HStack>
         
           {templateType === 'single' ? (
-            // Single Day Workout Display with Drag and Drop
-            <SortableContext 
-              items={selectedExercises.map(ex => `single-${ex.instanceId}`)} 
-              strategy={verticalListSortingStrategy}
-            >
-              <VStack spacing={4} align="stretch">
-                {selectedExercises.map((exercise, index) => (
-                  <DraggableSingleDayExercise
-                    key={exercise.instanceId}
-                    exercise={exercise}
-                    index={index}
+            // Check if block mode is enabled
+            isBlockMode && blocks.length > 0 ? (
+              // Block Mode Display - show exercises organized by blocks
+              <VStack spacing={6} align="stretch">
+                {blocks.map((block) => (
+                  <BlockDisplay
+                    key={block.id}
+                    block={block}
                     onEdit={handleEditExercise}
                   />
                 ))}
               </VStack>
-            </SortableContext>
+            ) : (
+              // Single Day Workout Display with Drag and Drop
+              <SortableContext 
+                items={selectedExercises.map(ex => `single-${ex.instanceId}`)} 
+                strategy={verticalListSortingStrategy}
+              >
+                <VStack spacing={4} align="stretch">
+                  {selectedExercises.map((exercise, index) => (
+                    <DraggableSingleDayExercise
+                      key={exercise.instanceId}
+                      exercise={exercise}
+                      index={index}
+                      onEdit={handleEditExercise}
+                    />
+                  ))}
+                </VStack>
+              </SortableContext>
+            )
           ) : (
             // Weekly Plan Display with Drag and Drop
           <VStack spacing={6} align="stretch">

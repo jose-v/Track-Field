@@ -310,7 +310,7 @@ const MeetCard: React.FC<{
                 Registration
               </Link>
             ) : (
-              <Text fontSize="md" color="gray.400">No Registration</Text>
+              <Text fontSize="md" color="gray.400">No Link Provided</Text>
             )}
           </HStack>
         </VStack>

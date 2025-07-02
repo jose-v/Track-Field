@@ -23,12 +23,17 @@ import {
   Menu,
   MenuButton,
   MenuList,
-  MenuItem
+  MenuItem,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel
 } from '@chakra-ui/react';
 import { FaBell, FaCheckCircle, FaUserPlus, FaTrophy, FaCalendarAlt, FaEllipsisV } from 'react-icons/fa';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow, isToday, isYesterday, isThisWeek, startOfDay } from 'date-fns';
 import { Link as RouterLink } from 'react-router-dom';
 
 interface NotificationData {
@@ -40,6 +45,7 @@ interface NotificationData {
   metadata: any;
   created_at: string;
   is_read: boolean;
+  is_archived?: boolean;
 }
 
 interface NotificationsModalProps {
@@ -48,6 +54,12 @@ interface NotificationsModalProps {
   notificationsPath: string;
   children: React.ReactElement; // The trigger element (bell icon)
   onNotificationRead?: () => void; // Callback when notifications are marked as read
+}
+
+type FilterType = 'unread' | 'read' | 'archived';
+
+interface GroupedNotifications {
+  [key: string]: NotificationData[];
 }
 
 export const NotificationsModal: React.FC<NotificationsModalProps> = ({
@@ -61,6 +73,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userProfiles, setUserProfiles] = useState<{ [key: string]: any }>({});
+  const [activeFilter, setActiveFilter] = useState<FilterType>('unread');
   const toast = useToast();
 
   // Color mode values
@@ -69,7 +82,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
   const textColor = useColorModeValue('gray.800', 'gray.200');
   const subtitleColor = useColorModeValue('gray.600', 'gray.400');
   const hoverBg = useColorModeValue('gray.50', 'gray.700');
-  const unreadBg = useColorModeValue('blue.50', 'blue.900');
+  const sectionHeaderColor = useColorModeValue('gray.500', 'gray.400');
 
   useEffect(() => {
     if (isOpen && user?.id) {
@@ -86,7 +99,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(10); // Get the 10 most recent notifications
+        .limit(50); // Get more notifications for filtering
       
       if (error) throw error;
       
@@ -167,6 +180,31 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
     }
   };
 
+  const markAsArchived = async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_archived: true, is_read: true })
+        .eq('id', notificationId);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setNotifications(prev => 
+        prev.map(notification => 
+          notification.id === notificationId 
+            ? { ...notification, is_archived: true, is_read: true } 
+            : notification
+        )
+      );
+      
+      // Notify parent component that notification was read
+      onNotificationRead?.();
+    } catch (error) {
+      console.error('Error archiving notification:', error);
+    }
+  };
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'coach_request':
@@ -181,6 +219,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
       case 'meet_reminder':
       case 'meet_assigned':
       case 'meet_updated':
+      case 'meet_file_added':
       case 'workout_assigned':
       case 'workout_updated':
         return FaCalendarAlt;
@@ -204,6 +243,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
       case 'meet_reminder':
       case 'meet_assigned':
       case 'meet_updated':
+      case 'meet_file_added':
         return 'purple';
       case 'workout_assigned':
       case 'workout_updated':
@@ -229,7 +269,8 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
 
   const markAllAsRead = async () => {
     try {
-      const unreadIds = notifications
+      const filteredNotifications = getFilteredNotifications();
+      const unreadIds = filteredNotifications
         .filter(notification => !notification.is_read)
         .map(notification => notification.id);
       
@@ -253,7 +294,11 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
       
       // Update local state
       setNotifications(prev => 
-        prev.map(notification => ({ ...notification, is_read: true }))
+        prev.map(notification => 
+          unreadIds.includes(notification.id)
+            ? { ...notification, is_read: true }
+            : notification
+        )
       );
 
       toast({
@@ -278,18 +323,6 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
     }
   };
 
-  const handleNotificationSettings = () => {
-    // You can implement this to open notification settings
-    // For now, it could redirect to a settings page or open a modal
-    toast({
-      title: 'Notification Settings',
-      description: 'Notification settings feature coming soon',
-      status: 'info',
-      duration: 3000,
-      isClosable: true,
-    });
-  };
-
   const getUserProfileForNotification = (notification: NotificationData) => {
     if (!notification.metadata) return null;
     
@@ -305,6 +338,63 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
     
     return userId ? userProfiles[userId] : null;
   };
+
+  const getFilteredNotifications = () => {
+    return notifications.filter(notification => {
+      switch (activeFilter) {
+        case 'unread':
+          return !notification.is_read && !notification.is_archived;
+        case 'read':
+          return notification.is_read && !notification.is_archived;
+        case 'archived':
+          return notification.is_archived;
+        default:
+          return true;
+      }
+    });
+  };
+
+  const groupNotificationsByDate = (notifications: NotificationData[]): GroupedNotifications => {
+    const groups: GroupedNotifications = {};
+    
+    notifications.forEach(notification => {
+      const date = new Date(notification.created_at);
+      let groupKey = '';
+      
+      if (isToday(date)) {
+        groupKey = 'Today';
+      } else if (isYesterday(date)) {
+        groupKey = 'Yesterday';
+      } else if (isThisWeek(date)) {
+        groupKey = format(date, 'EEEE'); // Monday, Tuesday, etc.
+      } else {
+        groupKey = format(date, 'MMM d'); // Jan 15, Feb 3, etc.
+      }
+      
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
+      }
+      groups[groupKey].push(notification);
+    });
+    
+    return groups;
+  };
+
+  const getUnreadCount = (filter: FilterType) => {
+    switch (filter) {
+      case 'unread':
+        return notifications.filter(n => !n.is_read && !n.is_archived).length;
+      case 'read':
+        return notifications.filter(n => n.is_read && !n.is_archived).length;
+      case 'archived':
+        return notifications.filter(n => n.is_archived).length;
+      default:
+        return 0;
+    }
+  };
+
+  const filteredNotifications = getFilteredNotifications();
+  const groupedNotifications = groupNotificationsByDate(filteredNotifications);
 
   return (
     <Popover 
@@ -322,151 +412,252 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
         border="1px"
         borderColor={borderColor}
         w="400px"
-        maxH="500px"
+        maxH="600px"
         boxShadow="0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
         _focus={{ boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" }}
       >
-        <PopoverHeader border="none">
+        <PopoverHeader border="none" pb={0}>
           <Flex justify="space-between" align="center" py={2}>
             <Text fontSize="lg" fontWeight="semibold" color={textColor}>
               Notifications
             </Text>
-            <Menu>
-              <MenuButton
-                as={IconButton}
-                aria-label="More options"
-                icon={<FaEllipsisV />}
-                variant="ghost"
-                size="sm"
-                color={subtitleColor}
-              />
-                             <MenuList>
-                 <MenuItem onClick={markAllAsRead}>Mark All as Read</MenuItem>
-                 <MenuItem onClick={handleNotificationSettings}>Set In-app Notifications</MenuItem>
-               </MenuList>
-            </Menu>
           </Flex>
+          
+          {/* Filter Tabs */}
+          <Tabs variant="line" size="sm" colorScheme="blue" onChange={(index) => {
+            const filters: FilterType[] = ['unread', 'read', 'archived'];
+            setActiveFilter(filters[index]);
+          }}>
+            <TabList borderBottom="1px" borderColor={borderColor}>
+              <Tab 
+                fontSize="sm" 
+                fontWeight="medium"
+                color={subtitleColor}
+                _selected={{ 
+                  color: textColor,
+                  borderColor: "blue.500"
+                }}
+                _hover={{
+                  color: textColor
+                }}
+              >
+                Unread
+                {getUnreadCount('unread') > 0 && (
+                  <Badge ml={2} colorScheme="blue" variant="solid" fontSize="xs">
+                    {getUnreadCount('unread')}
+                  </Badge>
+                )}
+              </Tab>
+              <Tab 
+                fontSize="sm" 
+                fontWeight="medium"
+                color={subtitleColor}
+                _selected={{ 
+                  color: textColor,
+                  borderColor: "blue.500"
+                }}
+                _hover={{
+                  color: textColor
+                }}
+              >
+                Read
+              </Tab>
+              <Tab 
+                fontSize="sm" 
+                fontWeight="medium"
+                color={subtitleColor}
+                _selected={{ 
+                  color: textColor,
+                  borderColor: "blue.500"
+                }}
+                _hover={{
+                  color: textColor
+                }}
+              >
+                Archived
+              </Tab>
+            </TabList>
+          </Tabs>
         </PopoverHeader>
         
-        <PopoverBody px={0} pb={4} overflowY="auto" maxH="400px">
+        <PopoverBody px={0} pb={4} overflowY="auto" maxH="450px">
           {isLoading ? (
             <Flex justify="center" py={8}>
               <Spinner size="lg" color="blue.500" />
             </Flex>
-          ) : notifications.length === 0 ? (
+          ) : filteredNotifications.length === 0 ? (
             <Box textAlign="center" py={8} px={6}>
               <Icon as={FaBell} boxSize={12} color="gray.400" mb={4} />
               <Text color={subtitleColor} fontSize="md">
-                No notifications yet
+                No {activeFilter} notifications
               </Text>
               <Text color={subtitleColor} fontSize="sm" mt={2}>
-                We'll notify you when something important happens
+                {activeFilter === 'unread' 
+                  ? "We'll notify you when something important happens"
+                  : `No ${activeFilter} notifications to show`
+                }
               </Text>
             </Box>
           ) : (
             <VStack spacing={0} align="stretch">
-              {notifications.map((notification, index) => {
-                const userProfile = getUserProfileForNotification(notification);
-                
-                return (
-                  <Box key={notification.id}>
-                    <Box
-                      px={6}
-                      py={4}
-                      _hover={{ bg: hoverBg }}
-                      cursor="pointer"
-                      onClick={() => handleNotificationClick(notification)}
-                      transition="background-color 0.2s"
+              {Object.entries(groupedNotifications).map(([dateGroup, groupNotifications]) => (
+                <Box key={dateGroup}>
+                  {/* Date Section Header */}
+                  <Flex justify="space-between" align="center" px={6} py={3} bg={useColorModeValue('gray.50', 'gray.750')}>
+                    <Text fontSize="sm" fontWeight="semibold" color={sectionHeaderColor}>
+                      {dateGroup}
+                      <Badge ml={2} variant="outline" colorScheme="gray" fontSize="xs">
+                        {groupNotifications.length}
+                      </Badge>
+                    </Text>
+                    <Button
+                      variant="link"
+                      size="xs"
+                      colorScheme="blue"
+                      fontWeight="medium"
+                      as={RouterLink}
+                      to={notificationsPath}
+                      onClick={onClose}
                     >
-                      <HStack spacing={3} align="start">
-                        {/* User Avatar */}
-                        <Box position="relative">
-                          {userProfile ? (
-                            <Avatar
-                              size="md"
-                              name={`${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim()}
-                              src={userProfile.avatar_url}
-                            />
-                          ) : (
-                            <Box
-                              p={2}
-                              borderRadius="50%"
-                              bg={`${getNotificationColor(notification.type)}.100`}
-                              color={`${getNotificationColor(notification.type)}.600`}
-                              w={10}
-                              h={10}
-                              display="flex"
-                              alignItems="center"
-                              justifyContent="center"
-                            >
-                              <Icon 
-                                as={getNotificationIcon(notification.type)} 
-                                boxSize={4}
-                              />
+                      See All
+                    </Button>
+                  </Flex>
+                  
+                  {/* Notifications in this date group */}
+                  {groupNotifications.map((notification, index) => {
+                    const userProfile = getUserProfileForNotification(notification);
+                    
+                    return (
+                      <Box key={notification.id}>
+                        <Box
+                          px={6}
+                          py={4}
+                          _hover={{ bg: hoverBg }}
+                          cursor="pointer"
+                          onClick={() => handleNotificationClick(notification)}
+                          transition="background-color 0.2s"
+                        >
+                          <HStack spacing={3} align="start">
+                            {/* User Avatar */}
+                            <Box position="relative">
+                              {userProfile ? (
+                                <Avatar
+                                  size="md"
+                                  name={`${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim()}
+                                  src={userProfile.avatar_url}
+                                />
+                              ) : (
+                                <Box
+                                  p={2}
+                                  borderRadius="50%"
+                                  bg={`${getNotificationColor(notification.type)}.100`}
+                                  color={`${getNotificationColor(notification.type)}.600`}
+                                  w={10}
+                                  h={10}
+                                  display="flex"
+                                  alignItems="center"
+                                  justifyContent="center"
+                                >
+                                  <Icon 
+                                    as={getNotificationIcon(notification.type)} 
+                                    boxSize={4}
+                                  />
+                                </Box>
+                              )}
+                              {!notification.is_read && (
+                                <Box
+                                  position="absolute"
+                                  top="0"
+                                  right="0"
+                                  w={3}
+                                  h={3}
+                                  bg="blue.500"
+                                  borderRadius="full"
+                                  border="2px"
+                                  borderColor={bgColor}
+                                />
+                              )}
                             </Box>
-                          )}
-                          {!notification.is_read && (
-                            <Box
-                              position="absolute"
-                              top="0"
-                              right="0"
-                              w={3}
-                              h={3}
-                              bg="red.500"
-                              borderRadius="full"
-                              border="2px"
-                              borderColor={bgColor}
-                            />
-                          )}
-                        </Box>
 
-                        {/* Notification Content */}
-                        <Box flex={1} minW={0}>
-                          <Text
-                            fontSize="sm"
-                            fontWeight={notification.is_read ? 'normal' : 'bold'}
-                            color={textColor}
-                            noOfLines={2}
-                            mb={1}
-                          >
-                            {notification.title}
-                          </Text>
-                          <Text
-                            fontSize="xs"
-                            color={subtitleColor}
-                            noOfLines={2}
-                            mb={2}
-                          >
-                            {notification.message}
-                          </Text>
-                          <Text fontSize="xs" color={subtitleColor}>
-                            {formatTimeAgo(notification.created_at)}
-                          </Text>
+                            {/* Notification Content */}
+                            <Box flex={1} minW={0}>
+                              <Text
+                                fontSize="sm"
+                                fontWeight={notification.is_read ? 'normal' : 'bold'}
+                                color={textColor}
+                                noOfLines={2}
+                                mb={1}
+                              >
+                                {notification.title}
+                              </Text>
+                              <Text
+                                fontSize="xs"
+                                color={subtitleColor}
+                                noOfLines={2}
+                                mb={2}
+                              >
+                                {notification.message}
+                              </Text>
+                              <Text fontSize="xs" color={subtitleColor}>
+                                {formatTimeAgo(notification.created_at)}
+                              </Text>
+                            </Box>
+
+                            {/* Action Buttons for specific notification types */}
+                            {notification.type === 'coach_request' && !notification.is_read && (
+                              <VStack spacing={1}>
+                                <Button
+                                  size="xs"
+                                  colorScheme="blue"
+                                  variant="solid"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    // Handle respond action
+                                    markAsRead(notification.id);
+                                  }}
+                                >
+                                  Respond
+                                </Button>
+                                <Button
+                                  size="xs"
+                                  variant="ghost"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    markAsArchived(notification.id);
+                                  }}
+                                >
+                                  Ignore
+                                </Button>
+                              </VStack>
+                            )}
+                          </HStack>
                         </Box>
-                      </HStack>
-                    </Box>
-                    {index < notifications.length - 1 && (
-                      <Divider borderColor={borderColor} />
-                    )}
-                  </Box>
-                );
-              })}
+                                                 {index < groupNotifications.length - 1 && (
+                           <Box px={6}>
+                             <Divider borderColor={borderColor} />
+                           </Box>
+                         )}
+                      </Box>
+                    );
+                  })}
+                </Box>
+              ))}
             </VStack>
           )}
 
-          {/* View All Button */}
-          {notifications.length > 0 && (
-            <Box px={6} pt={4}>
+          {/* Mark All as Read Button */}
+          {filteredNotifications.length > 0 && activeFilter === 'unread' && (
+            <Box px={6} pt={4} borderTop="1px" borderColor={borderColor} mt={4}>
               <Button
-                as={RouterLink}
-                to={notificationsPath}
                 variant="ghost"
-                colorScheme="blue"
                 size="sm"
                 width="full"
-                onClick={onClose}
+                leftIcon={<Icon as={FaCheckCircle} />}
+                onClick={markAllAsRead}
+                color={subtitleColor}
+                _hover={{ color: textColor, bg: hoverBg }}
               >
-                View All Notifications
+                Mark all notifications as read
               </Button>
             </Box>
           )}

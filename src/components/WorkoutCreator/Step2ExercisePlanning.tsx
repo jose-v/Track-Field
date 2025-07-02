@@ -39,16 +39,23 @@ import {
   MenuList,
   MenuItem,
   ButtonGroup,
+  Select,
 } from '@chakra-ui/react';
 import { Search, PlusCircle, X, Library, FileText, Moon, Plus, Copy, ChevronDown, GripVertical, Trash2 } from 'lucide-react';
 import { ExerciseLibrary } from '../ExerciseLibrary/ExerciseLibrary';
+import { BlockModeToggle } from './BlockModeToggle';
+import { ExerciseBlock } from './ExerciseBlock';
 import {
   DndContext,
   DragEndEvent,
+  DragStartEvent,
   closestCenter,
   PointerSensor,
   useSensor,
   useSensors,
+  useDroppable,
+  useDraggable,
+  DragOverlay,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -119,6 +126,11 @@ interface Step2ExercisePlanningProps {
   isLoadingExercises?: boolean;
   currentUserId?: string;
   userTeams?: Array<{ id: string; name: string }>;
+  // Block mode props
+  isBlockMode?: boolean;
+  onToggleBlockMode?: (blockMode: boolean) => void;
+  blocks?: any[];
+  onUpdateBlocks?: (blocks: any[]) => void;
 }
 
 const EXERCISE_CATEGORIES = ['All', 'Lift', 'Bodyweight', 'Run Interval', 'Core', 'Plyometric', 'Warm-up', 'Cool-down', 'Drill', 'Custom'];
@@ -384,11 +396,23 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
   isLoadingExercises = false,
   currentUserId,
   userTeams,
+  // Block mode props
+  isBlockMode = false,
+  onToggleBlockMode,
+  blocks = [],
+  onUpdateBlocks,
 }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isClearAllOpen, onOpen: onClearAllOpen, onClose: onClearAllClose } = useDisclosure();
   const [newExerciseName, setNewExerciseName] = useState('');
   const [newExerciseDescription, setNewExerciseDescription] = useState('');
+
+  // Modal state removed - using drag and drop only
+  
+  // Drag overlay state
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeItem, setActiveItem] = useState<any>(null);
+
   const cancelRef = React.useRef<HTMLButtonElement>(null);
 
   // DnD Sensors
@@ -400,7 +424,27 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
     })
   );
 
-  // Handle drag end
+  // Handle drag start
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    setActiveId(active.id as string);
+    
+    const activeData = active.data.current;
+    
+    // Find the active item based on its type
+    if (activeData?.type === 'block') {
+      const block = blocks.find(b => b.id === active.id);
+      setActiveItem({ type: 'block', item: block });
+    } else if (activeData?.type === 'library-exercise') {
+      setActiveItem({ type: 'exercise', item: activeData.exercise });
+    } else {
+      // Regular exercise in simple mode
+      const exercise = selectedExercises.find(ex => ex.instanceId === active.id);
+      setActiveItem({ type: 'exercise', item: exercise });
+    }
+  };
+
+  // Handle drag end for exercises (simple mode)
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -413,6 +457,68 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
         onReorderExercises(reorderedExercises);
       }
     }
+    
+    // Clear drag overlay state
+    setActiveId(null);
+    setActiveItem(null);
+  };
+
+  // Handle drag end for blocks (block mode) - supports both block reordering and library-to-block drops
+  const handleBlockDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over) return;
+
+    const activeData = active.data.current;
+    const overData = over.data.current;
+
+    // Case 1: Library exercise dropped on block
+    if (activeData?.type === 'library-exercise' && overData?.type === 'block') {
+      const exercise = activeData.exercise;
+      const blockId = overData.blockId;
+      
+      if (!onUpdateBlocks) return;
+
+      const updatedBlocks = blocks.map(block => {
+        if (block.id === blockId) {
+          const newExercise = {
+            ...exercise,
+            instanceId: `${exercise.id}-${Date.now()}`,
+            sets: '',
+            reps: '',
+            weight: '',
+            distance: '',
+            rest: '',
+            rpe: '',
+            notes: '',
+          };
+          
+          return {
+            ...block,
+            exercises: [...(block.exercises || []), newExercise],
+          };
+        }
+        return block;
+      });
+
+      onUpdateBlocks(updatedBlocks);
+      return;
+    }
+
+    // Case 2: Block reordering (existing logic)
+    if (activeData?.type === 'block' && overData?.type === 'block' && active.id !== over.id) {
+      const oldIndex = blocks.findIndex(block => block.id === active.id);
+      const newIndex = blocks.findIndex(block => block.id === over.id);
+      
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const reorderedBlocks = arrayMove(blocks, oldIndex, newIndex);
+        onUpdateBlocks?.(reorderedBlocks);
+      }
+    }
+    
+    // Clear drag overlay state
+    setActiveId(null);
+    setActiveItem(null);
   };
 
   // Theme-aware colors
@@ -553,14 +659,85 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
   const currentDayName = DAYS_OF_WEEK.find(d => d.value === currentDay)?.label || 'Day';
   const workoutHeading = templateType === 'weekly' ? `${currentDayName} Exercises` : 'Workout Exercises';
 
+  // Calculate total exercise count (from blocks in block mode, from selectedExercises otherwise)
+  const totalExerciseCount = isBlockMode 
+    ? blocks.reduce((total, block) => total + (block.exercises?.length || 0), 0)
+    : selectedExercises.length;
+
+  // Get selected exercise IDs for visual feedback in Exercise Library
+  const getSelectedExerciseIds = (): string[] => {
+    if (isBlockMode) {
+      return blocks.flatMap(block => 
+        block.exercises?.map(ex => ex.id) || []
+      );
+    } else {
+      // For multi-day selection, get exercises from all selected days
+      if (selectedDays.length > 1) {
+        const allExerciseIds = new Set<string>();
+        selectedDays.forEach(day => {
+          (allSelectedExercises[day] || []).forEach(ex => allExerciseIds.add(ex.id));
+        });
+        return Array.from(allExerciseIds);
+      } else {
+        return selectedExercises.map(ex => ex.id);
+      }
+    }
+  };
+
+  // Exercise addition is now handled via drag and drop only
+
+  // Handle removing exercise from block
+  const handleRemoveExerciseFromBlock = (blockId: string, exerciseInstanceId: string) => {
+    if (!onUpdateBlocks) return;
+
+    const updatedBlocks = blocks.map(block => {
+      if (block.id === blockId) {
+        return {
+          ...block,
+          exercises: block.exercises?.filter(ex => ex.instanceId !== exerciseInstanceId) || []
+        };
+      }
+      return block;
+    });
+
+    onUpdateBlocks(updatedBlocks);
+  };
+
+  // Handle updating exercise in block
+  const handleUpdateExerciseInBlock = (blockId: string, exerciseInstanceId: string, field: string, value: string) => {
+    if (!onUpdateBlocks) return;
+
+    const updatedBlocks = blocks.map(block => {
+      if (block.id === blockId) {
+        return {
+          ...block,
+          exercises: block.exercises?.map(ex => 
+            ex.instanceId === exerciseInstanceId 
+              ? { ...ex, [field]: value }
+              : ex
+          ) || []
+        };
+      }
+      return block;
+    });
+
+    onUpdateBlocks(updatedBlocks);
+  };
+
   return (
-    <Box w="100%" mb={0}>
-      <HStack spacing={4} align="start" w="100%" height="calc(100vh - 380px)">
+    <Box w="100%" mb={0} position="relative" zIndex={0}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={isBlockMode ? handleBlockDragEnd : handleDragEnd}
+      >
+        <HStack spacing={4} align="start" w="100%" height="calc(100vh - 380px)">
         {/* Left Panel: Exercise Library */}
         <Card flex="1" height="100%" variant="outline" shadow="none" bg={cardBg} borderColor={borderColor}>
           <CardBody p={0} height="100%">
             <ExerciseLibrary
-              exercises={customExercises}
+              exercises={exercises}
               onAddExercise={onAddCustomExercise}
               onUpdateExercise={onUpdateCustomExercise}
               onDeleteExercise={onDeleteCustomExercise}
@@ -569,10 +746,11 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
               userTeams={userTeams}
               onExerciseSelect={onAddExercise}
               selectionMode={true}
-              selectedExercises={selectedExercises.map(ex => ex.id)}
+              selectedExercises={getSelectedExerciseIds()}
               title="Exercise Library"
-              subtitle="Select exercises to add to your workout"
+              subtitle={isBlockMode ? "Drag exercises to blocks" : "Click exercises to add/remove from workout"}
               showAddButton={true}
+              enableDrag={isBlockMode}
             />
           </CardBody>
         </Card>
@@ -591,9 +769,19 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
                   </Heading>
                 </HStack>
                 <Badge colorScheme={isRestDay ? "orange" : "blue"} variant="solid" fontSize="md" px={3} py={1}>
-                  {isRestDay ? "REST DAY" : `${selectedExercises.length} EXERCISES`}
+                  {isRestDay ? "REST DAY" : `${totalExerciseCount} EXERCISES`}
                 </Badge>
               </HStack>
+
+              {/* Block Mode Toggle - Only show for single workouts when exercises exist */}
+              {templateType === 'single' && !isRestDay && onToggleBlockMode && totalExerciseCount > 0 && (
+                <BlockModeToggle
+                  isBlockMode={isBlockMode}
+                  onToggle={onToggleBlockMode}
+                  exerciseCount={totalExerciseCount}
+                  blockCount={blocks.length}
+                />
+              )}
 
               {/* Day Selector and Controls - Only show for weekly templates */}
               {templateType === 'weekly' && (
@@ -678,7 +866,7 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
                           _hover={{ bg: "gray.100", color: "gray.800", borderColor: "gray.300" }}
                           leftIcon={<Copy size={14} />} 
                           rightIcon={<ChevronDown size={14} />}
-                          isDisabled={selectedExercises.length === 0 || isRestDay}
+                          isDisabled={totalExerciseCount === 0 || isRestDay}
                         >
                           Copy to...
                         </MenuButton>
@@ -764,7 +952,7 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
                     </Text>
                   </VStack>
                 </VStack>
-              ) : selectedExercises.length === 0 ? (
+              ) : totalExerciseCount === 0 ? (
                 <VStack 
                   flex="1"
                   justify="center"
@@ -788,12 +976,189 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
                     </Text>
                   </VStack>
                 </VStack>
+              ) : isBlockMode ? (
+                // Block mode view - simplified display
+                <VStack spacing={3} align="stretch">
+                  {blocks.length === 0 ? (
+                    <VStack 
+                      flex="1"
+                      justify="center"
+                      spacing={4}
+                      p={8}
+                      textAlign="center"
+                      borderWidth="2px" 
+                      borderStyle="dashed" 
+                      borderColor={emptyStateBorderColor}
+                      borderRadius="lg"
+                      bg={emptyStateBg}
+                    >
+                      <div style={{ fontSize: '48px', opacity: 0.6 }}>🧩</div>
+                      <VStack spacing={2}>
+                        <Text color="blue.600" fontSize="lg" fontWeight="bold">
+                          Block Mode Enabled
+                        </Text>
+                        <Text color="blue.500" fontSize="md">
+                          Your exercises will be organized into training blocks
+                        </Text>
+                        <Text color="blue.400" fontSize="sm">
+                          Add exercises from the library to create blocks automatically
+                        </Text>
+                      </VStack>
+                    </VStack>
+                  ) : (
+                    <VStack spacing={4} align="stretch">
+                        <SortableContext
+                          items={blocks.map(block => block.id)}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          {blocks.map((block, index) => (
+                            <ExerciseBlock
+                              key={block.id}
+                              block={block}
+                              onUpdateBlock={(updatedBlock) => {
+                                const updatedBlocks = blocks.map(b => 
+                                  b.id === updatedBlock.id ? updatedBlock : b
+                                );
+                                onUpdateBlocks?.(updatedBlocks);
+                              }}
+                              onDeleteBlock={() => {
+                                const updatedBlocks = blocks.filter(b => b.id !== block.id);
+                                onUpdateBlocks?.(updatedBlocks);
+                              }}
+                              onDuplicateBlock={() => {
+                                const duplicatedBlock = {
+                                  ...block,
+                                  id: `${block.id}-copy-${Date.now()}`,
+                                  name: `${block.name} (Copy)`,
+                                };
+                                const insertIndex = index + 1;
+                                const updatedBlocks = [
+                                  ...blocks.slice(0, insertIndex),
+                                  duplicatedBlock,
+                                  ...blocks.slice(insertIndex)
+                                ];
+                                onUpdateBlocks?.(updatedBlocks);
+                              }}
+                              // Exercise addition via drag and drop only
+                            >
+                              {/* Render exercises in this block */}
+                              {block.exercises?.map((exercise: any, exIndex: number) => (
+                                <Card key={exercise.instanceId} variant="outline" bg={exerciseCardBg} borderColor={exerciseCardBorderColor} mb={2}>
+                                  <CardBody p={3}>
+                                    <HStack justify="space-between" align="start">
+                                      <VStack align="start" spacing={2} flex={1}>
+                                        <HStack spacing={2} align="center" w="100%">
+                                          <Text fontSize="sm" color={exerciseNameColor} fontWeight="medium" flex={1}>
+                                            {exercise.name}
+                                          </Text>
+                                          <IconButton
+                                            icon={<X size={14} />}
+                                            size="xs"
+                                            variant="ghost"
+                                            colorScheme="red"
+                                            onClick={() => handleRemoveExerciseFromBlock(block.id, exercise.instanceId)}
+                                            aria-label="Remove exercise"
+                                          />
+                                        </HStack>
+                                        
+                                        {/* Exercise Parameters */}
+                                        <HStack spacing={2} w="100%" flexWrap="wrap">
+                                          <HStack spacing={1}>
+                                            <Text fontSize="xs" color={formLabelColor}>Sets:</Text>
+                                            <Input
+                                              size="xs"
+                                              width="50px"
+                                              value={exercise.sets || ''}
+                                              onChange={(e) => handleUpdateExerciseInBlock(block.id, exercise.instanceId, 'sets', e.target.value)}
+                                              placeholder="3"
+                                            />
+                                          </HStack>
+                                          <HStack spacing={1}>
+                                            <Text fontSize="xs" color={formLabelColor}>Reps:</Text>
+                                            <Input
+                                              size="xs"
+                                              width="50px"
+                                              value={exercise.reps || ''}
+                                              onChange={(e) => handleUpdateExerciseInBlock(block.id, exercise.instanceId, 'reps', e.target.value)}
+                                              placeholder="10"
+                                            />
+                                          </HStack>
+                                          <HStack spacing={1}>
+                                            <Text fontSize="xs" color={formLabelColor}>Weight:</Text>
+                                            <Input
+                                              size="xs"
+                                              width="60px"
+                                              value={exercise.weight || ''}
+                                              onChange={(e) => handleUpdateExerciseInBlock(block.id, exercise.instanceId, 'weight', e.target.value)}
+                                              placeholder="70kg"
+                                            />
+                                          </HStack>
+                                          <HStack spacing={1}>
+                                            <Text fontSize="xs" color={formLabelColor}>Distance:</Text>
+                                            <Input
+                                              size="xs"
+                                              width="60px"
+                                              value={exercise.distance || ''}
+                                              onChange={(e) => handleUpdateExerciseInBlock(block.id, exercise.instanceId, 'distance', e.target.value)}
+                                              placeholder="100m"
+                                            />
+                                          </HStack>
+                                          <HStack spacing={1}>
+                                            <Text fontSize="xs" color={formLabelColor}>Rest:</Text>
+                                            <Input
+                                              size="xs"
+                                              width="50px"
+                                              value={exercise.rest || ''}
+                                              onChange={(e) => handleUpdateExerciseInBlock(block.id, exercise.instanceId, 'rest', e.target.value)}
+                                              placeholder="60s"
+                                            />
+                                          </HStack>
+                                          <HStack spacing={1}>
+                                            <Text fontSize="xs" color={formLabelColor}>RPE:</Text>
+                                            <Input
+                                              size="xs"
+                                              width="40px"
+                                              value={exercise.rpe || ''}
+                                              onChange={(e) => handleUpdateExerciseInBlock(block.id, exercise.instanceId, 'rpe', e.target.value)}
+                                              placeholder="8"
+                                            />
+                                          </HStack>
+                                        </HStack>
+                                      </VStack>
+                                    </HStack>
+                                  </CardBody>
+                                </Card>
+                              ))}
+                            </ExerciseBlock>
+                          ))}
+                        </SortableContext>
+                      
+                      {/* Add New Block Button */}
+                      <Button
+                        leftIcon={<Plus size={16} />}
+                        variant="dashed"
+                        colorScheme="gray"
+                        size="lg"
+                        h={16}
+                        onClick={() => {
+                          const newBlock = {
+                            id: `custom-block-${Date.now()}`,
+                            name: `Block ${blocks.length + 1}`,
+                            exercises: [],
+                            flow: 'sequential',
+                            category: 'main',
+                            restBetweenExercises: 60,
+                            rounds: 1,
+                          };
+                          onUpdateBlocks?.([...blocks, newBlock]);
+                        }}
+                      >
+                        Add New Block
+                      </Button>
+                    </VStack>
+                  )}
+                </VStack>
               ) : (
-                <DndContext 
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleDragEnd}
-                >
                   <SortableContext 
                     items={selectedExercises.map(ex => ex.instanceId)}
                     strategy={verticalListSortingStrategy}
@@ -820,7 +1185,6 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
                       ))}
                     </VStack>
                   </SortableContext>
-                </DndContext>
               )}
             </Box>
           </CardBody>
@@ -907,6 +1271,51 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      {/* Exercise selection modal removed - using drag and drop only */}
+      
+        {/* Drag Overlay */}
+        <DragOverlay>
+          {activeItem && activeItem.type === 'block' && activeItem.item && (
+            <Box
+              bg={useColorModeValue('gray.50', 'gray.700')}
+              border="2px"
+              borderColor={useColorModeValue('blue.300', 'blue.400')}
+              borderRadius="lg"
+              p={3}
+              shadow="lg"
+              opacity={0.9}
+              maxW="300px"
+            >
+              <Text fontWeight="bold" fontSize="lg">
+                {activeItem.item.name || 'Untitled Block'}
+              </Text>
+              <Text fontSize="sm" color="gray.500">
+                {activeItem.item.exercises?.length || 0} exercises
+              </Text>
+            </Box>
+          )}
+          {activeItem && activeItem.type === 'exercise' && activeItem.item && (
+            <Box
+              bg={useColorModeValue('white', 'gray.600')}
+              border="1px"
+              borderColor={useColorModeValue('blue.300', 'blue.400')}
+              borderRadius="md"
+              p={3}
+              shadow="lg"
+              opacity={0.9}
+              maxW="250px"
+            >
+              <Text fontWeight="bold" fontSize="md">
+                {activeItem.item.name}
+              </Text>
+              <Text fontSize="sm" color="gray.500" noOfLines={1}>
+                {activeItem.item.description}
+              </Text>
+            </Box>
+          )}
+        </DragOverlay>
+        </DndContext>
     </Box>
   );
 };

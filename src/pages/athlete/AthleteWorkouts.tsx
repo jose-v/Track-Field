@@ -50,6 +50,24 @@ function getVideoUrl(exerciseName: string) {
   return 'https://www.youtube.com/embed/dQw4w9WgXcQ'; // Default
 }
 
+// Helper: get actual exercise count from workout (handles weekly templates)
+function getActualExerciseCount(workout: any): number {
+  if (!workout?.exercises || !Array.isArray(workout.exercises)) return 0;
+  
+  const isWeeklyTemplate = workout.exercises.length > 0 && 
+                          typeof workout.exercises[0] === 'object' && 
+                          'day' in workout.exercises[0] && 
+                          'exercises' in workout.exercises[0];
+  
+  if (isWeeklyTemplate) {
+    // For weekly templates, get exercises from current day (assuming Monday for now)
+    const currentDayPlan = workout.exercises[0] as any;
+    return currentDayPlan.exercises?.length || 0;
+  } else {
+    return workout.exercises.length;
+  }
+}
+
 // Helper to format date string to YYYY-MM-DD for comparison
 function formatDateForComparison(dateStr: string | undefined): string {
   if (!dateStr) return '';
@@ -203,7 +221,9 @@ export function AthleteWorkouts() {
     });
     const completedWorkouts = assignedWorkouts.filter(w => {
       const progress = workoutStore.getProgress(w.id);
-      const totalExercises = w.exercises?.length || 0;
+      
+              const totalExercises = getActualExerciseCount(w);
+      
       const completedExercises = progress ? progress.completedExercises.length : 0;
       return totalExercises > 0 && completedExercises === totalExercises;
     });
@@ -442,7 +462,7 @@ export function AthleteWorkouts() {
               const workout = assignedWorkouts.find(w => w.id === assignment.workout_id);
               if (!workout) return;
               
-              const totalExercises = workout.exercises?.length || 0;
+              const totalExercises = getActualExerciseCount(workout);
               
               // If workout is completed in database, mark all exercises as completed in store
               if (assignment.status === 'completed') {
@@ -510,7 +530,8 @@ export function AthleteWorkouts() {
   const handleNextExercise = useCallback(() => {
     const workoutId = execModal.workout!.id;
     const exIdx = execModal.exerciseIdx;
-    const totalExercises = execModal.workout!.exercises.length;
+    
+    const totalExercises = getActualExerciseCount(execModal.workout!);
     
     // Mark current exercise as completed
     workoutStore.markExerciseCompleted(workoutId, exIdx);
@@ -766,7 +787,8 @@ export function AthleteWorkouts() {
         {workouts.map((workout) => {
           // Get completion data from workoutStore
           const completedCount = getCompletionCount(workout.id);
-          const totalExercises = workout.exercises?.length || 0;
+          
+          const totalExercises = getActualExerciseCount(workout);
           
           // Get the workout progress to find the first uncompleted exercise
           const workoutProgress = workoutStore.getProgress(workout.id);
@@ -848,7 +870,7 @@ export function AthleteWorkouts() {
             const workout = assignedWorkouts.find(w => w.id === assignment.workout_id);
             if (!workout) continue;
             
-            const totalExercises = workout.exercises?.length || 0;
+            const totalExercises = getActualExerciseCount(workout);
             
             // If marked as completed, update the store
             if (assignment.status === 'completed') {

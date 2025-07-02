@@ -5,7 +5,7 @@ import {
   AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter,
   useDisclosure
 } from '@chakra-ui/react';
-import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaUndo, FaTrashAlt, FaUser, FaCalendarAlt, FaClock, FaExclamationTriangle } from 'react-icons/fa';
+import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaUndo, FaTrashAlt, FaUser, FaCalendarAlt, FaClock, FaExclamationTriangle, FaLayerGroup } from 'react-icons/fa';
 import type { Workout } from '../../services/api';
 import { dateUtils } from '../../utils/date';
 import { format } from 'date-fns';
@@ -128,6 +128,14 @@ export function DeletedWorkoutCard({
               {workout.template_type && (
                 <Badge colorScheme="purple" variant="outline" fontSize="xs">
                   {workout.template_type.toUpperCase()}
+                </Badge>
+              )}
+              {(workout as any).is_block_based && (
+                <Badge colorScheme="green" variant="outline" fontSize="xs">
+                  <HStack spacing={1}>
+                    <Icon as={FaLayerGroup} boxSize={2} color="green.500" />
+                    <Text>BLOCKS</Text>
+                  </HStack>
                 </Badge>
               )}
             </VStack>

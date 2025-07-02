@@ -1,26 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
+  VStack,
+  HStack,
   Text,
   Button,
   Badge,
   Flex,
   Spinner,
   useToast,
-  IconButton,
-  Tooltip,
-  useColorModeValue
+  useColorModeValue,
+  Avatar,
+  Icon,
+  Divider,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
+  Container,
+  Heading
 } from '@chakra-ui/react';
-import { FaCheckCircle, FaTimesCircle, FaEye } from 'react-icons/fa';
+import { FaCheckCircle, FaTimesCircle, FaEye, FaBell, FaUserPlus, FaTrophy, FaCalendarAlt } from 'react-icons/fa';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow, isToday, isYesterday, isThisWeek } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface Notification {
@@ -32,6 +36,13 @@ interface Notification {
   metadata: any;
   created_at: string;
   is_read: boolean;
+  is_archived?: boolean;
+}
+
+type FilterType = 'unread' | 'read' | 'archived';
+
+interface GroupedNotifications {
+  [key: string]: Notification[];
 }
 
 const NotificationsTable: React.FC = () => {
@@ -39,14 +50,19 @@ const NotificationsTable: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<FilterType>('unread');
+  const [userProfiles, setUserProfiles] = useState<{ [key: string]: any }>({});
   const toast = useToast();
   const queryClient = useQueryClient();
 
   // Color mode values
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
   const textColor = useColorModeValue('gray.800', 'gray.200');
   const subtitleColor = useColorModeValue('gray.600', 'gray.400');
-  const unreadRowBg = useColorModeValue('blue.50', 'blue.900');
-  const emptyStateColor = useColorModeValue('gray.600', 'gray.400');
+  const hoverBg = useColorModeValue('gray.50', 'gray.700');
+  const sectionHeaderColor = useColorModeValue('gray.500', 'gray.400');
+  const cardBg = useColorModeValue('white', 'gray.750');
 
   useEffect(() => {
     if (user?.id) {
@@ -67,6 +83,42 @@ const NotificationsTable: React.FC = () => {
       if (error) throw error;
       
       setNotifications(data || []);
+
+      // Extract user IDs from notification metadata to fetch avatars
+      if (data && data.length > 0) {
+        const userIds = new Set<string>();
+        
+        data.forEach(notification => {
+          if (notification.metadata) {
+            if (notification.metadata.coach_id) {
+              userIds.add(notification.metadata.coach_id);
+            }
+            if (notification.metadata.athlete_id) {
+              userIds.add(notification.metadata.athlete_id);
+            }
+            if (notification.metadata.sender_id) {
+              userIds.add(notification.metadata.sender_id);
+            }
+          }
+        });
+
+        // Fetch user profiles for avatars
+        if (userIds.size > 0) {
+          const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, avatar_url')
+            .in('id', Array.from(userIds));
+
+          if (!profilesError && profiles) {
+            const profilesMap = profiles.reduce((acc, profile) => {
+              acc[profile.id] = profile;
+              return acc;
+            }, {} as { [key: string]: any });
+            
+            setUserProfiles(profilesMap);
+          }
+        }
+      }
     } catch (error) {
       console.error('Error fetching notifications:', error);
       toast({
@@ -90,7 +142,6 @@ const NotificationsTable: React.FC = () => {
       
       if (error) throw error;
       
-      // Update local state
       setNotifications(prev => 
         prev.map(notification => 
           notification.id === notificationId 
@@ -100,6 +151,27 @@ const NotificationsTable: React.FC = () => {
       );
     } catch (error) {
       console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const markAsArchived = async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_archived: true, is_read: true })
+        .eq('id', notificationId);
+      
+      if (error) throw error;
+      
+      setNotifications(prev => 
+        prev.map(notification => 
+          notification.id === notificationId 
+            ? { ...notification, is_archived: true, is_read: true } 
+            : notification
+        )
+      );
+    } catch (error) {
+      console.error('Error archiving notification:', error);
     }
   };
 
@@ -120,7 +192,6 @@ const NotificationsTable: React.FC = () => {
       
       if (error) throw error;
       
-      // Update local state
       setNotifications(prev => 
         prev.map(notification => 
           notification.id === notificationId 
@@ -144,9 +215,6 @@ const NotificationsTable: React.FC = () => {
     try {
       setIsProcessing(true);
       
-      console.log('Processing athlete request from:', athleteId, 'to coach:', user.id);
-      
-      // Get athlete name for the notification message
       const { data: athleteData } = await supabase
         .from('profiles')
         .select('first_name, last_name')
@@ -158,7 +226,6 @@ const NotificationsTable: React.FC = () => {
         : 'Athlete';
       
       if (approved) {
-        // Get coach's teams to add athlete to
         const { data: coachTeams, error: teamsError } = await supabase
           .from('team_members')
           .select('team_id, teams!inner(id, name, team_type)')
@@ -180,10 +247,8 @@ const NotificationsTable: React.FC = () => {
           return;
         }
 
-        // For now, add to the first team (coaches can move athletes later)
         const firstTeam = coachTeams[0];
         
-        // Add athlete to team using UPSERT to handle reactivating inactive members
         const { error: memberError } = await supabase
           .from('team_members')
           .upsert({
@@ -199,67 +264,53 @@ const NotificationsTable: React.FC = () => {
 
         if (memberError) throw memberError;
 
-        // Update notification with new status message
+        await supabase
+          .from('notifications')
+          .insert({
+            user_id: athleteId,
+            title: 'Request Approved!',
+            message: `Your request to join the team has been approved. Welcome!`,
+            type: 'team_invitation_accepted',
+            metadata: { coach_id: user.id, team_id: firstTeam.team_id }
+          });
+
         const newTitle = 'Athlete Request Approved';
-        const newMessage = `You approved ${athleteName}'s request and added them to your team`;
+        const newMessage = `You approved ${athleteName}'s request to join your team`;
         await updateNotificationMessage(notificationId, newTitle, newMessage);
         
         toast({
           title: 'Request Approved',
           description: `${athleteName} has been added to your team`,
           status: 'success',
-          duration: 5000,
+          duration: 3000,
           isClosable: true,
         });
-
-        // Send notification to athlete
+      } else {
         await supabase
           .from('notifications')
           .insert({
             user_id: athleteId,
-            type: 'team_invitation_accepted',
-            title: 'Request Approved!',
-            message: `Coach ${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''} approved your request and added you to their team`,
-            metadata: {
-              coach_id: user.id,
-              team_id: firstTeam.team_id,
-              team_name: (firstTeam as any).teams.name
-            }
+            title: 'Request Declined',
+            message: 'Your request to join the team has been declined.',
+            type: 'team_invitation_declined',
+            metadata: { coach_id: user.id }
           });
 
-      } else {
-        // Decline the request
         const newTitle = 'Athlete Request Declined';
         const newMessage = `You declined ${athleteName}'s request to join your team`;
         await updateNotificationMessage(notificationId, newTitle, newMessage);
         
         toast({
           title: 'Request Declined',
-          description: `You declined ${athleteName}'s request`,
+          description: `You declined ${athleteName}'s request to join your team`,
           status: 'info',
           duration: 3000,
           isClosable: true,
         });
-
-        // Send notification to athlete
-        await supabase
-          .from('notifications')
-          .insert({
-            user_id: athleteId,
-            type: 'team_invitation_declined',
-            title: 'Request Declined',
-            message: `Coach ${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''} declined your request to join their team`,
-            metadata: {
-              coach_id: user.id
-            }
-          });
       }
       
-      // Refresh notifications
       fetchNotifications();
-      
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ['coach-teams', user.id] });
+      queryClient.invalidateQueries({ queryKey: ['coach-athletes', user.id] });
     } catch (error) {
       console.error('Error handling athlete request:', error);
       toast({
@@ -280,23 +331,6 @@ const NotificationsTable: React.FC = () => {
     try {
       setIsProcessing(true);
       
-      console.log('Processing request from coach:', coachId, 'for athlete:', user.id);
-      
-      // Find the relationship record - don't filter by approval_status to allow retrying
-      const { data: relationships, error: relationshipError } = await supabase
-        .from('coach_athletes')
-        .select('*')
-        .eq('coach_id', coachId)
-        .eq('athlete_id', user.id);
-      
-      if (relationshipError) {
-        console.error('Relationship query error:', relationshipError);
-        throw relationshipError;
-      }
-      
-      console.log('Found relationships:', relationships);
-      
-      // Get coach name for the notification message
       const { data: coachData } = await supabase
         .from('profiles')
         .select('first_name, last_name')
@@ -304,100 +338,80 @@ const NotificationsTable: React.FC = () => {
         .single();
       
       const coachName = coachData 
-        ? `Coach ${coachData.first_name || ''} ${coachData.last_name || ''}`.trim()
+        ? `${coachData.first_name || ''} ${coachData.last_name || ''}`.trim()
         : 'Coach';
       
-      if (!relationships || relationships.length === 0) {
-        // If no relationship exists, create one
-        console.log('No existing relationship found, creating new one');
-        const { data: newRelationship, error: insertError } = await supabase
-          .from('coach_athletes')
-          .insert({
-            coach_id: coachId,
-            athlete_id: user.id,
-            approval_status: approved ? 'approved' : 'declined',
-            requested_at: new Date().toISOString(),
-            approved_at: approved ? new Date().toISOString() : null
-          })
-          .select('id')
-          .single();
-        
-        if (insertError) {
-          console.error('Failed to create relationship:', insertError);
-          throw insertError;
-        }
-        
-        console.log('Created new relationship:', newRelationship);
-        
-        // Update notification with new status message
-        const newTitle = approved ? 'Coach Request Accepted' : 'Coach Request Declined';
-        const newMessage = approved 
-          ? `You accepted ${coachName}'s request to join their team` 
-          : `You declined ${coachName}'s request to join their team`;
-        
-        await updateNotificationMessage(notificationId, newTitle, newMessage);
-        
+      if (approved) {
+        const { data: coachTeams, error: teamsError } = await supabase
+          .from('team_members')
+          .select('team_id, teams!inner(id, name, team_type)')
+          .eq('user_id', coachId)
+          .eq('role', 'coach')
+          .eq('status', 'active')
+          .eq('teams.is_active', true);
+
+        if (teamsError) throw teamsError;
+
+        if (!coachTeams || coachTeams.length === 0) {
         toast({
-          title: approved ? 'Request Approved' : 'Request Declined',
-          description: approved 
-            ? `You accepted ${coachName}'s request to join their team`
-            : `You declined ${coachName}'s request to join their team`,
-          status: approved ? 'success' : 'info',
-          duration: 3000,
+            title: 'No Teams Available',
+            description: 'The coach has no available teams.',
+            status: 'warning',
+            duration: 5000,
           isClosable: true,
         });
-        
-        // Refresh notifications
-        fetchNotifications();
-        
-        // Invalidate relevant queries
-        queryClient.invalidateQueries({ queryKey: ['athlete-coaches', user.id] });
         return;
       }
       
-      const relationshipId = relationships[0].id;
-      console.log('Updating relationship ID:', relationshipId);
-      
-      if (approved) {
-        // Approve the request
-        const { error: updateError } = await supabase
-          .from('coach_athletes')
-          .update({ 
-            approval_status: 'approved',
-            approved_at: new Date().toISOString()
-          })
-          .eq('id', relationshipId);
+        const firstTeam = coachTeams[0];
         
-        if (updateError) {
-          console.error('Failed to approve relationship:', updateError);
-          throw updateError;
-        }
-        
-        // Update notification with new status message
-        const newTitle = 'Coach Request Accepted';
-        const newMessage = `You accepted ${coachName}'s request to join their team`;
+        const { error: memberError } = await supabase
+          .from('team_members')
+          .upsert({
+            team_id: firstTeam.team_id,
+            user_id: user.id,
+            role: 'athlete',
+            status: 'active',
+            joined_at: new Date().toISOString()
+          }, {
+            onConflict: 'team_id,user_id',
+            ignoreDuplicates: false
+          });
+
+        if (memberError) throw memberError;
+
+        await supabase
+          .from('notifications')
+          .insert({
+            user_id: coachId,
+            title: 'Request Approved!',
+            message: `Your request has been approved. New athlete joined your team!`,
+            type: 'team_invitation_accepted',
+            metadata: { athlete_id: user.id, team_id: firstTeam.team_id }
+          });
+
+        const newTitle = 'Coach Request Approved';
+        const newMessage = `You approved ${coachName}'s request to join their team`;
         await updateNotificationMessage(notificationId, newTitle, newMessage);
         
         toast({
           title: 'Request Approved',
-          description: `You accepted ${coachName}'s request to join their team`,
+          description: `You have joined ${coachName}'s team`,
           status: 'success',
           duration: 3000,
           isClosable: true,
         });
       } else {
-        // Decline the request
-        const { error: updateError } = await supabase
-          .from('coach_athletes')
-          .update({ approval_status: 'declined' })
-          .eq('id', relationshipId);
-        
-        if (updateError) {
-          console.error('Failed to decline relationship:', updateError);
-          throw updateError;
-        }
-        
-        // Update notification with new status message
+        await supabase
+          .from('notifications')
+          .insert({
+            user_id: coachId,
+            title: 'Request Declined',
+            message: 'Your request has been declined.',
+            type: 'team_invitation_declined',
+            metadata: { athlete_id: user.id }
+          });
+
         const newTitle = 'Coach Request Declined';
         const newMessage = `You declined ${coachName}'s request to join their team`;
         await updateNotificationMessage(notificationId, newTitle, newMessage);
@@ -411,12 +425,7 @@ const NotificationsTable: React.FC = () => {
         });
       }
       
-      // No need to call markAsRead since updateNotificationMessage already marks it as read
-      
-      // Refresh notifications
       fetchNotifications();
-      
-      // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['athlete-coaches', user.id] });
     } catch (error) {
       console.error('Error handling coach request:', error);
@@ -432,181 +441,526 @@ const NotificationsTable: React.FC = () => {
     }
   };
 
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'coach_request':
+      case 'coach_invitation':
+        return FaUserPlus;
+      case 'team_invitation_accepted':
+      case 'team_invitation_declined':
+        return FaCheckCircle;
+      case 'achievement':
+      case 'badge_earned':
+        return FaTrophy;
+      case 'meet_reminder':
+      case 'meet_assigned':
+      case 'meet_updated':
+      case 'meet_file_added':
+      case 'workout_assigned':
+      case 'workout_updated':
+        return FaCalendarAlt;
+      default:
+        return FaBell;
+    }
+  };
+
+  const getNotificationColor = (type: string) => {
+    switch (type) {
+      case 'coach_request':
+      case 'coach_invitation':
+        return 'blue';
+      case 'team_invitation_accepted':
+        return 'green';
+      case 'team_invitation_declined':
+        return 'red';
+      case 'achievement':
+      case 'badge_earned':
+        return 'yellow';
+      case 'meet_reminder':
+      case 'meet_assigned':
+      case 'meet_updated':
+      case 'meet_file_added':
+        return 'purple';
+      case 'workout_assigned':
+      case 'workout_updated':
+        return 'orange';
+      default:
+        return 'gray';
+    }
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    try {
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+    } catch {
+      return 'Recently';
+    }
+  };
+
+  const getUserProfileForNotification = (notification: Notification) => {
+    if (!notification.metadata) return null;
+    
+    let userId = null;
+    if (notification.metadata.coach_id) {
+      userId = notification.metadata.coach_id;
+    } else if (notification.metadata.athlete_id) {
+      userId = notification.metadata.athlete_id;
+    } else if (notification.metadata.sender_id) {
+      userId = notification.metadata.sender_id;
+    }
+    
+    return userId ? userProfiles[userId] : null;
+  };
+
+  const getFilteredNotifications = () => {
+    return notifications.filter(notification => {
+      switch (activeFilter) {
+        case 'unread':
+          return !notification.is_read && !notification.is_archived;
+        case 'read':
+          return notification.is_read && !notification.is_archived;
+        case 'archived':
+          return notification.is_archived;
+        default:
+          return true;
+      }
+    });
+  };
+
+  const groupNotificationsByDate = (notifications: Notification[]): GroupedNotifications => {
+    const groups: GroupedNotifications = {};
+    
+    notifications.forEach(notification => {
+      const date = new Date(notification.created_at);
+      let groupKey = '';
+      
+      if (isToday(date)) {
+        groupKey = 'Today';
+      } else if (isYesterday(date)) {
+        groupKey = 'Yesterday';
+      } else if (isThisWeek(date)) {
+        groupKey = format(date, 'EEEE');
+      } else {
+        groupKey = format(date, 'MMM d');
+      }
+      
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
+      }
+      groups[groupKey].push(notification);
+    });
+    
+    return groups;
+  };
+
+  const getUnreadCount = (filter: FilterType) => {
+    switch (filter) {
+      case 'unread':
+        return notifications.filter(n => !n.is_read && !n.is_archived).length;
+      case 'read':
+        return notifications.filter(n => n.is_read && !n.is_archived).length;
+      case 'archived':
+        return notifications.filter(n => n.is_archived).length;
+      default:
+        return 0;
+    }
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    if (!notification.is_read) {
+      markAsRead(notification.id);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      const filteredNotifications = getFilteredNotifications();
+      const unreadIds = filteredNotifications
+        .filter(notification => !notification.is_read)
+        .map(notification => notification.id);
+      
+      if (unreadIds.length === 0) {
+        toast({
+          title: 'No unread notifications',
+          description: 'All notifications are already marked as read',
+          status: 'info',
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .in('id', unreadIds);
+      
+      if (error) throw error;
+      
+      setNotifications(prev => 
+        prev.map(notification => 
+          unreadIds.includes(notification.id)
+            ? { ...notification, is_read: true }
+            : notification
+        )
+      );
+
+      toast({
+        title: 'Success',
+        description: `Marked ${unreadIds.length} notification${unreadIds.length > 1 ? 's' : ''} as read`,
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to mark notifications as read',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const renderNotificationItem = (notification: Notification, index: number, groupNotifications: Notification[]) => {
+    const userProfile = getUserProfileForNotification(notification);
+    
+    return (
+      <Box key={notification.id}>
+        <Box
+          px={6}
+          py={5}
+          _hover={{ bg: hoverBg }}
+          cursor="pointer"
+          onClick={() => handleNotificationClick(notification)}
+          transition="background-color 0.2s"
+        >
+          <HStack spacing={4} align="start">
+            {/* User Avatar */}
+            <Box position="relative" flexShrink={0}>
+              {userProfile ? (
+                <Avatar
+                  size="md"
+                  name={`${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim()}
+                  src={userProfile.avatar_url}
+                />
+              ) : (
+                <Box
+                  p={2}
+                  borderRadius="50%"
+                  bg={`${getNotificationColor(notification.type)}.100`}
+                  color={`${getNotificationColor(notification.type)}.600`}
+                  w={12}
+                  h={12}
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                >
+                  <Icon 
+                    as={getNotificationIcon(notification.type)} 
+                    boxSize={5}
+                  />
+                </Box>
+              )}
+              {!notification.is_read && !notification.is_archived && (
+                <Box
+                  position="absolute"
+                  top="0"
+                  right="0"
+                  w={3}
+                  h={3}
+                  bg="blue.500"
+                  borderRadius="full"
+                  border="2px"
+                  borderColor={cardBg}
+                />
+              )}
+      </Box>
+
+            {/* Notification Content */}
+            <Box flex={1} minW={0}>
+              <HStack justify="space-between" align="start" mb={2}>
+                <VStack align="start" spacing={1} flex={1}>
+                  <Text
+                    fontSize="md"
+                    fontWeight={notification.is_read ? 'normal' : 'bold'}
+                    color={notification.is_archived ? subtitleColor : textColor}
+                    noOfLines={2}
+                  >
+                    {notification.title}
+                  </Text>
+                  <Text
+                    fontSize="sm"
+                    color={subtitleColor}
+                    noOfLines={2}
+                  >
+                    {notification.message}
+                  </Text>
+                </VStack>
+                
+                {/* Status Badge */}
+                <Badge 
+                  colorScheme={notification.is_archived ? 'gray' : getNotificationColor(notification.type)} 
+                  variant="subtle"
+                  fontSize="xs"
+                  flexShrink={0}
+                  ml={2}
+                >
+                  {notification.is_archived ? 'ARCHIVED' : 
+                   notification.is_read ? 'READ' :
+                   notification.type === 'coach_request' ? 'ATHLETE REQUEST' : 
+                   notification.type === 'coach_invitation' ? 'COACH REQUEST' :
+                   notification.type === 'workout_assigned' ? 'WORKOUT ASSIGNED' :
+                   notification.type === 'meet_assigned' ? 'MEET ASSIGNED' :
+                   notification.type.toUpperCase().replace('_', ' ')}
+                </Badge>
+              </HStack>
+              
+              <HStack justify="space-between" align="center">
+                <Text fontSize="xs" color={subtitleColor}>
+                  {formatTimeAgo(notification.created_at)}
+                </Text>
+                
+                {/* Action Buttons */}
+                {!notification.is_archived && (
+                  <HStack spacing={2}>
+                {notification.type === 'coach_request' && !notification.is_read && (
+                      <>
+                        <Button
+                          size="xs"
+                          colorScheme="green"
+                        variant="solid"
+                          leftIcon={<FaCheckCircle />}
+                        isLoading={isProcessing}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAthleteRequest(notification.id, notification.metadata.athlete_id, true);
+                          }}
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          size="xs"
+                        colorScheme="red"
+                          variant="outline"
+                          leftIcon={<FaTimesCircle />}
+                        isLoading={isProcessing}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAthleteRequest(notification.id, notification.metadata.athlete_id, false);
+                          }}
+                        >
+                          Decline
+                        </Button>
+                      </>
+                )}
+                {notification.type === 'coach_invitation' && !notification.is_read && (
+                      <>
+                        <Button
+                          size="xs"
+                          colorScheme="green"
+                        variant="solid"
+                          leftIcon={<FaCheckCircle />}
+                        isLoading={isProcessing}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCoachRequest(notification.id, notification.metadata.coach_id, true);
+                          }}
+                        >
+                          Accept
+                        </Button>
+                        <Button
+                          size="xs"
+                        colorScheme="red"
+                          variant="outline"
+                          leftIcon={<FaTimesCircle />}
+                        isLoading={isProcessing}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCoachRequest(notification.id, notification.metadata.coach_id, false);
+                          }}
+                        >
+                          Decline
+                        </Button>
+                      </>
+                )}
+                {(!notification.is_read && notification.type !== 'coach_request' && notification.type !== 'coach_invitation') && (
+                      <Button
+                        size="xs"
+                      variant="ghost"
+                      colorScheme="blue"
+                        leftIcon={<FaEye />}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          markAsRead(notification.id);
+                        }}
+                      >
+                        Mark Read
+                      </Button>
+                    )}
+                    {activeFilter !== 'archived' && (
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        colorScheme="gray"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          markAsArchived(notification.id);
+                        }}
+                      >
+                        Archive
+                      </Button>
+                    )}
+                  </HStack>
+                )}
+              </HStack>
+            </Box>
+          </HStack>
+        </Box>
+        {index < groupNotifications.length - 1 && (
+          <Box px={6}>
+            <Divider borderColor={borderColor} />
+          </Box>
+        )}
+      </Box>
+    );
+  };
+
+  const filteredNotifications = getFilteredNotifications();
+  const groupedNotifications = groupNotificationsByDate(filteredNotifications);
+
   if (isLoading) {
     return (
-      <Flex justify="center" align="center" p={8}>
-        <Spinner />
-      </Flex>
-    );
-  }
-
-  if (notifications.length === 0) {
-    return (
-      <Box textAlign="center" p={4}>
-        <Text color={emptyStateColor}>You have no notifications</Text>
-      </Box>
+      <Container maxW="container.lg" py={8}>
+        <Flex justify="center" align="center" minH="400px">
+          <Spinner size="xl" color="blue.500" />
+        </Flex>
+      </Container>
     );
   }
 
   return (
-    <Box overflowX="auto">
-      <Table variant="simple">
-        <Thead>
-          <Tr>
-            <Th>Type</Th>
-            <Th>Message</Th>
-            <Th>Date</Th>
-            <Th>Status</Th>
-            <Th>Actions</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          {notifications.map(notification => (
-            <Tr 
-              key={notification.id}
-              bg={notification.is_read ? 'transparent' : unreadRowBg}
-            >
-              <Td>
-                <Badge 
-                  colorScheme={
-                    notification.type === 'coach_request' 
-                      ? 'green' 
-                      : notification.type === 'coach_invitation'
-                        ? 'purple'
-                        : notification.type === 'workout_assigned' || notification.type === 'workout_updated'
-                          ? 'orange'
-                          : notification.type === 'meet_assigned' || notification.type === 'meet_updated'
-                            ? 'purple'
-                            : notification.type === 'system' 
-                              ? 'blue' 
-                              : 'gray'
-                  }
-                >
-                  {notification.type === 'coach_request' 
-                    ? 'Athlete Request' 
-                    : notification.type === 'coach_invitation'
-                      ? 'Coach Request'
-                      : notification.type === 'team_invitation_accepted'
-                        ? 'Request Approved'
-                        : notification.type === 'team_invitation_declined'
-                          ? 'Request Declined'
-                          : notification.type === 'workout_assigned'
-                            ? 'Workout Assigned'
-                            : notification.type === 'workout_updated'
-                              ? 'Workout Updated'
-                              : notification.type === 'meet_assigned'
-                                ? 'Meet Assigned'
-                                : notification.type === 'meet_updated'
-                                  ? 'Meet Updated'
-                                  : notification.type}
-                </Badge>
-              </Td>
-              <Td>
-                <Text 
-                  fontWeight={notification.is_read ? 'normal' : 'bold'}
-                  color={textColor}
-                >
-                  {notification.title}
-                </Text>
-                <Text fontSize="sm" color={subtitleColor}>{notification.message}</Text>
-              </Td>
-              <Td>
-                {format(new Date(notification.created_at), 'MMM d, yyyy h:mm a')}
-              </Td>
-              <Td>
-                <Badge colorScheme={notification.is_read ? 'gray' : 'blue'}>
-                  {notification.is_read ? 'Read' : 'Unread'}
-                </Badge>
-              </Td>
-              <Td>
-                {notification.type === 'coach_request' && !notification.is_read && (
-                  <Flex>
-                    <Tooltip label="Approve">
-                      <IconButton
-                        aria-label="Approve request"
-                        icon={<FaCheckCircle />}
-                        variant="solid"
-                        colorScheme="green"
-                        size="sm"
-                        mr={2}
-                        isLoading={isProcessing}
-                        onClick={() => handleAthleteRequest(
-                          notification.id, 
-                          notification.metadata.athlete_id, 
-                          true
-                        )}
-                      />
-                    </Tooltip>
-                    <Tooltip label="Decline">
-                      <IconButton
-                        aria-label="Decline request"
-                        icon={<FaTimesCircle />}
-                        variant="solid"
-                        colorScheme="red"
-                        size="sm"
-                        isLoading={isProcessing}
-                        onClick={() => handleAthleteRequest(
-                          notification.id, 
-                          notification.metadata.athlete_id, 
-                          false
-                        )}
-                      />
-                    </Tooltip>
-                  </Flex>
+    <Container maxW="container.lg" py={8}>
+      <VStack spacing={6} align="stretch">
+        <Box bg={cardBg} borderRadius="lg" overflow="hidden">
+          <Tabs variant="line" size="md" colorScheme="blue" onChange={(index) => {
+            const filters: FilterType[] = ['unread', 'read', 'archived'];
+            setActiveFilter(filters[index]);
+          }}>
+            <TabList borderBottom="1px" borderColor={borderColor} px={6} pt={6}>
+              <Tab 
+                fontSize="sm" 
+                fontWeight="medium"
+                color={subtitleColor}
+                _selected={{ 
+                  color: textColor,
+                  borderColor: "blue.500"
+                }}
+                _hover={{
+                  color: textColor
+                }}
+              >
+                Unread
+                {getUnreadCount('unread') > 0 && (
+                  <Badge ml={2} colorScheme="blue" variant="solid" fontSize="xs">
+                    {getUnreadCount('unread')}
+                  </Badge>
                 )}
-                {notification.type === 'coach_invitation' && !notification.is_read && (
-                  <Flex>
-                    <Tooltip label="Approve">
-                      <IconButton
-                        aria-label="Approve request"
-                        icon={<FaCheckCircle />}
-                        variant="solid"
-                        colorScheme="green"
+              </Tab>
+              <Tab 
+                fontSize="sm" 
+                fontWeight="medium"
+                color={subtitleColor}
+                _selected={{ 
+                  color: textColor,
+                  borderColor: "blue.500"
+                }}
+                _hover={{
+                  color: textColor
+                }}
+              >
+                Read
+              </Tab>
+              <Tab 
+                fontSize="sm" 
+                fontWeight="medium"
+                color={subtitleColor}
+                _selected={{ 
+                  color: textColor,
+                  borderColor: "blue.500"
+                }}
+                _hover={{
+                  color: textColor
+                }}
+              >
+                Archived
+              </Tab>
+            </TabList>
+
+            <TabPanels>
+              {[0, 1, 2].map((tabIndex) => (
+                <TabPanel key={tabIndex} px={0} py={0}>
+                  {filteredNotifications.length === 0 ? (
+                    <Box textAlign="center" py={12} px={6}>
+                      <Icon as={FaBell} boxSize={16} color="gray.400" mb={4} />
+                      <Text color={subtitleColor} fontSize="lg" mb={2}>
+                        No {activeFilter} notifications
+                      </Text>
+                      <Text color={subtitleColor} fontSize="sm">
+                        {activeFilter === 'unread' 
+                          ? "We'll notify you when something important happens"
+                          : `No ${activeFilter} notifications to show`
+                        }
+                      </Text>
+                    </Box>
+                  ) : (
+                    <VStack spacing={0} align="stretch">
+                      {Object.entries(groupedNotifications).map(([dateGroup, groupNotifications]) => (
+                        <Box key={dateGroup}>
+                          {/* Date Section Header */}
+                          <Flex justify="space-between" align="center" px={6} py={4} bg={useColorModeValue('gray.50', 'gray.750')} borderBottom="1px" borderColor={borderColor}>
+                            <Text fontSize="sm" fontWeight="semibold" color={sectionHeaderColor}>
+                              {dateGroup}
+                              <Badge ml={2} variant="outline" colorScheme="gray" fontSize="xs">
+                                {groupNotifications.length}
+                              </Badge>
+                            </Text>
+                          </Flex>
+                          
+                          {/* Notifications in this date group */}
+                          {groupNotifications.map((notification, index) => 
+                            renderNotificationItem(notification, index, groupNotifications)
+                          )}
+                        </Box>
+                      ))}
+                    </VStack>
+                  )}
+
+                  {/* Mark All as Read Button */}
+                  {filteredNotifications.length > 0 && activeFilter === 'unread' && (
+                    <Box px={6} py={4} borderTop="1px" borderColor={borderColor}>
+                      <Button
+                        variant="ghost"
                         size="sm"
-                        mr={2}
-                        isLoading={isProcessing}
-                        onClick={() => handleCoachRequest(
-                          notification.id, 
-                          notification.metadata.coach_id, 
-                          true
-                        )}
-                      />
-                    </Tooltip>
-                    <Tooltip label="Decline">
-                      <IconButton
-                        aria-label="Decline request"
-                        icon={<FaTimesCircle />}
-                        variant="solid"
-                        colorScheme="red"
-                        size="sm"
-                        isLoading={isProcessing}
-                        onClick={() => handleCoachRequest(
-                          notification.id, 
-                          notification.metadata.coach_id, 
-                          false
-                        )}
-                      />
-                    </Tooltip>
-                  </Flex>
-                )}
-                {(!notification.is_read && notification.type !== 'coach_request' && notification.type !== 'coach_invitation') && (
-                  <Tooltip label="Mark as read">
-                    <IconButton
-                      aria-label="Mark as read"
-                      icon={<FaEye />}
-                      variant="ghost"
-                      colorScheme="blue"
-                      size="sm"
-                      onClick={() => markAsRead(notification.id)}
-                    />
-                  </Tooltip>
-                )}
-              </Td>
-            </Tr>
-          ))}
-        </Tbody>
-      </Table>
+                        width="full"
+                        leftIcon={<Icon as={FaCheckCircle} />}
+                        onClick={markAllAsRead}
+                        color={subtitleColor}
+                        _hover={{ color: textColor, bg: hoverBg }}
+                      >
+                        Mark all notifications as read
+                      </Button>
+                    </Box>
+                  )}
+                </TabPanel>
+              ))}
+            </TabPanels>
+          </Tabs>
     </Box>
+      </VStack>
+    </Container>
   );
 };
 

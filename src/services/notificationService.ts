@@ -240,6 +240,156 @@ export const createBulkMeetAssignmentNotifications = async (
 };
 
 /**
+ * Create notification when a file is added to a meet
+ */
+export const createMeetFileAddedNotification = async (
+  athleteId: string,
+  meetId: string,
+  meetName: string,
+  fileName: string,
+  fileType: string,
+  coachId: string,
+  coachName: string
+): Promise<void> => {
+  try {
+    await createNotification({
+      user_id: athleteId,
+      title: 'New File Added to Meet',
+      message: `${coachName} added a new file "${fileName}" to ${meetName}`,
+      type: 'meet_file_added',
+      metadata: {
+        meet_id: meetId,
+        meet_name: meetName,
+        file_name: fileName,
+        file_type: fileType,
+        coach_id: coachId,
+        sender_id: coachId,
+        action: 'file_added'
+      }
+    });
+  } catch (error) {
+    console.error('Error creating meet file added notification:', error);
+  }
+};
+
+/**
+ * Create notifications for multiple athletes when a file is added to a meet
+ */
+export const createBulkMeetFileAddedNotifications = async (
+  athleteIds: string[],
+  meetId: string,
+  meetName: string,
+  fileName: string,
+  fileType: string,
+  coachId: string,
+  coachName: string
+): Promise<void> => {
+  try {
+    const notifications = athleteIds.map(athleteId => ({
+      user_id: athleteId,
+      title: 'New File Added to Meet',
+      message: `${coachName} added a new file "${fileName}" to ${meetName}`,
+      type: 'meet_file_added',
+      metadata: {
+        meet_id: meetId,
+        meet_name: meetName,
+        file_name: fileName,
+        file_type: fileType,
+        coach_id: coachId,
+        sender_id: coachId,
+        action: 'file_added'
+      },
+      created_at: new Date().toISOString(),
+      is_read: false
+    }));
+
+    const { error } = await supabase
+      .from('notifications')
+      .insert(notifications);
+
+    if (error) {
+      console.error('Error creating bulk meet file notifications:', error);
+      throw error;
+    }
+  } catch (error) {
+    console.error('Failed to create bulk meet file notifications:', error);
+  }
+};
+
+/**
+ * Create notification when meet details are updated
+ */
+export const createMeetModificationNotification = async (
+  athleteId: string,
+  meetId: string,
+  meetName: string,
+  changeDescription: string,
+  coachId: string,
+  coachName: string
+): Promise<void> => {
+  try {
+    await createNotification({
+      user_id: athleteId,
+      title: 'Meet Information Updated',
+      message: `${coachName} updated details for ${meetName}: ${changeDescription}`,
+      type: 'meet_updated',
+      metadata: {
+        meet_id: meetId,
+        meet_name: meetName,
+        coach_id: coachId,
+        sender_id: coachId,
+        action: 'meet_updated',
+        change_description: changeDescription
+      }
+    });
+  } catch (error) {
+    console.error('Error creating meet modification notification:', error);
+  }
+};
+
+/**
+ * Create notifications for multiple athletes when meet details are updated
+ */
+export const createBulkMeetModificationNotifications = async (
+  athleteIds: string[],
+  meetId: string,
+  meetName: string,
+  changeDescription: string,
+  coachId: string,
+  coachName: string
+): Promise<void> => {
+  try {
+    const notifications = athleteIds.map(athleteId => ({
+      user_id: athleteId,
+      title: 'Meet Information Updated',
+      message: `${coachName} updated details for ${meetName}: ${changeDescription}`,
+      type: 'meet_updated',
+      metadata: {
+        meet_id: meetId,
+        meet_name: meetName,
+        coach_id: coachId,
+        sender_id: coachId,
+        action: 'meet_updated',
+        change_description: changeDescription
+      },
+      created_at: new Date().toISOString(),
+      is_read: false
+    }));
+
+    const { error } = await supabase
+      .from('notifications')
+      .insert(notifications);
+
+    if (error) {
+      console.error('Error creating bulk meet modification notifications:', error);
+      throw error;
+    }
+  } catch (error) {
+    console.error('Failed to create bulk meet modification notifications:', error);
+  }
+};
+
+/**
  * Get coach name for notifications
  */
 export const getCoachName = async (coachId: string): Promise<string> => {

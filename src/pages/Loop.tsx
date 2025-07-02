@@ -108,27 +108,114 @@ const Loop: React.FC = () => {
       setUser(user);
     };
     fetchCurrentUser();
-    fetchTeamMembers();
     // Cleanup function to run when component unmounts
     return () => {
       // Restore footer visibility logic would go here if needed
       // Currently we're not restoring footer visibility
     };
   }, [navigate]);
+
+  // Separate useEffect to fetch team members when user is set
+  useEffect(() => {
+    if (user?.id) {
+      fetchTeamMembers();
+    }
+  }, [user]);
   
   const fetchTeamMembers = async () => {
+    console.log('fetchTeamMembers called with user:', user?.id);
+    
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url')
-        .order('first_name', { ascending: true })
-        .limit(50);
+      // First try to get team members from teams user belongs to
+      const { data: userTeams, error: userTeamsError } = await supabase
+        .from('team_members')
+        .select('team_id')
+        .eq('user_id', user.id)
+        .eq('status', 'active');
       
-      if (error) throw error;
+      if (userTeamsError) throw userTeamsError;
       
-      setTeamMembers(data || []);
+      console.log('User teams found:', userTeams?.length || 0);
+      let profiles = [];
+      
+      if (userTeams && userTeams.length > 0) {
+        const teamIds = userTeams.map(team => team.team_id);
+        
+        // Get all active team members from these teams
+        const { data: teamMembers, error: teamMembersError } = await supabase
+          .from('team_members')
+          .select('user_id')
+          .in('team_id', teamIds)
+          .eq('status', 'active');
+        
+        if (teamMembersError) throw teamMembersError;
+        
+        console.log('Team members found in teams:', teamMembers?.length || 0);
+        if (teamMembers && teamMembers.length > 0) {
+          // Get unique user IDs
+          const uniqueUserIds = [...new Set(teamMembers.map(member => member.user_id))];
+          
+          // Get profiles for these users
+          const { data: teamProfiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, avatar_url')
+            .in('id', uniqueUserIds);
+          
+          if (!profilesError && teamProfiles) {
+            console.log('Team profiles found:', teamProfiles.length);
+            profiles = teamProfiles;
+          }
+        }
+      }
+      
+      // If no team members found, fallback to show coaches/active users with proper profiles
+      if (profiles.length === 0) {
+        console.log('No team members found, falling back to active profiles');
+        const { data: fallbackProfiles, error: fallbackError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, avatar_url')
+          .not('first_name', 'is', null)
+          .not('last_name', 'is', null)
+          .limit(10);
+        
+        if (!fallbackError && fallbackProfiles) {
+          console.log('Fallback profiles found:', fallbackProfiles.length);
+          profiles = fallbackProfiles;
+        }
+      }
+      
+      // Process and filter profiles
+      const uniqueMembers = new Map();
+      profiles?.forEach(profile => {
+        if (profile && profile.id && profile.first_name && profile.last_name) {
+          // Less aggressive filtering - only remove obvious test accounts
+          const fullName = `${profile.first_name} ${profile.last_name}`.toLowerCase();
+          const isTestAccount = fullName.includes('test account') || 
+                               fullName.includes('dummy user') || 
+                               fullName.includes('sample data') ||
+                               (profile.first_name.toLowerCase() === 'test' && profile.last_name.toLowerCase() === 'user');
+          
+          if (!isTestAccount && !uniqueMembers.has(profile.id)) {
+            uniqueMembers.set(profile.id, {
+              id: profile.id,
+              first_name: profile.first_name,
+              last_name: profile.last_name,
+              avatar_url: profile.avatar_url
+            });
+          }
+        }
+      });
+      
+      // Sort by first name and limit to reasonable number
+      const sortedMembers = Array.from(uniqueMembers.values())
+        .sort((a, b) => a.first_name.localeCompare(b.first_name))
+        .slice(0, 15);
+      
+      console.log('Team members found:', sortedMembers.length);
+      setTeamMembers(sortedMembers);
     } catch (error) {
       console.error('Error fetching team members:', error);
+      setTeamMembers([]);
     }
   };
   

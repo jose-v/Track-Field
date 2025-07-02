@@ -39,6 +39,10 @@ export interface Workout {
   circuit_rounds?: number
   deleted_at?: string
   deleted_by?: string
+  // New block system fields
+  blocks?: any[] // Will be typed as ExerciseBlock[] when imported
+  is_block_based?: boolean
+  block_version?: number
 }
 
 interface TeamPost {
@@ -66,6 +70,10 @@ export interface EnhancedWorkoutData {
     exercises: Exercise[]
     isRestDay: boolean
   }[]
+  // New block system fields
+  blocks?: any[] // Will be typed as ExerciseBlock[] when imported
+  is_block_based?: boolean
+  block_version?: number
 }
 
 export const api = {
@@ -73,23 +81,29 @@ export const api = {
     async getAll(): Promise<Workout[]> {
       const { data, error } = await supabase
         .from('workouts')
-        .select('id, name, description, type, date, time, duration, location, created_at, user_id, created_by, is_template, template_type, exercises')
+        .select('id, name, description, type, date, time, duration, location, created_at, user_id, created_by, is_template, template_type, exercises, blocks, is_block_based, block_version')
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      return data || []
+      return (data || []).map(workout => ({
+        ...workout,
+        notes: workout.description || ''
+      }))
     },
 
     async getByCreator(userId: string): Promise<Workout[]> {
       if (!userId) return [];
       const { data, error } = await supabase
         .from('workouts')
-        .select('id, name, description, type, date, time, duration, location, created_at, user_id, created_by, is_template, template_type, exercises')
+        .select('id, name, description, type, date, time, duration, location, created_at, user_id, created_by, is_template, template_type, exercises, blocks, is_block_based, block_version')
         .eq('user_id', userId)
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data || [];
+      return (data || []).map(workout => ({
+        ...workout,
+        notes: workout.description || ''
+      }));
     },
 
     async create(workout: Omit<Workout, 'id' | 'created_at'>): Promise<Workout> {
@@ -111,6 +125,10 @@ export const api = {
           location?: string;
           template_type?: string;
           is_template?: boolean;
+          // Block system fields
+          blocks?: any[];
+          is_block_based?: boolean;
+          block_version?: number;
         } = {
           name: workout.name,
           description: workout.notes || workout.description || '',
@@ -123,6 +141,19 @@ export const api = {
         // Add optional fields if they exist
         if (workout.type) workoutData.type = workout.type;
         if (workout.template_type) workoutData.template_type = workout.template_type;
+        
+        // Handle block system
+        if (workout.blocks && workout.blocks.length > 0) {
+          workoutData.blocks = workout.blocks;
+          workoutData.is_block_based = true;
+          workoutData.block_version = workout.block_version || 1;
+          // For block-based workouts, exercises are derived from blocks
+          workoutData.exercises = [];
+        } else if (workout.is_block_based !== false && workout.exercises && workout.exercises.length > 0) {
+          // Auto-migrate legacy exercises to blocks if not explicitly disabled
+          // This will be handled by the database function if needed
+          workoutData.exercises = workout.exercises;
+        }
         
         // Handle date fields - templates should always have null date fields
         if (workout.is_template) {
@@ -154,7 +185,9 @@ export const api = {
           ...data,
           // Ensure the response has the expected structure for the app
           notes: data.description || '',
-          exercises: data.exercises || []
+          exercises: data.exercises || [],
+          blocks: data.blocks || undefined,
+          is_block_based: data.is_block_based || false
         };
       } catch (err) {
         console.error('Error in create workout:', err);
@@ -178,7 +211,11 @@ export const api = {
         duration: sanitizeValue(workout.duration),
         location: sanitizeValue(workout.location),
         description: sanitizeValue(workout.description || workout.notes),
-        notes: undefined // Remove notes since we use description in DB
+        notes: undefined, // Remove notes since we use description in DB
+        // Handle block system updates
+        blocks: workout.blocks,
+        is_block_based: workout.is_block_based,
+        block_version: workout.block_version
       };
 
       const { data, error } = await supabase
@@ -194,7 +231,9 @@ export const api = {
       return {
         ...data,
         notes: data.description || '', // Map description back to notes for app
-        exercises: data.exercises || []
+        exercises: data.exercises || [],
+        blocks: data.blocks || undefined,
+        is_block_based: data.is_block_based || false
       };
     },
 
@@ -646,7 +685,7 @@ export const api = {
         if (user.id === athleteId) {
           const { data: ownWorkouts, error: createdError } = await supabase
             .from('workouts')
-            .select('id, name, description, type, date, time, duration, location, created_at, user_id, created_by, is_template, template_type, exercises')
+            .select('id, name, description, type, date, time, duration, location, created_at, user_id, created_by, is_template, template_type, exercises, is_block_based, blocks, block_version')
             .eq('user_id', athleteId)
             .is('deleted_at', null) // 🔧 CRITICAL FIX: Filter out deleted workouts
             .order('created_at', { ascending: false });
@@ -670,7 +709,7 @@ export const api = {
           
           const { data: assignedWorkouts, error: fetchError } = await supabase
             .from('workouts')
-            .select('id, name, description, type, date, time, duration, location, created_at, user_id, created_by, is_template, template_type, exercises')
+            .select('id, name, description, type, date, time, duration, location, created_at, user_id, created_by, is_template, template_type, exercises, is_block_based, blocks, block_version')
             .in('id', workoutIds)
             .is('deleted_at', null); // 🔧 CRITICAL FIX: Filter out deleted workouts
             
@@ -750,7 +789,11 @@ export const api = {
           time: workoutData.is_template ? null : (workoutData.time && workoutData.time.trim() !== '' ? workoutData.time : null),
           duration: workoutData.is_template ? null : (workoutData.duration && workoutData.duration.trim() !== '' ? workoutData.duration : null),
           is_template: workoutData.is_template || false,
-          exercises: workoutData.template_type === 'single' ? (workoutData.exercises || []) : []
+          exercises: workoutData.template_type === 'single' ? (workoutData.exercises || []) : [],
+          // Block mode fields
+          is_block_based: workoutData.is_block_based || false,
+          blocks: workoutData.blocks || null,
+          block_version: workoutData.block_version || null
         };
         
         const { data: createdWorkout, error: workoutError } = await supabase
