@@ -153,7 +153,7 @@ export const getBestExerciseMedia = async (exerciseName: string): Promise<{
   const category = dbMedia?.category || 'general';
   const localPaths = generateLocalPaths(exerciseName, category);
   
-  // Check local files in priority order
+  // Check local files in priority order with multiple extensions
   const priorityOrder = ['image', 'animation', 'video'] as const;
   for (const mediaType of priorityOrder) {
     const url = localPaths[mediaType];
@@ -163,6 +163,28 @@ export const getBestExerciseMedia = async (exerciseName: string): Promise<{
         url,
         source: 'local'
       };
+    }
+    
+    // For images, also try .png and .jpg as fallbacks
+    if (mediaType === 'image') {
+      const pngUrl = url?.replace('.webp', '.png');
+      const jpgUrl = url?.replace('.webp', '.jpg');
+      
+      if (pngUrl && await checkFileExists(pngUrl)) {
+        return {
+          type: 'image',
+          url: pngUrl,
+          source: 'local'
+        };
+      }
+      
+      if (jpgUrl && await checkFileExists(jpgUrl)) {
+        return {
+          type: 'image',
+          url: jpgUrl,
+          source: 'local'
+        };
+      }
     }
   }
 
