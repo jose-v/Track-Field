@@ -23,6 +23,7 @@ import {
 import { FaRegClock, FaRunning, FaDumbbell, FaCheckCircle, FaPlay, FaPause, FaRedo, FaChevronLeft, FaChevronRight, FaVideo } from 'react-icons/fa';
 import { ChevronLeftIcon } from '@chakra-ui/icons';
 import { RunTimeInput } from './RunTimeInput';
+import { ExerciseMediaDisplay } from './ExerciseMediaDisplay';
 import { isRunExercise, validateTime } from '../utils/exerciseUtils';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -840,7 +841,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
 
         {/* Current Exercise Rep Progress Bars */}
         {!showRPEScreen && (
-          <Box px={6} pb={4}>
+          <Box px={6} pb={2}>
             <HStack spacing={1} w="full" justify="center">
             {(() => {
                 const currentExerciseReps = currentExercise.reps || 1;
@@ -873,7 +874,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
         </Box>
         )}
 
-        <ModalBody px={{ base: 4, md: 6 }} py={{ base: 4, md: 6 }} overflowY="auto" flex="1">
+        <ModalBody px={{ base: 4, md: 6 }} py={{ base: 2, md: 3 }} overflowY="auto" flex="1">
           {showRPEScreen ? (
             <VStack spacing={6}>
               <Text textAlign="center" color={modalTextColor}>
@@ -1075,7 +1076,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                         icon={<Icon as={isPaused ? FaPlay : FaPause} />}
                         onClick={handlePauseResume}
                           variant="outline"
-                        size="sm"
+                        size="md"
                         borderRadius="full"
                         isDisabled={countdown > 0}
                         opacity={countdown > 0 ? 0.4 : 1}
@@ -1085,7 +1086,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                         icon={<Icon as={FaRedo} />}
                         onClick={handleResetTimer}
                           variant="outline"
-                        size="sm"
+                        size="md"
                         borderRadius="full"
                         isDisabled={countdown > 0}
                         opacity={countdown > 0 ? 0.4 : 1}
@@ -1096,7 +1097,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                         icon={<Icon as={FaVideo} />}
                         onClick={handleVideoClick}
                         variant="outline"
-                        size="sm"
+                        size="md"
                         borderRadius="full"
                         display={{ base: "flex", md: "none" }}
                         isDisabled={countdown > 0}
@@ -1104,6 +1105,16 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                       />
                       </HStack>
                 </Box>
+
+                  {/* Exercise Media Display */}
+                  <Box w="full">
+                    <ExerciseMediaDisplay
+                      exerciseName={exerciseName}
+                      onVideoClick={handleVideoClick}
+                      size="md"
+                      showControls={true}
+                    />
+                  </Box>
 
                   {/* Time Input for Running Exercises */}
                   {isRunExercise(exerciseName) && (
