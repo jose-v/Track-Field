@@ -380,37 +380,79 @@ export function WorkoutCard({
               </HStack>
             )}
             
-            {/* Exercises info - Hide for coaches */}
+            {/* Exercises/Blocks info - Hide for coaches */}
             {!isCoach && (
               <Box width="100%" py={2}>
-                <Flex align="center" mb={2}>
-                  <Icon as={FaTasks} mr={2} color={typeColor} boxSize={4} />
-                  <Text fontSize="md" fontWeight="medium" color={exerciseTextColor}>
-                    Exercises: {allExercises.length}
-                  </Text>
-                </Flex>
-                {displayExercises.length > 0 && (
-                  <Box maxH="100px" overflowY="auto" fontSize="sm" color={infoColor} pl={6}>
-                    {displayExercises.slice(0, 3).map((ex, idx) => (
-                      <Text key={idx} noOfLines={1} mb={1} color={exerciseTextColor}>
-                        • {ex.name} {ex.sets && ex.reps ? `(${ex.sets}×${ex.reps})` : ''}
+                {(workout as any).is_block_based && (workout as any).blocks ? (
+                  // Block-based workout: Show blocks instead of individual exercises
+                  <>
+                    <Flex align="center" mb={2}>
+                      <Icon as={FaLayerGroup} mr={2} color={typeColor} boxSize={4} />
+                      <Text fontSize="md" fontWeight="medium" color={exerciseTextColor}>
+                        Blocks: {(workout as any).blocks.length}
                       </Text>
-                    ))}
-                    {allExercises.length > 3 && (
-                      <Text fontStyle="italic" color={exerciseTextColor}>+{allExercises.length - 3} more...</Text>
+                    </Flex>
+                    <Box maxH="100px" overflowY="auto" fontSize="sm" color={infoColor} pl={6}>
+                      {(workout as any).blocks.slice(0, 3).map((block: any, idx: number) => {
+                        const exerciseCount = block.exercises?.length || 0;
+                        const exerciseText = exerciseCount === 1 ? 'exercise' : 'exercises';
+                        return (
+                          <Text key={idx} noOfLines={1} mb={1} color={exerciseTextColor}>
+                            • {block.name || `Block ${idx + 1}`} ({exerciseCount} {exerciseText})
+                          </Text>
+                        );
+                      })}
+                      {(workout as any).blocks.length > 3 && (
+                        <Text fontStyle="italic" color={exerciseTextColor}>
+                          +{(workout as any).blocks.length - 3} more...
+                        </Text>
+                      )}
+                    </Box>
+                  </>
+                ) : (
+                  // Regular workout: Show individual exercises
+                  <>
+                    <Flex align="center" mb={2}>
+                      <Icon as={FaTasks} mr={2} color={typeColor} boxSize={4} />
+                      <Text fontSize="md" fontWeight="medium" color={exerciseTextColor}>
+                        Exercises: {allExercises.length}
+                      </Text>
+                    </Flex>
+                    {displayExercises.length > 0 && (
+                      <Box maxH="100px" overflowY="auto" fontSize="sm" color={infoColor} pl={6}>
+                        {displayExercises.slice(0, 3).map((ex, idx) => (
+                          <Text key={idx} noOfLines={1} mb={1} color={exerciseTextColor}>
+                            • {ex.name} {ex.sets && ex.reps ? `(${ex.sets}×${ex.reps})` : ''}
+                          </Text>
+                        ))}
+                        {allExercises.length > 3 && (
+                          <Text fontStyle="italic" color={exerciseTextColor}>+{allExercises.length - 3} more...</Text>
+                        )}
+                      </Box>
                     )}
-                  </Box>
+                  </>
                 )}
               </Box>
             )}
             
-            {/* Exercise count only for coaches - simplified display */}
+            {/* Exercise/Block count only for coaches - simplified display */}
             {isCoach && (
               <Flex align="center" width="100%">
-                <Icon as={FaTasks} mr={2} color={typeColor} boxSize={4} />
-                <Text fontSize="md" color={infoColor}>
-                  {allExercises.length} Exercise{allExercises.length !== 1 ? 's' : ''}
-                </Text>
+                {(workout as any).is_block_based && (workout as any).blocks ? (
+                  <>
+                    <Icon as={FaLayerGroup} mr={2} color={typeColor} boxSize={4} />
+                    <Text fontSize="md" color={infoColor}>
+                      {(workout as any).blocks.length} Block{(workout as any).blocks.length !== 1 ? 's' : ''}
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Icon as={FaTasks} mr={2} color={typeColor} boxSize={4} />
+                    <Text fontSize="md" color={infoColor}>
+                      {allExercises.length} Exercise{allExercises.length !== 1 ? 's' : ''}
+                    </Text>
+                  </>
+                )}
               </Flex>
             )}
             
@@ -473,7 +515,7 @@ export function WorkoutCard({
                   total={progress.total}
                   percentage={progress.percentage}
                   colorScheme={progress.completed === progress.total && progress.total > 0 ? "green" : "primary"}
-                  itemLabel="exercises"
+                  itemLabel={(workout as any).is_block_based ? "blocks" : "exercises"}
                   textColor={infoColor}
                 />
               </Box>

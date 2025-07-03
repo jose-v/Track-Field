@@ -290,10 +290,23 @@ const Sidebar = ({ userType }: SidebarProps) => {
   const teamManagerNavigation = useTeamManagerNavigation();
   const athleteNavigation = useAthleteNavigation();
   
-  // Color mode values for the sidebar
+  // Color mode values for the sidebar (ALL useColorModeValue calls must be at top level)
   const sidebarBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const drawerBg = useColorModeValue('white', 'gray.900');
+  
+  // Color values for mobile hamburger trigger
+  const hamburgerColor = useColorModeValue('gray.700', 'gray.300');
+  const hamburgerHoverBg = useColorModeValue('gray.100', 'gray.700');
+  const hamburgerHoverColor = useColorModeValue('blue.600', 'blue.300');
+  const hamburgerActiveBg = useColorModeValue('gray.200', 'gray.600');
+  
+  // Color values for drawer content
+  const drawerTextColor = useColorModeValue('gray.800', 'white');
+  const drawerSectionColor = useColorModeValue('gray.500', 'gray.400');
+  const drawerLinkColor = useColorModeValue('gray.700', 'gray.300');
+  const drawerLinkHoverBg = useColorModeValue('gray.100', 'gray.700');
+  const drawerLinkHoverColor = useColorModeValue('blue.600', 'blue.200');
   
   // Dispatch width change event whenever isCollapsed changes
   useEffect(() => {
@@ -417,27 +430,27 @@ const Sidebar = ({ userType }: SidebarProps) => {
         bg="transparent"
         boxShadow="none"
         borderRadius="md"
-        color={useColorModeValue('gray.700', 'gray.300')}
+        color={hamburgerColor}
         transition="top 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
         transform="translateZ(0)"
         _hover={{
-          bg: useColorModeValue('gray.100', 'gray.700'),
-          color: useColorModeValue('blue.600', 'blue.300'),
+          bg: hamburgerHoverBg,
+          color: hamburgerHoverColor,
         }}
         _active={{
-          bg: useColorModeValue('gray.200', 'gray.600'),
+          bg: hamburgerActiveBg,
         }}
         _focus={{
           boxShadow: 'none',
           outline: 'none',
-          bg: useColorModeValue('gray.100', 'gray.700'),
-          color: useColorModeValue('blue.600', 'blue.300'),
+          bg: hamburgerHoverBg,
+          color: hamburgerHoverColor,
         }}
         _focusVisible={{
           boxShadow: 'none',
           outline: 'none',
-          bg: useColorModeValue('gray.100', 'gray.700'),
-          color: useColorModeValue('blue.600', 'blue.300'),
+          bg: hamburgerHoverBg,
+          color: hamburgerHoverColor,
         }}
       />
     );
@@ -513,7 +526,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
                     src={profile?.avatar_url}
                   />
                   <VStack align="start" spacing={0} flex="1">
-                    <Text fontWeight="semibold" fontSize="md" color={useColorModeValue('gray.800', 'white')}>
+                    <Text fontWeight="semibold" fontSize="md" color={drawerTextColor}>
                       {fullName}
                     </Text>
                     <Badge colorScheme="blue" fontSize="xs" textTransform="uppercase">
@@ -529,7 +542,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
                   <Text 
                     fontSize="xs" 
                     fontWeight="bold" 
-                    color={useColorModeValue('gray.500', 'gray.400')}
+                    color={drawerSectionColor}
                     textTransform="uppercase" 
                     letterSpacing="wider"
                     mb={2}
@@ -571,7 +584,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
                   <Text 
                     fontSize="xs" 
                     fontWeight="bold" 
-                    color={useColorModeValue('gray.500', 'gray.400')}
+                    color={drawerSectionColor}
                     textTransform="uppercase" 
                     letterSpacing="wider"
                     mb={3}
@@ -605,7 +618,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
                   <Text 
                     fontSize="xs" 
                     fontWeight="bold" 
-                    color={useColorModeValue('gray.500', 'gray.400')}
+                    color={drawerSectionColor}
                     textTransform="uppercase" 
                     letterSpacing="wider"
                     mb={3}
@@ -625,22 +638,22 @@ const Sidebar = ({ userType }: SidebarProps) => {
                         showFeedbackModal();
                         handleMobileDrawerClose();
                       }}
-                      color={useColorModeValue('gray.700', 'gray.300')}
+                      color={drawerLinkColor}
                       _hover={{
-                        bg: useColorModeValue('gray.100', 'gray.700'),
-                        color: useColorModeValue('blue.600', 'blue.200'),
+                        bg: drawerLinkHoverBg,
+                        color: drawerLinkHoverColor,
                       }}
                       _focus={{
                         boxShadow: 'none',
                         outline: 'none',
-                        bg: useColorModeValue('gray.100', 'gray.700'),
-                        color: useColorModeValue('blue.600', 'blue.200'),
+                        bg: drawerLinkHoverBg,
+                        color: drawerLinkHoverColor,
                       }}
                       _focusVisible={{
                         boxShadow: 'none',
                         outline: 'none',
-                        bg: useColorModeValue('gray.100', 'gray.700'),
-                        color: useColorModeValue('blue.600', 'blue.200'),
+                        bg: drawerLinkHoverBg,
+                        color: drawerLinkHoverColor,
                       }}
                     >
                       <Text fontSize="md" ml={1}>Give Feedback</Text>
@@ -656,22 +669,22 @@ const Sidebar = ({ userType }: SidebarProps) => {
                         // Share functionality
                         handleMobileDrawerClose();
                       }}
-                      color={useColorModeValue('gray.700', 'gray.300')}
+                      color={drawerLinkColor}
                       _hover={{
-                        bg: useColorModeValue('gray.100', 'gray.700'),
-                        color: useColorModeValue('blue.600', 'blue.200'),
+                        bg: drawerLinkHoverBg,
+                        color: drawerLinkHoverColor,
                       }}
                       _focus={{
                         boxShadow: 'none',
                         outline: 'none',
-                        bg: useColorModeValue('gray.100', 'gray.700'),
-                        color: useColorModeValue('blue.600', 'blue.200'),
+                        bg: drawerLinkHoverBg,
+                        color: drawerLinkHoverColor,
                       }}
                       _focusVisible={{
                         boxShadow: 'none',
                         outline: 'none',
-                        bg: useColorModeValue('gray.100', 'gray.700'),
-                        color: useColorModeValue('blue.600', 'blue.200'),
+                        bg: drawerLinkHoverBg,
+                        color: drawerLinkHoverColor,
                       }}
                     >
                       <Text fontSize="md" ml={1}>Share App</Text>

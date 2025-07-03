@@ -2,11 +2,11 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box, Heading, Text, VStack, HStack, Button, Card, CardBody, 
   useColorModeValue, Flex, Badge, Icon, SimpleGrid, Avatar,
-  Progress, Skeleton, Alert, AlertIcon, useToast
+  Progress, Skeleton, Alert, AlertIcon, useToast, CardHeader
 } from '@chakra-ui/react';
 import { 
   FaUsers, FaEdit, FaDumbbell,
-  FaClock, FaArrowLeft, FaTasks
+  FaClock, FaArrowLeft, FaTasks, FaLayerGroup
 } from 'react-icons/fa';
 import type { Workout, Exercise } from '../services/api';
 import { supabase } from '../lib/supabase';
@@ -37,6 +37,158 @@ interface WeeklyExerciseDay {
   exercises: Exercise[];
   isRestDay: boolean;
 }
+
+interface WorkoutBlock {
+  id: string;
+  name: string;
+  exercises: Exercise[];
+  category: string;
+  flow: string;
+  restBetweenExercises: number;
+  rounds?: number;
+}
+
+// Simplified Block Display Component for Detail View
+interface BlockDisplayProps {
+  block: WorkoutBlock;
+}
+
+const BlockDisplay: React.FC<BlockDisplayProps> = ({ block }) => {
+  const cardBg = useColorModeValue('white', 'gray.700');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const textColor = useColorModeValue('gray.700', 'gray.100');
+  const subtitleColor = useColorModeValue('gray.600', 'gray.300');
+  const blockHeaderBg = useColorModeValue('gray.50', 'gray.600');
+  const exerciseBg = useColorModeValue('gray.50', 'gray.600');
+  
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'warmup': return 'orange';
+      case 'main': return 'blue';
+      case 'conditioning': return 'green';
+      case 'accessory': return 'purple';
+      case 'cooldown': return 'cyan';
+      default: return 'gray';
+    }
+  };
+
+  // Helper function to check if a value is meaningful (not empty or zero)
+  const hasValue = (value: string | undefined) => value && String(value).trim() !== '' && String(value).trim() !== '0';
+
+  return (
+    <Card bg={cardBg} borderColor={borderColor} borderWidth="1px" mb={4}>
+      <CardHeader bg={blockHeaderBg} py={3}>
+        <VStack align="start" spacing={1}>
+          <HStack spacing={3}>
+            <Icon as={FaLayerGroup} color={`${getCategoryColor(block.category)}.500`} />
+            <Text fontSize="lg" fontWeight="bold" color={textColor}>
+              {block.name}
+            </Text>
+            <Badge colorScheme={getCategoryColor(block.category)} size="sm">
+              {block.category}
+            </Badge>
+            <Badge variant="outline" size="sm">
+              {block.flow}
+              {block.rounds && block.rounds > 1 && ` (${block.rounds}x)`}
+            </Badge>
+          </HStack>
+          <Text fontSize="sm" color={subtitleColor}>
+            {block.exercises.length} exercise{block.exercises.length !== 1 ? 's' : ''} • {block.restBetweenExercises}s rest between exercises
+          </Text>
+        </VStack>
+      </CardHeader>
+      <CardBody>
+        <VStack spacing={3} align="stretch">
+          {block.exercises.map((exercise, index) => (
+            <Box
+              key={exercise.instanceId || `${exercise.name}-${index}`}
+              p={3}
+              bg={exerciseBg}
+              borderRadius="md"
+              borderLeft="3px solid"
+              borderLeftColor={`${getCategoryColor(block.category)}.400`}
+            >
+              <VStack spacing={2} align="stretch">
+                {/* Exercise Header */}
+                <VStack align="start" spacing={1}>
+                  <HStack spacing={2}>
+                    <Text fontSize="md" fontWeight="bold" color={textColor}>
+                      {index + 1}. {exercise.name}
+                    </Text>
+                    {exercise.category && (
+                      <Badge colorScheme="blue" variant="subtle" fontSize="xs">
+                        {exercise.category}
+                      </Badge>
+                    )}
+                  </HStack>
+                  {exercise.description && (
+                    <Text fontSize="xs" color={subtitleColor} noOfLines={2}>
+                      {exercise.description}
+                    </Text>
+                  )}
+                </VStack>
+                
+                {/* Exercise Parameters */}
+                <SimpleGrid columns={{ base: 3, md: 6 }} spacing={2}>
+                  <VStack align="start" spacing={0.5}>
+                    <Text fontSize="xs" fontWeight="semibold" color={subtitleColor}>Sets</Text>
+                    <Text fontSize="sm" fontWeight="medium" color={hasValue(String(exercise.sets)) ? textColor : subtitleColor}>
+                      {hasValue(String(exercise.sets)) ? exercise.sets : '-'}
+                    </Text>
+                  </VStack>
+                  <VStack align="start" spacing={0.5}>
+                    <Text fontSize="xs" fontWeight="semibold" color={subtitleColor}>Reps</Text>
+                    <Text fontSize="sm" fontWeight="medium" color={hasValue(String(exercise.reps)) ? textColor : subtitleColor}>
+                      {hasValue(String(exercise.reps)) ? exercise.reps : '-'}
+                    </Text>
+                  </VStack>
+                  <VStack align="start" spacing={0.5}>
+                    <Text fontSize="xs" fontWeight="semibold" color={subtitleColor}>Weight</Text>
+                    <Text fontSize="sm" fontWeight="medium" color={hasValue(String(exercise.weight)) ? textColor : subtitleColor}>
+                      {hasValue(String(exercise.weight)) ? `${exercise.weight}kg` : '-'}
+                    </Text>
+                  </VStack>
+                  <VStack align="start" spacing={0.5}>
+                    <Text fontSize="xs" fontWeight="semibold" color={subtitleColor}>Distance</Text>
+                    <Text fontSize="sm" fontWeight="medium" color={hasValue(String(exercise.distance)) ? textColor : subtitleColor}>
+                      {hasValue(String(exercise.distance)) ? `${exercise.distance}m` : '-'}
+                    </Text>
+                  </VStack>
+                  <VStack align="start" spacing={0.5}>
+                    <Text fontSize="xs" fontWeight="semibold" color={subtitleColor}>Rest</Text>
+                    <Text fontSize="sm" fontWeight="medium" color={hasValue(String(exercise.rest)) ? textColor : subtitleColor}>
+                      {hasValue(String(exercise.rest)) ? 
+                        (Number(exercise.rest) >= 60 ? 
+                          `${Math.floor(Number(exercise.rest) / 60)}:${(Number(exercise.rest) % 60).toString().padStart(2, '0')}` : 
+                          `${exercise.rest}s`
+                        ) : '-'
+                      }
+                    </Text>
+                  </VStack>
+                  <VStack align="start" spacing={0.5}>
+                    <Text fontSize="xs" fontWeight="semibold" color={subtitleColor}>RPE</Text>
+                    <Text fontSize="sm" fontWeight="medium" color={hasValue(String(exercise.rpe)) ? textColor : subtitleColor}>
+                      {hasValue(String(exercise.rpe)) ? exercise.rpe : '-'}
+                    </Text>
+                  </VStack>
+                </SimpleGrid>
+                
+                {/* Exercise Notes */}
+                {exercise.notes && String(exercise.notes).trim() !== '' && (
+                  <Box pt={1}>
+                    <Text fontSize="xs" color={textColor} fontStyle="italic">
+                      "{exercise.notes}"
+                    </Text>
+                  </Box>
+                )}
+              </VStack>
+            </Box>
+          ))}
+        </VStack>
+      </CardBody>
+    </Card>
+  );
+};
 
 export function WorkoutDetailView({
   workout,
@@ -84,6 +236,14 @@ export function WorkoutDetailView({
   // Memoize expensive calculations
   const exercises = useMemo(() => getExercisesFromWorkout(workout), [workout.exercises, workout.template_type, getExercisesFromWorkout]);
   const exerciseCount = useMemo(() => exercises.length, [exercises]);
+  
+  // For block-based workouts, calculate block count
+  const blockCount = useMemo(() => {
+    if (workout.is_block_based && workout.blocks) {
+      return workout.blocks.length;
+    }
+    return 0;
+  }, [workout.is_block_based, workout.blocks]);
 
   // Load assigned athletes with timeout and optimization
   const loadAssignedAthletes = useCallback(async () => {
@@ -192,7 +352,14 @@ export function WorkoutDetailView({
               Back
             </Button>
             <VStack align="start" spacing={1}>
-              <Heading size="lg" color={titleColor}>{workout.name}</Heading>
+              <HStack spacing={3}>
+                <Heading size="lg" color={titleColor}>{workout.name}</Heading>
+                {workout.is_block_based && (
+                  <Badge colorScheme="green" fontSize="sm">
+                    BLOCK MODE
+                  </Badge>
+                )}
+              </HStack>
               <Text color={infoColor}>Workout Details</Text>
             </VStack>
           </HStack>
@@ -227,11 +394,13 @@ export function WorkoutDetailView({
           <CardBody p={6}>
             <SimpleGrid columns={{ base: 2, md: 4 }} spacing={6}>
               <VStack spacing={2}>
-                <Icon as={FaTasks} color="blue.500" boxSize={6} />
+                <Icon as={workout.is_block_based ? FaLayerGroup : FaTasks} color="blue.500" boxSize={6} />
                 <Text fontSize="2xl" fontWeight="bold" color="blue.500">
-                  {exerciseCount}
+                  {workout.is_block_based ? blockCount : exerciseCount}
                 </Text>
-                <Text fontSize="sm" color={infoColor}>Exercises</Text>
+                <Text fontSize="sm" color={infoColor}>
+                  {workout.is_block_based ? 'Blocks' : 'Exercises'}
+                </Text>
               </VStack>
               
               {workout.duration && (
@@ -318,8 +487,22 @@ export function WorkoutDetailView({
           </Card>
         )}
 
-        {/* Exercise List */}
-        {exercises && exercises.length > 0 && (
+        {/* Block Structure (for block-based workouts) */}
+        {workout.is_block_based && workout.blocks && workout.blocks.length > 0 && (
+          <Card bg={cardBg} borderColor={borderColor} borderWidth="1px">
+            <CardBody p={6}>
+              <Heading size="md" color={titleColor} mb={4}>Training Blocks</Heading>
+              <VStack spacing={4} align="stretch">
+                {(workout.blocks as WorkoutBlock[]).map((block, index) => (
+                  <BlockDisplay key={block.id || index} block={block} />
+                ))}
+              </VStack>
+            </CardBody>
+          </Card>
+        )}
+
+        {/* Exercise List (for non-block workouts) */}
+        {!workout.is_block_based && exercises && exercises.length > 0 && (
           <Card bg={cardBg} borderColor={borderColor} borderWidth="1px">
             <CardBody p={6}>
               <Heading size="md" color={titleColor} mb={4}>

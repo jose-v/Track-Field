@@ -657,6 +657,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
         maxH={{ base: "100vh", md: "90vh" }}
         borderRadius={{ base: 0, md: "md" }}
         m={{ base: 0, md: 4 }}
+        overflow="hidden"
       >
         {/* Overall Progress Bar - Flush to top */}
         {!showRPEScreen && (
@@ -751,7 +752,8 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                           }
                         }
                         
-                        return `Next: ${nextText}`;
+                        // Don't add "Next: " prefix if the text already starts with "Next"
+                        return nextText.startsWith('Next') ? nextText : `Next: ${nextText}`;
                       })()}
                 </Text>
               </>
@@ -817,7 +819,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
         </Box>
         )}
 
-        <ModalBody>
+        <ModalBody px={{ base: 4, md: 6 }} py={{ base: 4, md: 6 }} overflowY="auto" flex="1">
           {showRPEScreen ? (
             <VStack spacing={6}>
               <Text textAlign="center" color={modalTextColor}>
@@ -843,15 +845,15 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                 )}
             </VStack>
           ) : (
-                                    <VStack spacing={6}>
+                                    <VStack spacing={{ base: 4, md: 6 }}>
               {/* Always show the same layout */}
-                <VStack spacing={6} w="full">
+                <VStack spacing={{ base: 4, md: 6 }} w="full">
                   {/* Detailed Progress Section */}
                 <Box 
                     w="full" 
                     bg={sectionBg} 
                     borderRadius="xl" 
-                    p={4}
+                    p={{ base: 3, md: 4 }}
                   >
                     <SimpleGrid columns={4} spacing={2} w="full">
                       {/* Sets Stats */}
@@ -880,7 +882,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                       {/* Exercise Progress */}
                       <VStack spacing={1} align="center">
                         <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textTransform="uppercase" textAlign="center">
-                          {isBlockBasedWorkout ? "Block Progress" : "Exercise"}
+                          {isBlockBasedWorkout ? "Block" : "Exercise"}
                         </Text>
                         <Text fontSize="lg" fontWeight="normal" textAlign="center">
                           {isBlockBasedWorkout 
@@ -914,12 +916,9 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                           w="full" 
                           bg={sectionBg} 
                           borderRadius="xl" 
-                          p={4}
+                          p={{ base: 3, md: 4 }}
                         >
-                          <Text fontSize="xs" color={modalTextColor} fontWeight="bold" textTransform="uppercase" mb={2}>
-                            Block Info
-                          </Text>
-                          <SimpleGrid columns={2} spacing={2}>
+                          <SimpleGrid columns={3} spacing={2}>
                             <VStack spacing={1} align="start">
                               <Text fontSize="xs" color={modalTextColor} fontWeight="medium">
                                 Flow Type
@@ -930,32 +929,20 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                             </VStack>
                             <VStack spacing={1} align="start">
                               <Text fontSize="xs" color={modalTextColor} fontWeight="medium">
+                                Category
+                              </Text>
+                              <Text fontSize="sm" color={modalTextColor} textTransform="capitalize">
+                                {getCurrentBlock()?.category || '-'}
+                              </Text>
+                            </VStack>
+                            <VStack spacing={1} align="start">
+                              <Text fontSize="xs" color={modalTextColor} fontWeight="medium">
                                 Rest Between
                               </Text>
                               <Text fontSize="sm" color={modalTextColor}>
                                 {getCurrentBlock()?.restBetweenExercises || 60}s
                               </Text>
                             </VStack>
-                            {getCurrentBlock()?.rounds && getCurrentBlock()?.rounds! > 1 && (
-                              <VStack spacing={1} align="start">
-                                <Text fontSize="xs" color={modalTextColor} fontWeight="medium">
-                                  Block Rounds
-                                </Text>
-                                <Text fontSize="sm" color={modalTextColor}>
-                                  {currentBlockRound}/{getCurrentBlock()?.rounds}
-                                </Text>
-                              </VStack>
-                            )}
-                            {getCurrentBlock()?.category && (
-                              <VStack spacing={1} align="start">
-                                <Text fontSize="xs" color={modalTextColor} fontWeight="medium">
-                                  Category
-                                </Text>
-                                <Text fontSize="sm" color={modalTextColor} textTransform="capitalize">
-                                  {getCurrentBlock()?.category}
-                                </Text>
-                              </VStack>
-                            )}
                           </SimpleGrid>
                           {getCurrentBlock()?.notes && (
                             <Box mt={3}>
@@ -992,7 +979,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                     w="full" 
                     bg={sectionBg} 
                     borderRadius="xl" 
-                    p={8}
+                    p={{ base: 6, md: 8 }}
                     textAlign="center"
                   >
                     <Text fontSize="xs" color={modalTextColor} fontWeight="bold" textTransform="uppercase" mb={2}>
@@ -1012,7 +999,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                       }
                           </Text>
                           <Text 
-                      fontSize="6xl" 
+                      fontSize={{ base: "5xl", md: "6xl" }} 
                             fontWeight="bold" 
                       color={countdown > 0 ? "red.500" : (isPaused ? "gray.400" : "blue.500")} 
                       lineHeight="1"

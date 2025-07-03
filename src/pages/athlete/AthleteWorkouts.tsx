@@ -84,6 +84,40 @@ function getCurrentDate(): string {
   return dateUtils.localDateString(new Date());
 }
 
+// Helper to get total block count for block-based workouts
+function getTotalBlockCount(workout: any): number {
+  if (workout.is_block_based && workout.blocks && Array.isArray(workout.blocks)) {
+    return workout.blocks.length;
+  }
+  return 0;
+}
+
+// Helper to calculate completed blocks based on completed exercises
+function getCompletedBlockCount(workout: any, completedExercises: number[]): number {
+  if (!workout.is_block_based || !workout.blocks || !Array.isArray(workout.blocks)) {
+    return 0;
+  }
+
+  let completedBlocks = 0;
+  let exerciseOffset = 0;
+
+  for (const block of workout.blocks) {
+    const blockExerciseCount = block.exercises?.length || 0;
+    const blockExerciseIndices = Array.from({ length: blockExerciseCount }, (_, i) => exerciseOffset + i);
+    
+    // Check if all exercises in this block are completed
+    const blockCompleted = blockExerciseIndices.every(index => completedExercises.includes(index));
+    
+    if (blockCompleted && blockExerciseCount > 0) {
+      completedBlocks++;
+    }
+    
+    exerciseOffset += blockExerciseCount;
+  }
+
+  return completedBlocks;
+}
+
 export function AthleteWorkouts() {
   // Theme-aware colors - ALL useColorModeValue calls MUST be at the top level
   const noWorkoutsColor = useColorModeValue('gray.500', 'gray.300');
@@ -221,11 +255,19 @@ export function AthleteWorkouts() {
     });
     const completedWorkouts = assignedWorkouts.filter(w => {
       const progress = workoutStore.getProgress(w.id);
+      const completedExercisesList = progress ? progress.completedExercises || [] : [];
       
-              const totalExercises = getActualExerciseCount(w);
-      
-      const completedExercises = progress ? progress.completedExercises.length : 0;
-      return totalExercises > 0 && completedExercises === totalExercises;
+      if ((w as any).is_block_based) {
+        // For block-based workouts, check if all blocks are completed
+        const totalBlocks = getTotalBlockCount(w);
+        const completedBlocks = getCompletedBlockCount(w, completedExercisesList);
+        return totalBlocks > 0 && completedBlocks === totalBlocks;
+      } else {
+        // For regular workouts, check if all exercises are completed
+        const totalExercises = getActualExerciseCount(w);
+        const completedExercises = completedExercisesList.length;
+        return totalExercises > 0 && completedExercises === totalExercises;
+      }
     });
 
     return {
@@ -264,17 +306,33 @@ export function AthleteWorkouts() {
       case 'completed':
         workouts = assignedWorkouts.filter(w => {
           const progress = workoutStore.getProgress(w.id);
-          const totalExercises = w.exercises?.length || 0;
-          const completedExercises = progress ? progress.completedExercises.length : 0;
-          return totalExercises > 0 && completedExercises === totalExercises;
+          const completedExercisesList = progress ? progress.completedExercises || [] : [];
+          
+          if ((w as any).is_block_based) {
+            const totalBlocks = getTotalBlockCount(w);
+            const completedBlocks = getCompletedBlockCount(w, completedExercisesList);
+            return totalBlocks > 0 && completedBlocks === totalBlocks;
+          } else {
+            const totalExercises = w.exercises?.length || 0;
+            const completedExercises = completedExercisesList.length;
+            return totalExercises > 0 && completedExercises === totalExercises;
+          }
         });
         break;
       case 'in-progress':
         workouts = assignedWorkouts.filter(w => {
           const progress = workoutStore.getProgress(w.id);
-          const totalExercises = w.exercises?.length || 0;
-          const completedExercises = progress ? progress.completedExercises.length : 0;
-          return completedExercises > 0 && completedExercises < totalExercises;
+          const completedExercisesList = progress ? progress.completedExercises || [] : [];
+          
+          if ((w as any).is_block_based) {
+            const totalBlocks = getTotalBlockCount(w);
+            const completedBlocks = getCompletedBlockCount(w, completedExercisesList);
+            return completedBlocks > 0 && completedBlocks < totalBlocks;
+          } else {
+            const totalExercises = w.exercises?.length || 0;
+            const completedExercises = completedExercisesList.length;
+            return completedExercises > 0 && completedExercises < totalExercises;
+          }
         });
         break;
       case 'strength':
@@ -808,13 +866,27 @@ export function AthleteWorkouts() {
             nextExerciseIndex = 0;
           }
           
-          const progressPercent = totalExercises > 0 
-            ? (completedCount / totalExercises) * 100 
-            : 0;
+          // Calculate progress based on workout type (blocks vs exercises)
+          let progressCompleted, progressTotal, progressPercent;
+          
+          if ((workout as any).is_block_based) {
+            // For block-based workouts, calculate block progress
+            const totalBlocks = getTotalBlockCount(workout);
+            const completedBlocks = getCompletedBlockCount(workout, completedExercises);
+            
+            progressCompleted = completedBlocks;
+            progressTotal = totalBlocks;
+            progressPercent = totalBlocks > 0 ? (completedBlocks / totalBlocks) * 100 : 0;
+          } else {
+            // For regular workouts, use exercise progress
+            progressCompleted = completedCount;
+            progressTotal = totalExercises;
+            progressPercent = totalExercises > 0 ? (completedCount / totalExercises) * 100 : 0;
+          }
           
           const progress = {
-            completed: completedCount,
-            total: totalExercises,
+            completed: progressCompleted,
+            total: progressTotal,
             percentage: progressPercent
           };
 

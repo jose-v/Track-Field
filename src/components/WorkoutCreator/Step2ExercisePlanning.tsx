@@ -732,7 +732,7 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
         onDragStart={handleDragStart}
         onDragEnd={isBlockMode ? handleBlockDragEnd : handleDragEnd}
       >
-        <HStack spacing={4} align="start" w="100%" height="calc(100vh - 380px)">
+      <HStack spacing={4} align="start" w="100%" height="calc(100vh - 380px)">
         {/* Left Panel: Exercise Library */}
         <Card flex="1" height="100%" variant="outline" shadow="none" bg={cardBg} borderColor={borderColor}>
           <CardBody p={0} height="100%">
@@ -1002,10 +1002,10 @@ const Step2ExercisePlanning: React.FC<Step2ExercisePlanningProps> = ({
                         </Text>
                         <Text color="blue.400" fontSize="sm">
                           Add exercises from the library to create blocks automatically
-                        </Text>
-                      </VStack>
-                    </VStack>
-                  ) : (
+                    </Text>
+                  </VStack>
+                </VStack>
+              ) : (
                     <VStack spacing={4} align="stretch">
                         <SortableContext
                           items={blocks.map(block => block.id)}
