@@ -20,7 +20,7 @@ import {
   SimpleGrid,
   Badge
 } from '@chakra-ui/react';
-import { FaRegClock, FaRunning, FaDumbbell, FaCheckCircle, FaPlay, FaPause, FaRedo, FaChevronLeft } from 'react-icons/fa';
+import { FaRegClock, FaRunning, FaDumbbell, FaCheckCircle, FaPlay, FaPause, FaRedo, FaChevronLeft, FaChevronRight, FaVideo } from 'react-icons/fa';
 import { ChevronLeftIcon } from '@chakra-ui/icons';
 import { RunTimeInput } from './RunTimeInput';
 import { isRunExercise, validateTime } from '../utils/exerciseUtils';
@@ -658,7 +658,57 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
         borderRadius={{ base: 0, md: "md" }}
         m={{ base: 0, md: 4 }}
         overflow="hidden"
+        position="relative"
       >
+        {/* Floating Navigation Arrows - Mobile Only */}
+        {!showRPEScreen && (
+          <>
+            {/* Previous Arrow */}
+            <IconButton
+              aria-label="Previous"
+              icon={<Icon as={FaChevronLeft} color="white" />}
+              onClick={handlePrevious}
+              isDisabled={countdown > 0 || exerciseIdx === 0}
+              position="absolute"
+              left="20px"
+              top="50%"
+              transform="translateY(-50%)"
+              zIndex={10}
+              size="lg"
+              borderRadius="full"
+              bg="blackAlpha.400"
+              _hover={{ bg: "blackAlpha.600" }}
+              _active={{ bg: "blackAlpha.700" }}
+              border="1px solid"
+              borderColor="whiteAlpha.300"
+              display={{ base: "flex", md: "none" }}
+              opacity={countdown > 0 || exerciseIdx === 0 ? 0.3 : 0.8}
+            />
+            
+            {/* Next Arrow */}
+            <IconButton
+              aria-label="Next"
+              icon={<Icon as={FaChevronRight} color="white" />}
+              onClick={handleDone}
+              isDisabled={countdown > 0}
+              position="absolute"
+              right="20px"
+              top="50%"
+              transform="translateY(-50%)"
+              zIndex={10}
+              size="lg"
+              borderRadius="full"
+              bg="blackAlpha.400"
+              _hover={{ bg: "blackAlpha.600" }}
+              _active={{ bg: "blackAlpha.700" }}
+              border="1px solid"
+              borderColor="whiteAlpha.300"
+              display={{ base: "flex", md: "none" }}
+              opacity={countdown > 0 ? 0.3 : 0.8}
+            />
+          </>
+        )}
+        
         {/* Overall Progress Bar - Flush to top */}
         {!showRPEScreen && (
           <Box w="full" h="3px" bg="gray.200" position="relative">
@@ -1036,6 +1086,18 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                         isDisabled={countdown > 0}
                         opacity={countdown > 0 ? 0.4 : 1}
                       />
+                      {/* Tutorial button - show on mobile, hide on desktop where it's in action buttons */}
+                      <IconButton
+                        aria-label="Tutorial"
+                        icon={<Icon as={FaVideo} />}
+                        onClick={handleVideoClick}
+                        variant="outline"
+                        size="sm"
+                        borderRadius="full"
+                        display={{ base: "flex", md: "none" }}
+                        isDisabled={countdown > 0}
+                        opacity={countdown > 0 ? 0.4 : 1}
+                      />
                       </HStack>
                 </Box>
 
@@ -1052,62 +1114,103 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                     </Box>
               )}
 
-              {/* Action Buttons */}
-                  <SimpleGrid columns={3} spacing={3} w="full">
-                    <Button 
-                      size="lg"
-                      variant="outline"
-                      onClick={handlePrevious}
-                      isDisabled={countdown > 0 || exerciseIdx === 0}
-                      leftIcon={<Icon as={FaChevronLeft} />}
-                    >
-                      Previous
-                    </Button>
-
-                    <Button 
-                      size="lg"
-                      variant="outline"
-                      onClick={handleVideoClick}
-                      leftIcon={<Icon as={FaRunning} />}
-                    >
-                      Tutorial
-                    </Button>
-                  
+              {/* Action Buttons - Desktop Only */}
+              <Box display={{ base: "none", md: "block" }} w="full">
+                <SimpleGrid columns={3} spacing={3} w="full">
                   <Button 
-                      size="lg"
-                      colorScheme="blue"
-                    onClick={handleDone}
-                      isDisabled={countdown > 0}
-                      leftIcon={<Icon as={FaCheckCircle} />}
-                    >
-                      {(() => {
-                        if (isCircuitFlow) {
-                          if (exerciseIdx + 1 >= actualExercises.length) {
-                            if (currentRound < circuitRounds) {
-                              return 'Next Round';
-                            } else {
-                              return 'Finish';
-                            }
+                    size="lg"
+                    variant="outline"
+                    onClick={handlePrevious}
+                    isDisabled={countdown > 0 || exerciseIdx === 0}
+                    leftIcon={<Icon as={FaChevronLeft} />}
+                  >
+                    Previous
+                  </Button>
+
+                  <Button 
+                    size="lg"
+                    variant="outline"
+                    onClick={handleVideoClick}
+                    leftIcon={<Icon as={FaRunning} />}
+                  >
+                    Tutorial
+                  </Button>
+                
+                <Button 
+                    size="lg"
+                    colorScheme="blue"
+                  onClick={handleDone}
+                    isDisabled={countdown > 0}
+                    leftIcon={<Icon as={FaCheckCircle} />}
+                  >
+                    {(() => {
+                      if (isCircuitFlow) {
+                        if (exerciseIdx + 1 >= actualExercises.length) {
+                          if (currentRound < circuitRounds) {
+                            return 'Next Round';
                           } else {
-                            return 'Next';
+                            return 'Finish';
                           }
                         } else {
-                          const maxSets = currentExercise.sets || 1;
-                          const maxReps = currentExercise.reps || 1;
-                          
-                          if (currentRep < maxReps) {
-                            return 'Next Rep';
-                          } else if (currentSet < maxSets) {
-                            return 'Next Set';
-                          } else if (exerciseIdx + 1 >= actualExercises.length) {
-                            return 'Finish';
-                          } else {
-                            return 'Next';
-                          }
+                          return 'Next';
                         }
-                      })()}
+                      } else {
+                        const maxSets = currentExercise.sets || 1;
+                        const maxReps = currentExercise.reps || 1;
+                        
+                        if (currentRep < maxReps) {
+                          return 'Next Rep';
+                        } else if (currentSet < maxSets) {
+                          return 'Next Set';
+                        } else if (exerciseIdx + 1 >= actualExercises.length) {
+                          return 'Finish';
+                        } else {
+                          return 'Next';
+                        }
+                      }
+                    })()}
+              </Button>
+                </SimpleGrid>
+              </Box>
+
+              {/* Mobile Action Button - Main Done Button */}
+              <Box display={{ base: "block", md: "none" }} w="full">
+                <Button 
+                  size="lg"
+                  colorScheme="blue"
+                  onClick={handleDone}
+                  isDisabled={countdown > 0}
+                  leftIcon={<Icon as={FaCheckCircle} />}
+                  w="full"
+                >
+                  {(() => {
+                    if (isCircuitFlow) {
+                      if (exerciseIdx + 1 >= actualExercises.length) {
+                        if (currentRound < circuitRounds) {
+                          return 'Next Round';
+                        } else {
+                          return 'Finish';
+                        }
+                      } else {
+                        return 'Next';
+                      }
+                    } else {
+                      const maxSets = currentExercise.sets || 1;
+                      const maxReps = currentExercise.reps || 1;
+                      
+                      if (currentRep < maxReps) {
+                        return 'Next Rep';
+                      } else if (currentSet < maxSets) {
+                        return 'Next Set';
+                      } else if (exerciseIdx + 1 >= actualExercises.length) {
+                        return 'Finish';
+                      } else {
+                        return 'Next';
+                      }
+                    }
+                  })()}
                 </Button>
-                  </SimpleGrid>
+              </Box>
               </VStack>
             </VStack>
           )}
