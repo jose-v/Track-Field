@@ -36,7 +36,7 @@ SET
     media_type = 'image',
     media_source = 'local',
     media_priority = ARRAY['image', 'video']
-WHERE name = 'Arm circles (backwards and forward)';
+WHERE name = 'Arm Circles';
 
 -- Verify the update
 SELECT 
@@ -49,7 +49,7 @@ SELECT
     media_source,
     media_priority
 FROM public.exercise_library 
-WHERE name = 'Arm circles (backwards and forward)';
+WHERE name = 'Arm Circles';
 
 -- Example of how to add media for other exercises
 -- UPDATE public.exercise_library 

@@ -99,26 +99,8 @@ export const ExerciseMediaDisplay: React.FC<ExerciseMediaDisplayProps> = ({
   };
 
   const getSourceBadge = () => {
-    if (!mediaData || mediaData.source === 'none') return null;
-    
-    const badgeProps = {
-      size: 'xs',
-      position: 'absolute' as const,
-      top: 2,
-      right: 2,
-      zIndex: 2
-    };
-
-    switch (mediaData.source) {
-      case 'database':
-        return <Badge colorScheme="green" {...badgeProps}>DB</Badge>;
-      case 'local':
-        return <Badge colorScheme="blue" {...badgeProps}>Local</Badge>;
-      case 'legacy':
-        return <Badge colorScheme="orange" {...badgeProps}>Legacy</Badge>;
-      default:
-        return null;
-    }
+    // Hide source badges in production for cleaner UI
+    return null;
   };
 
   // Loading state
@@ -145,8 +127,6 @@ export const ExerciseMediaDisplay: React.FC<ExerciseMediaDisplayProps> = ({
         width="100%"
         height={sizeConfig[size].height}
         bg={bgColor}
-        border="2px dashed"
-        borderColor={borderColor}
         borderRadius="lg"
         display="flex"
         alignItems="center"
@@ -172,8 +152,6 @@ export const ExerciseMediaDisplay: React.FC<ExerciseMediaDisplayProps> = ({
           <Box
             bg={bgColor}
             borderRadius="lg"
-            border="1px solid"
-            borderColor={borderColor}
             display="flex"
             alignItems="center"
             justifyContent="center"
@@ -248,12 +226,10 @@ export const ExerciseMediaDisplay: React.FC<ExerciseMediaDisplayProps> = ({
           <Image
             src={mediaData.url}
             alt={`${exerciseName} demonstration`}
-            objectFit="cover"
+            objectFit="contain"
             width="100%"
             height="100%"
             borderRadius="lg"
-            border="1px solid"
-            borderColor={borderColor}
             onError={handleImageError}
             loading="lazy"
           />
@@ -272,36 +248,6 @@ export const ExerciseMediaDisplay: React.FC<ExerciseMediaDisplayProps> = ({
           )}
           
           {getSourceBadge()}
-          
-          {/* Video overlay for image+video combinations */}
-          {showControls && onVideoClick && (
-            <Box
-              position="absolute"
-              bottom={2}
-              right={2}
-            >
-              <Tooltip label="View video tutorial">
-                <IconButton
-                  aria-label="View video"
-                  icon={<Icon as={FaVideo} />}
-                  size="sm"
-                  colorScheme="blue"
-                  variant="solid"
-                  borderRadius="full"
-                  onClick={() => {
-                    // Try to get video URL for this exercise
-                    getBestExerciseMedia(exerciseName).then(media => {
-                      // This is a simplified approach - in a real app you might want
-                      // to modify the service to specifically request video URLs
-                      if (media.type === 'video' && media.url && onVideoClick) {
-                        onVideoClick(media.url);
-                      }
-                    });
-                  }}
-                />
-              </Tooltip>
-            </Box>
-          )}
         </Box>
       </AspectRatio>
     </Box>
