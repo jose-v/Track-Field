@@ -666,45 +666,49 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
             {/* Previous Arrow */}
             <IconButton
               aria-label="Previous"
-              icon={<Icon as={FaChevronLeft} color="white" />}
+              icon={
+                <svg width="72" height="72" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="0.50" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              }
               onClick={handlePrevious}
               isDisabled={countdown > 0 || exerciseIdx === 0}
               position="absolute"
-              left="20px"
+              left="5px"
               top="50%"
               transform="translateY(-50%)"
               zIndex={10}
-              size="lg"
-              borderRadius="full"
-              bg="blackAlpha.400"
-              _hover={{ bg: "blackAlpha.600" }}
-              _active={{ bg: "blackAlpha.700" }}
-              border="1px solid"
-              borderColor="whiteAlpha.300"
+              w={24}
+              h={24}
+              variant="ghost"
               display={{ base: "flex", md: "none" }}
               opacity={countdown > 0 || exerciseIdx === 0 ? 0.3 : 0.8}
+              _hover={{ opacity: 1 }}
+              _active={{ opacity: 0.7 }}
             />
             
             {/* Next Arrow */}
             <IconButton
               aria-label="Next"
-              icon={<Icon as={FaChevronRight} color="white" />}
+              icon={
+                <svg width="72" height="72" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M9 18L15 12L9 6" stroke="white" strokeWidth="0.50" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              }
               onClick={handleDone}
               isDisabled={countdown > 0}
               position="absolute"
-              right="20px"
+              right="5px"
               top="50%"
               transform="translateY(-50%)"
               zIndex={10}
-              size="lg"
-              borderRadius="full"
-              bg="blackAlpha.400"
-              _hover={{ bg: "blackAlpha.600" }}
-              _active={{ bg: "blackAlpha.700" }}
-              border="1px solid"
-              borderColor="whiteAlpha.300"
+              w={24}
+              h={24}
+              variant="ghost"
               display={{ base: "flex", md: "none" }}
               opacity={countdown > 0 ? 0.3 : 0.8}
+              _hover={{ opacity: 1 }}
+              _active={{ opacity: 0.7 }}
             />
           </>
         )}
@@ -1173,44 +1177,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                 </SimpleGrid>
               </Box>
 
-              {/* Mobile Action Button - Main Done Button */}
-              <Box display={{ base: "block", md: "none" }} w="full">
-                <Button 
-                  size="lg"
-                  colorScheme="blue"
-                  onClick={handleDone}
-                  isDisabled={countdown > 0}
-                  leftIcon={<Icon as={FaCheckCircle} />}
-                  w="full"
-                >
-                  {(() => {
-                    if (isCircuitFlow) {
-                      if (exerciseIdx + 1 >= actualExercises.length) {
-                        if (currentRound < circuitRounds) {
-                          return 'Next Round';
-                        } else {
-                          return 'Finish';
-                        }
-                      } else {
-                        return 'Next';
-                      }
-                    } else {
-                      const maxSets = currentExercise.sets || 1;
-                      const maxReps = currentExercise.reps || 1;
-                      
-                      if (currentRep < maxReps) {
-                        return 'Next Rep';
-                      } else if (currentSet < maxSets) {
-                        return 'Next Set';
-                      } else if (exerciseIdx + 1 >= actualExercises.length) {
-                        return 'Finish';
-                      } else {
-                        return 'Next';
-                      }
-                    }
-                  })()}
-                </Button>
-              </Box>
+
               </VStack>
             </VStack>
           )}

@@ -5,6 +5,7 @@ import {
   Text,
   VStack,
   useColorModeValue,
+  useBreakpointValue,
   Icon,
 } from '@chakra-ui/react';
 import { FaStopwatch } from 'react-icons/fa';
@@ -229,6 +230,12 @@ export const RunTimeInput: React.FC<RunTimeInputProps> = ({
   const modalHeaderBorderColor = useColorModeValue('gray.200', 'gray.600');
   const modalHeadingColor = useColorModeValue('gray.800', 'white');
   const modalTextColor = useColorModeValue('gray.500', 'gray.400');
+  
+  // Responsive instruction text
+  const instructionText = useBreakpointValue({ 
+    base: "Enter your run time", 
+    md: "Scroll or drag to adjust time" 
+  });
 
   // Call onTimeChange whenever any value changes
   useEffect(() => {
@@ -237,13 +244,14 @@ export const RunTimeInput: React.FC<RunTimeInputProps> = ({
 
   return (
     <VStack spacing={1} w="100%">
-      {/* Header outside the card */}
+      {/* Header outside the card - Desktop only */}
       <Text 
         fontSize="sm" 
         fontWeight="medium" 
         color={modalTextColor}
         textTransform="uppercase"
         letterSpacing="wider"
+        display={{ base: "none", md: "block" }}
       >
         {placeholder}
       </Text>
@@ -315,7 +323,7 @@ export const RunTimeInput: React.FC<RunTimeInputProps> = ({
           opacity={0.7}
           mt={4}
         >
-          Scroll or drag to adjust time
+          {instructionText}
         </Text>
       </Box>
     </VStack>
