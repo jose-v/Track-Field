@@ -52,6 +52,15 @@ function getVideoUrl(exerciseName: string) {
 
 // Helper: get actual exercise count from workout (handles weekly templates)
 function getActualExerciseCount(workout: any): number {
+  // Handle block-based workouts first
+  if (workout?.is_block_based && workout?.blocks && Array.isArray(workout.blocks)) {
+    // For block-based workouts, sum exercises across all blocks
+    return workout.blocks.reduce((total: number, block: any) => {
+      return total + (block.exercises?.length || 0);
+    }, 0);
+  }
+  
+  // Handle regular workouts
   if (!workout?.exercises || !Array.isArray(workout.exercises)) return 0;
   
   const isWeeklyTemplate = workout.exercises.length > 0 && 
@@ -101,18 +110,35 @@ function getCompletedBlockCount(workout: any, completedExercises: number[]): num
   let completedBlocks = 0;
   let exerciseOffset = 0;
 
-  for (const block of workout.blocks) {
+  for (let blockIndex = 0; blockIndex < workout.blocks.length; blockIndex++) {
+    const block = workout.blocks[blockIndex];
     const blockExerciseCount = block.exercises?.length || 0;
     const blockExerciseIndices = Array.from({ length: blockExerciseCount }, (_, i) => exerciseOffset + i);
     
     // Check if all exercises in this block are completed
     const blockCompleted = blockExerciseIndices.every(index => completedExercises.includes(index));
     
+    // Debug logging for each block
+    if (process.env.NODE_ENV === 'development') {
+      const completedInBlock = blockExerciseIndices.filter(index => completedExercises.includes(index));
+      console.log(`[Block Completion Debug] Block ${blockIndex + 1}: ${block.name || 'Unnamed'}`, {
+        blockExerciseCount,
+        blockExerciseIndices,
+        completedInBlock,
+        blockCompleted,
+        exerciseOffset
+      });
+    }
+    
     if (blockCompleted && blockExerciseCount > 0) {
       completedBlocks++;
     }
     
     exerciseOffset += blockExerciseCount;
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[Block Completion Summary] Total completed blocks: ${completedBlocks}/${workout.blocks.length}`);
   }
 
   return completedBlocks;
@@ -626,7 +652,7 @@ export function AthleteWorkouts() {
     if (!execModal.workout) return;
     
     const workoutId = execModal.workout.id;
-    const totalExercises = execModal.workout.exercises.length;
+    const totalExercises = getActualExerciseCount(execModal.workout);
     const finalExerciseIdx = execModal.exerciseIdx;
     
     // Mark the final exercise as completed if it hasn't been marked yet
@@ -873,6 +899,23 @@ export function AthleteWorkouts() {
             // For block-based workouts, calculate block progress
             const totalBlocks = getTotalBlockCount(workout);
             const completedBlocks = getCompletedBlockCount(workout, completedExercises);
+            
+            // Debug logging for block-based workouts
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`[Block Progress Debug] Workout: ${workout.name}`, {
+                workoutId: workout.id,
+                totalBlocks,
+                completedBlocks,
+                totalExercises,
+                completedExercises: completedExercises.length,
+                completedExercisesList: completedExercises,
+                blocks: workout.blocks?.map((block: any, idx: number) => ({
+                  blockIndex: idx,
+                  name: block.name,
+                  exerciseCount: block.exercises?.length || 0
+                }))
+              });
+            }
             
             progressCompleted = completedBlocks;
             progressTotal = totalBlocks;

@@ -44,6 +44,9 @@ import {
   AlertDialogOverlay,
   Tag,
   Tooltip,
+  Image,
+  Avatar,
+  ButtonGroup,
 } from '@chakra-ui/react';
 import { 
   Search, 
@@ -58,7 +61,10 @@ import {
   Trash2,
   Filter,
   ChevronDown,
-  BookOpen
+  BookOpen,
+  Grid3X3,
+  List,
+  MoreVertical
 } from 'lucide-react';
 import { ExerciseModal } from './ExerciseModal';
 
@@ -145,6 +151,453 @@ const DIFFICULTY_COLORS = {
 export interface ExerciseLibraryRef {
   openAddModal: () => void;
 }
+
+// Custom Exercise Avatar Component with Fallback Support
+interface ExerciseAvatarProps {
+  exercise: Exercise;
+  size: 'md' | 'lg';
+  getExerciseImage: (exercise: Exercise) => string | null;
+  [key: string]: any; // Allow other Avatar props
+}
+
+const ExerciseAvatar: React.FC<ExerciseAvatarProps> = ({ 
+  exercise, 
+  size, 
+  getExerciseImage, 
+  ...avatarProps 
+}) => {
+  const [imageSrc, setImageSrc] = React.useState<string | undefined>(undefined);
+  const [hasError, setHasError] = React.useState(false);
+
+  // Helper function to get fallback image paths
+  const getImagePaths = React.useCallback((exercise: Exercise): string[] => {
+    const sanitizedName = exercise.name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    const categoryMap: Record<string, string> = {
+      'warm_up': 'warmup',
+      'cool_down': 'cooldown',
+      'plyometric': 'plyometric',
+      'flexibility': 'flexibility',
+      'strength': 'strength',
+      'running': 'running',
+      'drill': 'drill',
+      'recovery': 'recovery',
+      'custom': 'strength'
+    };
+
+    const directoryName = categoryMap[exercise.category] || exercise.category.toLowerCase();
+    
+    return [
+      `/exercise-media/thumbnails/${directoryName}/${sanitizedName}.png`,
+      `/exercise-media/images/${directoryName}/${sanitizedName}.png`
+    ];
+  }, []);
+
+  // Try to load images with fallback
+  React.useEffect(() => {
+    if (exercise.video_url) {
+      const youtubeMatch = exercise.video_url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+      if (youtubeMatch) {
+        setImageSrc(`https://img.youtube.com/vi/${youtubeMatch[1]}/mqdefault.jpg`);
+        setHasError(false);
+        return;
+      }
+    }
+
+    const imagePaths = getImagePaths(exercise);
+    let currentIndex = 0;
+
+    const tryNextImage = () => {
+      if (currentIndex >= imagePaths.length) {
+        setImageSrc(undefined);
+        setHasError(true);
+        return;
+      }
+
+      const img = document.createElement('img');
+      img.onload = () => {
+        setImageSrc(imagePaths[currentIndex]);
+        setHasError(false);
+      };
+      img.onerror = () => {
+        currentIndex++;
+        tryNextImage();
+      };
+      img.src = imagePaths[currentIndex];
+    };
+
+    tryNextImage();
+  }, [exercise, getImagePaths]);
+
+  return (
+    <Avatar
+      src={imageSrc}
+      name={exercise.name}
+      size={size}
+      bg="gray.800"
+      icon={<Dumbbell size={size === 'lg' ? 24 : 20} />}
+      sx={{
+        '& img': {
+          imageRendering: 'auto',
+          objectFit: 'cover',
+          filter: 'none',
+          transform: 'translateZ(0)',
+          backfaceVisibility: 'hidden',
+          WebkitFontSmoothing: 'antialiased'
+        }
+      }}
+      {...avatarProps}
+    />
+  );
+};
+
+// Exercise Card Components (moved outside main component to fix hooks order)
+interface ExerciseCardProps {
+  exercise: Exercise;
+  onEditExercise: (exercise: Exercise) => void;
+  onDeleteClick: (exercise: Exercise) => void;
+  onExerciseClick: (exercise: Exercise) => void;
+  isExerciseSelected: (exerciseId: string) => boolean;
+  getExerciseImage: (exercise: Exercise) => string | null;
+  selectionMode: boolean;
+  currentUserId?: string;
+  enableDrag: boolean;
+}
+
+const ExerciseGridCard: React.FC<ExerciseCardProps> = ({ 
+  exercise,
+  onEditExercise,
+  onDeleteClick,
+  onExerciseClick,
+  isExerciseSelected,
+  getExerciseImage,
+  selectionMode,
+  currentUserId,
+  enableDrag
+}) => {
+  // Theme colors
+  const exerciseCardBg = useColorModeValue('gray.50', 'gray.700');
+  const exerciseCardHoverBg = useColorModeValue('gray.100', 'gray.600');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const textColor = useColorModeValue('gray.700', 'gray.100');
+  const subtitleColor = useColorModeValue('gray.600', 'gray.300');
+  
+  // Selection mode colors
+  const selectedBg = useColorModeValue('blue.50', 'blue.900');
+  const selectedHoverBg = useColorModeValue('blue.100', 'blue.800');
+  const selectedBorderColor = useColorModeValue('blue.400', 'blue.300');
+  const selectedTextColor = useColorModeValue('blue.800', 'blue.100');
+
+  const isAlreadySelected = selectionMode && isExerciseSelected(exercise.id);
+  
+  return (
+    <Card
+      variant="outline"
+      bg={isAlreadySelected ? selectedBg : exerciseCardBg}
+      borderColor={isAlreadySelected ? selectedBorderColor : borderColor}
+      borderWidth={isAlreadySelected ? '2px' : '1px'}
+      _hover={{ 
+        bg: isAlreadySelected ? selectedHoverBg : exerciseCardHoverBg, 
+        borderColor: selectedBorderColor,
+        cursor: enableDrag ? 'grab' : 'pointer'
+      }}
+      transition="all 0.2s"
+      onClick={() => onExerciseClick(exercise)}
+      position="relative"
+      h="280px"
+    >
+      {/* Action Menu - Positioned at top-right */}
+      {!exercise.is_system_exercise && exercise.user_id === currentUserId && !selectionMode && (
+        <Menu>
+          <MenuButton
+            as={IconButton}
+            icon={<MoreVertical size={16} />}
+            size="sm"
+            variant="ghost"
+            colorScheme="gray"
+            position="absolute"
+            top={2}
+            right={2}
+            zIndex={2}
+            onClick={(e) => e.stopPropagation()}
+            _hover={{ bg: 'blackAlpha.100' }}
+          />
+          <MenuList>
+            <MenuItem
+              icon={<Edit3 size={16} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditExercise(exercise);
+              }}
+            >
+              Edit Exercise
+            </MenuItem>
+            <MenuItem
+              icon={<Trash2 size={16} />}
+              color="red.500"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteClick(exercise);
+              }}
+            >
+              Delete Exercise
+            </MenuItem>
+          </MenuList>
+        </Menu>
+      )}
+
+      <CardBody p={4} display="flex" flexDirection="column" h="full">
+        {/* Exercise Image */}
+        <Box mb={3} display="flex" justifyContent="center">
+          <ExerciseAvatar
+            exercise={exercise}
+            size="lg"
+            getExerciseImage={getExerciseImage}
+          />
+        </Box>
+
+        {/* Header */}
+        <VStack spacing={2} align="stretch" flex="1">
+          <Text fontWeight="bold" fontSize="md" color={isAlreadySelected ? selectedTextColor : textColor} noOfLines={2} textAlign="center">
+            {exercise.name}
+          </Text>
+          
+          <HStack spacing={1} justify="center" wrap="wrap">
+            <Tag size="sm" colorScheme="blue" variant="subtle">
+              {exercise.category}
+            </Tag>
+            {exercise.difficulty && (
+              <Badge 
+                size="sm" 
+                colorScheme={DIFFICULTY_COLORS[exercise.difficulty]}
+                variant="subtle"
+              >
+                {exercise.difficulty}
+              </Badge>
+            )}
+          </HStack>
+
+          {/* Source Badge */}
+          <Center>
+            {exercise.is_system_exercise ? (
+              <Badge size="sm" colorScheme="blue" variant="solid">
+                System
+              </Badge>
+            ) : exercise.is_public ? (
+              <Badge size="sm" colorScheme="green" variant="solid">
+                Public
+              </Badge>
+            ) : exercise.organization_id ? (
+              <Badge size="sm" colorScheme="orange" variant="solid">
+                Team
+              </Badge>
+            ) : (
+              <Badge size="sm" colorScheme="purple" variant="solid">
+                Mine
+              </Badge>
+            )}
+            {isAlreadySelected && (
+              <Badge size="sm" colorScheme="green" variant="solid" ml={1}>
+                ✓ Added
+              </Badge>
+            )}
+          </Center>
+
+          {/* Description */}
+          <Text fontSize="sm" color={isAlreadySelected ? selectedTextColor : subtitleColor} noOfLines={3} textAlign="center" flex="1">
+            {exercise.description}
+          </Text>
+        </VStack>
+
+        {/* Selection Mode Add Button */}
+        {selectionMode && !isAlreadySelected && (
+          <Button
+            size="sm"
+            colorScheme="blue"
+            variant="outline"
+            onClick={(e) => {
+              e.stopPropagation();
+              onExerciseClick(exercise);
+            }}
+            leftIcon={<Plus size={14} />}
+            mt={2}
+          >
+            Add
+          </Button>
+        )}
+      </CardBody>
+    </Card>
+  );
+};
+
+const ExerciseListCard: React.FC<ExerciseCardProps> = ({ 
+  exercise,
+  onEditExercise,
+  onDeleteClick,
+  onExerciseClick,
+  isExerciseSelected,
+  getExerciseImage,
+  selectionMode,
+  currentUserId,
+  enableDrag
+}) => {
+  // Theme colors
+  const exerciseCardBg = useColorModeValue('gray.50', 'gray.600');
+  const exerciseCardHoverBg = useColorModeValue('gray.100', 'gray.500');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const textColor = useColorModeValue('gray.700', 'gray.100');
+  const subtitleColor = useColorModeValue('gray.600', 'gray.300');
+  
+  // Selection mode colors
+  const selectedBg = useColorModeValue('blue.50', 'blue.900');
+  const selectedHoverBg = useColorModeValue('blue.100', 'blue.800');
+  const selectedBorderColor = useColorModeValue('blue.400', 'blue.300');
+  const selectedTextColor = useColorModeValue('blue.800', 'blue.100');
+
+  const isAlreadySelected = selectionMode && isExerciseSelected(exercise.id);
+  
+  return (
+    <Card
+      variant="outline"
+      bg={isAlreadySelected ? selectedBg : exerciseCardBg}
+      borderColor={isAlreadySelected ? selectedBorderColor : borderColor}
+      borderWidth={isAlreadySelected ? '2px' : '1px'}
+      _hover={{ 
+        bg: isAlreadySelected ? selectedHoverBg : exerciseCardHoverBg, 
+        borderColor: selectedBorderColor,
+        cursor: enableDrag ? 'grab' : 'pointer'
+      }}
+      transition="all 0.2s"
+      onClick={() => onExerciseClick(exercise)}
+    >
+      <CardBody p={3}>
+        <HStack spacing={3} align="center">
+          {/* Exercise Image */}
+          <ExerciseAvatar
+            exercise={exercise}
+            size="md"
+            getExerciseImage={getExerciseImage}
+            flexShrink={0}
+          />
+
+          {/* Content */}
+          <VStack align="start" spacing={1} flex="1" minW={0}>
+            <HStack spacing={2} align="center" w="full">
+              <Text fontWeight="bold" fontSize="md" color={isAlreadySelected ? selectedTextColor : textColor} noOfLines={1} flex="1">
+                {exercise.name}
+              </Text>
+              
+              {/* Tags */}
+              <HStack spacing={1}>
+                <Tag size="sm" colorScheme="blue" variant="subtle">
+                  {exercise.category}
+                </Tag>
+                {exercise.difficulty && (
+                  <Badge 
+                    size="sm" 
+                    colorScheme={DIFFICULTY_COLORS[exercise.difficulty]}
+                    variant="subtle"
+                  >
+                    {exercise.difficulty}
+                  </Badge>
+                )}
+              </HStack>
+            </HStack>
+            
+            <Text fontSize="sm" color={isAlreadySelected ? selectedTextColor : subtitleColor} noOfLines={2} w="full">
+              {exercise.description}
+            </Text>
+
+            {/* Source and Selection Info */}
+            <HStack spacing={2} w="full">
+              {exercise.is_system_exercise ? (
+                <Badge size="sm" colorScheme="blue" variant="solid">
+                  System
+                </Badge>
+              ) : exercise.is_public ? (
+                <Badge size="sm" colorScheme="green" variant="solid">
+                  Public
+                </Badge>
+              ) : exercise.organization_id ? (
+                <Badge size="sm" colorScheme="orange" variant="solid">
+                  Team
+                </Badge>
+              ) : (
+                <Badge size="sm" colorScheme="purple" variant="solid">
+                  Mine
+                </Badge>
+              )}
+              {isAlreadySelected && (
+                <Badge size="sm" colorScheme="green" variant="solid">
+                  ✓ Added
+                </Badge>
+              )}
+            </HStack>
+          </VStack>
+
+          {/* Action Buttons */}
+          <VStack spacing={2}>
+            {/* Selection Mode Add Button */}
+            {selectionMode && !isAlreadySelected && (
+              <IconButton
+                size="sm"
+                colorScheme="blue"
+                variant="outline"
+                icon={<Plus size={14} />}
+                aria-label="Add exercise"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onExerciseClick(exercise);
+                }}
+              />
+            )}
+
+            {/* Action Menu - Positioned at right side */}
+            {!exercise.is_system_exercise && exercise.user_id === currentUserId && !selectionMode && (
+              <Menu>
+                <MenuButton
+                  as={IconButton}
+                  icon={<MoreVertical size={16} />}
+                  size="sm"
+                  variant="ghost"
+                  colorScheme="gray"
+                  onClick={(e) => e.stopPropagation()}
+                  _hover={{ bg: 'blackAlpha.100' }}
+                />
+                <MenuList>
+                  <MenuItem
+                    icon={<Edit3 size={16} />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditExercise(exercise);
+                    }}
+                  >
+                    Edit Exercise
+                  </MenuItem>
+                  <MenuItem
+                    icon={<Trash2 size={16} />}
+                    color="red.500"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteClick(exercise);
+                    }}
+                  >
+                    Delete Exercise
+                  </MenuItem>
+                </MenuList>
+              </Menu>
+            )}
+          </VStack>
+        </HStack>
+      </CardBody>
+    </Card>
+  );
+};
 
 // Draggable Exercise Card Component
 interface DraggableExerciseCardProps {
@@ -266,6 +719,7 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
   const [selectedSource, setSelectedSource] = useState('all');
   const [sortBy, setSortBy] = useState<'name' | 'category' | 'created_at'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
   // Modal states
   const { isOpen: isAddOpen, onOpen: onAddOpen, onClose: onAddClose } = useDisclosure();
@@ -278,15 +732,13 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
   
   const toast = useToast();
 
-  // Theme colors
+  // Theme colors (only for main layout, card colors are now in individual components)
   const bgColor = useColorModeValue('white', 'gray.800');
   const cardBg = useColorModeValue('white', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   const textColor = useColorModeValue('gray.700', 'gray.100');
   const subtitleColor = useColorModeValue('gray.600', 'gray.300');
   const searchIconColor = useColorModeValue('gray.400', 'gray.500');
-  const exerciseCardBg = useColorModeValue('gray.50', 'gray.600');
-  const exerciseCardHoverBg = useColorModeValue('gray.100', 'gray.500');
   const emptyStateColor = useColorModeValue('gray.500', 'gray.400');
 
   // Get unique categories from exercises
@@ -441,6 +893,63 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
     return selectedExercises.includes(exerciseId);
   };
 
+  // Helper function to sanitize exercise names for file paths (same as exerciseMediaService)
+  const sanitizeExerciseName = (name: string): string => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+      .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+  };
+
+  // Helper function to check if a file exists (simple approach for images)
+  const checkFileExists = async (url: string): Promise<boolean> => {
+    try {
+      const response = await fetch(url, { method: 'HEAD' });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  };
+
+  // Helper function to get exercise image (following execution modal convention)
+  const getExerciseImage = (exercise: Exercise): string | null => {
+    // Check for video thumbnail first, then fall back to local images
+    if (exercise.video_url) {
+      // Extract thumbnail from video URL if it's a YouTube video
+      const youtubeMatch = exercise.video_url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+      if (youtubeMatch) {
+        return `https://img.youtube.com/vi/${youtubeMatch[1]}/mqdefault.jpg`;
+      }
+    }
+    
+    // Map exercise categories to actual directory names
+    const categoryDirectoryMap: Record<string, string> = {
+      'warm_up': 'warmup',
+      'cool_down': 'cooldown',
+      'plyometric': 'plyometric',
+      'flexibility': 'flexibility',
+      'strength': 'strength',
+      'running': 'running',
+      'drill': 'drill',
+      'recovery': 'recovery',
+      'custom': 'strength' // fallback to strength directory for custom exercises
+    };
+    
+    // Generate local file path using the same convention as exerciseMediaService
+    const sanitizedName = sanitizeExerciseName(exercise.name);
+    const directoryName = categoryDirectoryMap[exercise.category] || exercise.category.toLowerCase();
+    
+    // Try thumbnails first for better performance and quality at small sizes
+    const thumbnailPath = `/exercise-media/thumbnails/${directoryName}/${sanitizedName}.png`;
+    const imagePath = `/exercise-media/images/${directoryName}/${sanitizedName}.png`;
+    
+    // For avatars, prefer thumbnails if available, otherwise use full images
+    // We'll return thumbnail path first and let the browser handle fallback
+    return thumbnailPath;
+  };
+
   if (isLoading) {
     return (
       <Center h="400px">
@@ -467,16 +976,18 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
               <Text color={subtitleColor} fontSize="md">{subtitle}</Text>
             </VStack>
             
-            {showAddButton && (
-              <Button
-                leftIcon={<Plus size={20} />}
-                colorScheme="blue"
-                onClick={onAddOpen}
-                size="lg"
-              >
-                Add Exercise
-              </Button>
-            )}
+            <HStack spacing={2}>
+              {showAddButton && (
+                <Button
+                  leftIcon={<Plus size={20} />}
+                  colorScheme="blue"
+                  onClick={onAddOpen}
+                  size="lg"
+                >
+                  Add Exercise
+                </Button>
+              )}
+            </HStack>
           </HStack>
 
           {/* Search and Filters */}
@@ -509,15 +1020,43 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
                   </InputRightElement>
                 )}
               </InputGroup>
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                minW="48px"
-                w="48px"
-              >
-                {sortOrder === 'asc' ? '↑' : '↓'}
-              </Button>
+              
+              {/* Unified Control Bar: Grid, List, and Sort */}
+              <ButtonGroup size="lg" isAttached variant="outline" spacing={0}>
+                {!selectionMode && (
+                  <>
+                    <IconButton
+                      aria-label="Grid view"
+                      icon={<Grid3X3 size={18} />}
+                      isActive={viewMode === 'grid'}
+                      onClick={() => setViewMode('grid')}
+                      colorScheme={viewMode === 'grid' ? 'blue' : 'gray'}
+                      minW="48px"
+                      w="48px"
+                    />
+                    <IconButton
+                      aria-label="List view"
+                      icon={<List size={18} />}
+                      isActive={viewMode === 'list'}
+                      onClick={() => setViewMode('list')}
+                      colorScheme={viewMode === 'list' ? 'blue' : 'gray'}
+                      minW="48px"
+                      w="48px"
+                    />
+                  </>
+                )}
+                <IconButton
+                  aria-label={`Sort ${sortOrder === 'asc' ? 'descending' : 'ascending'}`}
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  minW="48px"
+                  w="48px"
+                  icon={
+                    <Text fontSize="lg" fontWeight="bold">
+                      {sortOrder === 'asc' ? '↑' : '↓'}
+                    </Text>
+                  }
+                />
+              </ButtonGroup>
             </HStack>
 
             {/* Filters */}
@@ -624,231 +1163,63 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
             </VStack>
           </Center>
         ) : selectionMode ? (
-          // Selection mode: Full-width list layout for workout creator
+          // Selection mode: Always use list layout for workout creator
           <VStack spacing={2} align="stretch">
-            {filteredExercises.map((exercise) => {
-              const isAlreadySelected = isExerciseSelected(exercise.id);
-              
-              // Dark mode aware selected colors
-              const selectedBg = useColorModeValue('blue.50', 'blue.900');
-              const selectedHoverBg = useColorModeValue('blue.100', 'blue.800');
-              const selectedBorderColor = useColorModeValue('blue.400', 'blue.300');
-              const selectedTextColor = useColorModeValue('blue.800', 'blue.100');
-              
-              return (
-                <DraggableExerciseCard 
-                  key={exercise.id} 
-                  exercise={exercise} 
-                  isSelectionMode={!enableDrag}
-                >
-                  <Card
-                    variant="outline"
-                    bg={isAlreadySelected ? selectedBg : exerciseCardBg}
-                    borderColor={isAlreadySelected ? selectedBorderColor : borderColor}
-                    borderWidth={isAlreadySelected ? '2px' : '1px'}
-                    _hover={{ 
-                      bg: isAlreadySelected ? selectedHoverBg : exerciseCardHoverBg, 
-                      borderColor: selectedBorderColor,
-                      cursor: enableDrag ? 'grab' : 'pointer'
-                    }}
-                    transition="all 0.2s"
-                    onClick={() => handleExerciseClick(exercise)}
-                    opacity={1}
-                  >
-                  <CardBody p={3}>
-                    <HStack justify="space-between" align="center" spacing={4}>
-                      <VStack align="start" spacing={1} flex="1">
-                        <HStack spacing={2} align="center">
-                          <Text fontWeight="bold" fontSize="sm" color={isAlreadySelected ? selectedTextColor : textColor}>
-                            {exercise.name}
-                          </Text>
-                          <Tag size="sm" colorScheme="blue" variant="subtle">
-                            {exercise.category}
-                          </Tag>
-                          {exercise.difficulty && (
-                            <Badge 
-                              size="sm" 
-                              colorScheme={DIFFICULTY_COLORS[exercise.difficulty]}
-                              variant="subtle"
-                            >
-                              {exercise.difficulty}
-                            </Badge>
-                          )}
-                          {/* Source Badge */}
-                          {exercise.is_system_exercise ? (
-                            <Badge size="sm" colorScheme="blue" variant="solid">
-                              System
-                            </Badge>
-                          ) : exercise.is_public ? (
-                            <Badge size="sm" colorScheme="green" variant="solid">
-                              Public
-                            </Badge>
-                          ) : exercise.organization_id ? (
-                            <Badge size="sm" colorScheme="orange" variant="solid">
-                              Team
-                            </Badge>
-                          ) : (
-                            <Badge size="sm" colorScheme="purple" variant="solid">
-                              Mine
-                            </Badge>
-                          )}
-                          {isAlreadySelected && (
-                            <Badge size="sm" colorScheme="green" variant="solid">
-                              ✓ Added
-                            </Badge>
-                          )}
-                        </HStack>
-                        <Text fontSize="xs" color={isAlreadySelected ? selectedTextColor : subtitleColor} noOfLines={1}>
-                          {exercise.description}
-                        </Text>
-                      </VStack>
-                      
-                      {!isAlreadySelected && (
-                        <Button
-                          size="sm"
-                          colorScheme="blue"
-                          variant="outline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleExerciseClick(exercise);
-                          }}
-                          leftIcon={<Plus size={14} />}
-                        >
-                          Add
-                        </Button>
-                      )}
-                    </HStack>
-                  </CardBody>
-                </Card>
-                </DraggableExerciseCard>
-              );
-            })}
+            {filteredExercises.map((exercise) => (
+              <DraggableExerciseCard 
+                key={exercise.id} 
+                exercise={exercise} 
+                isSelectionMode={!enableDrag}
+              >
+                <ExerciseListCard 
+                  exercise={exercise}
+                  onEditExercise={handleEditExercise}
+                  onDeleteClick={handleDeleteClick}
+                  onExerciseClick={handleExerciseClick}
+                  isExerciseSelected={isExerciseSelected}
+                  getExerciseImage={getExerciseImage}
+                  selectionMode={selectionMode}
+                  currentUserId={currentUserId}
+                  enableDrag={enableDrag}
+                />
+              </DraggableExerciseCard>
+            ))}
+          </VStack>
+        ) : viewMode === 'list' ? (
+          // List view mode
+          <VStack spacing={2} align="stretch">
+            {filteredExercises.map((exercise) => (
+              <DraggableExerciseCard key={exercise.id} exercise={exercise} isSelectionMode={!enableDrag}>
+                <ExerciseListCard 
+                  exercise={exercise}
+                  onEditExercise={handleEditExercise}
+                  onDeleteClick={handleDeleteClick}
+                  onExerciseClick={handleExerciseClick}
+                  isExerciseSelected={isExerciseSelected}
+                  getExerciseImage={getExerciseImage}
+                  selectionMode={selectionMode}
+                  currentUserId={currentUserId}
+                  enableDrag={enableDrag}
+                />
+              </DraggableExerciseCard>
+            ))}
           </VStack>
         ) : (
-          // Regular mode: Grid layout for exercise library management
+          // Grid view mode (default)
           <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
             {filteredExercises.map((exercise) => (
               <DraggableExerciseCard key={exercise.id} exercise={exercise} isSelectionMode={!enableDrag}>
-                <Card
-                variant="outline"
-                bg={exerciseCardBg}
-                borderColor={borderColor}
-                borderWidth="1px"
-                _hover={{ 
-                  bg: exerciseCardHoverBg, 
-                  borderColor: 'blue.300'
-                }}
-                transition="all 0.2s"
-                onClick={() => handleExerciseClick(exercise)}
-              >
-                <CardBody p={4}>
-                  <VStack spacing={3} align="stretch">
-                    {/* Header */}
-                    <HStack justify="space-between" align="start">
-                      <VStack align="start" spacing={1} flex="1">
-                        <Text fontWeight="bold" fontSize="md" color={textColor} noOfLines={1}>
-                          {exercise.name}
-                        </Text>
-                        <HStack spacing={2}>
-                          <Tag size="sm" colorScheme="blue" variant="subtle">
-                            {exercise.category}
-                          </Tag>
-                          {exercise.difficulty && (
-                            <Badge 
-                              size="sm" 
-                              colorScheme={DIFFICULTY_COLORS[exercise.difficulty]}
-                              variant="subtle"
-                            >
-                              {exercise.difficulty}
-                            </Badge>
-                          )}
-                          {/* Source Badge */}
-                          {exercise.is_system_exercise ? (
-                            <Badge size="sm" colorScheme="blue" variant="solid">
-                              System
-                            </Badge>
-                          ) : exercise.is_public ? (
-                            <Badge size="sm" colorScheme="green" variant="solid">
-                              Public
-                            </Badge>
-                          ) : exercise.organization_id ? (
-                            <Badge size="sm" colorScheme="orange" variant="solid">
-                              Team
-                            </Badge>
-                          ) : (
-                            <Badge size="sm" colorScheme="purple" variant="solid">
-                              Mine
-                            </Badge>
-                          )}
-                        </HStack>
-                      </VStack>
-                      
-                      {!exercise.is_system_exercise && exercise.user_id === currentUserId && (
-                        <HStack spacing={1}>
-                          <Tooltip label="Edit exercise">
-                            <IconButton
-                              icon={<Edit3 size={16} />}
-                              size="sm"
-                              variant="ghost"
-                              colorScheme="blue"
-                              aria-label="Edit exercise"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditExercise(exercise);
-                              }}
-                            />
-                          </Tooltip>
-                          <Tooltip label="Delete exercise">
-                            <IconButton
-                              icon={<Trash2 size={16} />}
-                              size="sm"
-                              variant="ghost"
-                              colorScheme="red"
-                              aria-label="Delete exercise"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteClick(exercise);
-                              }}
-                            />
-                          </Tooltip>
-                        </HStack>
-                      )}
-                    </HStack>
-
-                    {/* Description */}
-                    <Text fontSize="sm" color={subtitleColor} noOfLines={3}>
-                      {exercise.description}
-                    </Text>
-
-                    {/* Muscle Groups */}
-                    {exercise.muscle_groups && exercise.muscle_groups.length > 0 && (
-                      <HStack spacing={1} wrap="wrap">
-                        {exercise.muscle_groups.slice(0, 3).map((muscle, index) => (
-                          <Tag key={index} size="xs" variant="outline" colorScheme="gray">
-                            {muscle}
-                          </Tag>
-                        ))}
-                        {exercise.muscle_groups.length > 3 && (
-                          <Text fontSize="xs" color={subtitleColor}>
-                            +{exercise.muscle_groups.length - 3} more
-                          </Text>
-                        )}
-                      </HStack>
-                    )}
-
-                    {/* Equipment */}
-                    {exercise.equipment && exercise.equipment.length > 0 && (
-                      <HStack spacing={1}>
-                        <Dumbbell size={14} color={subtitleColor} />
-                        <Text fontSize="xs" color={subtitleColor}>
-                          {exercise.equipment.slice(0, 2).join(', ')}
-                          {exercise.equipment.length > 2 && ` +${exercise.equipment.length - 2} more`}
-                        </Text>
-                      </HStack>
-                    )}
-                  </VStack>
-                </CardBody>
-              </Card>
+                <ExerciseGridCard 
+                  exercise={exercise}
+                  onEditExercise={handleEditExercise}
+                  onDeleteClick={handleDeleteClick}
+                  onExerciseClick={handleExerciseClick}
+                  isExerciseSelected={isExerciseSelected}
+                  getExerciseImage={getExerciseImage}
+                  selectionMode={selectionMode}
+                  currentUserId={currentUserId}
+                  enableDrag={enableDrag}
+                />
               </DraggableExerciseCard>
             ))}
           </SimpleGrid>
