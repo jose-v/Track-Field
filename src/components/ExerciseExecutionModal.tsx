@@ -1107,14 +1107,16 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                 </Box>
 
                   {/* Exercise Media Display */}
-                  <Box w="full">
-                    <ExerciseMediaDisplay
-                      exerciseName={exerciseName}
-                      onVideoClick={handleVideoClick}
-                      size="md"
-                      showControls={true}
-                    />
-                  </Box>
+                  {!isRunExercise(exerciseName) && (
+                    <Box w="full">
+                      <ExerciseMediaDisplay
+                        exerciseName={exerciseName}
+                        onVideoClick={handleVideoClick}
+                        size="md"
+                        showControls={true}
+                      />
+                    </Box>
+                  )}
 
                   {/* Time Input for Running Exercises */}
                   {isRunExercise(exerciseName) && (
