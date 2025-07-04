@@ -540,12 +540,12 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                         </Text>
                         {/* Add Monthly Plan and Weekly Workout Names */}
                         <Flex 
-                          direction={{ base: "column", sm: "row" }} 
+                          direction="row" 
                           gap={2} 
                           mt={1}
                           wrap="wrap"
                         >
-                          {dailyWorkout.primaryWorkout?.monthlyPlan?.name && (
+                                                    {dailyWorkout.primaryWorkout?.monthlyPlan?.name && (
                             <Badge colorScheme="blue" variant="outline" fontSize="xs" px={2} py={1}>
                               Plan: {dailyWorkout.primaryWorkout.monthlyPlan.name}
                             </Badge>
@@ -562,9 +562,6 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                       <Badge colorScheme="teal" variant="solid" fontSize="xs" px={2} py={1}>
                         {getDayName()}
                       </Badge>
-                      <Text fontSize="xs" color={subtitleColor}>
-                        {dailyWorkout.primaryWorkout?.weeklyWorkout?.name || "This Week"}
-                      </Text>
                     </VStack>
                   </Flex>
 
@@ -673,99 +670,70 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                               From: {dailyWorkout.primaryWorkout?.monthlyPlan?.name}
                             </Text>
                           </VStack>
-                          <Flex 
-                            direction={{ base: "row", md: "row" }} 
-                            gap={2}
-                            flexWrap="wrap"
-                            justify={{ base: "start", md: "end" }}
-                          >
-                            <Button
-                              size="sm"
-                              colorScheme={
-                                dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday ? "gray" :
-                                dailyWorkout.primaryWorkout?.dailyResult?.isRestDay ? "purple" :
-                                dailyWorkout.primaryWorkout?.dailyResult?.isPreview ? "orange" :
-                                "teal"
-                              }
-                              variant={
-                                (dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday || 
-                                 dailyWorkout.primaryWorkout?.dailyResult?.isRestDay) ? "outline" : "solid"
-                              }
-                              leftIcon={
-                                <Icon as={
-                                  dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday ? FaCalendarAlt :
-                                  dailyWorkout.primaryWorkout?.dailyResult?.isRestDay ? FaBed :
-                                  dailyWorkout.primaryWorkout?.dailyResult?.isPreview ? FaClock :
-                                  FaRunning
-                                } />
-                              }
-                              isDisabled={
-                                dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday ||
-                                dailyWorkout.primaryWorkout?.dailyResult?.isRestDay
-                              }
-                              onClick={() => {
-                                if (dailyWorkout.primaryWorkout?.dailyResult?.isRestDay || 
-                                    dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday) return;
-                                
-                                // Get today's exercises for the modal
-                                const todaysExercises = dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [];
-                                
-                                // Create a workout-like object to pass to existing handler
-                                const workoutObj = {
-                                  id: `daily-${dailyWorkout.primaryWorkout?.weeklyWorkout?.id || 'unknown'}`,
-                                  name: dailyWorkout.primaryWorkout?.title || `${getDayName()}'s Training`,
-                                  exercises: todaysExercises,
-                                  description: dailyWorkout.primaryWorkout?.description || 'Your training session for today',
-                                  type: 'Daily Training',
-                                  duration: '45 mins'
-                                };
-                                console.log('🔍 Starting workout with data:', workoutObj);
-                                handleStartWorkout(workoutObj);
-                              }}
-                            >
-                              {dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday ? "No Training Today" :
-                               dailyWorkout.primaryWorkout?.dailyResult?.isRestDay ? "Rest Day" :
-                               dailyWorkout.primaryWorkout?.dailyResult?.isPreview ? "Preview Tomorrow" :
-                               "Start Training"}
-                            </Button>
-                            
-                            {/* Test button to simulate completion */}
-                            <Button
-                              size="sm"
-                              colorScheme="green"
-                              variant="outline"
-                              onClick={() => {
-                                // Mark first few exercises as completed for testing
-                                const todaysExercises = dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [];
-                                const nextExercise = getCompletedExercisesCount();
-                                if (nextExercise < todaysExercises.length) {
-                                  markExerciseCompleted(nextExercise);
-                                }
-                              }}
-                            >
-                              Test Complete
-                            </Button>
-                            
-                            {/* Reset button for testing */}
-                            <Button
-                              size="sm"
-                              colorScheme="red"
-                              variant="outline"
-                              onClick={resetWorkoutProgress}
-                            >
-                              Reset
-                            </Button>
-                          </Flex>
                         </Flex>
 
-                        {/* Two Column Layout: Today's Exercises + Weekly Overview - Stack on mobile */}
+                        {/* Responsive Start Training Button - Full width on mobile, regular on desktop */}
+                        <Flex justify={{ base: "stretch", md: "flex-end" }}>
+                          <Button
+                          size={{ base: "md", md: "sm" }}
+                          width={{ base: "100%", md: "auto" }}
+                          colorScheme={
+                            dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday ? "gray" :
+                            dailyWorkout.primaryWorkout?.dailyResult?.isRestDay ? "purple" :
+                            dailyWorkout.primaryWorkout?.dailyResult?.isPreview ? "orange" :
+                            "teal"
+                          }
+                          variant={
+                            (dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday || 
+                             dailyWorkout.primaryWorkout?.dailyResult?.isRestDay) ? "outline" : "solid"
+                          }
+                          leftIcon={
+                            <Icon as={
+                              dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday ? FaCalendarAlt :
+                              dailyWorkout.primaryWorkout?.dailyResult?.isRestDay ? FaBed :
+                              dailyWorkout.primaryWorkout?.dailyResult?.isPreview ? FaClock :
+                              FaRunning
+                            } />
+                          }
+                          isDisabled={
+                            dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday ||
+                            dailyWorkout.primaryWorkout?.dailyResult?.isRestDay
+                          }
+                          onClick={() => {
+                            if (dailyWorkout.primaryWorkout?.dailyResult?.isRestDay || 
+                                dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday) return;
+                            
+                            // Get today's exercises for the modal
+                            const todaysExercises = dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [];
+                            
+                            // Create a workout-like object to pass to existing handler
+                            const workoutObj = {
+                              id: `daily-${dailyWorkout.primaryWorkout?.weeklyWorkout?.id || 'unknown'}`,
+                              name: dailyWorkout.primaryWorkout?.title || `${getDayName()}'s Training`,
+                              exercises: todaysExercises,
+                              description: dailyWorkout.primaryWorkout?.description || 'Your training session for today',
+                              type: 'Daily Training',
+                              duration: '45 mins'
+                            };
+                            console.log('🔍 Starting workout with data:', workoutObj);
+                            handleStartWorkout(workoutObj);
+                          }}
+                        >
+                          {dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday ? "No Training Today" :
+                           dailyWorkout.primaryWorkout?.dailyResult?.isRestDay ? "Rest Day" :
+                           dailyWorkout.primaryWorkout?.dailyResult?.isPreview ? "Preview Tomorrow" :
+                           "Start Training"}
+                          </Button>
+                        </Flex>
+
+                        {/* Two Column Layout: Today's Exercises + Weekly Overview - Stack on mobile, side by side on desktop */}
                         <Flex 
                           direction={{ base: "column", lg: "row" }} 
                           gap={4} 
                           align="start"
                         >
                           {/* Today's Exercises */}
-                          <VStack spacing={2} align="stretch" flex={{ base: "1", lg: "2" }}>
+                          <VStack spacing={2} align="stretch" flex={{ base: "1", lg: "2" }} w="100%">
                             <Text fontSize="sm" fontWeight="medium" color={textColor}>
                               Today's Exercises:
                             </Text>
@@ -820,7 +788,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                             </VStack>
                           </VStack>
 
-                          {/* Weekly Overview - Full width on mobile */}
+                          {/* Weekly Overview - Side by side on desktop, full width on mobile */}
                           <VStack spacing={2} align="stretch" flex="1" w={{ base: "100%", lg: "auto" }}>
                             <Text fontSize="sm" fontWeight="medium" color={textColor}>
                               This Week:

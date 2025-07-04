@@ -393,54 +393,80 @@ export default function JoinTeam() {
                     ) : coaches && coaches.length > 0 ? (
                       <VStack spacing={4} align="stretch">
                         {coaches.map((coach) => (
-                          <Flex
+                          <Box
                             key={coach.id}
                             p={4}
                             borderRadius="md"
                             borderWidth="1px"
                             borderColor={cardBorder}
-                            justify="space-between"
-                            align="center"
                             bg={useColorModeValue('gray.50', 'gray.700')}
                           >
-                            <HStack spacing={4}>
-                              <Avatar
-                                size="md"
-                                name={`${coach.first_name} ${coach.last_name}`}
-                                src={coach.avatar_url}
-                              />
-                              <VStack spacing={1} align="start">
-                                <Text fontWeight="bold" color={headingColor}>
-                                  {coach.first_name} {coach.last_name}
-                                </Text>
-                                <HStack spacing={4} fontSize="sm" color={textColor}>
-                                  <Text>{coach.team_count} team{coach.team_count !== 1 ? 's' : ''}</Text>
-                                  <Text>{coach.athlete_count} athlete{coach.athlete_count !== 1 ? 's' : ''}</Text>
-                                </HStack>
-                              </VStack>
-                            </HStack>
-                            {coach.is_member ? (
-                              <VStack spacing={1} align="end">
-                                <Badge colorScheme="blue" fontSize="xs">
-                                  Already Member
-                                </Badge>
-                                <Text fontSize="xs" color={textColor} textAlign="right">
-                                  {coach.member_team_name}
-                                </Text>
-                              </VStack>
-                            ) : (
-                              <Button
-                                size="sm"
-                                colorScheme="green"
-                                leftIcon={<FiSend />}
-                                onClick={() => handleSendCoachRequest(coach)}
-                                isLoading={sendingRequest === coach.id}
-                                loadingText="Sending..."
-                              >
-                                Send Request
-                              </Button>
-                            )}
-                          </Flex>
+                            <Flex
+                              direction={{ base: 'column', md: 'row' }}
+                              justify={{ base: 'flex-start', md: 'space-between' }}
+                              align={{ base: 'stretch', md: 'center' }}
+                              gap={4}
+                            >
+                              <HStack spacing={4} flex="1" minW="0">
+                                <Avatar
+                                  size={{ base: 'sm', md: 'md' }}
+                                  name={`${coach.first_name} ${coach.last_name}`}
+                                  src={coach.avatar_url}
+                                />
+                                <VStack spacing={1} align="start" flex="1" minW="0">
+                                  <Text 
+                                    fontWeight="bold" 
+                                    color={headingColor}
+                                    fontSize={{ base: 'sm', md: 'md' }}
+                                    noOfLines={1}
+                                  >
+                                    {coach.first_name} {coach.last_name}
+                                  </Text>
+                                  <Flex
+                                    direction={{ base: 'column', sm: 'row' }}
+                                    gap={{ base: 1, sm: 4 }}
+                                    fontSize="sm"
+                                    color={textColor}
+                                  >
+                                    <Text>{coach.team_count} team{coach.team_count !== 1 ? 's' : ''}</Text>
+                                    <Text>{coach.athlete_count} athlete{coach.athlete_count !== 1 ? 's' : ''}</Text>
+                                  </Flex>
+                                </VStack>
+                              </HStack>
+                              {coach.is_member ? (
+                                <VStack 
+                                  spacing={1} 
+                                  align={{ base: 'start', md: 'end' }}
+                                  flexShrink={0}
+                                >
+                                  <Badge colorScheme="blue" fontSize="xs">
+                                    Already Member
+                                  </Badge>
+                                  <Text 
+                                    fontSize="xs" 
+                                    color={textColor} 
+                                    textAlign={{ base: 'left', md: 'right' }}
+                                    noOfLines={1}
+                                  >
+                                    {coach.member_team_name}
+                                  </Text>
+                                </VStack>
+                              ) : (
+                                <Button
+                                  size={{ base: 'sm', md: 'sm' }}
+                                  colorScheme="green"
+                                  leftIcon={<FiSend />}
+                                  onClick={() => handleSendCoachRequest(coach)}
+                                  isLoading={sendingRequest === coach.id}
+                                  loadingText="Sending..."
+                                  width={{ base: 'full', md: 'auto' }}
+                                  flexShrink={0}
+                                >
+                                  Send Request
+                                </Button>
+                              )}
+                            </Flex>
+                          </Box>
                         ))}
                       </VStack>
                     ) : (

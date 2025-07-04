@@ -1309,17 +1309,20 @@ export function AthleteWorkouts() {
             <VStack spacing={6} align="stretch">
               {/* Filter Controls */}
               {activeItem === 'all-workouts' && (
-                <HStack spacing={4} wrap="wrap" align="center">
-                  <Text fontSize="sm" fontWeight="medium" color={headerSubtextColor}>
-                    Filters:
-                  </Text>
+                <HStack spacing={{ base: 2, md: 4 }} wrap="nowrap" align="center" w="100%">
+                  {/* Desktop - Keep original layout with Filters: text */}
+                  <Box display={{ base: "none", md: "block" }}>
+                    <Text fontSize="sm" fontWeight="medium" color={headerSubtextColor}>
+                      Filters:
+                    </Text>
+                  </Box>
                   
                   <Select
                     value={workoutFilter}
                     onChange={(e) => setWorkoutFilter(e.target.value as typeof workoutFilter)}
                     size="sm"
-                    maxW="150px"
                     bg={cardBg}
+                    flex="1"
                   >
                     <option value="all">All Types</option>
                     <option value="single">Single</option>
@@ -1331,23 +1334,37 @@ export function AthleteWorkouts() {
                     value={creatorFilter}
                     onChange={(e) => setCreatorFilter(e.target.value as typeof creatorFilter)}
                     size="sm"
-                    maxW="150px"
                     bg={cardBg}
+                    flex="1"
                   >
                     <option value="all">All Workouts</option>
                     <option value="mine">My Workouts</option>
                     <option value="coaches">Coach Workouts</option>
                   </Select>
 
+                  {/* Desktop - Button with text */}
                   <Button
                     size="sm"
                     variant="outline"
                     leftIcon={<FaRedo />}
                     onClick={handleRefresh}
                     isLoading={isLoading}
+                    display={{ base: "none", md: "flex" }}
                   >
                     Refresh
                   </Button>
+
+                  {/* Mobile - Icon only button */}
+                  <IconButton
+                    size="sm"
+                    variant="outline"
+                    aria-label="Refresh"
+                    icon={<FaRedo />}
+                    onClick={handleRefresh}
+                    isLoading={isLoading}
+                    display={{ base: "flex", md: "none" }}
+                    flexShrink={0}
+                  />
                 </HStack>
               )}
 

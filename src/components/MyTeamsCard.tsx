@@ -340,53 +340,56 @@ export const MyTeamsCard: React.FC<MyTeamsCardProps> = ({ maxTeamsToShow = 3 }) 
     if (sectionTeams.length === 0) return null;
 
     return (
-      <VStack spacing={3} align="stretch">
-        <HStack spacing={2}>
-          <Icon as={IconComponent} color="blue.500" />
-          <Text fontSize="sm" fontWeight="bold" color={headingColor}>
+      <VStack spacing={{ base: 4, md: 3 }} align="stretch">
+        <HStack spacing={{ base: 2, md: 2 }} align="center">
+          <Icon as={IconComponent} color="blue.500" boxSize={{ base: 4, md: 4 }} />
+          <Text 
+            fontSize={{ base: "sm", md: "sm" }} 
+            fontWeight="bold" 
+            color={headingColor}
+            letterSpacing="wide"
+          >
             {title} ({sectionTeams.length})
           </Text>
         </HStack>
         {sectionTeams.map((team, index) => (
           <Box key={team.id}>
-            <VStack spacing={3} align="stretch">
-              <Flex justify="space-between" align="start">
-                <HStack spacing={3} flex="1">
+            {/* Mobile Optimized Team Card Layout */}
+            <VStack spacing={{ base: 3, md: 3 }} align="stretch">
+              {/* Header Row: Avatar, Name, Badge, Leave Button */}
+              <Flex justify="space-between" align="center">
+                <HStack spacing={3} flex="1" minW={0}>
                   {/* Team/Institution Avatar */}
                   <Avatar
-                    size="md"
+                    size={{ base: "md", md: "md" }}
                     src={team.logo_url}
                     name={team.institution_name || team.name}
                     bg="blue.500"
                     icon={<Icon as={FaUsers} />}
+                    flexShrink={0}
                   />
-                  <VStack spacing={1} align="start" flex="1">
-                    <HStack spacing={2} flexWrap="wrap">
-                      <Heading size="sm" color={headingColor}>
-                        {team.name}
-                      </Heading>
-                      <Badge 
-                        colorScheme={team.team_type === 'school' ? 'blue' : team.team_type === 'coach' ? 'purple' : 'green'} 
-                        size="sm"
-                      >
-                        {getTeamTypeLabel(team.team_type)}
-                      </Badge>
-                    </HStack>
-                    {team.institution_name && team.institution_name !== team.name && (
-                      <Text fontSize="sm" color={textColor} fontWeight="medium">
-                        {team.institution_name}
-                      </Text>
-                    )}
-                    {team.description && (
-                      <Text fontSize="sm" color={textColor} noOfLines={2}>
-                        {team.description}
-                      </Text>
-                    )}
-                    <Text fontSize="xs" color={textColor}>
-                      Joined as {team.user_role} • {new Date(team.joined_at).toLocaleDateString()}
-                    </Text>
+                  <VStack spacing={1} align="start" flex="1" minW={0}>
+                    {/* Team Name */}
+                    <Heading 
+                      size={{ base: "sm", md: "sm" }} 
+                      color={headingColor}
+                      isTruncated
+                      maxW="100%"
+                    >
+                      {team.name}
+                    </Heading>
+                    {/* Badge */}
+                    <Badge 
+                      colorScheme={team.team_type === 'school' ? 'blue' : team.team_type === 'coach' ? 'purple' : 'green'} 
+                      size={{ base: "sm", md: "sm" }}
+                      fontSize={{ base: "xs", md: "xs" }}
+                    >
+                      {getTeamTypeLabel(team.team_type)}
+                    </Badge>
                   </VStack>
                 </HStack>
+                
+                {/* Leave Button */}
                 {team.can_leave ? (
                   <Tooltip label="Leave Team" hasArrow>
                     <IconButton
@@ -396,6 +399,7 @@ export const MyTeamsCard: React.FC<MyTeamsCardProps> = ({ maxTeamsToShow = 3 }) 
                       variant="ghost"
                       colorScheme="red"
                       onClick={() => openLeaveDialog(team)}
+                      flexShrink={0}
                     />
                   </Tooltip>
                 ) : (
@@ -407,14 +411,50 @@ export const MyTeamsCard: React.FC<MyTeamsCardProps> = ({ maxTeamsToShow = 3 }) 
                       variant="ghost"
                       colorScheme="gray"
                       isDisabled
+                      flexShrink={0}
                     />
                   </Tooltip>
                 )}
               </Flex>
 
-              <HStack spacing={3} justify="space-between">
-                <HStack spacing={2}>
-                  <AvatarGroup size="sm" max={4}>
+              {/* Institution Name (if different from team name) */}
+              {team.institution_name && team.institution_name !== team.name && (
+                <Text 
+                  fontSize={{ base: "sm", md: "sm" }} 
+                  color={textColor} 
+                  fontWeight="medium"
+                  pl={{ base: 0, md: 0 }}
+                  isTruncated
+                >
+                  {team.institution_name}
+                </Text>
+              )}
+
+              {/* Team Description */}
+              {team.description && (
+                <Text 
+                  fontSize={{ base: "sm", md: "sm" }} 
+                  color={textColor} 
+                  noOfLines={{ base: 2, md: 2 }}
+                  lineHeight="shorter"
+                >
+                  {team.description}
+                </Text>
+              )}
+
+              {/* Join Date and Role */}
+              <Text 
+                fontSize={{ base: "xs", md: "xs" }} 
+                color={textColor}
+                fontWeight="medium"
+              >
+                Joined as {team.user_role} • {new Date(team.joined_at).toLocaleDateString()}
+              </Text>
+
+              {/* Members Section */}
+              <HStack spacing={{ base: 3, md: 3 }} justify="space-between" align="center">
+                <HStack spacing={2} flex="1">
+                  <AvatarGroup size={{ base: "sm", md: "sm" }} max={3}>
                     {team.members.map((member) => (
                       <Tooltip
                         key={member.id}
@@ -424,18 +464,20 @@ export const MyTeamsCard: React.FC<MyTeamsCardProps> = ({ maxTeamsToShow = 3 }) 
                         <Avatar
                           name={`${member.first_name} ${member.last_name}`}
                           src={member.avatar_url}
-                          size="sm"
+                          size={{ base: "sm", md: "sm" }}
                         />
                       </Tooltip>
                     ))}
                   </AvatarGroup>
-                  <Text fontSize="sm" color={textColor}>
+                  <Text fontSize={{ base: "sm", md: "sm" }} color={textColor} fontWeight="medium">
                     {team.member_count} member{team.member_count !== 1 ? 's' : ''}
                   </Text>
                 </HStack>
               </HStack>
             </VStack>
-            {index < sectionTeams.length - 1 && <Divider mt={3} />}
+            {index < sectionTeams.length - 1 && (
+              <Divider mt={{ base: 4, md: 3 }} mb={{ base: 1, md: 0 }} />
+            )}
           </Box>
         ))}
       </VStack>
@@ -445,12 +487,16 @@ export const MyTeamsCard: React.FC<MyTeamsCardProps> = ({ maxTeamsToShow = 3 }) 
   return (
     <>
       <Card bg={cardBg} borderColor={borderColor} borderWidth="1px" shadow={cardShadow}>
-        <CardHeader pb={3}>
+        <CardHeader pb={{ base: 3, md: 3 }} px={{ base: 4, md: 6 }} pt={{ base: 4, md: 6 }}>
           <Flex justify="space-between" align="center">
-            <HStack spacing={3}>
-              <Icon as={FaUsers} boxSize={5} color="blue.500" />
-              <Heading size="md" color={headingColor}>My Teams</Heading>
-              <Badge colorScheme="blue" variant="subtle">
+            <HStack spacing={{ base: 3, md: 3 }} align="center">
+              <Icon as={FaUsers} boxSize={{ base: 5, md: 5 }} color="blue.500" />
+              <Heading size={{ base: "md", md: "md" }} color={headingColor}>My Teams</Heading>
+              <Badge 
+                colorScheme="blue" 
+                variant="subtle"
+                fontSize={{ base: "xs", md: "xs" }}
+              >
                 {teams?.length || 0}
               </Badge>
             </HStack>
@@ -458,7 +504,7 @@ export const MyTeamsCard: React.FC<MyTeamsCardProps> = ({ maxTeamsToShow = 3 }) 
               <IconButton
                 aria-label="Join team"
                 icon={<FaPlus />}
-                size="sm"
+                size={{ base: "sm", md: "sm" }}
                 variant="ghost"
                 colorScheme="blue"
                 onClick={onJoinOpen}
@@ -466,8 +512,8 @@ export const MyTeamsCard: React.FC<MyTeamsCardProps> = ({ maxTeamsToShow = 3 }) 
             </Tooltip>
           </Flex>
         </CardHeader>
-        <CardBody pt={0}>
-          <VStack spacing={6} align="stretch">
+        <CardBody pt={0} px={{ base: 4, md: 6 }} pb={{ base: 4, md: 6 }}>
+          <VStack spacing={{ base: 5, md: 6 }} align="stretch">
             {renderTeamSection(institutionalTeams, "Institutional Teams", FaSchool)}
             {renderTeamSection(coachTeams, "Coach Teams", FaUserTie)}
             {renderTeamSection(otherTeams, "Other Teams", FaBullseye)}

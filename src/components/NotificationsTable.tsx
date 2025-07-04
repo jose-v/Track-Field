@@ -631,61 +631,95 @@ const NotificationsTable: React.FC = () => {
     return (
       <Box key={notification.id}>
         <Box
-          px={6}
+          px="15px"
           py={5}
           _hover={{ bg: hoverBg }}
           cursor="pointer"
           onClick={() => handleNotificationClick(notification)}
           transition="background-color 0.2s"
         >
-          <HStack spacing={4} align="start">
+          <Flex
+            direction={{ base: 'column', md: 'row' }}
+            gap={4}
+            align={{ base: 'stretch', md: 'start' }}
+          >
             {/* User Avatar */}
-            <Box position="relative" flexShrink={0}>
-              {userProfile ? (
-                <Avatar
-                  size="md"
-                  name={`${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim()}
-                  src={userProfile.avatar_url}
-                />
-              ) : (
-                <Box
-                  p={2}
-                  borderRadius="50%"
-                  bg={`${getNotificationColor(notification.type)}.100`}
-                  color={`${getNotificationColor(notification.type)}.600`}
-                  w={12}
-                  h={12}
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  <Icon 
-                    as={getNotificationIcon(notification.type)} 
-                    boxSize={5}
+            <Flex
+              direction={{ base: 'row', md: 'column' }}
+              align="center"
+              gap={3}
+              mb={{ base: 2, md: 0 }}
+            >
+              <Box position="relative" flexShrink={0}>
+                {userProfile ? (
+                  <Avatar
+                    size={{ base: 'sm', md: 'md' }}
+                    name={`${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim()}
+                    src={userProfile.avatar_url}
                   />
-                </Box>
-              )}
-              {!notification.is_read && !notification.is_archived && (
-                <Box
-                  position="absolute"
-                  top="0"
-                  right="0"
-                  w={3}
-                  h={3}
-                  bg="blue.500"
-                  borderRadius="full"
-                  border="2px"
-                  borderColor={cardBg}
-                />
-              )}
-      </Box>
+                ) : (
+                  <Box
+                    p={2}
+                    borderRadius="50%"
+                    bg={`${getNotificationColor(notification.type)}.100`}
+                    color={`${getNotificationColor(notification.type)}.600`}
+                    w={{ base: 10, md: 12 }}
+                    h={{ base: 10, md: 12 }}
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                  >
+                    <Icon 
+                      as={getNotificationIcon(notification.type)} 
+                      boxSize={{ base: 4, md: 5 }}
+                    />
+                  </Box>
+                )}
+                {!notification.is_read && !notification.is_archived && (
+                  <Box
+                    position="absolute"
+                    top="0"
+                    right="0"
+                    w={3}
+                    h={3}
+                    bg="blue.500"
+                    borderRadius="full"
+                    border="2px"
+                    borderColor={cardBg}
+                  />
+                )}
+              </Box>
+
+              {/* Status Badge - Show on mobile next to avatar */}
+              <Badge 
+                display={{ base: 'block', md: 'none' }}
+                colorScheme={notification.is_archived ? 'gray' : getNotificationColor(notification.type)} 
+                variant="subtle"
+                fontSize="xs"
+                flexShrink={0}
+              >
+                {notification.is_archived ? 'ARCHIVED' : 
+                 notification.is_read ? 'READ' :
+                 notification.type === 'coach_request' ? 'ATHLETE REQUEST' : 
+                 notification.type === 'coach_invitation' ? 'COACH REQUEST' :
+                 notification.type === 'workout_assigned' ? 'WORKOUT ASSIGNED' :
+                 notification.type === 'meet_assigned' ? 'MEET ASSIGNED' :
+                 notification.type.toUpperCase().replace('_', ' ')}
+              </Badge>
+            </Flex>
 
             {/* Notification Content */}
             <Box flex={1} minW={0}>
-              <HStack justify="space-between" align="start" mb={2}>
-                <VStack align="start" spacing={1} flex={1}>
+              <Flex
+                direction={{ base: 'column', md: 'row' }}
+                justify={{ base: 'flex-start', md: 'space-between' }}
+                align={{ base: 'stretch', md: 'start' }}
+                gap={{ base: 2, md: 0 }}
+                mb={3}
+              >
+                <VStack align="start" spacing={1} flex={1} minW={0}>
                   <Text
-                    fontSize="md"
+                    fontSize={{ base: 'sm', md: 'md' }}
                     fontWeight={notification.is_read ? 'normal' : 'bold'}
                     color={notification.is_archived ? subtitleColor : textColor}
                     noOfLines={2}
@@ -695,14 +729,15 @@ const NotificationsTable: React.FC = () => {
                   <Text
                     fontSize="sm"
                     color={subtitleColor}
-                    noOfLines={2}
+                    noOfLines={{ base: 3, md: 2 }}
                   >
                     {notification.message}
                   </Text>
                 </VStack>
                 
-                {/* Status Badge */}
+                {/* Status Badge - Show on desktop */}
                 <Badge 
+                  display={{ base: 'none', md: 'block' }}
                   colorScheme={notification.is_archived ? 'gray' : getNotificationColor(notification.type)} 
                   variant="subtle"
                   fontSize="xs"
@@ -717,111 +752,129 @@ const NotificationsTable: React.FC = () => {
                    notification.type === 'meet_assigned' ? 'MEET ASSIGNED' :
                    notification.type.toUpperCase().replace('_', ' ')}
                 </Badge>
-              </HStack>
+              </Flex>
               
-              <HStack justify="space-between" align="center">
+              <Flex
+                direction={{ base: 'column', md: 'row' }}
+                justify={{ base: 'flex-start', md: 'space-between' }}
+                align={{ base: 'stretch', md: 'center' }}
+                gap={{ base: 3, md: 0 }}
+              >
                 <Text fontSize="xs" color={subtitleColor}>
                   {formatTimeAgo(notification.created_at)}
                 </Text>
                 
                 {/* Action Buttons */}
                 {!notification.is_archived && (
-                  <HStack spacing={2}>
-                {notification.type === 'coach_request' && !notification.is_read && (
+                  <Flex
+                    direction={{ base: 'column', sm: 'row' }}
+                    gap={2}
+                    width={{ base: 'full', md: 'auto' }}
+                  >
+                    {notification.type === 'coach_request' && !notification.is_read && (
                       <>
                         <Button
-                          size="xs"
+                          size={{ base: 'sm', md: 'xs' }}
                           colorScheme="green"
-                        variant="solid"
+                          variant="solid"
                           leftIcon={<FaCheckCircle />}
-                        isLoading={isProcessing}
+                          isLoading={isProcessing}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleAthleteRequest(notification.id, notification.metadata.athlete_id, true);
                           }}
+                          width={{ base: 'full', md: 'auto' }}
                         >
                           Approve
                         </Button>
                         <Button
-                          size="xs"
-                        colorScheme="red"
+                          size={{ base: 'sm', md: 'xs' }}
+                          colorScheme="red"
                           variant="outline"
                           leftIcon={<FaTimesCircle />}
-                        isLoading={isProcessing}
+                          isLoading={isProcessing}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleAthleteRequest(notification.id, notification.metadata.athlete_id, false);
                           }}
+                          width={{ base: 'full', md: 'auto' }}
                         >
                           Decline
                         </Button>
                       </>
-                )}
-                {notification.type === 'coach_invitation' && !notification.is_read && (
+                    )}
+                    {notification.type === 'coach_invitation' && !notification.is_read && (
                       <>
                         <Button
-                          size="xs"
+                          size={{ base: 'sm', md: 'xs' }}
                           colorScheme="green"
-                        variant="solid"
+                          variant="solid"
                           leftIcon={<FaCheckCircle />}
-                        isLoading={isProcessing}
+                          isLoading={isProcessing}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleCoachRequest(notification.id, notification.metadata.coach_id, true);
                           }}
+                          width={{ base: 'full', md: 'auto' }}
                         >
                           Accept
                         </Button>
                         <Button
-                          size="xs"
-                        colorScheme="red"
+                          size={{ base: 'sm', md: 'xs' }}
+                          colorScheme="red"
                           variant="outline"
                           leftIcon={<FaTimesCircle />}
-                        isLoading={isProcessing}
+                          isLoading={isProcessing}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleCoachRequest(notification.id, notification.metadata.coach_id, false);
                           }}
+                          width={{ base: 'full', md: 'auto' }}
                         >
                           Decline
                         </Button>
                       </>
-                )}
-                {(!notification.is_read && notification.type !== 'coach_request' && notification.type !== 'coach_invitation') && (
-                      <Button
-                        size="xs"
-                      variant="ghost"
-                      colorScheme="blue"
-                        leftIcon={<FaEye />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          markAsRead(notification.id);
-                        }}
-                      >
-                        Mark Read
-                      </Button>
                     )}
-                    {activeFilter !== 'archived' && (
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        colorScheme="gray"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          markAsArchived(notification.id);
-                        }}
-                      >
-                        Archive
-                      </Button>
-                    )}
-                  </HStack>
+                    {/* Mark Read and Archive buttons - always on same line */}
+                    <Flex direction="row" gap={2} width={{ base: 'full', md: 'auto' }}>
+                      {(!notification.is_read && notification.type !== 'coach_request' && notification.type !== 'coach_invitation') && (
+                        <Button
+                          size={{ base: 'sm', md: 'xs' }}
+                          variant="ghost"
+                          colorScheme="blue"
+                          leftIcon={<FaEye />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markAsRead(notification.id);
+                          }}
+                          flex={1}
+                        >
+                          Mark Read
+                        </Button>
+                      )}
+                      {activeFilter !== 'archived' && (
+                        <Button
+                          size={{ base: 'sm', md: 'xs' }}
+                          variant="ghost"
+                          colorScheme="gray"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markAsArchived(notification.id);
+                          }}
+                          flex={1}
+                        >
+                          Archive
+                        </Button>
+                      )}
+                    </Flex>
+                  </Flex>
                 )}
-              </HStack>
+              </Flex>
             </Box>
-          </HStack>
+          </Flex>
         </Box>
         {index < groupNotifications.length - 1 && (
-          <Box px={6}>
+          <Box px="15px">
             <Divider borderColor={borderColor} />
           </Box>
         )}
@@ -843,21 +896,31 @@ const NotificationsTable: React.FC = () => {
   }
 
   return (
-    <Container maxW="container.lg" py={8}>
-      <VStack spacing={6} align="stretch">
+    <Container maxW="container.lg" py={0}>
+      <VStack spacing={0} align="stretch">
         <Box bg={cardBg} borderRadius="lg" overflow="hidden">
           <Tabs variant="line" size="md" colorScheme="blue" onChange={(index) => {
             const filters: FilterType[] = ['unread', 'read', 'archived'];
             setActiveFilter(filters[index]);
           }}>
-            <TabList borderBottom="1px" borderColor={borderColor} px={6} pt={6}>
+            <TabList 
+              borderBottom="1px" 
+              borderColor={borderColor} 
+              px="15px" 
+              pt={2}
+              width="100%"
+              justifyContent="center"
+            >
               <Tab 
                 fontSize="sm" 
                 fontWeight="medium"
                 color={subtitleColor}
+                flex={1}
+                justifyContent="center"
                 _selected={{ 
                   color: textColor,
-                  borderColor: "blue.500"
+                  borderColor: "blue.500",
+                  borderLeft: "0"
                 }}
                 _hover={{
                   color: textColor
@@ -874,9 +937,12 @@ const NotificationsTable: React.FC = () => {
                 fontSize="sm" 
                 fontWeight="medium"
                 color={subtitleColor}
+                flex={1}
+                justifyContent="center"
                 _selected={{ 
                   color: textColor,
-                  borderColor: "blue.500"
+                  borderColor: "blue.500",
+                  borderLeft: "0"
                 }}
                 _hover={{
                   color: textColor
@@ -888,9 +954,12 @@ const NotificationsTable: React.FC = () => {
                 fontSize="sm" 
                 fontWeight="medium"
                 color={subtitleColor}
+                flex={1}
+                justifyContent="center"
                 _selected={{ 
                   color: textColor,
-                  borderColor: "blue.500"
+                  borderColor: "blue.500",
+                  borderLeft: "0"
                 }}
                 _hover={{
                   color: textColor
@@ -904,7 +973,7 @@ const NotificationsTable: React.FC = () => {
               {[0, 1, 2].map((tabIndex) => (
                 <TabPanel key={tabIndex} px={0} py={0}>
                   {filteredNotifications.length === 0 ? (
-                    <Box textAlign="center" py={12} px={6}>
+                    <Box textAlign="center" py={12} px="15px">
                       <Icon as={FaBell} boxSize={16} color="gray.400" mb={4} />
                       <Text color={subtitleColor} fontSize="lg" mb={2}>
                         No {activeFilter} notifications
@@ -921,7 +990,7 @@ const NotificationsTable: React.FC = () => {
                       {Object.entries(groupedNotifications).map(([dateGroup, groupNotifications]) => (
                         <Box key={dateGroup}>
                           {/* Date Section Header */}
-                          <Flex justify="space-between" align="center" px={6} py={4} bg={sectionHeaderBg} borderBottom="1px" borderColor={borderColor}>
+                          <Flex justify="space-between" align="center" px="15px" py={4} bg={sectionHeaderBg} borderBottom="1px" borderColor={borderColor}>
                             <Text fontSize="sm" fontWeight="semibold" color={sectionHeaderColor}>
                               {dateGroup}
                               <Badge ml={2} variant="outline" colorScheme="gray" fontSize="xs">
@@ -941,7 +1010,7 @@ const NotificationsTable: React.FC = () => {
 
                   {/* Mark All as Read Button */}
                   {filteredNotifications.length > 0 && activeFilter === 'unread' && (
-                    <Box px={6} py={4} borderTop="1px" borderColor={borderColor}>
+                    <Box px="15px" py={4} borderTop="1px" borderColor={borderColor}>
                       <Button
                         variant="ghost"
                         size="sm"

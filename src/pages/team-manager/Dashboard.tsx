@@ -101,8 +101,8 @@ export function TeamManagerDashboard() {
         {/* Mobile Top Navigation Bar with welcome message and avatar */}
         <MobileTopNavBar welcomeMessage={getWelcomeMessage()} />
         
-        {/* Weather Card - Full width with 10px padding */}
-        <Box px="10px" mb={4} pt={16}>
+        {/* Weather Card - Full width matching card below, reduced top spacing */}
+        <Box mb={4} pt={16} mt={-12}>
           <WeatherCard 
             city={profile?.city || "Greensboro"}
             state={profile?.state || "NC"}

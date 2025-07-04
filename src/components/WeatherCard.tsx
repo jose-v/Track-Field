@@ -65,7 +65,7 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
   const [hasError, setHasError] = useState(false)
   const [showForecast, setShowForecast] = useState(false)
   const [isCelsius, setIsCelsius] = useState(false) // Temperature unit toggle
-  const [popupPosition, setPopupPosition] = useState({ top: 0, right: 0, width: 0 })
+  const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0, width: 0 })
   const weatherCardRef = useRef<HTMLDivElement>(null)
   const toast = useToast()
 
@@ -282,11 +282,15 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
     const cardWidth = rect.width; // Use actual rendered card width
     const isMobile = viewportWidth < 768;
     
-    // Position popup below the card, aligned to the right edge
+    // Position popup below the card, perfectly centered
+    const popupWidth = isMobile ? Math.min(viewportWidth * 0.9, 500) + 6 : rect.width;
+    const cardCenter = rect.left + (rect.width / 2);
+    const popupLeft = cardCenter - (popupWidth / 2);
+    
     setPopupPosition({
       top: rect.bottom + 8, // 8px margin below the card
-      right: Math.max(16, viewportWidth - (rect.right)), // Ensure 16px minimum margin from right edge
-      width: isMobile ? Math.min(viewportWidth * 0.9, 500) : cardWidth // Mobile: 90vw, Desktop: match card width
+      left: popupLeft, // Center the popup relative to the card
+      width: popupWidth
     });
   };
 
@@ -396,13 +400,14 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
             <Box
               position="fixed"
               top={`${popupPosition.top}px`}
-              right={`${popupPosition.right}px`}
+              left={`${popupPosition.left}px`}
               zIndex={9999}
               width={`${popupPosition.width}px`}
             >
               <Card
-                bg={cardBg}
-                borderColor={borderColor}
+                bg="rgba(102, 102, 102, 0.15)"
+                backdropFilter="blur(15px)"
+                borderColor="rgba(128, 128, 128, 0.3)"
                 borderWidth="1px"
                 borderRadius="lg"
                 boxShadow={forecastShadow}

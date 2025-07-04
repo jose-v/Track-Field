@@ -101,10 +101,10 @@ const NotificationsPage: React.FC = () => {
         <VStack spacing={4} align="stretch" mt={{ base: "20px", lg: 0 }}>
           <Box p={6} borderWidth="1px" borderRadius="lg" bg={bgColor} borderColor={borderColor}>
             <Heading size="md" mb={2} display={{ base: "block", lg: "none" }}>Your Notifications</Heading>
-            <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')} mb={4}>
+            <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')} mb={2}>
               Review and manage your notifications, including coach requests.
             </Text>
-            <Divider mb={4} />
+            <Divider mb={2} />
             
             <NotificationsTable />
             
