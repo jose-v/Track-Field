@@ -12,7 +12,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../services/api';
 import { MonthlyPlanCard } from '../../components/MonthlyPlanCard';
 import { MonthlyPlanCreator } from '../../components/MonthlyPlanCreator';
-import { PlanAssignmentModal } from '../../components/PlanAssignmentModal';
 import { AssignmentModal } from '../../components/AssignmentModal';
 import { PlanDetailView } from '../../components/PlanDetailView';
 import { WorkoutDetailView } from '../../components/WorkoutDetailView';
@@ -2125,7 +2124,7 @@ export function CoachTrainingPlans() {
 
       {/* Plan Assignment Modal */}
       {selectedPlanForAssignment && (
-        <PlanAssignmentModal
+        <AssignmentModal
           isOpen={isAssignmentOpen}
           onClose={onAssignmentClose}
           onSuccess={handleAssignmentSuccess}

@@ -14,7 +14,7 @@ import {
   FaTrash, FaSync, FaEllipsisV
 } from 'react-icons/fa';
 import { api } from '../services/api';
-import { PlanAssignmentModal } from './PlanAssignmentModal';
+import { AssignmentModal } from './AssignmentModal';
 import type { TrainingPlan, TrainingPlanAssignment } from '../services/dbSchema';
 import type { Workout } from '../services/api';
 
@@ -380,7 +380,7 @@ export function PlanDetailView({
                   {monthlyPlan.name}
                 </Heading>
                 <Badge colorScheme="teal" px={3} py={1} borderRadius="md">
-                  {getMonthName(monthlyPlan.month)} {monthlyPlan.year}
+                  {getMonthName(new Date(monthlyPlan.start_date).getMonth() + 1)} {new Date(monthlyPlan.start_date).getFullYear()}
                 </Badge>
               </HStack>
               {monthlyPlan.description && (
@@ -828,7 +828,7 @@ export function PlanDetailView({
       </Modal>
 
       {/* Plan Assignment Modal */}
-      <PlanAssignmentModal
+      <AssignmentModal
         isOpen={isAssignModalOpen}
         onClose={onAssignModalClose}
         onSuccess={handleAssignmentSuccess}

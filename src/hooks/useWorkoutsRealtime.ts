@@ -82,12 +82,21 @@ export function useWorkoutsRealtime({
               
               // Invalidate relevant queries
               queryClient.invalidateQueries({ queryKey: ['workoutCompletionStats'] });
-              queryClient.invalidateQueries({ queryKey: ['athleteAssignedWorkouts'] });
+              queryClient.invalidateQueries({ queryKey: ['athleteWorkouts'] });
+              
+              // For assignment changes, invalidate the affected athlete's cache
+              const athleteId = (payload.new as AthleteWorkoutPayload)?.athlete_id || 
+                              (payload.old as AthleteWorkoutPayload)?.athlete_id;
+              if (athleteId) {
+                queryClient.invalidateQueries({ queryKey: ['athleteAssignedWorkouts', athleteId] });
+              }
               
               // For specific workout update - invalidate that workout
-              if (payload.new && (payload.new as AthleteWorkoutPayload).workout_id) {
+              const workoutId = (payload.new as AthleteWorkoutPayload)?.workout_id || 
+                              (payload.old as AthleteWorkoutPayload)?.workout_id;
+              if (workoutId) {
                 queryClient.invalidateQueries({ 
-                  queryKey: ['workout', (payload.new as AthleteWorkoutPayload).workout_id] 
+                  queryKey: ['workout', workoutId] 
                 });
               }
             }
@@ -96,7 +105,49 @@ export function useWorkoutsRealtime({
 
         subscriptions.push(athleteWorkoutsSubscription);
 
-        // 2. Subscribe to workouts table changes if we have specific workout IDs
+        // 2. Subscribe to training_plan_assignments table changes
+        const trainingPlanAssignmentsSubscription = supabase
+          .channel('training-plan-assignments-changes')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'training_plan_assignments',
+              filter: athleteId ? `athlete_id=eq.${athleteId}` : undefined
+            },
+            (payload) => {
+              if (process.env.NODE_ENV === 'development') {
+                console.log('Real-time update received for training_plan_assignments:', payload);
+              }
+              setLastUpdate(new Date());
+              
+              // Invalidate relevant queries
+              queryClient.invalidateQueries({ queryKey: ['monthlyPlans'] });
+              queryClient.invalidateQueries({ queryKey: ['trainingPlanAssignments'] });
+              
+              // For assignment changes, invalidate the affected athlete's cache
+              const athleteId = (payload.new as any)?.athlete_id || 
+                              (payload.old as any)?.athlete_id;
+              if (athleteId) {
+                queryClient.invalidateQueries({ queryKey: ['athleteMonthlyPlanAssignments', athleteId] });
+              }
+              
+              // For specific training plan update - invalidate that plan
+              const planId = (payload.new as any)?.training_plan_id || 
+                            (payload.old as any)?.training_plan_id;
+              if (planId) {
+                queryClient.invalidateQueries({ 
+                  queryKey: ['trainingPlan', planId] 
+                });
+              }
+            }
+          )
+          .subscribe();
+
+        subscriptions.push(trainingPlanAssignmentsSubscription);
+
+        // 3. Subscribe to workouts table changes if we have specific workout IDs
         if (workoutIds.length > 0) {
           const workoutsSubscription = supabase
             .channel('workouts-changes')
@@ -153,7 +204,15 @@ export function useWorkoutsRealtime({
   const forceRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['workouts'] });
     queryClient.invalidateQueries({ queryKey: ['workoutCompletionStats'] });
-    queryClient.invalidateQueries({ queryKey: ['athleteAssignedWorkouts'] });
+    queryClient.invalidateQueries({ queryKey: ['athleteWorkouts'] });
+    queryClient.invalidateQueries({ queryKey: ['monthlyPlans'] });
+    queryClient.invalidateQueries({ queryKey: ['trainingPlanAssignments'] });
+    
+    // If we're tracking a specific athlete, invalidate their cache
+    if (athleteId) {
+      queryClient.invalidateQueries({ queryKey: ['athleteAssignedWorkouts', athleteId] });
+      queryClient.invalidateQueries({ queryKey: ['athleteMonthlyPlanAssignments', athleteId] });
+    }
     
     if (workoutIds.length > 0) {
       workoutIds.forEach(id => {

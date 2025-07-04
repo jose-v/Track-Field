@@ -60,8 +60,13 @@ export function ImportWorkout() {
     index: 0,
     count: steps.length,
   });
-  const bgColor = useColorModeValue('gray.50', 'gray.800');
+  const bgColor = useColorModeValue('gray.50', 'gray.900');
   const cardBgColor = useColorModeValue('white', 'gray.700');
+  const textColor = useColorModeValue('gray.800', 'gray.100');
+  const subtitleColor = useColorModeValue('gray.600', 'gray.400');
+  const mutedTextColor = useColorModeValue('gray.500', 'gray.500');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const headingColor = useColorModeValue('gray.900', 'white');
   
   // State hooks
   const [fileUrl, setFileUrl] = useState<string | null>(null);
@@ -179,12 +184,12 @@ export function ImportWorkout() {
   }, [fileUrl]);
   
   return (
-    <Box py={8}>
+    <Box py={8} bg={bgColor} minH="100vh">
       <Container maxW="container.md">
         {/* Breadcrumb navigation */}
         <Breadcrumb 
           spacing="8px" 
-          separator={<ChevronRightIcon color="gray.500" />}
+          separator={<ChevronRightIcon color={mutedTextColor} />}
           mb={6}
         >
           <BreadcrumbItem>
@@ -197,7 +202,7 @@ export function ImportWorkout() {
           </BreadcrumbItem>
         </Breadcrumb>
         
-        <Heading size="lg" mb={6}>Import Workout from File</Heading>
+        <Heading size="lg" mb={6} color={headingColor}>Import Workout from File</Heading>
         
         {/* Stepper */}
         <Stepper index={activeStep} mb={8} size="sm">
@@ -221,17 +226,17 @@ export function ImportWorkout() {
           ))}
         </Stepper>
         
-        <Card variant="outline" mb={6}>
+        <Card variant="outline" mb={6} bg={cardBgColor} borderColor={borderColor}>
           <CardBody>
             {/* Step 1: File Upload */}
             {activeStep === 0 && (
               <VStack spacing={6} align="stretch">
                 <Box>
-                  <Heading size="md" mb={2}>
+                  <Heading size="md" mb={2} color={headingColor}>
                     <Icon as={FaFile} mr={2} />
                     Upload Workout File
                   </Heading>
-                  <Text color="gray.600" mb={4}>
+                  <Text color={subtitleColor} mb={4}>
                     Upload a workout file to import. The system will attempt to extract workout details automatically.
                   </Text>
                 </Box>
@@ -244,11 +249,11 @@ export function ImportWorkout() {
             {activeStep === 1 && (
               <VStack spacing={6} align="stretch">
                 <Box>
-                  <Heading size="md" mb={2}>
+                  <Heading size="md" mb={2} color={headingColor}>
                     <Icon as={FaRobot} mr={2} />
                     Processing File
                   </Heading>
-                  <Text color="gray.600" mb={4}>
+                  <Text color={subtitleColor} mb={4}>
                     Our AI is analyzing your workout file and extracting key information.
                   </Text>
                 </Box>
@@ -256,8 +261,8 @@ export function ImportWorkout() {
                 {isProcessing ? (
                   <VStack spacing={4} py={8}>
                     <Spinner size="xl" color="blue.500" thickness="4px" />
-                    <Text fontWeight="medium">Processing your file...</Text>
-                    <Text fontSize="sm" color="gray.500">This may take a few moments</Text>
+                    <Text fontWeight="medium" color={textColor}>Processing your file...</Text>
+                    <Text fontSize="sm" color={mutedTextColor}>This may take a few moments</Text>
                   </VStack>
                 ) : error ? (
                   <Alert status="error" borderRadius="md">
@@ -275,11 +280,12 @@ export function ImportWorkout() {
                     p={3}
                     borderWidth="1px"
                     borderRadius="md"
-                    bg={bgColor}
+                    bg={cardBgColor}
+                    borderColor={borderColor}
                   >
                     <HStack>
                       <Icon as={FaFile} color="blue.500" />
-                      <Text fontWeight="medium">{fileName}</Text>
+                      <Text fontWeight="medium" color={textColor}>{fileName}</Text>
                     </HStack>
                   </Box>
                 )}
@@ -290,11 +296,11 @@ export function ImportWorkout() {
             {activeStep === 2 && workoutData && (
               <VStack spacing={6} align="stretch">
                 <Box>
-                  <Heading size="md" mb={2}>
+                  <Heading size="md" mb={2} color={headingColor}>
                     <Icon as={FaEdit} mr={2} />
                     Review Extracted Workout
                   </Heading>
-                  <Text color="gray.600" mb={4}>
+                  <Text color={subtitleColor} mb={4}>
                     Review the information extracted from your file. You'll be able to edit the details in the next step.
                   </Text>
                 </Box>
@@ -305,12 +311,13 @@ export function ImportWorkout() {
                   borderWidth="1px"
                   borderRadius="md"
                   bg={cardBgColor}
+                  borderColor={borderColor}
                   boxShadow="sm"
                 >
                   <VStack align="stretch" spacing={4}>
                     {/* Workout Name & Type */}
                     <HStack justify="space-between">
-                      <Heading size="md">{workoutData.name}</Heading>
+                      <Heading size="md" color={headingColor}>{workoutData.name}</Heading>
                       <Badge colorScheme={workoutData.type === 'Strength' ? 'purple' : workoutData.type === 'Running' ? 'blue' : 'green'} px={2} py={1} borderRadius="md">
                         <HStack spacing={1}>
                           <Icon as={getTypeIcon(workoutData.type)} />
@@ -324,26 +331,26 @@ export function ImportWorkout() {
                     {/* Date, Time, Duration, Location */}
                     <HStack wrap="wrap" spacing={4}>
                       <HStack>
-                        <Icon as={FaCalendarAlt} color="gray.500" />
-                        <Text>{workoutData.date}</Text>
+                        <Icon as={FaCalendarAlt} color={mutedTextColor} />
+                        <Text color={textColor}>{workoutData.date}</Text>
                       </HStack>
                       
                       {workoutData.time && (
                         <HStack>
-                          <Icon as={FaClock} color="gray.500" />
-                          <Text>{workoutData.time}</Text>
+                          <Icon as={FaClock} color={mutedTextColor} />
+                          <Text color={textColor}>{workoutData.time}</Text>
                         </HStack>
                       )}
                       
                       <HStack>
-                        <Icon as={FaClock} color="gray.500" />
-                        <Text>{workoutData.duration}</Text>
+                        <Icon as={FaClock} color={mutedTextColor} />
+                        <Text color={textColor}>{workoutData.duration}</Text>
                       </HStack>
                       
                       {workoutData.location && (
                         <HStack>
-                          <Icon as={FaMapMarkerAlt} color="gray.500" />
-                          <Text>{workoutData.location}</Text>
+                          <Icon as={FaMapMarkerAlt} color={mutedTextColor} />
+                          <Text color={textColor}>{workoutData.location}</Text>
                         </HStack>
                       )}
                     </HStack>
@@ -352,24 +359,24 @@ export function ImportWorkout() {
                     
                     {/* Exercises */}
                     <Box>
-                      <Heading size="sm" mb={2}>Exercises</Heading>
+                      <Heading size="sm" mb={2} color={headingColor}>Exercises</Heading>
                       <List spacing={2}>
                         {workoutData.exercises.map((exercise, index) => (
-                          <ListItem key={index} p={2} borderWidth="1px" borderRadius="md">
+                          <ListItem key={index} p={2} borderWidth="1px" borderRadius="md" borderColor={borderColor}>
                             <HStack justify="space-between">
                               <HStack>
                                 <ListIcon as={FaCheck} color="green.500" />
-                                <Text fontWeight="medium">{exercise.name}</Text>
+                                <Text fontWeight="medium" color={textColor}>{exercise.name}</Text>
                               </HStack>
                               <HStack spacing={3}>
                                 {exercise.sets && exercise.reps && (
-                                  <Text fontSize="sm">{exercise.sets} sets × {exercise.reps} reps</Text>
+                                  <Text fontSize="sm" color={subtitleColor}>{exercise.sets} sets × {exercise.reps} reps</Text>
                                 )}
                                 {exercise.weight && (
-                                  <Text fontSize="sm">{exercise.weight} kg</Text>
+                                  <Text fontSize="sm" color={subtitleColor}>{exercise.weight} kg</Text>
                                 )}
                                 {exercise.distance && (
-                                  <Text fontSize="sm">{exercise.distance} m</Text>
+                                  <Text fontSize="sm" color={subtitleColor}>{exercise.distance} m</Text>
                                 )}
                               </HStack>
                             </HStack>
@@ -383,8 +390,8 @@ export function ImportWorkout() {
                       <>
                         <Divider />
                         <Box>
-                          <Heading size="sm" mb={2}>Notes</Heading>
-                          <Text>{workoutData.notes}</Text>
+                          <Heading size="sm" mb={2} color={headingColor}>Notes</Heading>
+                          <Text color={textColor}>{workoutData.notes}</Text>
                         </Box>
                       </>
                     )}

@@ -18,7 +18,7 @@ import { dateUtils } from '../../utils/date';
 import { useWorkoutsRealtime } from '../../hooks/useWorkoutsRealtime';
 import { handleWorkoutCompletion } from '../../services/integrationService';
 import { useFeedback } from '../../components/FeedbackProvider'; // Import the feedback hook
-import { MobileHeader, ExerciseExecutionModal, MonthlyPlanAssignments, WorkoutsSidebar } from '../../components';
+import { ExerciseExecutionModal, MonthlyPlanAssignments, WorkoutsSidebar, MobileBottomNavigation } from '../../components';
 import type { WorkoutsSection } from '../../components';
 import { useScrollDirection } from '../../hooks/useScrollDirection';
 import { RunTimeInput } from '../../components/RunTimeInput';
@@ -1408,32 +1408,7 @@ export function AthleteWorkouts() {
 
   return (
     <Box bg={pageBackgroundColor} minH="100vh" data-testid="athlete-workouts">
-      {/* Mobile Header */}
-      <MobileHeader
-        title="Workouts"
-        subtitle="Your Training Schedule"
-        isLoading={isLoading}
-        actionButton={
-          <IconButton
-            aria-label="Create Workout"
-            icon={<FaPlus />}
-            size="md"
-            colorScheme="blue"
-            variant="solid"
-            borderRadius="full"
-            onClick={() => navigate('/athlete/workout-creator')}
-            boxShadow="lg"
-            _hover={{ 
-              transform: 'scale(1.05)',
-              boxShadow: 'xl'
-            }}
-            transition="all 0.2s"
-            _active={{
-              transform: 'scale(0.95)'
-            }}
-          />
-        }
-      />
+
 
       {/* Workouts Sidebar */}
       <WorkoutsSidebar
@@ -1458,6 +1433,7 @@ export function AthleteWorkouts() {
           lg: mainSidebarWidth === 70 ? "30px" : "20px"  // Less right margin when sidebar is collapsed
         }}
         pt={isHeaderVisible ? "-2px" : "-82px"}
+        pb={{ base: 24, lg: 8 }} // Add bottom padding for mobile bottom navigation
         transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
         minH="100vh"
         px={{ base: "10px", md: 0 }} // Add 10px padding on mobile, remove on desktop
@@ -1576,6 +1552,20 @@ export function AthleteWorkouts() {
           </AlertDialogContent>
         </AlertDialogOverlay>
       </AlertDialog>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNavigation
+        onCreateWorkout={() => navigate('/athlete/workout-creator')}
+        onRefresh={handleRefresh}
+        onFilters={() => {
+          // Toggle filter options or show filter modal
+          console.log('Filters clicked');
+        }}
+        onSettings={() => {
+          // Navigate to settings or show settings modal
+          navigate('/athlete/settings');
+        }}
+      />
     </Box>
   );
 } 

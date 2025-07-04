@@ -60,6 +60,7 @@ import { supabase } from '../../lib/supabase';
 import { format } from 'date-fns';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTimeFormat } from '../../contexts/TimeFormatContext';
 import { MeetFormDrawer, type TrackMeetFormData, type TrackMeetData } from '../../components/meets/MeetFormDrawer';
 import { TravelTimeDisplay } from '../../components/TravelTimeDisplay';
 import { LocationSetup } from '../../components/LocationSetup';
@@ -74,6 +75,7 @@ export function CoachMeets() {
   const { isOpen: isLocationSetupOpen, onOpen: onLocationSetupOpen, onClose: onLocationSetupClose } = useDisclosure();
   const [trackMeets, setTrackMeets] = useState<TrackMeet[]>([]);
   const { user } = useAuth();
+  const { formatTime } = useTimeFormat();
   const [loading, setLoading] = useState(true);
   const [currentMeet, setCurrentMeet] = useState<TrackMeet | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -906,7 +908,7 @@ export function CoachMeets() {
                                 {format(new Date(meet.entry_deadline_date), 'MMMM d, yyyy')}
                                 {meet.entry_deadline_time && (
                                   <Text as="span" color={textColor} fontWeight="bold">
-                                    {' at ' + meet.entry_deadline_time}
+                                    {' at ' + formatTime(meet.entry_deadline_time)}
                                   </Text>
                                 )}
                               </Text>

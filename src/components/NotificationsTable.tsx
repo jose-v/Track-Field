@@ -63,6 +63,7 @@ const NotificationsTable: React.FC = () => {
   const hoverBg = useColorModeValue('gray.50', 'gray.700');
   const sectionHeaderColor = useColorModeValue('gray.500', 'gray.400');
   const cardBg = useColorModeValue('white', 'gray.750');
+  const sectionHeaderBg = useColorModeValue('gray.50', 'gray.750');
 
   useEffect(() => {
     if (user?.id) {
@@ -920,7 +921,7 @@ const NotificationsTable: React.FC = () => {
                       {Object.entries(groupedNotifications).map(([dateGroup, groupNotifications]) => (
                         <Box key={dateGroup}>
                           {/* Date Section Header */}
-                          <Flex justify="space-between" align="center" px={6} py={4} bg={useColorModeValue('gray.50', 'gray.750')} borderBottom="1px" borderColor={borderColor}>
+                          <Flex justify="space-between" align="center" px={6} py={4} bg={sectionHeaderBg} borderBottom="1px" borderColor={borderColor}>
                             <Text fontSize="sm" fontWeight="semibold" color={sectionHeaderColor}>
                               {dateGroup}
                               <Badge ml={2} variant="outline" colorScheme="gray" fontSize="xs">

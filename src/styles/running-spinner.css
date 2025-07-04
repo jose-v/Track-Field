@@ -1,0 +1,80 @@
+/* Running Man Spinner Animation */
+@keyframes runCycle {
+  from { 
+    background-position: 0 0; 
+  }
+  to { 
+    background-position: -100% 0; 
+  }
+}
+
+/* Alternative for better browser support */
+@keyframes runCycleExact {
+  0% { background-position: 0 0; }
+  16.666% { background-position: -16.666% 0; }
+  33.333% { background-position: -33.333% 0; }
+  50% { background-position: -50% 0; }
+  66.666% { background-position: -66.666% 0; }
+  83.333% { background-position: -83.333% 0; }
+  100% { background-position: -100% 0; }
+}
+
+/* Utility classes for different sizes */
+.running-spinner {
+  background-repeat: no-repeat;
+  animation-timing-function: steps(6);
+  animation-iteration-count: infinite;
+  animation-name: runCycle;
+}
+
+.running-spinner-xs {
+  width: 32px;
+  height: 32px;
+  background-size: 192px 32px;
+}
+
+.running-spinner-sm {
+  width: 48px;
+  height: 48px;
+  background-size: 288px 48px;
+}
+
+.running-spinner-md {
+  width: 64px;
+  height: 64px;
+  background-size: 384px 64px;
+}
+
+.running-spinner-lg {
+  width: 96px;
+  height: 96px;
+  background-size: 576px 96px;
+}
+
+.running-spinner-xl {
+  width: 128px;
+  height: 128px;
+  background-size: 768px 128px;
+}
+
+/* Speed variants */
+.running-spinner-slow {
+  animation-duration: 1.2s;
+}
+
+.running-spinner-normal {
+  animation-duration: 0.8s;
+}
+
+.running-spinner-fast {
+  animation-duration: 0.6s;
+}
+
+/* Theme variants */
+.running-spinner-dark {
+  background-image: url('/images/running-man-sprite.png');
+}
+
+.running-spinner-light {
+  background-image: url('/images/running-man-sprite-light.png');
+} 

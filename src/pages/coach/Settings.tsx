@@ -68,7 +68,8 @@ const CoachSettings = () => {
     theme: 'system',
     language: 'en',
     timezone: 'America/New_York',
-    units: 'imperial'
+    units: 'imperial',
+    timeFormat: '12'
   });
   
   const [notificationForm, setNotificationForm] = useState<NotificationFormData>({
@@ -203,7 +204,8 @@ const CoachSettings = () => {
         theme: settings.settings.theme,
         language: settings.settings.language,
         timezone: settings.settings.timezone,
-        units: settings.settings.units
+        units: settings.settings.units,
+        timeFormat: settings.settings.timeFormat
       });
       
       setNotificationForm({
@@ -252,6 +254,11 @@ const CoachSettings = () => {
   const unitsOptions = [
     { value: 'imperial', label: 'Imperial (ft, lbs, °F)' },
     { value: 'metric', label: 'Metric (m, kg, °C)' }
+  ];
+
+  const timeFormatOptions = [
+    { value: '12', label: '12-hour (2:30 PM)' },
+    { value: '24', label: '24-hour (14:30)' }
   ];
 
   const visibilityOptions = [
@@ -430,6 +437,16 @@ const CoachSettings = () => {
                     value={generalForm.units}
                     onChange={(value) => setGeneralForm(prev => ({ ...prev, units: value as any }))}
                     options={unitsOptions}
+                  />
+                </SimpleGrid>
+                
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                  <SettingSelect
+                    label="Time Format"
+                    description="Choose your preferred time format"
+                    value={generalForm.timeFormat}
+                    onChange={(value) => setGeneralForm(prev => ({ ...prev, timeFormat: value as '12' | '24' }))}
+                    options={timeFormatOptions}
                   />
                 </SimpleGrid>
                 

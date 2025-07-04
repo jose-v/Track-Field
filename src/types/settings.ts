@@ -7,6 +7,7 @@ export interface UserSettings {
   language: string;
   timezone: string;
   units: 'metric' | 'imperial';
+  timeFormat: '12' | '24';
   created_at: string;
   updated_at: string;
 }
@@ -81,6 +82,7 @@ export interface SettingsFormData {
   language: string;
   timezone: string;
   units: 'metric' | 'imperial';
+  timeFormat: '12' | '24';
 }
 
 export interface NotificationFormData {

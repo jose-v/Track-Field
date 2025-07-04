@@ -21,15 +21,14 @@ import {
     useDisclosure
   } from '@chakra-ui/react';
   import { useAuth } from '../../contexts/AuthContext';
-import { FaUserFriends, FaRunning, FaClipboardCheck, FaCalendarAlt, FaChartLine } from 'react-icons/fa';
+import { FaUserFriends, FaRunning, FaCalendarAlt, FaChartLine } from 'react-icons/fa';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useCoachAthletes } from '../../hooks/useCoachAthletes';
 import { useState, useEffect } from 'react';
 import { useProfile } from '../../hooks/useProfile';
 import { useProfileDisplay } from '../../hooks/useProfileDisplay';
 import { useQueryClient } from '@tanstack/react-query';
-import { WeatherCard, TrackMeetsCard, AlertsNotificationsCard, TodaysFocusCard } from '../../components';
-import { MobileWelcomeMessage } from '../../components/MobileWelcomeMessage';
+import { WeatherCard, TrackMeetsCard, AlertsNotificationsCard, TodaysFocusCard, MobileTopNavBar } from '../../components';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import AthleteRosterCard from '../../components/coach/AthleteRosterCard';
@@ -257,15 +256,7 @@ export function CoachDashboard() {
   const statLabelColor = useColorModeValue('gray.600', 'gray.300');
   const statHelpTextColor = useColorModeValue('gray.500', 'gray.400');
 
-  const getCompletionColor = (rate: number) => {
-    if (rate >= 80) return 'green';
-    if (rate >= 60) return 'yellow';
-    return 'red';
-  };
 
-  const averageCompletionRate = realAthletes.length > 0
-    ? Math.round(realAthletes.reduce((acc, athlete) => acc + (athlete.completion_rate || 0), 0) / realAthletes.length)
-    : 0;
 
   // Effect for debugging user and athletes state
   useEffect(() => {
@@ -407,11 +398,11 @@ export function CoachDashboard() {
     <Box py={0}>
       {/* Mobile Layout */}
       <Box display={{ base: "block", md: "none" }} position="relative">
-        {/* Mobile Welcome Message - positioned on same line as hamburger */}
-        <MobileWelcomeMessage message={getWelcomeMessage()} />
+        {/* Mobile Top Navigation Bar with welcome message and avatar */}
+        <MobileTopNavBar welcomeMessage={getWelcomeMessage()} />
         
         {/* Weather Card - Full width with 10px padding */}
-        <Box px="10px" mb={4}>
+        <Box px="10px" mb={4} pt={16}>
           <WeatherCard 
             city={profile?.city || "Greensboro"}
             state={profile?.state || "NC"}
@@ -543,7 +534,7 @@ export function CoachDashboard() {
       </SimpleGrid>
 
       {/* Dashboard Stats - At-a-Glance Metrics */}
-      <SimpleGrid columns={{ base: 1, md: 4 }} spacing={6} mb={8}>
+      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={8}>
         <Stat px={4} py={5} bg={cardBg} shadow={cardShadow} rounded="lg" borderWidth="1px" borderColor={borderColor}>
           <Flex justifyContent="space-between">
             <Box pl={2}>
@@ -557,23 +548,11 @@ export function CoachDashboard() {
         <Stat px={4} py={5} bg={cardBg} shadow={cardShadow} rounded="lg" borderWidth="1px" borderColor={borderColor}>
           <Flex justifyContent="space-between">
             <Box pl={2}>
-              <StatLabel fontWeight="medium" color={statLabelColor}>Team Workouts</StatLabel>
-              <StatNumber fontSize="3xl">2</StatNumber> 
-              <StatHelpText color={statHelpTextColor}>Active training plans</StatHelpText>
+              <StatLabel fontWeight="medium" color={statLabelColor}>Created Workouts</StatLabel>
+              <StatNumber fontSize="3xl">{workoutsLoading ? '...' : (workouts?.length || 0)}</StatNumber> 
+              <StatHelpText color={statHelpTextColor}>Available to assign</StatHelpText>
             </Box>
             <Box my="auto" color="purple.500" alignContent="center"><Icon as={FaRunning} w={8} h={8} /></Box>
-          </Flex>
-        </Stat>
-        <Stat px={4} py={5} bg={cardBg} shadow={cardShadow} rounded="lg" borderWidth="1px" borderColor={borderColor}>
-          <Flex justifyContent="space-between">
-            <Box pl={2}>
-              <StatLabel fontWeight="medium" color={statLabelColor}>Completion Rate</StatLabel>
-              <StatNumber fontSize="3xl" color={`${getCompletionColor(averageCompletionRate)}.500`}>
-                {athletesLoading ? '...' : `${averageCompletionRate}%`}
-              </StatNumber>
-              <StatHelpText color={statHelpTextColor}>Average across team</StatHelpText>
-            </Box>
-            <Box my="auto" color="green.500" alignContent="center"><Icon as={FaClipboardCheck} w={8} h={8} /></Box>
           </Flex>
         </Stat>
         <Stat px={4} py={5} bg={cardBg} shadow={cardShadow} rounded="lg" borderWidth="1px" borderColor={borderColor}>

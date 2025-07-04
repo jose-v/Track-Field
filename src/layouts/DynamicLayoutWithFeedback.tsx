@@ -1,26 +1,21 @@
 import React from 'react';
-import { useUserRole } from '../hooks/useUserRole';
+import { useProfile } from '../hooks/useProfile';
 import { AthleteLayout } from '../components/AthleteLayout';
 import { CoachLayout } from '../components/CoachLayout';
 import { TeamManagerLayout } from '../components/TeamManagerLayout';
 import { Layout as GeneralLayout } from '../components/Layout';
 import { FeedbackProvider } from '../components/FeedbackProvider';
-import { Spinner, Center } from '@chakra-ui/react';
 
 interface DynamicLayoutWithFeedbackProps {
   children: React.ReactNode;
 }
 
 const DynamicLayoutWithFeedback: React.FC<DynamicLayoutWithFeedbackProps> = ({ children }) => {
-  const { userRole, loading } = useUserRole();
+  const { profile, isLoading } = useProfile();
 
-  if (loading) {
-    return (
-      <Center h="100vh">
-        <Spinner size="xl" />
-      </Center>
-    );
-  }
+  // Don't show loading spinner here - let RoleDashboardRouter handle initial loading
+  // This component just handles layout selection once profile is available
+  const userRole = profile?.role;
 
   const LayoutComponent = () => {
     switch (userRole) {

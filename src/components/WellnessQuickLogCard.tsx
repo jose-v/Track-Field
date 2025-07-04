@@ -20,6 +20,7 @@ import {
 import { FaHeart, FaBolt, FaBrain, FaRunning, FaCheckCircle } from 'react-icons/fa';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { saveWellnessSurvey } from '../services/analytics/wellnessService';
 
 interface WellnessQuickLogCardProps {
   onLogComplete?: () => void;
@@ -76,10 +77,8 @@ export const WellnessQuickLogCard: React.FC<WellnessQuickLogCardProps> = ({ onLo
 
   // Check if there are any wellness logs for today
   const existingLogs = useMemo(() => {
-    const today = new Date();
-    const todayStr = today.getFullYear() + '-' + 
-      String(today.getMonth() + 1).padStart(2, '0') + '-' + 
-      String(today.getDate()).padStart(2, '0');
+    // Use same date format as in handleQuickLog to ensure consistency
+    const todayStr = new Date().toISOString().split('T')[0];
     
     const todayLogs = recentWellnessRecords.filter(record => record.survey_date === todayStr);
     
@@ -141,36 +140,19 @@ export const WellnessQuickLogCard: React.FC<WellnessQuickLogCardProps> = ({ onLo
     setIsLogging(true);
     try {
       const today = new Date().toISOString().split('T')[0];
-      const wellnessData = {
-        athlete_id: user.id,
-        survey_date: today,
-        fatigue_level: fatigue,
-        muscle_soreness: soreness,
-        stress_level: stress,
-        motivation_level: motivation,
-        overall_feeling: Math.round(((10 - fatigue) + (10 - soreness) + (10 - stress) + motivation) / 4),
-        notes: 'Quick check-in from dashboard'
-      };
-
-      let error;
       
-      if (existingLogs.hasTodayLogs) {
-        // Update existing record
-        const result = await supabase
-          .from('athlete_wellness_surveys')
-          .update(wellnessData)
-          .eq('athlete_id', user.id)
-          .eq('survey_date', today);
-        error = result.error;
-      } else {
-        // Insert new record
-        const result = await supabase
-          .from('athlete_wellness_surveys')
-          .insert(wellnessData);
-        error = result.error;
-      }
+      // Use the wellness service upsert method to avoid duplicate key errors
+      await saveWellnessSurvey(user.id, {
+        fatigue,
+        soreness,
+        stress,
+        motivation,
+        overallFeeling: Math.round(((10 - fatigue) + (10 - soreness) + (10 - stress) + motivation) / 4),
+        sleepQuality: undefined, // Not captured in quick log
+        sleepDuration: undefined // Not captured in quick log
+      }, today);
 
-      if (error) throw error;
+      const wasUpdate = existingLogs.hasTodayLogs;
 
       // Refresh wellness records
       const { data: updatedRecords } = await supabase
@@ -181,12 +163,14 @@ export const WellnessQuickLogCard: React.FC<WellnessQuickLogCardProps> = ({ onLo
         .limit(7);
       
       setRecentWellnessRecords(updatedRecords || []);
-
+      
       toast({
         title: 'Wellness logged successfully!',
-        description: existingLogs.hasTodayLogs ? 'Daily check-in updated' : 'Daily check-in complete',
+        description: wasUpdate ? 
+          `Daily check-in updated (Overall: ${Math.round(((10 - fatigue) + (10 - soreness) + (10 - stress) + motivation) / 4)}/10)` : 
+          `Daily check-in complete (Overall: ${Math.round(((10 - fatigue) + (10 - soreness) + (10 - stress) + motivation) / 4)}/10)`,
         status: 'success',
-        duration: 3000,
+        duration: 4000,
         isClosable: true,
       });
 

@@ -27,7 +27,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { JoinTeamModal } from '../components/JoinTeamModal';
-import { useUserRole } from '../hooks/useUserRole';
+import { useProfile } from '../hooks/useProfile';
 
 interface Coach {
   id: string;
@@ -43,7 +43,8 @@ interface Coach {
 
 export default function JoinTeam() {
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const { userRole, loading } = useUserRole();
+  const { profile, isLoading } = useProfile();
+  const userRole = profile?.role;
   const { user } = useAuth();
   const toast = useToast();
   const [sendingRequest, setSendingRequest] = useState<string | null>(null);
@@ -208,7 +209,7 @@ export default function JoinTeam() {
     refetchCoaches();
   };
 
-  if (loading) {
+      if (isLoading) {
     return (
       <Container maxW="4xl" py={8}>
         <VStack spacing={6}>

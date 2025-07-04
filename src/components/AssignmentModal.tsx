@@ -6,6 +6,7 @@ import {
   Card, CardBody, Icon
 } from '@chakra-ui/react';
 import { FaSearch, FaUsers, FaCalendarAlt, FaDumbbell } from 'react-icons/fa';
+import { useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/api';
 import type { Workout } from '../services/api';
 import type { TrainingPlan } from '../services/dbSchema';
@@ -37,6 +38,7 @@ export function AssignmentModal({
   monthlyPlan
 }: AssignmentModalProps) {
   const toast = useToast();
+  const queryClient = useQueryClient();
   
   // Determine what we're assigning
   const isWorkoutAssignment = !!workout;
@@ -142,11 +144,20 @@ export function AssignmentModal({
 
   // Handle assignment submission
   const handleAssign = async () => {
-    if (selectedAthletes.length === 0) {
+    // Check if there are any changes to make
+    const currentlyAssigned = athletesWithAssignments
+      .filter(a => a.isAlreadyAssigned)
+      .map(a => a.id);
+
+    const athletesToAdd = selectedAthletes.filter(id => !currentlyAssigned.includes(id));
+    const athletesToRemove = currentlyAssigned.filter(id => !selectedAthletes.includes(id));
+
+    // If no changes are being made, show a message
+    if (athletesToAdd.length === 0 && athletesToRemove.length === 0) {
       toast({
-        title: 'No athletes selected',
-        description: `Please select at least one athlete.`,
-        status: 'warning',
+        title: 'No changes made',
+        description: 'The current assignments are already up to date.',
+        status: 'info',
         duration: 3000,
         isClosable: true
       });
@@ -155,13 +166,6 @@ export function AssignmentModal({
 
     try {
       setLoading(true);
-
-      const currentlyAssigned = athletesWithAssignments
-        .filter(a => a.isAlreadyAssigned)
-        .map(a => a.id);
-
-      const athletesToAdd = selectedAthletes.filter(id => !currentlyAssigned.includes(id));
-      const athletesToRemove = currentlyAssigned.filter(id => !selectedAthletes.includes(id));
 
       if (isWorkoutAssignment && workout) {
         if (athletesToAdd.length > 0) {
@@ -194,14 +198,52 @@ export function AssignmentModal({
           );
         }
 
+        // Remove athletes that were unselected
+        if (athletesToRemove.length > 0) {
+          for (const athleteId of athletesToRemove) {
+            await api.monthlyPlanAssignments.removeByPlanAndAthlete(monthlyPlan.id, athleteId);
+          }
+        }
+
+        // Create descriptive message based on what happened
+        let description = '';
+        if (athletesToAdd.length > 0 && athletesToRemove.length > 0) {
+          description = `Added ${athletesToAdd.length} and removed ${athletesToRemove.length} athlete assignments.`;
+        } else if (athletesToAdd.length > 0) {
+          description = `Added ${athletesToAdd.length} athlete assignment(s).`;
+        } else if (athletesToRemove.length > 0) {
+          description = `Removed ${athletesToRemove.length} athlete assignment(s).`;
+        }
+        
+        if (selectedAthletes.length === 0) {
+          description += ' Training plan is now unassigned.';
+        } else {
+          description += ` Training plan is now assigned to ${selectedAthletes.length} athlete(s).`;
+        }
+
         toast({
           title: 'Assignment Updated',
-          description: `Training plan "${monthlyPlan.name}" assigned to ${selectedAthletes.length} athlete(s).`,
+          description,
           status: 'success',
           duration: 4000,
           isClosable: true
         });
       }
+
+      // Force refresh of athlete data for all affected athletes
+      const affectedAthleteIds = [...new Set([...athletesToAdd, ...athletesToRemove])];
+      affectedAthleteIds.forEach(athleteId => {
+        // Invalidate the athlete's assigned workouts cache
+        queryClient.invalidateQueries({ queryKey: ['athleteAssignedWorkouts', athleteId] });
+        // Also invalidate athlete's training plan assignments
+        queryClient.invalidateQueries({ queryKey: ['athleteMonthlyPlanAssignments', athleteId] });
+      });
+
+      // Also invalidate general workout and training plan queries
+      queryClient.invalidateQueries({ queryKey: ['workoutCompletionStats'] });
+      queryClient.invalidateQueries({ queryKey: ['athleteWorkouts'] });
+      queryClient.invalidateQueries({ queryKey: ['monthlyPlans'] });
+      queryClient.invalidateQueries({ queryKey: ['trainingPlanAssignments'] });
 
       onSuccess?.();
       onClose();
@@ -341,7 +383,6 @@ export function AssignmentModal({
               onClick={handleAssign}
               isLoading={loading}
               loadingText="Updating..."
-              isDisabled={selectedAthletes.length === 0}
             >
               Update Assignment
             </Button>

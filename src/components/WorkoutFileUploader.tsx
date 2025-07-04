@@ -68,6 +68,9 @@ export function WorkoutFileUploader({ onFileProcessed }: WorkoutFileUploaderProp
   const activeBorderColor = useColorModeValue('blue.400', 'blue.400');
   const textColor = useColorModeValue('gray.500', 'gray.300');
   const iconColor = useColorModeValue('gray.500', 'gray.300');
+  const cardBgColor = useColorModeValue('white', 'gray.800');
+  const mainTextColor = useColorModeValue('gray.800', 'gray.100');
+  const uploadBgColor = useColorModeValue('white', 'gray.700');
 
   // Handle drag events
   const handleDrag = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -264,118 +267,116 @@ export function WorkoutFileUploader({ onFileProcessed }: WorkoutFileUploaderProp
 
   return (
     <VStack spacing={4} width="100%">
-      <FormControl>
-        <FormLabel fontWeight="medium">Upload Workout File</FormLabel>
-        
-        {!uploadedFile ? (
-          <Box
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
-            borderWidth="2px"
-            borderStyle="dashed"
-            borderRadius="md"
-            borderColor={dragActive ? activeBorderColor : borderColor}
-            backgroundColor={dragActive ? activeBgColor : dropBgColor}
-            p={6}
-            textAlign="center"
-            cursor="pointer"
-            onClick={onButtonClick}
-            transition="all 0.2s"
-          >
-            <VStack spacing={3}>
-              <Icon as={FaUpload} boxSize={8} color="blue.500" />
-              <Text fontWeight="medium">
-                Drag & drop your workout file here, or click to browse
-              </Text>
-              <Text fontSize="sm" color={textColor}>
-                Supported formats: PDF, Word (DOC, DOCX), Text
-              </Text>
-              <HStack spacing={2}>
-                <Icon as={FaFilePdf} color="red.500" />
-                <Icon as={FaFileWord} color="blue.500" />
-                <Icon as={FaFileAlt} color={iconColor} />
-              </HStack>
-              
-              <Input
-                type="file"
-                ref={inputRef}
-                onChange={handleChange}
-                accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-                display="none"
-              />
-            </VStack>
-          </Box>
-        ) : (
-          <Box
-            borderWidth="1px"
-            borderRadius="md"
-            p={4}
-            width="100%"
-          >
-            <VStack spacing={4} width="100%">
-              {/* File info */}
-              <HStack width="100%" justify="space-between">
-                <HStack>
-                  <Icon 
-                    as={getFileIcon(uploadedFile.file.type)} 
-                    boxSize={6} 
-                    color={uploadedFile.isUploaded ? "green.500" : "blue.500"} 
-                  />
-                  <Box>
-                    <Text fontWeight="medium" noOfLines={1} maxWidth="200px">
-                      {uploadedFile.file.name}
-                    </Text>
-                    <Text fontSize="xs" color={textColor}>
-                      {(uploadedFile.file.size / 1024 / 1024).toFixed(2)} MB
-                    </Text>
-                  </Box>
-                </HStack>
-                
-                <HStack>
-                  {uploadedFile.isUploaded && (
-                    <Badge colorScheme="green" display="flex" alignItems="center">
-                      <Icon as={FaCheck} mr={1} boxSize={3} />
-                      Uploaded
-                    </Badge>
-                  )}
-                  <Tooltip label="Remove file">
-                    <IconButton
-                      icon={<FaTrash />}
-                      aria-label="Remove file"
-                      size="sm"
-                      variant="ghost"
-                      colorScheme="red"
-                      onClick={handleRemoveFile}
-                    />
-                  </Tooltip>
-                </HStack>
-              </HStack>
-              
-              {/* Upload progress */}
-              {!uploadedFile.isUploaded && !uploadedFile.error && (
-                <Box width="100%">
-                  <Progress 
-                    value={uploadedFile.uploadProgress} 
-                    size="sm" 
-                    colorScheme="blue" 
-                    borderRadius="full" 
-                    isIndeterminate={isUploading && uploadedFile.uploadProgress === 0}
-                  />
+      {!uploadedFile ? (
+        <Box
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+          borderWidth="2px"
+          borderStyle="dashed"
+          borderRadius="md"
+          borderColor={dragActive ? activeBorderColor : useColorModeValue('gray.300', 'gray.600')}
+          backgroundColor={dragActive ? activeBgColor : 'transparent'}
+          p={6}
+          textAlign="center"
+          cursor="pointer"
+          onClick={onButtonClick}
+          transition="all 0.2s"
+        >
+          <VStack spacing={3}>
+            <Icon as={FaUpload} boxSize={8} color="blue.500" />
+            <Text fontWeight="medium" color={mainTextColor}>
+              Drag & drop your workout file here, or click to browse
+            </Text>
+            <Text fontSize="sm" color={textColor}>
+              Supported formats: PDF, Word (DOC, DOCX), Text
+            </Text>
+            <HStack spacing={2}>
+              <Icon as={FaFilePdf} color="red.500" />
+              <Icon as={FaFileWord} color="blue.500" />
+              <Icon as={FaFileAlt} color={iconColor} />
+            </HStack>
+            
+            <Input
+              type="file"
+              ref={inputRef}
+              onChange={handleChange}
+              accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+              display="none"
+            />
+          </VStack>
+        </Box>
+      ) : (
+        <Box
+          borderWidth="1px"
+          borderRadius="md"
+          borderColor={borderColor}
+          bg={uploadBgColor}
+          p={4}
+          width="100%"
+        >
+          <VStack spacing={4} width="100%">
+            {/* File info */}
+            <HStack width="100%" justify="space-between">
+              <HStack>
+                <Icon 
+                  as={getFileIcon(uploadedFile.file.type)} 
+                  boxSize={6} 
+                  color={uploadedFile.isUploaded ? "green.500" : "blue.500"} 
+                />
+                <Box>
+                  <Text fontWeight="medium" noOfLines={1} maxWidth="200px" color={mainTextColor}>
+                    {uploadedFile.file.name}
+                  </Text>
+                  <Text fontSize="xs" color={textColor}>
+                    {(uploadedFile.file.size / 1024 / 1024).toFixed(2)} MB
+                  </Text>
                 </Box>
-              )}
+              </HStack>
               
-              {/* Error message */}
-              {uploadedFile.error && (
-                <Text fontSize="sm" color="red.500">
-                  {uploadedFile.error}
-                </Text>
-              )}
-            </VStack>
-          </Box>
-        )}
-      </FormControl>
+              <HStack>
+                {uploadedFile.isUploaded && (
+                  <Badge colorScheme="green" display="flex" alignItems="center">
+                    <Icon as={FaCheck} mr={1} boxSize={3} />
+                    Uploaded
+                  </Badge>
+                )}
+                <Tooltip label="Remove file">
+                  <IconButton
+                    icon={<FaTrash />}
+                    aria-label="Remove file"
+                    size="sm"
+                    variant="ghost"
+                    colorScheme="red"
+                    onClick={handleRemoveFile}
+                  />
+                </Tooltip>
+              </HStack>
+            </HStack>
+            
+            {/* Upload progress */}
+            {!uploadedFile.isUploaded && !uploadedFile.error && (
+              <Box width="100%">
+                <Progress 
+                  value={uploadedFile.uploadProgress} 
+                  size="sm" 
+                  colorScheme="blue" 
+                  borderRadius="full" 
+                  isIndeterminate={isUploading && uploadedFile.uploadProgress === 0}
+                />
+              </Box>
+            )}
+            
+            {/* Error message */}
+            {uploadedFile.error && (
+              <Text fontSize="sm" color="red.500">
+                {uploadedFile.error}
+              </Text>
+            )}
+          </VStack>
+        </Box>
+      )}
       
       {/* Action buttons */}
       <HStack width="100%" justify="flex-end">

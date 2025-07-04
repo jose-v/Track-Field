@@ -418,7 +418,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
     return (
       <IconButton
         aria-label="Open Menu"
-        icon={<LuMenu size="24px" />}
+        icon={<LuMenu size="20px" />}
         position="fixed"
         top={isHeaderVisible ? 4 : "-48px"}
         left={4}
@@ -430,27 +430,27 @@ const Sidebar = ({ userType }: SidebarProps) => {
         bg="transparent"
         boxShadow="none"
         borderRadius="md"
-        color={hamburgerColor}
+        color="gray.900"
         transition="top 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
         transform="translateZ(0)"
         _hover={{
-          bg: hamburgerHoverBg,
-          color: hamburgerHoverColor,
+          bg: "transparent",
+          color: "gray.900",
         }}
         _active={{
-          bg: hamburgerActiveBg,
+          bg: "transparent",
         }}
         _focus={{
           boxShadow: 'none',
           outline: 'none',
-          bg: hamburgerHoverBg,
-          color: hamburgerHoverColor,
+          bg: "transparent",
+          color: "gray.900",
         }}
         _focusVisible={{
           boxShadow: 'none',
           outline: 'none',
-          bg: hamburgerHoverBg,
-          color: hamburgerHoverColor,
+          bg: "transparent",
+          color: "gray.900",
         }}
       />
     );

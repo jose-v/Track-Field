@@ -11,12 +11,18 @@ import {
   Tag,
   Flex,
   useToast,
+  Link as ChakraLink,
+  Skeleton,
+  Heading,
+  Alert,
+  AlertIcon,
 } from '@chakra-ui/react';
-import { FaMapMarkerAlt, FaCalendarAlt } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaCalendarAlt, FaCalendarPlus, FaEye, FaDollarSign, FaClock, FaRunning, FaHotel } from 'react-icons/fa';
 import { Link as RouterLink } from 'react-router-dom';
 import type { CardProps } from '@chakra-ui/react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useTimeFormat } from '../contexts/TimeFormatContext';
 
 // Helper function to format date
 function formatDate(dateStr?: string): string {
@@ -39,25 +45,6 @@ function formatFee(fee: string | number | undefined): string {
   if (!fee) return '';
   const numericFee = typeof fee === 'string' ? parseFloat(fee) : fee;
   return `$${numericFee.toFixed(2)}`;
-}
-
-// Convert time from 24-hour to 12-hour format and remove seconds
-function formatTime(timeString?: string): string {
-  if (!timeString) return '';
-  
-  // Remove seconds if present (e.g., "23:59:00" -> "23:59")
-  const timeWithoutSeconds = timeString.split(':').slice(0, 2).join(':');
-  
-  // Parse the time
-  const [hours, minutes] = timeWithoutSeconds.split(':').map(Number);
-  
-  if (isNaN(hours) || isNaN(minutes)) return timeString;
-  
-  // Convert to 12-hour format
-  const period = hours >= 12 ? 'pm' : 'am';
-  const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-  
-  return `${displayHours}:${minutes.toString().padStart(2, '0')}${period}`;
 }
 
 // Meet event interface
@@ -105,6 +92,7 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
   ...rest
 }) => {
   const { user } = useAuth();
+  const { formatTime } = useTimeFormat();
   const toast = useToast();
   const [trackMeets, setTrackMeets] = useState<TrackMeet[]>([]);
   const [coachMeets, setCoachMeets] = useState<TrackMeet[]>([]);

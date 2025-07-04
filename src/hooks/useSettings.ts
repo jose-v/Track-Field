@@ -22,6 +22,7 @@ const DUMMY_SETTINGS: UserSettingsComplete = {
     language: 'en',
     timezone: 'America/New_York',
     units: 'imperial',
+    timeFormat: '12',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },

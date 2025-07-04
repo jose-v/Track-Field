@@ -25,15 +25,30 @@ import {
   Alert,
   AlertIcon,
   useColorModeValue,
+  Spinner,
+  AlertTitle,
+  AlertDescription,
+  SimpleGrid,
+  Tooltip,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalCloseButton,
+  useDisclosure,
+  Flex
 } from '@chakra-ui/react';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
-import { FaPlus, FaTrash, FaArrowLeft } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaArrowLeft, FaEdit, FaSave, FaEye } from 'react-icons/fa';
 import { ChevronRightIcon } from '@chakra-ui/icons';
 import { supabase } from '../../lib/supabase';
 import { useCoachAthletes } from '../../hooks/useCoachAthletes';
 import { api } from '../../services/api';
 import type { Workout, Exercise } from '../../services/api';
 import type { WorkoutExtraction } from '../../services/fileProcessingService';
+import { useTimeFormat } from '../../contexts/TimeFormatContext';
+import { TimePickerInput } from '../../components/TimePickerInput';
 
 // Interface for exercises from the database
 interface DbExercise {
@@ -68,6 +83,7 @@ export function CreateWorkout() {
   const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
+  const { timeFormat, formatTime } = useTimeFormat();
   const [isSaving, setIsSaving] = useState(false);
   const { data: coachAthletes, isLoading: athletesLoading } = useCoachAthletes();
   const [isImported, setIsImported] = useState(false);
@@ -361,11 +377,10 @@ export function CreateWorkout() {
                 
                 <FormControl flex={1}>
                   <FormLabel>Time (Optional)</FormLabel>
-                  <Input 
-                    type="time" 
-                    value={time} 
-                    onChange={(e) => setTime(e.target.value)}
-                  />
+                                      <TimePickerInput
+                      value={time}
+                      onChange={(value) => setTime(value || '')}
+                    />
                 </FormControl>
               </HStack>
               

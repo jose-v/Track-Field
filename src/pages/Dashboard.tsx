@@ -31,9 +31,9 @@ import {
   MobileHeader,
   ExerciseExecutionModal,
   MonthlyPlanAssignments,
-  MyTeamsCard
+  MyTeamsCard,
+  MobileTopNavBar
 } from '../components'
-import { MobileWelcomeMessage } from '../components/MobileWelcomeMessage'
 import { supabase } from '../lib/supabase'
 import TodayWorkoutsCard from '../components/TodayWorkoutsCard'
 import usePageClass from '../hooks/usePageClass'
@@ -716,9 +716,9 @@ export function Dashboard() {
         mx="auto"
       >
         {/* Mobile Layout */}
-        <Box display={{ base: "block", lg: "none" }} w="100%" mb={8} pt={4} position="relative">
-          {/* Mobile Welcome Message - positioned on same line as hamburger */}
-          <MobileWelcomeMessage message={getWelcomeMessage()} />
+        <Box display={{ base: "block", lg: "none" }} w="100%" mb={8} pt={16} position="relative">
+          {/* Mobile Top Navigation Bar with welcome message and avatar */}
+          <MobileTopNavBar welcomeMessage={getWelcomeMessage()} />
           
           {/* Weather Card - Full width with 10px padding */}
           <Box px="10px" mb={4}>

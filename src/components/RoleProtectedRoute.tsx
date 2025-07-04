@@ -44,8 +44,9 @@ export function RoleProtectedRoute({
     });
   }
 
-  // Show loading while authentication or profile is loading
-  if (authLoading || profileLoading) {
+  // Don't show loading here - PrivateRoute already handles auth loading
+  // Only check authLoading to prevent access with stale auth state
+  if (authLoading) {
     return <LoadingSpinner />
   }
 
@@ -57,6 +58,12 @@ export function RoleProtectedRoute({
   // Check if user's email is verified
   if (!user.email_confirmed_at) {
     return <Navigate to="/verify-email" />
+  }
+
+  // If profile is still loading, return null (no spinner) to prevent double loading states
+  // This lets PrivateRoute handle the initial loading, then we wait for profile silently
+  if (profileLoading) {
+    return null;
   }
 
   // If profile doesn't exist or doesn't have a role, redirect to signup completion

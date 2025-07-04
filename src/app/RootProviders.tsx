@@ -3,6 +3,7 @@ import { ChakraProvider, useColorMode, Box, Spinner } from '@chakra-ui/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth } from '../contexts/AuthContext'
 import { GamificationProvider } from '../contexts/GamificationContext'
+import { TimeFormatProvider } from '../contexts/TimeFormatContext'
 import { ChatbotProvider } from '../components/ChatBot/ChatbotProvider'
 import { StripeProvider } from '../contexts/StripeContext'
 import { theme } from '../theme'
@@ -44,29 +45,9 @@ const ColorModeManager = ({ children }: { children: ReactNode }) => {
     }
   }, [user, loading, setColorMode, hasInitialized])
 
-  // Render children with loading overlay instead of conditional mounting
-  // This prevents the component tree from unmounting/remounting which causes hooks order violations
-  return (
-    <>
-      {children}
-      {loading && (
-        <Box
-          position="fixed"
-          top={0}
-          left={0}
-          right={0}
-          bottom={0}
-          bg="rgba(0, 0, 0, 0.5)"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          zIndex={9999}
-        >
-          <Spinner size="xl" color="blue.500" />
-        </Box>
-      )}
-    </>
-  )
+  // Don't show loading overlay here - let PrivateRoute handle loading states
+  // This prevents double loading spinners (one overlay + one page-level)
+  return <>{children}</>
 }
 
 export const RootProviders = ({ children }: { children: ReactNode }) => (
@@ -75,15 +56,17 @@ export const RootProviders = ({ children }: { children: ReactNode }) => (
       <GlobalStylePatch />
       <ButtonStyleFixer />
       <AuthProvider>
-        <ColorModeManager>
-          <GamificationProvider>
-            <ChatbotProvider>
-              <StripeProvider>
-                {children}
-              </StripeProvider>
-            </ChatbotProvider>
-          </GamificationProvider>
-        </ColorModeManager>
+        <TimeFormatProvider>
+          <ColorModeManager>
+            <GamificationProvider>
+              <ChatbotProvider>
+                <StripeProvider>
+                  {children}
+                </StripeProvider>
+              </ChatbotProvider>
+            </GamificationProvider>
+          </ColorModeManager>
+        </TimeFormatProvider>
       </AuthProvider>
     </ChakraProvider>
   </QueryClientProvider>

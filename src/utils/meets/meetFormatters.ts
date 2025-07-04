@@ -58,8 +58,10 @@ export const formatEventDate = (dateString: string | Date): string => {
 
 /**
  * Format event time for display with enhanced validation for both HH:MM and HH:MM:SS formats
+ * @param timeString - Time string in HH:MM or HH:MM:SS format
+ * @param timeFormat - Optional time format preference ('12' or '24')
  */
-export const formatEventTime = (timeString: string): string => {
+export const formatEventTime = (timeString: string, timeFormat: '12' | '24' = '12'): string => {
   try {
     // Handle empty/null input gracefully
     if (!timeString || typeof timeString !== 'string') {
@@ -89,7 +91,12 @@ export const formatEventTime = (timeString: string): string => {
     const today = new Date();
     today.setHours(hours, minutes, 0, 0);
     
-    return format(today, 'h:mm a');
+    // Format based on preference
+    if (timeFormat === '24') {
+      return format(today, 'HH:mm');
+    } else {
+      return format(today, 'h:mm a');
+    }
   } catch (error) {
     console.error('Error formatting event time:', error);
     return 'Time Error';

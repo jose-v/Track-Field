@@ -38,9 +38,8 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useProfile } from '../../hooks/useProfile';
 import { useProfileDisplay } from '../../hooks/useProfileDisplay';
-import { WeatherCard, TrackMeetsCard, AlertsNotificationsCard, TodaysFocusCard } from '../../components';
+import { WeatherCard, TrackMeetsCard, AlertsNotificationsCard, TodaysFocusCard, MobileTopNavBar } from '../../components';
 import { TeamSetupModal } from '../../components/TeamSetupModal';
-import { MobileWelcomeMessage } from '../../components/MobileWelcomeMessage';
 
 
 export function TeamManagerDashboard() {
@@ -99,11 +98,11 @@ export function TeamManagerDashboard() {
     <Box py={0}>
       {/* Mobile Layout */}
       <Box display={{ base: "block", md: "none" }} position="relative">
-        {/* Mobile Welcome Message - positioned on same line as hamburger */}
-        <MobileWelcomeMessage message={getWelcomeMessage()} />
+        {/* Mobile Top Navigation Bar with welcome message and avatar */}
+        <MobileTopNavBar welcomeMessage={getWelcomeMessage()} />
         
         {/* Weather Card - Full width with 10px padding */}
-        <Box px="10px" mb={4}>
+        <Box px="10px" mb={4} pt={16}>
           <WeatherCard 
             city={profile?.city || "Greensboro"}
             state={profile?.state || "NC"}

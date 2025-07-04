@@ -385,20 +385,25 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
                       </Card>
                     ))}
                   
-                    {/* Template Checkbox - Show only for Weekly Training Plan */}
-                    {templateType === 'weekly' && setIsTemplate && (
+                    {/* Template Checkbox - Always show but disable for Single Day */}
+                    {setIsTemplate && (
                       <Card
                         variant="outline"
                         shadow="none"
-                        cursor="pointer"
-                        onClick={() => setIsTemplate(!isTemplate)}
-                        bg={isTemplate ? templateSelectedBg : cardBg}
-                        borderColor={isTemplate ? templateSelectedBorderColor : borderColor}
+                        cursor={templateType === 'weekly' ? "pointer" : "not-allowed"}
+                        onClick={() => {
+                          if (templateType === 'weekly') {
+                            setIsTemplate(!isTemplate);
+                          }
+                        }}
+                        bg={isTemplate && templateType === 'weekly' ? templateSelectedBg : cardBg}
+                        borderColor={isTemplate && templateType === 'weekly' ? templateSelectedBorderColor : borderColor}
                         borderWidth="2px"
-                        _hover={{ 
+                        opacity={templateType === 'single' ? 0.6 : 1}
+                        _hover={templateType === 'weekly' ? { 
                           borderColor: isTemplate ? "blue.500" : "blue.300",
                           bg: isTemplate ? templateSelectedHoverBg : hoverBg
-                        }}
+                        } : {}}
                         transition="all 0.2s"
                         position="relative"
                         w="100%"
@@ -407,7 +412,7 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
                         <CardBody p={3} display="flex" alignItems="center" h="100%">
                           <HStack spacing={3} w="100%" align="start">
                             <Box 
-                              color={isTemplate ? "blue.500" : templateIconColor}
+                              color={isTemplate && templateType === 'weekly' ? "blue.500" : templateIconColor}
                               flexShrink={0}
                             >
                               <BookOpen size={28} />
@@ -415,21 +420,24 @@ const Step1WorkoutDetails: React.FC<Step1WorkoutDetailsProps> = ({
                             <VStack spacing={2} align="start" flex="1">
                               <Heading 
                                 size="sm" 
-                                color={isTemplate ? "blue.700" : textColor}
+                                color={isTemplate && templateType === 'weekly' ? "blue.700" : textColor}
                                 lineHeight="tight"
                               >
                                 Save as Template
                               </Heading>
                               <Text 
                                 fontSize="xs" 
-                                color={isTemplate ? templateTextColor : subtitleColor}
+                                color={isTemplate && templateType === 'weekly' ? templateTextColor : subtitleColor}
                                 lineHeight="1.4"
                               >
-                                Use for monthly plans and reusable workouts
+                                {templateType === 'single' 
+                                  ? "Not available for single day workouts" 
+                                  : "Use for monthly plans and reusable workouts"
+                                }
                               </Text>
                             </VStack>
                           </HStack>
-                          {isTemplate && (
+                          {isTemplate && templateType === 'weekly' && (
                             <Box
                               position="absolute"
                               top={2}

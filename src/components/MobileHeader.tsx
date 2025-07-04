@@ -17,6 +17,9 @@ interface MobileHeaderProps {
   subtitle?: string;
   isLoading?: boolean;
   actionButton?: React.ReactNode;
+  titleColor?: string;
+  subtitleColor?: string;
+  hideButtons?: boolean;
 }
 
 export const MobileHeader: React.FC<MobileHeaderProps> = ({
@@ -24,6 +27,9 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
   subtitle,
   isLoading = false,
   actionButton,
+  titleColor,
+  subtitleColor,
+  hideButtons = false,
 }) => {
   const { isHeaderVisible } = useScrollDirection(15);
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
@@ -32,26 +38,19 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
     <>
       {/* Mobile Header Row - Fixed positioned with scroll animation */}
       <Box
-        display={{ base: "block", lg: "none" }}
-        position="fixed"
-        top={isHeaderVisible ? "16px" : "-60px"}
-        right="16px"
-        zIndex={1001}
-        bg="transparent"
-        transition="top 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-        transform="translateZ(0)"
+        display="none"
       >
         <HStack spacing={3} align="center">
-          <VStack spacing={0} align="end">
+          <VStack spacing={0} align="start" w="100%">
             <Skeleton isLoaded={!isLoading} fadeDuration={1}>
               <Heading 
                 as="h1" 
                 size="md"
                 mb={0}
-                color={useColorModeValue('gray.800', 'white')}
+                color={titleColor || useColorModeValue('gray.800', 'white')}
                 lineHeight="1.2"
                 fontWeight="semibold"
-                textAlign="right"
+                textAlign="left"
               >
                 {title}
               </Heading>
@@ -59,10 +58,10 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
             {subtitle && (
               <Skeleton isLoaded={!isLoading} fadeDuration={1}>
                 <Text 
-                  color={useColorModeValue('gray.600', 'gray.200')}
+                  color={subtitleColor || useColorModeValue('gray.600', 'gray.200')}
                   fontSize="sm"
                   mt={0}
-                  textAlign="right"
+                  textAlign="left"
                 >
                   {subtitle}
                 </Text>
@@ -71,29 +70,31 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
           </VStack>
           
           {/* Optional Action Button */}
-          {actionButton}
+          {!hideButtons && actionButton}
           
           {/* AI Assistant Button */}
-          <IconButton
-            aria-label="AI Assistant"
-            icon={<SparkleIcon boxSize={5} />}
-            size="md"
-            colorScheme="purple"
-            variant="solid"
-            borderRadius="full"
-            onClick={() => setIsAIModalOpen(true)}
-            boxShadow="lg"
-            _hover={{ 
-              transform: 'scale(1.05)',
-              boxShadow: 'xl'
-            }}
-            transition="all 0.2s"
-            bg="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-            color="white"
-            _active={{
-              transform: 'scale(0.95)'
-            }}
-          />
+          {!hideButtons && (
+            <IconButton
+              aria-label="AI Assistant"
+              icon={<SparkleIcon boxSize={5} />}
+              size="md"
+              colorScheme="purple"
+              variant="solid"
+              borderRadius="full"
+              onClick={() => setIsAIModalOpen(true)}
+              boxShadow="lg"
+              _hover={{ 
+                transform: 'scale(1.05)',
+                boxShadow: 'xl'
+              }}
+              transition="all 0.2s"
+              bg="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+              color="white"
+              _active={{
+                transform: 'scale(0.95)'
+              }}
+            />
+          )}
         </HStack>
       </Box>
 

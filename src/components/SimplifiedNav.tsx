@@ -147,21 +147,101 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
   }
 
   return (
-    <Box
-      bg={bgColor}
-      borderBottom="1px"
-      borderColor={borderColor}
-      position="fixed"
-      w={`calc(100% - ${sidebarWidth}px)`}
-      right="0"
-      top={isHeaderVisible ? "0" : "-80px"}
-      zIndex={999}
-      py={3}
-      px={6}
-      transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-      transform="translateZ(0)"
-      display={{ base: 'none', md: 'block' }}
-    >
+    <>
+      {/* Mobile Navigation Bar */}
+      <Box
+        position="fixed"
+        top={isHeaderVisible ? "0" : "-64px"}
+        left="0"
+        right="0"
+        zIndex={1001}
+        h="64px"
+        display={{ base: "flex", md: "none" }}
+        alignItems="center"
+        justifyContent="space-between"
+        pl={16}
+        pr={4}
+        bg="rgba(255, 255, 255, 0.8)"
+        backdropFilter="blur(10px)"
+        borderBottom="1px solid"
+        borderColor="rgba(255, 255, 255, 0.2)"
+        transition="top 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+        transform="translateZ(0)"
+      >
+        {/* Title and Subtitle for mobile */}
+        <Box flex="1" mr={3}>
+          {location.pathname.includes('/athlete/workouts') ? (
+            <Box>
+              <Text 
+                fontSize="md"
+                fontWeight="semibold" 
+                color="gray.900"
+                textAlign="left"
+                lineHeight="1.2"
+                noOfLines={1}
+              >
+                Workouts
+              </Text>
+              <Text 
+                fontSize="sm"
+                fontWeight="normal" 
+                color="gray.900"
+                textAlign="left"
+                lineHeight="1.1"
+                noOfLines={1}
+              >
+                Your Training Schedule
+              </Text>
+            </Box>
+          ) : welcomeMessage && location.pathname.includes('/dashboard') && (
+            <Text 
+              fontSize="sm"
+              fontWeight="semibold" 
+              color="gray.700"
+              textAlign="right"
+              lineHeight="1.2"
+              noOfLines={1}
+              pr={1}
+            >
+              {welcomeMessage}
+            </Text>
+          )}
+        </Box>
+
+        {/* User Avatar */}
+        <Avatar
+          size="sm"
+          name={displayName || 'User'}
+          src={displayProfile?.avatar_url || undefined}
+          bg="blue.500"
+          color="white"
+          cursor="pointer"
+          _hover={{ 
+            transform: 'scale(1.05)',
+            boxShadow: 'md'
+          }}
+          transition="all 0.2s"
+        >
+          {!displayProfile?.avatar_url && (initials || '?')}
+        </Avatar>
+      </Box>
+
+      {/* Desktop Navigation Bar */}
+      <Box
+        bg={bgColor}
+        borderBottom="1px"
+        borderColor={borderColor}
+        position="fixed"
+        w={`calc(100% - ${sidebarWidth}px)`}
+        right="0"
+        top={isHeaderVisible ? "0" : "-80px"}
+        zIndex={999}
+        py={3}
+        px={6}
+        transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+        transform="translateZ(0)"
+        display={{ base: 'none', md: 'block' }}
+      >
       <Flex justify="space-between" align="center">
         {/* Left side - App title & role badge (removed) */}
         <Box />
@@ -288,10 +368,11 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
                 </MenuItem>
               </MenuList>
             </Menu>
-          )}
+                      )}
+          </Flex>
         </Flex>
-      </Flex>
-    </Box>
+      </Box>
+    </>
   );
 };
 

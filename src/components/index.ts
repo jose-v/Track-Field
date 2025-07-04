@@ -15,7 +15,9 @@ export { TeamManagerLayout } from './TeamManagerLayout';
 export { ErrorBoundary } from './ErrorBoundary';
 export { Footer } from './Footer';
 export { Layout } from './Layout';
-export { LoadingSpinner } from './LoadingSpinner';
+export { LoadingSpinner, PageSpinner, CardSpinner, ButtonSpinner, InlineSpinner, RunningPageSpinner, RunningCardSpinner, RunningInlineSpinner } from './LoadingSpinner';
+export { RunningSpinner } from './RunningSpinner';
+export { RunningSpinnerDemo } from './RunningSpinnerDemo';
 export { default as Navigation } from './Navigation';
 export { PageContainer } from './PageContainer';
 export { PrivateRoute } from './PrivateRoute';
@@ -29,6 +31,8 @@ export { default as AIModal } from './AIModal';
 export { default as SparkleIcon } from './SparkleIcon';
 export { default as MobileHeader } from './MobileHeader';
 export { MobileWelcomeMessage } from './MobileWelcomeMessage';
+export { MobileTopNavBar } from './MobileTopNavBar';
+export { MobileBottomNavigation } from './MobileBottomNavigation';
 export { default as MyTeamsCard } from './MyTeamsCard';
 export { CoachTeamsCard } from './CoachTeamsCard';
 export { JoinTeamModal } from './JoinTeamModal';
@@ -60,4 +64,5 @@ export type { WorkoutsSection, WorkoutsItem } from './workouts';
 
 export { DateTimePicker } from './DateTimePicker' 
 export { AssignmentModal } from './AssignmentModal'
-export { NotificationsModal } from './NotificationsModal' 
+export { NotificationsModal } from './NotificationsModal'
+export { TimePickerInput } from './TimePickerInput' 

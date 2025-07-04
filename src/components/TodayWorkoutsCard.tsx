@@ -23,7 +23,7 @@ import {
   Tag,
   useToast
 } from '@chakra-ui/react';
-import { FaRunning, FaCalendarAlt, FaArrowRight, FaClock, FaFire, FaCheck, FaBed, FaPlus } from 'react-icons/fa';
+import { FaRunning, FaCalendarAlt, FaArrowRight, FaClock, FaFire, FaCheck, FaBed, FaPlus, FaDumbbell } from 'react-icons/fa';
 import { Link as RouterLink } from 'react-router-dom';
 import { WorkoutCard } from './WorkoutCard';
 import { api } from '../services/api';
@@ -128,33 +128,10 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
       try {
         const workoutData = await api.monthlyPlanAssignments.getTodaysWorkout(user.id);
         
-        // If the API returns no workout data, create a fallback
+        // If the API returns no workout data, set to null (don't create fake workout)
         if (!workoutData || !workoutData.hasWorkout) {
-          console.log('🔍 No workout data returned, creating fallback');
-          setDailyWorkout({
-            hasWorkout: true,
-            primaryWorkout: {
-              title: 'Today\'s Training Session',
-              description: 'Your scheduled training for today',
-              exercises: [
-                { name: 'Warm-up', sets: 1, reps: '10-15 minutes', weight: null, notes: 'Dynamic stretching and light movement' },
-                { name: 'Main workout', sets: 1, reps: 'As assigned by coach', weight: null, notes: 'Complete your planned training session' },
-                { name: 'Cool-down', sets: 1, reps: '10 minutes', weight: null, notes: 'Static stretching and recovery' }
-              ],
-              progress: { completed: false },
-              monthlyPlan: { name: 'Current Training Plan', id: 'fallback' },
-              weeklyWorkout: { name: 'This Week', id: 'fallback' },
-              dailyResult: {
-                dailyWorkout: {
-                  exercises: [
-                    { name: 'Warm-up', sets: 1, reps: '10-15 minutes', notes: 'Dynamic stretching and light movement' },
-                    { name: 'Main workout', sets: 1, reps: 'As assigned by coach', notes: 'Complete your planned training session' },
-                    { name: 'Cool-down', sets: 1, reps: '10 minutes', notes: 'Static stretching and recovery' }
-                  ]
-                }
-              }
-            }
-          });
+          console.log('🔍 No workout data returned, athlete has no assignments for today');
+          setDailyWorkout(null);
         } else {
           setDailyWorkout(workoutData);
         }
@@ -173,34 +150,9 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
             isClosable: true,
           });
         } else {
-          console.log('🔍 API error, setting fallback workout data');
-          setDailyWorkoutError(null); // Don't show error, show fallback instead
-          
-          // Create a fallback workout so athletes always see something
-          setDailyWorkout({
-            hasWorkout: true,
-            primaryWorkout: {
-              title: 'Today\'s Training Session',
-              description: 'Your scheduled training for today',
-              exercises: [
-                { name: 'Warm-up', sets: 1, reps: '10-15 minutes', weight: null, notes: 'Dynamic stretching and light movement' },
-                { name: 'Main workout', sets: 1, reps: 'As assigned by coach', weight: null, notes: 'Complete your planned training session' },
-                { name: 'Cool-down', sets: 1, reps: '10 minutes', weight: null, notes: 'Static stretching and recovery' }
-              ],
-              progress: { completed: false },
-              monthlyPlan: { name: 'Current Training Plan', id: 'fallback' },
-              weeklyWorkout: { name: 'This Week', id: 'fallback' },
-              dailyResult: {
-                dailyWorkout: {
-                  exercises: [
-                    { name: 'Warm-up', sets: 1, reps: '10-15 minutes', notes: 'Dynamic stretching and light movement' },
-                    { name: 'Main workout', sets: 1, reps: 'As assigned by coach', notes: 'Complete your planned training session' },
-                    { name: 'Cool-down', sets: 1, reps: '10 minutes', notes: 'Static stretching and recovery' }
-                  ]
-                }
-              }
-            }
-          });
+          console.log('🔍 API error, no fallback workout - athlete should see no assignments');
+          setDailyWorkoutError('Unable to load workout assignments. Please check with your coach.');
+          setDailyWorkout(null);
         }
       } finally {
         setDailyWorkoutLoading(false);
@@ -392,6 +344,96 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
       const progress = getWorkoutProgressData(workout);
       return progress.percentage === 100;
     }).length;
+  };
+
+  // Filter tomorrow's workouts for preview
+  const getTomorrowDate = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  };
+
+  const tomorrowWorkouts = upcomingWorkouts.filter(workout => {
+    if (!workout.date) return false;
+    const workoutDate = new Date(workout.date).toISOString().split('T')[0];
+    return workoutDate === getTomorrowDate();
+  });
+
+  // Get tomorrow's workout from monthly plan
+  const getTomorrowFromMonthlyPlan = () => {
+    if (!dailyWorkout?.primaryWorkout) return null;
+    
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowDayName = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][tomorrow.getDay()];
+    
+    // Check multiple possible locations for weekly data
+    const weeklyData = 
+      dailyWorkout.primaryWorkout.weeklyData || 
+      dailyWorkout.primaryWorkout.dailyResult?.originalWeeklyData ||
+      dailyWorkout.primaryWorkout.exercises; // exercises might contain weekly data
+    
+    if (!weeklyData || !Array.isArray(weeklyData)) return null;
+    
+    const tomorrowData = weeklyData.find((dayData: any) => dayData.day?.toLowerCase() === tomorrowDayName);
+    
+    if (!tomorrowData) return null;
+    
+    return {
+      name: `${tomorrowDayName.charAt(0).toUpperCase() + tomorrowDayName.slice(1)} Training`,
+      exercises: tomorrowData.exercises || [],
+      isRestDay: tomorrowData.isRestDay || false,
+      source: 'monthly-plan',
+      planName: dailyWorkout.primaryWorkout?.monthlyPlan?.name || 'Training Plan',
+      weekName: dailyWorkout.primaryWorkout?.weeklyWorkout?.name || `Week ${dailyWorkout.primaryWorkout?.week || ''}`,
+    };
+  };
+
+  const tomorrowFromMonthlyPlan = getTomorrowFromMonthlyPlan();
+
+  // Helper function to analyze workout type and generate preview
+  const getWorkoutPreview = (workout: any) => {
+    const exercises = workout.exercises || [];
+    const exerciseCount = exercises.length;
+    
+    // Determine workout type based on exercises
+    let workoutType = 'Mixed Training';
+    let icon = FaRunning;
+    let colorScheme = 'blue';
+    
+    if (exercises.length === 0) {
+      workoutType = 'Rest Day';
+      icon = FaBed;
+      colorScheme = 'purple';
+    } else {
+      // Analyze exercise types
+      const exerciseNames = exercises.map(ex => ex.name?.toLowerCase() || '').join(' ');
+      
+      if (exerciseNames.includes('run') || exerciseNames.includes('sprint') || exerciseNames.includes('jog')) {
+        workoutType = 'Running Session';
+        icon = FaRunning;
+        colorScheme = 'green';
+             } else if (exerciseNames.includes('strength') || exerciseNames.includes('lift') || exerciseNames.includes('weight')) {
+         workoutType = 'Strength Training';
+         icon = FaDumbbell;
+         colorScheme = 'orange';
+      } else if (exerciseNames.includes('recovery') || exerciseNames.includes('stretch') || exerciseNames.includes('mobility')) {
+        workoutType = 'Recovery Session';
+        icon = FaBed;
+        colorScheme = 'purple';
+      }
+    }
+    
+    return {
+      type: workoutType,
+      icon,
+      colorScheme,
+      exerciseCount,
+      duration: workout.duration || 'TBD',
+      time: workout.time || 'Any time',
+      location: workout.location || 'Not specified',
+      intensity: exercises.length > 5 ? 'High' : exercises.length > 2 ? 'Medium' : 'Light'
+    };
   };
 
   // Calculate how many workouts to display
@@ -932,6 +974,131 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                 }
               </Text>
             </VStack>
+          </Box>
+        )}
+
+        {/* Tomorrow's Preview */}
+        {(tomorrowWorkouts.length > 0 || tomorrowFromMonthlyPlan) && (
+          <Box>
+                         <HStack justify="space-between" align="center" mb={4}>
+               <HStack spacing={2}>
+                 <Icon as={FaArrowRight} color="blue.500" fontSize="lg" />
+                 <Text fontSize="lg" fontWeight="bold" color={textColor}>
+                   Tomorrow's Preview
+                 </Text>
+               </HStack>
+               <Badge 
+                 colorScheme="blue" 
+                 variant="outline" 
+                 fontSize="xs"
+                 px={2}
+                 py={1}
+               >
+                 {(tomorrowWorkouts.length + (tomorrowFromMonthlyPlan ? 1 : 0))} workout{(tomorrowWorkouts.length + (tomorrowFromMonthlyPlan ? 1 : 0)) !== 1 ? 's' : ''}
+               </Badge>
+            </HStack>
+            
+                         <VStack spacing={3} align="stretch">
+               {/* Tomorrow from Monthly Plan */}
+               {tomorrowFromMonthlyPlan && (
+                 <Box
+                   bg={exerciseBg}
+                   border="1px solid"
+                   borderColor={borderColor}
+                   borderRadius="lg"
+                   p={4}
+                 >
+                   <HStack justify="space-between" align="start" spacing={4}>
+                     <HStack spacing={3} flex="1">
+                       <Icon 
+                         as={tomorrowFromMonthlyPlan.isRestDay ? FaBed : FaRunning} 
+                         color={tomorrowFromMonthlyPlan.isRestDay ? "purple.500" : "green.500"} 
+                         boxSize={5} 
+                       />
+                       <VStack align="start" spacing={1} flex="1">
+                         <HStack spacing={2} wrap="wrap">
+                           <Text fontSize="md" fontWeight="semibold" color={textColor}>
+                             {tomorrowFromMonthlyPlan.name}
+                           </Text>
+                           <Badge 
+                             colorScheme={tomorrowFromMonthlyPlan.isRestDay ? "purple" : "green"} 
+                             variant="solid" 
+                             fontSize="xs"
+                           >
+                             {tomorrowFromMonthlyPlan.isRestDay ? "Rest Day" : "Training Day"}
+                           </Badge>
+                         </HStack>
+                         <Text fontSize="sm" color={subtitleColor}>
+                           {tomorrowFromMonthlyPlan.isRestDay 
+                             ? "Scheduled rest and recovery day" 
+                             : `${tomorrowFromMonthlyPlan.exercises.length} exercise${tomorrowFromMonthlyPlan.exercises.length !== 1 ? 's' : ''} planned`
+                           }
+                         </Text>
+                         <Text fontSize="xs" color={subtitleColor}>
+                           From: {tomorrowFromMonthlyPlan.planName} • {tomorrowFromMonthlyPlan.weekName}
+                         </Text>
+                       </VStack>
+                     </HStack>
+                     <VStack spacing={1} align="end" minW="80px">
+                       <Badge colorScheme="teal" variant="outline" fontSize="xs">
+                         Monthly Plan
+                       </Badge>
+                     </VStack>
+                   </HStack>
+                 </Box>
+               )}
+               
+               {/* Tomorrow from Regular Workouts */}
+               {tomorrowWorkouts.map((workout, idx) => {
+                const preview = getWorkoutPreview(workout);
+                return (
+                                     <Box
+                     key={workout.id || idx}
+                     bg={exerciseBg}
+                     border="1px solid"
+                     borderColor={borderColor}
+                     borderRadius="lg"
+                     p={4}
+                   >
+                    <HStack justify="space-between" align="start" spacing={4}>
+                      <HStack spacing={3} flex="1">
+                        <Icon as={preview.icon} color={`${preview.colorScheme}.500`} boxSize={5} />
+                        <VStack align="start" spacing={1} flex="1">
+                          <HStack spacing={2} wrap="wrap">
+                            <Text fontSize="md" fontWeight="semibold" color={textColor}>
+                              {workout.name}
+                            </Text>
+                            <Badge colorScheme={preview.colorScheme} variant="solid" fontSize="xs">
+                              {preview.type}
+                            </Badge>
+                          </HStack>
+                          <Text fontSize="sm" color={subtitleColor}>
+                            {preview.exerciseCount} exercise{preview.exerciseCount !== 1 ? 's' : ''} • {preview.duration} • {preview.intensity} intensity
+                          </Text>
+                        </VStack>
+                      </HStack>
+                      <VStack spacing={1} align="end" minW="100px">
+                        <HStack spacing={1}>
+                          <Icon as={FaClock} color={subtitleColor} fontSize="xs" />
+                          <Text fontSize="xs" color={subtitleColor}>
+                            {preview.time}
+                          </Text>
+                        </HStack>
+                        {preview.location !== 'Not specified' && (
+                          <Text fontSize="xs" color={subtitleColor}>
+                            📍 {preview.location}
+                          </Text>
+                        )}
+                      </VStack>
+                    </HStack>
+                  </Box>
+                );
+              })}
+            </VStack>
+            
+            <Text fontSize="xs" color={subtitleColor} textAlign="center" mt={2}>
+              💡 Prepare your gear and plan ahead for tomorrow's training
+            </Text>
           </Box>
         )}
 

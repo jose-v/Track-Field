@@ -26,6 +26,8 @@ import {
 } from '@chakra-ui/react';
 import { useForm } from 'react-hook-form';
 import { FaHotel, FaChevronDown, FaChevronUp, FaUserTie, FaCalendarAlt, FaInfoCircle, FaDollarSign, FaFolder } from 'react-icons/fa';
+import { useTimeFormat } from '../../contexts/TimeFormatContext';
+import { TimePickerInput } from '../TimePickerInput';
 import { FileUploadSection } from './FileUploadSection';
 import { MeetFile } from '../../types/meetFiles';
 import { MeetFilesService } from '../../services/meetFilesService';
@@ -219,6 +221,9 @@ export function MeetFormDrawer({
   const inputTextColor = useColorModeValue('gray.900', 'white');
   const placeholderColor = useColorModeValue('gray.500', 'gray.300');
   const labelColor = useColorModeValue('gray.800', 'gray.100');
+
+  // Time format context
+  const { timeFormat, formatTime } = useTimeFormat();
 
   // State for toggling sections
   const [showMeetInfo, setShowMeetInfo] = useState(false);
@@ -1257,21 +1262,11 @@ export function MeetFormDrawer({
                       >
                         Entry Deadline Time
                       </FormLabel>
-                      <Input 
-                        type="time"
-                        {...register('entry_deadline_time')} 
+                      <TimePickerInput
+                        onChange={(value) => setValue('entry_deadline_time', value || '')}
+                        value={watch('entry_deadline_time')}
                         size="lg"
-                        borderWidth="2px"
-                        borderColor={inputBorderColor}
-                        _hover={{ borderColor: inputHoverBorderColor }}
-                        _focus={{ 
-                          borderColor: inputFocusBorderColor, 
-                          boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
-                          bg: inputBg
-                        }}
-                        bg={inputBg}
-                        color={inputTextColor}
-                        shadow="sm"
+                        isInvalid={!!errors.entry_deadline_time}
                       />
                       <FormErrorMessage color="red.500" fontWeight="medium">
                         {errors.entry_deadline_time?.message}
@@ -1969,22 +1964,12 @@ export function MeetFormDrawer({
                       >
                         Check-in Time
                       </FormLabel>
-                      <Input 
-                        type="time"
-                        {...register('lodging_checkin_time')} 
-                        size="lg"
-                        borderWidth="2px"
-                        borderColor={inputBorderColor}
-                        _hover={{ borderColor: inputHoverBorderColor }}
-                        _focus={{ 
-                          borderColor: inputFocusBorderColor, 
-                          boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
-                          bg: inputBg
-                        }}
-                        bg={inputBg}
-                        color={inputTextColor}
-                        shadow="sm"
-                      />
+                                              <TimePickerInput
+                          onChange={(value) => setValue('lodging_checkin_time', value || '')}
+                          value={watch('lodging_checkin_time')}
+                          size="lg"
+                          isInvalid={!!errors.lodging_checkin_time}
+                        />
                       <FormErrorMessage color="red.500" fontWeight="medium">
                         {errors.lodging_checkin_time?.message}
                       </FormErrorMessage>
@@ -1998,22 +1983,12 @@ export function MeetFormDrawer({
                       >
                         Check-out Time
                       </FormLabel>
-                      <Input 
-                        type="time"
-                        {...register('lodging_checkout_time')} 
-                        size="lg"
-                        borderWidth="2px"
-                        borderColor={inputBorderColor}
-                        _hover={{ borderColor: inputHoverBorderColor }}
-                        _focus={{ 
-                          borderColor: inputFocusBorderColor, 
-                          boxShadow: `0 0 0 1px ${inputFocusBorderColor}`,
-                          bg: inputBg
-                        }}
-                        bg={inputBg}
-                        color={inputTextColor}
-                        shadow="sm"
-                      />
+                                              <TimePickerInput
+                          onChange={(value) => setValue('lodging_checkout_time', value || '')}
+                          value={watch('lodging_checkout_time')}
+                          size="lg"
+                          isInvalid={!!errors.lodging_checkout_time}
+                        />
                       <FormErrorMessage color="red.500" fontWeight="medium">
                         {errors.lodging_checkout_time?.message}
                       </FormErrorMessage>
