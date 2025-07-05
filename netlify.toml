@@ -16,12 +16,27 @@
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    
-    # Cache headers for better performance
+
+# Cache versioned assets (JS/CSS with hash) for 1 year
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Specific headers for HTML files
+# Cache images and media for shorter time
 [[headers]]
-  for = "*.html"
+  for = "/images/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+# No cache for HTML files to ensure updates are seen immediately
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# No cache for index.html and root paths
+[[headers]]
+  for = "/"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate" 
