@@ -38,6 +38,8 @@ import { supabase } from '../lib/supabase'
 import TodayWorkoutsCard from '../components/TodayWorkoutsCard'
 import usePageClass from '../hooks/usePageClass'
 import { api } from '../services/api'
+import { startTodaysWorkoutExecution } from '../utils/monthlyPlanWorkoutHelper'
+import { markExerciseCompletedWithSync } from '../utils/monthlyPlanWorkoutHelper'
 
 // Function to format date in "Month Day, Year" format
 function formatDate(dateStr: string): string {
@@ -210,12 +212,18 @@ export function Dashboard() {
     setExecModal(prev => ({ ...prev, running: newRunning }));
   }, []);
 
-  const handleNextExercise = useCallback(() => {
+  const handleNextExercise = useCallback(async () => {
     const workoutId = execModal.workout.id;
     const exIdx = execModal.exerciseIdx;
     
-    // Mark current exercise as completed
-    workoutStore.markExerciseCompleted(workoutId, exIdx);
+    // Check if this is a monthly plan workout (daily- prefix)
+    if (workoutId.startsWith('daily-') && user?.id) {
+      // Use the sync function for monthly plans
+      await markExerciseCompletedWithSync(user.id, workoutId, exIdx, workoutStore);
+    } else {
+      // Mark current exercise as completed for regular workouts
+      workoutStore.markExerciseCompleted(workoutId, exIdx);
+    }
     
     // Update progress in store - DON'T mark as completed (false)
     workoutStore.updateProgress(workoutId, exIdx + 1, execModal.workout.exercises.length, false);
@@ -227,7 +235,7 @@ export function Dashboard() {
       timer: 0,
       running: true,
     }));
-  }, [execModal.workout, execModal.exerciseIdx]);
+  }, [execModal.workout, execModal.exerciseIdx, user?.id]);
 
   const handlePreviousExercise = useCallback(() => {
     const exIdx = execModal.exerciseIdx;
@@ -251,8 +259,14 @@ export function Dashboard() {
     const totalExercises = execModal.workout.exercises.length;
     const finalExerciseIdx = execModal.exerciseIdx;
     
-    // Mark the final exercise as completed if it hasn't been marked yet
-    workoutStore.markExerciseCompleted(workoutId, finalExerciseIdx);
+    // Check if this is a monthly plan workout (daily- prefix)  
+    if (workoutId.startsWith('daily-') && user?.id) {
+      // Use the sync function for monthly plans
+      await markExerciseCompletedWithSync(user.id, workoutId, finalExerciseIdx, workoutStore);
+    } else {
+      // Mark the final exercise as completed if it hasn't been marked yet
+      workoutStore.markExerciseCompleted(workoutId, finalExerciseIdx);
+    }
     
     // Check current progress to ensure all exercises are actually completed
     const currentProgress = workoutStore.getProgress(workoutId);
@@ -263,34 +277,22 @@ export function Dashboard() {
       // Mark workout as completed in store
       workoutStore.updateProgress(workoutId, totalExercises, totalExercises, true);
       
-      // Update database assignment status
-      if (user?.id) {
+      // Update database assignment status (only for regular workouts, not monthly plans)
+      if (user?.id && !workoutId.startsWith('daily-')) {
         try {
-          // Extract actual workout ID if this is a daily workout ID
-          let actualWorkoutId = workoutId;
-          if (workoutId.startsWith('daily-')) {
-            actualWorkoutId = workoutId.replace('daily-', '');
-          }
-          
-          await api.athleteWorkouts.updateAssignmentStatus(user.id, actualWorkoutId, 'completed');
-          console.log(`Workout ${workoutId} (actual: ${actualWorkoutId}) marked as completed in database`);
+          await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutId, 'completed');
+          console.log(`Workout ${workoutId} marked as completed in database`);
         } catch (error) {
           console.error('Error updating workout completion status:', error);
         }
       }
     } else {
       console.warn(`Workout ${workoutId} not fully completed: ${completedCount}/${totalExercises} exercises done`);
-      // Mark as in_progress instead
-      if (user?.id) {
+      // Mark as in_progress instead (only for regular workouts, not monthly plans)
+      if (user?.id && !workoutId.startsWith('daily-')) {
         try {
-          // Extract actual workout ID if this is a daily workout ID
-          let actualWorkoutId = workoutId;
-          if (workoutId.startsWith('daily-')) {
-            actualWorkoutId = workoutId.replace('daily-', '');
-          }
-          
-          await api.athleteWorkouts.updateAssignmentStatus(user.id, actualWorkoutId, 'in_progress');
-          console.log(`Workout ${workoutId} (actual: ${actualWorkoutId}) marked as in_progress in database`);
+          await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutId, 'in_progress');
+          console.log(`Workout ${workoutId} marked as in_progress in database`);
         } catch (error) {
           console.error('Error updating workout progress status:', error);
         }

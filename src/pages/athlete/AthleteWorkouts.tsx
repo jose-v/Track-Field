@@ -27,6 +27,7 @@ import { ExerciseLibrary, Exercise as LibraryExercise } from '../../components/E
 import { getExercisesWithTeamSharing, createExerciseWithSharing, updateExerciseWithSharing } from '../../utils/exerciseQueries';
 import { DeletedWorkoutsView } from '../../components/deleted';
 import { startTodaysWorkoutExecution } from '../../utils/monthlyPlanWorkoutHelper';
+import { markExerciseCompletedWithSync } from '../../utils/monthlyPlanWorkoutHelper';
 
 // Using Exercise type from api.ts (imported above)
 
@@ -675,14 +676,20 @@ export function AthleteWorkouts() {
     setExecModal(prev => ({ ...prev, running: newRunning }));
   }, []);
 
-  const handleNextExercise = useCallback(() => {
+  const handleNextExercise = useCallback(async () => {
     const workoutId = execModal.workout!.id;
     const exIdx = execModal.exerciseIdx;
     
     const totalExercises = getActualExerciseCount(execModal.workout!);
     
-    // Mark current exercise as completed
-    workoutStore.markExerciseCompleted(workoutId, exIdx);
+    // Check if this is a monthly plan workout (daily- prefix)
+    if (workoutId.startsWith('daily-') && user?.id) {
+      // Use the sync function for monthly plans
+      await markExerciseCompletedWithSync(user.id, workoutId, exIdx, workoutStore);
+    } else {
+      // Mark current exercise as completed for regular workouts
+      workoutStore.markExerciseCompleted(workoutId, exIdx);
+    }
     
     // Update progress in store - set the next exercise index as current
     workoutStore.updateProgress(workoutId, exIdx + 1, totalExercises, false);
@@ -694,7 +701,7 @@ export function AthleteWorkouts() {
       timer: 0,
       running: true,
     }));
-  }, [execModal.workout, execModal.exerciseIdx]);
+  }, [execModal.workout, execModal.exerciseIdx, user?.id]);
 
   const handlePreviousExercise = useCallback(() => {
     const workoutId = execModal.workout!.id;
@@ -719,8 +726,14 @@ export function AthleteWorkouts() {
     const totalExercises = getActualExerciseCount(execModal.workout);
     const finalExerciseIdx = execModal.exerciseIdx;
     
-    // Mark the final exercise as completed if it hasn't been marked yet
-    workoutStore.markExerciseCompleted(workoutId, finalExerciseIdx);
+    // Check if this is a monthly plan workout (daily- prefix)
+    if (workoutId.startsWith('daily-') && user?.id) {
+      // Use the sync function for monthly plans
+      await markExerciseCompletedWithSync(user.id, workoutId, finalExerciseIdx, workoutStore);
+    } else {
+      // Mark the final exercise as completed if it hasn't been marked yet
+      workoutStore.markExerciseCompleted(workoutId, finalExerciseIdx);
+    }
     
     // Check current progress to ensure all exercises are actually completed
     const currentProgress = workoutStore.getProgress(workoutId);
@@ -734,19 +747,13 @@ export function AthleteWorkouts() {
       // Mark workout as completed in store
       workoutStore.updateProgress(workoutId, totalExercises, totalExercises, true);
       
-      // Update database assignment status
-      if (user?.id) {
+      // Update database assignment status (only for regular workouts, not monthly plans)
+      if (user?.id && !workoutId.startsWith('daily-')) {
         try {
-          // Extract actual workout ID if this is a daily workout ID
-          let actualWorkoutId = workoutId;
-          if (workoutId.startsWith('daily-')) {
-            actualWorkoutId = workoutId.replace('daily-', '');
-          }
-          
-          await api.athleteWorkouts.updateAssignmentStatus(user.id, actualWorkoutId, 'completed');
+          await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutId, 'completed');
           if (process.env.NODE_ENV === 'development') {
-      console.log(`Workout ${workoutId} (actual: ${actualWorkoutId}) marked as completed in database`);
-    }
+            console.log(`Workout ${workoutId} marked as completed in database`);
+          }
         } catch (error) {
           console.error('Error updating workout completion status:', error);
         }
@@ -767,19 +774,13 @@ export function AthleteWorkouts() {
       }
     } else {
       console.warn(`Workout ${workoutId} not fully completed: ${completedCount}/${totalExercises} exercises done`);
-      // Mark as in_progress instead
-      if (user?.id) {
+      // Mark as in_progress instead (only for regular workouts, not monthly plans)
+      if (user?.id && !workoutId.startsWith('daily-')) {
         try {
-          // Extract actual workout ID if this is a daily workout ID
-          let actualWorkoutId = workoutId;
-          if (workoutId.startsWith('daily-')) {
-            actualWorkoutId = workoutId.replace('daily-', '');
-          }
-          
-          await api.athleteWorkouts.updateAssignmentStatus(user.id, actualWorkoutId, 'in_progress');
+          await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutId, 'in_progress');
           if (process.env.NODE_ENV === 'development') {
-      console.log(`Workout ${workoutId} (actual: ${actualWorkoutId}) marked as in_progress in database`);
-    }
+            console.log(`Workout ${workoutId} marked as in_progress in database`);
+          }
         } catch (error) {
           console.error('Error updating workout progress status:', error);
         }
