@@ -115,6 +115,18 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
 }) => {
   // ALL HOOKS MUST BE CALLED FIRST - before any conditional returns
   const { user } = useAuth();
+
+  // Prevent body scrolling when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
   
   // Simple state only
   const [runTime, setRunTime] = useState({ minutes: 0, seconds: 0, hundredths: 0 });
@@ -651,16 +663,24 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
       isCentered={isCentered}
       size={modalSize}
       motionPreset={motionPreset}
+      scrollBehavior="inside"
+      closeOnOverlayClick={false}
     >
-      <ModalOverlay />
+      <ModalOverlay bg="blackAlpha.600" />
       <ModalContent 
         bg={cardBg}
         h={{ base: "100vh", md: "auto" }}
         maxH={{ base: "100vh", md: "90vh" }}
+        w={{ base: "100vw", md: "auto" }}
+        maxW={{ base: "100vw", md: "auto" }}
         borderRadius={{ base: 0, md: "md" }}
         m={{ base: 0, md: 4 }}
         overflow="hidden"
-        position="relative"
+        position={{ base: "fixed", md: "relative" }}
+        top={{ base: 0, md: "auto" }}
+        left={{ base: 0, md: "auto" }}
+        right={{ base: 0, md: "auto" }}
+        bottom={{ base: 0, md: "auto" }}
         display="flex"
         flexDirection="column"
       >
