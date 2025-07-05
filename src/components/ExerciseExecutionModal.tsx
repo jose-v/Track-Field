@@ -18,7 +18,8 @@ import {
   useBreakpointValue,
   Circle,
   SimpleGrid,
-  Badge
+  Badge,
+  Image
 } from '@chakra-ui/react';
 import { FaRegClock, FaRunning, FaDumbbell, FaCheckCircle, FaPlay, FaPause, FaRedo, FaChevronLeft, FaChevronRight, FaVideo } from 'react-icons/fa';
 import { ChevronLeftIcon } from '@chakra-ui/icons';
@@ -661,58 +662,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
         overflow="hidden"
         position="relative"
       >
-        {/* Floating Navigation Arrows - Mobile Only */}
-        {!showRPEScreen && (
-          <>
-            {/* Previous Arrow */}
-            <IconButton
-              aria-label="Previous"
-              icon={
-                <svg width="72" height="72" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="0.50" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              }
-              onClick={handlePrevious}
-              isDisabled={countdown > 0 || exerciseIdx === 0}
-              position="absolute"
-              left="5px"
-              top="50%"
-              transform="translateY(-50%)"
-              zIndex={10}
-              w={24}
-              h={24}
-              variant="ghost"
-              display={{ base: "flex", md: "none" }}
-              opacity={countdown > 0 || exerciseIdx === 0 ? 0.3 : 0.8}
-              _hover={{ opacity: 1 }}
-              _active={{ opacity: 0.7 }}
-            />
-            
-            {/* Next Arrow */}
-            <IconButton
-              aria-label="Next"
-              icon={
-                <svg width="72" height="72" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M9 18L15 12L9 6" stroke="white" strokeWidth="0.50" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              }
-              onClick={handleDone}
-              isDisabled={countdown > 0}
-              position="absolute"
-              right="5px"
-              top="50%"
-              transform="translateY(-50%)"
-              zIndex={10}
-              w={24}
-              h={24}
-              variant="ghost"
-              display={{ base: "flex", md: "none" }}
-              opacity={countdown > 0 ? 0.3 : 0.8}
-              _hover={{ opacity: 1 }}
-              _active={{ opacity: 0.7 }}
-            />
-          </>
-        )}
+
         
         {/* Overall Progress Bar - Flush to top */}
         {!showRPEScreen && (
@@ -874,7 +824,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
         </Box>
         )}
 
-        <ModalBody px={{ base: 4, md: 6 }} py={{ base: 2, md: 3 }} overflowY="auto" flex="1">
+        <ModalBody px={{ base: 4, md: 6 }} py={{ base: 2, md: 3 }} overflowY="auto" flex="1" display="flex" flexDirection="column" h="100%">
           {showRPEScreen ? (
             <VStack spacing={6}>
               <Text textAlign="center" color={modalTextColor}>
@@ -900,9 +850,9 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                 )}
             </VStack>
           ) : (
-                                    <VStack spacing={{ base: 4, md: 6 }}>
+                                    <VStack spacing={{ base: 4, md: 6 }} flex="1" h="100%">
               {/* Always show the same layout */}
-                <VStack spacing={{ base: 4, md: 6 }} w="full">
+                <VStack spacing={{ base: 4, md: 6 }} w="full" h="100%" flex="1">
                   {/* Detailed Progress Section */}
                 <Box 
                     w="full" 
@@ -1036,7 +986,59 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                     borderRadius="xl" 
                     p={{ base: 6, md: 8 }}
                     textAlign="center"
+                    position="relative"
                   >
+                    {/* Navigation Arrows - Mobile Only - Inside Timer Section */}
+                    <>
+                      {/* Previous Arrow */}
+                      <IconButton
+                        aria-label="Previous"
+                        icon={
+                          <svg width="72" height="72" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="0.50" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        }
+                        onClick={handlePrevious}
+                        isDisabled={countdown > 0 || exerciseIdx === 0}
+                        position="absolute"
+                        left="5px"
+                        top="50%"
+                        transform="translateY(-50%)"
+                        zIndex={10}
+                        w={24}
+                        h={24}
+                        variant="ghost"
+                        display={{ base: "flex", md: "none" }}
+                        opacity={countdown > 0 || exerciseIdx === 0 ? 0.3 : 0.8}
+                        _hover={{ opacity: 1 }}
+                        _active={{ opacity: 0.7 }}
+                      />
+                      
+                      {/* Next Arrow */}
+                      <IconButton
+                        aria-label="Next"
+                        icon={
+                          <svg width="72" height="72" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 18L15 12L9 6" stroke="white" strokeWidth="0.50" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        }
+                        onClick={handleDone}
+                        isDisabled={countdown > 0}
+                        position="absolute"
+                        right="5px"
+                        top="50%"
+                        transform="translateY(-50%)"
+                        zIndex={10}
+                        w={24}
+                        h={24}
+                        variant="ghost"
+                        display={{ base: "flex", md: "none" }}
+                        opacity={countdown > 0 ? 0.3 : 0.8}
+                        _hover={{ opacity: 1 }}
+                        _active={{ opacity: 0.7 }}
+                      />
+                    </>
+
                     <Text fontSize="xs" color={modalTextColor} fontWeight="bold" textTransform="uppercase" mb={2}>
                       {countdown > 0 
                         ? (exerciseIdx === 0 && currentSet === 1 && currentRep === 1 
@@ -1108,13 +1110,71 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
 
                   {/* Exercise Media Display */}
                   {!isRunExercise(exerciseName) && (
-                    <Box w="full">
-                      <ExerciseMediaDisplay
-                        exerciseName={exerciseName}
-                        onVideoClick={handleVideoClick}
-                        size="md"
-                        showControls={true}
-                      />
+                    <Box 
+                      w="full" 
+                      flex={{ base: "1", md: "auto" }}
+                      minH={{ base: "300px", md: "auto" }}
+                      display="flex"
+                      flexDirection="column"
+                      position="relative"
+                    >
+                      {/* Mobile: Custom layout with direct image */}
+                      <Box 
+                        display={{ base: "flex", md: "none" }} 
+                        flex="1" 
+                        h="100%" 
+                        w="100%"
+                        position="relative"
+                      >
+                        <Image
+                          src={(() => {
+                            // Simple exercise image mapping
+                            const exerciseKey = exerciseName.toLowerCase().replace(/\s+/g, '-');
+                            return `/exercise-media/images/warmup/${exerciseKey}.png`;
+                          })()}
+                          alt={`${exerciseName} demonstration`}
+                          width="100%"
+                          height="100%"
+                          objectFit="contain"
+                          fallback={
+                            <Box
+                              w="100%"
+                              h="100%"
+                              display="flex"
+                              alignItems="center"
+                              justifyContent="center"
+                              flexDirection="column"
+                            >
+                              <Icon
+                                as={FaRunning}
+                                boxSize="120px"
+                                color="white"
+                                opacity={0.3}
+                                mb={4}
+                              />
+                              <Text
+                                color="white"
+                                fontSize="md"
+                                fontWeight="medium"
+                                textAlign="center"
+                                opacity={0.7}
+                              >
+                                {exerciseName}
+                              </Text>
+                            </Box>
+                          }
+                        />
+                      </Box>
+                      
+                      {/* Desktop: Normal AspectRatio layout */}
+                      <Box display={{ base: "none", md: "block" }}>
+                        <ExerciseMediaDisplay
+                          exerciseName={exerciseName}
+                          onVideoClick={handleVideoClick}
+                          size="lg"
+                          showControls={true}
+                        />
+                      </Box>
                     </Box>
                   )}
 
