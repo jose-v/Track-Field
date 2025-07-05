@@ -1152,68 +1152,18 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                     <Box 
                       w="full" 
                       flex={{ base: "1", md: "auto" }}
-                      minH={{ base: "300px", md: "auto" }}
+                      minH={{ base: "250px", md: "auto" }}
                       display="flex"
                       flexDirection="column"
                       position="relative"
                     >
-                      {/* Mobile: Custom layout with direct image */}
-                      <Box 
-                        display={{ base: "flex", md: "none" }} 
-                        flex="1" 
-                        h="100%" 
-                        w="100%"
-                        position="relative"
-                      >
-                        <Image
-                          src={(() => {
-                            // Simple exercise image mapping
-                            const exerciseKey = exerciseName.toLowerCase().replace(/\s+/g, '-');
-                            return `/exercise-media/images/warmup/${exerciseKey}.png`;
-                          })()}
-                          alt={`${exerciseName} demonstration`}
-                          width="100%"
-                          height="100%"
-                          objectFit="contain"
-                          fallback={
-                            <Box
-                              w="100%"
-                              h="100%"
-                              display="flex"
-                              alignItems="center"
-                              justifyContent="center"
-                              flexDirection="column"
-                            >
-                              <Icon
-                                as={FaRunning}
-                                boxSize="120px"
-                                color="white"
-                                opacity={0.3}
-                                mb={4}
-                              />
-                              <Text
-                                color="white"
-                                fontSize="md"
-                                fontWeight="medium"
-                                textAlign="center"
-                                opacity={0.7}
-                              >
-                                {exerciseName}
-                              </Text>
-                            </Box>
-                          }
-                        />
-                      </Box>
-                      
-                      {/* Desktop: Normal AspectRatio layout */}
-                      <Box display={{ base: "none", md: "block" }}>
-                        <ExerciseMediaDisplay
-                          exerciseName={exerciseName}
-                          onVideoClick={handleVideoClick}
-                          size="lg"
-                          showControls={true}
-                        />
-                      </Box>
+                      {/* Use ExerciseMediaDisplay for both mobile and desktop with proper image loading */}
+                      <ExerciseMediaDisplay
+                        exerciseName={exerciseName}
+                        onVideoClick={handleVideoClick}
+                        size="lg"
+                        showControls={true}
+                      />
                     </Box>
                   )}
 

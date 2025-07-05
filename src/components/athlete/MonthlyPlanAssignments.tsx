@@ -62,6 +62,8 @@ import { api } from '../../services/api';
 import type { TrainingPlanAssignment } from '../../services/dbSchema';
 import { WorkoutCard } from '../WorkoutCard';
 import { ExerciseExecutionModal } from '../ExerciseExecutionModal';
+import { startTodaysWorkoutExecution } from '../../utils/monthlyPlanWorkoutHelper';
+import { useWorkoutStore } from '../../lib/workoutStore';
 
 interface AssignmentWithPlan extends TrainingPlanAssignment {
   training_plans?: {
@@ -82,6 +84,7 @@ interface MonthlyPlanAssignmentsProps {
 export function MonthlyPlanAssignments({ onViewPlan }: MonthlyPlanAssignmentsProps) {
   const { user } = useAuth();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const workoutStore = useWorkoutStore();
   
   // Theme colors
   const cardBg = useColorModeValue('white', 'gray.800');
@@ -832,15 +835,21 @@ export function MonthlyPlanAssignments({ onViewPlan }: MonthlyPlanAssignmentsPro
             updatePlanStatus(assignment.id || '', 'in_progress');
           }
           
-          // Get today's workout from this specific plan
-          const todaysWorkout = await getTodaysWorkoutFromPlan(assignment);
+          // Use the shared helper function to start today's workout
+          const workoutStarted = await startTodaysWorkoutExecution(
+            user?.id || '', 
+            workoutStore,
+            (modal: any) => {
+              setSelectedWorkout(modal.workout);
+              setExerciseIdx(modal.exerciseIdx);
+              setTimer(modal.timer);
+              setRunning(modal.running);
+              setShowExecutionModal(modal.isOpen);
+            }
+          );
           
-          if (todaysWorkout) {
-            // Open execution modal with today's exercises (similar to TodayWorkoutsCard)
-            setSelectedWorkout(todaysWorkout);
-            setShowExecutionModal(true);
-          } else {
-            // If no specific workout for today, show the plan details
+          if (!workoutStarted) {
+            // If no workout available for today, show the plan details
             handleViewPlan(assignment);
           }
         }}

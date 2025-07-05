@@ -45,11 +45,11 @@ export const ExerciseMediaDisplay: React.FC<ExerciseMediaDisplayProps> = ({
   const bgColor = useColorModeValue('gray.50', 'gray.700');
   const overlayBg = useColorModeValue('blackAlpha.600', 'blackAlpha.700');
 
-  // Size configurations
+  // Size configurations with responsive height
   const sizeConfig = {
-    sm: { height: '120px', iconSize: 'sm' as const },
-    md: { height: '200px', iconSize: 'md' as const },
-    lg: { height: '300px', iconSize: 'lg' as const }
+    sm: { height: { base: '100px', md: '120px' }, iconSize: 'sm' as const },
+    md: { height: { base: '150px', md: '200px' }, iconSize: 'md' as const },
+    lg: { height: { base: '200px', md: '300px' }, iconSize: 'lg' as const }
   };
 
   useEffect(() => {

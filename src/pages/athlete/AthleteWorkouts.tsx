@@ -26,6 +26,7 @@ import { isRunExercise, validateTime } from '../../utils/exerciseUtils';
 import { ExerciseLibrary, Exercise as LibraryExercise } from '../../components/ExerciseLibrary';
 import { getExercisesWithTeamSharing, createExerciseWithSharing, updateExerciseWithSharing } from '../../utils/exerciseQueries';
 import { DeletedWorkoutsView } from '../../components/deleted';
+import { startTodaysWorkoutExecution } from '../../utils/monthlyPlanWorkoutHelper';
 
 // Using Exercise type from api.ts (imported above)
 
@@ -1004,20 +1005,15 @@ export function AthleteWorkouts() {
                     }
                   }
                   
-                  // Get today's workout from this specific plan
-                  const todaysWorkout = await getTodaysWorkoutFromPlan(item);
+                  // Use the shared helper function to start today's workout
+                  const workoutStarted = await startTodaysWorkoutExecution(
+                    user.id, 
+                    workoutStore, 
+                    setExecModal
+                  );
                   
-                  if (todaysWorkout) {
-                    // Open execution modal with today's exercises
-                    setExecModal({
-                      isOpen: true,
-                      workout: todaysWorkout,
-                      exerciseIdx: 0,
-                      timer: 0,
-                      running: false
-                    });
-                  } else {
-                    // If no specific workout for today, navigate to monthly plans page
+                  if (!workoutStarted) {
+                    // If no workout available for today, navigate to monthly plans page
                     setActiveItem('monthly-plans');
                   }
                 }}
@@ -1425,78 +1421,7 @@ export function AthleteWorkouts() {
     }
   };
 
-  // Helper function to get today's workout from a specific monthly plan assignment
-  const getTodaysWorkoutFromPlan = async (assignment: any) => {
-    if (!assignment.training_plans) return null;
-    
-    const plan = assignment.training_plans;
-    const today = new Date().toISOString().split('T')[0];
-    
-    // Calculate which week we're in (similar to getTodaysWorkout API logic)
-    const startDate = new Date(assignment.assigned_at || new Date());
-    const todayDate = new Date(today);
-    const daysDiff = Math.floor((todayDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    const weekNumber = Math.floor(daysDiff / 7);
-    
-    // Get the current week from the plan
-    const weeks = plan.weeks || [];
-    if (weeks.length === 0) return null;
-    
-    // Use modulo to cycle through weeks if needed
-    const currentWeek = weeks[weekNumber % weeks.length];
-    if (!currentWeek || currentWeek.is_rest_week) return null;
-    
-    // Fetch the weekly workout
-    try {
-      const allWorkouts = await api.workouts.getAll();
-      const weeklyWorkout = allWorkouts.find(w => w.id === currentWeek.workout_id);
-      
-      if (!weeklyWorkout || !weeklyWorkout.exercises) return null;
-      
-      // Extract today's exercises from the weekly workout
-      let todaysExercises: any[] = [];
-      
-      // Check if it's a weekly structure with days
-      if (weeklyWorkout.exercises.length > 0 && 
-          typeof weeklyWorkout.exercises[0] === 'object' && 
-          'day' in weeklyWorkout.exercises[0] && 
-          'exercises' in weeklyWorkout.exercises[0]) {
-        
-        // Find today's day
-        const dayOfWeek = daysDiff % 7;
-        const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        const currentDayOfWeek = new Date().getDay();
-        const targetDayName = dayNames[currentDayOfWeek];
-        
-        // Find the exercises for today
-        const todaysPlan = (weeklyWorkout.exercises as any[]).find((dayObj: any) => 
-          dayObj.day?.toLowerCase() === targetDayName
-        );
-        
-        if (todaysPlan && !todaysPlan.isRestDay) {
-          todaysExercises = todaysPlan.exercises || [];
-        }
-      } else {
-        // If it's not a weekly structure, use all exercises
-        todaysExercises = weeklyWorkout.exercises;
-      }
-      
-      if (todaysExercises.length === 0) return null;
-      
-      // Create a workout object similar to TodayWorkoutsCard
-      return {
-        id: `daily-${weeklyWorkout.id}`,
-        name: `${plan.name} - Today's Training`,
-        exercises: todaysExercises,
-        description: `Today's training from ${plan.name}`,
-        type: 'Daily Training',
-        duration: weeklyWorkout.duration || '45 mins'
-      };
-    } catch (error) {
-      console.error('Error fetching today\'s workout from plan:', error);
-      return null;
-    }
-  };
+
 
   // Function to render content based on active sidebar item
   const renderContent = () => {
