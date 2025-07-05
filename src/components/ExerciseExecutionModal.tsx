@@ -848,28 +848,45 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
 
         <ModalBody px={{ base: 2, md: 6 }} py={{ base: 1, md: 3 }} flex="1" display="flex" flexDirection="column" overflow="hidden">
           {showRPEScreen ? (
-            <VStack spacing={6}>
-              <Text textAlign="center" color={modalTextColor}>
+            <VStack spacing={{ base: 4, md: 6 }} flex="1" justify="center" minH="0">
+              <Text textAlign="center" color={modalTextColor} fontSize={{ base: "sm", md: "md" }}>
                 How hard was your workout? (1 = Very Easy, 10 = Maximum Effort)
-                </Text>
-              <SimpleGrid columns={5} spacing={3} w="full">
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rating) => (
+              </Text>
+              <SimpleGrid columns={5} spacing={{ base: 2, md: 3 }} w="full" maxW="400px">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rating) => (
                   <Button
-                      key={rating}
-                    size="lg"
+                    key={rating}
+                    size={{ base: "md", md: "lg" }}
                     variant={selectedRPE === rating ? 'solid' : 'outline'}
                     colorScheme={selectedRPE === rating ? 'blue' : 'gray'}
-                      onClick={() => setSelectedRPE(rating)}
-                    >
-                      {rating}
+                    onClick={() => setSelectedRPE(rating)}
+                  >
+                    {rating}
                   </Button>
-                  ))}
-                </SimpleGrid>
-                {selectedRPE && (
-                <Badge colorScheme="blue" fontSize="md" p={2}>
-                      {getRPELabel(selectedRPE)}
-                    </Badge>
-                )}
+                ))}
+              </SimpleGrid>
+              {selectedRPE && (
+                <Badge colorScheme="blue" fontSize={{ base: "sm", md: "md" }} p={2}>
+                  {getRPELabel(selectedRPE)}
+                </Badge>
+              )}
+              
+              {/* Action Buttons - Moved into ModalBody for RPE screen to ensure visibility on mobile */}
+              <HStack spacing={3} w="full" pt={{ base: 4, md: 6 }}>
+                <Button variant="outline" onClick={handleSkipRPE} flex={1} size={{ base: "md", md: "lg" }}>
+                  Skip
+                </Button>
+                <Button 
+                  colorScheme="blue" 
+                  onClick={handleRPESubmit} 
+                  isDisabled={!selectedRPE}
+                  isLoading={isLoggingRPE}
+                  flex={1}
+                  size={{ base: "md", md: "lg" }}
+                >
+                  Submit
+                </Button>
+              </HStack>
             </VStack>
           ) : (
                                     <VStack spacing={{ base: 2, md: 6 }} flex="1" h="100%" overflow="hidden">
@@ -1279,22 +1296,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
         </ModalBody>
 
         <ModalFooter>
-          {showRPEScreen && (
-            <HStack spacing={3} w="full">
-              <Button variant="outline" onClick={handleSkipRPE} flex={1}>
-                Skip
-              </Button>
-              <Button 
-                colorScheme="blue" 
-                onClick={handleRPESubmit} 
-                isDisabled={!selectedRPE}
-                isLoading={isLoggingRPE}
-                flex={1}
-              >
-                Submit
-              </Button>
-            </HStack>
-          )}
+          {/* RPE buttons are now in ModalBody for better mobile visibility */}
         </ModalFooter>
       </ModalContent>
     </Modal>
