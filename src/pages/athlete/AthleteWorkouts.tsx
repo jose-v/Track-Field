@@ -1,5 +1,5 @@
 import {
-  Box, Heading, Text, Spinner, Alert, AlertIcon, Stack, Card, CardBody, Button, Flex, HStack, Progress, Tag, VStack, Divider, Center, Icon, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, IconButton, SimpleGrid, Container, Tooltip, useDisclosure, Tabs, TabList, TabPanels, Tab, TabPanel, useToast, useColorModeValue, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, Select
+  Box, Heading, Text, Spinner, Alert, AlertIcon, Stack, Card, CardBody, Button, Flex, HStack, Progress, Tag, VStack, Divider, Center, Icon, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, IconButton, SimpleGrid, Container, Tooltip, useDisclosure, Tabs, TabList, TabPanels, Tab, TabPanel, useToast, useColorModeValue, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, Select, Badge
 } from '@chakra-ui/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
@@ -193,6 +193,10 @@ export function AthleteWorkouts() {
   // State for user teams
   const [userTeams, setUserTeams] = useState<Array<{ id: string; name: string }>>([]);
 
+  // State for monthly plans
+  const [monthlyPlans, setMonthlyPlans] = useState<any[]>([]);
+  const [monthlyPlansLoading, setMonthlyPlansLoading] = useState(false);
+
   // Add ref for ExerciseLibrary
   const exerciseLibraryRef = React.useRef<{ openAddModal: () => void } | null>(null);
 
@@ -382,8 +386,10 @@ export function AthleteWorkouts() {
         workouts = workouts.filter(w => w.template_type === 'single' || !w.template_type);
       } else if (workoutFilter === 'weekly') {
         workouts = workouts.filter(w => w.template_type === 'weekly');
+      } else if (workoutFilter === 'monthly') {
+        // For monthly filter, show monthly plans instead of workouts
+        workouts = [];
       }
-      // Note: Monthly filter would be for monthly plans, not individual workouts
     }
 
     // Filter by creator
@@ -397,6 +403,63 @@ export function AthleteWorkouts() {
 
     return workouts;
   }, [assignedWorkouts, activeItem, workoutStore, workoutFilter, creatorFilter, user?.id]);
+
+  // Combine workouts and monthly plans for filtering
+  const filteredItems = useMemo(() => {
+    // For monthly filter, show monthly plans with creator filtering applied
+    if (workoutFilter === 'monthly') {
+      let filteredMonthlyPlans = monthlyPlans;
+      
+      // Apply creator filter to monthly plans
+      if (creatorFilter !== 'all' && user?.id) {
+        if (creatorFilter === 'mine') {
+          // Athletes don't create monthly plans, so show none for "My Workouts"
+          filteredMonthlyPlans = [];
+        } else if (creatorFilter === 'coaches') {
+          // Monthly plans are always from coaches, so show all
+          filteredMonthlyPlans = monthlyPlans;
+        }
+      }
+      
+      return filteredMonthlyPlans.map(plan => ({
+        ...plan,
+        isMonthlyPlan: true
+      }));
+    }
+    
+    // For all workouts filter and activeItem is all-workouts, include both with creator filtering
+    if (workoutFilter === 'all' && activeItem === 'all-workouts') {
+      const workoutsWithType = filteredWorkouts.map(workout => ({
+        ...workout,
+        isMonthlyPlan: false
+      }));
+      
+      // Apply creator filter to monthly plans
+      let filteredMonthlyPlans = monthlyPlans;
+      if (creatorFilter !== 'all' && user?.id) {
+        if (creatorFilter === 'mine') {
+          // Athletes don't create monthly plans, so show none for "My Workouts"
+          filteredMonthlyPlans = [];
+        } else if (creatorFilter === 'coaches') {
+          // Monthly plans are always from coaches, so show all
+          filteredMonthlyPlans = monthlyPlans;
+        }
+      }
+      
+      const plansWithType = filteredMonthlyPlans.map(plan => ({
+        ...plan,
+        isMonthlyPlan: true
+      }));
+      
+      return [...workoutsWithType, ...plansWithType];
+    }
+    
+    // Otherwise, just return filtered workouts
+    return filteredWorkouts.map(workout => ({
+      ...workout,
+      isMonthlyPlan: false
+    }));
+  }, [filteredWorkouts, monthlyPlans, workoutFilter, activeItem, creatorFilter, user?.id]);
 
   // Sidebar configuration
   const workoutsSections: WorkoutsSection[] = [
@@ -839,8 +902,27 @@ export function AthleteWorkouts() {
     }
   };
 
-  const renderWorkoutCards = (workouts: Workout[]) => {
-    if (!workouts || workouts.length === 0) {
+  const renderWorkoutCards = (items: any[]) => {
+    if (!items || items.length === 0) {
+      // Generate appropriate empty state message based on filters
+      const getEmptyStateMessage = () => {
+        if (workoutFilter === 'monthly') {
+          if (creatorFilter === 'mine') {
+            return 'You cannot create monthly plans. Monthly plans are created by coaches.';
+          } else if (creatorFilter === 'coaches') {
+            return 'No monthly plans assigned by coaches yet.';
+          }
+          return 'No monthly plans assigned yet.';
+        } else {
+          if (creatorFilter === 'mine') {
+            return 'No workouts created by you found.';
+          } else if (creatorFilter === 'coaches') {
+            return 'No workouts assigned by coaches found.';
+          }
+          return 'No workouts found.';
+        }
+      };
+
       return (
         <Box 
           p={{ base: 4, md: 5 }} 
@@ -856,7 +938,7 @@ export function AthleteWorkouts() {
             fontSize={{ base: 'md', md: 'lg' }} 
             color={noWorkoutsColor}
           >
-            No workouts found.
+            {getEmptyStateMessage()}
           </Text>
         </Box>
       );
@@ -868,85 +950,168 @@ export function AthleteWorkouts() {
         spacing={{ base: 4, md: 6 }} 
         alignItems="stretch"
       >
-        {workouts.map((workout) => {
-          // Get completion data from workoutStore
-          const completedCount = getCompletionCount(workout.id);
-          
-          const totalExercises = getActualExerciseCount(workout);
-          
-          // Get the workout progress to find the first uncompleted exercise
-          const workoutProgress = workoutStore.getProgress(workout.id);
-          const completedExercises = workoutProgress?.completedExercises || [];
-          
-          // Find the first exercise that hasn't been completed
-          let nextExerciseIndex = 0;
-          for (let i = 0; i < totalExercises; i++) {
-            if (!completedExercises.includes(i)) {
-              nextExerciseIndex = i;
-              break;
-            }
-          }
-          
-          // If all exercises are completed, start from 0 to restart
-          if (completedCount === totalExercises && totalExercises > 0) {
-            nextExerciseIndex = 0;
-          }
-          
-          // Calculate progress based on workout type (blocks vs exercises)
-          let progressCompleted, progressTotal, progressPercent;
-          
-          if ((workout as any).is_block_based) {
-            // For block-based workouts, calculate block progress
-            const totalBlocks = getTotalBlockCount(workout);
-            const completedBlocks = getCompletedBlockCount(workout, completedExercises);
+        {items.map((item) => {
+          // Check if this is a monthly plan or a workout
+          if (item.isMonthlyPlan) {
+            // Transform monthly plan data to match WorkoutCard expectations
+            const plan = item.training_plans;
+            const trainingWeeks = plan?.weeks.filter((w: any) => !w.is_rest_week).length || 0;
+            const restWeeks = plan?.weeks.filter((w: any) => w.is_rest_week).length || 0;
+            const getMonthName = (month: number): string => {
+              const months = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+              ];
+              return months[month - 1] || 'Unknown';
+            };
             
-            // Debug logging for block-based workouts
-            if (process.env.NODE_ENV === 'development') {
-              console.log(`[Block Progress Debug] Workout: ${workout.name}`, {
-                workoutId: workout.id,
-                totalBlocks,
-                completedBlocks,
-                totalExercises,
-                completedExercises: completedExercises.length,
-                completedExercisesList: completedExercises,
-                blocks: workout.blocks?.map((block: any, idx: number) => ({
-                  blockIndex: idx,
-                  name: block.name,
-                  exerciseCount: block.exercises?.length || 0
-                }))
-              });
-            }
+            // Create a workout-like object for the monthly plan
+            const monthlyPlanAsWorkout = {
+              id: item.id,
+              name: plan?.name || 'Monthly Plan',
+              description: `${getMonthName(plan?.month || 0)} ${plan?.year} - ${plan?.weeks.length || 0} weeks total`,
+              type: 'MONTHLY PLAN',
+              template_type: 'single' as const, // Use single to avoid conflicts with weekly template logic
+              date: item.assigned_at,
+              duration: `${plan?.weeks.length || 0} weeks`,
+              exercises: [], // Monthly plans don't have direct exercises
+              user_id: item.athlete_id,
+              created_at: item.assigned_at || new Date().toISOString(),
+              updated_at: item.assigned_at || new Date().toISOString()
+            };
             
-            progressCompleted = completedBlocks;
-            progressTotal = totalBlocks;
-            progressPercent = totalBlocks > 0 ? (completedBlocks / totalBlocks) * 100 : 0;
+            // Create progress object for monthly plan
+            const monthlyPlanProgress = {
+              completed: item.status === 'completed' ? 1 : item.status === 'in_progress' ? 0.5 : 0,
+              total: 1,
+              percentage: item.status === 'completed' ? 100 : item.status === 'in_progress' ? 50 : 0
+            };
+            
+            return (
+              <WorkoutCard
+                key={item.id}
+                workout={monthlyPlanAsWorkout}
+                isCoach={false}
+                progress={monthlyPlanProgress}
+                onStart={async () => {
+                  // For monthly plans, extract today's exercises and open execution modal
+                  if (item.status === 'assigned') {
+                    // Mark as in progress if needed
+                    try {
+                      await api.monthlyPlanAssignments.updateStatus(item.id, 'in_progress');
+                    } catch (error) {
+                      console.error('Error updating plan status:', error);
+                    }
+                  }
+                  
+                  // Get today's workout from this specific plan
+                  const todaysWorkout = await getTodaysWorkoutFromPlan(item);
+                  
+                  if (todaysWorkout) {
+                    // Open execution modal with today's exercises
+                    setExecModal({
+                      isOpen: true,
+                      workout: todaysWorkout,
+                      exerciseIdx: 0,
+                      timer: 0,
+                      running: false
+                    });
+                  } else {
+                    // If no specific workout for today, navigate to monthly plans page
+                    setActiveItem('monthly-plans');
+                  }
+                }}
+                onViewDetails={() => setActiveItem('monthly-plans')}
+                onRefresh={() => loadMonthlyPlans()}
+                showRefresh={false}
+                onReset={() => {}}
+                onDelete={() => {}}
+                currentUserId={user?.id}
+              />
+            );
           } else {
-            // For regular workouts, use exercise progress
-            progressCompleted = completedCount;
-            progressTotal = totalExercises;
-            progressPercent = totalExercises > 0 ? (completedCount / totalExercises) * 100 : 0;
-          }
-          
-          const progress = {
-            completed: progressCompleted,
-            total: progressTotal,
-            percentage: progressPercent
-          };
+            // Render regular workout
+            const workout = item;
+            
+            // Get completion data from workoutStore
+            const completedCount = getCompletionCount(workout.id);
+            
+            const totalExercises = getActualExerciseCount(workout);
+            
+            // Get the workout progress to find the first uncompleted exercise
+            const workoutProgress = workoutStore.getProgress(workout.id);
+            const completedExercises = workoutProgress?.completedExercises || [];
+            
+            // Find the first exercise that hasn't been completed
+            let nextExerciseIndex = 0;
+            for (let i = 0; i < totalExercises; i++) {
+              if (!completedExercises.includes(i)) {
+                nextExerciseIndex = i;
+                break;
+              }
+            }
+            
+            // If all exercises are completed, start from 0 to restart
+            if (completedCount === totalExercises && totalExercises > 0) {
+              nextExerciseIndex = 0;
+            }
+            
+            // Calculate progress based on workout type (blocks vs exercises)
+            let progressCompleted, progressTotal, progressPercent;
+            
+            if ((workout as any).is_block_based) {
+              // For block-based workouts, calculate block progress
+              const totalBlocks = getTotalBlockCount(workout);
+              const completedBlocks = getCompletedBlockCount(workout, completedExercises);
+              
+              // Debug logging for block-based workouts
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`[Block Progress Debug] Workout: ${workout.name}`, {
+                  workoutId: workout.id,
+                  totalBlocks,
+                  completedBlocks,
+                  totalExercises,
+                  completedExercises: completedExercises.length,
+                  completedExercisesList: completedExercises,
+                  blocks: workout.blocks?.map((block: any, idx: number) => ({
+                    blockIndex: idx,
+                    name: block.name,
+                    exerciseCount: block.exercises?.length || 0
+                  }))
+                });
+              }
+              
+              progressCompleted = completedBlocks;
+              progressTotal = totalBlocks;
+              progressPercent = totalBlocks > 0 ? (completedBlocks / totalBlocks) * 100 : 0;
+            } else {
+              // For regular workouts, use exercise progress
+              progressCompleted = completedCount;
+              progressTotal = totalExercises;
+              progressPercent = totalExercises > 0 ? (completedCount / totalExercises) * 100 : 0;
+            }
+            
+            const progress = {
+              completed: progressCompleted,
+              total: progressTotal,
+              percentage: progressPercent
+            };
 
-          return (
-            <WorkoutCard
-              key={workout.id}
-              workout={workout}
-              isCoach={false}
-              progress={progress}
-              onStart={() => handleGo(workout, nextExerciseIndex)}
-              onRefresh={() => forceRefreshWorkoutProgress(workout.id)}
-              showRefresh={true}
-              onReset={() => handleResetProgress(workout.id, workout.name)}
-              onDelete={() => handleDeleteWorkout(workout)}
-              currentUserId={user?.id}
-            />
-          );
+            return (
+              <WorkoutCard
+                key={workout.id}
+                workout={workout}
+                isCoach={false}
+                progress={progress}
+                onStart={() => handleGo(workout, nextExerciseIndex)}
+                onRefresh={() => forceRefreshWorkoutProgress(workout.id)}
+                showRefresh={true}
+                onReset={() => handleResetProgress(workout.id, workout.name)}
+                onDelete={() => handleDeleteWorkout(workout)}
+                currentUserId={user?.id}
+              />
+            );
+          }
         })}
       </SimpleGrid>
     );
@@ -964,6 +1129,9 @@ export function AthleteWorkouts() {
       
       // Also refetch the main data
       await refetch();
+      
+      // Also refresh monthly plans
+      await loadMonthlyPlans();
       
       // Resync all workout progress data
       if (assignedWorkouts && assignedWorkouts.length > 0 && user?.id) {
@@ -1228,6 +1396,7 @@ export function AthleteWorkouts() {
     loadCustomExercises();
     loadUserTeams();
     loadDeletedCount();
+    loadMonthlyPlans();
   }, [user?.id]);
 
   // Load deleted workouts count
@@ -1238,6 +1407,94 @@ export function AthleteWorkouts() {
       setDeletedCount(deletedWorkouts.length);
     } catch (error) {
       console.error('Error loading deleted count:', error);
+    }
+  };
+
+  // Load monthly plans
+  const loadMonthlyPlans = async () => {
+    if (!user?.id) return;
+
+    try {
+      setMonthlyPlansLoading(true);
+      const data = await api.monthlyPlanAssignments.getByAthlete(user.id);
+      setMonthlyPlans(data as any[]);
+    } catch (error) {
+      console.error('Error loading monthly plans:', error);
+    } finally {
+      setMonthlyPlansLoading(false);
+    }
+  };
+
+  // Helper function to get today's workout from a specific monthly plan assignment
+  const getTodaysWorkoutFromPlan = async (assignment: any) => {
+    if (!assignment.training_plans) return null;
+    
+    const plan = assignment.training_plans;
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Calculate which week we're in (similar to getTodaysWorkout API logic)
+    const startDate = new Date(assignment.assigned_at || new Date());
+    const todayDate = new Date(today);
+    const daysDiff = Math.floor((todayDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const weekNumber = Math.floor(daysDiff / 7);
+    
+    // Get the current week from the plan
+    const weeks = plan.weeks || [];
+    if (weeks.length === 0) return null;
+    
+    // Use modulo to cycle through weeks if needed
+    const currentWeek = weeks[weekNumber % weeks.length];
+    if (!currentWeek || currentWeek.is_rest_week) return null;
+    
+    // Fetch the weekly workout
+    try {
+      const allWorkouts = await api.workouts.getAll();
+      const weeklyWorkout = allWorkouts.find(w => w.id === currentWeek.workout_id);
+      
+      if (!weeklyWorkout || !weeklyWorkout.exercises) return null;
+      
+      // Extract today's exercises from the weekly workout
+      let todaysExercises: any[] = [];
+      
+      // Check if it's a weekly structure with days
+      if (weeklyWorkout.exercises.length > 0 && 
+          typeof weeklyWorkout.exercises[0] === 'object' && 
+          'day' in weeklyWorkout.exercises[0] && 
+          'exercises' in weeklyWorkout.exercises[0]) {
+        
+        // Find today's day
+        const dayOfWeek = daysDiff % 7;
+        const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const currentDayOfWeek = new Date().getDay();
+        const targetDayName = dayNames[currentDayOfWeek];
+        
+        // Find the exercises for today
+        const todaysPlan = (weeklyWorkout.exercises as any[]).find((dayObj: any) => 
+          dayObj.day?.toLowerCase() === targetDayName
+        );
+        
+        if (todaysPlan && !todaysPlan.isRestDay) {
+          todaysExercises = todaysPlan.exercises || [];
+        }
+      } else {
+        // If it's not a weekly structure, use all exercises
+        todaysExercises = weeklyWorkout.exercises;
+      }
+      
+      if (todaysExercises.length === 0) return null;
+      
+      // Create a workout object similar to TodayWorkoutsCard
+      return {
+        id: `daily-${weeklyWorkout.id}`,
+        name: `${plan.name} - Today's Training`,
+        exercises: todaysExercises,
+        description: `Today's training from ${plan.name}`,
+        type: 'Daily Training',
+        duration: weeklyWorkout.duration || '45 mins'
+      };
+    } catch (error) {
+      console.error('Error fetching today\'s workout from plan:', error);
+      return null;
     }
   };
 
@@ -1370,7 +1627,7 @@ export function AthleteWorkouts() {
 
               {/* Workout Cards */}
             <Box>
-              {renderWorkoutCards(filteredWorkouts)}
+              {renderWorkoutCards(filteredItems)}
             </Box>
             </VStack>
           );
@@ -1412,7 +1669,7 @@ export function AthleteWorkouts() {
                 ? `${customExercises.length} exercises`
                 : activeItem === 'deleted'
                 ? `${deletedCount} deleted workouts`
-                : `${filteredWorkouts.length} workouts`
+                : `${filteredItems.length} ${workoutFilter === 'monthly' ? 'plans' : 'workouts'}`
             })
           </Text>
         </VStack>
@@ -1486,7 +1743,7 @@ export function AthleteWorkouts() {
       {/* Exercise Execution Modal - Using shared component */}
       <ExerciseExecutionModal
         isOpen={execModal.isOpen}
-        onClose={() => setExecModal({ ...execModal, isOpen: false })}
+        onClose={handleModalClose}
         workout={execModal.workout}
         exerciseIdx={execModal.exerciseIdx}
         timer={execModal.timer}

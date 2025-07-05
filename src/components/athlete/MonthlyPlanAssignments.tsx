@@ -60,6 +60,8 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import type { TrainingPlanAssignment } from '../../services/dbSchema';
+import { WorkoutCard } from '../WorkoutCard';
+import { ExerciseExecutionModal } from '../ExerciseExecutionModal';
 
 interface AssignmentWithPlan extends TrainingPlanAssignment {
   training_plans?: {
@@ -100,6 +102,13 @@ export function MonthlyPlanAssignments({ onViewPlan }: MonthlyPlanAssignmentsPro
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
   const [weeksWithDetails, setWeeksWithDetails] = useState<any[]>([]);
   const [loadingWeekDetails, setLoadingWeekDetails] = useState(false);
+  
+  // Execution modal state
+  const [selectedWorkout, setSelectedWorkout] = useState<any>(null);
+  const [showExecutionModal, setShowExecutionModal] = useState(false);
+  const [exerciseIdx, setExerciseIdx] = useState(0);
+  const [timer, setTimer] = useState(0);
+  const [running, setRunning] = useState(false);
 
   // Responsive drawer size
   const drawerSize = useBreakpointValue({ base: 'full', md: 'xl' });
@@ -711,121 +720,137 @@ export function MonthlyPlanAssignments({ onViewPlan }: MonthlyPlanAssignmentsPro
     );
   }
 
+  // Helper function to get today's workout from a specific monthly plan assignment
+  const getTodaysWorkoutFromPlan = async (assignment: AssignmentWithPlan) => {
+    if (!assignment.training_plans) return null;
+    
+    const plan = assignment.training_plans;
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Calculate which week we're in (similar to getTodaysWorkout API logic)
+    const startDate = new Date(assignment.assigned_at || new Date());
+    const todayDate = new Date(today);
+    const daysDiff = Math.floor((todayDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const weekNumber = Math.floor(daysDiff / 7);
+    
+    // Get the current week from the plan
+    const weeks = plan.weeks || [];
+    if (weeks.length === 0) return null;
+    
+    // Use modulo to cycle through weeks if needed
+    const currentWeek = weeks[weekNumber % weeks.length];
+    if (!currentWeek || currentWeek.is_rest_week) return null;
+    
+    // Fetch the weekly workout
+    try {
+      const allWorkouts = await api.workouts.getAll();
+      const weeklyWorkout = allWorkouts.find(w => w.id === currentWeek.workout_id);
+      
+      if (!weeklyWorkout || !weeklyWorkout.exercises) return null;
+      
+      // Extract today's exercises from the weekly workout
+      let todaysExercises: any[] = [];
+      
+      // Check if it's a weekly structure with days
+      if (weeklyWorkout.exercises.length > 0 && 
+          typeof weeklyWorkout.exercises[0] === 'object' && 
+          'day' in weeklyWorkout.exercises[0] && 
+          'exercises' in weeklyWorkout.exercises[0]) {
+        
+        // Find today's day
+        const dayOfWeek = daysDiff % 7;
+        const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const currentDayOfWeek = new Date().getDay();
+        const targetDayName = dayNames[currentDayOfWeek];
+        
+        // Find the exercises for today
+        const todaysPlan = (weeklyWorkout.exercises as any[]).find((dayObj: any) => 
+          dayObj.day?.toLowerCase() === targetDayName
+        );
+        
+        if (todaysPlan && !todaysPlan.isRestDay) {
+          todaysExercises = todaysPlan.exercises || [];
+        }
+      } else {
+        // If it's not a weekly structure, use all exercises
+        todaysExercises = weeklyWorkout.exercises;
+      }
+      
+      if (todaysExercises.length === 0) return null;
+      
+      // Create a workout object similar to TodayWorkoutsCard
+      return {
+        id: `daily-${weeklyWorkout.id}`,
+        name: `${plan.name} - Today's Training`,
+        exercises: todaysExercises,
+        description: `Today's training from ${plan.name}`,
+        type: 'Daily Training',
+        duration: weeklyWorkout.duration || '45 mins'
+      };
+    } catch (error) {
+      console.error('Error fetching today\'s workout from plan:', error);
+      return null;
+    }
+  };
+
   const renderAssignmentCard = (assignment: AssignmentWithPlan) => {
     const plan = assignment.training_plans;
-    const trainingWeeks = plan?.weeks.filter(w => !w.is_rest_week).length;
-    const restWeeks = plan?.weeks.filter(w => w.is_rest_week).length;
+    const trainingWeeks = plan?.weeks.filter(w => !w.is_rest_week).length || 0;
+    const restWeeks = plan?.weeks.filter(w => w.is_rest_week).length || 0;
+    
+    // Transform monthly plan data to match WorkoutCard expectations
+    const monthlyPlanAsWorkout = {
+      id: assignment.id || '',
+      name: plan?.name || 'Monthly Plan',
+      description: `${getMonthName(plan?.month || 0)} ${plan?.year} - ${plan?.weeks.length || 0} weeks total`,
+      type: 'MONTHLY PLAN',
+      template_type: 'single' as const, // Use single to avoid conflicts with weekly template logic
+      date: assignment.assigned_at || new Date().toISOString(),
+      duration: `${plan?.weeks.length || 0} weeks`,
+      exercises: [], // Monthly plans don't have direct exercises
+      user_id: assignment.athlete_id || '',
+      created_at: assignment.assigned_at || new Date().toISOString(),
+      updated_at: assignment.assigned_at || new Date().toISOString()
+    };
+    
+    // Create progress object for monthly plan
+    const monthlyPlanProgress = {
+      completed: assignment.status === 'completed' ? 1 : assignment.status === 'in_progress' ? 0.5 : 0,
+      total: 1,
+      percentage: assignment.status === 'completed' ? 100 : assignment.status === 'in_progress' ? 50 : 0
+    };
     
     return (
-      <Card 
+      <WorkoutCard
         key={assignment.id}
-        bg={cardBg} 
-        borderColor={borderColor} 
-        borderWidth="1px"
-        cursor="pointer"
-        onClick={() => handleViewPlan(assignment)}
-        _hover={{ 
-          transform: 'translateY(-2px)', 
-          shadow: 'lg',
-          borderColor: 'blue.300'
+        workout={monthlyPlanAsWorkout}
+        isCoach={false}
+        progress={monthlyPlanProgress}
+        onStart={async () => {
+          // For monthly plans, Start button should extract today's exercises and open execution modal
+          if (assignment.status === 'assigned') {
+            updatePlanStatus(assignment.id || '', 'in_progress');
+          }
+          
+          // Get today's workout from this specific plan
+          const todaysWorkout = await getTodaysWorkoutFromPlan(assignment);
+          
+          if (todaysWorkout) {
+            // Open execution modal with today's exercises (similar to TodayWorkoutsCard)
+            setSelectedWorkout(todaysWorkout);
+            setShowExecutionModal(true);
+          } else {
+            // If no specific workout for today, show the plan details
+            handleViewPlan(assignment);
+          }
         }}
-        transition="all 0.2s"
-      >
-        <CardBody p={5}>
-          <VStack spacing={4} align="stretch">
-            {/* Header */}
-            <Flex justify="space-between" align="start">
-              <VStack align="start" spacing={1} flex="1">
-                <Heading size="md" color={textPrimary}>
-                  {plan?.name}
-                </Heading>
-                <HStack spacing={2}>
-                  <Icon as={FaCalendarAlt} color="blue.500" />
-                  <Text fontSize="sm" color={textSecondary}>
-                    {getMonthName(plan?.month || 0)} {plan?.year}
-                  </Text>
-                </HStack>
-              </VStack>
-              
-              <Badge 
-                colorScheme={getStatusColor(assignment.status || '')} 
-                px={3} 
-                py={1}
-                borderRadius="full"
-              >
-                <Icon as={getStatusIcon(assignment.status || '')} mr={1} />
-                {assignment.status?.replace('_', ' ').toUpperCase()}
-              </Badge>
-            </Flex>
-
-            {/* Description */}
-            {plan?.description && (
-              <Text fontSize="sm" color={textSecondary} noOfLines={2}>
-                {plan.description}
-              </Text>
-            )}
-
-            {/* Plan Statistics */}
-            <SimpleGrid columns={3} spacing={4}>
-              <Box textAlign="center">
-                <Text fontSize="xl" fontWeight="bold" color="blue.500">
-                  {plan?.weeks.length}
-                </Text>
-                <Text fontSize="xs" color={textSecondary}>Total Weeks</Text>
-              </Box>
-              <Box textAlign="center">
-                <Text fontSize="xl" fontWeight="bold" color="green.500">
-                  {trainingWeeks}
-                </Text>
-                <Text fontSize="xs" color={textSecondary}>Training</Text>
-              </Box>
-              <Box textAlign="center">
-                <Text fontSize="xl" fontWeight="bold" color="orange.500">
-                  {restWeeks}
-                </Text>
-                <Text fontSize="xs" color={textSecondary}>Rest</Text>
-              </Box>
-            </SimpleGrid>
-
-            {/* Assignment Date */}
-            <Divider />
-            <Flex justify="space-between" align="center">
-              <Text fontSize="xs" color={textSecondary}>
-                Assigned {new Date(assignment.assigned_at || '').toLocaleDateString()}
-              </Text>
-              
-              <HStack spacing={2}>
-                {assignment.status === 'assigned' && (
-                  <Button
-                    size="sm"
-                    colorScheme="blue"
-                    variant="outline"
-                    leftIcon={<FaPlay />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      updatePlanStatus(assignment.id || '', 'in_progress');
-                    }}
-                  >
-                    Start
-                  </Button>
-                )}
-                
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  leftIcon={<FaEye />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleViewPlan(assignment);
-                  }}
-                >
-                  View
-                </Button>
-              </HStack>
-            </Flex>
-          </VStack>
-        </CardBody>
-      </Card>
+        onViewDetails={() => handleViewPlan(assignment)}
+        onRefresh={() => loadAssignments()}
+        showRefresh={false}
+        onReset={() => {}}
+        onDelete={() => {}}
+        currentUserId={user?.id}
+      />
     );
   };
 
@@ -1010,6 +1035,42 @@ export function MonthlyPlanAssignments({ onViewPlan }: MonthlyPlanAssignmentsPro
           </DrawerBody>
         </DrawerContent>
       </Drawer>
+
+      {/* Exercise Execution Modal */}
+      <ExerciseExecutionModal
+        isOpen={showExecutionModal}
+        onClose={() => {
+          setShowExecutionModal(false);
+          setExerciseIdx(0);
+          setTimer(0);
+          setRunning(false);
+        }}
+        workout={selectedWorkout}
+        exerciseIdx={exerciseIdx}
+        timer={timer}
+        running={running}
+        onUpdateTimer={setTimer}
+        onUpdateRunning={setRunning}
+        onNextExercise={() => {
+          if (selectedWorkout?.exercises && exerciseIdx < selectedWorkout.exercises.length - 1) {
+            setExerciseIdx(exerciseIdx + 1);
+          }
+        }}
+        onPreviousExercise={() => {
+          if (exerciseIdx > 0) {
+            setExerciseIdx(exerciseIdx - 1);
+          }
+        }}
+        onFinishWorkout={() => {
+          setShowExecutionModal(false);
+          setExerciseIdx(0);
+          setTimer(0);
+          setRunning(false);
+        }}
+        onShowVideo={(exerciseName: string, videoUrl: string) => {
+          console.log('Show video:', exerciseName, videoUrl);
+        }}
+      />
     </Box>
   );
 } 
