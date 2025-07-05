@@ -13,19 +13,36 @@ import { api } from '../services/api';
  */
 export async function getTodaysWorkoutForExecution(userId: string) {
   try {
+    console.log('🔍 [monthlyPlanWorkoutHelper] Starting getTodaysWorkoutForExecution for user:', userId);
+    
     // Use the same API call that TodayWorkoutsCard uses
     const workoutData = await api.monthlyPlanAssignments.getTodaysWorkout(userId);
     
+    console.log('🔍 [monthlyPlanWorkoutHelper] API returned workoutData:', {
+      hasWorkout: workoutData?.hasWorkout,
+      primaryWorkoutExists: !!workoutData?.primaryWorkout,
+      exercisesCount: workoutData?.primaryWorkout?.exercises?.length || 0,
+      exercises: workoutData?.primaryWorkout?.exercises?.map(ex => ex.name) || [],
+      fullData: workoutData
+    });
+    
     if (!workoutData || !workoutData.hasWorkout || !workoutData.primaryWorkout) {
-      console.log('🔍 No workout data returned from getTodaysWorkout API');
+      console.log('🔍 [monthlyPlanWorkoutHelper] No workout data returned from getTodaysWorkout API');
       return null;
     }
     
     const primaryWorkout = workoutData.primaryWorkout;
     const exercises = primaryWorkout.exercises || [];
     
+    console.log('🔍 [monthlyPlanWorkoutHelper] Processing exercises:', {
+      exercisesCount: exercises.length,
+      exerciseNames: exercises.map(ex => ex.name),
+      currentDay: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
+      currentDayOfWeek: new Date().getDay() // 0=Sunday, 6=Saturday
+    });
+    
     if (exercises.length === 0) {
-      console.log('🔍 No exercises in today\'s workout');
+      console.log('🔍 [monthlyPlanWorkoutHelper] No exercises in today\'s workout');
       return null;
     }
     
@@ -34,7 +51,7 @@ export async function getTodaysWorkoutForExecution(userId: string) {
       ? `daily-${primaryWorkout.weeklyWorkout.id}` 
       : `daily-${Date.now()}`;
     
-    return {
+    const result = {
       id: workoutId,
       name: primaryWorkout.title || 'Today\'s Training',
       exercises: exercises,
@@ -44,8 +61,17 @@ export async function getTodaysWorkoutForExecution(userId: string) {
       // Include original data for reference
       originalData: workoutData
     };
+    
+    console.log('🔍 [monthlyPlanWorkoutHelper] Returning workout:', {
+      id: result.id,
+      name: result.name,
+      exercisesCount: result.exercises.length,
+      exerciseNames: result.exercises.map(ex => ex.name)
+    });
+    
+    return result;
   } catch (error) {
-    console.error('Error fetching today\'s workout for execution:', error);
+    console.error('🔥 [monthlyPlanWorkoutHelper] Error fetching today\'s workout for execution:', error);
     return null;
   }
 }
@@ -60,19 +86,27 @@ export async function startTodaysWorkoutExecution(
   setExecModal: (modal: any) => void
 ) {
   try {
+    console.log('🔍 [monthlyPlanWorkoutHelper] Starting workout execution for user:', userId);
+    
     // Get today's workout using the same logic as dashboard
     const todaysWorkout = await getTodaysWorkoutForExecution(userId);
     
     if (!todaysWorkout) {
-      console.log('🔍 No workout available for today');
+      console.log('🔍 [monthlyPlanWorkoutHelper] No workout available for today');
       return false; // Indicates no workout was started
     }
+    
+    console.log('🔍 [monthlyPlanWorkoutHelper] Got today\'s workout:', {
+      workoutName: todaysWorkout.name,
+      exercisesCount: todaysWorkout.exercises.length,
+      exerciseNames: todaysWorkout.exercises.map(ex => ex.name)
+    });
     
     // Initialize progress tracking in workout store
     const progress = workoutStore.getProgress(todaysWorkout.id);
     if (!progress && todaysWorkout.exercises.length > 0) {
       workoutStore.updateProgress(todaysWorkout.id, 0, todaysWorkout.exercises.length);
-      console.log(`🔍 Initialized progress tracking for: ${todaysWorkout.id}`);
+      console.log(`🔍 [monthlyPlanWorkoutHelper] Initialized progress tracking for: ${todaysWorkout.id}`);
     }
     
     // Find the first uncompleted exercise to start from
@@ -86,6 +120,13 @@ export async function startTodaysWorkoutExecution(
       }
     }
     
+    const startingExercise = todaysWorkout.exercises[startExerciseIdx];
+    console.log('🔍 [monthlyPlanWorkoutHelper] Starting with exercise:', {
+      index: startExerciseIdx,
+      name: startingExercise?.name,
+      totalExercises: todaysWorkout.exercises.length
+    });
+    
     // Open execution modal
     setExecModal({
       isOpen: true,
@@ -95,10 +136,10 @@ export async function startTodaysWorkoutExecution(
       running: false
     });
     
-    console.log(`🔍 Started workout execution: ${todaysWorkout.name} at exercise ${startExerciseIdx}`);
+    console.log(`✅ [monthlyPlanWorkoutHelper] Started workout execution: ${todaysWorkout.name} at exercise ${startExerciseIdx} (${startingExercise?.name})`);
     return true; // Indicates workout was started successfully
   } catch (error) {
-    console.error('Error starting today\'s workout execution:', error);
+    console.error('🔥 [monthlyPlanWorkoutHelper] Error starting today\'s workout execution:', error);
     return false;
   }
 }
