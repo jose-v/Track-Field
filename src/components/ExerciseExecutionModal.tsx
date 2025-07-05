@@ -661,6 +661,8 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
         m={{ base: 0, md: 4 }}
         overflow="hidden"
         position="relative"
+        display="flex"
+        flexDirection="column"
       >
 
         
@@ -824,7 +826,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
         </Box>
         )}
 
-        <ModalBody px={{ base: 4, md: 6 }} py={{ base: 2, md: 3 }} overflowY="auto" flex="1" display="flex" flexDirection="column" h="100%">
+        <ModalBody px={{ base: 2, md: 6 }} py={{ base: 1, md: 3 }} flex="1" display="flex" flexDirection="column" overflow="hidden">
           {showRPEScreen ? (
             <VStack spacing={6}>
               <Text textAlign="center" color={modalTextColor}>
@@ -850,9 +852,9 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                 )}
             </VStack>
           ) : (
-                                    <VStack spacing={{ base: 4, md: 6 }} flex="1" h="100%">
+                                    <VStack spacing={{ base: 2, md: 6 }} flex="1" h="100%" overflow="hidden">
               {/* Always show the same layout */}
-                <VStack spacing={{ base: 4, md: 6 }} w="full" h="100%" flex="1">
+                <VStack spacing={{ base: 2, md: 6 }} w="full" flex="1" overflow="hidden">
                   {/* Detailed Progress Section */}
                 <Box 
                     w="full" 
