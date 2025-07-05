@@ -13,12 +13,12 @@ import { supabase } from '../lib/supabase';
  */
 async function getMonthlyPlanCompletionFromDB(userId: string): Promise<number[]> {
   try {
-    // Get the current Block 4 assignment
+    // Get the current assignment (can be 'assigned' or 'in_progress')
     const { data: assignment, error } = await supabase
       .from('training_plan_assignments')
       .select('completed_exercises')
       .eq('athlete_id', userId)
-      .eq('status', 'in_progress')
+      .in('status', ['assigned', 'in_progress'])
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
@@ -42,25 +42,37 @@ async function getMonthlyPlanCompletionFromDB(userId: string): Promise<number[]>
  */
 async function saveMonthlyPlanCompletionToDB(userId: string, completedExercises: number[]): Promise<void> {
   try {
-    // Get the current Block 4 assignment ID
+    // Get the current assignment ID (can be 'assigned' or 'in_progress')
     const { data: assignment, error: fetchError } = await supabase
       .from('training_plan_assignments')
-      .select('id')
+      .select('id, status')
       .eq('athlete_id', userId)
-      .eq('status', 'in_progress')
+      .in('status', ['assigned', 'in_progress'])
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
 
     if (fetchError || !assignment) {
-      console.error('🔥 [monthlyPlanWorkoutHelper] No training plan assignment found for saving completion');
+      console.error('🔥 [monthlyPlanWorkoutHelper] No training plan assignment found for saving completion:', fetchError);
       return;
     }
 
-    // Update the completed_exercises field
+    console.log('✅ [monthlyPlanWorkoutHelper] Found assignment for completion sync:', {
+      id: assignment.id,
+      status: assignment.status,
+      completedExercises: completedExercises
+    });
+
+    // Update the completed_exercises field and change status to 'in_progress' if it's still 'assigned'
+    const updateData: any = { completed_exercises: completedExercises };
+    if (assignment.status === 'assigned') {
+      updateData.status = 'in_progress';
+      console.log('🔄 [monthlyPlanWorkoutHelper] Changing status from assigned to in_progress');
+    }
+
     const { error: updateError } = await supabase
       .from('training_plan_assignments')
-      .update({ completed_exercises: completedExercises })
+      .update(updateData)
       .eq('id', assignment.id);
 
     if (updateError) {

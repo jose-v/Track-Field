@@ -211,24 +211,16 @@ export function MonthlyPlanCreator({
     try {
       setLoading(true);
 
-      // Calculate end_date based on start_date and number of weeks
-      const [yearStr, monthStr, dayStr] = formData.startDate.split('-');
+      // Extract month and year from start date for API compatibility
+      const [yearStr, monthStr] = formData.startDate.split('-');
       const startYear = parseInt(yearStr, 10);
-      const startMonth = parseInt(monthStr, 10) - 1; // Month is 0-indexed in Date constructor
-      const startDay = parseInt(dayStr, 10);
-      
-      const startDate = new Date(startYear, startMonth, startDay);
-      const numberOfWeeks = formData.weeks.length;
-      const endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + (numberOfWeeks * 7) - 1); // -1 to include the start day
+      const startMonth = parseInt(monthStr, 10);
 
       const planData = {
         name: formData.name.trim(),
         description: formData.description.trim(),
-        start_date: formData.startDate,
-        end_date: endDate.getFullYear() + '-' + 
-          String(endDate.getMonth() + 1).padStart(2, '0') + '-' + 
-          String(endDate.getDate()).padStart(2, '0'),
+        month: startMonth,
+        year: startYear,
         weeks: formData.weeks.map(week => ({
           week_number: week.week_number,
           workout_id: week.is_rest_week ? '' : week.workout_id,
