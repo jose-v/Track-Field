@@ -216,11 +216,18 @@ export function Dashboard() {
     const workoutId = execModal.workout.id;
     const exIdx = execModal.exerciseIdx;
     
+    // DEBUG: Log workout ID to check prefix
+    console.log('🔍 DEBUG: Workout ID in handleNextExercise:', workoutId);
+    console.log('🔍 DEBUG: Has daily- prefix?', workoutId.startsWith('daily-'));
+    console.log('🔍 DEBUG: User ID:', user?.id);
+    
     // Check if this is a monthly plan workout (daily- prefix)
     if (workoutId.startsWith('daily-') && user?.id) {
+      console.log('🔍 DEBUG: Using sync function for monthly plan');
       // Use the sync function for monthly plans
       await markExerciseCompletedWithSync(user.id, workoutId, exIdx, workoutStore);
     } else {
+      console.log('🔍 DEBUG: Using old method for regular workout');
       // Mark current exercise as completed for regular workouts
       workoutStore.markExerciseCompleted(workoutId, exIdx);
     }
