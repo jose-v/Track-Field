@@ -104,7 +104,7 @@ export const WellnessQuickLogCard: React.FC<WellnessQuickLogCardProps> = ({ onLo
       key: 'fatigue',
       label: 'Fatigue',
       icon: FaBolt,
-      color: 'orange.500',
+      color: 'green.500',
       value: fatigue,
       setValue: setFatigue,
     },
@@ -112,7 +112,7 @@ export const WellnessQuickLogCard: React.FC<WellnessQuickLogCardProps> = ({ onLo
       key: 'soreness',
       label: 'Soreness',
       icon: FaRunning,
-      color: 'red.500',
+      color: 'green.500',
       value: soreness,
       setValue: setSoreness,
     },
@@ -120,7 +120,7 @@ export const WellnessQuickLogCard: React.FC<WellnessQuickLogCardProps> = ({ onLo
       key: 'stress',
       label: 'Stress',
       icon: FaBrain,
-      color: 'purple.500',
+      color: 'green.500',
       value: stress,
       setValue: setStress,
     },
@@ -218,27 +218,16 @@ export const WellnessQuickLogCard: React.FC<WellnessQuickLogCardProps> = ({ onLo
     >
       <VStack spacing={5} align="stretch">
         {/* Header */}
-        <HStack justify="space-between" align="center">
-          <HStack spacing={3}>
-            <Icon as={FaHeart} boxSize={6} color="green.500" />
-            <VStack align="start" spacing={0}>
-              <Text fontSize="lg" fontWeight="bold" color={statNumberColor}>
-                Daily Wellness Check
-              </Text>
-              <Text fontSize="sm" color={statLabelColor}>
-                How are you feeling today?
-              </Text>
-            </VStack>
-          </HStack>
-          <Badge 
-            colorScheme="green" 
-            variant="solid" 
-            fontSize="xs"
-            px={2}
-            py={1}
-          >
-            Quick Check
-          </Badge>
+        <HStack spacing={3}>
+          <Icon as={FaHeart} boxSize={6} color="green.500" />
+          <VStack align="start" spacing={0}>
+            <Text fontSize="lg" fontWeight="bold" color={statNumberColor}>
+              Daily Wellness Check
+            </Text>
+            <Text fontSize="sm" color={statLabelColor}>
+              How are you feeling today?
+            </Text>
+          </VStack>
         </HStack>
 
         {/* Existing Logs Alert */}

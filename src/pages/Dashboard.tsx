@@ -853,11 +853,6 @@ export function Dashboard() {
           <TodaysCheckInSection onDataUpdate={handleDataUpdate} />
         </Box>
 
-        {/* RPE Card - Mobile Only */}
-        <Box display={{ base: "block", lg: "none" }} w="100%" mb={8}>
-          <RPEPromptCard onLogComplete={handleDataUpdate} />
-        </Box>
-
         {/* Mobile Sleep Card - Before other cards */}
         <Box display={{ base: "block", lg: "none" }} w="100%" mb={8}>
           {profileLoading ? (
@@ -874,14 +869,9 @@ export function Dashboard() {
           )}
         </Box>
 
-        {/* Desktop RPE Card - Below 3-column layout */}
-        <Box display={{ base: "none", lg: "block" }} w="100%" mb={8}>
-          <RPEPromptCard onLogComplete={handleDataUpdate} />
-        </Box>
-
         {/* Analytics & Info Cards */}
         <SimpleGrid 
-          columns={{ base: 1, md: 2, lg: 1 }} 
+          columns={{ base: 1, md: 2, lg: 3 }} 
           spacing={{ base: 4, md: 8 }} 
           my={{ base: 6, md: 10 }}
           w="100%"
@@ -894,6 +884,11 @@ export function Dashboard() {
           {/* Track Meets Card - Mobile Only */}
           <Box display={{ base: "block", lg: "none" }}>
             <TrackMeetsCard viewAllLink="/athlete/meets" />
+          </Box>
+
+          {/* RPE Card - Shows on all screen sizes */}
+          <Box w="100%">
+            <RPEPromptCard onLogComplete={handleDataUpdate} />
           </Box>
 
           {/* Nutrition Card */}
@@ -912,64 +907,64 @@ export function Dashboard() {
               isLoading={nutritionLoading}
             />
           )}
-        </SimpleGrid>
 
-        {/* Gamification Test Page Link - Development Only */}
-        {process.env.NODE_ENV !== 'production' && (
-          <Box 
-            bg={cardBg}
-            borderRadius="xl"
-            p={6}
-            border="1px solid"
-            borderColor={borderColor}
-            boxShadow={cardShadowLg}
-            mb={8}
-          >
-            <VStack spacing={5} align="stretch">
-              {/* Header */}
-              <HStack justify="space-between" align="center">
-                <HStack spacing={3}>
-                  <Icon as={FaMedal} boxSize={6} color="purple.500" />
-                  <VStack align="start" spacing={0}>
-                    <Text fontSize="lg" fontWeight="bold" color={cardTextColor}>
-                      Gamification Preview
-                    </Text>
-                    <Text fontSize="sm" color={cardSubtextColor}>
-                      Track your progress and achievements
-                    </Text>
-                  </VStack>
+          {/* Gamification Card - Development Only */}
+          {process.env.NODE_ENV !== 'production' && (
+            <Box 
+              bg={cardBg}
+              borderRadius="xl"
+              p={6}
+              border="1px solid"
+              borderColor={borderColor}
+              boxShadow={cardShadowLg}
+              w="100%"
+            >
+              <VStack spacing={5} align="stretch">
+                {/* Header */}
+                <HStack justify="space-between" align="center">
+                  <HStack spacing={3}>
+                    <Icon as={FaMedal} boxSize={6} color="purple.500" />
+                    <VStack align="start" spacing={0}>
+                      <Text fontSize="lg" fontWeight="bold" color={cardTextColor}>
+                        Gamification Preview
+                      </Text>
+                      <Text fontSize="sm" color={cardSubtextColor}>
+                        Track your progress and achievements
+                      </Text>
+                    </VStack>
+                  </HStack>
+                  <Badge 
+                    colorScheme="purple" 
+                    variant="solid" 
+                    fontSize="xs"
+                    px={2}
+                    py={1}
+                  >
+                    Preview
+                  </Badge>
                 </HStack>
-                <Badge 
-                  colorScheme="purple" 
-                  variant="solid" 
-                  fontSize="xs"
-                  px={2}
-                  py={1}
+
+                {/* Content */}
+                <Text fontSize="sm" color={cardSubtextColor}>
+                  View your points, badges, streaks, and leaderboard position
+                </Text>
+
+                {/* Action Button */}
+                <Button 
+                  as={RouterLink} 
+                  to="/gamification" 
+                  colorScheme="purple"
+                  variant="outline"
+                  size="sm"
+                  leftIcon={<Icon as={FaMedal} />}
+                  rightIcon={<Icon as={MdKeyboardArrowRight} />}
                 >
-                  Preview
-                </Badge>
-              </HStack>
-
-              {/* Content */}
-              <Text fontSize="sm" color={cardSubtextColor}>
-                View your points, badges, streaks, and leaderboard position
-              </Text>
-
-              {/* Action Button */}
-              <Button 
-                as={RouterLink} 
-                to="/gamification" 
-                colorScheme="purple"
-                variant="outline"
-                size="sm"
-                leftIcon={<Icon as={FaMedal} />}
-                rightIcon={<Icon as={MdKeyboardArrowRight} />}
-              >
-                View Gamification
-              </Button>
-            </VStack>
-          </Box>
-        )}
+                  View Gamification
+                </Button>
+              </VStack>
+            </Box>
+          )}
+        </SimpleGrid>
 
         {/* Exercise Execution Modal - Using shared component */}
         <ExerciseExecutionModal

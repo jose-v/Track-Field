@@ -267,27 +267,16 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
     >
       <VStack spacing={5} align="stretch">
         {/* Header */}
-        <HStack justify="space-between" align="center">
-          <HStack spacing={3}>
-            <Icon as={FaMoon} boxSize={6} color="blue.500" />
-            <VStack align="start" spacing={0}>
-              <Text fontSize="lg" fontWeight="bold" color={statNumberColor}>
-                How did you sleep?
-              </Text>
-              <Text fontSize="sm" color={statLabelColor}>
-                Log last night's sleep
-              </Text>
-            </VStack>
-          </HStack>
-          <Badge 
-            colorScheme="blue" 
-            variant="solid" 
-            fontSize="xs"
-            px={2}
-            py={1}
-          >
-            Quick Log
-          </Badge>
+        <HStack spacing={3}>
+          <Icon as={FaMoon} boxSize={6} color="blue.500" />
+          <VStack align="start" spacing={0}>
+            <Text fontSize="lg" fontWeight="bold" color={statNumberColor}>
+              How did you sleep?
+            </Text>
+            <Text fontSize="sm" color={statLabelColor}>
+              Log last night's sleep
+            </Text>
+          </VStack>
         </HStack>
 
         {/* Existing Logs Alert */}

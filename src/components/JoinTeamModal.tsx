@@ -7,6 +7,13 @@ import {
   ModalFooter,
   ModalBody,
   ModalCloseButton,
+  Drawer,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerHeader,
+  DrawerFooter,
+  DrawerBody,
+  DrawerCloseButton,
   Button,
   Input,
   VStack,
@@ -18,7 +25,9 @@ import {
   AlertIcon,
   HStack,
   Badge,
-  Box
+  Box,
+  useColorModeValue,
+  useBreakpointValue
 } from '@chakra-ui/react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -212,6 +221,117 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({
     }
   };
 
+  // Color mode values
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  
+  // Determine if we should show mobile (drawer) or desktop (modal) version
+  const isMobile = useBreakpointValue({ base: true, lg: false });
+
+  // Shared content component
+  const FormContent = () => (
+    <VStack spacing={4} align="stretch">
+      <FormControl>
+        <FormLabel>Invite Code</FormLabel>
+        <Input
+          placeholder="Enter 6-character invite code"
+          value={inviteCode}
+          onChange={(e) => handleCodeChange(e.target.value)}
+          textTransform="uppercase"
+          maxLength={6}
+          isDisabled={isLoading || isJoining}
+        />
+        <Text fontSize="sm" color="gray.500" mt={1}>
+          Ask your coach or team manager for the invite code
+        </Text>
+      </FormControl>
+
+      {teamPreview && (
+        <Box>
+          <Alert status="success" borderRadius="md">
+            <AlertIcon />
+            <VStack align="start" spacing={2} flex="1">
+              <HStack spacing={2}>
+                <Text fontWeight="bold">{teamPreview.name}</Text>
+                <Badge colorScheme={getTeamTypeColor(teamPreview.team_type)}>
+                  {getTeamTypeLabel(teamPreview.team_type)}
+                </Badge>
+              </HStack>
+              {teamPreview.description && (
+                <Text fontSize="sm">{teamPreview.description}</Text>
+              )}
+              <Text fontSize="sm" color="gray.600">
+                {teamPreview.member_count} member{teamPreview.member_count !== 1 ? 's' : ''}
+              </Text>
+            </VStack>
+          </Alert>
+        </Box>
+      )}
+    </VStack>
+  );
+
+  // Shared footer buttons
+  const FooterButtons = () => (
+    <>
+      <Button variant="ghost" mr={3} onClick={handleClose}>
+        Cancel
+      </Button>
+      <Button
+        colorScheme="blue"
+        onClick={handleJoinTeam}
+        isLoading={isJoining}
+        isDisabled={!teamPreview || isLoading}
+      >
+        Join Team
+      </Button>
+    </>
+  );
+
+  // Only render one component based on screen size
+  if (isMobile) {
+    return (
+      <Drawer
+        isOpen={isOpen}
+        placement="bottom"
+        onClose={handleClose}
+        size="md"
+      >
+        <DrawerOverlay bg="blackAlpha.600" />
+        <DrawerContent 
+          bg={bgColor} 
+          borderTopRadius="xl"
+          borderTopWidth="2px"
+          borderTopColor={borderColor}
+          maxH="90vh"
+        >
+          <DrawerHeader 
+            borderBottomWidth="1px"
+            borderColor={borderColor}
+            fontSize="lg"
+            fontWeight="bold"
+            textAlign="center"
+          >
+            Join a Team
+          </DrawerHeader>
+          <DrawerCloseButton size="lg" />
+          
+          <DrawerBody py={6}>
+            <FormContent />
+          </DrawerBody>
+          
+          <DrawerFooter 
+            borderTopWidth="1px"
+            borderColor={borderColor}
+            justifyContent="center"
+            gap={3}
+          >
+            <FooterButtons />
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
   return (
     <Modal isOpen={isOpen} onClose={handleClose} size="md">
       <ModalOverlay />
@@ -219,58 +339,10 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({
         <ModalHeader>Join a Team</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
-          <VStack spacing={4} align="stretch">
-            <FormControl>
-              <FormLabel>Invite Code</FormLabel>
-              <Input
-                placeholder="Enter 6-character invite code"
-                value={inviteCode}
-                onChange={(e) => handleCodeChange(e.target.value)}
-                textTransform="uppercase"
-                maxLength={6}
-                isDisabled={isLoading || isJoining}
-              />
-              <Text fontSize="sm" color="gray.500" mt={1}>
-                Ask your coach or team manager for the invite code
-              </Text>
-            </FormControl>
-
-            {teamPreview && (
-              <Box>
-                <Alert status="success" borderRadius="md">
-                  <AlertIcon />
-                  <VStack align="start" spacing={2} flex="1">
-                    <HStack spacing={2}>
-                      <Text fontWeight="bold">{teamPreview.name}</Text>
-                      <Badge colorScheme={getTeamTypeColor(teamPreview.team_type)}>
-                        {getTeamTypeLabel(teamPreview.team_type)}
-                      </Badge>
-                    </HStack>
-                    {teamPreview.description && (
-                      <Text fontSize="sm">{teamPreview.description}</Text>
-                    )}
-                    <Text fontSize="sm" color="gray.600">
-                      {teamPreview.member_count} member{teamPreview.member_count !== 1 ? 's' : ''}
-                    </Text>
-                  </VStack>
-                </Alert>
-              </Box>
-            )}
-          </VStack>
+          <FormContent />
         </ModalBody>
-
         <ModalFooter>
-          <Button variant="ghost" mr={3} onClick={handleClose}>
-            Cancel
-          </Button>
-          <Button
-            colorScheme="blue"
-            onClick={handleJoinTeam}
-            isLoading={isJoining}
-            isDisabled={!teamPreview || isLoading}
-          >
-            Join Team
-          </Button>
+          <FooterButtons />
         </ModalFooter>
       </ModalContent>
     </Modal>

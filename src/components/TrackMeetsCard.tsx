@@ -176,12 +176,16 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
           // Get unique athletes (in case they're in multiple events)
           const uniqueAthletes = new Map();
           (athleteEvents || []).forEach(ae => {
-            if (ae.athletes?.profiles) {
-              const name = `${ae.athletes.profiles.first_name || ''} ${ae.athletes.profiles.last_name || ''}`.trim();
-              uniqueAthletes.set(ae.athlete_id, {
-                id: ae.athlete_id,
-                name: name || 'Unknown Athlete'
-              });
+            if (ae.athletes && Array.isArray(ae.athletes) && ae.athletes.length > 0) {
+              const athlete = ae.athletes[0]; // Get first athlete
+              if (athlete.profiles && Array.isArray(athlete.profiles) && athlete.profiles.length > 0) {
+                const profile = athlete.profiles[0]; // Get first profile
+                const name = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+                uniqueAthletes.set(ae.athlete_id, {
+                  id: ae.athlete_id,
+                  name: name || 'Unknown Athlete'
+                });
+              }
             }
           });
 
@@ -197,7 +201,24 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
           };
         }));
 
-        setTrackMeets(processedCoachMeets);
+        // Filter for current and future meets only and sort by date - latest first (reverse chronological)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to beginning of day for accurate comparison
+        
+        const futureCoachMeets = processedCoachMeets.filter(meet => {
+          if (!meet.meet_date) return false;
+          const meetDate = new Date(meet.meet_date);
+          meetDate.setHours(0, 0, 0, 0); // Normalize meet date to beginning of day
+          return meetDate >= today;
+        });
+
+        const sortedCoachMeets = futureCoachMeets.sort((a, b) => {
+          const dateA = new Date(a.meet_date || '');
+          const dateB = new Date(b.meet_date || '');
+          return dateB.getTime() - dateA.getTime();
+        });
+
+        setTrackMeets(sortedCoachMeets);
         setCoachMeets([]); // Clear coach meets for coach view
       } else {
         // For athletes: fetch meets where they are assigned or from their coaches
@@ -264,8 +285,38 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
           assigned_events_count: 0,
         }));
 
-        setTrackMeets(processedAthleteMeets);
-        setCoachMeets(processedCoachMeets);
+        // Filter for current and future meets only and sort both arrays by date - latest first (reverse chronological)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to beginning of day for accurate comparison
+        
+        const futureAthleteMeets = processedAthleteMeets.filter(meet => {
+          if (!meet.meet_date) return false;
+          const meetDate = new Date(meet.meet_date);
+          meetDate.setHours(0, 0, 0, 0); // Normalize meet date to beginning of day
+          return meetDate >= today;
+        });
+
+        const futureCoachMeets = processedCoachMeets.filter(meet => {
+          if (!meet.meet_date) return false;
+          const meetDate = new Date(meet.meet_date);
+          meetDate.setHours(0, 0, 0, 0); // Normalize meet date to beginning of day
+          return meetDate >= today;
+        });
+
+        const sortedAthleteMeets = futureAthleteMeets.sort((a, b) => {
+          const dateA = new Date(a.meet_date || '');
+          const dateB = new Date(b.meet_date || '');
+          return dateB.getTime() - dateA.getTime();
+        });
+
+        const sortedCoachMeets = futureCoachMeets.sort((a, b) => {
+          const dateA = new Date(a.meet_date || '');
+          const dateB = new Date(b.meet_date || '');
+          return dateB.getTime() - dateA.getTime();
+        });
+
+        setTrackMeets(sortedAthleteMeets);
+        setCoachMeets(sortedCoachMeets);
       }
 
     } catch (error) {
@@ -336,8 +387,8 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
               </Text>
               <Text fontSize="sm" color={subtitleColor}>
                 {getTotalMeets() > 0 
-                  ? `${getUpcomingMeets()} upcoming meets`
-                  : 'No meets scheduled'
+                  ? `${getTotalMeets()} upcoming meets`
+                  : 'No upcoming meets'
                 }
               </Text>
             </VStack>
@@ -350,19 +401,8 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
               px={2}
               py={1}
             >
-              {getTotalMeets()} Total
+              {getTotalMeets()} Upcoming
             </Badge>
-            {getUpcomingMeets() > 0 && (
-              <Badge 
-                colorScheme="green" 
-                variant="outline" 
-                fontSize="xs"
-                px={2}
-                py={1}
-              >
-                {getUpcomingMeets()} Upcoming
-              </Badge>
-            )}
           </VStack>
         </HStack>
 
@@ -381,28 +421,151 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
             <VStack spacing={3}>
               <Icon as={FaCalendarAlt} boxSize={8} color={subtitleColor} />
               <Text fontSize="lg" fontWeight="medium" color={textColor}>
-                No track meets found
+                No upcoming meets
               </Text>
               <Text fontSize="sm" color={subtitleColor}>
-                Check back later for upcoming meets
+                Check back later for future meets
               </Text>
             </VStack>
           </Box>
         ) : (
           <VStack spacing={4} align="stretch" flex="1">
-            {/* My Track Meets / Coach's Scheduled Meets */}
-            {trackMeets.length > 0 && (
+            {/* Coach's Meets - Show first */}
+            {userRole === 'athlete' && (
               <Box>
                 <HStack spacing={2} mb={3}>
-                  <Icon as={FaMapMarkerAlt} color="blue.500" fontSize="sm" />
+                  <Icon as={FaCalendarAlt} color="purple.500" fontSize="sm" />
                   <Text fontSize="sm" fontWeight="bold" color={textColor}>
-                    {userRole === 'coach' ? 'My Scheduled Meets' : 'My Track Meets'}
+                    Coach's Meets
                   </Text>
-                  <Badge colorScheme="blue" variant="outline" fontSize="xs">
-                    {trackMeets.length}
+                  <Badge colorScheme="purple" variant="outline" fontSize="xs">
+                    {coachMeets.length}
                   </Badge>
                 </HStack>
                 
+                {coachMeets.length > 0 ? (
+                  <VStack spacing={2}>
+                    {coachMeets.slice(0, 2).map(meet => (
+                    <Box 
+                      key={meet.id} 
+                      p={3} 
+                      borderRadius="md" 
+                      bg={sectionBg}
+                      border="1px solid"
+                      borderColor={borderColor}
+                      w="100%"
+                      cursor="pointer"
+                      _hover={{ bg: sectionBg }}
+                      transition="background-color 0.2s"
+                      onClick={() => window.location.href = viewAllLink}
+                    >
+                      <HStack justify="space-between" align="start" mb={2}>
+                        <VStack align="start" spacing={0} flex="1">
+                          <Text fontSize="sm" fontWeight="bold" color={textColor} noOfLines={1}>
+                            {meet.name}
+                          </Text>
+                          
+                          {/* Show separate date ranges if available */}
+                          {meet.multi_events_start_date && (
+                            <Text fontSize="xs" color="blue.500">
+                              Multi Events: {formatDate(meet.multi_events_start_date)}
+                              {meet.multi_events_end_date && meet.multi_events_start_date !== meet.multi_events_end_date && 
+                                ` - ${formatDate(meet.multi_events_end_date)}`}
+                            </Text>
+                          )}
+                          {meet.track_field_start_date && (
+                            <Text fontSize="xs" color="blue.500">
+                              Track & Field: {formatDate(meet.track_field_start_date)}
+                              {meet.track_field_end_date && meet.track_field_start_date !== meet.track_field_end_date && 
+                                ` - ${formatDate(meet.track_field_end_date)}`}
+                            </Text>
+                          )}
+                          
+                          {/* Fallback to original date if no new dates */}
+                          {!meet.multi_events_start_date && !meet.track_field_start_date && (
+                            <Text fontSize="xs" color={subtitleColor}>
+                              {formatDate(meet.meet_date)}
+                            </Text>
+                          )}
+                          
+                          {meet.city && meet.state && (
+                            <Text fontSize="xs" color={subtitleColor}>
+                              {meet.city}, {meet.state}
+                            </Text>
+                          )}
+                          
+                          {/* Show registration fee if available */}
+                          {meet.registration_fee && (
+                            <VStack align="start" spacing={0} width="full" maxW="120px">
+                              <Flex justify="space-between" width="full">
+                                <Text fontSize="xs" color="blue.500">Registration:</Text>
+                                <Text fontSize="xs" color="blue.500" textAlign="right" ml={3}>{formatFee(meet.registration_fee)}</Text>
+                              </Flex>
+                              {meet.processing_fee && (
+                                <Flex justify="space-between" width="full">
+                                  <Text fontSize="xs" color="blue.500">Processing:</Text>
+                                  <Text fontSize="xs" color="blue.500" textAlign="right" ml={3}>{formatFee(meet.processing_fee)}</Text>
+                                </Flex>
+                              )}
+                            </VStack>
+                          )}
+                          
+                          {/* Show entry deadline if available */}
+                          {meet.entry_deadline_date && (
+                            <Text fontSize="xs" color="blue.500">
+                              Deadline: {formatDate(meet.entry_deadline_date)}
+                              {meet.entry_deadline_time && ` at ${formatTime(meet.entry_deadline_time)}`}
+                            </Text>
+                          )}
+                          
+                          {meet.lodging_type && (
+                            <Text fontSize="xs" color={subtitleColor}>
+                              Lodging: {meet.lodging_type}{meet.lodging_address ? ` - ${meet.lodging_address}` : ''}
+                            </Text>
+                          )}
+                        </VStack>
+                        <Tag 
+                          size="sm" 
+                          colorScheme={
+                            meet.status === 'Completed' ? 'green' : 
+                            meet.status === 'Cancelled' ? 'red' : 'purple'
+                          }
+                          variant="solid"
+                        >
+                          {meet.status || 'Upcoming'}
+                        </Tag>
+                      </HStack>
+                    </Box>
+                  ))}
+                  </VStack>
+                ) : (
+                  <Box
+                    bg={sectionBg}
+                    p={4}
+                    borderRadius="lg"
+                    textAlign="center"
+                  >
+                    <Text fontSize="sm" color={subtitleColor}>
+                      No upcoming coach meets
+                    </Text>
+                  </Box>
+                )}
+              </Box>
+            )}
+            
+            {/* My Track Meets / Coach's Scheduled Meets - Show second */}
+            <Box>
+              <HStack spacing={2} mb={3}>
+                <Icon as={FaMapMarkerAlt} color="blue.500" fontSize="sm" />
+                <Text fontSize="sm" fontWeight="bold" color={textColor}>
+                  {userRole === 'coach' ? 'My Scheduled Meets' : 'My Track Meets'}
+                </Text>
+                <Badge colorScheme="blue" variant="outline" fontSize="xs">
+                  {trackMeets.length}
+                </Badge>
+              </HStack>
+              
+              {trackMeets.length > 0 ? (
                 <VStack spacing={2}>
                   {trackMeets.slice(0, 2).map(meet => (
                     <Box 
@@ -413,6 +576,10 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
                       border="1px solid"
                       borderColor={borderColor}
                       w="100%"
+                      cursor="pointer"
+                      _hover={{ bg: sectionBg }}
+                      transition="background-color 0.2s"
+                      onClick={() => window.location.href = viewAllLink}
                     >
                       <HStack justify="space-between" align="start" mb={2}>
                         <VStack align="start" spacing={0} flex="1">
@@ -535,114 +702,19 @@ const TrackMeetsCard: React.FC<TrackMeetsCardProps> = ({
                     </Box>
                   ))}
                 </VStack>
-              </Box>
-            )}
-            
-            {/* Coach's Meets */}
-            {coachMeets.length > 0 && (
-              <Box>
-                <HStack spacing={2} mb={3}>
-                  <Icon as={FaCalendarAlt} color="purple.500" fontSize="sm" />
-                  <Text fontSize="sm" fontWeight="bold" color={textColor}>
-                    Coach's Meets
+              ) : (
+                <Box
+                  bg={sectionBg}
+                  p={4}
+                  borderRadius="lg"
+                  textAlign="center"
+                >
+                  <Text fontSize="sm" color={subtitleColor}>
+                    No upcoming meets
                   </Text>
-                  <Badge colorScheme="purple" variant="outline" fontSize="xs">
-                    {coachMeets.length}
-                  </Badge>
-                </HStack>
-                
-                <VStack spacing={2}>
-                  {coachMeets.slice(0, 2).map(meet => (
-                    <Box 
-                      key={meet.id} 
-                      p={3} 
-                      borderRadius="md" 
-                      bg={sectionBg}
-                      border="1px solid"
-                      borderColor={borderColor}
-                      w="100%"
-                    >
-                      <HStack justify="space-between" align="start" mb={2}>
-                        <VStack align="start" spacing={0} flex="1">
-                          <Text fontSize="sm" fontWeight="bold" color={textColor} noOfLines={1}>
-                            {meet.name}
-                          </Text>
-                          
-                          {/* Show separate date ranges if available */}
-                          {meet.multi_events_start_date && (
-                            <Text fontSize="xs" color="blue.500">
-                              Multi Events: {formatDate(meet.multi_events_start_date)}
-                              {meet.multi_events_end_date && meet.multi_events_start_date !== meet.multi_events_end_date && 
-                                ` - ${formatDate(meet.multi_events_end_date)}`}
-                            </Text>
-                          )}
-                          {meet.track_field_start_date && (
-                            <Text fontSize="xs" color="blue.500">
-                              Track & Field: {formatDate(meet.track_field_start_date)}
-                              {meet.track_field_end_date && meet.track_field_start_date !== meet.track_field_end_date && 
-                                ` - ${formatDate(meet.track_field_end_date)}`}
-                            </Text>
-                          )}
-                          
-                          {/* Fallback to original date if no new dates */}
-                          {!meet.multi_events_start_date && !meet.track_field_start_date && (
-                            <Text fontSize="xs" color={subtitleColor}>
-                              {formatDate(meet.meet_date)}
-                            </Text>
-                          )}
-                          
-                          {meet.city && meet.state && (
-                            <Text fontSize="xs" color={subtitleColor}>
-                              {meet.city}, {meet.state}
-                            </Text>
-                          )}
-                          
-                          {/* Show registration fee if available */}
-                          {meet.registration_fee && (
-                            <VStack align="start" spacing={0} width="full" maxW="120px">
-                              <Flex justify="space-between" width="full">
-                                <Text fontSize="xs" color="blue.500">Registration:</Text>
-                                <Text fontSize="xs" color="blue.500" textAlign="right" ml={3}>{formatFee(meet.registration_fee)}</Text>
-                              </Flex>
-                              {meet.processing_fee && (
-                                <Flex justify="space-between" width="full">
-                                  <Text fontSize="xs" color="blue.500">Processing:</Text>
-                                  <Text fontSize="xs" color="blue.500" textAlign="right" ml={3}>{formatFee(meet.processing_fee)}</Text>
-                                </Flex>
-                              )}
-                            </VStack>
-                          )}
-                          
-                          {/* Show entry deadline if available */}
-                          {meet.entry_deadline_date && (
-                            <Text fontSize="xs" color="blue.500">
-                              Deadline: {formatDate(meet.entry_deadline_date)}
-                              {meet.entry_deadline_time && ` at ${formatTime(meet.entry_deadline_time)}`}
-                            </Text>
-                          )}
-                          
-                          {meet.lodging_type && (
-                            <Text fontSize="xs" color={subtitleColor}>
-                              Lodging: {meet.lodging_type}{meet.lodging_address ? ` - ${meet.lodging_address}` : ''}
-                            </Text>
-                          )}
-                        </VStack>
-                        <Tag 
-                          size="sm" 
-                          colorScheme={
-                            meet.status === 'Completed' ? 'green' : 
-                            meet.status === 'Cancelled' ? 'red' : 'purple'
-                          }
-                          variant="solid"
-                        >
-                          {meet.status || 'Upcoming'}
-                        </Tag>
-                      </HStack>
-                    </Box>
-                  ))}
-                </VStack>
-              </Box>
-            )}
+                </Box>
+              )}
+            </Box>
           </VStack>
         )}
 
