@@ -486,36 +486,33 @@ export function Dashboard() {
   };
 
   // Function to handle starting a workout
-  const handleStartWorkout = (workout: any) => {
+  const handleStartWorkout = async (workout: any) => {
     if (profile?.role === 'coach') {
       // For coaches, navigate to workout details
       navigate(`/coach/workouts/${workout.id}`);
     } else {
-      // For athletes, open the execution modal
-      const progress = workoutStore.getProgress(workout.id);
-      let currentIdx = progress ? progress.currentExerciseIndex : 0;
-      const exercises = Array.isArray(workout.exercises) ? workout.exercises : [];
-      
-      // For today's workout (daily-*), always start from the first uncompleted exercise
-      if (workout.id && workout.id.startsWith('daily-')) {
-        const completedExercises = progress?.completedExercises || [];
-        // Find the first uncompleted exercise
-        currentIdx = 0;
-        for (let i = 0; i < exercises.length; i++) {
-          if (!completedExercises.includes(i)) {
-            currentIdx = i;
-            break;
-          }
+      // For athletes, check if this is a monthly plan workout
+      if (workout.id && workout.id.startsWith('daily-') && user?.id) {
+        console.log('🔍 [Dashboard] Starting monthly plan workout with database sync');
+        // Use the sync function for monthly plans
+        const success = await startTodaysWorkoutExecution(user.id, workoutStore, setExecModal);
+        if (!success) {
+          console.error('❌ [Dashboard] Failed to start monthly plan workout');
         }
+      } else {
+        // For regular workouts, use the old method
+        const progress = workoutStore.getProgress(workout.id);
+        let currentIdx = progress ? progress.currentExerciseIndex : 0;
+        const exercises = Array.isArray(workout.exercises) ? workout.exercises : [];
+        
+        setExecModal({
+          isOpen: true,
+          workout: workout,
+          exerciseIdx: currentIdx >= exercises.length ? 0 : currentIdx,
+          timer: 0,
+          running: true,
+        });
       }
-      
-      setExecModal({
-        isOpen: true,
-        workout: workout,
-        exerciseIdx: currentIdx >= exercises.length ? 0 : currentIdx,
-        timer: 0,
-        running: true,
-      });
     }
   };
 
