@@ -2,11 +2,13 @@ import React, { useRef, useState } from 'react';
 import {
   Box, Button, FormControl, FormLabel, Input, VStack, Avatar, Heading, HStack, Select, Spinner, useToast, Text, useColorModeValue
 } from '@chakra-ui/react';
+import { FaUserAlt } from 'react-icons/fa';
 import { useProfile } from '../../hooks/useProfile';
 import { useAvatar } from '../../hooks/useAvatar';
 import { useAvatarLoader } from '../../hooks/useAvatarLoader';
 import ProfileCard from '../../components/ProfileCard';
-import { MobileHeader } from '../../components';
+import PageHeader from '../../components/PageHeader';
+import { usePageHeader } from '../../hooks/usePageHeader';
 
 const genderOptions = ['male', 'female', 'other'];
 
@@ -28,6 +30,13 @@ const AthleteProfile = () => {
   const headerTextColor = useColorModeValue('gray.800', 'white');
   const pageBackgroundColor = useColorModeValue('gray.50', 'gray.900');
   const headerSubtextColor = useColorModeValue('gray.600', 'gray.300');
+
+  // Use the page header hook
+  usePageHeader({
+    title: 'My Profile',
+    subtitle: 'Personal Information',
+    icon: FaUserAlt
+  });
 
   React.useEffect(() => {
     if (profile) {
@@ -148,24 +157,14 @@ const AthleteProfile = () => {
       maxW="100%"
       overflowX="hidden"
     >
-      {/* Mobile Header - Now using reusable component */}
-      <MobileHeader
+      {/* Desktop Header */}
+      <PageHeader
         title="My Profile"
         subtitle="Personal Information"
-        isLoading={isLoading}
+        icon={FaUserAlt}
       />
 
-      {/* Desktop Header */}
-      <Box display={{ base: "none", lg: "block" }} px={{ base: 4, md: 6 }} pt={6}>
-        <Heading size="lg" mb={2}>
-          My Profile
-        </Heading>
-        <Text color={headerSubtextColor}>
-          Personal Information
-        </Text>
-      </Box>
-
-      <Box maxW="lg" mx="auto" mt={{ base: "20px", lg: 8 }}>
+      <Box maxW="lg" mx="auto" px={{ base: 4, md: 6 }} mt={{ base: "20px", lg: 8 }}>
         {!editMode ? (
                   <ProfileCard
           avatarUrl={avatarUrl || undefined}

@@ -33,6 +33,9 @@ import { supabase } from '../../lib/supabase';
 import { EnhancedNutritionAnalysis } from '../../components/EnhancedNutritionAnalysis';
 import { handleNutritionLog } from '../../services/integrationService';
 import { MobileHeader } from '../../components';
+import PageHeader from '../../components/PageHeader';
+import { usePageHeader } from '../../hooks/usePageHeader';
+import { FaUtensils } from 'react-icons/fa';
 
 interface EatingRecord {
   id: string;
@@ -46,6 +49,13 @@ interface EatingRecord {
 export function Nutrition() {
   const { user } = useAuth();
   const toast = useToast();
+  
+  // Use page header hook
+  usePageHeader({
+    title: 'Nutrition',
+    subtitle: 'Track your daily meals and nutrition intake',
+    icon: FaUtensils
+  });
   const [records, setRecords] = useState<EatingRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -166,20 +176,15 @@ export function Nutrition() {
 
   return (
     <Box bg={bgColor} minH="100vh" py={8}>
+      {/* Desktop Header */}
+      <PageHeader
+        title="Nutrition"
+        subtitle="Track your daily meals and nutrition intake"
+        icon={FaUtensils}
+      />
+      
       <Container maxW="container.lg">
-        {/* Mobile Header using reusable component */}
-        <MobileHeader
-          title="Nutrition Tracking"
-          subtitle="Track your daily meals and nutrition intake"
-          isLoading={false}
-        />
-
         <VStack spacing={8} align="stretch" mt={{ base: "20px", lg: 0 }}>
-          {/* Desktop Header */}
-          <Box display={{ base: "none", lg: "block" }}>
-            <Heading size="lg" mb={2}>Nutrition Tracking</Heading>
-            <Text color="gray.600">Track your daily meals and nutrition intake</Text>
-          </Box>
 
           {/* Enhanced Nutrition Analysis */}
           {user?.id && <EnhancedNutritionAnalysis athleteId={user.id} />}

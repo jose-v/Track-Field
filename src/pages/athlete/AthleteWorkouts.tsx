@@ -7,6 +7,7 @@ import { api } from '../../services/api';
 import type { Workout, Exercise } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { FaEye, FaPlayCircle, FaRunning, FaDumbbell, FaRegClock, FaCalendarAlt, FaListUl, FaLeaf, FaRedo, FaCog, FaPlus, FaCalendarWeek, FaCalendarDay, FaClock, FaChartLine, FaBookOpen, FaHistory, FaFilter, FaTrash } from 'react-icons/fa';
+import { BiRun } from 'react-icons/bi';
 import { CheckIcon, EditIcon } from '@chakra-ui/icons'; // For exec modal
 import { FiCalendar, FiClock } from 'react-icons/fi';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
@@ -28,6 +29,8 @@ import { getExercisesWithTeamSharing, createExerciseWithSharing, updateExerciseW
 import { DeletedWorkoutsView } from '../../components/deleted';
 import { startTodaysWorkoutExecution, markExerciseCompletedWithSync } from '../../utils/monthlyPlanWorkoutHelper';
 import { markRegularWorkoutExerciseCompletedWithSync, syncRegularWorkoutCompletionFromDB, markRegularWorkoutAsCompleted } from '../../utils/regularWorkoutHelper';
+import PageHeader from '../../components/PageHeader';
+import { usePageHeader } from '../../hooks/usePageHeader';
 
 // Using Exercise type from api.ts (imported above)
 
@@ -159,6 +162,13 @@ export function AthleteWorkouts() {
   const pageBackgroundColor = useColorModeValue('gray.50', 'gray.900');
   const headerTextColor = useColorModeValue('gray.800', 'white');
   const headerSubtextColor = useColorModeValue('gray.600', 'gray.300');
+
+  // Use the page header hook
+  usePageHeader({
+    title: 'Workouts',
+    subtitle: 'Your Training Schedule',
+    icon: BiRun
+  });
   const iconColor = useColorModeValue('blue.500', 'blue.300');
   
   const { user } = useAuth();
@@ -1565,43 +1575,22 @@ export function AthleteWorkouts() {
 
     return (
       <VStack spacing={6} align="stretch" w="100%">
-        {/* Section Header */}
-        <VStack spacing={2} align="start" w="100%">
-          <HStack spacing={3} align="center" justify="space-between" w="100%">
-            <HStack spacing={3} align="center">
-              <Icon
-                as={sectionInfo.icon}
-                boxSize={6}
-                color={iconColor}
-              />
-              <Heading size="lg" color={headerTextColor}>
-                {sectionInfo.title}
-              </Heading>
-            </HStack>
-            {activeItem === 'exercise-library' && (
-              <Button
-                leftIcon={<FaPlus />}
-                colorScheme="blue"
-                onClick={() => {
-                  if (exerciseLibraryRef.current) {
-                    exerciseLibraryRef.current.openAddModal();
-                  }
-                }}
-              >
-                Add Exercise
-              </Button>
-            )}
-          </HStack>
-          <Text color={headerSubtextColor} fontSize="md">
-            {sectionInfo.description} ({
-              activeItem === 'exercise-library' 
-                ? `${customExercises.length} exercises`
-                : activeItem === 'deleted'
-                ? `${deletedCount} deleted workouts`
-                : `${filteredItems.length} ${workoutFilter === 'monthly' ? 'plans' : 'workouts'}`
-            })
-          </Text>
-        </VStack>
+        {/* Add Exercise Button - Mobile Only (since desktop has it in header) */}
+        {activeItem === 'exercise-library' && (
+          <Flex justify="flex-end" w="100%" display={{ base: "flex", md: "none" }}>
+            <Button
+              leftIcon={<FaPlus />}
+              colorScheme="blue"
+              onClick={() => {
+                if (exerciseLibraryRef.current) {
+                  exerciseLibraryRef.current.openAddModal();
+                }
+              }}
+            >
+              Add Exercise
+            </Button>
+          </Flex>
+        )}
         
         {/* Main Content */}
         {renderMainContent()}
@@ -1642,6 +1631,12 @@ export function AthleteWorkouts() {
         px={{ base: "10px", md: 0 }} // Add 10px padding on mobile, remove on desktop
         py={8}
       >
+        {/* Desktop Header */}
+        <PageHeader
+          title="Workouts"
+          subtitle="Your Training Schedule"
+          icon={BiRun}
+        />
         {isLoading && (
           <Center py={{ base: 8, md: 10 }}>
             <Spinner 

@@ -28,6 +28,9 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { JoinTeamModal } from '../components/JoinTeamModal';
 import { useProfile } from '../hooks/useProfile';
+import PageHeader from '../components/PageHeader';
+import { usePageHeader } from '../hooks/usePageHeader';
+import { HiUserGroup } from 'react-icons/hi';
 
 interface Coach {
   id: string;
@@ -56,6 +59,13 @@ export default function JoinTeam() {
   const textColor = useColorModeValue('gray.600', 'gray.300');
   const iconBg = useColorModeValue('blue.50', 'blue.900');
   const iconColor = useColorModeValue('blue.500', 'blue.300');
+
+  // Use the page header hook
+  usePageHeader({
+    title: 'Join Team',
+    subtitle: 'Join a team as an athlete',
+    icon: HiUserGroup
+  });
 
   // Fetch available coaches
   const { data: coaches, isLoading: coachesLoading, refetch: refetchCoaches } = useQuery<Coach[]>({
@@ -222,30 +232,15 @@ export default function JoinTeam() {
   return (
     <>
       <Box minH="100vh" bg={bgColor}>
-        <Container maxW="4xl" py={8}>
+        {/* Desktop Header */}
+        <PageHeader
+          title="Join Team"
+          subtitle="Join a team as an athlete"
+          icon={HiUserGroup}
+        />
+        
+        <Container maxW="4xl" px={{ base: 4, md: 6 }} mt={{ base: "20px", lg: 8 }}>
           <VStack spacing={8} align="stretch">
-            {/* Header */}
-            <Box textAlign="center">
-              <Box
-                w={16}
-                h={16}
-                mx="auto"
-                mb={4}
-                borderRadius="full"
-                bg={iconBg}
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-              >
-                <Icon as={FiUsers} boxSize={8} color={iconColor} />
-              </Box>
-              <Heading size="xl" color={headingColor} mb={2}>
-                Join a Team
-              </Heading>
-              <Text fontSize="lg" color={textColor} maxW="2xl" mx="auto">
-                Use a 6-character invite code to join a team as {userRole === 'team_manager' ? 'a team manager' : `an ${userRole}`}
-              </Text>
-            </Box>
 
             {/* Role-specific information */}
             {userRole === 'team_manager' && (

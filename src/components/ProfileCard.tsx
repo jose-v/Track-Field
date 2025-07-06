@@ -47,21 +47,6 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
   
   return (
     <Card boxShadow={cardShadow} borderRadius="2xl" overflow="visible" p={0} position="relative" mb={12} minH="520px" bg={cardBg}>
-      {/* Edit Icon Button (top right) */}
-      {onEdit && (
-        <IconButton
-          aria-label="Edit profile"
-          icon={<FaEdit />}
-          position="absolute"
-          top={3}
-          right={3}
-          zIndex={2}
-          size="sm"
-          variant="ghost"
-          colorScheme="blue"
-          onClick={onEdit}
-        />
-      )}
       {/* Banner */}
       <Box w="100%" h="120px" bg={bannerGradient} borderTopLeftRadius="2xl" borderTopRightRadius="2xl" position="relative">
         {/* Overlapping Avatar with camera icon */}

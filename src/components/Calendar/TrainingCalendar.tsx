@@ -798,21 +798,6 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
   if (selectedMonth !== null) {
     return (
       <Box className="page container">
-        {/* Mobile Header using reusable component */}
-        <MobileHeader
-          title="Training Calendar"
-          subtitle={`${months[selectedMonth]} ${currentYear}`}
-          isLoading={false}
-        />
-
-        {/* Desktop Header */}
-        <Heading 
-          as="h1" 
-          mb={6} 
-          display={{ base: "none", lg: "block" }}
-        >
-          Training Calendar
-        </Heading>
         
         <Box 
           className="calendar-content" 
@@ -1037,21 +1022,6 @@ export const TrainingCalendar = ({ isCoach = false, athleteId }: TrainingCalenda
   // Default: Year view
   return (
     <Box className="page container">
-      {/* Mobile Header using reusable component */}
-      <MobileHeader
-        title="Training Calendar"
-        subtitle={currentYear.toString()}
-        isLoading={false}
-      />
-
-      {/* Desktop Header */}
-      <Heading 
-        as="h1" 
-        mb={6} 
-        display={{ base: "none", lg: "block" }}
-      >
-        Training Calendar
-      </Heading>
       
       <Box 
         className="calendar-content" 

@@ -6,8 +6,12 @@ import {
   IconButton,
   Button,
   HStack,
+  VStack,
+  Text,
+  Icon,
   Tooltip,
   useDisclosure,
+  useColorModeValue,
   Tabs,
   TabList,
   Tab,
@@ -15,6 +19,7 @@ import {
   TabPanel
 } from '@chakra-ui/react';
 import { FaPlus, FaSync, FaMapMarkerAlt } from 'react-icons/fa';
+import { BiCalendar } from 'react-icons/bi';
 import { useAuth } from '../../contexts/AuthContext';
 import { LocationSetup } from '../../components/LocationSetup';
 import { CurrentLocationDisplay } from '../../components/CurrentLocationDisplay';
@@ -31,6 +36,8 @@ import { useMyMeets } from '../../hooks/meets';
 
 // Import consolidated types
 import type { TrackMeet } from '../../types/meetTypes';
+import PageHeader from '../../components/PageHeader';
+import { usePageHeader } from '../../hooks/usePageHeader';
 
 export function AthleteMeets() {
   const { user } = useAuth();
@@ -111,27 +118,45 @@ export function AthleteMeets() {
     }
   };
 
+  const iconColor = useColorModeValue('blue.500', 'blue.300');
+  const headerTextColor = useColorModeValue('gray.800', 'white');
+  const headerSubtextColor = useColorModeValue('gray.600', 'gray.300');
+
+  // Use the page header hook
+  usePageHeader({
+    title: 'Meets',
+    subtitle: 'Events & Competitions',
+    icon: BiCalendar
+  });
+
   return (
     <Box py={8}>
-      {/* Header with controls */}
-      <Flex justify="space-between" align="center" mb={6}>
-        <Heading size="lg">Track Meets</Heading>
-        
-        {/* Action Buttons */}
+      {/* Desktop Header */}
+      <PageHeader
+        title="Meets"
+        subtitle="Events & Competitions"
+        icon={BiCalendar}
+      />
+
+      {/* Mobile Controls - Mobile Only */}
+      <Flex justify="space-between" align="center" mb={6} display={{ base: "flex", md: "none" }}>
+        {/* Geolocation controls aligned left on mobile */}
         <HStack spacing={2}>
-          <HStack spacing={2}>
-            <Tooltip label="Set your location for travel times">
-              <IconButton
-                icon={<FaMapMarkerAlt />}
-                aria-label="Set location"
-                onClick={onLocationSetupOpen}
-                variant="ghost"
-                colorScheme="green"
-                size="md" 
-              />
-            </Tooltip>
-            <CurrentLocationDisplay />
-          </HStack>
+          <Tooltip label="Set your location for travel times">
+            <IconButton
+              icon={<FaMapMarkerAlt />}
+              aria-label="Set location"
+              onClick={onLocationSetupOpen}
+              variant="ghost"
+              colorScheme="green"
+              size="md" 
+            />
+          </Tooltip>
+          <CurrentLocationDisplay />
+        </HStack>
+        
+        {/* Action Buttons on the right */}
+        <HStack spacing={2}>
           <Tooltip label="Refresh meets">
             <IconButton
               icon={<FaSync />}

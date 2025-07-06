@@ -48,11 +48,20 @@ import {
 } from '../../utils/analytics/performance';
 import { useSleepRecords, SleepRecord } from '../../hooks/useSleepRecords';
 import { MobileHeader } from '../../components';
+import PageHeader from '../../components/PageHeader';
+import { usePageHeader } from '../../hooks/usePageHeader';
 
 export function Sleep() {
   const { user } = useAuth();
   const toast = useToast();
   const queryClient = useQueryClient();
+  
+  // Use page header hook
+  usePageHeader({
+    title: 'Sleep',
+    subtitle: 'Track your sleep patterns and quality',
+    icon: FaBed
+  });
   
   // Use React Query hook instead of local state
   const { data: records = [], isLoading: recordsLoading, error: recordsError, refetch: refetchRecords } = useSleepRecords();
@@ -223,26 +232,15 @@ export function Sleep() {
 
   return (
     <Box minH="100vh" bg={bgColor}>
+      {/* Desktop Header */}
+      <PageHeader
+        title="Sleep"
+        subtitle="Track your sleep patterns and quality"
+        icon={FaBed}
+      />
+      
       <Container maxW="6xl" py={8}>
-        {/* Mobile Header using reusable component */}
-        <MobileHeader
-          title="Sleep Tracking"
-          subtitle="Monitor your sleep patterns"
-          isLoading={false}
-        />
-
         <VStack spacing={8} align="stretch" mt={{ base: "20px", lg: 0 }}>
-          {/* Desktop Header */}
-          <HStack 
-            spacing={4} 
-            align="center" 
-            display={{ base: "none", lg: "flex" }}
-          >
-            <FaBed size={32} color="#4299E1" />
-            <Heading size="lg" color="blue.500">
-              Sleep Tracking
-            </Heading>
-          </HStack>
 
           {/* Add Record Form */}
           <Box

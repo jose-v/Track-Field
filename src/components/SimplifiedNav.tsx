@@ -24,6 +24,7 @@ import { ShareComponent } from './ShareComponent';
 import { useScrollDirection } from '../hooks/useScrollDirection';
 import { NotificationsModal } from './NotificationsModal';
 import { useUnreadNotificationCount } from '../hooks/useUnreadNotificationCount';
+import { usePageHeaderListener } from '../hooks/usePageHeader';
 
 interface SimplifiedNavProps {
   roleTitle: string;
@@ -56,6 +57,7 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
   const { profile: displayProfile, displayName, initials } = useProfileDisplay();
   const { showFeedbackModal } = useFeedback();
   const { isHeaderVisible } = useScrollDirection(15);
+  const pageHeaderInfo = usePageHeaderListener();
 
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     // Check localStorage for the saved sidebar state
@@ -168,9 +170,9 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
         transition="top 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
         transform="translateZ(0)"
       >
-        {/* Title and Subtitle for mobile */}
-        <Box flex="1" mr={3}>
-          {location.pathname.includes('/athlete/workouts') ? (
+        {/* Title and Subtitle for mobile ONLY */}
+        <Box flex="1" mr={3} display={{ base: "block", md: "none" }}>
+          {pageHeaderInfo ? (
             <Box>
               <Text 
                 fontSize="md"
@@ -180,7 +182,7 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
                 lineHeight="1.2"
                 noOfLines={1}
               >
-                Workouts
+                {pageHeaderInfo.title}
               </Text>
               <Text 
                 fontSize="sm"
@@ -190,7 +192,7 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
                 lineHeight="1.1"
                 noOfLines={1}
               >
-                Your Training Schedule
+                {pageHeaderInfo.subtitle}
               </Text>
             </Box>
           ) : welcomeMessage && location.pathname.includes('/dashboard') && (

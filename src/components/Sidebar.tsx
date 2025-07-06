@@ -49,7 +49,7 @@ import {
 import { BsCalendarCheck, BsChatDots } from 'react-icons/bs';
 import { MdLoop, MdRestaurantMenu, MdOutlineBedtime, MdOutlineReport, MdOutlineForum } from 'react-icons/md';
 import { LuUsers, LuCalendarClock, LuClipboardList, LuBell } from 'react-icons/lu';
-import { BiRun, BiUser, BiCalendar, BiDish, BiMoon } from 'react-icons/bi';
+import { BiRun, BiCalendar, BiDish, BiMoon } from 'react-icons/bi';
 import { HiUserGroup } from 'react-icons/hi';
 import { IoFitnessOutline } from 'react-icons/io5';
 import { HamburgerIcon } from '@chakra-ui/icons';
@@ -333,7 +333,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
         '/athlete/nutrition': BiDish,
         '/athlete/sleep': BiMoon,
         '/athlete/notifications': FaBell,
-        '/athlete/profile': BiUser,
+        '/athlete/profile': FaUserAlt,
         '/athlete/settings': FaCog,
       };
 

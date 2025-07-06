@@ -34,12 +34,17 @@ import {
   MyTeamsCard,
   MobileTopNavBar
 } from '../components'
+import SleepQuickLogCard from '../components/SleepQuickLogCard'
+import WellnessQuickLogCard from '../components/WellnessQuickLogCard'
+import RPEPromptCard from '../components/RPEPromptCard'
 import { supabase } from '../lib/supabase'
 import TodayWorkoutsCard from '../components/TodayWorkoutsCard'
 import usePageClass from '../hooks/usePageClass'
 import { api } from '../services/api'
 import { startTodaysWorkoutExecution } from '../utils/monthlyPlanWorkoutHelper'
 import { markExerciseCompletedWithSync } from '../utils/monthlyPlanWorkoutHelper'
+import PageHeader from '../components/PageHeader'
+import { usePageHeader } from '../hooks/usePageHeader'
 
 // Function to format date in "Month Day, Year" format
 function formatDate(dateStr: string): string {
@@ -683,6 +688,12 @@ export function Dashboard() {
     return isFirstTimeUser() ? `Welcome, ${firstName}` : `Welcome back, ${firstName}`;
   };
 
+  // Page header with no icon for dashboard
+  usePageHeader({
+    title: getWelcomeMessage(),
+    subtitle: `${profile?.first_name || user?.email || 'Athlete'}, ready to crush your goals today?`
+  });
+
   // Check for email verification success toast
   useEffect(() => {
     const shouldShowToast = localStorage.getItem('show-email-verified-toast')
@@ -721,67 +732,58 @@ export function Dashboard() {
         overflowX="hidden"
         mx="auto"
       >
-        {/* Mobile Layout */}
-        <Box display={{ base: "block", lg: "none" }} w="100%" mb={8} pt={16} position="relative">
-          {/* Mobile Top Navigation Bar with welcome message and avatar */}
-          <MobileTopNavBar welcomeMessage={getWelcomeMessage()} />
-          
-          {/* Weather Card - Full width matching card below, reduced top spacing */}
-          <Box mb={4} mt={-12}>
-            <WeatherCard 
-              city={profile?.city || "Greensboro"}
-              state={profile?.state ? getStateAbbr(profile.state) : "NC"}
-              weather={{
-                temp: "71",
-                condition: "Clouds",
-                description: "scattered clouds"
-              }}
-              isLoading={profileLoading}
-            />
-          </Box>
-        </Box>
-
-        {/* Desktop Layout */}
+        {/* Desktop Header - Title Only */}
         <Box display={{ base: "none", lg: "block" }} w="100%" mb={8}>
-          {/* Desktop Header Row */}
-          <Flex 
-            direction="row" 
-            gap={6}
-            align="flex-start"
-            justify="space-between"
-            w="100%"
-          >
-            {/* Main Welcome Content */}
-            <VStack 
-              align="start" 
-              spacing={2} 
-              flex="1"
-              minW={0}
-            >
+          <Box px={{ base: 4, md: 6 }} pt={6}>
+            <VStack spacing={2} align="start" w="100%" mb={4}>
               <Heading 
-                fontSize="4xl" 
-                mb={2}
-                textAlign="left"
+                size="lg" 
+                color={useColorModeValue('gray.800', 'white')}
               >
                 {getWelcomeMessage()}
               </Heading>
               <Text 
-                fontSize="xl" 
-                color="gray.500" 
-                textAlign="left"
+                color={useColorModeValue('gray.600', 'gray.300')} 
+                fontSize="md"
               >
-                {profile?.first_name || user?.email || 'Athlete'}, ready to crush your goals today?
+                {`${profile?.first_name || user?.email || 'Athlete'}, ready to crush your goals today?`}
               </Text>
             </VStack>
+          </Box>
+        </Box>
 
-            {/* Desktop Weather Card */}
-            <Box 
-              w="400px"
-              minW="390px" 
-              maxW="442px"
-              flexShrink={1}
-              overflow="hidden"
+        {/* Mobile Weather Card */}
+        <Box display={{ base: "block", lg: "none" }} w="100%" mb={8}>
+          <WeatherCard 
+            city={profile?.city || "Greensboro"}
+            state={profile?.state ? getStateAbbr(profile.state) : "NC"}
+            weather={{
+              temp: "71",
+              condition: "Clouds",
+              description: "scattered clouds"
+            }}
+            isLoading={profileLoading}
+          />
+        </Box>
+
+        {/* Desktop 3-Column Layout */}
+        <Box display={{ base: "none", lg: "block" }} w="100%" mb={8}>
+          <Flex 
+            direction="row" 
+            gap={6}
+            align="flex-start"
+            w="100%"
+          >
+            {/* Left Column - Weather + Sleep + Wellness */}
+            <VStack 
+              w="350px"
+              minW="320px" 
+              maxW="380px"
+              flexShrink={0}
+              spacing={6}
+              align="stretch"
             >
+              {/* Weather Card */}
               <WeatherCard 
                 city={profile?.city || "Greensboro"}
                 state={profile?.state ? getStateAbbr(profile.state) : "NC"}
@@ -792,39 +794,72 @@ export function Dashboard() {
                 }}
                 isLoading={profileLoading}
               />
+              
+              {/* Sleep Quick Log Card */}
+              <SleepQuickLogCard onLogComplete={handleDataUpdate} />
+              
+              {/* Wellness Quick Log Card */}
+              <WellnessQuickLogCard onLogComplete={handleDataUpdate} />
+            </VStack>
+
+            {/* Center Column - Today's Workout Card */}
+            <Box flex="1" minW={0}>
+              <TodayWorkoutsCard
+                todayWorkouts={todayWorkouts}
+                upcomingWorkouts={upcomingWorkouts}
+                profile={profile}
+                getWorkoutProgressData={getWorkoutProgressData}
+                handleStartWorkout={handleStartWorkout}
+                handleResetProgress={handleResetProgress}
+                workoutsLoading={workoutsLoading}
+                profileLoading={profileLoading}
+              />
             </Box>
+
+            {/* Right Column - Track Meets + My Teams */}
+            <VStack 
+              w="350px"
+              minW="320px" 
+              maxW="380px"
+              flexShrink={0}
+              spacing={6}
+              align="stretch"
+            >
+              {/* Track Meets Card */}
+              <TrackMeetsCard viewAllLink="/athlete/meets" />
+              
+              {/* My Teams Card */}
+              <MyTeamsCard maxTeamsToShow={3} />
+            </VStack>
           </Flex>
         </Box>
 
-        {/* Today's Workouts Card */}
-        <TodayWorkoutsCard
-          todayWorkouts={todayWorkouts}
-          upcomingWorkouts={upcomingWorkouts}
-          profile={profile}
-          getWorkoutProgressData={getWorkoutProgressData}
-          handleStartWorkout={handleStartWorkout}
-          handleResetProgress={handleResetProgress}
-          workoutsLoading={workoutsLoading}
-          profileLoading={profileLoading}
-        />
+        {/* Mobile Today's Workouts Card */}
+        <Box display={{ base: "block", lg: "none" }} w="100%">
+          <TodayWorkoutsCard
+            todayWorkouts={todayWorkouts}
+            upcomingWorkouts={upcomingWorkouts}
+            profile={profile}
+            getWorkoutProgressData={getWorkoutProgressData}
+            handleStartWorkout={handleStartWorkout}
+            handleResetProgress={handleResetProgress}
+            workoutsLoading={workoutsLoading}
+            profileLoading={profileLoading}
+          />
+        </Box>
 
-        {/* Today's Check-in Section */}
-        <TodaysCheckInSection onDataUpdate={handleDataUpdate} />
+        {/* Today's Check-in Section - Mobile Only */}
+        <Box display={{ base: "block", lg: "none" }} w="100%">
+          <TodaysCheckInSection onDataUpdate={handleDataUpdate} />
+        </Box>
 
-        {/* Analytics & Info Cards */}
-        <SimpleGrid 
-          columns={{ base: 1, md: 2, lg: 3 }} 
-          spacing={{ base: 4, md: 8 }} 
-          my={{ base: 6, md: 10 }}
-          w="100%"
-        >
-          {/* My Teams Card */}
-          <MyTeamsCard maxTeamsToShow={3} />
+        {/* RPE Card - Mobile Only */}
+        <Box display={{ base: "block", lg: "none" }} w="100%" mb={8}>
+          <RPEPromptCard onLogComplete={handleDataUpdate} />
+        </Box>
 
-          {/* Track Meets Card */}
-          <TrackMeetsCard viewAllLink="/athlete/meets" />
-
-          {/* Sleep Card */}
+        {/* Mobile Sleep Card - Before other cards */}
+        <Box display={{ base: "block", lg: "none" }} w="100%" mb={8}>
           {profileLoading ? (
             <SkeletonCard
               height="330px"
@@ -837,6 +872,29 @@ export function Dashboard() {
           ) : (
             <SleepStatsCard />
           )}
+        </Box>
+
+        {/* Desktop RPE Card - Below 3-column layout */}
+        <Box display={{ base: "none", lg: "block" }} w="100%" mb={8}>
+          <RPEPromptCard onLogComplete={handleDataUpdate} />
+        </Box>
+
+        {/* Analytics & Info Cards */}
+        <SimpleGrid 
+          columns={{ base: 1, md: 2, lg: 1 }} 
+          spacing={{ base: 4, md: 8 }} 
+          my={{ base: 6, md: 10 }}
+          w="100%"
+        >
+          {/* My Teams Card - Mobile Only */}
+          <Box display={{ base: "block", lg: "none" }}>
+            <MyTeamsCard maxTeamsToShow={3} />
+          </Box>
+
+          {/* Track Meets Card - Mobile Only */}
+          <Box display={{ base: "block", lg: "none" }}>
+            <TrackMeetsCard viewAllLink="/athlete/meets" />
+          </Box>
 
           {/* Nutrition Card */}
           {(profileLoading || nutritionLoading) ? (

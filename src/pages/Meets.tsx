@@ -88,6 +88,7 @@ import {
   FaBook,
   FaFolder
 } from 'react-icons/fa';
+import { BiCalendar } from 'react-icons/bi';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -107,6 +108,8 @@ import { CoachEventBulkCreator } from '../components/meets/CoachEventBulkCreator
 import { CoachAthleteEventManager } from '../components/meets/CoachAthleteEventManager';
 import { EventsListSection } from '../components/meets/EventsListSection';
 import { MeetFilesList } from '../components/meets/MeetFilesList';
+import PageHeader from '../components/PageHeader';
+import { usePageHeader } from '../hooks/usePageHeader';
 
 // Info Badge Component - Shows database stats
 const InfoBadge: React.FC<{ children: React.ReactNode; count?: number }> = ({ children, count }) => (
@@ -2659,6 +2662,13 @@ const MeetCard: React.FC<MeetCardProps> = ({
 };
 
 export const Meets: React.FC = () => {
+  // Use page header hook
+  usePageHeader({
+    title: 'Meets',
+    subtitle: 'Events & Competitions',
+    icon: BiCalendar
+  });
+
   const navigate = useNavigate();
   const toast = useToast();
   const { user } = useAuth();
@@ -3722,33 +3732,38 @@ export const Meets: React.FC = () => {
 
   return (
     <Box minH="100vh" bg="gray.900">
-      {/* Header */}
-      <Box py={4}>
+      {/* Desktop Header */}
+      <PageHeader
+        title="Meets"
+        subtitle="Events & Competitions"
+        icon={BiCalendar}
+      />
+      
+      {/* Desktop Action Buttons */}
+      <Box py={4} display={{ base: "none", md: "block" }}>
         <Container maxW="7xl">
-          <Flex justify="space-between" align="center">
-            <HStack spacing={4}>
-              <Heading size="lg" color="white">Track Meets</Heading>
-            </HStack>
-            
-            <HStack spacing={4}>
-              {/* Location Setup */}
+          <Flex justify="flex-end" align="center" w="100%">
+            {userIsCoach && (
+              <Button
+                leftIcon={<FaPlus />}
+                colorScheme="blue"
+                size="sm"
+                onClick={handleCreateMeet}
+              >
+                Create Meet
+              </Button>
+            )}
+          </Flex>
+        </Container>
+      </Box>
+
+      {/* Mobile Header - Mobile Only */}
+      {userIsCoach && (
+        <Box py={2} display={{ base: "block", md: "none" }}>
+          <Container maxW="7xl">
+            <Flex justify="flex-end" align="center">
+              {/* Action Buttons */}
               <HStack spacing={2}>
-                <Tooltip label="Set your location for travel times" placement="bottom">
-                  <IconButton
-                    icon={<FaMapMarkerAlt />}
-                    aria-label="Set location"
-                    onClick={onLocationSetupOpen}
-                    variant="ghost"
-                    colorScheme="green"
-                    size="sm"
-                    color="gray.300"
-                    _hover={{ color: "white", bg: "gray.700" }}
-                  />
-                </Tooltip>
-                <CurrentLocationDisplay />
-              </HStack>
-              
-              {userIsCoach && (
                 <Button
                   leftIcon={<FaPlus />}
                   colorScheme="blue"
@@ -3757,11 +3772,11 @@ export const Meets: React.FC = () => {
                 >
                   Create Meet
                 </Button>
-              )}
-            </HStack>
-          </Flex>
-        </Container>
-      </Box>
+              </HStack>
+            </Flex>
+          </Container>
+        </Box>
+      )}
 
       {/* Main Content */}
       <Flex 
@@ -3977,34 +3992,30 @@ export const Meets: React.FC = () => {
                 </Tab>
               </TabList>
 
+              {/* Location Display - Shows on all tabs */}
+              <Box 
+                bg="gray.800" 
+                borderLeft="4px solid" 
+                borderColor="green.400" 
+                p={3} 
+                mb={4}
+                mt={4}
+                borderRadius="md"
+                cursor="pointer"
+                onClick={onLocationSetupOpen}
+                _hover={{ bg: "gray.700" }}
+              >
+                <HStack spacing={2}>
+                  <Tooltip label="Set your location for travel times" placement="top">
+                    <Icon as={FaMapMarkerAlt} color="green.400" size="sm" />
+                  </Tooltip>
+                  <CurrentLocationDisplay />
+                </HStack>
+              </Box>
+
               <TabPanels>
                 {/* Next/Current Meet Tab */}
                 <TabPanel px={0}>
-                  {filteredMeets.nextMeet.length > 0 && (
-                    <Box 
-                      bg="gray.800" 
-                      borderLeft="4px solid" 
-                      borderColor={filteredMeets.isCurrentMeet ? "green.400" : "blue.400"} 
-                      p={3} 
-                      mb={4}
-                      borderRadius="md"
-                    >
-                      <HStack spacing={2}>
-                        <Icon as={FaCalendarAlt} color={filteredMeets.isCurrentMeet ? "green.400" : "blue.400"} size="sm" />
-                        <Text fontSize="sm" fontWeight="medium" color={filteredMeets.isCurrentMeet ? "green.300" : "blue.300"}>
-                          {filteredMeets.isCurrentMeet ? 'Current Meet:' : 'Next Meet:'}
-                        </Text>
-                        <Text fontSize="sm" color="gray.300">
-                          {format(parseISO(filteredMeets.nextMeet[0].meet_date), 'MMM d, yyyy')}
-                        </Text>
-                        {filteredMeets.isCurrentMeet && (
-                          <Badge colorScheme="green" variant="solid" fontSize="xs" ml={2}>
-                            TODAY
-                          </Badge>
-                        )}
-                      </HStack>
-                    </Box>
-                  )}
                   {renderMeets(filteredMeets.nextMeet, true)}
                 </TabPanel>
 

@@ -22,8 +22,10 @@ import { supabase } from '../lib/supabaseClient';
 import FeedPost from '../components/loop/FeedPost';
 import CreatePostModal from '../components/loop/CreatePostModal';
 import PostModal from '../components/loop/PostModal';
-import { FaPlus, FaImage, FaVideo, FaGlobe } from 'react-icons/fa';
+import { FaPlus, FaImage, FaVideo, FaGlobe, FaUsers } from 'react-icons/fa';
 import '../styles/Loop.css';
+import PageHeader from '../components/PageHeader';
+import { usePageHeader } from '../hooks/usePageHeader';
 
 // Global style to hide footer - more specific approach to avoid modal footers
 const hideFooter = () => {
@@ -78,6 +80,13 @@ const Loop: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const toast = useToast();
   const navigate = useNavigate();
+  
+  // Use page header hook
+  usePageHeader({
+    title: 'Loop',
+    subtitle: 'Connect with your team and share updates',
+    icon: FaUsers
+  });
   
   // Color mode values
   const bgColor = useColorModeValue('white', 'gray.800');
@@ -463,6 +472,13 @@ const Loop: React.FC = () => {
   
   return (
     <div className="loop-page-wrapper">
+      {/* Desktop Header */}
+      <PageHeader
+        title="Loop"
+        subtitle="Connect with your team and share updates"
+        icon={FaUsers}
+      />
+      
       <div className="loop-content" style={{position: 'relative'}}>
         {/* Team Members Bar */}
         <Box
