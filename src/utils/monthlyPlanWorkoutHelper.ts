@@ -19,7 +19,7 @@ async function getMonthlyPlanCompletionFromDB(userId: string): Promise<number[]>
       .select('completed_exercises')
       .eq('athlete_id', userId)
       .in('status', ['assigned', 'in_progress'])
-      .order('created_at', { ascending: false })
+      .order('assigned_at', { ascending: false })
       .limit(1)
       .single();
 
@@ -48,7 +48,7 @@ async function saveMonthlyPlanCompletionToDB(userId: string, completedExercises:
       .select('id, status')
       .eq('athlete_id', userId)
       .in('status', ['assigned', 'in_progress'])
-      .order('created_at', { ascending: false })
+      .order('assigned_at', { ascending: false })
       .limit(1)
       .single();
 
