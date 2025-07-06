@@ -26,8 +26,8 @@ import { isRunExercise, validateTime } from '../../utils/exerciseUtils';
 import { ExerciseLibrary, Exercise as LibraryExercise } from '../../components/ExerciseLibrary';
 import { getExercisesWithTeamSharing, createExerciseWithSharing, updateExerciseWithSharing } from '../../utils/exerciseQueries';
 import { DeletedWorkoutsView } from '../../components/deleted';
-import { startTodaysWorkoutExecution } from '../../utils/monthlyPlanWorkoutHelper';
-import { markExerciseCompletedWithSync } from '../../utils/monthlyPlanWorkoutHelper';
+import { startTodaysWorkoutExecution, markExerciseCompletedWithSync } from '../../utils/monthlyPlanWorkoutHelper';
+import { markRegularWorkoutExerciseCompletedWithSync, syncRegularWorkoutCompletionFromDB, markRegularWorkoutAsCompleted } from '../../utils/regularWorkoutHelper';
 
 // Using Exercise type from api.ts (imported above)
 
@@ -598,7 +598,7 @@ export function AthleteWorkouts() {
       }
           const { data: assignments, error } = await supabase
             .from('athlete_workouts')
-            .select('workout_id, status')
+            .select('workout_id, status, completed_exercises')
             .eq('athlete_id', user.id);
             
           if (error) {
@@ -607,36 +607,33 @@ export function AthleteWorkouts() {
           }
           
           if (assignments) {
-            assignments.forEach(assignment => {
+            for (const assignment of assignments) {
               const workout = assignedWorkouts.find(w => w.id === assignment.workout_id);
-              if (!workout) return;
+              if (!workout) continue;
               
               const totalExercises = getActualExerciseCount(workout);
               
-              // If workout is completed in database, mark all exercises as completed in store
-              if (assignment.status === 'completed') {
-                if (process.env.NODE_ENV === 'development') {
-              // console.log(`Setting workout ${assignment.workout_id} as fully completed`);
-            }
-                // Create an array of all exercise indices
-                const allExercises = Array.from({ length: totalExercises }, (_, i) => i);
-                // Mark all exercises as completed
-                allExercises.forEach(idx => {
-                  workoutStore.markExerciseCompleted(assignment.workout_id, idx);
-                });
-                // Update progress to show as complete
-                workoutStore.updateProgress(assignment.workout_id, totalExercises, totalExercises);
-              } 
-              // For in_progress workouts, just initialize with zero or previously stored values
-              else if (assignment.status === 'in_progress') {
-                // Get progress from the local store, but don't override with database data
-                // since we're not storing per-exercise completion anymore
-                const progress = workoutStore.getProgress(assignment.workout_id);
-                if (!progress) {
-                  // Initialize with zero completed
-                }
+              // Load specific completed exercises from database
+              const completedExercises = assignment.completed_exercises || [];
+              
+              // Sync each completed exercise to the local store
+              completedExercises.forEach((exerciseIdx: number) => {
+                workoutStore.markExerciseCompleted(assignment.workout_id, exerciseIdx);
+              });
+              
+              // Update progress with correct completion count
+              const isCompleted = assignment.status === 'completed' || completedExercises.length >= totalExercises;
+              workoutStore.updateProgress(
+                assignment.workout_id, 
+                completedExercises.length, 
+                totalExercises,
+                isCompleted
+              );
+              
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`[regularWorkoutHelper] Synced workout ${assignment.workout_id}: ${completedExercises.length}/${totalExercises} exercises completed`);
               }
-            });
+            }
           }
         } catch (syncErr) {
           console.error('Error syncing with database:', syncErr);
@@ -686,8 +683,11 @@ export function AthleteWorkouts() {
     if (workoutId.startsWith('daily-') && user?.id) {
       // Use the sync function for monthly plans
       await markExerciseCompletedWithSync(user.id, workoutId, exIdx, workoutStore);
+    } else if (user?.id) {
+      // Use the sync function for regular workouts
+      await markRegularWorkoutExerciseCompletedWithSync(user.id, workoutId, exIdx, workoutStore);
     } else {
-      // Mark current exercise as completed for regular workouts
+      // Fallback to local-only for when user?.id is not available
       workoutStore.markExerciseCompleted(workoutId, exIdx);
     }
     
@@ -730,8 +730,11 @@ export function AthleteWorkouts() {
     if (workoutId.startsWith('daily-') && user?.id) {
       // Use the sync function for monthly plans
       await markExerciseCompletedWithSync(user.id, workoutId, finalExerciseIdx, workoutStore);
+    } else if (user?.id) {
+      // Use the sync function for regular workouts
+      await markRegularWorkoutExerciseCompletedWithSync(user.id, workoutId, finalExerciseIdx, workoutStore);
     } else {
-      // Mark the final exercise as completed if it hasn't been marked yet
+      // Fallback to local-only for when user?.id is not available
       workoutStore.markExerciseCompleted(workoutId, finalExerciseIdx);
     }
     
@@ -750,7 +753,7 @@ export function AthleteWorkouts() {
       // Update database assignment status (only for regular workouts, not monthly plans)
       if (user?.id && !workoutId.startsWith('daily-')) {
         try {
-          await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutId, 'completed');
+          await markRegularWorkoutAsCompleted(user.id, workoutId);
           if (process.env.NODE_ENV === 'development') {
             console.log(`Workout ${workoutId} marked as completed in database`);
           }

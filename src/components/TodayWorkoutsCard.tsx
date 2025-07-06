@@ -30,6 +30,7 @@ import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkoutStore } from '../lib/workoutStore';
 import { getMonthlyPlanCompletionFromDB } from '../utils/monthlyPlanWorkoutHelper';
+import { syncRegularWorkoutCompletionFromDB } from '../utils/regularWorkoutHelper';
 
 interface TodayWorkoutsCardProps {
   todayWorkouts: any[];
@@ -201,6 +202,38 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
     
     syncCompletionWithDatabase();
   }, [dailyWorkout?.hasWorkout, dailyWorkout?.primaryWorkout?.weeklyWorkout?.id, user?.id]);
+
+  // Sync regular workouts with database
+  useEffect(() => {
+    const syncRegularWorkoutsWithDatabase = async () => {
+      if (!user?.id) return;
+      
+      // Sync all today's workouts and upcoming workouts
+      const allWorkouts = [...todayWorkouts, ...upcomingWorkouts];
+      
+      for (const workout of allWorkouts) {
+        if (workout.id && !workout.id.startsWith('daily-')) {
+          // Get exercise count for this workout
+          const exerciseCount = workout.exercises ? workout.exercises.length : 0;
+          
+          // Sync completion from database
+          try {
+            await syncRegularWorkoutCompletionFromDB(
+              user.id, 
+              workout.id, 
+              { getProgress, markExerciseCompleted: storeMarkCompleted, updateProgress }, 
+              exerciseCount
+            );
+            console.log(`✅ [TodayWorkoutsCard] Synced regular workout ${workout.id} with database`);
+          } catch (error) {
+            console.error(`🔥 [TodayWorkoutsCard] Error syncing regular workout ${workout.id}:`, error);
+          }
+        }
+      }
+    };
+    
+    syncRegularWorkoutsWithDatabase();
+  }, [todayWorkouts, upcomingWorkouts, user?.id]);
 
   // Helper function to format exercise count
   const getExerciseCountText = (exercises: any[]) => {
