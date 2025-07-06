@@ -11,7 +11,7 @@ import { supabase } from '../lib/supabase';
 /**
  * Get completion status for today's exercises from the database
  */
-async function getMonthlyPlanCompletionFromDB(userId: string): Promise<number[]> {
+export async function getMonthlyPlanCompletionFromDB(userId: string): Promise<number[]> {
   try {
     // Get the current assignment (can be 'assigned' or 'in_progress')
     const { data: assignment, error } = await supabase
@@ -252,17 +252,30 @@ export async function markExerciseCompletedWithSync(
   workoutStore: any
 ): Promise<void> {
   try {
-    // Mark in local store first
+    console.log(`🔍 [monthlyPlanWorkoutHelper] Marking exercise ${exerciseIdx} complete for user ${userId}`);
+    
+    // Get current completion status from database (source of truth)
+    const dbCompleted = await getMonthlyPlanCompletionFromDB(userId);
+    console.log('🔍 [monthlyPlanWorkoutHelper] Current DB completion:', dbCompleted);
+    
+    // Add the new exercise to the completion list if not already completed
+    const mergedCompleted = [...new Set([...dbCompleted, exerciseIdx])].sort((a, b) => a - b);
+    console.log('🔍 [monthlyPlanWorkoutHelper] Merged completion:', mergedCompleted);
+    
+    // Save merged completion to database
+    await saveMonthlyPlanCompletionToDB(userId, mergedCompleted);
+    
+    // Update local store with merged completion data
     workoutStore.markExerciseCompleted(workoutId, exerciseIdx);
     
-    // Get updated local completion status
-    const progress = workoutStore.getProgress(workoutId);
-    const localCompleted = progress?.completedExercises || [];
+    // Also sync any other completed exercises from DB that might not be in local store
+    mergedCompleted.forEach(idx => {
+      if (idx !== exerciseIdx) {
+        workoutStore.markExerciseCompleted(workoutId, idx);
+      }
+    });
     
-    // Save to database
-    await saveMonthlyPlanCompletionToDB(userId, localCompleted);
-    
-    console.log(`✅ [monthlyPlanWorkoutHelper] Marked exercise ${exerciseIdx} complete and synced to DB`);
+    console.log(`✅ [monthlyPlanWorkoutHelper] Marked exercise ${exerciseIdx} complete and synced to DB. Total completed: ${mergedCompleted.length}`);
   } catch (error) {
     console.error('🔥 [monthlyPlanWorkoutHelper] Error marking exercise complete:', error);
   }

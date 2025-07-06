@@ -29,6 +29,7 @@ import { WorkoutCard } from './WorkoutCard';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkoutStore } from '../lib/workoutStore';
+import { getMonthlyPlanCompletionFromDB } from '../utils/monthlyPlanWorkoutHelper';
 
 interface TodayWorkoutsCardProps {
   todayWorkouts: any[];
@@ -162,18 +163,44 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
     getTodaysWorkout();
   }, [user?.id, profile?.role, profileLoading]);
 
-  // Initialize workout progress when daily workout is loaded
+  // Initialize workout progress when daily workout is loaded and sync with database
   useEffect(() => {
-    if (dailyWorkout?.hasWorkout && dailyWorkout.primaryWorkout?.exercises) {
-      const workoutId = getTodaysWorkoutId();
-      const todaysExercises = getTodaysExercises(dailyWorkout.primaryWorkout.exercises);
-      
-      // Initialize progress if it doesn't exist
-      if (!getProgress(workoutId) && todaysExercises.length > 0) {
-        updateProgress(workoutId, 0, todaysExercises.length);
+    const syncCompletionWithDatabase = async () => {
+      if (dailyWorkout?.hasWorkout && dailyWorkout.primaryWorkout?.exercises && user?.id) {
+        const workoutId = getTodaysWorkoutId();
+        const todaysExercises = getTodaysExercises(dailyWorkout.primaryWorkout.exercises);
+        
+        // Initialize progress if it doesn't exist
+        if (!getProgress(workoutId) && todaysExercises.length > 0) {
+          updateProgress(workoutId, 0, todaysExercises.length);
+        }
+        
+        // Load completion status from database (source of truth)
+        try {
+          const completedExercisesFromDB = await getMonthlyPlanCompletionFromDB(user.id);
+          console.log('🔍 [TodayWorkoutsCard] Loaded completion from DB:', completedExercisesFromDB);
+          
+          // Sync database completion status to local store
+          if (completedExercisesFromDB.length > 0) {
+            console.log('🔍 [TodayWorkoutsCard] Syncing DB completion to local store');
+            completedExercisesFromDB.forEach(exerciseIdx => {
+              storeMarkCompleted(workoutId, exerciseIdx);
+            });
+            updateProgress(
+              workoutId, 
+              completedExercisesFromDB.length, 
+              todaysExercises.length,
+              completedExercisesFromDB.length >= todaysExercises.length
+            );
+          }
+        } catch (error) {
+          console.error('🔥 [TodayWorkoutsCard] Error loading completion from DB:', error);
+        }
       }
-    }
-  }, [dailyWorkout?.hasWorkout, dailyWorkout?.primaryWorkout?.weeklyWorkout?.id]);
+    };
+    
+    syncCompletionWithDatabase();
+  }, [dailyWorkout?.hasWorkout, dailyWorkout?.primaryWorkout?.weeklyWorkout?.id, user?.id]);
 
   // Helper function to format exercise count
   const getExerciseCountText = (exercises: any[]) => {
