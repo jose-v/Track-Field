@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -6,8 +6,9 @@ export const useUnreadNotificationCount = () => {
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Function to fetch unread count
+  // Function to fetch unread count (stable reference)
   const fetchUnreadCount = useCallback(async () => {
     if (!user?.id) {
       setUnreadCount(0);
@@ -27,6 +28,7 @@ export const useUnreadNotificationCount = () => {
         setUnreadCount(0);
       } else {
         setUnreadCount(count || 0);
+        console.log('🔔 Updated notification count:', count);
       }
     } catch (error) {
       console.error('Failed to fetch unread notification count:', error);
@@ -35,6 +37,17 @@ export const useUnreadNotificationCount = () => {
       setIsLoading(false);
     }
   }, [user?.id]);
+
+  // Debounced refresh function to prevent too many calls
+  const debouncedRefresh = useCallback(() => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    
+    debounceTimeoutRef.current = setTimeout(() => {
+      fetchUnreadCount();
+    }, 500); // 500ms debounce
+  }, [fetchUnreadCount]);
 
   // Function to manually refresh the count
   const refreshCount = useCallback(() => {
@@ -60,8 +73,13 @@ export const useUnreadNotificationCount = () => {
   useEffect(() => {
     if (!user?.id) return;
 
+    // Use unique channel name per user to avoid conflicts
+    const channelName = `notifications_count_${user.id}`;
+    
+    console.log('🔔 Setting up notification subscription for user:', user.id);
+    
     const channel = supabase
-      .channel('notifications_count')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -71,17 +89,23 @@ export const useUnreadNotificationCount = () => {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('Notification change detected:', payload);
-          // Refresh count when any notification changes occur
-          fetchUnreadCount();
+          console.log('🔔 Notification change detected:', payload.eventType, payload.new);
+          // Use debounced refresh to prevent too many calls
+          debouncedRefresh();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('🔔 Subscription status:', status);
+      });
 
     return () => {
+      console.log('🔔 Cleaning up notification subscription');
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
       supabase.removeChannel(channel);
     };
-  }, [user?.id, fetchUnreadCount]);
+  }, [user?.id, debouncedRefresh]);
 
   return {
     unreadCount,
