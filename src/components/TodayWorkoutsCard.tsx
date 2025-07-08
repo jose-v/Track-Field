@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Text,
@@ -301,8 +301,16 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
     return exercises;
   };
 
-  // Get weekly overview for display - use actual weekly data if available
-  const getWeeklyOverview = (exercises: any[]) => {
+  // Helper function to get day name
+  const getDayName = () => {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    return days[new Date().getDay()];
+  };
+
+  // Get weekly overview for display - use actual weekly data if available (memoized)
+  const getWeeklyOverview = useMemo(() => {
+    const exercises = dailyWorkout?.primaryWorkout?.exercises || dailyWorkout?.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [];
+    
     if (!exercises || exercises.length === 0) return [];
     
     const todayName = getDayName().toLowerCase();
@@ -321,11 +329,20 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
       }));
     }
     
-    // Fallback: create a 7-day structure
+    // Fallback: create a stable 7-day structure (no random values)
     const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     
-    return daysOfWeek.map(day => {
-      const exerciseCount = day === todayName ? exercises.length : Math.floor(Math.random() * 3) + 1;
+    return daysOfWeek.map((day, index) => {
+      // Use today's exercise count for today, and a stable pattern for other days
+      let exerciseCount;
+      if (day === todayName) {
+        exerciseCount = exercises.length;
+      } else {
+        // Use a stable pattern based on day index instead of random
+        const baseCount = Math.max(1, exercises.length || 3);
+        exerciseCount = Math.max(1, baseCount + (index % 3) - 1); // Varies between baseCount-1 to baseCount+1
+      }
+      
       const isRestDay = day === 'sunday';
       
       return {
@@ -335,7 +352,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
         isToday: day === todayName
       };
     });
-  };
+  }, [dailyWorkout?.primaryWorkout]);
 
   // Calculate total weekly exercises - simplified and more robust
   const getTotalWeeklyExercises = (exercises: any[]) => {
@@ -370,12 +387,6 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
     const weeklyProgressPercentage = Math.min(100, Math.max(0, (completedToday / totalWeeklyExercises) * 100));
     
     return Math.round(weeklyProgressPercentage);
-  };
-
-  // Helper function to get day name
-  const getDayName = () => {
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    return days[new Date().getDay()];
   };
 
   if (profileLoading || workoutsLoading) {
@@ -854,7 +865,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                               This Week:
                             </Text>
                             <VStack spacing={1} align="stretch">
-                              {getWeeklyOverview(dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || []).map((dayInfo, index) => (
+                              {getWeeklyOverview.map((dayInfo, index) => (
                                 <HStack 
                                   key={index} 
                                   spacing={2} 

@@ -570,7 +570,7 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
           </Box>
 
           {/* Exercise Details */}
-          {currentExercise && (
+          {currentExercise && (currentExercise.weight || currentExercise.distance || currentExercise.rest || currentExercise.notes) && (
             <Box w="full" bg={sectionBg} borderRadius="xl" p={4}>
               <SimpleGrid columns={3} spacing={2}>
                 {currentExercise.weight && (

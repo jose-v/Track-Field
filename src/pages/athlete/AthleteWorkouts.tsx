@@ -293,13 +293,16 @@ export function AthleteWorkouts() {
   const [monthlyPlans, setMonthlyPlans] = useState<any[]>([]);
   const [monthlyPlansLoading, setMonthlyPlansLoading] = useState(false);
   
-  // State to force re-render when workout store is updated
+  // State to force re-render when workout store is updated - debounced to prevent excessive re-renders
   const [workoutStoreUpdateTrigger, setWorkoutStoreUpdateTrigger] = useState(0);
   
-  // Force refresh function for workout store updates
-  const forceWorkoutStoreRefresh = () => {
-    setWorkoutStoreUpdateTrigger(prev => prev + 1);
-  };
+  // Debounced force refresh function for workout store updates
+  const forceWorkoutStoreRefresh = useCallback(() => {
+    // Debounce the updates to prevent excessive re-renders
+    setTimeout(() => {
+      setWorkoutStoreUpdateTrigger(prev => prev + 1);
+    }, 100);
+  }, []);
 
   // Helper: Get workout IDs that are used in monthly plans
   const usedWorkoutIdsInMonthlyPlans = useMemo(() => {
@@ -825,8 +828,7 @@ export function AthleteWorkouts() {
     // Update progress in store - set the next exercise index as current
     workoutStore.updateProgress(workoutId, exIdx + 1, totalExercises, false);
     
-    // Force refresh to update progress counters
-    forceWorkoutStoreRefresh();
+    // Note: forceWorkoutStoreRefresh is debounced, so no need to call it frequently
     
     // Update modal state
     setExecModal(prev => ({
@@ -884,7 +886,7 @@ export function AthleteWorkouts() {
       // Mark workout as completed in store
       workoutStore.updateProgress(workoutId, totalExercises, totalExercises, true);
       
-      // Force refresh to update progress counters
+      // Force refresh to update progress counters (debounced)
       forceWorkoutStoreRefresh();
       
       // Update database assignment status
@@ -1262,12 +1264,8 @@ export function AthleteWorkouts() {
               totalExerciseCount: monthlyPlanExerciseData.totalCount
             };
             
-            // Calculate actual progress for monthly plan based on exercise completion
-            // Include workoutStoreUpdateTrigger to ensure recalculation when store updates
-            const calculateMonthlyPlanProgress = () => {
-              // Reference the trigger to ensure this function recalculates when store updates
-              const _ = workoutStoreUpdateTrigger;
-              
+            // Memoized calculation for monthly plan progress to prevent re-computation on every render
+            const monthlyPlanProgress = useMemo(() => {
               const exerciseData = item.exerciseData || { exercises: [], totalCount: 0 };
               const totalExercises = exerciseData.totalCount;
               
@@ -1312,9 +1310,7 @@ export function AthleteWorkouts() {
                 total: totalExercises,
                 percentage: Math.min(percentage, 100) // Cap at 100%
               };
-            };
-            
-            const monthlyPlanProgress = calculateMonthlyPlanProgress();
+            }, [item.exerciseData?.totalCount, item.status, workoutStoreUpdateTrigger]);
             
             return (
               <WorkoutCard
