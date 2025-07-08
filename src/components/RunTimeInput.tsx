@@ -237,6 +237,19 @@ export const RunTimeInput: React.FC<RunTimeInputProps> = ({
     md: "Scroll or drag to adjust time" 
   });
 
+  // Sync internal state with prop changes (for form reset functionality)
+  // Only reset when props are actually being reset to zero (not during normal user input)
+  useEffect(() => {
+    if (initialMinutes === 0 && initialSeconds === 0 && initialHundredths === 0) {
+      // Only reset to zero if current values are not already zero (avoid unnecessary updates)
+      if (minutes !== 0 || seconds !== 0 || hundredths !== 0) {
+        setMinutes(0);
+        setSeconds(0);
+        setHundredths(0);
+      }
+    }
+  }, [initialMinutes, initialSeconds, initialHundredths, minutes, seconds, hundredths]);
+
   // Call onTimeChange whenever any value changes
   useEffect(() => {
     onTimeChange(minutes, seconds, hundredths);

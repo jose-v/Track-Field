@@ -20,11 +20,14 @@ import {
   useWorkoutExecutionEffects,
   parsePositiveInt,
   getVideoUrl,
+  isRunExercise,
   type BaseWorkoutExecutionProps 
 } from './BaseWorkoutExecution';
 import { WorkoutInfoDrawer } from './WorkoutInfoDrawer';
 import { supabase } from '../../lib/supabase';
 import { saveTrainingLoadEntry } from '../../services/analytics/injuryRiskService';
+import { api } from '../../services/api';
+import { validateTime } from '../../utils/exerciseUtils';
 
 interface Exercise {
   id?: string;
@@ -129,6 +132,46 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
   const handleDone = async () => {
     const currentExercise = getCurrentExercise();
     if (!currentExercise) return;
+
+    // Save exercise result for this rep/set completion
+    if (user?.id) {
+      try {
+        // Strip "daily-" prefix from workout ID for database storage
+        let actualWorkoutId = workout.id;
+        if (workout.id.startsWith('daily-')) {
+          actualWorkoutId = workout.id.replace('daily-', '');
+        }
+
+        if (isRunExercise(currentExercise.name)) {
+          const timeValidation = validateTime(state.runTime.minutes, state.runTime.seconds, state.runTime.hundredths);
+          if (timeValidation.isValid && (state.runTime.minutes > 0 || state.runTime.seconds > 0 || state.runTime.hundredths > 0)) {
+            await api.exerciseResults.save({
+              athleteId: user.id,
+              workoutId: actualWorkoutId,
+              exerciseIndex: exerciseIdx,
+              exerciseName: currentExercise.name,
+              timeMinutes: state.runTime.minutes,
+              timeSeconds: state.runTime.seconds,
+              timeHundredths: state.runTime.hundredths,
+              notes: `Set ${state.currentSet}, Rep ${state.currentRep} - Timer: ${Math.floor(timer / 60)}:${(timer % 60).toString().padStart(2, '0')}`
+            });
+          }
+        } else {
+          await api.exerciseResults.save({
+            athleteId: user.id,
+            workoutId: actualWorkoutId,
+            exerciseIndex: exerciseIdx,
+            exerciseName: currentExercise.name,
+            repsCompleted: 1, // This completion
+            setsCompleted: state.currentSet,
+            weightUsed: currentExercise.weight ? parseFloat(String(currentExercise.weight)) : undefined,
+            notes: `Set ${state.currentSet}, Rep ${state.currentRep} - Timer: ${Math.floor(timer / 60)}:${(timer % 60).toString().padStart(2, '0')}`
+          });
+        }
+      } catch (error) {
+        console.error('Error saving exercise result:', error);
+      }
+    }
 
     const maxSets = parsePositiveInt(currentExercise.sets, 1);
     const maxReps = parsePositiveInt(currentExercise.reps, 1);
