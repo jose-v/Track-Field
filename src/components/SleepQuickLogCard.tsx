@@ -7,10 +7,6 @@ import {
   Icon,
   Badge,
   Button,
-  Slider,
-  SliderTrack,
-  SliderFilledTrack,
-  SliderThumb,
   useColorModeValue,
   useToast,
   Flex,
@@ -23,6 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getSleepQualityText } from '../utils/analytics/performance';
 import { useSleepRecords } from '../hooks/useSleepRecords';
 import { ServiceMigration } from '../utils/migration/ServiceMigration';
+import { MobileFriendlySlider } from './MobileFriendlySlider';
 
 interface SleepQuickLogCardProps {
   onLogComplete?: () => void;
@@ -302,19 +299,14 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
               </Text>
             </HStack>
           </HStack>
-          <Slider
+          <MobileFriendlySlider
             value={duration}
             onChange={setValidDuration}
             min={4}
             max={12}
             step={0.5}
             colorScheme="blue"
-          >
-            <SliderTrack>
-              <SliderFilledTrack />
-            </SliderTrack>
-            <SliderThumb />
-          </Slider>
+          />
           <HStack justify="space-between" mt={1}>
             <Text fontSize="xs" color={statLabelColor}>4h</Text>
             <Text fontSize="xs" color={statLabelColor}>12h</Text>

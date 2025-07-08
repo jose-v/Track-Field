@@ -104,6 +104,92 @@ export async function getTodaysWorkoutForExecution(userId: string) {
       ? `daily-${primaryWorkout.weeklyWorkout.id}` 
       : `daily-${Date.now()}`;
     
+    // Get the original weekly workout data to preserve block structure
+    const originalWeeklyData = primaryWorkout.dailyResult?.originalWeeklyData;
+    let workoutBlocks: any[] | null = null;
+    let isBlockBased = false;
+    
+    // Check if the original weekly workout has block structure
+    if (originalWeeklyData && Array.isArray(originalWeeklyData) && originalWeeklyData.length > 0) {
+      // Check if exercises is structured as blocks (has day objects with blocks)
+      const firstDay = originalWeeklyData[0];
+      if (firstDay && typeof firstDay === 'object' && firstDay.blocks) {
+        // This is the new block structure - extract today's blocks
+        const today = new Date();
+        const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const currentDayName = dayNames[today.getDay()];
+        
+        // Find today's blocks or fallback to first available day
+        let todaysBlocks = null;
+        const dayObject = originalWeeklyData.find((day: any) => 
+          day.day && day.day.toLowerCase() === currentDayName
+        );
+        
+        if (dayObject && dayObject.blocks) {
+          todaysBlocks = dayObject.blocks;
+        } else {
+          // Fallback to first day with blocks
+          const firstDayWithBlocks = originalWeeklyData.find((day: any) => 
+            day.blocks && Array.isArray(day.blocks) && day.blocks.length > 0
+          );
+          if (firstDayWithBlocks) {
+            todaysBlocks = firstDayWithBlocks.blocks;
+          }
+        }
+        
+        if (todaysBlocks && Array.isArray(todaysBlocks) && todaysBlocks.length > 0) {
+          workoutBlocks = todaysBlocks;
+          isBlockBased = true;
+        }
+      }
+    }
+    
+    // If we couldn't find block structure from dailyResult, try to get it from the weekly workout directly
+    if (!isBlockBased && primaryWorkout.weeklyWorkout?.id) {
+      try {
+        const allWorkouts = await api.workouts.getAll();
+        const weeklyWorkout = allWorkouts.find(w => w.id === primaryWorkout.weeklyWorkout.id);
+        
+        if (weeklyWorkout?.is_block_based && weeklyWorkout.blocks) {
+          // Parse blocks data if it's a string
+          let blocks = weeklyWorkout.blocks;
+          if (typeof blocks === 'string') {
+            blocks = JSON.parse(blocks);
+          }
+          
+          if (blocks && typeof blocks === 'object' && !Array.isArray(blocks)) {
+            // This is a daily blocks structure (monday, tuesday, etc.)
+            const today = new Date();
+            const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const currentDayName = dayNames[today.getDay()];
+            
+            const todaysBlocks = blocks[currentDayName];
+            if (todaysBlocks && Array.isArray(todaysBlocks) && todaysBlocks.length > 0) {
+              workoutBlocks = todaysBlocks;
+              isBlockBased = true;
+            } else {
+              // Fallback to first day with blocks
+              const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+              for (const dayName of dayOrder) {
+                const dayBlocks = blocks[dayName];
+                if (dayBlocks && Array.isArray(dayBlocks) && dayBlocks.length > 0) {
+                  workoutBlocks = dayBlocks;
+                  isBlockBased = true;
+                  break;
+                }
+              }
+            }
+          } else if (Array.isArray(blocks)) {
+            // Single day blocks
+            workoutBlocks = blocks;
+            isBlockBased = true;
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching weekly workout for block structure:', error);
+      }
+    }
+    
     const result = {
       id: workoutId,
       name: primaryWorkout.title || 'Today\'s Training',
@@ -111,9 +197,20 @@ export async function getTodaysWorkoutForExecution(userId: string) {
       description: primaryWorkout.description || 'Your training for today',
       type: 'Daily Training',
       duration: '45 mins',
+      // Preserve block structure for execution modal
+      is_block_based: isBlockBased,
+      blocks: workoutBlocks,
       // Include original data for reference
       originalData: workoutData
     };
+    
+    console.log('🏗️ Created workout for execution:', {
+      id: result.id,
+      isBlockBased: result.is_block_based,
+      blocksCount: workoutBlocks ? workoutBlocks.length : 0,
+      exercisesCount: result.exercises.length,
+      blockNames: workoutBlocks ? workoutBlocks.map((b: any) => b.name || 'Unnamed') : []
+    });
     
     return result;
   } catch (error) {

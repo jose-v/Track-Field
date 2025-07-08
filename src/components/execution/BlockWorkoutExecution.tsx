@@ -509,10 +509,9 @@ export const BlockWorkoutExecution: React.FC<BlockWorkoutExecutionProps> = ({
       completedRepsInWorkout += totalRepsForThisExercise;
     } else if (exIndex === exerciseIdx) {
       // Calculate completed reps in current exercise
-      // We count completed sets + completed reps in current set
+      // Count fully completed sets plus current rep being worked on
       const completedSets = state.currentSet - 1;
-      const completedRepsInCurrentSet = state.currentRep - 1;
-      const completedRepsInCurrentExercise = (completedSets * exerciseReps) + completedRepsInCurrentSet;
+      const completedRepsInCurrentExercise = (completedSets * exerciseReps) + state.currentRep;
       completedRepsInWorkout += completedRepsInCurrentExercise;
     }
   });

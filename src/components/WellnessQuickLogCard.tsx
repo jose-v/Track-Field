@@ -7,10 +7,6 @@ import {
   Icon,
   Badge,
   Button,
-  Slider,
-  SliderTrack,
-  SliderFilledTrack,
-  SliderThumb,
   useColorModeValue,
   useToast,
   SimpleGrid,
@@ -21,6 +17,7 @@ import { FaHeart, FaBolt, FaBrain, FaRunning, FaCheckCircle } from 'react-icons/
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { saveWellnessSurvey } from '../services/analytics/wellnessService';
+import { MobileFriendlySlider } from './MobileFriendlySlider';
 
 interface WellnessQuickLogCardProps {
   onLogComplete?: () => void;
@@ -263,19 +260,14 @@ export const WellnessQuickLogCard: React.FC<WellnessQuickLogCardProps> = ({ onLo
                   </VStack>
                 </HStack>
                 
-                <Slider
+                <MobileFriendlySlider
                   value={metric.value}
                   onChange={metric.setValue}
                   min={1}
                   max={10}
                   step={1}
                   colorScheme={metric.color.split('.')[0]}
-                >
-                  <SliderTrack>
-                    <SliderFilledTrack />
-                  </SliderTrack>
-                  <SliderThumb />
-                </Slider>
+                />
                 
                 <HStack justify="space-between" mt={1}>
                   <Text fontSize="xs" color={statLabelColor}>

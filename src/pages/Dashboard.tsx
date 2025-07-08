@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   Box, Container, Flex, Heading, Text, VStack, Grid, GridItem, Icon, Badge, Card, CardHeader, CardBody, Image, Tag,
   Button, SimpleGrid, Progress, HStack, Stack, Spinner, Divider, Stat, StatLabel, StatNumber, StatHelpText, useToast,
@@ -222,18 +222,11 @@ export function Dashboard() {
     const workoutId = execModal.workout.id;
     const exIdx = execModal.exerciseIdx;
     
-    // DEBUG: Log workout ID to check prefix
-    console.log('🔍 DEBUG: Workout ID in handleNextExercise:', workoutId);
-    console.log('🔍 DEBUG: Has daily- prefix?', workoutId.startsWith('daily-'));
-    console.log('🔍 DEBUG: User ID:', user?.id);
-    
     // Check if this is a monthly plan workout (daily- prefix)
     if (workoutId.startsWith('daily-') && user?.id) {
-      console.log('🔍 DEBUG: Using sync function for monthly plan');
       // Use the sync function for monthly plans
       await markExerciseCompletedWithSync(user.id, workoutId, exIdx, workoutStore);
     } else {
-      console.log('🔍 DEBUG: Using old method for regular workout');
       // Mark current exercise as completed for regular workouts
       workoutStore.markExerciseCompleted(workoutId, exIdx);
     }
@@ -330,18 +323,24 @@ export function Dashboard() {
     });
   };
 
-  // Fetch today's and upcoming workouts
-  const todayWorkouts = workouts?.filter((workout) => {
+  // Fetch today's and upcoming workouts - MEMOIZED to prevent infinite re-renders
+  const todayWorkouts = useMemo(() => {
+    if (!workouts) return [];
     const today = dateUtils.localDateString(new Date());
-    const workoutDate = formatDateForComparison(workout.date);
-    return workoutDate === today;
-  }) || [];
+    return workouts.filter((workout) => {
+      const workoutDate = formatDateForComparison(workout.date);
+      return workoutDate === today;
+    });
+  }, [workouts]);
 
-  const upcomingWorkouts = workouts?.filter((workout) => {
+  const upcomingWorkouts = useMemo(() => {
+    if (!workouts) return [];
     const today = dateUtils.localDateString(new Date());
-    const workoutDate = formatDateForComparison(workout.date);
-    return workoutDate > today;
-  }).slice(0, 3) || [];
+    return workouts.filter((workout) => {
+      const workoutDate = formatDateForComparison(workout.date);
+      return workoutDate > today;
+    }).slice(0, 3);
+  }, [workouts]);
 
   // Fetch team information for the athlete
   useEffect(() => {
@@ -492,19 +491,74 @@ export function Dashboard() {
   };
 
   // Function to handle starting a workout
-  const handleStartWorkout = async (workout: any) => {
+  const handleStartWorkout = useCallback(async (workout: any) => {
     if (profile?.role === 'coach') {
       // For coaches, navigate to workout details
       navigate(`/coach/workouts/${workout.id}`);
     } else {
       // For athletes, check if this is a monthly plan workout
       if (workout.id && workout.id.startsWith('daily-') && user?.id) {
-        console.log('🔍 [Dashboard] Starting monthly plan workout with database sync');
-        // Use the sync function for monthly plans
-        const success = await startTodaysWorkoutExecution(user.id, workoutStore, setExecModal);
-        if (!success) {
-          console.error('❌ [Dashboard] Failed to start monthly plan workout');
+
+        
+        // Use the already-processed workout object instead of re-fetching
+        // This preserves the exercise extraction work done in TodayWorkoutsCard
+        const progress = workoutStore.getProgress(workout.id);
+        let currentIdx = progress ? progress.currentExerciseIndex : 0;
+        const exercises = Array.isArray(workout.exercises) ? workout.exercises : [];
+        
+        // Clear any existing progress for this workout to ensure fresh start
+        workoutStore.resetProgress(workout.id);
+        
+        // Load completion status from database (source of truth)
+        try {
+          const { getMonthlyPlanCompletionFromDB } = await import('../utils/monthlyPlanWorkoutHelper');
+          const completedExercisesFromDB = await getMonthlyPlanCompletionFromDB(user.id);
+          
+          // Initialize progress tracking in workout store
+          workoutStore.updateProgress(workout.id, 0, exercises.length);
+          
+          // Sync database completion status to local store
+          if (completedExercisesFromDB.length > 0) {
+            completedExercisesFromDB.forEach(exerciseIdx => {
+              workoutStore.markExerciseCompleted(workout.id, exerciseIdx);
+            });
+            workoutStore.updateProgress(
+              workout.id, 
+              completedExercisesFromDB.length, 
+              exercises.length,
+              completedExercisesFromDB.length >= exercises.length
+            );
+          }
+          
+          // Find the first uncompleted exercise to start from
+          const updatedProgress = workoutStore.getProgress(workout.id);
+          const completedExercises = updatedProgress?.completedExercises || [];
+          currentIdx = 0;
+          
+          // Find the first exercise that hasn't been completed
+          for (let i = 0; i < exercises.length; i++) {
+            if (!completedExercises.includes(i)) {
+              currentIdx = i;
+              break;
+            }
+          }
+          
+          // If all exercises are completed, start from the beginning
+          if (completedExercises.length >= exercises.length) {
+            currentIdx = 0;
+          }
+        } catch (error) {
+          console.error('Error syncing monthly plan progress:', error);
+          currentIdx = 0;
         }
+        
+        setExecModal({
+          isOpen: true,
+          workout: workout,
+          exerciseIdx: currentIdx >= exercises.length ? 0 : currentIdx,
+          timer: 0,
+          running: false,
+        });
       } else {
         // For regular workouts, use the old method
         const progress = workoutStore.getProgress(workout.id);
@@ -520,10 +574,10 @@ export function Dashboard() {
         });
       }
     }
-  };
+  }, [profile?.role, user?.id, navigate]);
 
-  // Function to get workout progress data formatted for WorkoutCard
-  const getWorkoutProgressData = (workout: any) => {
+  // Function to get workout progress data formatted for WorkoutCard - MEMOIZED
+  const getWorkoutProgressData = useCallback((workout: any) => {
     if (!workout || !workout.id) return { completed: 0, total: 0, percentage: 0 };
     
     const completed = getCompletionCount(workout.id);
@@ -534,7 +588,7 @@ export function Dashboard() {
       total,
       percentage: total > 0 ? (completed / total) * 100 : 0
     };
-  };
+  }, []);
 
   // Helper to get state abbreviation
   function getStateAbbr(state?: string) {
@@ -577,12 +631,12 @@ export function Dashboard() {
     return () => clearTimeout(timer);
   }, [profileLoading, workoutsLoading]);
 
-  // Function to handle resetting workout progress
-  const handleResetProgress = async (workoutId: string, workoutName: string) => {
+  // Function to handle resetting workout progress - MEMOIZED
+  const handleResetProgress = useCallback(async (workoutId: string, workoutName: string) => {
     // Set the workout to reset and open confirmation modal
     setWorkoutToReset({ id: workoutId, name: workoutName });
     onResetOpen();
-  };
+  }, [onResetOpen]);
 
   const handleResetConfirm = async () => {
     if (!workoutToReset) return;
@@ -661,9 +715,7 @@ export function Dashboard() {
       if (!skipPrefixes.includes(emailUsername.toLowerCase())) {
         return emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1).toLowerCase();
       } else {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🔍 Skipping email prefix:', emailUsername);
-        }
+
       }
     }
     

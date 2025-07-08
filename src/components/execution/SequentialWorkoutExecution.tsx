@@ -408,10 +408,9 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
         completedRepsInWorkout += totalRepsForThisExercise;
       } else if (exIndex === exerciseIdx) {
         // Calculate completed reps in current exercise
-        // We count completed sets + completed reps in current set
+        // Count fully completed sets plus current rep being worked on
         const completedSets = state.currentSet - 1;
-        const completedRepsInCurrentSet = state.currentRep - 1;
-        const completedRepsInCurrentExercise = (completedSets * exerciseReps) + completedRepsInCurrentSet;
+        const completedRepsInCurrentExercise = (completedSets * exerciseReps) + state.currentRep;
         completedRepsInWorkout += completedRepsInCurrentExercise;
       }
     });
@@ -531,7 +530,7 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
                       Sets
                     </Text>
                     <Text fontSize="lg" fontWeight="normal" textAlign="center">
-                      {`${state.currentSet - 1}/${currentExerciseSets}`}
+                      {`${state.currentSet}/${currentExerciseSets}`}
                     </Text>
                   </VStack>
                   
@@ -622,7 +621,7 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
             <SimpleGrid columns={workout.flow_type === 'circuit' ? 3 : 4} spacing={2}>
               {workout.flow_type === 'circuit' ? (
                 <>
-                  {/* Round Progress Indicator */}
+                  {/* Round Progress */}
                   <VStack spacing={1} align="center">
                     <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textTransform="uppercase" textAlign="center">
                       Round Progress
@@ -630,7 +629,7 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
                     <SetProgressIndicator />
                   </VStack>
                   
-                  {/* Exercise Progress Indicator */}
+                  {/* Exercise Progress */}
                   <VStack spacing={1} align="center">
                     <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textTransform="uppercase" textAlign="center">
                       Exercise Progress
@@ -638,10 +637,10 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
                     <RepProgressIndicator />
                   </VStack>
                   
-                  {/* Completion Progress Indicator */}
+                  {/* Overall Progress */}
                   <VStack spacing={1} align="center">
                     <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textTransform="uppercase" textAlign="center">
-                      Completion Progress
+                      Overall
                     </Text>
                     <Text fontSize="lg" fontWeight="normal" textAlign="center">
                       {`${Math.round(completionProgress.percentage)}%`}
@@ -650,7 +649,7 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
                 </>
               ) : (
                 <>
-                  {/* Sets Progress Indicator */}
+                  {/* Sets Progress */}
                   <VStack spacing={1} align="center">
                     <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textTransform="uppercase" textAlign="center">
                       Sets Progress
@@ -658,7 +657,7 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
                     <SetProgressIndicator />
                   </VStack>
                   
-                  {/* Reps Progress Indicator */}
+                  {/* Reps Progress */}
                   <VStack spacing={1} align="center">
                     <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textTransform="uppercase" textAlign="center">
                       Reps Progress
@@ -666,20 +665,20 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
                     <RepProgressIndicator />
                   </VStack>
                   
-                  {/* Exercise Progress Indicator */}
+                  {/* Exercise Progress */}
                   <VStack spacing={1} align="center">
                     <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textTransform="uppercase" textAlign="center">
-                      Exercise Progress
+                      Exercise
                     </Text>
                     <Text fontSize="lg" fontWeight="normal" textAlign="center">
-                      {`${Math.round(completionProgress.percentage)}%`}
+                      {`${exerciseProgress.current}/${exerciseProgress.total}`}
                     </Text>
                   </VStack>
                   
-                  {/* Completion Progress Indicator */}
+                  {/* Overall Progress */}
                   <VStack spacing={1} align="center">
                     <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textTransform="uppercase" textAlign="center">
-                      Completion Progress
+                      Overall
                     </Text>
                     <Text fontSize="lg" fontWeight="normal" textAlign="center">
                       {`${Math.round(completionProgress.percentage)}%`}

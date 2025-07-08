@@ -3258,315 +3258,243 @@ export const api = {
       
       for (const day of dayOrder) {
         if (dayProgress[day] && dayProgress[day].completed < dayProgress[day].total) {
-          console.log(`🔍 Found incomplete day: ${day} (${dayProgress[day].completed}/${dayProgress[day].total} completed)`);
           return day;
         }
       }
       
       // If all days are complete, show Monday (start over or plan complete)
-      console.log('🔍 All days complete, defaulting to Monday');
       return 'monday';
     },
 
     async getTodaysWorkout(athleteId: string) {
-      
       try {
-        // Add timeout protection - increased timeout for better reliability
+        // Ultra-fast timeout with immediate fallback
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('getTodaysWorkout timeout after 15 seconds')), 15000);
+          setTimeout(() => reject(new Error('getTodaysWorkout timeout after 5 seconds')), 5000);
         });
         
         const workoutPromise = (async () => {
           const today = new Date().toISOString().split('T')[0];
           
-          console.log('🔍 Looking for workouts on date:', today);
-          
-          // Get all training plan assignments for this athlete
-          const { data: allAssignments, error: assignmentError } = await supabase
+          // ULTRA-FAST QUERY: Get only the most recent assignment with minimal fields
+          const { data: assignments, error: assignmentError } = await supabase
             .from('training_plan_assignments')
-            .select(`
-              id,
-              training_plan_id,
-              athlete_id,
-              assigned_at,
-              status
-            `)
+            .select('training_plan_id, completed_exercises')
             .eq('athlete_id', athleteId)
-            .in('status', ['assigned', 'in_progress']);
+            .in('status', ['assigned', 'in_progress'])
+            .order('assigned_at', { ascending: false })
+            .limit(1);
           
           if (assignmentError) {
             console.error('Assignment query error:', assignmentError);
-            
-            // If it's a timeout, create a fallback response
-            if (assignmentError.code === '57014' || assignmentError.message?.includes('timeout')) {
-              console.warn('🚨 Assignment query timeout - returning fallback workout');
-              return {
-                hasWorkout: true,
-                primaryWorkout: {
-                  title: 'Today\'s Training',
-                  description: 'Your scheduled workout for today',
-                  exercises: [
-                    { name: 'Warm-up', sets: 1, reps: '10 minutes', weight: null, notes: 'Light jogging and dynamic stretches' },
-                    { name: 'Main workout', sets: 1, reps: 'As planned', weight: null, notes: 'Complete your assigned training' }
-                  ],
-                  progress: { completed: false },
-                  monthlyPlan: { name: 'Current Training Plan', id: 'fallback' },
-                  weeklyWorkout: { name: 'Weekly Training', id: 'fallback' },
-                  dailyResult: null
-                }
-              };
-            }
-            throw assignmentError;
+            return this.createFallbackWorkout();
           }
           
-          if (!allAssignments || allAssignments.length === 0) {
-            console.log('🔍 No assigned or in-progress training plan assignments found');
-            
-            // Fallback: Look for individual workouts for today
-            const { data: individualWorkouts, error: workoutError } = await supabase
-              .from('workouts')
-              .select('*')
-              .eq('user_id', athleteId)
-              .eq('date', today)
-              .limit(1);
-            
-            if (!workoutError && individualWorkouts && individualWorkouts.length > 0) {
-              const workout = individualWorkouts[0];
-              console.log('🔍 Found individual workout:', workout);
-              
-              return {
-                hasWorkout: true,
-                primaryWorkout: {
-                  title: workout.name || 'Today\'s Workout',
-                  description: workout.description || 'Your individual workout for today',
-                  exercises: workout.exercises || [],
-                  progress: { completed: false },
-                  monthlyPlan: null,
-                  weeklyWorkout: null,
-                  dailyResult: null
-                }
-              };
-            }
-            
-            return {
-              hasWorkout: false,
-              primaryWorkout: null
-            };
+          if (!assignments || assignments.length === 0) {
+            // Skip individual workout check for speed - just return no workout
+            return { hasWorkout: false, primaryWorkout: null };
           }
           
-          // Get training plans for all assignments to check dates
-          const planIds = allAssignments.map(a => a.training_plan_id);
-          const { data: allPlans, error: plansError } = await supabase
+          const assignment = assignments[0];
+          
+          // Get minimal plan details for speed
+          const { data: plans, error: planError } = await supabase
             .from('training_plans')
-            .select('id, name, start_date, end_date, weekly_workout_ids, weeks')
-            .in('id', planIds);
+            .select('id, name, start_date, weekly_workout_ids, weeks')
+            .eq('id', assignment.training_plan_id)
+            .single();
           
-          if (plansError) {
-            console.error('Training plans query error:', plansError);
-            throw plansError;
-          }
-
-          // Find the currently active plan (today falls within start_date and end_date)
-          let activeAssignment = null;
-          let activePlan = null;
-
-          for (const assignment of allAssignments) {
-            const plan = allPlans?.find(p => p.id === assignment.training_plan_id);
-            if (plan) {
-              const startDate = new Date(plan.start_date);
-              const endDate = plan.end_date ? new Date(plan.end_date) : null;
-              const todayDate = new Date(today);
-
-              console.log(`🔍 Checking plan "${plan.name}": start=${plan.start_date}, end=${plan.end_date}, today=${today}`);
-
-              // Check if today falls within the plan's date range
-              if (todayDate >= startDate && (!endDate || todayDate <= endDate)) {
-                console.log(`✅ Found active plan: ${plan.name}`);
-                activeAssignment = assignment;
-                activePlan = plan;
-                break;
-              }
-            }
-          }
-
-          // If no plan is currently active, use the most recently assigned one as fallback
-          if (!activeAssignment) {
-            console.log('⚠️ No plan is currently active based on dates, using most recently assigned');
-            activeAssignment = allAssignments.sort((a, b) => new Date(b.assigned_at).getTime() - new Date(a.assigned_at).getTime())[0];
-            activePlan = allPlans?.find(p => p.id === activeAssignment.training_plan_id);
-          }
-
-          const assignmentData = [activeAssignment];
-          const assignment = activeAssignment;
-          const plan = activePlan;
+          const queryError = planError;
+          const assignmentData = plans ? [{ ...assignment, training_plans: plans }] : null;
           
-          if (!assignment || !plan) {
-            console.log('🔍 No active training plan found');
-            return {
-              hasWorkout: false,
-              primaryWorkout: null
-            };
-          }
-          
-          console.log('🔍 Using active training plan:', plan.name);
-          
-          // Calculate which week we're in
-          const startDate = new Date(plan.start_date);
-          const todayDate = new Date(today);
-          const daysDiff = Math.floor((todayDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-          const weekNumber = Math.floor(daysDiff / 7);
-          const dayOfWeek = daysDiff % 7;
-          
-
-          
-          // Get weekly workout IDs (should be an array)
-          let weeklyWorkoutIds = plan.weekly_workout_ids || [];
-          
-          // Filter out any null/empty entries
-          weeklyWorkoutIds = weeklyWorkoutIds.filter(id => id && id.trim());
-          
-          if (!Array.isArray(weeklyWorkoutIds) || weeklyWorkoutIds.length === 0) {
-            console.warn('No weekly workout IDs found in plan');
+          if (queryError) {
+            console.error('Query error:', queryError);
             
-                         // Try to get weekly workouts from the 'weeks' property (alternative structure)
-             const weeks = plan.weeks || [];
-             if (Array.isArray(weeks) && weeks.length > 0) {
-               // Try to extract workout IDs from weeks structure
-               const workoutIds = weeks
-                 .filter(week => week.workout_id || week.weekly_workout_id)
-                 .map(week => week.workout_id || week.weekly_workout_id);
-               
-               if (workoutIds.length > 0) {
-                 const currentWeeklyWorkoutId = workoutIds[weekNumber % workoutIds.length];
-                
-                // Jump to weekly workout retrieval with this ID
-                if (currentWeeklyWorkoutId) {
-                                     try {
+            // Quick fallback for timeout/infrastructure errors
+            if (queryError.code === '57014' || queryError.message?.includes('timeout') || queryError.message?.includes('canceling')) {
+              console.warn('Infrastructure timeout - providing fallback');
+              return this.createFallbackWorkout();
+            }
+            throw queryError;
+          }
+          
+          // No active assignments found - check for individual workouts  
+          if (!assignmentData || !plans) {
+            return await this.checkIndividualWorkouts(athleteId, today);
+          }
+          
+          const plan = plans;
+          
+          if (!plan) {
+            return { hasWorkout: false, primaryWorkout: null };
+          }
+          
+          // Calculate current week efficiently
+          const weekNumber = this.calculateCurrentWeek(plan.start_date, today);
+          
+          // Get current week's workout ID
+          const currentWeeklyWorkoutId = this.getCurrentWeeklyWorkoutId(plan, weekNumber);
+          
+          if (!currentWeeklyWorkoutId) {
+            return this.createPlanFallback(plan, assignment);
+          }
+          
+          // Get the weekly workout - single optimized query
                      const { data: weeklyWorkout, error: weeklyError } = await supabase
                        .from('workouts')
-                       .select('*')
+            .select('id, name, exercises, is_block_based, blocks')
                        .eq('id', currentWeeklyWorkoutId)
                        .single();
                     
-                                         if (!weeklyError && weeklyWorkout) {
+          if (weeklyError || !weeklyWorkout) {
+            console.error('Weekly workout error:', weeklyError);
+            return this.createPlanFallback(plan, assignment);
+          }
+          
+          // Extract today's exercises efficiently
+          const todaysExercises = this.extractTodaysExercises(
+            weeklyWorkout, 
+            assignment.completed_exercises || []
+          );
                       
                       return {
                         hasWorkout: true,
                         primaryWorkout: {
-                          title: plan.name || 'Training Plan',
+              title: plan.name,
                           description: 'Your training plan for today',
-                          exercises: [
-                            { name: 'Scheduled training', sets: 1, reps: 'As planned', weight: null, notes: 'Complete your assigned workout' }
-                          ],
+              exercises: todaysExercises,
                           progress: { completed: false },
                           monthlyPlan: { name: plan.name, id: plan.id },
-                          weeklyWorkout: { name: weeklyWorkout.name, id: weeklyWorkout.id },
-                          dailyResult: null
-                        }
-                      };
-                    }
-                  } catch (err) {
-                    console.error('Error fetching weekly workout from weeks structure:', err);
-                  }
-                }
+              weeklyWorkout: { name: weeklyWorkout.name || `Week ${weekNumber + 1}`, id: weeklyWorkout.id },
+              dailyResult: {
+                dailyWorkout: { exercises: todaysExercises },
+                originalWeeklyData: weeklyWorkout.exercises || []
               }
             }
-            
-            return {
-              hasWorkout: true,
-              primaryWorkout: {
-                title: plan.name || 'Training Plan',
-                description: 'Your training plan for today',
-                exercises: [
-                  { name: 'Rest day or consult coach', sets: 0, reps: '0', weight: null, notes: 'Check with your coach for today\'s workout' }
-                ],
-                progress: { completed: false },
-                monthlyPlan: { name: plan.name, id: plan.id },
-                weeklyWorkout: { name: 'No weekly workout configured', id: 'none' },
-                dailyResult: {
-                  dailyWorkout: {
-                    exercises: [
-                      { name: 'Rest day or consult coach', sets: 0, reps: '0', weight: null, notes: 'Check with your coach for today\'s workout' }
-                    ]
-                  }
-                }
-              }
-            };
-          }
-          
-          // Get the weekly workout for current week with better logic
-          let weekIndex;
-          let currentWeeklyWorkoutId;
-          
-          if (weekNumber < 0) {
-            // Before start date - use first week
-            weekIndex = 0;
-          } else if (weekNumber >= weeklyWorkoutIds.length) {
-            // After plan end - use last week or cycle through
-            weekIndex = weekNumber % weeklyWorkoutIds.length;
-          } else {
-            // Normal case - use calculated week
-            weekIndex = weekNumber;
-          }
-          
-          currentWeeklyWorkoutId = weeklyWorkoutIds[weekIndex];
-          
-          // If still no ID, try the first available workout
-          if (!currentWeeklyWorkoutId && weeklyWorkoutIds.length > 0) {
-            weekIndex = 0;
-            currentWeeklyWorkoutId = weeklyWorkoutIds[0];
-          }
-          
+          };
+        })();
+        
+        return await Promise.race([workoutPromise, timeoutPromise]);
+        
+      } catch (error: any) {
+        console.error('Error:', error);
+        
+        // Infrastructure timeout fallback
+        if (error.code === '57014' || 
+            error.message?.includes('timeout') ||
+            error.message?.includes('canceling statement')) {
+          console.warn('Infrastructure timeout - providing fallback');
+          return this.createFallbackWorkout();
+        }
+        
+        throw error;
+      }
+    },
 
-          
-          if (!currentWeeklyWorkoutId) {
-            console.warn('No weekly workout ID for current week, using plan data anyway');
-            // Return plan data even without specific weekly workout
+    // Helper function to create fallback workout for timeout scenarios
+    createFallbackWorkout() {
             return {
               hasWorkout: true,
               primaryWorkout: {
-                title: plan.name || 'Training Plan',
-                description: 'Your training plan for today',
+          title: 'Today\'s Training Session',
+          description: 'Your scheduled training for today',
                 exercises: [
-                  { name: 'Scheduled workout', sets: 1, reps: 'As planned', weight: null, notes: 'Complete your training for today' }
+            { name: 'Warm-up', sets: 1, reps: '10-15 minutes', weight: null, notes: 'Dynamic stretching and light movement' },
+            { name: 'Main workout', sets: 1, reps: 'As assigned', weight: null, notes: 'Complete your planned training session' },
+            { name: 'Cool-down', sets: 1, reps: '10 minutes', weight: null, notes: 'Static stretching and recovery' }
                 ],
                 progress: { completed: false },
-                monthlyPlan: { name: plan.name, id: plan.id },
-                weeklyWorkout: { name: `Week ${weekNumber + 1}`, id: 'week-' + weekNumber },
+          monthlyPlan: { name: 'Current Training Plan', id: 'fallback' },
+          weeklyWorkout: { name: 'This Week', id: 'fallback' },
                 dailyResult: {
                   dailyWorkout: {
                     exercises: [
-                      { name: 'Scheduled workout', sets: 1, reps: 'As planned', weight: null, notes: 'Complete your training for today' }
+                { name: 'Warm-up', sets: 1, reps: '10-15 minutes', weight: null, notes: 'Dynamic stretching and light movement' },
+                { name: 'Main workout', sets: 1, reps: 'As assigned', weight: null, notes: 'Complete your planned training session' },
+                { name: 'Cool-down', sets: 1, reps: '10 minutes', weight: null, notes: 'Static stretching and recovery' }
                     ]
                   }
                 }
               }
             };
-          }
+    },
+
+    // Helper function to check individual workouts when no training plan
+    async checkIndividualWorkouts(athleteId: string, today: string) {
+      try {
+        const { data: individualWorkouts, error: workoutError } = await supabase
+          .from('workouts')
+          .select('id, name, description, exercises')
+          .eq('user_id', athleteId)
+          .eq('date', today)
+          .limit(1);
+        
+        if (!workoutError && individualWorkouts && individualWorkouts.length > 0) {
+          const workout = individualWorkouts[0];
           
-          // Try to get weekly workout with timeout protection
-          try {
-            const { data: weeklyWorkout, error: weeklyError } = await supabase
-              .from('workouts')
-              .select('*')
-              .eq('id', currentWeeklyWorkoutId)
-              .single();
-            
-            if (weeklyError) {
-              console.error('Weekly workout query error:', weeklyError);
-              if (weeklyError.code === '57014' || weeklyError.message?.includes('timeout')) {
-                // Timeout fallback for weekly workout
+            return {
+              hasWorkout: true,
+              primaryWorkout: {
+              title: workout.name || 'Today\'s Workout',
+              description: workout.description || 'Your individual workout for today',
+              exercises: workout.exercises || [],
+                progress: { completed: false },
+              monthlyPlan: null,
+              weeklyWorkout: null,
+              dailyResult: { dailyWorkout: { exercises: workout.exercises || [] } }
+            }
+          };
+        }
+      } catch (error) {
+        console.error('🔥 [getTodaysWorkout] Individual workout check failed:', error);
+      }
+      
+      return { hasWorkout: false, primaryWorkout: null };
+    },
+
+    // Helper function to calculate current week number
+    calculateCurrentWeek(startDate: string, today: string): number {
+      const start = new Date(startDate);
+      const todayDate = new Date(today);
+      const daysDiff = Math.floor((todayDate.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      return Math.max(0, Math.floor(daysDiff / 7));
+    },
+
+    // Helper function to get current weekly workout ID
+    getCurrentWeeklyWorkoutId(plan: any, weekNumber: number): string | null {
+      // Try weekly_workout_ids first
+      if (plan.weekly_workout_ids && Array.isArray(plan.weekly_workout_ids)) {
+        const workoutIds = plan.weekly_workout_ids.filter(id => id && id.trim());
+        if (workoutIds.length > 0) {
+          return workoutIds[weekNumber % workoutIds.length];
+        }
+      }
+      
+      // Try weeks structure
+      if (plan.weeks && Array.isArray(plan.weeks)) {
+        const weeks = plan.weeks.filter(week => !week.is_rest_week && week.workout_id);
+        if (weeks.length > 0) {
+          const currentWeek = weeks[weekNumber % weeks.length];
+          return currentWeek.workout_id;
+        }
+      }
+      
+      return null;
+    },
+
+    // Helper function to create plan fallback when weekly workout not found
+    createPlanFallback(plan: any, assignment: any) {
                 return {
                   hasWorkout: true,
                   primaryWorkout: {
                     title: plan.name || 'Training Plan',
-                    description: 'Week ' + (weekNumber + 1) + ' training',
+          description: 'Your training plan for today',
                     exercises: [
                       { name: 'Scheduled training', sets: 1, reps: 'As planned', weight: null, notes: 'Complete your assigned workout' }
                     ],
                     progress: { completed: false },
                     monthlyPlan: { name: plan.name, id: plan.id },
-                    weeklyWorkout: { name: 'Week ' + (weekNumber + 1), id: currentWeeklyWorkoutId },
+          weeklyWorkout: { name: 'Current Week', id: 'fallback' },
                     dailyResult: {
                       dailyWorkout: {
                         exercises: [
@@ -3576,279 +3504,107 @@ export const api = {
                     }
                   }
                 };
-              }
-              throw weeklyError;
-            }
-            
-            if (!weeklyWorkout) {
-              console.warn('Weekly workout not found');
-              return { hasWorkout: false, primaryWorkout: null };
-            }
-            
+    },
 
-            
-            // Since this is a workout from the workouts table, use it directly
-            let exercises = weeklyWorkout.exercises || [];
-            
-            // Get completion progress to determine which day to show (needed for both block-based and legacy formats)
-            let targetDay = 'monday'; // Default
-            let isRestDay = false;
-            let previewTomorrowsWorkout = false;
-            let noTrainingToday = false;
-            
-            // For monthly plans, we want to show the next incomplete day's workout
-            try {
-              // Get completion status from training plan assignments
-              const { data: assignmentProgress, error: progressError } = await supabase
-                .from('training_plan_assignments')
-                .select('completed_exercises')
-                .eq('athlete_id', athleteId)
-                .eq('training_plan_id', plan.id)
-                .single();
-                
-              if (!progressError && assignmentProgress?.completed_exercises) {
-                const completedExercises = assignmentProgress.completed_exercises || [];
-                
-                // For block-based workouts, we'll need a different approach to calculate next day
-                if (weeklyWorkout.is_block_based && weeklyWorkout.blocks) {
-                  // For now, show Monday's workout - we'll improve this with proper progress tracking
-                  targetDay = 'monday';
-                  console.log(`🔍 Block-based workout: showing Monday's exercises`);
-                } else if (exercises.length > 0 && exercises[0].day && exercises[0].exercises) {
-                  // Calculate which day should be shown based on progress for legacy format
-                  targetDay = this.calculateNextIncompleteDay(exercises, completedExercises);
-                  console.log(`🔍 Progress-based day selection: targetDay=${targetDay}, completedExercises=${completedExercises.length}`);
-                }
-              } else {
-                console.log(`🔍 No progress data, defaulting to monday`);
-              }
-            } catch (error) {
-              console.error('Error fetching completion progress:', error);
-              targetDay = 'monday';
-            }
-            
-            // Handle block-based workouts first
-            if (weeklyWorkout.is_block_based && weeklyWorkout.blocks) {
-              try {
-                let blocks = weeklyWorkout.blocks;
-                
-                // Parse blocks if they're stored as string
-                if (typeof blocks === 'string') {
-                  blocks = JSON.parse(blocks);
-                }
-                
-                // Check if blocks are organized by day (weekly structure)
-                if (typeof blocks === 'object' && !Array.isArray(blocks)) {
-                  // It's a weekly structure with days like { monday: [...], tuesday: [...] }
-                  const dayKey = targetDay;
-                  console.log(`🔍 Extracting exercises from blocks for day: ${dayKey}`);
-                  
-                  const dayBlocks = blocks[dayKey.toLowerCase()];
-                  if (dayBlocks && Array.isArray(dayBlocks)) {
-                    // Extract exercises from all blocks for this day
-                    exercises = dayBlocks.reduce((allExercises, block) => {
-                      if (block.exercises && Array.isArray(block.exercises)) {
-                        return [...allExercises, ...block.exercises];
-                      }
-                      return allExercises;
-                    }, []);
-                    console.log(`🔍 Extracted ${exercises.length} exercises from ${dayBlocks.length} blocks for ${dayKey}`);
-                  } else {
-                    console.warn(`🔍 No blocks found for day: ${dayKey}, available days:`, Object.keys(blocks));
-                    exercises = [];
-                  }
-                } else if (Array.isArray(blocks)) {
-                  // It's a simple array of blocks (single day workout)
-                  exercises = blocks.reduce((allExercises, block) => {
-                    if (block.exercises && Array.isArray(block.exercises)) {
-                      return [...allExercises, ...block.exercises];
-                    }
-                    return allExercises;
-                  }, []);
-                  console.log(`🔍 Extracted ${exercises.length} exercises from ${blocks.length} blocks`);
-                }
-              } catch (error) {
-                console.error('Error parsing workout blocks:', error);
-                exercises = [];
-              }
-            }
-            
-            // Check if this is a weekly structure with days (legacy format)
-            else if (exercises.length > 0 && exercises[0].day && exercises[0].exercises) {
-              
-              console.log(`🔍 Day logic: targetDay=${targetDay} (progress-based for monthly plan)`);
-              
-              // Find the target day's exercises
-              const targetData = exercises.find(dayObj => dayObj.day?.toLowerCase() === targetDay.toLowerCase());
-              
-              if (targetData) {
-                if (targetData.isRestDay || (!targetData.exercises || targetData.exercises.length === 0)) {
-                  isRestDay = true;
-                  exercises = [];
-                } else {
-                  // Found exercises for target day
-                  exercises = targetData.exercises;
-                }
-              } else {
-                // Target day not found - find first available training day
-                const firstDayWithExercises = exercises.find(dayObj => 
-                  dayObj.exercises && dayObj.exercises.length > 0 && !dayObj.isRestDay
-                );
-                exercises = firstDayWithExercises?.exercises || [];
-                if (!firstDayWithExercises) {
-                  isRestDay = true;
-                }
-              }
-              
-              // Create appropriate messaging
-              if (isRestDay) {
-                exercises = [{
-                  name: 'Rest Day',
-                  sets: 0,
-                  reps: '0',
-                  notes: 'Today is a rest day. Take time to recover and prepare for tomorrow\'s training.'
-                }];
-              }
-            }
-            
-            // Process exercises to ensure they have proper names
-            exercises = exercises.map((exercise, index) => {
-              // Try to get a name from various possible fields
-              const name = exercise.name || 
-                          exercise.exercise_name || 
-                          exercise.description || 
-                          exercise.type || 
-                          exercise.category ||
-                          `Exercise ${index + 1}`;
-              
-            return {
-                ...exercise,
-                name: name
-              };
-            });
-            
-            if (exercises.length === 0) {
-              console.warn('🔍 Weekly workout has no exercises, creating placeholder');
-              exercises = [
-                { name: 'Warm-up', sets: '1', reps: '10 minutes', notes: 'Dynamic stretching' },
-                { name: 'Main workout', sets: '1', reps: 'As prescribed', notes: 'Follow your training plan' },
-                { name: 'Cool-down', sets: '1', reps: '10 minutes', notes: 'Static stretching' }
-              ];
-            }
-            
-            // Determine appropriate title and description based on context
-            let workoutTitle = plan.name || weeklyWorkout.name || 'Today\'s Workout';
-            let workoutDescription = weeklyWorkout.description || `Week ${weekIndex + 1} training`;
-            
-            // Check the different scenarios
-            const isPreview = exercises.length > 0 && exercises[0].notes?.includes("Tomorrow's workout:");
-            const isRestDayCheck = exercises.length === 1 && exercises[0].name === 'Rest Day';
-            const isNoTrainingToday = exercises.length === 1 && exercises[0].name === 'No Training Today';
-            
-            if (isNoTrainingToday) {
-              workoutTitle = `${plan.name} - No Training Today`;
-              workoutDescription = `No exercises scheduled for today. Your training week starts tomorrow.`;
-            } else if (isPreview) {
-              workoutTitle = `${plan.name} - Tomorrow's Training`;
-              workoutDescription = `Preview of tomorrow's workout. Training starts Monday.`;
-            } else if (isRestDayCheck) {
-              workoutTitle = `${plan.name} - Rest Day`;
-              workoutDescription = `Today is a rest day in your training plan.`;
-            }
-
-            const successResult = {
-              hasWorkout: true,
-              primaryWorkout: {
-                title: workoutTitle,
-                description: workoutDescription,
-                exercises: exercises,
-                progress: { completed: false },
-                monthlyPlan: { name: plan.name, id: plan.id },
-                weeklyWorkout: { name: weeklyWorkout.name || `Week ${weekIndex + 1}`, id: weeklyWorkout.id },
-                dailyResult: {
-                  dailyWorkout: {
-                    exercises: exercises
-                  },
-                  originalWeeklyData: weeklyWorkout.exercises || [],
-                  isPreview: isPreview,
-                  isRestDay: isRestDayCheck,
-                  isNoTrainingToday: isNoTrainingToday
-                }
-              }
-            };
-            
-            return successResult;
-            
-          } catch (weeklyWorkoutError) {
-            console.error('Error fetching weekly workout:', weeklyWorkoutError);
-            
-            // Fallback response if weekly workout fetch fails
-            return {
-              hasWorkout: true,
-              primaryWorkout: {
-                title: plan.name || 'Training Plan',
-                description: 'Your training plan (unable to load details)',
-                exercises: [
-                  { name: 'Planned workout', sets: 1, reps: 'Check with coach', weight: null, notes: 'Contact your coach for today\'s specific workout details' }
-                ],
-                progress: { completed: false },
-                monthlyPlan: { name: plan.name, id: plan.id },
-                weeklyWorkout: { name: 'Current week', id: currentWeeklyWorkoutId },
-                dailyResult: {
-                  dailyWorkout: {
-                    exercises: [
-                      { name: 'Planned workout', sets: 1, reps: 'Check with coach', weight: null, notes: 'Contact your coach for today\'s specific workout details' }
-                    ]
-                  }
-                }
-              }
-            };
-          }
-        })();
-        
-        // Race the workout promise against timeout
-        return await Promise.race([workoutPromise, timeoutPromise]);
-        
-      } catch (error: any) {
-        console.error('getTodaysWorkout error:', error);
-        
-        // If it's a timeout or infrastructure error, provide a meaningful fallback
-        if (error.code === '57014' || 
-            error.message?.includes('timeout') ||
-            error.message?.includes('canceling statement')) {
-          console.warn('🚨 getTodaysWorkout infrastructure timeout - providing fallback');
-          
-
-          
-          return {
-            hasWorkout: true,
-            primaryWorkout: {
-              title: 'Today\'s Training Session',
-              description: 'Your scheduled training for today',
-              exercises: [
-                { name: 'Warm-up', sets: 1, reps: '10-15 minutes', weight: null, notes: 'Dynamic stretching and light movement' },
-                { name: 'Main workout', sets: 1, reps: 'As assigned', weight: null, notes: 'Complete your planned training session' },
-                { name: 'Cool-down', sets: 1, reps: '10 minutes', weight: null, notes: 'Static stretching and recovery' }
-              ],
-              progress: { completed: false },
-              monthlyPlan: { name: 'Current Training Plan', id: 'fallback' },
-              weeklyWorkout: { name: 'This Week', id: 'fallback' },
-              dailyResult: {
-                dailyWorkout: {
-                  exercises: [
-                    { name: 'Warm-up', sets: 1, reps: '10-15 minutes', weight: null, notes: 'Dynamic stretching and light movement' },
-                    { name: 'Main workout', sets: 1, reps: 'As assigned', weight: null, notes: 'Complete your planned training session' },
-                    { name: 'Cool-down', sets: 1, reps: '10 minutes', weight: null, notes: 'Static stretching and recovery' }
-                  ]
-                }
-              }
-            }
-          };
+    // Helper function to extract today's exercises efficiently
+    extractTodaysExercises(weeklyWorkout: any, completedExercises: number[]): any[] {
+      // Handle block-based workouts (new system)
+      if (weeklyWorkout.is_block_based && weeklyWorkout.blocks) {
+        if (!weeklyWorkout.blocks || weeklyWorkout.blocks.length === 0) {
+          return [
+            { name: 'No exercises configured', sets: 0, reps: '0', weight: null, notes: 'Contact your coach to set up your workout blocks' }
+          ];
         }
         
-        // Re-throw other errors
-        throw error;
+        // For block-based workouts, use current day of the week
+              const today = new Date();
+              const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const currentDayName = dayNames[today.getDay()];
+        
+        // Extract exercises from today's block
+        let allExercises: any[] = [];
+        const todayBlock = weeklyWorkout.blocks[currentDayName];
+        
+                 if (todayBlock && Array.isArray(todayBlock) && todayBlock.length > 0) {
+           // Check if the block contains exercise objects directly or needs further processing
+           if (todayBlock[0] && typeof todayBlock[0] === 'object' && todayBlock[0].name) {
+             // Block contains direct exercise objects
+             allExercises = todayBlock;
+           } else if (todayBlock[0] && todayBlock[0].exercises && Array.isArray(todayBlock[0].exercises)) {
+             // Block contains nested exercise structure
+             allExercises = todayBlock[0].exercises;
+               } else {
+             allExercises = todayBlock; // Fallback to original
+           }
+        } else {
+          // Try each day in order until we find exercises
+          const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+          
+                     for (const dayName of dayOrder) {
+             const dayBlock = weeklyWorkout.blocks[dayName];
+             if (dayBlock && Array.isArray(dayBlock) && dayBlock.length > 0) {
+               // Check if the block contains exercise objects directly or needs further processing
+               if (dayBlock[0] && typeof dayBlock[0] === 'object' && dayBlock[0].name) {
+                 // Block contains direct exercise objects
+                 allExercises = dayBlock;
+               } else if (dayBlock[0] && dayBlock[0].exercises && Array.isArray(dayBlock[0].exercises)) {
+                 // Block contains nested exercise structure
+                 allExercises = dayBlock[0].exercises;
+                   } else {
+                 allExercises = dayBlock; // Fallback to original
+               }
+               break;
+             }
+           }
+        }
+        
+        if (allExercises.length > 0) {
+          return allExercises;
+        } else {
+          return [
+            { name: 'No exercises for today', sets: 0, reps: '0', weight: null, notes: 'Contact your coach about today\'s workout' }
+          ];
+        }
       }
+      
+      // Handle legacy exercise-based workouts
+      if (!weeklyWorkout.exercises || weeklyWorkout.exercises.length === 0) {
+        return [
+          { name: 'No exercises', sets: 0, reps: '0', weight: null, notes: 'Contact your coach' }
+        ];
+      }
+      
+      // If weekly workout has daily structure, find next incomplete day
+      if (Array.isArray(weeklyWorkout.exercises) && 
+          weeklyWorkout.exercises.length > 0 && 
+          weeklyWorkout.exercises[0]?.day) {
+        
+        const targetDay = this.calculateNextIncompleteDay(weeklyWorkout.exercises, completedExercises);
+        
+        const dayWorkout = weeklyWorkout.exercises.find(day => 
+          day.day?.toLowerCase() === targetDay.toLowerCase()
+        );
+        
+        if (dayWorkout && dayWorkout.exercises && !dayWorkout.isRestDay) {
+          return dayWorkout.exercises;
+        }
+        
+        // Default to Monday if calculation fails
+        const mondayWorkout = weeklyWorkout.exercises.find(day => 
+          day.day?.toLowerCase() === 'monday'
+        );
+        
+        if (mondayWorkout && mondayWorkout.exercises) {
+          return mondayWorkout.exercises;
+        }
+        
+        return [
+          { name: 'No exercises found for today', sets: 0, reps: '0', weight: null, notes: 'Contact your coach about your weekly schedule' }
+        ];
+      }
+      
+      // Return all exercises if not in daily format
+      return weeklyWorkout.exercises;
     }
   },
 

@@ -99,45 +99,32 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
     return `daily-${dailyWorkout.primaryWorkout.weeklyWorkout.id}`;
   }, [dailyWorkout?.primaryWorkout?.weeklyWorkout?.id]);
 
-  // Check conditions before making API call
+  // Track if we've already fetched today's workout to prevent repeated calls
+  const [hasFetchedWorkout, setHasFetchedWorkout] = useState(false);
+
+  // Check conditions before making API call - OPTIMIZED to prevent repeated calls
   useEffect(() => {
-    // Enhanced debugging to see what profile data we're getting
-    console.log('🔍 TodayWorkoutsCard: Profile check debug:', {
-      hasUser: !!user?.id,
-      userId: user?.id,
-      profileExists: !!profile,
-      profileRole: profile?.role,
-      profileLoading: profileLoading,
-      fullProfile: profile,
-      conditionCheck: !user?.id || profile?.role !== 'athlete',
-      shouldFetchWorkout: user?.id && profile?.role === 'athlete'
-    });
+    // Only fetch if we haven't already fetched and conditions are met
+    if (hasFetchedWorkout || profileLoading || !user?.id || profile?.role !== 'athlete') {
+      return;
+    }
 
+    console.log('✅ Starting getTodaysWorkout for athlete:', user.id);
+    setDailyWorkoutLoading(true);
+    setDailyWorkoutError(null);
+    
     const getTodaysWorkout = async () => {
-      if (!user?.id || profile?.role !== 'athlete') {
-        console.log('❌ Skipping daily workout fetch - conditions not met. Details:', {
-          hasUser: !!user?.id,
-          profileRole: profile?.role,
-          isAthlete: profile?.role === 'athlete'
-        });
-        return;
-      }
-
-      console.log('✅ Starting getTodaysWorkout for athlete:', user.id);
-      setDailyWorkoutLoading(true);
-      setDailyWorkoutError(null);
-      
       try {
         const workoutData = await api.monthlyPlanAssignments.getTodaysWorkout(user.id);
         
         // If the API returns no workout data, set to null (don't create fake workout)
         if (!workoutData || !workoutData.hasWorkout) {
-          console.log('🔍 No workout data returned, athlete has no assignments for today');
           setDailyWorkout(null);
         } else {
           setDailyWorkout(workoutData);
         }
         setDailyWorkoutError(null);
+        setHasFetchedWorkout(true); // Mark as fetched to prevent repeated calls
       } catch (err: any) {
         console.error('Error fetching today\'s workout:', err);
         
@@ -152,17 +139,17 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
             isClosable: true,
           });
         } else {
-          console.log('🔍 API error, no fallback workout - athlete should see no assignments');
           setDailyWorkoutError('Unable to load workout assignments. Please check with your coach.');
           setDailyWorkout(null);
         }
+        setHasFetchedWorkout(true); // Mark as attempted even on error
       } finally {
         setDailyWorkoutLoading(false);
       }
     };
 
     getTodaysWorkout();
-  }, [user?.id, profile?.role, profileLoading]);
+  }, [user?.id, profile?.role, profileLoading]); // Removed hasFetchedWorkout from dependencies to prevent loop
 
   // Initialize workout progress when daily workout is loaded and sync with database
   useEffect(() => {
@@ -179,11 +166,9 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
         // Load completion status from database (source of truth)
         try {
           const completedExercisesFromDB = await getMonthlyPlanCompletionFromDB(user.id);
-          console.log('🔍 [TodayWorkoutsCard] Loaded completion from DB:', completedExercisesFromDB);
           
           // Sync database completion status to local store
           if (completedExercisesFromDB.length > 0) {
-            console.log('🔍 [TodayWorkoutsCard] Syncing DB completion to local store');
             completedExercisesFromDB.forEach(exerciseIdx => {
               storeMarkCompleted(workoutId, exerciseIdx);
             });
@@ -195,7 +180,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
             );
           }
         } catch (error) {
-          console.error('🔥 [TodayWorkoutsCard] Error loading completion from DB:', error);
+          console.error('Error loading completion from DB:', error);
         }
       }
     };
@@ -203,44 +188,28 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
     syncCompletionWithDatabase();
   }, [dailyWorkout?.hasWorkout, dailyWorkout?.primaryWorkout?.weeklyWorkout?.id, user?.id]);
 
-  // Sync regular workouts with database
-  useEffect(() => {
-    const syncRegularWorkoutsWithDatabase = async () => {
-      if (!user?.id) return;
-      
-      // Sync all today's workouts and upcoming workouts
-      const allWorkouts = [...todayWorkouts, ...upcomingWorkouts];
-      
-      for (const workout of allWorkouts) {
-        if (workout.id && !workout.id.startsWith('daily-')) {
-          // Get exercise count for this workout
-          const exerciseCount = workout.exercises ? workout.exercises.length : 0;
-          
-          // Sync completion from database
-          try {
-            await syncRegularWorkoutCompletionFromDB(
-              user.id, 
-              workout.id, 
-              { getProgress, markExerciseCompleted: storeMarkCompleted, updateProgress }, 
-              exerciseCount
-            );
-            console.log(`✅ [TodayWorkoutsCard] Synced regular workout ${workout.id} with database`);
-          } catch (error) {
-            console.error(`🔥 [TodayWorkoutsCard] Error syncing regular workout ${workout.id}:`, error);
-          }
-        }
-      }
-    };
-    
-    syncRegularWorkoutsWithDatabase();
-  }, [todayWorkouts, upcomingWorkouts, user?.id]);
+  // NOTE: Removed syncRegularWorkoutsWithDatabase useEffect to prevent infinite re-renders
+  // Regular workout sync happens when workouts are actually started/completed
+  // This eliminates the dependency on todayWorkouts/upcomingWorkouts which were causing loops
 
   // Helper function to format exercise count
   const getExerciseCountText = (exercises: any[]) => {
-    if (!exercises || exercises.length === 0) return 'No exercises';
-    
     // For the main display, we want to show today's exercise count
     const todaysExercises = getTodaysExercises(exercises);
+    
+    if (!todaysExercises || todaysExercises.length === 0) {
+      // Check if it's a rest day or truly no exercises
+      const hasWeeklyStructure = exercises && exercises.length > 0 && exercises[0]?.day;
+      if (hasWeeklyStructure) {
+        const todayName = getDayName().toLowerCase();
+        const todayData = exercises.find(dayData => dayData.day?.toLowerCase() === todayName);
+        if (todayData?.isRestDay) {
+          return 'Rest day';
+        }
+      }
+      return 'No exercises';
+    }
+    
     return todaysExercises.length === 1 ? '1 exercise' : `${todaysExercises.length} exercises`;
   };
 
@@ -291,13 +260,62 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
     console.log('Reset workout progress for:', workoutId);
   };
 
-  // Filter exercises to get only today's exercises
+  // Enhanced function to get today's exercises from various data structures
   const getTodaysExercises = (exercises: any[]) => {
     if (!exercises || exercises.length === 0) return [];
     
-    // For weekly workout structure, exercises are already for the whole week
-    // We'll need to create a daily structure from the weekly exercises
-    // For now, return all exercises as today's workout
+    // PRIORITY 1: Check if we have pre-extracted today's exercises from dailyResult
+    // The API already extracts today's exercises and puts them in dailyResult.dailyWorkout.exercises
+    const dailyExercises = dailyWorkout?.primaryWorkout?.dailyResult?.dailyWorkout?.exercises;
+    if (dailyExercises && Array.isArray(dailyExercises) && dailyExercises.length > 0) {
+      // Check if these are exercise blocks (with category and exercises properties)
+      if (dailyExercises[0]?.category && dailyExercises[0]?.exercises) {
+        const individualExercises: any[] = [];
+        
+        dailyExercises.forEach((block: any) => {
+          if (block.exercises && Array.isArray(block.exercises)) {
+            individualExercises.push(...block.exercises);
+          }
+        });
+        
+        return individualExercises;
+      }
+      
+      return dailyExercises;
+    }
+    
+    const todayName = getDayName().toLowerCase();
+    
+    // PRIORITY 2: Check if exercises have a weekly structure (with .day property)
+    if (Array.isArray(exercises) && exercises.length > 0 && exercises[0]?.day) {
+      // Find today's exercises from the weekly structure
+      const todayData = exercises.find(dayData => 
+        dayData.day?.toLowerCase() === todayName
+      );
+      
+      if (todayData && !todayData.isRestDay && todayData.exercises) {
+        return todayData.exercises;
+      }
+      
+      // If today is not found or is a rest day, return empty array
+      return [];
+    }
+    
+    // PRIORITY 3: Check if exercises are exercise blocks (with category and exercises properties)
+    if (Array.isArray(exercises) && exercises.length > 0 && exercises[0]?.category && exercises[0]?.exercises) {
+      const individualExercises: any[] = [];
+      
+      exercises.forEach((block: any) => {
+        if (block.exercises && Array.isArray(block.exercises)) {
+          individualExercises.push(...block.exercises);
+        }
+      });
+      
+      return individualExercises;
+    }
+    
+    // PRIORITY 4: If not weekly structure or blocks, assume all exercises are for today
+    // This handles individual workouts and fallback workouts
     return exercises;
   };
 
@@ -723,7 +741,8 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                               </Text>
                               <Badge 
                                 colorScheme={(() => {
-                                  const todaysExercises = dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [];
+                                  const rawExercises = dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [];
+                                  const todaysExercises = getTodaysExercises(rawExercises);
                                   const completedCount = Math.min(getCompletedExercisesCount(), todaysExercises.length);
                                   return completedCount === todaysExercises.length ? "green" : "orange";
                                 })()} 
@@ -731,7 +750,8 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                                 fontSize="xs"
                               >
                                 {(() => {
-                                  const todaysExercises = dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [];
+                                  const rawExercises = dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [];
+                                  const todaysExercises = getTodaysExercises(rawExercises);
                                   const completedCount = Math.min(getCompletedExercisesCount(), todaysExercises.length);
                                   return `${completedCount}/${todaysExercises.length} Done`;
                                 })()}
@@ -774,8 +794,9 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                             if (dailyWorkout.primaryWorkout?.dailyResult?.isRestDay || 
                                 dailyWorkout.primaryWorkout?.dailyResult?.isNoTrainingToday) return;
                             
-                            // Get today's exercises for the modal
-                            const todaysExercises = dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [];
+                            // Get today's exercises for the modal using our enhanced function
+                            const rawExercises = dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [];
+                            const todaysExercises = getTodaysExercises(rawExercises);
                             
                             // Create a workout-like object to pass to existing handler
                             const workoutObj = {
@@ -786,7 +807,6 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                               type: 'Daily Training',
                               duration: '45 mins'
                             };
-                            console.log('🔍 Starting workout with data:', workoutObj);
                             handleStartWorkout(workoutObj);
                           }}
                         >
@@ -810,7 +830,8 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
                             </Text>
                             <VStack spacing={1} align="stretch" maxH="200px" overflowY="auto">
                               {(() => {
-                                const todaysExercises = dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [];
+                                const rawExercises = dailyWorkout.primaryWorkout?.exercises || dailyWorkout.primaryWorkout?.dailyResult?.dailyWorkout?.exercises || [];
+                                const todaysExercises = getTodaysExercises(rawExercises);
                                 return todaysExercises.map((exercise: any, index: number) => {
                                   const isCompleted = isExerciseCompletedByIndex(index);
                                   return (

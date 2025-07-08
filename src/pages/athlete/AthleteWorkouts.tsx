@@ -19,7 +19,7 @@ import { dateUtils } from '../../utils/date';
 import { useWorkoutsRealtime } from '../../hooks/useWorkoutsRealtime';
 import { handleWorkoutCompletion } from '../../services/integrationService';
 import { useFeedback } from '../../components/FeedbackProvider'; // Import the feedback hook
-import { MonthlyPlanAssignments, WorkoutsSidebar, MobileBottomNavigation } from '../../components';
+import { WorkoutsSidebar, MobileBottomNavigation } from '../../components';
 import { WorkoutExecutionRouter } from '../../components/WorkoutExecutionRouter';
 import type { WorkoutsSection } from '../../components';
 import { useScrollDirection } from '../../hooks/useScrollDirection';
@@ -452,11 +452,9 @@ export function AthleteWorkouts() {
     let workouts = assignedWorkouts;
     
     // Create a base filtered list that excludes templates and monthly-plan-used workouts
-    const baseFilteredWorkouts = (activeItem !== 'monthly-plans') 
-      ? assignedWorkouts.filter(workout => 
-          !usedInMonthlyPlans.has(workout.id) && !workout.is_template
-        )
-      : assignedWorkouts;
+    const baseFilteredWorkouts = assignedWorkouts.filter(workout => 
+      !usedInMonthlyPlans.has(workout.id) && !workout.is_template
+    );
 
     switch (activeItem) {
       case 'today':
@@ -696,12 +694,6 @@ export function AthleteWorkouts() {
       id: 'tools',
       title: 'Tools & Library',
       items: [
-        {
-          id: 'monthly-plans',
-          label: 'Monthly Plans',
-          icon: FaCalendarAlt,
-          description: 'View training plan assignments'
-        },
         {
           id: 'exercise-library',
           label: 'Exercise Library',
@@ -1264,8 +1256,12 @@ export function AthleteWorkouts() {
               totalExerciseCount: monthlyPlanExerciseData.totalCount
             };
             
-            // Memoized calculation for monthly plan progress to prevent re-computation on every render
-            const monthlyPlanProgress = useMemo(() => {
+            // Calculate actual progress for monthly plan based on exercise completion
+            // Include workoutStoreUpdateTrigger to ensure recalculation when store updates
+            const calculateMonthlyPlanProgress = () => {
+              // Reference the trigger to ensure this function recalculates when store updates
+              const _ = workoutStoreUpdateTrigger;
+              
               const exerciseData = item.exerciseData || { exercises: [], totalCount: 0 };
               const totalExercises = exerciseData.totalCount;
               
@@ -1310,7 +1306,9 @@ export function AthleteWorkouts() {
                 total: totalExercises,
                 percentage: Math.min(percentage, 100) // Cap at 100%
               };
-            }, [item.exerciseData?.totalCount, item.status, workoutStoreUpdateTrigger]);
+            };
+            
+            const monthlyPlanProgress = calculateMonthlyPlanProgress();
             
             return (
               <WorkoutCard
@@ -1345,11 +1343,11 @@ export function AthleteWorkouts() {
                   );
                   
                   if (!workoutStarted) {
-                    // If no workout available for today, navigate to monthly plans page
-                    setActiveItem('monthly-plans');
+                    // If no workout available for today, navigate to all workouts page
+                    setActiveItem('all-workouts');
                   }
                 }}
-                onViewDetails={() => setActiveItem('monthly-plans')}
+                onViewDetails={() => setActiveItem('all-workouts')}
                 onRefresh={() => loadMonthlyPlans()}
                 showRefresh={false}
                 onReset={() => handleResetMonthlyPlan(item.id, item.training_plans?.name || 'Monthly Plan')}
@@ -1769,8 +1767,6 @@ export function AthleteWorkouts() {
           return { title: 'Cardio Workouts', description: 'Endurance and running training', icon: FaRunning };
         case 'speed':
           return { title: 'Speed Training', description: 'Sprint and speed workouts', icon: FaLeaf };
-        case 'monthly-plans':
-          return { title: 'Monthly Plans', description: 'Training plan assignments', icon: FaCalendarAlt };
         case 'exercise-library':
           return { title: 'Exercise Library', description: 'Manage your custom exercises', icon: FaBookOpen };
         case 'deleted':
@@ -1785,8 +1781,6 @@ export function AthleteWorkouts() {
 
     const renderMainContent = () => {
       switch (activeItem) {
-        case 'monthly-plans':
-          return <MonthlyPlanAssignments />;
         case 'exercise-library':
           return (
             <ExerciseLibrary

@@ -370,6 +370,12 @@ export function WorkoutCard({
                       <Text fontSize="md" fontWeight="medium" color={exerciseTextColor}>
                         Blocks: {workoutBlocks.length}
                       </Text>
+                      {/* Show total exercise count for monthly plans */}
+                      {workout.template_type === 'monthly' && (workout as any)._planTotalExercises && (
+                        <Text fontSize="sm" color={infoColor} ml={2}>
+                          ({(workout as any)._planTotalExercises} total exercises)
+                        </Text>
+                      )}
                     </Flex>
                     <Box maxH="100px" overflowY="auto" fontSize="sm" color={infoColor} pl={6}>
                       {workoutBlocks.slice(0, 3).map((block: any, idx: number) => {
@@ -407,7 +413,8 @@ export function WorkoutCard({
                     <Flex align="center" mb={2}>
                       <Icon as={FaTasks} mr={2} color={typeColor} boxSize={4} />
                       <Text fontSize="md" fontWeight="medium" color={exerciseTextColor}>
-                        Exercises: {allExercises.length}
+                        Exercises: {workout.template_type === 'monthly' && (workout as any)._planTotalExercises ? 
+                          (workout as any)._planTotalExercises : allExercises.length}
                       </Text>
                     </Flex>
                     {displayExercises.length > 0 && (
@@ -417,8 +424,12 @@ export function WorkoutCard({
                             • {ex.name} {ex.sets && ex.reps ? `(${ex.sets}×${ex.reps})` : ''}
                           </Text>
                         ))}
-                        {allExercises.length > 3 && (
-                          <Text fontStyle="italic" color={exerciseTextColor}>+{allExercises.length - 3} more...</Text>
+                        {(workout.template_type === 'monthly' && (workout as any)._planTotalExercises ? 
+                          (workout as any)._planTotalExercises : allExercises.length) > 3 && (
+                          <Text fontStyle="italic" color={exerciseTextColor}>
+                            +{(workout.template_type === 'monthly' && (workout as any)._planTotalExercises ? 
+                              (workout as any)._planTotalExercises : allExercises.length) - 3} more...
+                          </Text>
                         )}
                       </Box>
                     )}
@@ -441,7 +452,9 @@ export function WorkoutCard({
                   <>
                     <Icon as={FaTasks} mr={2} color={typeColor} boxSize={4} />
                     <Text fontSize="md" color={infoColor}>
-                      {allExercises.length} Exercise{allExercises.length !== 1 ? 's' : ''}
+                      {workout.template_type === 'monthly' && (workout as any)._planTotalExercises ? 
+                        (workout as any)._planTotalExercises : allExercises.length} Exercise{(workout.template_type === 'monthly' && (workout as any)._planTotalExercises ? 
+                        (workout as any)._planTotalExercises : allExercises.length) !== 1 ? 's' : ''}
                     </Text>
                   </>
                 )}
