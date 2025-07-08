@@ -725,7 +725,6 @@ export function CoachWorkouts() {
       >
         <DrawerOverlay />
         <DrawerContent>
-          <DrawerCloseButton />
           <DrawerBody p={0}>
             {workoutToView && (
               <WorkoutDetailView

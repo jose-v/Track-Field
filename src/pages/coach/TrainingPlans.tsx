@@ -17,6 +17,7 @@ import { PlanDetailView } from '../../components/PlanDetailView';
 import { WorkoutDetailView } from '../../components/WorkoutDetailView';
 import { WorkoutCard } from '../../components/WorkoutCard';
 import { WorkoutDeletionWarningModal } from '../../components/WorkoutDeletionWarningModal';
+import { ConvertTemplateModal } from '../../components/modals/ConvertTemplateModal';
 import type { TrainingPlan } from '../../services/dbSchema';
 import type { Workout } from '../../services/api';
 import { useCoachAthletes } from '../../hooks/useCoachAthletes';
@@ -130,6 +131,7 @@ export function CoachTrainingPlans() {
   const { isOpen: isAssignmentOpen, onOpen: onAssignmentOpen, onClose: onAssignmentClose } = useDisclosure();
   const { isOpen: isWorkoutAssignmentOpen, onOpen: onWorkoutAssignmentOpen, onClose: onWorkoutAssignmentClose } = useDisclosure();
   const { isOpen: isWarningOpen, onOpen: onWarningOpen, onClose: onWarningClose } = useDisclosure();
+  const { isOpen: isConvertModalOpen, onOpen: onConvertModalOpen, onClose: onConvertModalClose } = useDisclosure();
   
   // State for deletion warning modal
   const [workoutToDelete, setWorkoutToDelete] = useState<{ id: string; name: string } | null>(null);
@@ -179,6 +181,7 @@ export function CoachTrainingPlans() {
   const [selectedWorkoutForView, setSelectedWorkoutForView] = useState<Workout | null>(null);
   const [showWorkoutDetailView, setShowWorkoutDetailView] = useState(false);
   const [workoutToAssign, setWorkoutToAssign] = useState<Workout | null>(null);
+  const [templateToConvert, setTemplateToConvert] = useState<Workout | null>(null);
 
   // Data state for workouts (moved from CoachWorkouts)
   const { 
@@ -1095,6 +1098,24 @@ export function CoachTrainingPlans() {
     navigate(`/coach/workout-creator-new?edit=${workout.id}`);
   };
 
+  const handleConvertTemplate = (template: Workout) => {
+    setTemplateToConvert(template);
+    onConvertModalOpen();
+  };
+
+  const handleConvertSuccess = () => {
+    onConvertModalClose();
+    setTemplateToConvert(null);
+    toast({
+      title: 'Success!',
+      description: 'Template converted to workout successfully.',
+      status: 'success',
+      duration: 3000,
+    });
+    // Refresh workouts to show the new one
+    refetchWorkouts();
+  };
+
   // Render functions for each tab content
   const renderWorkouts = () => {
     if (workoutsLoading || athletesLoading) {
@@ -1310,10 +1331,11 @@ export function CoachTrainingPlans() {
                 workout={template}
                 isCoach={true}
                 isTemplate={true}
-                                            onEdit={() => navigate(`/coach/workout-creator-new?edit=${template.id}`)}
+                onEdit={() => navigate(`/coach/workout-creator-new?edit=${template.id}`)}
                 onDelete={() => handleDeleteWorkout(template)}
                 onAssign={() => handleAssignWorkout(template)}
                 onViewDetails={() => handleViewWorkout(template)}
+                onConvertToWorkout={() => handleConvertTemplate(template)}
                 monthlyPlanUsage={monthlyPlanUsageData[template.id]}
               />
             ))}
@@ -2142,7 +2164,6 @@ export function CoachTrainingPlans() {
       >
         <DrawerOverlay />
         <DrawerContent>
-          <DrawerCloseButton />
           <DrawerBody p={0}>
             {selectedPlanForView && (
               <PlanDetailView
@@ -2186,7 +2207,6 @@ export function CoachTrainingPlans() {
       >
         <DrawerOverlay />
         <DrawerContent>
-          <DrawerCloseButton />
           <DrawerBody p={0}>
             {selectedWorkoutForView && (
               <WorkoutDetailView
@@ -2199,6 +2219,16 @@ export function CoachTrainingPlans() {
           </DrawerBody>
         </DrawerContent>
       </Drawer>
+
+      {/* Convert Template Modal */}
+      {templateToConvert && (
+        <ConvertTemplateModal
+          isOpen={isConvertModalOpen}
+          onClose={onConvertModalClose}
+          template={templateToConvert}
+          onSuccess={handleConvertSuccess}
+        />
+      )}
     </Box>
   );
 } 

@@ -4,7 +4,7 @@ import {
   Button, Badge, IconButton, useColorModeValue, Tooltip,
   Menu, MenuButton, MenuList, MenuItem
 } from '@chakra-ui/react';
-import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaEdit, FaTrash, FaPlayCircle, FaCalendarAlt, FaClock, FaMapMarkerAlt, FaUsers, FaTasks, FaUndo, FaLayerGroup, FaEllipsisV, FaEye } from 'react-icons/fa';
+import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaEdit, FaTrash, FaPlayCircle, FaCalendarAlt, FaClock, FaMapMarkerAlt, FaUsers, FaTasks, FaUndo, FaLayerGroup, FaEllipsisV, FaEye, FaExchangeAlt } from 'react-icons/fa';
 import type { Workout, Exercise } from '../services/api';
 import { dateUtils } from '../utils/date';
 import { ProgressBar } from './ProgressBar';
@@ -77,6 +77,7 @@ interface WorkoutCardProps {
     isUsed: boolean;
     monthlyPlans: { id: string; name: string }[];
   };
+  onConvertToWorkout?: () => void;
 }
 
 export function WorkoutCard({
@@ -96,7 +97,8 @@ export function WorkoutCard({
   onReset,
   isTemplate = false,
   currentUserId,
-  monthlyPlanUsage
+  monthlyPlanUsage,
+  onConvertToWorkout
 }: WorkoutCardProps) {
   // All useColorModeValue calls must be at the top level to follow Rules of Hooks
   const borderColor = useColorModeValue('gray.200', 'gray.700');
@@ -221,7 +223,12 @@ export function WorkoutCard({
                 View Details
               </MenuItem>
             )}
-            {onAssign && (
+            {isTemplate && onConvertToWorkout && (
+              <MenuItem icon={<FaExchangeAlt />} onClick={onConvertToWorkout}>
+                Convert to Workout
+              </MenuItem>
+            )}
+            {onAssign && !isTemplate && !(workout as any).is_template && (
               <MenuItem icon={<FaUsers />} onClick={onAssign}>
                 Assign Athletes
               </MenuItem>

@@ -166,7 +166,12 @@ export const api = {
         if (workout.template_type) workoutData.template_type = workout.template_type;
         
         // Handle block system
-        if (workout.blocks && workout.blocks.length > 0) {
+        const hasBlocks = workout.blocks && (
+          (Array.isArray(workout.blocks) && workout.blocks.length > 0) ||
+          (typeof workout.blocks === 'object' && !Array.isArray(workout.blocks) && Object.keys(workout.blocks).length > 0)
+        );
+        
+        if (hasBlocks || workout.is_block_based) {
           workoutData.blocks = workout.blocks;
           workoutData.is_block_based = true;
           workoutData.block_version = workout.block_version || 1;

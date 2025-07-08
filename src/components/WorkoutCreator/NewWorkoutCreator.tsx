@@ -478,7 +478,7 @@ const NewWorkoutCreator: React.FC = () => {
   };
 
   // Save handlers
-  const handleSave = async (action: 'save' | 'save_template' | 'save_assign' = 'save') => {
+  const handleSave = async (action: 'save' | 'save_template' | 'save_assign' | 'save_draft' = 'save') => {
     try {
       setIsSaving(true);
       
@@ -518,6 +518,44 @@ const NewWorkoutCreator: React.FC = () => {
       }
 
       let savedWorkout;
+      
+      // Handle draft save action
+      if (action === 'save_draft') {
+        const draftData = {
+          name: workoutName,
+          type: selectedTemplateType,
+          template_type: selectedTemplateType,
+          date: date || null,
+          time: time || null,
+          duration: duration || null,
+          location: workoutLocation || null,
+          is_template: isTemplateMode,
+          is_block_based: true,
+          blocks: selectedTemplateType === 'weekly' ? dailyBlocks : blocks as any,
+          block_version: 1,
+          description: `Draft ${selectedTemplateType.charAt(0).toUpperCase() + selectedTemplateType.slice(1)} workout with ${allBlocks.length} block${allBlocks.length !== 1 ? 's' : ''} and ${totalExercises} exercise${totalExercises !== 1 ? 's' : ''}`,
+          exercises: selectedTemplateType === 'single' ? extractExercisesFromBlocks(blocks) : []
+        };
+
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('User not authenticated');
+
+        savedWorkout = await api.workouts.saveDraft({
+          ...draftData,
+          user_id: user.id
+        });
+
+        toast({
+          title: 'Draft saved!',
+          description: `"${workoutName}" has been saved as a draft. You can continue editing or find it in your drafts later.`,
+          status: 'success',
+          duration: 4000,
+        });
+
+        // Don't navigate away, keep user in the creator
+        return;
+      }
       
       if (selectedTemplateType === 'monthly') {
         // Monthly plans are saved in training_plans table, not workouts table
@@ -1075,6 +1113,55 @@ const NewWorkoutCreator: React.FC = () => {
     }
   };
 
+  // Calculate workout statistics for bottom navigation
+  const getWorkoutStats = () => {
+    let blockCount = 0;
+    let flowTypes: string[] = [];
+    
+    if (selectedTemplateType === 'monthly') {
+      // For monthly plans, show number of training weeks
+      blockCount = monthlyPlanWeeks.filter(week => !week.is_rest_week).length;
+      return {
+        blockCount,
+        flowType: 'Weekly Templates',
+        blockLabel: blockCount === 1 ? 'Training Week' : 'Training Weeks'
+      };
+    } else if (selectedTemplateType === 'weekly') {
+      // For weekly plans, count all blocks across all days
+      const allBlocks = Object.values(dailyBlocks).flat();
+      blockCount = allBlocks.length;
+      flowTypes = allBlocks.map(block => block.flow);
+    } else {
+      // For single workouts, use blocks array
+      blockCount = blocks.length;
+      flowTypes = blocks.map(block => block.flow);
+    }
+    
+    // Get all unique flow types
+    let flowType = 'Sequential'; // default
+    if (flowTypes.length > 0) {
+      const uniqueFlows = [...new Set(flowTypes)];
+      
+      // Capitalize and format each flow type
+      const formattedFlows = uniqueFlows.map(flow => 
+        flow.charAt(0).toUpperCase() + flow.slice(1)
+      );
+      
+      // Join multiple flow types with commas, or use single flow type
+      flowType = formattedFlows.length === 1 
+        ? formattedFlows[0] 
+        : formattedFlows.join(', ');
+    }
+    
+    return {
+      blockCount,
+      flowType,
+      blockLabel: blockCount === 1 ? 'Block' : 'Blocks'
+    };
+  };
+
+  const workoutStats = getWorkoutStats();
+
   return (
     <Box w="100%" position="relative" bg={bgColor} minH="100vh">
       {/* Top Navigation Bar - Fixed positioned with sidebar offset */}
@@ -1194,21 +1281,54 @@ const NewWorkoutCreator: React.FC = () => {
             onClick={handlePrevious}
             isDisabled={currentStep === 1}
             size="lg"
+            w="140px"
           >
             Previous
           </Button>
           
-          <Button
-            rightIcon={currentStep === getWorkflowSteps(selectedTemplateType).length ? <Save size={16} /> : <ArrowRight size={16} />}
-            colorScheme="blue"
-            onClick={currentStep === getWorkflowSteps(selectedTemplateType).length ? () => handleSave('save') : handleNext}
-            isDisabled={!validateStep(currentStep)}
-            isLoading={currentStep === getWorkflowSteps(selectedTemplateType).length ? isSaving : false}
-            size="lg"
-            minW="120px"
-          >
-            {currentStep === getWorkflowSteps(selectedTemplateType).length ? 'Save' : 'Continue'}
-          </Button>
+          {/* Workout Information - Center */}
+          <VStack spacing={1} align="center">
+            <HStack spacing={4}>
+              <Badge colorScheme="blue" fontSize="sm" px={3} py={1}>
+                {selectedTemplateType.charAt(0).toUpperCase() + selectedTemplateType.slice(1)}
+              </Badge>
+              <Text fontSize="sm" color={textColor} fontWeight="medium">
+                {workoutStats.blockCount} {workoutStats.blockLabel}
+              </Text>
+              <Text fontSize="sm" color={subtitleColor}>
+                {workoutStats.flowType}
+              </Text>
+            </HStack>
+          </VStack>
+          
+          {/* Right side buttons */}
+          <HStack spacing={3}>
+            {/* Save Draft Button - Only show if workout name is provided */}
+            {workoutName.trim() && (
+              <Button
+                variant="outline"
+                onClick={() => handleSave('save_draft')}
+                isLoading={isSaving}
+                loadingText="Saving..."
+                size="lg"
+                w="140px"
+              >
+                Save as Draft
+              </Button>
+            )}
+            
+            <Button
+              rightIcon={currentStep === getWorkflowSteps(selectedTemplateType).length ? <Save size={16} /> : <ArrowRight size={16} />}
+              colorScheme="blue"
+              onClick={currentStep === getWorkflowSteps(selectedTemplateType).length ? () => handleSave('save') : handleNext}
+              isDisabled={!validateStep(currentStep)}
+              isLoading={currentStep === getWorkflowSteps(selectedTemplateType).length ? isSaving : false}
+              size="lg"
+              w="140px"
+            >
+              {currentStep === getWorkflowSteps(selectedTemplateType).length ? 'Save' : 'Continue'}
+            </Button>
+          </HStack>
         </Flex>
       </Box>
     </Box>

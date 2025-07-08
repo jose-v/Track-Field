@@ -235,12 +235,44 @@ export function WorkoutDetailView({
   
   // Memoize expensive calculations
   const exercises = useMemo(() => getExercisesFromWorkout(workout), [workout.exercises, workout.template_type, getExercisesFromWorkout]);
-  const exerciseCount = useMemo(() => exercises.length, [exercises]);
+  
+  // Calculate exercise count properly for both block-based and exercise-based workouts
+  const exerciseCount = useMemo(() => {
+    if (workout.is_block_based && workout.blocks) {
+      // For block-based workouts, count exercises from all blocks
+      if (typeof workout.blocks === 'object' && !Array.isArray(workout.blocks)) {
+        // Weekly block-based: sum exercises from all days
+        return Object.values(workout.blocks as Record<string, any[]>).reduce((total: number, dayBlocks: any) => {
+          if (Array.isArray(dayBlocks)) {
+            return total + dayBlocks.reduce((dayTotal: number, block: any) => {
+              return dayTotal + (block.exercises?.length || 0);
+            }, 0);
+          }
+          return total;
+        }, 0);
+      } else if (Array.isArray(workout.blocks)) {
+        // Single day block-based: sum exercises from all blocks
+        return (workout.blocks as any[]).reduce((total: number, block: any) => {
+          return total + (block.exercises?.length || 0);
+        }, 0);
+      }
+    }
+    // Fall back to exercise array count
+    return exercises.length;
+  }, [workout.is_block_based, workout.blocks, exercises.length]);
   
   // For block-based workouts, calculate block count
   const blockCount = useMemo(() => {
     if (workout.is_block_based && workout.blocks) {
-      return workout.blocks.length;
+      if (typeof workout.blocks === 'object' && !Array.isArray(workout.blocks)) {
+        // Weekly: count total blocks across all days
+        return Object.values(workout.blocks as Record<string, any[]>).reduce((total: number, dayBlocks: any) => {
+          return total + (Array.isArray(dayBlocks) ? dayBlocks.length : 0);
+        }, 0);
+      } else if (Array.isArray(workout.blocks)) {
+        // Single day: count blocks
+        return (workout.blocks as any[]).length;
+      }
     }
     return 0;
   }, [workout.is_block_based, workout.blocks]);
@@ -338,6 +370,32 @@ export function WorkoutDetailView({
     }
   };
 
+  // Debug logging for weekly workouts
+  useEffect(() => {
+    if (workout.template_type === 'weekly') {
+      console.log('🔍 Weekly Workout Debug:', {
+        name: workout.name,
+        template_type: workout.template_type,
+        is_block_based: workout.is_block_based,
+        exercises: workout.exercises,
+        blocks: workout.blocks,
+        exercisesIsArray: Array.isArray(workout.exercises),
+        exercisesLength: workout.exercises?.length,
+        blocksIsObject: typeof workout.blocks === 'object',
+        blocksKeys: workout.blocks ? Object.keys(workout.blocks) : null,
+        firstExercise: workout.exercises?.[0],
+        hasDay: workout.exercises?.[0] && 'day' in workout.exercises[0],
+        exerciseStructure: workout.exercises?.map((ex: any, i: number) => ({
+          index: i,
+          type: typeof ex,
+          keys: Object.keys(ex || {}),
+          hasDay: ex && 'day' in ex,
+          hasExercises: ex && 'exercises' in ex
+        }))
+      });
+    }
+  }, [workout]);
+
   return (
     <Box bg={bgColor} minH="100vh" p={6}>
       <VStack spacing={6} align="stretch">
@@ -366,7 +424,7 @@ export function WorkoutDetailView({
 
           {/* Action buttons */}
           <HStack spacing={3}>
-            {onAssign && (
+            {onAssign && !workout.is_template && (
               <Button
                 leftIcon={<FaUsers />}
                 colorScheme="blue"
@@ -441,48 +499,143 @@ export function WorkoutDetailView({
         </Card>
 
         {/* Weekly Breakdown (for weekly workouts) */}
-        {workout.template_type === 'weekly' && workout.exercises && Array.isArray(workout.exercises) && 
-         workout.exercises.length > 0 && 'day' in workout.exercises[0] && (
+        {workout.template_type === 'weekly' && (
           <Card bg={cardBg} borderColor={borderColor} borderWidth="1px">
             <CardBody p={6}>
               <Heading size="md" color={titleColor} mb={4}>Weekly Breakdown</Heading>
-              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                {(workout.exercises as any[]).map((dayPlan, index) => (
-                  <Card key={index} bg={bgColor} borderWidth="1px" borderColor={borderColor}>
-                    <CardBody p={4}>
-                      <Flex justify="space-between" align="center" mb={3}>
-                        <Heading size="sm" color={titleColor} textTransform="capitalize">
-                          {dayPlan.day}
-                        </Heading>
-                        {dayPlan.isRestDay ? (
-                          <Badge colorScheme="orange">Rest Day</Badge>
-                        ) : (
-                          <Badge colorScheme="blue">{dayPlan.exercises?.length || 0} exercises</Badge>
-                        )}
-                      </Flex>
-                      {dayPlan.isRestDay ? (
-                        <Text fontSize="sm" color={infoColor} fontStyle="italic">
-                          Scheduled rest day
-                        </Text>
-                      ) : (
-                        <VStack spacing={2} align="stretch">
-                          {(dayPlan.exercises || []).slice(0, 3).map((exercise: Exercise, exIndex: number) => (
-                            <Text key={exIndex} fontSize="sm" color={infoColor}>
-                              • {exercise.name}
-                              {exercise.sets && exercise.reps && ` (${exercise.sets} × ${exercise.reps})`}
+              
+              {/* Handle block-based weekly workouts */}
+              {workout.is_block_based && workout.blocks && typeof workout.blocks === 'object' ? (
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                  {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
+                    const dayBlocks = workout.blocks[day] || [];
+                    const isRestDay = !dayBlocks || dayBlocks.length === 0;
+                    
+                    // Calculate total exercises for this day
+                    const totalExercises = Array.isArray(dayBlocks) 
+                      ? dayBlocks.reduce((total: number, block: any) => {
+                          return total + (block.exercises?.length || 0);
+                        }, 0)
+                      : 0;
+
+                    return (
+                      <Card key={day} bg={bgColor} borderWidth="1px" borderColor={borderColor}>
+                        <CardBody p={4}>
+                          <Flex justify="space-between" align="center" mb={3}>
+                            <Heading size="sm" color={titleColor} textTransform="capitalize">
+                              {day}
+                            </Heading>
+                            {isRestDay ? (
+                              <Badge colorScheme="orange">Rest Day</Badge>
+                            ) : (
+                              <Badge colorScheme="blue">
+                                {dayBlocks.length} block{dayBlocks.length !== 1 ? 's' : ''} • {totalExercises} exercises
+                              </Badge>
+                            )}
+                          </Flex>
+                          {isRestDay ? (
+                            <Text fontSize="sm" color={infoColor} fontStyle="italic">
+                              No training scheduled
                             </Text>
-                          ))}
-                          {(dayPlan.exercises || []).length > 3 && (
-                            <Text fontSize="xs" color={infoColor} fontStyle="italic">
-                              +{(dayPlan.exercises || []).length - 3} more...
-                            </Text>
+                          ) : (
+                            <VStack spacing={2} align="stretch">
+                              {dayBlocks.slice(0, 3).map((block: any, blockIndex: number) => (
+                                <Box key={blockIndex} fontSize="sm" color={infoColor}>
+                                  <Text fontWeight="medium">• {block.name}</Text>
+                                  <Text fontSize="xs" color={infoColor} ml={3}>
+                                    {block.exercises?.length || 0} exercises • {block.flow} • {block.restBetweenExercises}s rest
+                                  </Text>
+                                </Box>
+                              ))}
+                              {dayBlocks.length > 3 && (
+                                <Text fontSize="xs" color={infoColor} fontStyle="italic">
+                                  +{dayBlocks.length - 3} more blocks...
+                                </Text>
+                              )}
+                            </VStack>
                           )}
-                        </VStack>
-                      )}
-                    </CardBody>
-                  </Card>
-                ))}
-              </SimpleGrid>
+                        </CardBody>
+                      </Card>
+                    );
+                  })}
+                </SimpleGrid>
+              ) : 
+              /* Handle legacy exercise-based weekly workouts */
+              workout.exercises && Array.isArray(workout.exercises) && 
+               workout.exercises.length > 0 && 
+               workout.exercises[0] && 
+               typeof workout.exercises[0] === 'object' && 
+               'day' in workout.exercises[0] ? (
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                  {(workout.exercises as any[]).map((dayPlan, index) => (
+                    <Card key={index} bg={bgColor} borderWidth="1px" borderColor={borderColor}>
+                      <CardBody p={4}>
+                        <Flex justify="space-between" align="center" mb={3}>
+                          <Heading size="sm" color={titleColor} textTransform="capitalize">
+                            {dayPlan.day || `Day ${index + 1}`}
+                          </Heading>
+                          {dayPlan.isRestDay ? (
+                            <Badge colorScheme="orange">Rest Day</Badge>
+                          ) : (
+                            <Badge colorScheme="blue">{dayPlan.exercises?.length || 0} exercises</Badge>
+                          )}
+                        </Flex>
+                        {dayPlan.isRestDay ? (
+                          <Text fontSize="sm" color={infoColor} fontStyle="italic">
+                            Scheduled rest day
+                          </Text>
+                        ) : (
+                          <VStack spacing={2} align="stretch">
+                            {(dayPlan.exercises || []).slice(0, 3).map((exercise: Exercise, exIndex: number) => (
+                              <Text key={exIndex} fontSize="sm" color={infoColor}>
+                                • {exercise.name}
+                                {exercise.sets && exercise.reps && ` (${exercise.sets} × ${exercise.reps})`}
+                              </Text>
+                            ))}
+                            {(dayPlan.exercises || []).length > 3 && (
+                              <Text fontSize="xs" color={infoColor} fontStyle="italic">
+                                +{(dayPlan.exercises || []).length - 3} more...
+                              </Text>
+                            )}
+                          </VStack>
+                        )}
+                      </CardBody>
+                    </Card>
+                  ))}
+                </SimpleGrid>
+              ) : (
+                /* Fallback for weekly workouts without proper structure */
+                <Alert status="warning">
+                  <AlertIcon />
+                  <Box>
+                    <Text fontWeight="bold">Weekly Workout Structure Issue</Text>
+                    <Text fontSize="sm">
+                      This weekly workout doesn't have the expected structure. 
+                      {workout.is_block_based 
+                        ? `Block-based: ${workout.blocks ? Object.keys(workout.blocks).length : 0} day(s) configured.`
+                        : `Exercise-based: ${workout.exercises ? `Found ${Array.isArray(workout.exercises) ? workout.exercises.length : 1} item(s).` : 'No exercises found.'}`
+                      }
+                    </Text>
+                    {process.env.NODE_ENV === 'development' && (
+                      <VStack align="start" spacing={1} mt={2}>
+                        <Text fontSize="xs" color="gray.500">
+                          Debug: is_block_based={workout.is_block_based ? 'true' : 'false'}
+                        </Text>
+                        {workout.blocks && (
+                          <Text fontSize="xs" color="gray.500">
+                            blocks={JSON.stringify(Object.keys(workout.blocks))}
+                          </Text>
+                        )}
+                        {workout.exercises && (
+                          <Text fontSize="xs" color="gray.500">
+                            exercises={JSON.stringify(workout.exercises?.slice?.(0, 2) || workout.exercises || 'null')}
+                          </Text>
+                        )}
+                      </VStack>
+                    )}
+                  </Box>
+                </Alert>
+              )}
             </CardBody>
           </Card>
         )}
