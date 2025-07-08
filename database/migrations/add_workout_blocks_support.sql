@@ -142,7 +142,7 @@ BEGIN
                 'flow', 'sequential',
                 'category', current_category,
                 'restBetweenExercises', CASE current_category
-                    WHEN 'warmup' THEN 30
+                    WHEN 'warmup' THEN 60
                     WHEN 'main' THEN 90
                     WHEN 'conditioning' THEN 75
                     WHEN 'accessory' THEN 60
@@ -176,7 +176,7 @@ BEGIN
             'flow', 'sequential',
             'category', current_category,
             'restBetweenExercises', CASE current_category
-                WHEN 'warmup' THEN 30
+                WHEN 'warmup' THEN 60
                 WHEN 'main' THEN 90
                 WHEN 'conditioning' THEN 75
                 WHEN 'accessory' THEN 60

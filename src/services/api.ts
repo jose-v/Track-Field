@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase'
 import type { Athlete, Coach, Profile, Team } from './dbSchema'
+import { getWorkoutExerciseCount } from '../utils/workoutUtils'
 
 export interface Exercise {
   id?: string
@@ -30,7 +31,7 @@ export interface Workout {
   created_at: string
   exercises?: Exercise[]
   location?: string
-  template_type?: 'single' | 'weekly'
+  template_type?: 'single' | 'weekly' | 'monthly'
   is_template?: boolean
   is_draft?: boolean
   template_category?: string
@@ -56,7 +57,7 @@ export interface EnhancedWorkoutData {
   name: string
   description?: string
   type: string
-  template_type?: 'single' | 'weekly'
+  template_type?: 'single' | 'weekly' | 'monthly'
   location?: string
   date: string
   time?: string
@@ -78,27 +79,49 @@ export interface EnhancedWorkoutData {
 
 export const api = {
   workouts: {
-    async getAll(): Promise<Workout[]> {
-      const { data, error } = await supabase
+    async getAll(options: { includeTemplates?: boolean; coachOnly?: boolean } = {}): Promise<Workout[]> {
+      const { includeTemplates = true, coachOnly = false } = options;
+      
+      let query = supabase
         .from('workouts')
         .select('id, name, description, type, date, time, duration, location, created_at, user_id, created_by, is_template, template_type, exercises, blocks, is_block_based, block_version')
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: false });
 
-      if (error) throw error
+      // Filter out templates unless specifically requested
+      if (!includeTemplates) {
+        query = query.or('is_template.is.null,is_template.eq.false');
+      }
+
+      // Filter by coach if requested
+      if (coachOnly && this.getCurrentUserId) {
+        query = query.eq('user_id', this.getCurrentUserId());
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
       return (data || []).map(workout => ({
         ...workout,
         notes: workout.description || ''
-      }))
+      }));
     },
 
-    async getByCreator(userId: string): Promise<Workout[]> {
+    async getByCreator(userId: string, options: { includeTemplates?: boolean } = {}): Promise<Workout[]> {
       if (!userId) return [];
-      const { data, error } = await supabase
+      const { includeTemplates = false } = options;
+      
+      let query = supabase
         .from('workouts')
         .select('id, name, description, type, date, time, duration, location, created_at, user_id, created_by, is_template, template_type, exercises, blocks, is_block_based, block_version')
         .eq('user_id', userId)
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
+
+      // Filter out templates unless specifically requested
+      if (!includeTemplates) {
+        query = query.or('is_template.is.null,is_template.eq.false');
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return (data || []).map(workout => ({
         ...workout,
@@ -688,6 +711,7 @@ export const api = {
             .select('id, name, description, type, date, time, duration, location, created_at, user_id, created_by, is_template, template_type, exercises, is_block_based, blocks, block_version')
             .eq('user_id', athleteId)
             .is('deleted_at', null) // 🔧 CRITICAL FIX: Filter out deleted workouts
+            .or('is_template.is.null,is_template.eq.false') // 🔧 FIX: Filter out templates
             .order('created_at', { ascending: false });
             
           if (createdError) {
@@ -711,7 +735,8 @@ export const api = {
             .from('workouts')
             .select('id, name, description, type, date, time, duration, location, created_at, user_id, created_by, is_template, template_type, exercises, is_block_based, blocks, block_version')
             .in('id', workoutIds)
-            .is('deleted_at', null); // 🔧 CRITICAL FIX: Filter out deleted workouts
+            .is('deleted_at', null) // 🔧 CRITICAL FIX: Filter out deleted workouts
+            .or('is_template.is.null,is_template.eq.false'); // 🔧 FIX: Filter out templates
             
           if (fetchError) {
             console.error('Error fetching assigned workout details:', fetchError);
@@ -1083,6 +1108,24 @@ export const api = {
         .eq('is_draft', true);
 
       if (error) throw error;
+    },
+
+
+
+    // Mark weekly workouts as templates when used in monthly plans
+    async markAsTemplate(workoutId: string, isTemplate: boolean = true) {
+      const { data, error } = await supabase
+        .from('workouts')
+        .update({ 
+          is_template: isTemplate,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', workoutId)
+        .select('*')
+        .single();
+
+      if (error) throw error;
+      return data;
     },
   },
 
@@ -2304,12 +2347,20 @@ export const api = {
     },
 
     async updateAssignmentStatus(athleteId: string, workoutId: string, status: string) {
+      // Prepare the update data
+      const updateData: any = { 
+        status,
+        updated_at: new Date().toISOString() 
+      };
+      
+      // If status is being reset to 'assigned', also clear completed_exercises
+      if (status === 'assigned') {
+        updateData.completed_exercises = [];
+      }
+      
       const { data, error } = await supabase
         .from('athlete_workouts')
-        .update({ 
-          status,
-          updated_at: new Date().toISOString() 
-        })
+        .update(updateData)
         .eq('athlete_id', athleteId)
         .eq('workout_id', workoutId)
         .select();
@@ -2385,7 +2436,7 @@ export const api = {
           
           // Get the workout data for exercise count
           const workout = workouts?.find(w => w.id === workoutId);
-          const exerciseCount = workout?.exercises?.length || 0;
+          const exerciseCount = workout ? getWorkoutExerciseCount(workout) : 0;
           
           // Calculate percentage
           let completionPercentage = 0;
@@ -3132,9 +3183,20 @@ export const api = {
     },
 
     async updateStatus(assignmentId: string, status: 'assigned' | 'in_progress' | 'completed') {
+      // Prepare the update data
+      const updateData: any = { 
+        status
+      };
+      
+      // If status is being reset to 'assigned', also clear completed_exercises
+      if (status === 'assigned') {
+        updateData.completed_exercises = [];
+        console.log('🔄 [API] Clearing completed_exercises when resetting status to assigned');
+      }
+      
       const { data, error } = await supabase
         .from('training_plan_assignments')
-        .update({ status })
+        .update(updateData)
         .eq('id', assignmentId)
         .select()
         .single()
@@ -3160,6 +3222,50 @@ export const api = {
         .eq('athlete_id', athleteId)
 
       if (error) throw error
+    },
+
+    // Helper function to calculate which day to show based on completion progress
+    calculateNextIncompleteDay(weeklyExercises: any[], completedExercises: number[]): string {
+      // Create a mapping of exercise index to day
+      let exerciseIndex = 0;
+      const dayProgress: Record<string, { total: number; completed: number }> = {};
+      
+      // Count exercises per day and track completion
+      for (const dayObj of weeklyExercises) {
+        if (dayObj.day && dayObj.exercises) {
+          const dayName = dayObj.day.toLowerCase();
+          const dayExerciseCount = dayObj.exercises.length;
+          
+          if (!dayProgress[dayName]) {
+            dayProgress[dayName] = { total: 0, completed: 0 };
+          }
+          
+          dayProgress[dayName].total += dayExerciseCount;
+          
+          // Count completed exercises for this day
+          for (let i = 0; i < dayExerciseCount; i++) {
+            if (completedExercises.includes(exerciseIndex + i)) {
+              dayProgress[dayName].completed++;
+            }
+          }
+          
+          exerciseIndex += dayExerciseCount;
+        }
+      }
+      
+      // Find the first day that isn't fully complete
+      const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+      
+      for (const day of dayOrder) {
+        if (dayProgress[day] && dayProgress[day].completed < dayProgress[day].total) {
+          console.log(`🔍 Found incomplete day: ${day} (${dayProgress[day].completed}/${dayProgress[day].total} completed)`);
+          return day;
+        }
+      }
+      
+      // If all days are complete, show Monday (start over or plan complete)
+      console.log('🔍 All days complete, defaulting to Monday');
+      return 'monday';
     },
 
     async getTodaysWorkout(athleteId: string) {
@@ -3484,99 +3590,125 @@ export const api = {
             // Since this is a workout from the workouts table, use it directly
             let exercises = weeklyWorkout.exercises || [];
             
-            // Check if this is a weekly structure with days
-            if (exercises.length > 0 && exercises[0].day && exercises[0].exercises) {
-              // Smart day logic that handles training weeks starting on different days
-              const today = new Date();
-              const currentDayOfWeek = today.getDay(); // 0=Sunday, 1=Monday, etc.
-              const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            // Get completion progress to determine which day to show (needed for both block-based and legacy formats)
+            let targetDay = 'monday'; // Default
+            let isRestDay = false;
+            let previewTomorrowsWorkout = false;
+            let noTrainingToday = false;
+            
+            // For monthly plans, we want to show the next incomplete day's workout
+            try {
+              // Get completion status from training plan assignments
+              const { data: assignmentProgress, error: progressError } = await supabase
+                .from('training_plan_assignments')
+                .select('completed_exercises')
+                .eq('athlete_id', athleteId)
+                .eq('training_plan_id', plan.id)
+                .single();
+                
+              if (!progressError && assignmentProgress?.completed_exercises) {
+                const completedExercises = assignmentProgress.completed_exercises || [];
+                
+                // For block-based workouts, we'll need a different approach to calculate next day
+                if (weeklyWorkout.is_block_based && weeklyWorkout.blocks) {
+                  // For now, show Monday's workout - we'll improve this with proper progress tracking
+                  targetDay = 'monday';
+                  console.log(`🔍 Block-based workout: showing Monday's exercises`);
+                } else if (exercises.length > 0 && exercises[0].day && exercises[0].exercises) {
+                  // Calculate which day should be shown based on progress for legacy format
+                  targetDay = this.calculateNextIncompleteDay(exercises, completedExercises);
+                  console.log(`🔍 Progress-based day selection: targetDay=${targetDay}, completedExercises=${completedExercises.length}`);
+                }
+              } else {
+                console.log(`🔍 No progress data, defaulting to monday`);
+              }
+            } catch (error) {
+              console.error('Error fetching completion progress:', error);
+              targetDay = 'monday';
+            }
+            
+            // Handle block-based workouts first
+            if (weeklyWorkout.is_block_based && weeklyWorkout.blocks) {
+              try {
+                let blocks = weeklyWorkout.blocks;
+                
+                // Parse blocks if they're stored as string
+                if (typeof blocks === 'string') {
+                  blocks = JSON.parse(blocks);
+                }
+                
+                // Check if blocks are organized by day (weekly structure)
+                if (typeof blocks === 'object' && !Array.isArray(blocks)) {
+                  // It's a weekly structure with days like { monday: [...], tuesday: [...] }
+                  const dayKey = targetDay;
+                  console.log(`🔍 Extracting exercises from blocks for day: ${dayKey}`);
+                  
+                  const dayBlocks = blocks[dayKey.toLowerCase()];
+                  if (dayBlocks && Array.isArray(dayBlocks)) {
+                    // Extract exercises from all blocks for this day
+                    exercises = dayBlocks.reduce((allExercises, block) => {
+                      if (block.exercises && Array.isArray(block.exercises)) {
+                        return [...allExercises, ...block.exercises];
+                      }
+                      return allExercises;
+                    }, []);
+                    console.log(`🔍 Extracted ${exercises.length} exercises from ${dayBlocks.length} blocks for ${dayKey}`);
+                  } else {
+                    console.warn(`🔍 No blocks found for day: ${dayKey}, available days:`, Object.keys(blocks));
+                    exercises = [];
+                  }
+                } else if (Array.isArray(blocks)) {
+                  // It's a simple array of blocks (single day workout)
+                  exercises = blocks.reduce((allExercises, block) => {
+                    if (block.exercises && Array.isArray(block.exercises)) {
+                      return [...allExercises, ...block.exercises];
+                    }
+                    return allExercises;
+                  }, []);
+                  console.log(`🔍 Extracted ${exercises.length} exercises from ${blocks.length} blocks`);
+                }
+              } catch (error) {
+                console.error('Error parsing workout blocks:', error);
+                exercises = [];
+              }
+            }
+            
+            // Check if this is a weekly structure with days (legacy format)
+            else if (exercises.length > 0 && exercises[0].day && exercises[0].exercises) {
               
-              // Check if this weekly workout has Monday-Sunday structure (most common)
-              const hasMonday = exercises.some(dayObj => dayObj.day?.toLowerCase() === 'monday');
-              const hasSunday = exercises.some(dayObj => dayObj.day?.toLowerCase() === 'sunday');
+              console.log(`🔍 Day logic: targetDay=${targetDay} (progress-based for monthly plan)`);
               
-                             let targetDay;
-               let isRestDay = false;
-               let previewTomorrowsWorkout = false;
-               let noTrainingToday = false;
-               
-               if (hasMonday && !hasSunday && currentDayOfWeek === 0) {
-                 // This is a Monday-Friday/Saturday workout and today is Sunday
-                 // No training scheduled today, but show preview of Monday's workout
-                 targetDay = 'monday';
-                 previewTomorrowsWorkout = true;
-                 noTrainingToday = true; // Today has no scheduled training
-               } else if (hasMonday && hasSunday) {
-                 // Full week structure - use today's day
-                 targetDay = dayNames[currentDayOfWeek];
-               } else {
-                 // Default to today's day
-                 targetDay = dayNames[currentDayOfWeek];
-               }
+              // Find the target day's exercises
+              const targetData = exercises.find(dayObj => dayObj.day?.toLowerCase() === targetDay.toLowerCase());
               
-              console.log(`🔍 Day logic: currentDay=${dayNames[currentDayOfWeek]}, targetDay=${targetDay}, preview=${previewTomorrowsWorkout}`);
+              if (targetData) {
+                if (targetData.isRestDay || (!targetData.exercises || targetData.exercises.length === 0)) {
+                  isRestDay = true;
+                  exercises = [];
+                } else {
+                  // Found exercises for target day
+                  exercises = targetData.exercises;
+                }
+              } else {
+                // Target day not found - find first available training day
+                const firstDayWithExercises = exercises.find(dayObj => 
+                  dayObj.exercises && dayObj.exercises.length > 0 && !dayObj.isRestDay
+                );
+                exercises = firstDayWithExercises?.exercises || [];
+                if (!firstDayWithExercises) {
+                  isRestDay = true;
+                }
+              }
               
-                             // Find the target day's exercises
-               const targetData = exercises.find(dayObj => dayObj.day?.toLowerCase() === targetDay.toLowerCase());
-               
-               if (targetData) {
-                 if (targetData.isRestDay || (!targetData.exercises || targetData.exercises.length === 0)) {
-                   if (noTrainingToday) {
-                     // No training scheduled today (e.g., Sunday when training starts Monday)
-                     exercises = targetData.exercises || [];
-                   } else {
-                     // It's an actual scheduled rest day
-                     isRestDay = true;
-                     exercises = [];
-                   }
-                 } else {
-                   // Found exercises for target day
-                   exercises = targetData.exercises;
-                 }
-               } else {
-                 // Target day not found
-                 if (noTrainingToday) {
-                   // This is expected - no training today, find tomorrow's exercises for preview
-                   const firstDayWithExercises = exercises.find(dayObj => 
-                     dayObj.exercises && dayObj.exercises.length > 0 && !dayObj.isRestDay
-                   );
-                   exercises = firstDayWithExercises?.exercises || [];
-                 } else {
-                   // Unexpected case - try to find any exercises
-                   const firstDayWithExercises = exercises.find(dayObj => 
-                     dayObj.exercises && dayObj.exercises.length > 0 && !dayObj.isRestDay
-                   );
-                   exercises = firstDayWithExercises?.exercises || [];
-                   if (!firstDayWithExercises) {
-                     isRestDay = true;
-                   }
-                 }
-               }
-               
-               // Create appropriate messaging based on the scenario
-               if (isRestDay && !noTrainingToday) {
-                 // Actual scheduled rest day
-                 exercises = [{
-                   name: 'Rest Day',
-                   sets: 0,
-                   reps: '0',
-                   notes: 'Today is a rest day. Take time to recover and prepare for tomorrow\'s training.'
-                 }];
-               } else if (noTrainingToday && exercises.length === 0) {
-                 // No training scheduled today, no exercises to preview
-                 exercises = [{
-                   name: 'No Training Today',
-                   sets: 0,
-                   reps: '0',
-                   notes: 'No exercises scheduled for today. Your training week starts tomorrow.'
-                 }];
-               } else if (noTrainingToday && exercises.length > 0) {
-                 // No training today, but show preview of tomorrow's exercises
-                 exercises = exercises.map(exercise => ({
-                   ...exercise,
-                   notes: `Tomorrow's workout: ${exercise.notes || ''}`
-                 }));
-               }
+              // Create appropriate messaging
+              if (isRestDay) {
+                exercises = [{
+                  name: 'Rest Day',
+                  sets: 0,
+                  reps: '0',
+                  notes: 'Today is a rest day. Take time to recover and prepare for tomorrow\'s training.'
+                }];
+              }
             }
             
             // Process exercises to ensure they have proper names
@@ -3610,7 +3742,7 @@ export const api = {
             
             // Check the different scenarios
             const isPreview = exercises.length > 0 && exercises[0].notes?.includes("Tomorrow's workout:");
-            const isRestDay = exercises.length === 1 && exercises[0].name === 'Rest Day';
+            const isRestDayCheck = exercises.length === 1 && exercises[0].name === 'Rest Day';
             const isNoTrainingToday = exercises.length === 1 && exercises[0].name === 'No Training Today';
             
             if (isNoTrainingToday) {
@@ -3619,7 +3751,7 @@ export const api = {
             } else if (isPreview) {
               workoutTitle = `${plan.name} - Tomorrow's Training`;
               workoutDescription = `Preview of tomorrow's workout. Training starts Monday.`;
-            } else if (isRestDay) {
+            } else if (isRestDayCheck) {
               workoutTitle = `${plan.name} - Rest Day`;
               workoutDescription = `Today is a rest day in your training plan.`;
             }
@@ -3639,7 +3771,7 @@ export const api = {
                   },
                   originalWeeklyData: weeklyWorkout.exercises || [],
                   isPreview: isPreview,
-                  isRestDay: isRestDay,
+                  isRestDay: isRestDayCheck,
                   isNoTrainingToday: isNoTrainingToday
                 }
               }

@@ -21,11 +21,11 @@ import {
 } from '@chakra-ui/react';
 import { ArrowLeft, ChevronLeft, ChevronRight, Save, Target } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { api, type EnhancedWorkoutData } from '../../services/api';
-import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/supabase';
-import WorkoutCreatorNavigation from '../WorkoutCreatorNavigation';
-import { getExercisesWithTeamSharing, createExerciseWithSharing, updateExerciseWithSharing } from '../../utils/exerciseQueries';
+import { api, type EnhancedWorkoutData } from '../../../services/api';
+import { useAuth } from '../../../contexts/AuthContext';
+import { supabase } from '../../../lib/supabase';
+import WorkoutCreatorNavigation from '../../WorkoutCreatorNavigation';
+import { getExercisesWithTeamSharing, createExerciseWithSharing, updateExerciseWithSharing } from '../../../utils/exerciseQueries';
 
 // Lazy load step components to improve initial load time
 const Step1WorkoutDetails = lazy(() => import('./Step1WorkoutDetails').then(module => ({ default: module.default })));
@@ -687,7 +687,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
       const currentExercises = selectedExercises[currentDay] || [];
       if (currentExercises.length > 0) {
         // Import WorkoutMigration dynamically to avoid circular imports
-        import('../../utils/workout-migration').then(({ WorkoutMigration }) => {
+        import('../../../utils/workout-migration').then(({ WorkoutMigration }) => {
           const blocks = WorkoutMigration.autoCreateBlocks(currentExercises);
           setWorkoutBlocks(blocks);
         });
@@ -736,7 +736,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
 
   // Helper function to add exercise to blocks
   const addExerciseToBlocks = async (exercise: any) => {
-    const { WorkoutMigration } = await import('../../utils/workout-migration');
+    const { WorkoutMigration } = await import('../../../utils/workout-migration');
     
     // Use exercise library category first, then fall back to name-based detection
     let detectedCategory = 'main';
@@ -790,7 +790,7 @@ const WorkoutCreatorWireframe: React.FC = () => {
       };
 
       const categoryRest = {
-        warmup: 30,
+        warmup: 60,
         main: 90,
         accessory: 60,
         cooldown: 30,

@@ -31,6 +31,7 @@ import { getExercisesWithTeamSharing, createExerciseWithSharing, updateExerciseW
 import { WorkoutsSidebar } from '../../components';
 import type { WorkoutsSection, WorkoutsItem } from '../../components';
 import { useScrollDirection } from '../../hooks/useScrollDirection';
+import { getWorkoutExerciseCount } from '../../utils/workoutUtils';
 
 // Type for monthly plan with assignment stats
 interface MonthlyPlanWithStats extends TrainingPlan {
@@ -357,7 +358,7 @@ export function CoachTrainingPlans() {
     
     return {
       completed: stats.completedCount || 0,
-      total: stats.exerciseCount || 0,
+      total: stats.exerciseCount || getWorkoutExerciseCount(workout),
       percentage: stats.percentage || 0
     };
   }, [completionStats]);
@@ -951,8 +952,8 @@ export function CoachTrainingPlans() {
   };
 
   const handleEditPlan = (plan: TrainingPlan) => {
-    setSelectedPlanForEdit(plan);
-    setShowEditModal(true);
+    // Navigate to new workout creator for editing monthly plans
+    navigate(`/coach/workout-creator-new?edit=${plan.id}`);
   };
 
   const handleEditModalClose = () => {
@@ -1091,7 +1092,7 @@ export function CoachTrainingPlans() {
 
   const handleEditWorkoutFromDetail = (workout: Workout) => {
     setShowWorkoutDetailView(false);
-    navigate(`/coach/workout-creator?edit=${workout.id}`);
+    navigate(`/coach/workout-creator-new?edit=${workout.id}`);
   };
 
   // Render functions for each tab content
@@ -1183,7 +1184,7 @@ export function CoachTrainingPlans() {
               workout={workout}
               isCoach={true}
               assignedTo={athleteNames}
-              onEdit={() => navigate(`/coach/workout-creator?edit=${workout.id}`)}
+              onEdit={() => navigate(`/coach/workout-creator-new?edit=${workout.id}`)}
               onDelete={() => handleDeleteWorkout(workout)}
               onAssign={() => handleAssignWorkout(workout)}
               onViewDetails={() => handleViewWorkout(workout)}
@@ -1309,7 +1310,7 @@ export function CoachTrainingPlans() {
                 workout={template}
                 isCoach={true}
                 isTemplate={true}
-                onEdit={() => navigate(`/coach/workout-creator?edit=${template.id}`)}
+                                            onEdit={() => navigate(`/coach/workout-creator-new?edit=${template.id}`)}
                 onDelete={() => handleDeleteWorkout(template)}
                 onAssign={() => handleAssignWorkout(template)}
                 onViewDetails={() => handleViewWorkout(template)}
@@ -1436,7 +1437,7 @@ export function CoachTrainingPlans() {
                 workout={draft}
                 isCoach={true}
                 isTemplate={true}
-                onEdit={() => navigate(`/coach/workout-creator?edit=${draft.id}`)}
+                                            onEdit={() => navigate(`/coach/workout-creator-new?edit=${draft.id}`)}
                 onDelete={() => handleDeleteWorkout(draft)}
                 onAssign={() => handleAssignWorkout(draft)}
                 onViewDetails={() => handleViewWorkout(draft)}
@@ -1976,7 +1977,7 @@ export function CoachTrainingPlans() {
                             workout={workout}
                             isCoach={true}
                             assignedTo={athleteNames}
-                            onEdit={() => navigate(`/coach/workout-creator?edit=${workout.id}`)}
+                            onEdit={() => navigate(`/coach/workout-creator-new?edit=${workout.id}`)}
                             onDelete={() => handleDeleteWorkout(workout)}
                             onAssign={() => handleAssignWorkout(workout)}
                             onViewDetails={() => handleViewWorkout(workout)}
@@ -2063,7 +2064,7 @@ export function CoachTrainingPlans() {
         sections={coachSections}
         activeItem={activeItem}
         onItemClick={setActiveItem}
-        createWorkoutAction={() => navigate('/coach/workout-creator')}
+        createWorkoutAction={() => navigate('/coach/workout-creator-choice')}
         additionalActions={[
           {
             label: 'Import from File',

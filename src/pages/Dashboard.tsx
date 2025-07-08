@@ -29,7 +29,7 @@ import {
   AIModal,
   SparkleIcon,
   MobileHeader,
-  ExerciseExecutionModal,
+  // ExerciseExecutionModal, // Replaced with WorkoutExecutionRouter
   MonthlyPlanAssignments,
   MyTeamsCard,
   MobileTopNavBar
@@ -45,6 +45,7 @@ import { startTodaysWorkoutExecution } from '../utils/monthlyPlanWorkoutHelper'
 import { markExerciseCompletedWithSync } from '../utils/monthlyPlanWorkoutHelper'
 import PageHeader from '../components/PageHeader'
 import { usePageHeader } from '../hooks/usePageHeader'
+import { WorkoutExecutionRouter } from '../components/WorkoutExecutionRouter'
 
 // Function to format date in "Month Day, Year" format
 function formatDate(dateStr: string): string {
@@ -754,16 +755,16 @@ export function Dashboard() {
 
         {/* Mobile Weather Card */}
         <Box display={{ base: "block", lg: "none" }} w="100%" mb={8}>
-          <WeatherCard 
-            city={profile?.city || "Greensboro"}
-            state={profile?.state ? getStateAbbr(profile.state) : "NC"}
-            weather={{
-              temp: "71",
-              condition: "Clouds",
-              description: "scattered clouds"
-            }}
-            isLoading={profileLoading}
-          />
+            <WeatherCard 
+              city={profile?.city || "Greensboro"}
+              state={profile?.state ? getStateAbbr(profile.state) : "NC"}
+              weather={{
+                temp: "71",
+                condition: "Clouds",
+                description: "scattered clouds"
+              }}
+              isLoading={profileLoading}
+            />
         </Box>
 
         {/* Desktop 3-Column Layout */}
@@ -804,16 +805,16 @@ export function Dashboard() {
 
             {/* Center Column - Today's Workout Card */}
             <Box flex="1" minW={0}>
-              <TodayWorkoutsCard
-                todayWorkouts={todayWorkouts}
-                upcomingWorkouts={upcomingWorkouts}
-                profile={profile}
-                getWorkoutProgressData={getWorkoutProgressData}
-                handleStartWorkout={handleStartWorkout}
-                handleResetProgress={handleResetProgress}
-                workoutsLoading={workoutsLoading}
-                profileLoading={profileLoading}
-              />
+        <TodayWorkoutsCard
+          todayWorkouts={todayWorkouts}
+          upcomingWorkouts={upcomingWorkouts}
+          profile={profile}
+          getWorkoutProgressData={getWorkoutProgressData}
+          handleStartWorkout={handleStartWorkout}
+          handleResetProgress={handleResetProgress}
+          workoutsLoading={workoutsLoading}
+          profileLoading={profileLoading}
+        />
             </Box>
 
             {/* Right Column - Track Meets + My Teams */}
@@ -828,8 +829,8 @@ export function Dashboard() {
               {/* Track Meets Card */}
               <TrackMeetsCard viewAllLink="/athlete/meets" />
               
-              {/* My Teams Card */}
-              <MyTeamsCard maxTeamsToShow={3} />
+          {/* My Teams Card */}
+          <MyTeamsCard maxTeamsToShow={3} />
             </VStack>
           </Flex>
         </Box>
@@ -909,65 +910,65 @@ export function Dashboard() {
           )}
 
           {/* Gamification Card - Development Only */}
-          {process.env.NODE_ENV !== 'production' && (
-            <Box 
-              bg={cardBg}
-              borderRadius="xl"
-              p={6}
-              border="1px solid"
-              borderColor={borderColor}
-              boxShadow={cardShadowLg}
+        {process.env.NODE_ENV !== 'production' && (
+          <Box 
+            bg={cardBg}
+            borderRadius="xl"
+            p={6}
+            border="1px solid"
+            borderColor={borderColor}
+            boxShadow={cardShadowLg}
               w="100%"
-            >
-              <VStack spacing={5} align="stretch">
-                {/* Header */}
-                <HStack justify="space-between" align="center">
-                  <HStack spacing={3}>
-                    <Icon as={FaMedal} boxSize={6} color="purple.500" />
-                    <VStack align="start" spacing={0}>
-                      <Text fontSize="lg" fontWeight="bold" color={cardTextColor}>
-                        Gamification Preview
-                      </Text>
-                      <Text fontSize="sm" color={cardSubtextColor}>
-                        Track your progress and achievements
-                      </Text>
-                    </VStack>
-                  </HStack>
-                  <Badge 
-                    colorScheme="purple" 
-                    variant="solid" 
-                    fontSize="xs"
-                    px={2}
-                    py={1}
-                  >
-                    Preview
-                  </Badge>
+          >
+            <VStack spacing={5} align="stretch">
+              {/* Header */}
+              <HStack justify="space-between" align="center">
+                <HStack spacing={3}>
+                  <Icon as={FaMedal} boxSize={6} color="purple.500" />
+                  <VStack align="start" spacing={0}>
+                    <Text fontSize="lg" fontWeight="bold" color={cardTextColor}>
+                      Gamification Preview
+                    </Text>
+                    <Text fontSize="sm" color={cardSubtextColor}>
+                      Track your progress and achievements
+                    </Text>
+                  </VStack>
                 </HStack>
-
-                {/* Content */}
-                <Text fontSize="sm" color={cardSubtextColor}>
-                  View your points, badges, streaks, and leaderboard position
-                </Text>
-
-                {/* Action Button */}
-                <Button 
-                  as={RouterLink} 
-                  to="/gamification" 
-                  colorScheme="purple"
-                  variant="outline"
-                  size="sm"
-                  leftIcon={<Icon as={FaMedal} />}
-                  rightIcon={<Icon as={MdKeyboardArrowRight} />}
+                <Badge 
+                  colorScheme="purple" 
+                  variant="solid" 
+                  fontSize="xs"
+                  px={2}
+                  py={1}
                 >
-                  View Gamification
-                </Button>
-              </VStack>
-            </Box>
-          )}
+                  Preview
+                </Badge>
+              </HStack>
+
+              {/* Content */}
+              <Text fontSize="sm" color={cardSubtextColor}>
+                View your points, badges, streaks, and leaderboard position
+              </Text>
+
+              {/* Action Button */}
+              <Button 
+                as={RouterLink} 
+                to="/gamification" 
+                colorScheme="purple"
+                variant="outline"
+                size="sm"
+                leftIcon={<Icon as={FaMedal} />}
+                rightIcon={<Icon as={MdKeyboardArrowRight} />}
+              >
+                View Gamification
+              </Button>
+            </VStack>
+          </Box>
+        )}
         </SimpleGrid>
 
         {/* Exercise Execution Modal - Using shared component */}
-        <ExerciseExecutionModal
+        <WorkoutExecutionRouter
           isOpen={execModal.isOpen}
           onClose={() => setExecModal({ ...execModal, isOpen: false })}
           workout={execModal.workout}

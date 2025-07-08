@@ -19,7 +19,8 @@ import { dateUtils } from '../../utils/date';
 import { useWorkoutsRealtime } from '../../hooks/useWorkoutsRealtime';
 import { handleWorkoutCompletion } from '../../services/integrationService';
 import { useFeedback } from '../../components/FeedbackProvider'; // Import the feedback hook
-import { ExerciseExecutionModal, MonthlyPlanAssignments, WorkoutsSidebar, MobileBottomNavigation } from '../../components';
+import { MonthlyPlanAssignments, WorkoutsSidebar, MobileBottomNavigation } from '../../components';
+import { WorkoutExecutionRouter } from '../../components/WorkoutExecutionRouter';
 import type { WorkoutsSection } from '../../components';
 import { useScrollDirection } from '../../hooks/useScrollDirection';
 import { RunTimeInput } from '../../components/RunTimeInput';
@@ -27,10 +28,11 @@ import { isRunExercise, validateTime } from '../../utils/exerciseUtils';
 import { ExerciseLibrary, Exercise as LibraryExercise } from '../../components/ExerciseLibrary';
 import { getExercisesWithTeamSharing, createExerciseWithSharing, updateExerciseWithSharing } from '../../utils/exerciseQueries';
 import { DeletedWorkoutsView } from '../../components/deleted';
-import { startTodaysWorkoutExecution, markExerciseCompletedWithSync } from '../../utils/monthlyPlanWorkoutHelper';
+import { startTodaysWorkoutExecution, markExerciseCompletedWithSync, getTodaysWorkoutForExecution, getMonthlyPlanCompletionFromDB, resetMonthlyPlanProgress } from '../../utils/monthlyPlanWorkoutHelper';
 import { markRegularWorkoutExerciseCompletedWithSync, syncRegularWorkoutCompletionFromDB, markRegularWorkoutAsCompleted } from '../../utils/regularWorkoutHelper';
 import PageHeader from '../../components/PageHeader';
 import { usePageHeader } from '../../hooks/usePageHeader';
+import { getWorkoutExerciseCount, getExercisesFromWorkout } from '../../utils/workoutUtils';
 
 // Using Exercise type from api.ts (imported above)
 
@@ -98,42 +100,62 @@ function getCurrentDate(): string {
   return dateUtils.localDateString(new Date());
 }
 
+// Helper to safely get blocks array from workout
+function getBlocksFromWorkout(workout: any): any[] {
+  if (!workout.blocks) return [];
+  
+  // If blocks is already an array, return it
+  if (Array.isArray(workout.blocks)) {
+    return workout.blocks;
+  }
+  
+  // If blocks is a string (JSON), try to parse it
+  if (typeof workout.blocks === 'string') {
+    try {
+      const parsed = JSON.parse(workout.blocks);
+      
+      // Handle weekly blocks format (object with day keys)
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        // Flatten all daily blocks into a single array
+        return Object.values(parsed).flat().filter(Boolean);
+      }
+      
+      // Handle regular blocks array
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    } catch (error) {
+      console.warn('Failed to parse workout blocks:', error);
+    }
+  }
+  
+  return [];
+}
+
 // Helper to get total block count for block-based workouts
 function getTotalBlockCount(workout: any): number {
-  if (workout.is_block_based && workout.blocks && Array.isArray(workout.blocks)) {
-    return workout.blocks.length;
+  if (workout.is_block_based) {
+    const blocks = getBlocksFromWorkout(workout);
+    return blocks.length;
   }
   return 0;
 }
 
 // Helper to calculate completed blocks based on completed exercises
 function getCompletedBlockCount(workout: any, completedExercises: number[]): number {
-  if (!workout.is_block_based || !workout.blocks || !Array.isArray(workout.blocks)) {
+  const blocks = getBlocksFromWorkout(workout);
+  if (blocks.length === 0) {
     return 0;
   }
 
   let completedBlocks = 0;
   let exerciseOffset = 0;
 
-  for (let blockIndex = 0; blockIndex < workout.blocks.length; blockIndex++) {
-    const block = workout.blocks[blockIndex];
-    const blockExerciseCount = block.exercises?.length || 0;
+  for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
+    const block = blocks[blockIndex];
+    const blockExerciseCount = block.exercises ? block.exercises.length : 0;
     const blockExerciseIndices = Array.from({ length: blockExerciseCount }, (_, i) => exerciseOffset + i);
-    
-    // Check if all exercises in this block are completed
     const blockCompleted = blockExerciseIndices.every(index => completedExercises.includes(index));
-    
-    // Debug logging for each block
-    if (process.env.NODE_ENV === 'development') {
-      const completedInBlock = blockExerciseIndices.filter(index => completedExercises.includes(index));
-      console.log(`[Block Completion Debug] Block ${blockIndex + 1}: ${block.name || 'Unnamed'}`, {
-        blockExerciseCount,
-        blockExerciseIndices,
-        completedInBlock,
-        blockCompleted,
-        exerciseOffset
-      });
-    }
     
     if (blockCompleted && blockExerciseCount > 0) {
       completedBlocks++;
@@ -142,11 +164,73 @@ function getCompletedBlockCount(workout: any, completedExercises: number[]): num
     exerciseOffset += blockExerciseCount;
   }
 
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[Block Completion Summary] Total completed blocks: ${completedBlocks}/${workout.blocks.length}`);
+  return completedBlocks;
+}
+
+// Helper: Load actual exercise data from monthly plan weeks
+async function loadMonthlyPlanExercises(plan: any): Promise<{ exercises: any[], totalCount: number }> {
+  if (!plan?.weeks || plan.weeks.length === 0) {
+    return { exercises: [], totalCount: 0 };
   }
 
-  return completedBlocks;
+  try {
+    // Get all unique workout IDs from the plan weeks
+    const workoutIds = [...new Set(
+      plan.weeks
+        .filter((week: any) => !week.is_rest_week && week.workout_id)
+        .map((week: any) => week.workout_id)
+    )];
+
+    if (workoutIds.length === 0) {
+      return { exercises: [], totalCount: 0 };
+    }
+
+    // Fetch all weekly workouts used in this plan
+    const workouts = await Promise.all(
+      workoutIds.map(async (workoutId: string) => {
+        try {
+          const { data, error } = await supabase
+            .from('workouts')
+            .select('*')
+            .eq('id', workoutId)
+            .single();
+          
+          if (error) throw error;
+          return data;
+        } catch (error) {
+          console.error(`Error loading workout ${workoutId}:`, error);
+          return null;
+        }
+      })
+    );
+
+    // Filter out null results and extract exercises
+    const validWorkouts = workouts.filter(Boolean);
+    let allExercises: any[] = [];
+    let totalCount = 0;
+
+    for (const workout of validWorkouts) {
+      const exercises = getExercisesFromWorkout(workout);
+      const exerciseCount = getWorkoutExerciseCount(workout);
+      
+      // Add exercises from this workout (limit to first 3 for display)
+      if (allExercises.length < 3) {
+        allExercises.push(...exercises.slice(0, 3 - allExercises.length));
+      }
+      
+      // Count total exercises across all weeks this workout is used
+      const weeksUsingThisWorkout = plan.weeks.filter((week: any) => 
+        !week.is_rest_week && week.workout_id === workout.id
+      ).length;
+      
+      totalCount += exerciseCount * weeksUsingThisWorkout;
+    }
+
+    return { exercises: allExercises, totalCount };
+  } catch (error) {
+    console.error('Error loading monthly plan exercises:', error);
+    return { exercises: [], totalCount: 0 };
+  }
 }
 
 export function AthleteWorkouts() {
@@ -208,6 +292,35 @@ export function AthleteWorkouts() {
   // State for monthly plans
   const [monthlyPlans, setMonthlyPlans] = useState<any[]>([]);
   const [monthlyPlansLoading, setMonthlyPlansLoading] = useState(false);
+  
+  // State to force re-render when workout store is updated
+  const [workoutStoreUpdateTrigger, setWorkoutStoreUpdateTrigger] = useState(0);
+  
+  // Force refresh function for workout store updates
+  const forceWorkoutStoreRefresh = () => {
+    setWorkoutStoreUpdateTrigger(prev => prev + 1);
+  };
+
+  // Helper: Get workout IDs that are used in monthly plans
+  const usedWorkoutIdsInMonthlyPlans = useMemo(() => {
+    if (!monthlyPlans || monthlyPlans.length === 0) return new Set<string>();
+    
+    const usedWorkoutIds = new Set<string>();
+    
+    monthlyPlans.forEach((plan: any) => {
+      if (plan.training_plans?.weeks) {
+        plan.training_plans.weeks.forEach((week: any) => {
+          if (!week.is_rest_week && week.workout_id) {
+            usedWorkoutIds.add(week.workout_id);
+          }
+        });
+      }
+    });
+    
+    // Remove the console.log that was causing spam
+    // console.log('Workout IDs used in monthly plans:', Array.from(usedWorkoutIds));
+    return usedWorkoutIds;
+  }, [monthlyPlans]);
 
   // Add ref for ExerciseLibrary
   const exerciseLibraryRef = React.useRef<{ openAddModal: () => void } | null>(null);
@@ -329,24 +442,34 @@ export function AthleteWorkouts() {
     startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
     const startOfWeekStr = dateUtils.localDateString(startOfWeek);
     
+    // Get workout IDs used in monthly plans
+    const usedInMonthlyPlans = usedWorkoutIdsInMonthlyPlans;
+    
     // First filter by sidebar item
     let workouts = assignedWorkouts;
     
+    // Create a base filtered list that excludes templates and monthly-plan-used workouts
+    const baseFilteredWorkouts = (activeItem !== 'monthly-plans') 
+      ? assignedWorkouts.filter(workout => 
+          !usedInMonthlyPlans.has(workout.id) && !workout.is_template
+        )
+      : assignedWorkouts;
+
     switch (activeItem) {
       case 'today':
-        workouts = assignedWorkouts.filter(w => formatDateForComparison(w.date) === today);
+        workouts = baseFilteredWorkouts.filter(w => formatDateForComparison(w.date) === today);
         break;
       case 'this-week':
-        workouts = assignedWorkouts.filter(w => {
+        workouts = baseFilteredWorkouts.filter(w => {
           const workoutDate = formatDateForComparison(w.date);
           return workoutDate >= startOfWeekStr && workoutDate <= today;
         });
         break;
       case 'upcoming':
-        workouts = assignedWorkouts.filter(w => formatDateForComparison(w.date) > today);
+        workouts = baseFilteredWorkouts.filter(w => formatDateForComparison(w.date) > today);
         break;
       case 'completed':
-        workouts = assignedWorkouts.filter(w => {
+        workouts = baseFilteredWorkouts.filter(w => {
           const progress = workoutStore.getProgress(w.id);
           const completedExercisesList = progress ? progress.completedExercises || [] : [];
           
@@ -362,7 +485,7 @@ export function AthleteWorkouts() {
         });
         break;
       case 'in-progress':
-        workouts = assignedWorkouts.filter(w => {
+        workouts = baseFilteredWorkouts.filter(w => {
           const progress = workoutStore.getProgress(w.id);
           const completedExercisesList = progress ? progress.completedExercises || [] : [];
           
@@ -378,17 +501,17 @@ export function AthleteWorkouts() {
         });
         break;
       case 'strength':
-        workouts = assignedWorkouts.filter(w => w.type?.toLowerCase().includes('strength') || w.type?.toLowerCase().includes('weight'));
+        workouts = baseFilteredWorkouts.filter(w => w.type?.toLowerCase().includes('strength') || w.type?.toLowerCase().includes('weight'));
         break;
       case 'cardio':
-        workouts = assignedWorkouts.filter(w => w.type?.toLowerCase().includes('cardio') || w.type?.toLowerCase().includes('running') || w.type?.toLowerCase().includes('endurance'));
+        workouts = baseFilteredWorkouts.filter(w => w.type?.toLowerCase().includes('cardio') || w.type?.toLowerCase().includes('running') || w.type?.toLowerCase().includes('endurance'));
         break;
       case 'speed':
-        workouts = assignedWorkouts.filter(w => w.type?.toLowerCase().includes('speed') || w.type?.toLowerCase().includes('sprint'));
+        workouts = baseFilteredWorkouts.filter(w => w.type?.toLowerCase().includes('speed') || w.type?.toLowerCase().includes('sprint'));
         break;
       case 'all-workouts':
       default:
-        workouts = assignedWorkouts;
+        workouts = baseFilteredWorkouts;
         break;
     }
 
@@ -414,7 +537,7 @@ export function AthleteWorkouts() {
     }
 
     return workouts;
-  }, [assignedWorkouts, activeItem, workoutStore, workoutFilter, creatorFilter, user?.id]);
+  }, [assignedWorkouts, activeItem, workoutStore, workoutFilter, creatorFilter, user?.id, usedWorkoutIdsInMonthlyPlans]);
 
   // Combine workouts and monthly plans for filtering
   const filteredItems = useMemo(() => {
@@ -433,10 +556,12 @@ export function AthleteWorkouts() {
         }
       }
       
-      return filteredMonthlyPlans.map(plan => ({
+      const monthlyItems = filteredMonthlyPlans.map(plan => ({
         ...plan,
         isMonthlyPlan: true
       }));
+      
+      return monthlyItems;
     }
     
     // For all workouts filter and activeItem is all-workouts, include both with creator filtering
@@ -639,10 +764,6 @@ export function AthleteWorkouts() {
                 totalExercises,
                 isCompleted
               );
-              
-              if (process.env.NODE_ENV === 'development') {
-                console.log(`[regularWorkoutHelper] Synced workout ${assignment.workout_id}: ${completedExercises.length}/${totalExercises} exercises completed`);
-              }
             }
           }
         } catch (syncErr) {
@@ -704,6 +825,9 @@ export function AthleteWorkouts() {
     // Update progress in store - set the next exercise index as current
     workoutStore.updateProgress(workoutId, exIdx + 1, totalExercises, false);
     
+    // Force refresh to update progress counters
+    forceWorkoutStoreRefresh();
+    
     // Update modal state
     setExecModal(prev => ({
       ...prev,
@@ -760,15 +884,50 @@ export function AthleteWorkouts() {
       // Mark workout as completed in store
       workoutStore.updateProgress(workoutId, totalExercises, totalExercises, true);
       
-      // Update database assignment status (only for regular workouts, not monthly plans)
-      if (user?.id && !workoutId.startsWith('daily-')) {
-        try {
-          await markRegularWorkoutAsCompleted(user.id, workoutId);
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`Workout ${workoutId} marked as completed in database`);
+      // Force refresh to update progress counters
+      forceWorkoutStoreRefresh();
+      
+      // Update database assignment status
+      if (user?.id) {
+        if (workoutId.startsWith('daily-')) {
+          // For monthly plan workouts, check if all exercises in the plan are completed
+          try {
+            const todaysWorkoutResult = await api.monthlyPlanAssignments.getTodaysWorkout(user.id);
+            
+            if (todaysWorkoutResult?.hasWorkout && todaysWorkoutResult.primaryWorkout?.monthlyPlan) {
+              const monthlyPlanId = todaysWorkoutResult.primaryWorkout.monthlyPlan.id;
+              
+              // Check overall monthly plan completion
+              // We'll mark the monthly plan as completed since this workout session is finished
+              console.log(`✅ [handleFinishWorkout] Monthly plan workout completed, updating plan status to completed`);
+              await api.monthlyPlanAssignments.updateStatus(monthlyPlanId, 'completed');
+              
+              // Update local state to reflect completion
+              setMonthlyPlans(prev => 
+                prev.map(plan => 
+                  plan.id === monthlyPlanId 
+                    ? { ...plan, status: 'completed' }
+                    : plan
+                )
+              );
+            }
+            
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`Monthly plan workout ${workoutId} marked as completed`);
+            }
+          } catch (error) {
+            console.error('Error updating monthly plan completion status:', error);
           }
-        } catch (error) {
-          console.error('Error updating workout completion status:', error);
+        } else {
+          // For regular workouts
+          try {
+            await markRegularWorkoutAsCompleted(user.id, workoutId);
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`Workout ${workoutId} marked as completed in database`);
+            }
+          } catch (error) {
+            console.error('Error updating workout completion status:', error);
+          }
         }
       }
       
@@ -787,15 +946,45 @@ export function AthleteWorkouts() {
       }
     } else {
       console.warn(`Workout ${workoutId} not fully completed: ${completedCount}/${totalExercises} exercises done`);
-      // Mark as in_progress instead (only for regular workouts, not monthly plans)
-      if (user?.id && !workoutId.startsWith('daily-')) {
-        try {
-          await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutId, 'in_progress');
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`Workout ${workoutId} marked as in_progress in database`);
+      // Mark as in_progress
+      if (user?.id) {
+        if (workoutId.startsWith('daily-')) {
+          // For monthly plan workouts, update monthly plan status to in_progress
+          try {
+            const todaysWorkoutResult = await api.monthlyPlanAssignments.getTodaysWorkout(user.id);
+            
+            if (todaysWorkoutResult?.hasWorkout && todaysWorkoutResult.primaryWorkout?.monthlyPlan) {
+              const monthlyPlanId = todaysWorkoutResult.primaryWorkout.monthlyPlan.id;
+              
+              console.log(`🔄 [handleFinishWorkout] Monthly plan workout in progress, updating plan status`);
+              await api.monthlyPlanAssignments.updateStatus(monthlyPlanId, 'in_progress');
+              
+              // Update local state to reflect progress
+              setMonthlyPlans(prev => 
+                prev.map(plan => 
+                  plan.id === monthlyPlanId 
+                    ? { ...plan, status: 'in_progress' }
+                    : plan
+                )
+              );
+            }
+            
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`Monthly plan workout ${workoutId} marked as in_progress`);
+            }
+          } catch (error) {
+            console.error('Error updating monthly plan progress status:', error);
           }
-        } catch (error) {
-          console.error('Error updating workout progress status:', error);
+        } else {
+          // For regular workouts
+          try {
+            await api.athleteWorkouts.updateAssignmentStatus(user.id, workoutId, 'in_progress');
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`Workout ${workoutId} marked as in_progress in database`);
+            }
+          } catch (error) {
+            console.error('Error updating workout progress status:', error);
+          }
         }
       }
     }
@@ -819,9 +1008,62 @@ export function AthleteWorkouts() {
   };
 
   const handleResetProgress = async (workoutId: string, workoutName: string) => {
-    // Set the workout to reset and open confirmation modal
     setWorkoutToReset({ id: workoutId, name: workoutName });
     onResetOpen();
+  };
+
+  // Add reset function for monthly plans
+  const handleResetMonthlyPlan = async (monthlyPlanId: string, planName: string) => {
+    if (!user?.id) return;
+    
+    try {
+      // Reset both database completed_exercises and status using the helper function
+      await resetMonthlyPlanProgress(user.id);
+      
+      // Clear ALL daily workout progress from the store, not just today's
+      const storeState = workoutStore.workoutProgress;
+      const dailyWorkoutIds = Object.keys(storeState).filter(id => id.startsWith('daily-'));
+      
+      // Clear progress for all daily workouts
+      dailyWorkoutIds.forEach(workoutId => {
+        workoutStore.resetProgress(workoutId);
+      });
+      
+      // Wait a moment for database updates to propagate
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Update local state
+      setMonthlyPlans(prev => 
+        prev.map(plan => 
+          plan.id === monthlyPlanId 
+            ? { ...plan, status: 'assigned' }
+            : plan
+        )
+      );
+      
+      // Force refresh monthly plans to reflect the reset
+      await loadMonthlyPlans();
+      
+      // Force refresh to update progress counters immediately
+      forceWorkoutStoreRefresh();
+      
+      toast({
+        title: 'Monthly Plan Reset',
+        description: `${planName} has been reset to start from the beginning.`,
+        status: 'success',
+        duration: 4000,
+        isClosable: true,
+      });
+    } catch (error: any) {
+      console.error('Error resetting monthly plan:', error);
+      toast({
+        title: 'Reset Failed',
+        description: `Failed to reset ${planName}: ${error?.message || 'Unknown error'}`,
+        status: 'error',
+        duration: 6000,
+        isClosable: true,
+      });
+    }
   };
 
   const handleResetConfirm = async () => {
@@ -852,6 +1094,12 @@ export function AthleteWorkouts() {
           console.error('Error resetting workout status in database:', error);
         }
       }
+      
+      // Add a small delay to ensure database and UI state are in sync
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Force refresh to update progress counters
+      forceWorkoutStoreRefresh();
       
       toast({
         title: 'Progress Reset',
@@ -970,8 +1218,19 @@ export function AthleteWorkouts() {
           if (item.isMonthlyPlan) {
             // Transform monthly plan data to match WorkoutCard expectations
             const plan = item.training_plans;
-            const trainingWeeks = plan?.weeks.filter((w: any) => !w.is_rest_week).length || 0;
-            const restWeeks = plan?.weeks.filter((w: any) => w.is_rest_week).length || 0;
+            
+            // Remove debug logs that were causing console spam
+            // console.log('Rendering monthly plan item:', item);
+            // console.log('Plan data:', plan);
+            
+            // Check if plan exists and has valid data
+            if (!plan) {
+              console.warn('Monthly plan assignment missing training_plans data:', item);
+              return null; // Skip this item if no plan data
+            }
+            
+            const trainingWeeks = plan?.weeks?.filter((w: any) => !w.is_rest_week).length || 0;
+            const restWeeks = plan?.weeks?.filter((w: any) => w.is_rest_week).length || 0;
             const getMonthName = (month: number): string => {
               const months = [
                 'January', 'February', 'March', 'April', 'May', 'June',
@@ -980,27 +1239,82 @@ export function AthleteWorkouts() {
               return months[month - 1] || 'Unknown';
             };
             
+            // For now, use a placeholder count - we'll need to enhance this with pre-loaded data
+            // Use actual loaded exercise data
+            const monthlyPlanExerciseData = item.exerciseData || { exercises: [], totalCount: 0 };
+            
             // Create a workout-like object for the monthly plan
             const monthlyPlanAsWorkout = {
               id: item.id,
-              name: plan?.name || 'Monthly Plan',
-              description: `${getMonthName(plan?.month || 0)} ${plan?.year} - ${plan?.weeks.length || 0} weeks total`,
+              name: plan.name || 'Monthly Plan',
+              description: `${getMonthName(plan.month || 0)} ${plan.year || new Date().getFullYear()} - ${plan.weeks?.length || 0} weeks total`,
               type: 'MONTHLY PLAN',
-              template_type: 'single' as const, // Use single to avoid conflicts with weekly template logic
-              date: item.assigned_at,
-              duration: `${plan?.weeks.length || 0} weeks`,
-              exercises: [], // Monthly plans don't have direct exercises
+              template_type: 'monthly' as const, // Use monthly to display proper badge
+              date: item.assigned_at || item.start_date,
+              duration: `${plan.weeks?.length || 0} weeks`,
+              exercises: monthlyPlanExerciseData.exercises.length > 0 
+                ? monthlyPlanExerciseData.exercises 
+                : [{ name: 'Loading exercises...', id: 'loading-1' }],
               user_id: item.athlete_id,
               created_at: item.assigned_at || new Date().toISOString(),
-              updated_at: item.assigned_at || new Date().toISOString()
+              updated_at: item.assigned_at || new Date().toISOString(),
+              // Add total exercise count for display
+              totalExerciseCount: monthlyPlanExerciseData.totalCount
             };
             
-            // Create progress object for monthly plan
-            const monthlyPlanProgress = {
-              completed: item.status === 'completed' ? 1 : item.status === 'in_progress' ? 0.5 : 0,
-              total: 1,
-              percentage: item.status === 'completed' ? 100 : item.status === 'in_progress' ? 50 : 0
+            // Calculate actual progress for monthly plan based on exercise completion
+            // Include workoutStoreUpdateTrigger to ensure recalculation when store updates
+            const calculateMonthlyPlanProgress = () => {
+              // Reference the trigger to ensure this function recalculates when store updates
+              const _ = workoutStoreUpdateTrigger;
+              
+              const exerciseData = item.exerciseData || { exercises: [], totalCount: 0 };
+              const totalExercises = exerciseData.totalCount;
+              
+              if (totalExercises === 0) {
+                // Fallback to status-based calculation if no exercise data
+                return {
+                  completed: item.status === 'completed' ? 1 : 0,
+                  total: 1,
+                  percentage: item.status === 'completed' ? 100 : 0
+                };
+              }
+              
+              // Check for any daily workout progress in the workout store
+              const storeState = workoutStore.workoutProgress;
+              const dailyWorkoutIds = Object.keys(storeState).filter(id => id.startsWith('daily-'));
+              
+              let completedExercises = 0;
+              
+              // Check if we have any progress in any daily workout
+              for (const workoutId of dailyWorkoutIds) {
+                const progress = workoutStore.getProgress(workoutId);
+                if (progress?.completedExercises && progress.completedExercises.length > 0) {
+                  // Found some progress - use it
+                  completedExercises = Math.max(completedExercises, progress.completedExercises.length);
+                  break; // Use the first progress found
+                }
+              }
+              
+              // FIXED: Only use status-based fallback if status is 'completed', otherwise use 0
+              if (completedExercises === 0) {
+                if (item.status === 'completed') {
+                  completedExercises = totalExercises;
+                }
+                // Don't use in_progress status for fallback - if store is empty, progress is 0
+              }
+              
+              // Calculate actual completion percentage
+              const percentage = totalExercises > 0 ? (completedExercises / totalExercises) * 100 : 0;
+              
+              return {
+                completed: completedExercises,
+                total: totalExercises,
+                percentage: Math.min(percentage, 100) // Cap at 100%
+              };
             };
+            
+            const monthlyPlanProgress = calculateMonthlyPlanProgress();
             
             return (
               <WorkoutCard
@@ -1014,6 +1328,14 @@ export function AthleteWorkouts() {
                     // Mark as in progress if needed
                     try {
                       await api.monthlyPlanAssignments.updateStatus(item.id, 'in_progress');
+                      // Update local state
+                      setMonthlyPlans(prev => 
+                        prev.map(plan => 
+                          plan.id === item.id 
+                            ? { ...plan, status: 'in_progress' }
+                            : plan
+                        )
+                      );
                     } catch (error) {
                       console.error('Error updating plan status:', error);
                     }
@@ -1034,7 +1356,7 @@ export function AthleteWorkouts() {
                 onViewDetails={() => setActiveItem('monthly-plans')}
                 onRefresh={() => loadMonthlyPlans()}
                 showRefresh={false}
-                onReset={() => {}}
+                onReset={() => handleResetMonthlyPlan(item.id, item.training_plans?.name || 'Monthly Plan')}
                 onDelete={() => {}}
                 currentUserId={user?.id}
               />
@@ -1073,23 +1395,6 @@ export function AthleteWorkouts() {
               // For block-based workouts, calculate block progress
               const totalBlocks = getTotalBlockCount(workout);
               const completedBlocks = getCompletedBlockCount(workout, completedExercises);
-              
-              // Debug logging for block-based workouts
-              if (process.env.NODE_ENV === 'development') {
-                console.log(`[Block Progress Debug] Workout: ${workout.name}`, {
-                  workoutId: workout.id,
-                  totalBlocks,
-                  completedBlocks,
-                  totalExercises,
-                  completedExercises: completedExercises.length,
-                  completedExercisesList: completedExercises,
-                  blocks: workout.blocks?.map((block: any, idx: number) => ({
-                    blockIndex: idx,
-                    name: block.name,
-                    exerciseCount: block.exercises?.length || 0
-                  }))
-                });
-              }
               
               progressCompleted = completedBlocks;
               progressTotal = totalBlocks;
@@ -1426,16 +1731,27 @@ export function AthleteWorkouts() {
 
     try {
       setMonthlyPlansLoading(true);
+      // Use the updated API method for training plan assignments
       const data = await api.monthlyPlanAssignments.getByAthlete(user.id);
-      setMonthlyPlans(data as any[]);
+      
+      // Load exercise data for each plan
+      const plansWithExerciseData = await Promise.all(
+        data.map(async (plan: any) => {
+          if (plan.training_plans) {
+            const exerciseData = await loadMonthlyPlanExercises(plan.training_plans);
+            return { ...plan, exerciseData };
+          }
+          return plan;
+        })
+      );
+      
+      setMonthlyPlans(plansWithExerciseData as any[]);
     } catch (error) {
       console.error('Error loading monthly plans:', error);
     } finally {
       setMonthlyPlansLoading(false);
     }
   };
-
-
 
   // Function to render content based on active sidebar item
   const renderContent = () => {
@@ -1665,7 +1981,7 @@ export function AthleteWorkouts() {
       </Box>
         
       {/* Exercise Execution Modal - Using shared component */}
-      <ExerciseExecutionModal
+              <WorkoutExecutionRouter
         isOpen={execModal.isOpen}
         onClose={handleModalClose}
         workout={execModal.workout}

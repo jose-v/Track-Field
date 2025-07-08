@@ -130,7 +130,7 @@ export class WorkoutMigration {
 
   private static getDefaultRestForCategory(category: string): number {
     const restTimes = {
-      warmup: 30,
+      warmup: 60,
       main: 90,
       accessory: 60,
       cooldown: 30,

@@ -13,26 +13,29 @@ import { supabase } from '../lib/supabase';
  */
 export async function getMonthlyPlanCompletionFromDB(userId: string): Promise<number[]> {
   try {
-    // Get the current assignment (can be 'assigned' or 'in_progress')
-    const { data: assignment, error } = await supabase
+    // Get ALL current assignments to see what's available
+    const { data: allAssignments, error: allError } = await supabase
       .from('training_plan_assignments')
-      .select('completed_exercises')
+      .select('id, completed_exercises, status, assigned_at')
       .eq('athlete_id', userId)
       .in('status', ['assigned', 'in_progress'])
-      .order('assigned_at', { ascending: false })
-      .limit(1)
-      .single();
+      .order('assigned_at', { ascending: false });
 
-    if (error || !assignment) {
-      console.log('🔍 [monthlyPlanWorkoutHelper] No training plan assignment found in database');
+    if (allError || !allAssignments) {
+      return [];
+    }
+
+    // Get the most recent assignment
+    const assignment = allAssignments[0];
+    
+    if (!assignment) {
       return [];
     }
 
     const completedExercises = assignment.completed_exercises || [];
-    console.log('🔍 [monthlyPlanWorkoutHelper] Loaded completion from DB:', completedExercises);
     return completedExercises;
   } catch (error) {
-    console.error('🔥 [monthlyPlanWorkoutHelper] Error loading completion from DB:', error);
+    console.error('Error loading completion from DB:', error);
     return [];
   }
 }
@@ -53,21 +56,14 @@ async function saveMonthlyPlanCompletionToDB(userId: string, completedExercises:
       .single();
 
     if (fetchError || !assignment) {
-      console.error('🔥 [monthlyPlanWorkoutHelper] No training plan assignment found for saving completion:', fetchError);
+      console.error('No training plan assignment found for saving completion:', fetchError);
       return;
     }
-
-    console.log('✅ [monthlyPlanWorkoutHelper] Found assignment for completion sync:', {
-      id: assignment.id,
-      status: assignment.status,
-      completedExercises: completedExercises
-    });
 
     // Update the completed_exercises field and change status to 'in_progress' if it's still 'assigned'
     const updateData: any = { completed_exercises: completedExercises };
     if (assignment.status === 'assigned') {
       updateData.status = 'in_progress';
-      console.log('🔄 [monthlyPlanWorkoutHelper] Changing status from assigned to in_progress');
     }
 
     const { error: updateError } = await supabase
@@ -76,12 +72,10 @@ async function saveMonthlyPlanCompletionToDB(userId: string, completedExercises:
       .eq('id', assignment.id);
 
     if (updateError) {
-      console.error('🔥 [monthlyPlanWorkoutHelper] Error saving completion to DB:', updateError);
-    } else {
-      console.log('✅ [monthlyPlanWorkoutHelper] Saved completion to DB:', completedExercises);
+      console.error('Error saving completion to DB:', updateError);
     }
   } catch (error) {
-    console.error('🔥 [monthlyPlanWorkoutHelper] Error saving completion to DB:', error);
+    console.error('Error saving completion to DB:', error);
   }
 }
 
@@ -91,36 +85,17 @@ async function saveMonthlyPlanCompletionToDB(userId: string, completedExercises:
  */
 export async function getTodaysWorkoutForExecution(userId: string) {
   try {
-    console.log('🔍 [monthlyPlanWorkoutHelper] Starting getTodaysWorkoutForExecution for user:', userId);
-    
     // Use the same API call that TodayWorkoutsCard uses
     const workoutData = await api.monthlyPlanAssignments.getTodaysWorkout(userId);
     
-    console.log('🔍 [monthlyPlanWorkoutHelper] API returned workoutData:', {
-      hasWorkout: workoutData?.hasWorkout,
-      primaryWorkoutExists: !!workoutData?.primaryWorkout,
-      exercisesCount: workoutData?.primaryWorkout?.exercises?.length || 0,
-      exercises: workoutData?.primaryWorkout?.exercises?.map(ex => ex.name) || [],
-      fullData: workoutData
-    });
-    
     if (!workoutData || !workoutData.hasWorkout || !workoutData.primaryWorkout) {
-      console.log('🔍 [monthlyPlanWorkoutHelper] No workout data returned from getTodaysWorkout API');
       return null;
     }
     
     const primaryWorkout = workoutData.primaryWorkout;
     const exercises = primaryWorkout.exercises || [];
     
-    console.log('🔍 [monthlyPlanWorkoutHelper] Processing exercises:', {
-      exercisesCount: exercises.length,
-      exerciseNames: exercises.map(ex => ex.name),
-      currentDay: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
-      currentDayOfWeek: new Date().getDay() // 0=Sunday, 6=Saturday
-    });
-    
     if (exercises.length === 0) {
-      console.log('🔍 [monthlyPlanWorkoutHelper] No exercises in today\'s workout');
       return null;
     }
     
@@ -140,16 +115,9 @@ export async function getTodaysWorkoutForExecution(userId: string) {
       originalData: workoutData
     };
     
-    console.log('🔍 [monthlyPlanWorkoutHelper] Returning workout:', {
-      id: result.id,
-      name: result.name,
-      exercisesCount: result.exercises.length,
-      exerciseNames: result.exercises.map(ex => ex.name)
-    });
-    
     return result;
   } catch (error) {
-    console.error('🔥 [monthlyPlanWorkoutHelper] Error fetching today\'s workout for execution:', error);
+    console.error('Error fetching today\'s workout for execution:', error);
     return null;
   }
 }
@@ -164,35 +132,24 @@ export async function startTodaysWorkoutExecution(
   setExecModal: (modal: any) => void
 ) {
   try {
-    console.log('🔍 [monthlyPlanWorkoutHelper] Starting workout execution for user:', userId);
-    
     // Get today's workout using the same logic as dashboard
     const todaysWorkout = await getTodaysWorkoutForExecution(userId);
     
     if (!todaysWorkout) {
-      console.log('🔍 [monthlyPlanWorkoutHelper] No workout available for today');
       return false; // Indicates no workout was started
     }
-    
-    console.log('🔍 [monthlyPlanWorkoutHelper] Got today\'s workout:', {
-      workoutName: todaysWorkout.name,
-      exercisesCount: todaysWorkout.exercises.length,
-      exerciseNames: todaysWorkout.exercises.map(ex => ex.name)
-    });
+
+    // Clear any existing progress for this workout to ensure fresh start
+    workoutStore.resetProgress(todaysWorkout.id);
     
     // Load completion status from database (source of truth)
     const completedExercisesFromDB = await getMonthlyPlanCompletionFromDB(userId);
     
     // Initialize progress tracking in workout store
-    const progress = workoutStore.getProgress(todaysWorkout.id);
-    if (!progress && todaysWorkout.exercises.length > 0) {
-      workoutStore.updateProgress(todaysWorkout.id, 0, todaysWorkout.exercises.length);
-      console.log(`🔍 [monthlyPlanWorkoutHelper] Initialized progress tracking for: ${todaysWorkout.id}`);
-    }
+    workoutStore.updateProgress(todaysWorkout.id, 0, todaysWorkout.exercises.length);
     
     // Sync database completion status to local store
     if (completedExercisesFromDB.length > 0) {
-      console.log('🔍 [monthlyPlanWorkoutHelper] Syncing DB completion to local store:', completedExercisesFromDB);
       completedExercisesFromDB.forEach(exerciseIdx => {
         workoutStore.markExerciseCompleted(todaysWorkout.id, exerciseIdx);
       });
@@ -204,11 +161,12 @@ export async function startTodaysWorkoutExecution(
       );
     }
     
-    // Find the first uncompleted exercise to start from (now using synced data)
+    // Find the first uncompleted exercise to start from (continue from where left off)
     const updatedProgress = workoutStore.getProgress(todaysWorkout.id);
     const completedExercises = updatedProgress?.completedExercises || [];
     let startExerciseIdx = 0;
     
+    // Find the first exercise that hasn't been completed
     for (let i = 0; i < todaysWorkout.exercises.length; i++) {
       if (!completedExercises.includes(i)) {
         startExerciseIdx = i;
@@ -216,14 +174,10 @@ export async function startTodaysWorkoutExecution(
       }
     }
     
-    const startingExercise = todaysWorkout.exercises[startExerciseIdx];
-    console.log('🔍 [monthlyPlanWorkoutHelper] Starting with exercise:', {
-      index: startExerciseIdx,
-      name: startingExercise?.name,
-      totalExercises: todaysWorkout.exercises.length,
-      completedFromDB: completedExercisesFromDB,
-      localCompleted: completedExercises
-    });
+    // If all exercises are completed, start from the beginning to allow re-doing the workout
+    if (completedExercises.length >= todaysWorkout.exercises.length) {
+      startExerciseIdx = 0;
+    }
     
     // Open execution modal
     setExecModal({
@@ -234,10 +188,9 @@ export async function startTodaysWorkoutExecution(
       running: false
     });
     
-    console.log(`✅ [monthlyPlanWorkoutHelper] Started workout execution: ${todaysWorkout.name} at exercise ${startExerciseIdx} (${startingExercise?.name})`);
     return true; // Indicates workout was started successfully
   } catch (error) {
-    console.error('🔥 [monthlyPlanWorkoutHelper] Error starting today\'s workout execution:', error);
+    console.error('Error starting today\'s workout execution:', error);
     return false;
   }
 }
@@ -252,15 +205,11 @@ export async function markExerciseCompletedWithSync(
   workoutStore: any
 ): Promise<void> {
   try {
-    console.log(`🔍 [monthlyPlanWorkoutHelper] Marking exercise ${exerciseIdx} complete for user ${userId}`);
-    
     // Get current completion status from database (source of truth)
     const dbCompleted = await getMonthlyPlanCompletionFromDB(userId);
-    console.log('🔍 [monthlyPlanWorkoutHelper] Current DB completion:', dbCompleted);
     
     // Add the new exercise to the completion list if not already completed
     const mergedCompleted = [...new Set([...dbCompleted, exerciseIdx])].sort((a, b) => a - b);
-    console.log('🔍 [monthlyPlanWorkoutHelper] Merged completion:', mergedCompleted);
     
     // Save merged completion to database
     await saveMonthlyPlanCompletionToDB(userId, mergedCompleted);
@@ -274,10 +223,55 @@ export async function markExerciseCompletedWithSync(
         workoutStore.markExerciseCompleted(workoutId, idx);
       }
     });
-    
-    console.log(`✅ [monthlyPlanWorkoutHelper] Marked exercise ${exerciseIdx} complete and synced to DB. Total completed: ${mergedCompleted.length}`);
   } catch (error) {
-    console.error('🔥 [monthlyPlanWorkoutHelper] Error marking exercise complete:', error);
+    console.error('Error marking exercise complete:', error);
+  }
+}
+
+/**
+ * Reset monthly plan progress by clearing completed exercises from database
+ */
+export async function resetMonthlyPlanProgress(userId: string): Promise<void> {
+  try {
+    // Get ALL current assignments and clear their completed_exercises
+    const { data: assignments, error: fetchError } = await supabase
+      .from('training_plan_assignments')
+      .select('id, completed_exercises, status')
+      .eq('athlete_id', userId)
+      .in('status', ['assigned', 'in_progress'])
+      .order('assigned_at', { ascending: false });
+
+    if (fetchError || !assignments || assignments.length === 0) {
+      console.error('No training plan assignments found for reset:', fetchError);
+      return;
+    }
+
+    // Reset ALL assignments, not just the most recent one
+    const resetPromises = assignments.map(assignment => 
+      supabase
+        .from('training_plan_assignments')
+        .update({ 
+          completed_exercises: [],
+          status: 'assigned'
+        })
+        .eq('id', assignment.id)
+    );
+
+    const results = await Promise.all(resetPromises);
+    
+    // Check for any errors
+    const errors = results.filter(result => result.error);
+    if (errors.length > 0) {
+      console.error('Error resetting some assignments:', errors);
+      throw new Error(`Failed to reset ${errors.length} assignments`);
+    }
+
+    // Add a small delay to ensure the database update is fully committed
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+  } catch (error) {
+    console.error('Error resetting monthly plan progress:', error);
+    throw error;
   }
 }
 

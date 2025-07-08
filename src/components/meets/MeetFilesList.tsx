@@ -21,7 +21,12 @@ import {
   useDisclosure,
   Image,
   Progress,
-  Button
+  Button,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
+  useBreakpointValue,
 } from '@chakra-ui/react';
 import { 
   FaImage, 
@@ -33,7 +38,8 @@ import {
   FaFilePdf,
   FaFileWord,
   FaFileExcel,
-  FaEllipsisV
+  FaEllipsisV,
+  FaExternalLinkAlt
 } from 'react-icons/fa';
 import { MeetFile, truncateFileName, formatFileSize } from '../../types/meetFiles';
 import { MeetFilesService } from '../../services/meetFilesService';
@@ -51,6 +57,8 @@ const FileViewer: React.FC<{ file: MeetFile; isOpen: boolean; onClose: () => voi
 }) => {
   const [fileUrl, setFileUrl] = React.useState<string>('');
   const [loading, setLoading] = React.useState(false);
+  const isMobile = useBreakpointValue({ base: true, md: false });
+  const toast = useToast();
 
   React.useEffect(() => {
     if (isOpen && file) {
@@ -63,6 +71,25 @@ const FileViewer: React.FC<{ file: MeetFile; isOpen: boolean; onClose: () => voi
       });
     }
   }, [isOpen, file]);
+
+  const handleOpenPDFInNewTab = () => {
+    if (fileUrl) {
+      window.open(fileUrl, '_blank');
+    }
+  };
+
+  const handleDownloadFile = async () => {
+    const { error } = await MeetFilesService.downloadFile(file.file_path, file.file_name);
+    if (error) {
+      toast({
+        title: 'Download Failed',
+        description: error,
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
 
   const renderFileContent = () => {
     if (loading) return (
@@ -89,17 +116,63 @@ const FileViewer: React.FC<{ file: MeetFile; isOpen: boolean; onClose: () => voi
     }
     
     if (file.file_type === 'application/pdf') {
-      return (
-        <Box w="100%" h="85vh">
-          <iframe
-            src={`${fileUrl}#view=FitH`}
-            width="100%"
-            height="100%"
-            style={{ border: 'none', borderRadius: '8px' }}
-            title={file.file_name}
-          />
-        </Box>
-      );
+      if (isMobile) {
+        // Mobile: Show alert with options to open in new tab or download
+        return (
+          <VStack spacing={6} py={12} px={4}>
+            <FaFilePdf size={96} color="red.500" />
+            <Text fontSize="xl" fontWeight="bold" textAlign="center">{file.file_name}</Text>
+            
+            <Alert status="info" borderRadius="md">
+              <AlertIcon />
+              <Box>
+                <AlertTitle>Mobile PDF Viewer</AlertTitle>
+                <AlertDescription>
+                  For the best viewing experience on mobile, open the PDF in a new tab or download it.
+                </AlertDescription>
+              </Box>
+            </Alert>
+            
+            <VStack spacing={4} w="100%">
+              <Button 
+                size="lg"
+                colorScheme="blue"
+                leftIcon={<FaExternalLinkAlt />}
+                onClick={handleOpenPDFInNewTab}
+                w="100%"
+                maxW="300px"
+              >
+                Open in New Tab
+              </Button>
+              
+              <Button 
+                size="lg"
+                variant="outline"
+                colorScheme="blue"
+                leftIcon={<FaDownload />}
+                onClick={handleDownloadFile}
+                w="100%"
+                maxW="300px"
+              >
+                Download File
+              </Button>
+            </VStack>
+          </VStack>
+        );
+      } else {
+        // Desktop: Use iframe
+        return (
+          <Box w="100%" h="85vh">
+            <iframe
+              src={`${fileUrl}#view=FitH`}
+              width="100%"
+              height="100%"
+              style={{ border: 'none', borderRadius: '8px' }}
+              title={file.file_name}
+            />
+          </Box>
+        );
+      }
     }
 
     return (

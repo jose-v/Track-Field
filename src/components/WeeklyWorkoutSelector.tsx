@@ -101,9 +101,9 @@ export function WeeklyWorkoutSelector({
         <Alert status="warning" borderRadius="md">
           <AlertIcon />
           <VStack align="start" spacing={1}>
-            <Text fontWeight="medium">No weekly workout templates found</Text>
+            <Text fontWeight="medium">No weekly workouts found</Text>
             <Text fontSize="sm">
-              Create some weekly workout templates first to use in monthly plans.
+              Create some weekly workouts first to use in monthly plans.
             </Text>
           </VStack>
         </Alert>
@@ -198,7 +198,7 @@ export function WeeklyWorkoutSelector({
                   {!week.is_rest_week && (
                     <FormControl>
                       <FormLabel fontSize="sm" color={infoColor}>
-                        Select workout template
+                        Select weekly workout
                       </FormLabel>
                       <Select
                         value={week.workout_id}
@@ -209,7 +209,7 @@ export function WeeklyWorkoutSelector({
                       >
                         {availableWorkouts.map(workout => (
                           <option key={workout.id} value={workout.id}>
-                            {workout.name}
+                            {workout.name} {workout.is_template ? '(Template)' : '(Workout)'}
                           </option>
                         ))}
                       </Select>
@@ -220,7 +220,7 @@ export function WeeklyWorkoutSelector({
                   {!week.is_rest_week && week.workout_id && (
                     <Box>
                       <Text fontSize="xs" color={infoColor} mb={1}>
-                        Selected template:
+                        Selected workout:
                       </Text>
                       <Text fontSize="sm" fontWeight="medium" color={titleColor}>
                         {getWorkoutName(week.workout_id)}

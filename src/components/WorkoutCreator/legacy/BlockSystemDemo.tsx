@@ -17,8 +17,8 @@ import { Layers, Play, Grid } from 'lucide-react';
 
 // Import our new components
 import { BlockModeToggle } from './BlockModeToggle';
-import { WorkoutMigration, getTotalExercisesFromBlocks } from '../../utils/workout-migration';
-import { BLOCK_TEMPLATES } from '../../utils/block-templates';
+import { WorkoutMigration, getTotalExercisesFromBlocks } from '../../../utils/workout-migration';
+import { BLOCK_TEMPLATES } from '../../../utils/block-templates';
 
 export const BlockSystemDemo: React.FC = () => {
   const [isBlockMode, setIsBlockMode] = useState(false);

@@ -36,7 +36,7 @@ export function useWorkouts() {
           }, { maxRetries: 2 });
         } else if (userRole === 'coach') {
           return await callApiWithAuth(async () => {
-            const data = await api.workouts.getByCreator(user.id);
+            const data = await api.workouts.getByCreator(user.id, { includeTemplates: false });
             return data;
           }, { maxRetries: 2 });
         } else {

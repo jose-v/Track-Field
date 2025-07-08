@@ -21,6 +21,7 @@ import { FaFileImport } from 'react-icons/fa';
 import { useQueryClient } from '@tanstack/react-query';
 import { useWorkoutsRealtime } from '../../hooks/useWorkoutsRealtime';
 import { useAuth } from '../../contexts/AuthContext';
+import { getWorkoutExerciseCount } from '../../utils/workoutUtils';
 
 // Athlete assignment type
 interface AthleteAssignment {
@@ -266,7 +267,7 @@ export function CoachWorkouts() {
     const totalAssigned = workoutAssignments.length;
     const completedCount = workoutAssignments.filter(a => a.status === 'completed').length;
     const inProgressCount = workoutAssignments.filter(a => a.status === 'in_progress').length;
-    const exerciseCount = workout.exercises?.length || 0;
+    const exerciseCount = getWorkoutExerciseCount(workout);
     
     // Calculate completion percentage based on completed and in-progress assignments
     let percentage = 0;
@@ -592,7 +593,7 @@ export function CoachWorkouts() {
 
   const handleEditWorkoutFromDetail = (workout: ApiWorkout) => {
     onDetailViewClose();
-    navigate(`/coach/workout-creator?edit=${workout.id}`);
+    navigate(`/coach/workout-creator-new?edit=${workout.id}`);
   };
 
   return (
@@ -683,7 +684,7 @@ export function CoachWorkouts() {
                 workout={workout}
                 isCoach={true}
                 assignedTo={athleteNames}
-                onEdit={() => navigate(`/coach/workout-creator?edit=${workout.id}`)}
+                onEdit={() => navigate(`/coach/workout-creator-new?edit=${workout.id}`)}
                 onDelete={() => handleDeleteWorkout(workout)}
                 onAssign={() => handleAssignWorkout(workout)}
                 onViewDetails={() => handleViewWorkout(workout)}

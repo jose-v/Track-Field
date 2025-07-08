@@ -8,7 +8,7 @@ export const BLOCK_TEMPLATES: Record<string, ExerciseBlock> = {
     name: 'Dynamic Warm-up',
     category: 'warmup',
     flow: 'sequential',
-    restBetweenExercises: 30,
+    restBetweenExercises: 60,
     exercises: [
       { name: 'Light Jogging', sets: 1, reps: 1, distance: 400, notes: '5 minutes easy pace' },
       { name: 'Dynamic Leg Swings', sets: 2, reps: 10, notes: 'Forward/back and side to side' },

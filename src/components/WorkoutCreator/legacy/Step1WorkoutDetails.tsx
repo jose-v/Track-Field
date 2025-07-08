@@ -19,7 +19,7 @@ import {
   AlertIcon,
 } from '@chakra-ui/react';
 import { Target, Calendar, FileText, Dumbbell, Zap, Heart, Clock, User, MapPin, BookOpen, ArrowDown, RotateCcw } from 'lucide-react';
-import { DateTimePicker } from '../DateTimePicker';
+import { DateTimePicker } from '../../';
 
 interface Step1WorkoutDetailsProps {
   workoutName: string;

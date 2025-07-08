@@ -40,6 +40,11 @@ interface WeekWithWorkout {
   workout_id: string;
   is_rest_week: boolean;
   workout?: Workout;
+  dailyBreakdown?: Array<{
+    day: string;
+    blocks: any[];
+    totalExercises: number;
+  }>;
 }
 
 interface AssignedAthleteWithDetails {
@@ -65,6 +70,7 @@ export function PlanDetailView({
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const bgColor = useColorModeValue('gray.50', 'gray.900');
   const progressCardBg = useColorModeValue('blue.50', 'blue.900');
+  const dayBlockBg = useColorModeValue('gray.50', 'gray.700');
   const toast = useToast();
 
   // Refs
@@ -142,7 +148,8 @@ export function PlanDetailView({
           if (week.is_rest_week || !week.workout_id) {
             return {
               ...week,
-              workout: undefined
+              workout: undefined,
+              dailyBreakdown: []
             };
           }
           
@@ -150,15 +157,67 @@ export function PlanDetailView({
             // Get all workouts and find the one we need
             const allWorkouts = await api.workouts.getAll();
             const workout = allWorkouts.find(w => w.id === week.workout_id);
+            
+            // Extract daily breakdown from weekly workout
+            let dailyBreakdown: any[] = [];
+            if (workout) {
+              try {
+                let blocks = workout.blocks;
+                
+                // Handle blocks data - could be string or object
+                if (typeof blocks === 'string') {
+                  blocks = JSON.parse(blocks);
+                }
+                
+                if (blocks) {
+                  // For weekly workouts, blocks should be organized by day
+                  if (typeof blocks === 'object' && !Array.isArray(blocks)) {
+                    // This is a daily blocks structure (monday, tuesday, etc.)
+                    const dayMapping = [
+                      { key: 'monday', display: 'Monday' },
+                      { key: 'tuesday', display: 'Tuesday' },
+                      { key: 'wednesday', display: 'Wednesday' },
+                      { key: 'thursday', display: 'Thursday' },
+                      { key: 'friday', display: 'Friday' },
+                      { key: 'saturday', display: 'Saturday' },
+                      { key: 'sunday', display: 'Sunday' }
+                    ];
+                    
+                    dailyBreakdown = dayMapping.map(dayInfo => {
+                      const dayBlocks = Array.isArray(blocks[dayInfo.key]) ? blocks[dayInfo.key] : [];
+                      return {
+                        day: dayInfo.display,
+                        blocks: dayBlocks,
+                        totalExercises: Array.isArray(dayBlocks) ? dayBlocks.reduce((total: number, block: any) => 
+                          total + (block.exercises?.length || 0), 0) : 0
+                      };
+                    }).filter(dayData => Array.isArray(dayData.blocks) && dayData.blocks.length > 0);
+                  } else if (Array.isArray(blocks)) {
+                    // Single day blocks - create one day entry
+                    dailyBreakdown = [{
+                      day: 'Training Day',
+                      blocks: blocks,
+                      totalExercises: Array.isArray(blocks) ? blocks.reduce((total: number, block: any) => 
+                        total + (block.exercises?.length || 0), 0) : 0
+                    }];
+                  }
+                }
+              } catch (parseError) {
+                console.error('Error parsing workout blocks for', workout.name, ':', parseError);
+              }
+            }
+            
             return {
               ...week,
-              workout
+              workout,
+              dailyBreakdown
             };
           } catch (error) {
             console.error(`Error loading workout ${week.workout_id}:`, error);
             return {
               ...week,
-              workout: undefined
+              workout: undefined,
+              dailyBreakdown: []
             };
           }
         })
@@ -547,29 +606,93 @@ export function PlanDetailView({
                               Recovery and rest week - no scheduled workouts
                             </Text>
                           ) : week.workout ? (
-                            <VStack align="start" spacing={2}>
-                              <Text fontWeight="medium" color={titleColor}>
-                                {week.workout.name}
-                              </Text>
-                              <Text fontSize="sm" color={infoColor}>
-                                {week.workout.description || 'Weekly Training Plan'}
-                              </Text>
-                              <HStack spacing={4}>
-                                <HStack spacing={1}>
-                                  <Icon as={FaClock} color={infoColor} boxSize={3} />
-                                  <Text fontSize="sm" color={infoColor}>
-                                    {week.workout.duration || 'Variable'} min
-                                  </Text>
-                                </HStack>
-                                {week.workout.exercises && (
+                            <VStack align="start" spacing={3}>
+                              <VStack align="start" spacing={2}>
+                                <Text fontWeight="medium" color={titleColor}>
+                                  {week.workout.name}
+                                </Text>
+                                <Text fontSize="sm" color={infoColor}>
+                                  {week.workout.description || 'Weekly Training Plan'}
+                                </Text>
+                                <HStack spacing={4}>
+                                  <HStack spacing={1}>
+                                    <Icon as={FaClock} color={infoColor} boxSize={3} />
+                                    <Text fontSize="sm" color={infoColor}>
+                                      {week.workout.duration || 'Variable'} min
+                                    </Text>
+                                  </HStack>
                                   <HStack spacing={1}>
                                     <Icon as={FaDumbbell} color={infoColor} boxSize={3} />
                                     <Text fontSize="sm" color={infoColor}>
-                                      {week.workout.exercises.length} exercises
+                                      {week.dailyBreakdown && Array.isArray(week.dailyBreakdown) ? week.dailyBreakdown.reduce((total, day) => total + day.totalExercises, 0) : 0} total exercises
                                     </Text>
                                   </HStack>
-                                )}
-                              </HStack>
+                                </HStack>
+                              </VStack>
+
+                              {/* Daily Breakdown - What Athletes Actually See */}
+                              {week.dailyBreakdown && Array.isArray(week.dailyBreakdown) && week.dailyBreakdown.length > 0 && (
+                                <Box>
+                                  <Box fontSize="sm" fontWeight="semibold" color={titleColor} mb={2}>
+                                    Daily Schedule (Athlete View):
+                                  </Box>
+                                  <VStack spacing={2} align="stretch">
+                                    {week.dailyBreakdown.map((day, dayIndex) => (
+                                      <Box 
+                                        key={dayIndex}
+                                        bg={dayBlockBg}
+                                        borderRadius="md"
+                                        p={3}
+                                        borderLeftWidth="3px"
+                                        borderLeftColor="teal.400"
+                                      >
+                                        <HStack justify="space-between" mb={2}>
+                                          <Box fontSize="sm" fontWeight="medium" color={titleColor}>
+                                            {day.day}
+                                          </Box>
+                                          <Badge colorScheme="teal" size="sm">
+                                            {day.totalExercises} exercises
+                                          </Badge>
+                                        </HStack>
+                                        
+                                        {/* Exercise Blocks */}
+                                        <VStack spacing={1} align="stretch">
+                                          {day.blocks.map((block: any, blockIndex: number) => (
+                                            <Box key={blockIndex}>
+                                              <HStack spacing={2}>
+                                                <Box as="span" fontSize="xs" color="teal.500" fontWeight="medium">
+                                                  {block.name || `Block ${blockIndex + 1}`}
+                                                </Box>
+                                                <Box as="span" fontSize="xs" color={infoColor}>
+                                                  ({block.exercises?.length || 0} exercises)
+                                                </Box>
+                                              </HStack>
+                                              {block.exercises && block.exercises.length > 0 && (
+                                                <Box pl={2} fontSize="xs" color={infoColor} as="div">
+                                                  {block.exercises.map((ex: any) => ex.name).join(', ')}
+                                                </Box>
+                                              )}
+                                            </Box>
+                                          ))}
+                                        </VStack>
+                                      </Box>
+                                    ))}
+                                  </VStack>
+                                </Box>
+                              )}
+
+                              {/* Show if no daily breakdown available */}
+                              {(!week.dailyBreakdown || !Array.isArray(week.dailyBreakdown) || week.dailyBreakdown.length === 0) && week.workout && (
+                                <Alert status="info" size="sm">
+                                  <AlertIcon />
+                                  <Box fontSize="sm">
+                                    {week.workout.is_block_based 
+                                      ? "Unable to parse daily schedule from this workout structure."
+                                      : "This is a legacy workout template. Daily breakdown not available."
+                                    }
+                                  </Box>
+                                </Alert>
+                              )}
                             </VStack>
                           ) : (
                             <Alert status="warning" size="sm">

@@ -99,6 +99,12 @@ function getVideoUrl(exerciseName: string): string {
   return 'https://www.youtube.com/embed/dQw4w9WgXcQ'; // Default
 }
 
+// Utility function to safely parse positive integers for sets/reps
+function parsePositiveInt(value: any, fallback: number = 1): number {
+  const n = Number(value);
+  return Number.isInteger(n) && n > 0 ? n : fallback;
+}
+
 export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
   isOpen,
   onClose,
@@ -333,32 +339,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
     // Don't reset round counter when exercise changes in circuit flow
   }, [exerciseIdx]);
 
-  // Debug logging only when modal opens
-  useEffect(() => {
-    if (isOpen && workout) {
-      console.log('=== EXERCISE EXECUTION DEBUG ===');
-      console.log('Workout:', workout);
-      console.log('Workout exercises:', workout.exercises);
-      console.log('Exercise count:', workout.exercises?.length || 0);
-      console.log('Current exercise index:', exerciseIdx);
-      console.log('Current exercise:', workout.exercises?.[exerciseIdx]);
-      
-      // Check if it's a weekly template
-      const isWeekly = workout.exercises.length > 0 && 
-                      typeof workout.exercises[0] === 'object' && 
-                      'day' in workout.exercises[0] && 
-                      'exercises' in workout.exercises[0];
-      
-      if (isWeekly) {
-        console.log('🗓️ WEEKLY TEMPLATE DETECTED');
-        const currentDayPlan = workout.exercises[0] as any;
-        console.log('Current day plan:', currentDayPlan);
-        console.log('Actual exercises for today:', currentDayPlan.exercises);
-        console.log('Actual exercise count:', currentDayPlan.exercises?.length || 0);
-      }
-      console.log('================================');
-    }
-  }, [isOpen, workout?.id]); // Only run when modal opens or workout changes
+  
     
   // Simple validation - AFTER all hooks are called
   if (!isOpen || !workout || !workout.exercises || workout.exercises.length === 0) {
@@ -483,8 +464,8 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
       }
     } else {
       // Sequential Flow: Complete all sets/reps before moving to next exercise (original behavior)
-      const maxSets = currentExercise.sets || 1;
-      const maxReps = currentExercise.reps || 1;
+      const maxSets = parsePositiveInt(currentExercise.sets, 1);
+      const maxReps = parsePositiveInt(currentExercise.reps, 1);
       
       if (currentRep < maxReps) {
         // More reps in current set - update UI immediately, then countdown before starting timer
@@ -608,8 +589,8 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
   const isCircuitFlow = flowType === 'circuit';
   const circuitRounds = workout.circuit_rounds || 3;
   
-  const currentExerciseSets = currentExercise.sets || 1;
-  const currentExerciseReps = currentExercise.reps || 1;
+  const currentExerciseSets = parsePositiveInt(currentExercise?.sets, 1);
+  const currentExerciseReps = parsePositiveInt(currentExercise?.reps, 1);
   
   let completionProgress;
   
@@ -816,7 +797,7 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
           <Box px={6} pb={2}>
             <HStack spacing={1} w="full" justify="center">
             {(() => {
-                const currentExerciseReps = currentExercise.reps || 1;
+                const currentExerciseReps = parsePositiveInt(currentExercise.reps, 1);
                 const bars = [];
                 
                 // Show only the current exercise's reps
@@ -1086,9 +1067,9 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                               ? (exerciseIdx + 1 >= workout.exercises.length 
                                   ? `Next Round ${currentRound + 1}/${circuitRounds}`
                                   : "Next Exercise")
-                              : (currentRep < (currentExercise.reps || 1)
+                              : (currentRep < parsePositiveInt(currentExercise.reps, 1)
                                   ? "Next Rep"
-                                  : currentSet < (currentExercise.sets || 1)
+                                  : currentSet < parsePositiveInt(currentExercise.sets, 1)
                                     ? "Next Set" 
                                     : "Next Exercise"))
                         : "Timer"
@@ -1221,8 +1202,8 @@ export const ExerciseExecutionModal: React.FC<ExerciseExecutionModalProps> = ({
                           return 'Next';
                         }
                       } else {
-                        const maxSets = currentExercise.sets || 1;
-                        const maxReps = currentExercise.reps || 1;
+                        const maxSets = parsePositiveInt(currentExercise.sets, 1);
+                        const maxReps = parsePositiveInt(currentExercise.reps, 1);
                         
                         if (currentRep < maxReps) {
                           return 'Next Rep';

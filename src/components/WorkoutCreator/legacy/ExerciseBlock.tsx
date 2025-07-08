@@ -30,7 +30,7 @@ import { MoreVertical } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { ExerciseBlock as ExerciseBlockType } from '../../types/workout-blocks';
+import { ExerciseBlock as ExerciseBlockType } from '../../../types/workout-blocks';
 
 interface ExerciseBlockProps {
   block: ExerciseBlockType;

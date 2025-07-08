@@ -81,7 +81,7 @@ CREATE OR REPLACE FUNCTION get_category_rest_time(category TEXT)
 RETURNS INTEGER AS $$
 BEGIN
     RETURN CASE category
-        WHEN 'warmup' THEN 30
+        WHEN 'warmup' THEN 60
         WHEN 'main' THEN 90
         WHEN 'conditioning' THEN 75
         WHEN 'accessory' THEN 60

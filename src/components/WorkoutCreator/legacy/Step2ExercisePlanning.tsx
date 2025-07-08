@@ -42,7 +42,7 @@ import {
   Select,
 } from '@chakra-ui/react';
 import { Search, PlusCircle, X, Library, FileText, Moon, Plus, Copy, ChevronDown, GripVertical, Trash2 } from 'lucide-react';
-import { ExerciseLibrary } from '../ExerciseLibrary/ExerciseLibrary';
+import { ExerciseLibrary } from '../../ExerciseLibrary';
 import { BlockModeToggle } from './BlockModeToggle';
 import { ExerciseBlock } from './ExerciseBlock';
 import {

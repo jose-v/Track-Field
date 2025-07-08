@@ -20,15 +20,13 @@ export async function getRegularWorkoutCompletionFromDB(userId: string, workoutI
       .single();
 
     if (error || !assignment) {
-      console.log('🔍 [regularWorkoutHelper] No workout assignment found in database for:', { userId, workoutId });
       return [];
     }
 
     const completedExercises = assignment.completed_exercises || [];
-    console.log('🔍 [regularWorkoutHelper] Loaded completion from DB:', { workoutId, completedExercises });
     return completedExercises;
   } catch (error) {
-    console.error('🔥 [regularWorkoutHelper] Error loading completion from DB:', error);
+    console.error('Error loading completion from DB:', error);
     return [];
   }
 }
@@ -38,12 +36,6 @@ export async function getRegularWorkoutCompletionFromDB(userId: string, workoutI
  */
 export async function saveRegularWorkoutCompletionToDB(userId: string, workoutId: string, completedExercises: number[]): Promise<void> {
   try {
-    console.log('✅ [regularWorkoutHelper] Saving completion to DB:', {
-      userId,
-      workoutId,
-      completedExercises
-    });
-
     // Update the completed_exercises field and change status if needed
     const updateData: any = { completed_exercises: completedExercises };
     
@@ -59,12 +51,10 @@ export async function saveRegularWorkoutCompletionToDB(userId: string, workoutId
       .eq('workout_id', workoutId);
 
     if (updateError) {
-      console.error('🔥 [regularWorkoutHelper] Error saving completion to DB:', updateError);
-    } else {
-      console.log('✅ [regularWorkoutHelper] Saved completion to DB:', completedExercises);
+      console.error('Error saving completion to DB:', updateError);
     }
   } catch (error) {
-    console.error('🔥 [regularWorkoutHelper] Error saving completion to DB:', error);
+    console.error('Error saving completion to DB:', error);
   }
 }
 
@@ -78,15 +68,11 @@ export async function markRegularWorkoutExerciseCompletedWithSync(
   workoutStore: any
 ): Promise<void> {
   try {
-    console.log(`🔍 [regularWorkoutHelper] Marking exercise ${exerciseIdx} complete for user ${userId}, workout ${workoutId}`);
-    
     // Get current completion status from database (source of truth)
     const dbCompleted = await getRegularWorkoutCompletionFromDB(userId, workoutId);
-    console.log('🔍 [regularWorkoutHelper] Current DB completion:', dbCompleted);
     
     // Add the new exercise to the completion list if not already completed
     const mergedCompleted = [...new Set([...dbCompleted, exerciseIdx])].sort((a, b) => a - b);
-    console.log('🔍 [regularWorkoutHelper] Merged completion:', mergedCompleted);
     
     // Save merged completion to database
     await saveRegularWorkoutCompletionToDB(userId, workoutId, mergedCompleted);
@@ -101,9 +87,8 @@ export async function markRegularWorkoutExerciseCompletedWithSync(
       }
     });
     
-    console.log(`✅ [regularWorkoutHelper] Marked exercise ${exerciseIdx} complete and synced to DB. Total completed: ${mergedCompleted.length}`);
   } catch (error) {
-    console.error('🔥 [regularWorkoutHelper] Error marking exercise complete:', error);
+    console.error('Error marking exercise complete:', error);
   }
 }
 
@@ -118,8 +103,6 @@ export async function syncRegularWorkoutCompletionFromDB(
   totalExercises: number
 ): Promise<void> {
   try {
-    console.log('🔍 [regularWorkoutHelper] Syncing completion from DB to local store:', { userId, workoutId });
-    
     // Load completion status from database (source of truth)
     const completedExercisesFromDB = await getRegularWorkoutCompletionFromDB(userId, workoutId);
     
@@ -127,12 +110,10 @@ export async function syncRegularWorkoutCompletionFromDB(
     const progress = workoutStore.getProgress(workoutId);
     if (!progress && totalExercises > 0) {
       workoutStore.updateProgress(workoutId, 0, totalExercises);
-      console.log(`🔍 [regularWorkoutHelper] Initialized progress tracking for: ${workoutId}`);
     }
     
     // Sync database completion status to local store
     if (completedExercisesFromDB.length > 0) {
-      console.log('🔍 [regularWorkoutHelper] Syncing DB completion to local store:', completedExercisesFromDB);
       completedExercisesFromDB.forEach(exerciseIdx => {
         workoutStore.markExerciseCompleted(workoutId, exerciseIdx);
       });
@@ -144,9 +125,8 @@ export async function syncRegularWorkoutCompletionFromDB(
       );
     }
     
-    console.log(`✅ [regularWorkoutHelper] Synced ${completedExercisesFromDB.length} completed exercises from DB`);
   } catch (error) {
-    console.error('🔥 [regularWorkoutHelper] Error syncing completion from DB:', error);
+    console.error('Error syncing completion from DB:', error);
   }
 }
 
@@ -162,11 +142,9 @@ export async function markRegularWorkoutAsCompleted(userId: string, workoutId: s
       .eq('workout_id', workoutId);
 
     if (error) {
-      console.error('🔥 [regularWorkoutHelper] Error marking workout as completed:', error);
-    } else {
-      console.log('✅ [regularWorkoutHelper] Marked workout as completed in DB:', workoutId);
+      console.error('Error marking workout as completed:', error);
     }
   } catch (error) {
-    console.error('🔥 [regularWorkoutHelper] Error marking workout as completed:', error);
+    console.error('Error marking workout as completed:', error);
   }
 } 

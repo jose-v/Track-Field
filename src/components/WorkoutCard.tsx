@@ -10,6 +10,7 @@ import { dateUtils } from '../utils/date';
 import { ProgressBar } from './ProgressBar';
 import { Link as RouterLink } from 'react-router-dom';
 import { format } from 'date-fns';
+import { getExercisesFromWorkout, getBlocksFromWorkout } from '../utils/workoutUtils';
 
 // Shared utility functions
 export function getTypeIcon(type: string | undefined) {
@@ -47,31 +48,7 @@ export function formatDate(dateStr: string | undefined) {
   }
 }
 
-// Helper function to extract exercises from weekly workout
-function getExercisesFromWorkout(workout: Workout): Exercise[] {
-  // If it's a regular workout with exercises array
-  if (workout.exercises && Array.isArray(workout.exercises)) {
-    // Check if it's a weekly plan structure (array of day objects)
-    if (workout.exercises.length > 0 && 
-        typeof workout.exercises[0] === 'object' && 
-        'day' in workout.exercises[0] && 
-        'exercises' in workout.exercises[0]) {
-      // It's a weekly plan structure - flatten all exercises from all days
-      const weeklyPlan = workout.exercises as any[];
-      return weeklyPlan.reduce((allExercises: Exercise[], dayPlan: any) => {
-        if (dayPlan.exercises && Array.isArray(dayPlan.exercises) && !dayPlan.isRestDay) {
-          return [...allExercises, ...dayPlan.exercises];
-        }
-        return allExercises;
-      }, []);
-    } else {
-      // It's a regular exercise array
-      return workout.exercises;
-    }
-  }
-  
-  return [];
-}
+// Helper functions moved to utils/workoutUtils.ts
 
 interface WorkoutCardProps {
   workout: Workout;
@@ -146,7 +123,10 @@ export function WorkoutCard({
   const typeColorBase = getTypeColor(workout.type);
   const typeColor = `${typeColorBase}.500`; // Use the 500 variant for stronger color
   const typeName = getTypeName(workout.type);
-  const headerBg = workout.template_type === 'weekly' ? weeklyWorkoutBg : singleWorkoutBg;
+  const monthlyWorkoutBg = useColorModeValue('purple.500', 'purple.600');
+  const headerBg = workout.template_type === 'weekly' ? weeklyWorkoutBg : 
+                   workout.template_type === 'monthly' ? monthlyWorkoutBg : 
+                   singleWorkoutBg;
   
   // Format schedule date
   const formattedScheduleDate = workout.date 
@@ -156,6 +136,9 @@ export function WorkoutCard({
   // Get exercises using the helper function that handles both regular and weekly plan structures
   const allExercises = getExercisesFromWorkout(workout);
   const displayExercises = allExercises.slice(0, 3);
+  
+  // Safely get blocks array
+  const workoutBlocks = getBlocksFromWorkout(workout);
 
   return (
     <Card 
@@ -207,7 +190,9 @@ export function WorkoutCard({
                 px={3}
                 borderRadius="md"
           >
-            {workout.template_type === 'weekly' ? 'Weekly Plan' : isTemplate ? 'Template' : typeName}
+            {workout.template_type === 'weekly' ? 'Weekly Plan' : 
+             workout.template_type === 'monthly' ? 'Monthly Plan' : 
+             isTemplate ? 'Template' : typeName}
           </Badge>
         </HStack>
         
@@ -223,20 +208,14 @@ export function WorkoutCard({
             _hover={{ bg: 'rgba(255, 255, 255, 0.1)' }}
           />
           <MenuList>
-            {isCoach && onEdit && (
-              <MenuItem icon={<FaEdit />} onClick={onEdit}>
-                Edit
-              </MenuItem>
-            )}
-            {!isCoach && (
-              <MenuItem 
-                icon={<FaEdit />} 
-                as={RouterLink}
-                to={`/athlete/workout-creator?edit=${workout.id}`}
-              >
-                Edit
-              </MenuItem>
-            )}
+            {/* Always use new workout creator for editing */}
+            <MenuItem 
+              icon={<FaEdit />} 
+              as={RouterLink}
+              to={isCoach ? `/coach/workout-creator-new?edit=${workout.id}` : `/athlete/workout-creator-new?edit=${workout.id}`}
+            >
+              Edit
+            </MenuItem>
             {onViewDetails && (
               <MenuItem icon={<FaEye />} onClick={onViewDetails}>
                 View Details
@@ -383,28 +362,41 @@ export function WorkoutCard({
             {/* Exercises/Blocks info - Hide for coaches */}
             {!isCoach && (
               <Box width="100%" py={2}>
-                {(workout as any).is_block_based && (workout as any).blocks ? (
+                {(workout as any).is_block_based && workoutBlocks.length > 0 ? (
                   // Block-based workout: Show blocks instead of individual exercises
                   <>
                     <Flex align="center" mb={2}>
                       <Icon as={FaLayerGroup} mr={2} color={typeColor} boxSize={4} />
                       <Text fontSize="md" fontWeight="medium" color={exerciseTextColor}>
-                        Blocks: {(workout as any).blocks.length}
+                        Blocks: {workoutBlocks.length}
                       </Text>
                     </Flex>
                     <Box maxH="100px" overflowY="auto" fontSize="sm" color={infoColor} pl={6}>
-                      {(workout as any).blocks.slice(0, 3).map((block: any, idx: number) => {
+                      {workoutBlocks.slice(0, 3).map((block: any, idx: number) => {
                         const exerciseCount = block.exercises?.length || 0;
                         const exerciseText = exerciseCount === 1 ? 'exercise' : 'exercises';
                         return (
-                          <Text key={idx} noOfLines={1} mb={1} color={exerciseTextColor}>
-                            • {block.name || `Block ${idx + 1}`} ({exerciseCount} {exerciseText})
-                          </Text>
+                          <Box key={idx} mb={2}>
+                            <Text noOfLines={1} mb={1} color={exerciseTextColor}>
+                              • {block.name || `Block ${idx + 1}`} ({exerciseCount} {exerciseText})
+                            </Text>
+                            {/* Show up to three exercises with sets × reps */}
+                            {block.exercises && block.exercises.slice(0, 3).map((ex: any, exIdx: number) => (
+                              <Text key={exIdx} pl={4} color={exerciseTextColor} fontSize="sm" noOfLines={1}>
+                                - {ex.name} {ex.sets && ex.reps ? `(${ex.sets}×${ex.reps})` : ''}
+                              </Text>
+                            ))}
+                            {exerciseCount > 3 && (
+                              <Text pl={4} fontStyle="italic" color={exerciseTextColor} fontSize="sm">
+                                +{exerciseCount - 3} more...
+                              </Text>
+                            )}
+                          </Box>
                         );
                       })}
-                      {(workout as any).blocks.length > 3 && (
+                      {workoutBlocks.length > 3 && (
                         <Text fontStyle="italic" color={exerciseTextColor}>
-                          +{(workout as any).blocks.length - 3} more...
+                          +{workoutBlocks.length - 3} more...
                         </Text>
                       )}
                     </Box>
@@ -438,11 +430,11 @@ export function WorkoutCard({
             {/* Exercise/Block count only for coaches - simplified display */}
             {isCoach && (
               <Flex align="center" width="100%">
-                {(workout as any).is_block_based && (workout as any).blocks ? (
+                {(workout as any).is_block_based && workoutBlocks.length > 0 ? (
                   <>
                     <Icon as={FaLayerGroup} mr={2} color={typeColor} boxSize={4} />
                     <Text fontSize="md" color={infoColor}>
-                      {(workout as any).blocks.length} Block{(workout as any).blocks.length !== 1 ? 's' : ''}
+                      {workoutBlocks.length} Block{workoutBlocks.length !== 1 ? 's' : ''}
                     </Text>
                   </>
                 ) : (
@@ -566,7 +558,7 @@ export function WorkoutCard({
                 )}
                 
                 {/* Reset Progress Button - Hide for templates */}
-                {!isTemplate && !isCoach && onReset && progress.completed > 0 && (
+                {!isTemplate && !isCoach && onReset && (progress.completed > 0 || workout.template_type === 'monthly') && (
                   <Button 
                     width="100%" 
                     variant="outline"

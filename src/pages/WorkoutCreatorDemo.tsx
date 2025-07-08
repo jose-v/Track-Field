@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box } from '@chakra-ui/react';
-import { WorkoutCreatorWireframe } from '../components/WorkoutCreator';
+import WorkoutCreatorWireframe from '../components/WorkoutCreator/legacy/WorkoutCreatorWireframe';
 
 const WorkoutCreatorDemo: React.FC = () => {
   return (
