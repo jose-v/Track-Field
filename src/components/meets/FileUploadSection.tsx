@@ -46,6 +46,7 @@ import {
 import { MeetFile, MeetFileUpload, FILE_CATEGORIES, formatFileSize, truncateFileName, getFileCategory } from '../../types/meetFiles';
 import { MeetFilesService } from '../../services/meetFilesService';
 import { useAuth } from '../../contexts/AuthContext';
+import { PinchZoomImage } from '../PinchZoomImage';
 
 interface FileUploadSectionProps {
   meetId?: string;
@@ -116,17 +117,14 @@ const FileViewer: React.FC<{ file: MeetFile; isOpen: boolean; onClose: () => voi
     
     if (file.file_type.startsWith('image/')) {
       return (
-        <Box w="100%" h="100%" display="flex" justifyContent="center" alignItems="center">
-          <Image 
-            src={fileUrl} 
-            alt={file.file_name}
-            maxW="90%"
-            maxH="80vh"
-            objectFit="contain"
-            borderRadius="md"
-            shadow="lg"
-          />
-        </Box>
+        <PinchZoomImage
+          src={fileUrl} 
+          alt={file.file_name}
+          maxW="90%"
+          maxH="80vh"
+          borderRadius="md"
+          shadow="lg"
+        />
       );
     }
     
@@ -213,10 +211,17 @@ const FileViewer: React.FC<{ file: MeetFile; isOpen: boolean; onClose: () => voi
       <ModalOverlay />
       <ModalContent maxW="95vw" maxH="95vh" m={4}>
         <ModalHeader>
-          <HStack spacing={2}>
-            <FileIcon fileType={file.file_type} />
-            <Text>{file.file_name}</Text>
-          </HStack>
+          <VStack spacing={1} align="start">
+            <HStack spacing={2}>
+              <FileIcon fileType={file.file_type} />
+              <Text>{file.file_name}</Text>
+            </HStack>
+            {file.file_type.startsWith('image/') && (
+              <Text fontSize="xs" color="gray.500">
+                📱 Pinch to zoom • 🖱️ Scroll to zoom • Double tap/click to toggle
+              </Text>
+            )}
+          </VStack>
         </ModalHeader>
         <ModalCloseButton />
         <ModalBody pb={6} overflow="auto" display="flex" justifyContent="center" alignItems="center">
