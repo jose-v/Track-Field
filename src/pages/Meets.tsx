@@ -453,25 +453,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
       borderColor="gray.700"
       mb={6}
     >
-      {/* Individual Meet Badges */}
-      <HStack spacing={3} mb={4}>
-        {/* Status Badge */}
-        <InfoBadge>
-          {meet.status?.toUpperCase() || 'PLANNED'}
-        </InfoBadge>
-        
-        {/* Venue Type Badge */}
-        {meet.venue_type && (
-          <InfoBadge>
-            {meet.venue_type.toUpperCase()}
-          </InfoBadge>
-        )}
-        
-        {/* Multi-day Event Badge */}
-        <InfoBadge>
-          {meet.end_date && meet.end_date !== meet.meet_date ? 'MULTI-DAY' : 'SINGLE DAY'}
-        </InfoBadge>
-      </HStack>
+
 
       {/* Top Right: Coach-only toolbar */}
       {isCoach && (
@@ -850,7 +832,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
                   Registration
                 </Link>
               ) : (
-                <Text fontSize="md" color="gray.400">No Link Provided</Text>
+                <Text fontSize="md" color="gray.400">No Registration Link</Text>
               )}
             </HStack>
 
@@ -953,6 +935,15 @@ const MeetCard: React.FC<MeetCardProps> = ({
               <HStack spacing={2} color="white" cursor="pointer">
                 <FaStickyNote size={20} color="currentColor" />
                 <Text fontSize="md" fontWeight="medium" color="white">Notes</Text>
+                {meet.description && (
+                  <Box 
+                    width={2} 
+                    height={2} 
+                    borderRadius="full" 
+                    bg="green.400" 
+                    ml={1}
+                  />
+                )}
               </HStack>
             </Tooltip>
 
@@ -1147,7 +1138,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
                 Registration
               </Link>
             ) : (
-              <Text fontSize="md" color="gray.400">No Link Provided</Text>
+              <Text fontSize="md" color="gray.400">No Registration Link</Text>
             )}
           </HStack>
 
@@ -1281,6 +1272,15 @@ const MeetCard: React.FC<MeetCardProps> = ({
           <HStack spacing={3} color="white">
             <FaStickyNote size={18} color="currentColor" />
             <Text fontSize="md" fontWeight="medium" color="white">Notes</Text>
+            {meet.description && (
+              <Box 
+                width={2} 
+                height={2} 
+                borderRadius="full" 
+                bg="green.400" 
+                ml={1}
+              />
+            )}
           </HStack>
 
           {/* Events count */}
@@ -1665,36 +1665,9 @@ const MeetCard: React.FC<MeetCardProps> = ({
                       <Text fontSize="sm" color="gray.300" flex="1" fontWeight="medium">{event.name}</Text>
                       
                       <HStack spacing={2}>
-                        {/* Time display or Add Time button */}
-                        {event.time ? (
-                          <HStack spacing={2}>
-                            <Text fontSize="xs" fontWeight="medium" color="green.300">{event.time}</Text>
-                            <Button
-                              size="xs"
-                              variant="ghost"
-                              colorScheme="blue"
-                              onClick={() => onOpenRunTimeModal?.({
-                                eventId: event.id,
-                                eventName: event.name,
-                                currentTime: event.time || undefined
-                              })}
-                            >
-                              Edit
-                            </Button>
-                          </HStack>
-                        ) : (
-                          <Button
-                            size="xs"
-                            colorScheme="blue"
-                            variant="outline"
-                            leftIcon={<FaPlus size={8} />}
-                            onClick={() => onOpenRunTimeModal?.({
-                              eventId: event.id,
-                              eventName: event.name
-                            })}
-                          >
-                            Add Time
-                          </Button>
+                        {/* Time display only */}
+                        {event.time && (
+                          <Text fontSize="xs" fontWeight="medium" color="green.300">{event.time}</Text>
                         )}
                         
                         {/* Edit/Delete buttons */}
@@ -1702,6 +1675,8 @@ const MeetCard: React.FC<MeetCardProps> = ({
                           size="xs"
                           variant="ghost"
                           colorScheme="blue"
+                          color="white"
+                          _hover={{ color: "gray.300" }}
                           onClick={async (e) => {
                             e.stopPropagation();
                             try {
@@ -1745,6 +1720,8 @@ const MeetCard: React.FC<MeetCardProps> = ({
                           size="xs"
                           variant="ghost"
                           colorScheme="red"
+                          color="white"
+                          _hover={{ color: "gray.300" }}
                           onClick={async (e) => {
                             e.stopPropagation();
                             if (window.confirm(`Are you sure you want to delete the event "${event.name}"?`)) {
@@ -2825,20 +2802,6 @@ export const Meets: React.FC = () => {
           
           return (
             <Box key={meet.id} position="relative">
-              {showBadges && (
-                <HStack spacing={2} mb={2} justify="flex-end">
-                  {isUpcoming && (
-                    <Badge colorScheme="blue" variant="solid" fontSize="xs">
-                      Upcoming
-                    </Badge>
-                  )}
-                  {isPast && meetData[meet.id]?.myAssignedEvents?.some(event => !event.time) && (
-                    <Badge colorScheme="orange" variant="solid" fontSize="xs">
-                      Results Pending
-                    </Badge>
-                  )}
-                </HStack>
-              )}
               <MeetCard
                 meet={meet}
                 isCoach={userIsCoach}

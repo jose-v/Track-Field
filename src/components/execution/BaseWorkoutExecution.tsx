@@ -19,7 +19,7 @@ import {
   Badge
 } from '@chakra-ui/react';
 import { ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
-import { FaPlay, FaPause, FaRedo, FaVideo, FaChevronLeft, FaCheckCircle, FaRunning, FaForward } from 'react-icons/fa';
+import { FaPlay, FaPause, FaRedo, FaVideo, FaChevronLeft, FaCheckCircle, FaRunning, FaForward, FaInfoCircle } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { ExerciseMediaDisplay } from '../ExerciseMediaDisplay';
 import { RunTimeInput } from '../RunTimeInput';
@@ -332,6 +332,7 @@ export interface SharedWorkoutUIProps {
   onNext: () => void;
   canGoPrevious: boolean;
   canGoNext: boolean;
+  onInfoDrawerOpen?: () => void;
 }
 
 export const SharedWorkoutUI: React.FC<SharedWorkoutUIProps> = ({
@@ -351,7 +352,8 @@ export const SharedWorkoutUI: React.FC<SharedWorkoutUIProps> = ({
   onPrevious,
   onNext,
   canGoPrevious,
-  canGoNext
+  canGoNext,
+  onInfoDrawerOpen
 }) => {
   const { countdown, isPaused, showRPEScreen, runTime, restCountdown, isResting } = state;
   
@@ -497,6 +499,20 @@ export const SharedWorkoutUI: React.FC<SharedWorkoutUIProps> = ({
                 
                                 {/* Timer Controls */}
                 <HStack justify="center" spacing={4} mt={4}>
+                  {/* Exercise Info Button - Mobile Only */}
+                  {onInfoDrawerOpen && (
+                    <IconButton
+                      aria-label="Exercise details"
+                      icon={<Icon as={FaInfoCircle} />}
+                      onClick={onInfoDrawerOpen}
+                      variant="outline"
+                      size="md"
+                      borderRadius="full"
+                      isDisabled={countdown > 0 || isResting}
+                      opacity={countdown > 0 || isResting ? 0.4 : 1}
+                      display={{ base: "flex", md: "none" }}
+                    />
+                  )}
                   <IconButton
                     aria-label="Reset timer"
                     icon={<Icon as={FaRedo} />}

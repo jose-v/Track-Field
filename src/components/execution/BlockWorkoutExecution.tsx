@@ -12,8 +12,10 @@ import {
   Circle,
   Flex,
   ModalFooter,
+  IconButton,
+  useDisclosure,
 } from '@chakra-ui/react';
-import { FaChevronLeft, FaCheckCircle, FaRunning } from 'react-icons/fa';
+import { FaChevronLeft, FaCheckCircle, FaRunning, FaInfoCircle } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
   SharedWorkoutUI, 
@@ -23,6 +25,7 @@ import {
   getVideoUrl,
   type BaseWorkoutExecutionProps 
 } from './BaseWorkoutExecution';
+import { WorkoutInfoDrawer } from './WorkoutInfoDrawer';
 import { supabase } from '../../lib/supabase';
 import { saveTrainingLoadEntry } from '../../services/analytics/injuryRiskService';
 
@@ -140,6 +143,7 @@ export const BlockWorkoutExecution: React.FC<BlockWorkoutExecutionProps> = ({
   // Block-specific state
   const [currentBlockIndex, setCurrentBlockIndex] = useState(0);
   const [currentExerciseIndexInBlock, setCurrentExerciseIndexInBlock] = useState(0);
+  const { isOpen: isInfoDrawerOpen, onOpen: onInfoDrawerOpen, onClose: onInfoDrawerClose } = useDisclosure();
 
   // RPE Label function
   const getRPELabel = (rating: number) => {
@@ -621,23 +625,25 @@ export const BlockWorkoutExecution: React.FC<BlockWorkoutExecutionProps> = ({
   ) : undefined;
 
   return (
-    <SharedWorkoutUI
-      isOpen={isOpen}
-      onClose={onClose}
-      exerciseName={exerciseName}
-      state={state}
-      timer={timer}
-      headerContent={headerContent}
-      progressBar={progressBar}
-      onVideoClick={handleVideoClick}
-      onPauseResume={handlePauseResume}
-      onResetTimer={handleResetTimer}
-      onSkipRest={skipRest}
-      onPrevious={handlePrevious}
-      onNext={handleDone}
-      canGoPrevious={exerciseIdx > 0}
-      canGoNext={true}
-      footerContent={footerContent}
+        <>
+      <SharedWorkoutUI
+        isOpen={isOpen}
+        onClose={onClose}
+        exerciseName={exerciseName}
+        state={state}
+        timer={timer}
+        headerContent={headerContent}
+        progressBar={progressBar}
+        onVideoClick={handleVideoClick}
+        onPauseResume={handlePauseResume}
+        onResetTimer={handleResetTimer}
+        onSkipRest={skipRest}
+        onPrevious={handlePrevious}
+        onNext={handleDone}
+        canGoPrevious={exerciseIdx > 0}
+        canGoNext={true}
+        footerContent={footerContent}
+        onInfoDrawerOpen={onInfoDrawerOpen}
     >
       {!state.showRPEScreen ? (
         <>
@@ -688,9 +694,11 @@ export const BlockWorkoutExecution: React.FC<BlockWorkoutExecutionProps> = ({
             </SimpleGrid>
           </Box>
 
-          {/* Block Information */}
+
+
+          {/* Block Information - Hidden on mobile */}
           {currentBlock && (
-            <Box w="full" bg={sectionBg} borderRadius="xl" p={4}>
+            <Box w="full" bg={sectionBg} borderRadius="xl" p={4} display={{ base: "none", md: "block" }}>
               <SimpleGrid columns={3} spacing={2}>
                 <VStack spacing={1} align="center">
                   <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textAlign="center">
@@ -733,9 +741,9 @@ export const BlockWorkoutExecution: React.FC<BlockWorkoutExecutionProps> = ({
             </Box>
           )}
 
-          {/* Exercise Details */}
+          {/* Exercise Details - Hidden on mobile */}
           {currentExercise && (currentExercise.weight || currentExercise.distance || currentExercise.rest || currentExercise.contacts || currentExercise.intensity || currentExercise.direction || currentExercise.notes || currentExercise.movement_notes) && (
-            <Box w="full" bg={sectionBg} borderRadius="xl" p={4}>
+            <Box w="full" bg={sectionBg} borderRadius="xl" p={4} display={{ base: "none", md: "block" }}>
               {/* Show numeric fields in a grid */}
               {(currentExercise.weight || currentExercise.distance || currentExercise.rest || currentExercise.contacts || currentExercise.intensity || currentExercise.direction) && (
                 <SimpleGrid columns={{ base: 2, md: 3 }} spacing={2} mb={currentExercise.notes || currentExercise.movement_notes ? 3 : 0}>
@@ -893,5 +901,21 @@ export const BlockWorkoutExecution: React.FC<BlockWorkoutExecutionProps> = ({
         </VStack>
       )}
     </SharedWorkoutUI>
+
+    {/* Workout Info Drawer - Mobile Only */}
+    <WorkoutInfoDrawer
+      isOpen={isInfoDrawerOpen}
+      onClose={onInfoDrawerClose}
+      flowType={currentBlock?.flow}
+      category={currentBlock?.category}
+      restBetween={(() => {
+        const actualRestTime = getRestTime();
+        return actualRestTime > 0 ? `${actualRestTime}s` : 'None';
+      })()}
+      contacts={currentExercise?.contacts}
+      direction={currentExercise?.direction}
+      movementInstructions={currentExercise?.movement_notes}
+    />
+    </>
   );
 }; 

@@ -9,8 +9,10 @@ import {
   Icon,
   useColorModeValue,
   Circle,
+  IconButton,
+  useDisclosure,
 } from '@chakra-ui/react';
-import { FaChevronLeft, FaCheckCircle, FaRunning } from 'react-icons/fa';
+import { FaChevronLeft, FaCheckCircle, FaRunning, FaInfoCircle } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
   SharedWorkoutUI, 
@@ -20,6 +22,7 @@ import {
   getVideoUrl,
   type BaseWorkoutExecutionProps 
 } from './BaseWorkoutExecution';
+import { WorkoutInfoDrawer } from './WorkoutInfoDrawer';
 import { supabase } from '../../lib/supabase';
 import { saveTrainingLoadEntry } from '../../services/analytics/injuryRiskService';
 
@@ -89,6 +92,7 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
 
   // Sequential workout specific state
   const [currentRound, setCurrentRound] = useState(1);
+  const { isOpen: isInfoDrawerOpen, onOpen: onInfoDrawerOpen, onClose: onInfoDrawerClose } = useDisclosure();
 
   // Get current exercise
   const getCurrentExercise = useCallback((): Exercise | null => {
@@ -472,22 +476,24 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
   }
 
   return (
-    <SharedWorkoutUI
-      isOpen={isOpen}
-      onClose={onClose}
-      exerciseName={exerciseName}
-      state={state}
-      timer={timer}
-      headerContent={headerContent}
-      progressBar={progressBar}
-      onVideoClick={handleVideoClick}
-      onPauseResume={handlePauseResume}
-      onResetTimer={handleResetTimer}
-      onSkipRest={skipRest}
-      onPrevious={handlePrevious}
-      onNext={handleDone}
-      canGoPrevious={exerciseIdx > 0}
-      canGoNext={true}
+    <>
+            <SharedWorkoutUI
+        isOpen={isOpen}
+        onClose={onClose}
+        exerciseName={exerciseName}
+        state={state}
+        timer={timer}
+        headerContent={headerContent}
+        progressBar={progressBar}
+        onVideoClick={handleVideoClick}
+        onPauseResume={handlePauseResume}
+        onResetTimer={handleResetTimer}
+        onSkipRest={skipRest}
+        onPrevious={handlePrevious}
+        onNext={handleDone}
+        canGoPrevious={exerciseIdx > 0}
+        canGoNext={true}
+        onInfoDrawerOpen={onInfoDrawerOpen}
     >
       {!state.showRPEScreen ? (
         <>
@@ -572,9 +578,11 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
             </SimpleGrid>
           </Box>
 
-          {/* Exercise Details */}
+
+
+          {/* Exercise Details - Hidden on mobile */}
           {currentExercise && (currentExercise.weight || currentExercise.distance || currentExercise.rest || currentExercise.contacts || currentExercise.intensity || currentExercise.direction || currentExercise.notes || currentExercise.movement_notes) && (
-            <Box w="full" bg={sectionBg} borderRadius="xl" p={4}>
+            <Box w="full" bg={sectionBg} borderRadius="xl" p={4} display={{ base: "none", md: "block" }}>
               <SimpleGrid columns={{ base: 2, md: 3 }} spacing={2} mb={currentExercise.notes || currentExercise.movement_notes ? 3 : 0}>
                 {currentExercise.weight && (
                   <VStack spacing={1} align="center">
@@ -824,5 +832,21 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
         </VStack>
       )}
     </SharedWorkoutUI>
+
+    {/* Workout Info Drawer - Mobile Only */}
+    <WorkoutInfoDrawer
+      isOpen={isInfoDrawerOpen}
+      onClose={onInfoDrawerClose}
+      flowType={workout.flow_type}
+      category="Main"
+      restBetween={(() => {
+        const currentExercise = getCurrentExercise();
+        return currentExercise?.rest ? `${currentExercise.rest}s` : 'None';
+      })()}
+      contacts={getCurrentExercise()?.contacts}
+      direction={getCurrentExercise()?.direction}
+      movementInstructions={getCurrentExercise()?.movement_notes}
+    />
+    </>
   );
 }; 
