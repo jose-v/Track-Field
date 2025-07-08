@@ -217,12 +217,12 @@ async function loadMonthlyPlanExercises(plan: any): Promise<{ exercises: any[], 
       if (allExercises.length < 3) {
         allExercises.push(...exercises.slice(0, 3 - allExercises.length));
       }
-      
+
       // Count total exercises across all weeks this workout is used
       const weeksUsingThisWorkout = plan.weeks.filter((week: any) => 
         !week.is_rest_week && week.workout_id === workout.id
       ).length;
-      
+
       totalCount += exerciseCount * weeksUsingThisWorkout;
     }
 
@@ -909,7 +909,7 @@ export function AthleteWorkouts() {
             if (process.env.NODE_ENV === 'development') {
               console.log(`Monthly plan workout ${workoutId} marked as completed`);
             }
-          } catch (error) {
+    } catch (error) {
             console.error('Error updating monthly plan completion status:', error);
           }
         } else {
@@ -966,7 +966,7 @@ export function AthleteWorkouts() {
             if (process.env.NODE_ENV === 'development') {
               console.log(`Monthly plan workout ${workoutId} marked as in_progress`);
             }
-          } catch (error) {
+        } catch (error) {
             console.error('Error updating monthly plan progress status:', error);
           }
         } else {
@@ -1009,7 +1009,7 @@ export function AthleteWorkouts() {
   // Add reset function for monthly plans
   const handleResetMonthlyPlan = async (monthlyPlanId: string, planName: string) => {
     if (!user?.id) return;
-    
+
     try {
       // Reset both database completed_exercises and status using the helper function
       await resetMonthlyPlanProgress(user.id);
@@ -1269,7 +1269,7 @@ export function AthleteWorkouts() {
                 // Fallback to status-based calculation if no exercise data
                 return {
                   completed: item.status === 'completed' ? 1 : 0,
-                  total: 1,
+              total: 1,
                   percentage: item.status === 'completed' ? 100 : 0
                 };
               }
@@ -1357,7 +1357,7 @@ export function AthleteWorkouts() {
             );
           } else {
             // Render regular workout
-            const workout = item;
+          const workout = item;
             
             // Get completion data from workoutStore
             const completedCount = getCompletionCount(workout.id);

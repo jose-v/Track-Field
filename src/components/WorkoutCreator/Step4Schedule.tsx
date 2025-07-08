@@ -210,8 +210,20 @@ const Step4Schedule: React.FC<Step4ScheduleProps> = ({
   // Render single day scheduling
   const renderSingleDaySchedule = () => (
     <VStack spacing={6} align="stretch">
-      <Card bg="transparent" borderColor={borderColor} variant="outline">
+      <Card bg="transparent" borderColor={borderColor} variant="outline" position="relative">
         <CardBody>
+          {/* Save as Template Toggle - Top Right Corner */}
+          <HStack spacing={2} position="absolute" top={4} right={4} zIndex={1}>
+            <Text fontSize="sm" color="gray.600" fontWeight="medium">Save as Template</Text>
+            <Switch
+              id="template-mode"
+              isChecked={isTemplate}
+              onChange={(e) => onIsTemplateChange(e.target.checked)}
+              colorScheme="green"
+              size="md"
+            />
+          </HStack>
+          
           <VStack spacing={4} align="stretch">
             <FormControl>
               <FormLabel>Workout Name</FormLabel>
@@ -262,19 +274,7 @@ const Step4Schedule: React.FC<Step4ScheduleProps> = ({
           </VStack>
         </CardBody>
       </Card>
-      
-      {/* Save as Template - outside the main card */}
-      <FormControl display="flex" alignItems="center">
-        <FormLabel htmlFor="template-mode" mb="0">
-          Save as Template
-        </FormLabel>
-        <Switch
-          id="template-mode"
-          isChecked={isTemplate}
-          onChange={(e) => onIsTemplateChange(e.target.checked)}
-          colorScheme="blue"
-        />
-      </FormControl>
+
       
       {/* Workout Summary */}
       <Card bg="transparent" borderColor={summaryBorder} variant="outline">
@@ -296,8 +296,20 @@ const Step4Schedule: React.FC<Step4ScheduleProps> = ({
   // Render weekly plan scheduling
   const renderWeeklySchedule = () => (
     <VStack spacing={6} align="stretch">
-      <Card bg="transparent" borderColor={borderColor} variant="outline">
+      <Card bg="transparent" borderColor={borderColor} variant="outline" position="relative">
         <CardBody>
+          {/* Save as Template Toggle - Top Right Corner */}
+          <HStack spacing={2} position="absolute" top={4} right={4} zIndex={1}>
+            <Text fontSize="sm" color="gray.600" fontWeight="medium">Save as Template</Text>
+            <Switch
+              id="weekly-template-mode"
+              isChecked={isTemplate}
+              onChange={(e) => onIsTemplateChange(e.target.checked)}
+              colorScheme="green"
+              size="md"
+            />
+          </HStack>
+          
           <VStack spacing={4} align="stretch">
             <FormControl>
               <FormLabel>Weekly Plan Name</FormLabel>
@@ -348,19 +360,7 @@ const Step4Schedule: React.FC<Step4ScheduleProps> = ({
           </VStack>
         </CardBody>
       </Card>
-      
-      {/* Save as Template - outside the main card */}
-      <FormControl display="flex" alignItems="center">
-        <FormLabel htmlFor="weekly-template-mode" mb="0">
-          Save as Template
-        </FormLabel>
-        <Switch
-          id="weekly-template-mode"
-          isChecked={isTemplate}
-          onChange={(e) => onIsTemplateChange(e.target.checked)}
-          colorScheme="blue"
-        />
-      </FormControl>
+
       
       {/* Weekly Summary */}
       <Card bg="transparent" borderColor={summaryBorder} variant="outline">
@@ -392,8 +392,20 @@ const Step4Schedule: React.FC<Step4ScheduleProps> = ({
   const renderMonthlyPlan = () => (
     <VStack spacing={6} align="stretch">
       {/* Plan Details */}
-      <Card bg="transparent" borderColor={borderColor} variant="outline">
+      <Card bg="transparent" borderColor={borderColor} variant="outline" position="relative">
         <CardBody>
+          {/* Save as Template Toggle - Top Right Corner */}
+          <HStack spacing={2} position="absolute" top={4} right={4} zIndex={1}>
+            <Text fontSize="sm" color="gray.600" fontWeight="medium">Save as Template</Text>
+            <Switch
+              id="monthly-template-mode"
+              isChecked={isTemplate}
+              onChange={(e) => onIsTemplateChange(e.target.checked)}
+              colorScheme="green"
+              size="md"
+            />
+          </HStack>
+          
           <VStack spacing={4} align="stretch">
             <FormControl>
               <FormLabel>Plan Name</FormLabel>
@@ -415,18 +427,6 @@ const Step4Schedule: React.FC<Step4ScheduleProps> = ({
                   onTimeSelect={(startTime) => onTimeChange(startTime)}
                 />
               </Box>
-            </FormControl>
-            
-            <FormControl display="flex" alignItems="center">
-              <FormLabel htmlFor="monthly-template-mode" mb="0">
-                Save as Template
-              </FormLabel>
-              <Switch
-                id="monthly-template-mode"
-                isChecked={isTemplate}
-                onChange={(e) => onIsTemplateChange(e.target.checked)}
-                colorScheme="blue"
-              />
             </FormControl>
           </VStack>
         </CardBody>

@@ -37,6 +37,10 @@ interface Exercise {
   distance?: string | number;
   notes?: string;
   instanceId?: string;
+  contacts?: string | number;
+  intensity?: string;
+  direction?: string;
+  movement_notes?: string;
 }
 
 interface ExerciseBlock {
@@ -729,15 +733,100 @@ export const BlockWorkoutExecution: React.FC<BlockWorkoutExecutionProps> = ({
             </Box>
           )}
 
-          {/* Exercise Notes */}
-          {currentExercise?.notes && (
+          {/* Exercise Details */}
+          {currentExercise && (currentExercise.weight || currentExercise.distance || currentExercise.rest || currentExercise.contacts || currentExercise.intensity || currentExercise.direction || currentExercise.notes || currentExercise.movement_notes) && (
             <Box w="full" bg={sectionBg} borderRadius="xl" p={4}>
-              <Text fontSize="xs" color={modalTextColor} fontWeight="bold" textTransform="uppercase" mb={2}>
-                Exercise Notes
-              </Text>
-              <Text fontSize="sm" color={modalTextColor} lineHeight="1.5">
-                {currentExercise.notes}
-              </Text>
+              {/* Show numeric fields in a grid */}
+              {(currentExercise.weight || currentExercise.distance || currentExercise.rest || currentExercise.contacts || currentExercise.intensity || currentExercise.direction) && (
+                <SimpleGrid columns={{ base: 2, md: 3 }} spacing={2} mb={currentExercise.notes || currentExercise.movement_notes ? 3 : 0}>
+                  {currentExercise.weight && (
+                    <VStack spacing={1} align="center">
+                      <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textAlign="center">
+                        Weight
+                      </Text>
+                      <Text fontSize="sm" color={modalTextColor} textAlign="center">
+                        {currentExercise.weight} lbs
+                      </Text>
+                    </VStack>
+                  )}
+                  {currentExercise.distance && (
+                    <VStack spacing={1} align="center">
+                      <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textAlign="center">
+                        Distance
+                      </Text>
+                      <Text fontSize="sm" color={modalTextColor} textAlign="center">
+                        {currentExercise.distance} m
+                      </Text>
+                    </VStack>
+                  )}
+                  {currentExercise.rest && (
+                    <VStack spacing={1} align="center">
+                      <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textAlign="center">
+                        Exercise Rest
+                      </Text>
+                      <Text fontSize="sm" color={modalTextColor} textAlign="center">
+                        {currentExercise.rest}s
+                      </Text>
+                    </VStack>
+                  )}
+                  {currentExercise.contacts && (
+                    <VStack spacing={1} align="center">
+                      <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textAlign="center">
+                        Contacts
+                      </Text>
+                      <Text fontSize="sm" color={modalTextColor} textAlign="center">
+                        {currentExercise.contacts}
+                      </Text>
+                    </VStack>
+                  )}
+                  {currentExercise.intensity && (
+                    <VStack spacing={1} align="center">
+                      <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textAlign="center">
+                        Intensity
+                      </Text>
+                      <Text fontSize="sm" color={modalTextColor} textAlign="center">
+                        {currentExercise.intensity}
+                      </Text>
+                    </VStack>
+                  )}
+                  {currentExercise.direction && (
+                    <VStack spacing={1} align="center">
+                      <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textAlign="center">
+                        Direction
+                      </Text>
+                      <Text fontSize="sm" color={modalTextColor} textAlign="center">
+                        {currentExercise.direction}
+                      </Text>
+                    </VStack>
+                  )}
+                </SimpleGrid>
+              )}
+              
+              {/* Show text fields */}
+              {(currentExercise.notes || currentExercise.movement_notes) && (
+                <VStack spacing={3} align="stretch">
+                  {currentExercise.notes && (
+                    <Box>
+                      <Text fontSize="xs" color={modalTextColor} fontWeight="medium" mb={1}>
+                        Exercise Notes
+                      </Text>
+                      <Text fontSize="sm" color={modalTextColor} lineHeight="1.5">
+                        {currentExercise.notes}
+                      </Text>
+                    </Box>
+                  )}
+                  {currentExercise.movement_notes && (
+                    <Box>
+                      <Text fontSize="xs" color={modalTextColor} fontWeight="medium" mb={1}>
+                        Movement Instructions
+                      </Text>
+                      <Text fontSize="sm" color={modalTextColor} lineHeight="1.5">
+                        {currentExercise.movement_notes}
+                      </Text>
+                    </Box>
+                  )}
+                </VStack>
+              )}
             </Box>
           )}
 

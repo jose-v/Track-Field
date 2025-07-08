@@ -72,6 +72,9 @@ import {
   Grid3X3,
   List,
   GripVertical,
+  Settings,
+  Copy,
+  Clipboard,
 } from 'lucide-react';
 import {
   DndContext,
@@ -126,6 +129,10 @@ interface BlockExercise extends Exercise {
   rest?: string;
   rpe?: string;
   notes?: string;
+  contacts?: string;
+  intensity?: string;
+  direction?: string;
+  movement_notes?: string;
 }
 
 interface WorkoutBlock {
@@ -199,6 +206,10 @@ interface SortableExerciseItemProps {
   blockId: string;
   onUpdateExercise: (blockId: string, instanceId: string, field: string, value: string) => void;
   onRemoveExercise: (blockId: string, instanceId: string) => void;
+  onOpenSettings: (exercise: BlockExercise, blockId: string) => void;
+  onCopyExercise: (exercise: BlockExercise) => void;
+  onPasteToExercise: (exercise: BlockExercise, blockId: string) => void;
+  hasCopiedData: boolean;
   searchBg: string;
   borderColor: string;
 }
@@ -209,6 +220,10 @@ const SortableExerciseItem: React.FC<SortableExerciseItemProps> = ({
   blockId,
   onUpdateExercise,
   onRemoveExercise,
+  onOpenSettings,
+  onCopyExercise,
+  onPasteToExercise,
+  hasCopiedData,
   searchBg,
   borderColor,
 }) => {
@@ -262,17 +277,49 @@ const SortableExerciseItem: React.FC<SortableExerciseItemProps> = ({
                 {index + 1}. {exercise.name}
               </Text>
             </HStack>
-            <IconButton
-              aria-label="Remove exercise"
-              icon={<X size={16} />}
-              size="xs"
-              variant="ghost"
-              colorScheme="red"
-              onClick={() => onRemoveExercise(blockId, exercise.instanceId)}
-              position="absolute"
-              top="4px"
-              right="4px"
-            />
+            <HStack spacing={1} position="absolute" top="4px" right="4px">
+              <Tooltip label="Copy exercise settings" placement="top">
+                <IconButton
+                  aria-label="Copy exercise"
+                  icon={<Copy size={12} color="white" />}
+                  size="xs"
+                  variant="ghost"
+                  colorScheme="green"
+                  onClick={() => onCopyExercise(exercise)}
+                />
+              </Tooltip>
+              <Tooltip label={hasCopiedData ? "Paste exercise settings" : "No data to paste"} placement="top">
+                <IconButton
+                  aria-label="Paste exercise settings"
+                  icon={<Clipboard size={12} color="white" />}
+                  size="xs"
+                  variant="ghost"
+                  colorScheme="purple"
+                  isDisabled={!hasCopiedData}
+                  onClick={() => onPasteToExercise(exercise, blockId)}
+                />
+              </Tooltip>
+              <Tooltip label="Exercise settings" placement="top">
+                <IconButton
+                  aria-label="Exercise settings"
+                  icon={<Settings size={12} color="white" />}
+                  size="xs"
+                  variant="ghost"
+                  colorScheme="blue"
+                  onClick={() => onOpenSettings(exercise, blockId)}
+                />
+              </Tooltip>
+              <Tooltip label="Remove exercise" placement="top">
+                <IconButton
+                  aria-label="Remove exercise"
+                  icon={<X size={12} color="white" />}
+                  size="xs"
+                  variant="ghost"
+                  colorScheme="red"
+                  onClick={() => onRemoveExercise(blockId, exercise.instanceId)}
+                />
+              </Tooltip>
+            </HStack>
           </HStack>
           
           <HStack spacing={2}>
@@ -349,6 +396,26 @@ const Step3ExerciseAssignment: React.FC<Step3ExerciseAssignmentProps> = ({
   // Exercise detail modal
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+
+  // Exercise settings modal
+  const { isOpen: isSettingsOpen, onOpen: onSettingsOpen, onClose: onSettingsClose } = useDisclosure();
+  const [selectedSettingsExercise, setSelectedSettingsExercise] = useState<BlockExercise | null>(null);
+  const [selectedSettingsBlockId, setSelectedSettingsBlockId] = useState<string>('');
+
+  // Copy/paste functionality
+  const [copiedExerciseData, setCopiedExerciseData] = useState<{
+    sets?: string;
+    reps?: string;
+    weight?: string;
+    distance?: string;
+    rest?: string;
+    rpe?: string;
+    notes?: string;
+    contacts?: string;
+    intensity?: string;
+    direction?: string;
+    movement_notes?: string;
+  } | null>(null);
 
   // Add exercise modal
   const { isOpen: isAddExerciseOpen, onOpen: onAddExerciseOpen, onClose: onAddExerciseClose } = useDisclosure();
@@ -488,7 +555,11 @@ const Step3ExerciseAssignment: React.FC<Step3ExerciseAssignmentProps> = ({
       distance: '',
       rest: '',
       rpe: '',
-      notes: ''
+      notes: '',
+      contacts: '',
+      intensity: '',
+      direction: '',
+      movement_notes: ''
     };
 
     const updatedBlocks = blocks.map(block => {
@@ -549,6 +620,80 @@ const Step3ExerciseAssignment: React.FC<Step3ExerciseAssignmentProps> = ({
   const handleShowExerciseDetails = (exercise: Exercise) => {
     setSelectedExercise(exercise);
     onOpen();
+  };
+
+  // Open exercise settings
+  const handleOpenExerciseSettings = (exercise: BlockExercise, blockId: string) => {
+    setSelectedSettingsExercise(exercise);
+    setSelectedSettingsBlockId(blockId);
+    onSettingsOpen();
+  };
+
+  // Copy exercise data
+  const handleCopyExercise = (exercise: BlockExercise) => {
+    const dataToCopy = {
+      sets: exercise.sets,
+      reps: exercise.reps,
+      weight: exercise.weight,
+      distance: exercise.distance,
+      rest: exercise.rest,
+      rpe: exercise.rpe,
+      notes: exercise.notes,
+      contacts: exercise.contacts,
+      intensity: exercise.intensity,
+      direction: exercise.direction,
+      movement_notes: exercise.movement_notes,
+    };
+    setCopiedExerciseData(dataToCopy);
+    toast({
+      title: 'Exercise copied!',
+      description: `Settings for "${exercise.name}" copied to clipboard`,
+      status: 'success',
+      duration: 2000,
+    });
+  };
+
+  // Paste exercise data
+  const handlePasteToExercise = (exercise: BlockExercise, blockId: string) => {
+    if (!copiedExerciseData) return;
+    
+    // Update all fields at once (same approach as settings modal)
+    const updatedBlocks = blocks.map(block => {
+      if (block.id === blockId) {
+        return {
+          ...block,
+          exercises: block.exercises.map(ex => 
+            ex.instanceId === exercise.instanceId 
+              ? { 
+                  ...ex,
+                  // Only update fields that have values in copiedExerciseData
+                  ...(copiedExerciseData.sets && { sets: copiedExerciseData.sets }),
+                  ...(copiedExerciseData.reps && { reps: copiedExerciseData.reps }),
+                  ...(copiedExerciseData.contacts && { contacts: copiedExerciseData.contacts }),
+                  ...(copiedExerciseData.intensity && { intensity: copiedExerciseData.intensity }),
+                  ...(copiedExerciseData.direction && { direction: copiedExerciseData.direction }),
+                  ...(copiedExerciseData.weight && { weight: copiedExerciseData.weight }),
+                  ...(copiedExerciseData.distance && { distance: copiedExerciseData.distance }),
+                  ...(copiedExerciseData.movement_notes && { movement_notes: copiedExerciseData.movement_notes }),
+                  ...(copiedExerciseData.rest && { rest: copiedExerciseData.rest }),
+                  ...(copiedExerciseData.rpe && { rpe: copiedExerciseData.rpe }),
+                  ...(copiedExerciseData.notes && { notes: copiedExerciseData.notes })
+                }
+              : ex
+          )
+        };
+      }
+      return block;
+    });
+    
+    onUpdateBlocks(updatedBlocks);
+    
+    toast({
+      title: 'Exercise settings pasted!',
+      description: `Settings applied to "${exercise.name}"`,
+      status: 'success',
+      duration: 2000,
+    });
   };
 
   // Handle drag end for reordering exercises within a block
@@ -894,6 +1039,10 @@ const Step3ExerciseAssignment: React.FC<Step3ExerciseAssignmentProps> = ({
                                           blockId={selectedBlock.id}
                                           onUpdateExercise={handleUpdateExercise}
                                           onRemoveExercise={handleRemoveExercise}
+                                          onOpenSettings={handleOpenExerciseSettings}
+                                          onCopyExercise={handleCopyExercise}
+                                          onPasteToExercise={handlePasteToExercise}
+                                          hasCopiedData={copiedExerciseData !== null}
                                           searchBg={searchBg}
                                           borderColor={borderColor}
                                         />
@@ -922,6 +1071,17 @@ const Step3ExerciseAssignment: React.FC<Step3ExerciseAssignmentProps> = ({
         exercise={selectedExercise}
       />
 
+      {/* Exercise Settings Modal */}
+      <ExerciseSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={onSettingsClose}
+        exercise={selectedSettingsExercise}
+        blockId={selectedSettingsBlockId}
+        blocks={blocks}
+        onUpdateExercise={handleUpdateExercise}
+        onUpdateBlocks={onUpdateBlocks}
+      />
+
       {/* Add Exercise Modal */}
       <ExerciseModal
         isOpen={isAddExerciseOpen}
@@ -931,6 +1091,217 @@ const Step3ExerciseAssignment: React.FC<Step3ExerciseAssignmentProps> = ({
         categories={EXERCISE_CATEGORIES}
       />
     </VStack>
+  );
+};
+
+// Exercise Settings Modal Component
+const ExerciseSettingsModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  exercise: BlockExercise | null;
+  blockId: string;
+  blocks: WorkoutBlock[];
+  onUpdateExercise: (blockId: string, instanceId: string, field: string, value: string) => void;
+  onUpdateBlocks: (blocks: WorkoutBlock[]) => void;
+}> = ({ isOpen, onClose, exercise, blockId, blocks, onUpdateExercise, onUpdateBlocks }) => {
+  const modalContentBg = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const inputBg = useColorModeValue('white', 'gray.600');
+  const toast = useToast();
+
+  const [formData, setFormData] = useState({
+    sets: '',
+    reps: '',
+    contacts: '',
+    intensity: '',
+    direction: '',
+    weight: '',
+    distance: '',
+    movement_notes: ''
+  });
+
+  // Get current exercise data from blocks
+  const getCurrentExercise = () => {
+    if (!exercise || !blockId) return null;
+    const currentBlock = blocks.find(block => block.id === blockId);
+    return currentBlock?.exercises.find(ex => ex.instanceId === exercise.instanceId) || null;
+  };
+
+  // Update form data when exercise changes or modal opens
+  useEffect(() => {
+    if (isOpen && exercise) {
+      const currentExercise = getCurrentExercise();
+      if (currentExercise) {
+        setFormData({
+          sets: currentExercise.sets || '',
+          reps: currentExercise.reps || '',
+          contacts: currentExercise.contacts || '',
+          intensity: currentExercise.intensity || '',
+          direction: currentExercise.direction || '',
+          weight: currentExercise.weight || '',
+          distance: currentExercise.distance || '',
+          movement_notes: currentExercise.movement_notes || ''
+        });
+      }
+    }
+  }, [exercise, isOpen, blocks, blockId]);
+
+  const handleFieldChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = () => {
+    if (!exercise) return;
+    
+    // Update all fields at once
+    const updatedBlocks = blocks.map(block => {
+      if (block.id === blockId) {
+        return {
+          ...block,
+          exercises: block.exercises.map(ex => 
+            ex.instanceId === exercise.instanceId 
+              ? { 
+                  ...ex, 
+                  sets: formData.sets,
+                  reps: formData.reps,
+                  contacts: formData.contacts,
+                  intensity: formData.intensity,
+                  direction: formData.direction,
+                  weight: formData.weight,
+                  distance: formData.distance,
+                  movement_notes: formData.movement_notes
+                }
+              : ex
+          )
+        };
+      }
+      return block;
+    });
+    
+    onUpdateBlocks(updatedBlocks);
+    
+    // Show success message
+    toast({
+      title: 'Settings saved!',
+      description: `Updated settings for "${exercise.name}"`,
+      status: 'success',
+      duration: 2000,
+    });
+    
+    onClose();
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="lg">
+      <ModalOverlay />
+      <ModalContent bg={modalContentBg} borderColor={borderColor}>
+        <ModalHeader>Exercise Settings - {exercise?.name}</ModalHeader>
+        <ModalCloseButton />
+        <ModalBody>
+          {exercise && (
+            <VStack spacing={4} align="stretch">
+              {/* Sets and Reps Row */}
+              <HStack spacing={4}>
+                <FormControl>
+                  <FormLabel fontSize="sm">Sets</FormLabel>
+                  <Input
+                    value={formData.sets}
+                    onChange={(e) => handleFieldChange('sets', e.target.value)}
+                    placeholder="e.g. 3"
+                    bg={inputBg}
+                  />
+                </FormControl>
+                <FormControl>
+                  <FormLabel fontSize="sm">Reps</FormLabel>
+                  <Input
+                    value={formData.reps}
+                    onChange={(e) => handleFieldChange('reps', e.target.value)}
+                    placeholder="e.g. 10"
+                    bg={inputBg}
+                  />
+                </FormControl>
+              </HStack>
+
+              {/* Contacts and Intensity Row */}
+              <HStack spacing={4}>
+                <FormControl>
+                  <FormLabel fontSize="sm">Contacts</FormLabel>
+                  <Input
+                    value={formData.contacts}
+                    onChange={(e) => handleFieldChange('contacts', e.target.value)}
+                    placeholder="e.g. 20"
+                    bg={inputBg}
+                  />
+                </FormControl>
+                <FormControl>
+                  <FormLabel fontSize="sm">Intensity</FormLabel>
+                  <Input
+                    value={formData.intensity}
+                    onChange={(e) => handleFieldChange('intensity', e.target.value)}
+                    placeholder="e.g. 75%"
+                    bg={inputBg}
+                  />
+                </FormControl>
+              </HStack>
+
+              {/* Direction and Weight Row */}
+              <HStack spacing={4}>
+                <FormControl>
+                  <FormLabel fontSize="sm">Direction</FormLabel>
+                  <Input
+                    value={formData.direction}
+                    onChange={(e) => handleFieldChange('direction', e.target.value)}
+                    placeholder="e.g. Forward"
+                    bg={inputBg}
+                  />
+                </FormControl>
+                <FormControl>
+                  <FormLabel fontSize="sm">Weight</FormLabel>
+                  <Input
+                    value={formData.weight}
+                    onChange={(e) => handleFieldChange('weight', e.target.value)}
+                    placeholder="e.g. 185 lbs"
+                    bg={inputBg}
+                  />
+                </FormControl>
+              </HStack>
+
+              {/* Distance */}
+              <FormControl>
+                <FormLabel fontSize="sm">Distance</FormLabel>
+                <Input
+                  value={formData.distance}
+                  onChange={(e) => handleFieldChange('distance', e.target.value)}
+                  placeholder="e.g. 100m"
+                  bg={inputBg}
+                />
+              </FormControl>
+
+              {/* Movement/Notes - Larger text area */}
+              <FormControl>
+                <FormLabel fontSize="sm">Movement/Notes</FormLabel>
+                <Textarea
+                  value={formData.movement_notes}
+                  onChange={(e) => handleFieldChange('movement_notes', e.target.value)}
+                  placeholder="Additional movement notes and instructions..."
+                  bg={inputBg}
+                  minH="100px"
+                  resize="vertical"
+                />
+              </FormControl>
+            </VStack>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="ghost" mr={3} onClick={onClose}>
+            Cancel
+          </Button>
+          <Button colorScheme="blue" onClick={handleSave}>
+            Save Settings
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
   );
 };
 

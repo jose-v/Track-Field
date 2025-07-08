@@ -24,6 +24,7 @@ import {
   Switch,
   Alert,
   AlertIcon,
+  SimpleGrid,
 } from '@chakra-ui/react';
 import { ArrowLeft, ArrowRight, Save, Sparkles, Users, Calendar, CalendarDays } from 'lucide-react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
@@ -65,6 +66,10 @@ interface Exercise {
   rest?: string;
   rpe?: string;
   notes?: string;
+  contacts?: string;
+  intensity?: string;
+  direction?: string;
+  movement_notes?: string;
 }
 
 interface Athlete {
@@ -491,7 +496,11 @@ const NewWorkoutCreator: React.FC = () => {
             distance: exercise.distance || '',
             rest: exercise.rest || block.restBetweenExercises?.toString() || '',
             rpe: exercise.rpe || '',
-            notes: exercise.notes || ''
+            notes: exercise.notes || '',
+            contacts: exercise.contacts || '',
+            intensity: exercise.intensity || '',
+            direction: exercise.direction || '',
+            movement_notes: exercise.movement_notes || ''
           }))
         );
       };
@@ -529,7 +538,7 @@ const NewWorkoutCreator: React.FC = () => {
         }
         
         // Assign to athletes if selected
-        if (action === 'save_assign' && selectedAthleteIds.length > 0) {
+        if (selectedAthleteIds.length > 0) {
           const startDate = date || new Date().toISOString().split('T')[0];
           await api.monthlyPlanAssignments.assign(savedWorkout.id, selectedAthleteIds, startDate);
         }
@@ -579,7 +588,7 @@ const NewWorkoutCreator: React.FC = () => {
         }
 
         // Assign to athletes if selected
-        if (action === 'save_assign' && selectedAthleteIds.length > 0) {
+        if (selectedAthleteIds.length > 0) {
           await api.athleteWorkouts.assign(savedWorkout.id, selectedAthleteIds);
         }
       }
@@ -590,7 +599,7 @@ const NewWorkoutCreator: React.FC = () => {
           : (selectedTemplateType === 'monthly' ? 'Monthly plan created!' : 'Workout created!'),
         description: (isTemplateMode || action === 'save_template')
           ? 'Saved as template for future use'
-          : action === 'save_assign'
+          : selectedAthleteIds.length > 0
           ? `Assigned to ${selectedAthleteIds.length} athlete(s)`
           : 'Successfully saved',
         status: 'success',
@@ -818,11 +827,10 @@ const NewWorkoutCreator: React.FC = () => {
           return (
             <VStack spacing={6} align="stretch">
               <Box>
-                <Heading size="md" color={textColor} mb={4}>
-                  <Icon as={CalendarDays} mr={2} />
+                <Heading size="xl" color={textColor} mb={2}>
                   Weekly Builder
                 </Heading>
-                <Text color={subtitleColor} mb={6}>
+                <Text fontSize="lg" color={subtitleColor}>
                   Build your monthly training plan by selecting weekly workout templates for each week.
                 </Text>
               </Box>
@@ -830,15 +838,6 @@ const NewWorkoutCreator: React.FC = () => {
               {/* Weekly Schedule Builder */}
               <Box>
                 <VStack align="stretch" spacing={4}>
-                  <HStack justify="space-between" align="center">
-                    <Text fontSize="lg" fontWeight="semibold" color={textColor}>
-                      Weekly Schedule (4 weeks)
-                    </Text>
-                    <Badge colorScheme="teal" px={3} py={1} borderRadius="md">
-                      Monthly Plan
-                    </Badge>
-                  </HStack>
-
                   {/* Real Weekly Workout Selector */}
                   <WeeklyWorkoutSelector
                     weeks={monthlyPlanWeeks}
@@ -894,19 +893,31 @@ const NewWorkoutCreator: React.FC = () => {
           return (
             <VStack spacing={6} align="stretch">
               <Box>
-                <Heading size="md" color={textColor} mb={4}>
-                  <Icon as={Calendar} mr={2} />
+                <Heading size="xl" color={textColor} mb={2}>
                   Name & Schedule
                 </Heading>
-                <Text color={subtitleColor} mb={6}>
+                <Text fontSize="lg" color={subtitleColor}>
                   Set the plan name, details, and training schedule for your monthly plan.
                 </Text>
               </Box>
               
               {/* Plan Details */}
-              <Card bg={cardBg} borderColor={borderColor}>
+              <Card bg={cardBg} borderColor={borderColor} position="relative">
                 <CardBody>
-                  <VStack spacing={4} align="stretch">
+                  {/* Save as Template Toggle - Top Right Corner */}
+                  <HStack spacing={2} position="absolute" top={4} right={4} zIndex={1}>
+                    <Text fontSize="sm" color="gray.600" fontWeight="medium">Save as Template</Text>
+                    <Switch
+                      id="monthly-template-mode"
+                      isChecked={isTemplateMode}
+                      onChange={(e) => setIsTemplateMode(e.target.checked)}
+                      colorScheme="green"
+                      size="md"
+                    />
+                  </HStack>
+                  
+                  {/* Name and Description in 2 columns */}
+                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mt={2}>
                     <FormControl>
                       <FormLabel>Plan Name</FormLabel>
                       <Input
@@ -923,21 +934,10 @@ const NewWorkoutCreator: React.FC = () => {
                         onChange={(e) => setWorkoutLocation(e.target.value)}
                         placeholder="Describe the goals and focus of this monthly plan..."
                         rows={3}
+                        resize="vertical"
                       />
                     </FormControl>
-                    
-                    <FormControl display="flex" alignItems="center">
-                      <FormLabel htmlFor="monthly-template-mode" mb="0">
-                        Save as Template
-                      </FormLabel>
-                      <Switch
-                        id="monthly-template-mode"
-                        isChecked={isTemplateMode}
-                        onChange={(e) => setIsTemplateMode(e.target.checked)}
-                        colorScheme="blue"
-                      />
-                    </FormControl>
-                  </VStack>
+                  </SimpleGrid>
                 </CardBody>
               </Card>
 
@@ -948,12 +948,9 @@ const NewWorkoutCreator: React.FC = () => {
                 <CardBody>
                   <VStack spacing={4} align="stretch">
                     <VStack spacing={2} align="start">
-                      <HStack>
-                        <Calendar size={24} color="var(--chakra-colors-purple-500)" />
-                        <Heading size="md" color={textColor}>
-                          Training Schedule
-                        </Heading>
-                      </HStack>
+                      <Heading size="md" color={textColor}>
+                        Training Schedule
+                      </Heading>
                       <Text fontSize="sm" color={subtitleColor}>
                         {isTemplateMode ? "Optional for templates" : "Select the start date for your monthly plan"}
                       </Text>
@@ -1201,41 +1198,16 @@ const NewWorkoutCreator: React.FC = () => {
             Previous
           </Button>
           
-          <HStack spacing={2}>
-            <Text fontSize="sm" color={subtitleColor} fontWeight="medium">
-              Step {currentStep} of {getWorkflowSteps(selectedTemplateType).length}
-            </Text>
-            
-            <Button
-              variant="outline"
-              onClick={() => handleSave('save_template')}
-              isLoading={isSaving}
-              isDisabled={!validateStep(currentStep)}
-              size="md"
-            >
-              Save as Template
-            </Button>
-            
-            <Button
-              colorScheme="blue"
-              onClick={() => handleSave('save_assign')}
-              isLoading={isSaving}
-              isDisabled={!validateStep(currentStep)}
-              leftIcon={<Save size={16} />}
-              size="md"
-            >
-              Save & Assign
-            </Button>
-          </HStack>
-          
           <Button
-            rightIcon={<ArrowRight size={16} />}
+            rightIcon={currentStep === getWorkflowSteps(selectedTemplateType).length ? <Save size={16} /> : <ArrowRight size={16} />}
             colorScheme="blue"
-            onClick={handleNext}
-            isDisabled={currentStep === getWorkflowSteps(selectedTemplateType).length || !validateStep(currentStep)}
+            onClick={currentStep === getWorkflowSteps(selectedTemplateType).length ? () => handleSave('save') : handleNext}
+            isDisabled={!validateStep(currentStep)}
+            isLoading={currentStep === getWorkflowSteps(selectedTemplateType).length ? isSaving : false}
             size="lg"
+            minW="120px"
           >
-            {currentStep === getWorkflowSteps(selectedTemplateType).length ? 'Finish' : 'Continue'}
+            {currentStep === getWorkflowSteps(selectedTemplateType).length ? 'Save' : 'Continue'}
           </Button>
         </Flex>
       </Box>

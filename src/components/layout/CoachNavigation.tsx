@@ -62,7 +62,7 @@ export function useCoachNavigation(): CoachNavConfig & { isCurrentPathActive: (p
     },
     {
       name: 'Workout Creator',
-      path: '/coach/workout-creator',
+      path: '/coach/workout-creator-new',
       icon: <FaWrench />
     },
     {

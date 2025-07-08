@@ -114,9 +114,6 @@ export function WeeklyWorkoutSelector({
   return (
     <VStack spacing={4} align="stretch">
       <HStack justify="space-between" align="center">
-        <Text fontSize="lg" fontWeight="semibold" color={titleColor}>
-          Weekly Schedule ({weeks.length} weeks)
-        </Text>
         {weeks.length < maxWeeks && (
           <Button 
             size="sm" 
@@ -174,7 +171,7 @@ export function WeeklyWorkoutSelector({
                           colorScheme="red"
                           onClick={() => removeWeek(week.week_number)}
                         >
-                          <FaTrash />
+                          <FaTrash color="white" />
                         </Button>
                       </Tooltip>
                     )}
@@ -255,12 +252,6 @@ export function WeeklyWorkoutSelector({
               <Icon as={FaDumbbell} color={activeBadgeColor} boxSize={4} />
               <Text fontSize="sm" color={titleColor} fontWeight="medium">
                 {weeks.filter(w => !w.is_rest_week).length} Training weeks
-              </Text>
-            </HStack>
-            <HStack spacing={1}>
-              <Icon as={FaBed} color={restBadgeColor} boxSize={4} />
-              <Text fontSize="sm" color={titleColor} fontWeight="medium">
-                {weeks.filter(w => w.is_rest_week).length} Rest weeks
               </Text>
             </HStack>
           </HStack>

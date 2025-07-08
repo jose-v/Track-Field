@@ -250,14 +250,14 @@ const SortableBlock: React.FC<SortableBlockProps> = ({
           {/* Right side - Action buttons */}
           <HStack spacing={1}>
             <IconButton
-              icon={<Edit3 size={16} />}
+              icon={<Edit3 size={16} color="white" />}
               size="sm"
               variant="ghost"
               aria-label="Edit block"
               onClick={() => onEditBlock(block)}
             />
             <IconButton
-              icon={<Trash2 size={16} />}
+              icon={<Trash2 size={16} color="white" />}
               size="sm"
               variant="ghost"
               colorScheme="red"
@@ -534,7 +534,7 @@ const Step2BlockBuilder: React.FC<Step2BlockBuilderProps> = ({
                 <Button
                   key={category.value}
                   onClick={() => category.value === 'custom' ? handleCreateCustomBlock() : handleAddBlock(category.value)}
-                  leftIcon={<Icon as={category.icon} />}
+                  leftIcon={<Icon as={category.icon} boxSize={5} />}
                   bg="white"
                   color="gray.700"
                   border="1px solid"

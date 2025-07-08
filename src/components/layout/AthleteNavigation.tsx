@@ -51,7 +51,7 @@ export function useAthleteNavigation(): AthleteNavConfig & { isCurrentPathActive
     },
     {
       name: 'Workout Creator',
-      path: '/athlete/workout-creator',
+      path: '/athlete/workout-creator-new',
       icon: <FaWrench />
     },
     {

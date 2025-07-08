@@ -229,52 +229,7 @@ const Step5AthleteAssignment: React.FC<Step5AthleteAssignmentProps> = ({
         </Text>
       </Box>
 
-      {/* Selected Athletes Summary */}
-      {selectedCount > 0 && (
-        <Card bg="transparent" borderColor={selectedCardBorderColor} borderWidth="2px" variant="outline">
-          <CardBody>
-            <VStack spacing={4} align="stretch">
-              <HStack justify="space-between" align="center">
-                <HStack spacing={2}>
-                  <Icon as={CheckCircle} color="blue.500" />
-                  <Text fontWeight="semibold" color="blue.700">
-                    Selected Athletes
-                  </Text>
-                  <Badge colorScheme="blue" variant="solid">
-                    {selectedCount}
-                  </Badge>
-                </HStack>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  colorScheme="blue"
-                  leftIcon={<X size={16} />}
-                  onClick={() => onAthleteSelection([])}
-                >
-                  Clear All
-                </Button>
-              </HStack>
 
-              <Wrap spacing={2}>
-                {getSelectedAthletes().map((athlete) => (
-                  <WrapItem key={athlete.id}>
-                    <Tag size="lg" colorScheme="blue" borderRadius="full">
-                      <Avatar 
-                        size="xs" 
-                        name={`${athlete.first_name} ${athlete.last_name}`} 
-                        src={athlete.avatar_url} 
-                        mr={2} 
-                      />
-                      <TagLabel>{athlete.first_name} {athlete.last_name}</TagLabel>
-                      <TagCloseButton onClick={() => handleRemoveAthlete(athlete.id)} />
-                    </Tag>
-                  </WrapItem>
-                ))}
-              </Wrap>
-            </VStack>
-          </CardBody>
-        </Card>
-      )}
 
       {/* Search and Controls */}
       <Card bg="transparent" borderColor={borderColor} variant="outline">

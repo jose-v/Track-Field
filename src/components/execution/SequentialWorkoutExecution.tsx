@@ -32,6 +32,10 @@ interface Exercise {
   rest?: string | number;
   distance?: string | number;
   notes?: string;
+  contacts?: string | number;
+  intensity?: string;
+  direction?: string;
+  movement_notes?: string;
 }
 
 interface SequentialWorkout {
@@ -569,9 +573,9 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
           </Box>
 
           {/* Exercise Details */}
-          {currentExercise && (currentExercise.weight || currentExercise.distance || currentExercise.rest || currentExercise.notes) && (
+          {currentExercise && (currentExercise.weight || currentExercise.distance || currentExercise.rest || currentExercise.contacts || currentExercise.intensity || currentExercise.direction || currentExercise.notes || currentExercise.movement_notes) && (
             <Box w="full" bg={sectionBg} borderRadius="xl" p={4}>
-              <SimpleGrid columns={3} spacing={2}>
+              <SimpleGrid columns={{ base: 2, md: 3 }} spacing={2} mb={currentExercise.notes || currentExercise.movement_notes ? 3 : 0}>
                 {currentExercise.weight && (
                   <VStack spacing={1} align="center">
                     <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textAlign="center">
@@ -602,16 +606,60 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
                     </Text>
                   </VStack>
                 )}
+                {currentExercise.contacts && (
+                  <VStack spacing={1} align="center">
+                    <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textAlign="center">
+                      Contacts
+                    </Text>
+                    <Text fontSize="sm" color={modalTextColor} textAlign="center">
+                      {currentExercise.contacts}
+                    </Text>
+                  </VStack>
+                )}
+                {currentExercise.intensity && (
+                  <VStack spacing={1} align="center">
+                    <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textAlign="center">
+                      Intensity
+                    </Text>
+                    <Text fontSize="sm" color={modalTextColor} textAlign="center">
+                      {currentExercise.intensity}
+                    </Text>
+                  </VStack>
+                )}
+                {currentExercise.direction && (
+                  <VStack spacing={1} align="center">
+                    <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textAlign="center">
+                      Direction
+                    </Text>
+                    <Text fontSize="sm" color={modalTextColor} textAlign="center">
+                      {currentExercise.direction}
+                    </Text>
+                  </VStack>
+                )}
               </SimpleGrid>
-              {currentExercise.notes && (
-                <Box mt={3}>
-                  <Text fontSize="xs" color={modalTextColor} fontWeight="medium" mb={1}>
-                    Exercise Notes
-                  </Text>
-                  <Text fontSize="sm" color={modalTextColor} lineHeight="1.5">
-                    {currentExercise.notes}
-                  </Text>
-                </Box>
+              {(currentExercise.notes || currentExercise.movement_notes) && (
+                <VStack spacing={3} align="stretch">
+                  {currentExercise.notes && (
+                    <Box>
+                      <Text fontSize="xs" color={modalTextColor} fontWeight="medium" mb={1}>
+                        Exercise Notes
+                      </Text>
+                      <Text fontSize="sm" color={modalTextColor} lineHeight="1.5">
+                        {currentExercise.notes}
+                      </Text>
+                    </Box>
+                  )}
+                  {currentExercise.movement_notes && (
+                    <Box>
+                      <Text fontSize="xs" color={modalTextColor} fontWeight="medium" mb={1}>
+                        Movement Instructions
+                      </Text>
+                      <Text fontSize="sm" color={modalTextColor} lineHeight="1.5">
+                        {currentExercise.movement_notes}
+                      </Text>
+                    </Box>
+                  )}
+                </VStack>
               )}
             </Box>
           )}
