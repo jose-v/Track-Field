@@ -2980,304 +2980,232 @@ export const Meets: React.FC = () => {
       const total = meetsData.length;
       setMeetStats({ planned, completed, total });
       
-      // Define fetchMeetData function
+      // Define fetchMeetData function with optimized bulk queries
       const fetchMeetData = async (meetsData: TrackMeet[], isCoachUser: boolean) => {
         const dataMap: Record<string, any> = {};
         
+        // Initialize default data for all meets
         for (const meet of meetsData) {
-          try {
-            // Get event count for this meet
-            const { count: eventCount } = await supabase
-              .from('meet_events')
-              .select('*', { count: 'exact', head: true })
-              .eq('meet_id', meet.id);
-            
-            // Get assigned athletes for this meet
-            const { data: meetEvents } = await supabase
-              .from('meet_events')
-              .select('id, event_name, event_date, event_day, start_time, heat, event_type, run_time')
-              .eq('meet_id', meet.id);
-            
-            const eventIds = meetEvents?.map(event => event.id) || [];
-            
-            let athleteCount = 0;
-            let athleteNames: string[] = [];
-            let myAssignedEvents: Array<{ 
-              id: string; 
-              name: string; 
-              time: string | null;
-              event_date?: string;
-              event_day?: number;
-              start_time?: string;
-              heat?: number;
-              event_type?: string;
-              run_time?: string;
-            }> = [];
-            let assignedByCoach: string | null = null;
-            let coachPhone: string | null = null;
-            let coachEmail: string | null = null;
-            
-            if (eventIds.length > 0) {
-              if (isCoachUser) {
-                // Coach view: Get all athlete assignments
-                const { data: athleteAssignments } = await supabase
-                  .from('athlete_meet_events')
-                  .select(`
-                    athlete_id
-                  `)
-                  .in('meet_event_id', eventIds);
-                
-                // Get unique athlete IDs
-                const uniqueAthleteIds = [...new Set(athleteAssignments?.map(a => a.athlete_id) || [])];
-                
-                if (uniqueAthleteIds.length > 0) {
-                  // Get athlete profiles separately  
-                  const { data: athleteProfiles } = await supabase
-                    .from('profiles')
-                    .select('id, first_name, last_name')
-                    .in('id', uniqueAthleteIds);
-                  
-                  athleteCount = uniqueAthleteIds.length;
-                  athleteNames = athleteProfiles?.map(profile => 
-                    `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
-                  ) || [];
-                }
-              } else {
-                // Athlete view: Get only this athlete's assignments
-                try {
-                  const { data: myAssignments, error: assignmentError } = await supabase
-                    .from('athlete_meet_events')
-                    .select(`
-                      meet_event_id,
-                      assigned_by,
-                      result,
-                      status
-                    `)
-                    .in('meet_event_id', eventIds)
-                    .eq('athlete_id', user?.id);
-                  
-                  if (assignmentError) {
-                    console.warn('Assignment query failed (likely RLS issue):', assignmentError);
-                    // Fallback: no assignments for this athlete
-                  } else if (myAssignments && myAssignments.length > 0) {
-                    // Get the event names for assigned events
-                    const assignedEventIds = myAssignments.map(a => a.meet_event_id);
-                    const assignedEvents = meetEvents?.filter(e => assignedEventIds.includes(e.id)) || [];
-                    
-                    // Build event list with names and times
-                    myAssignedEvents = assignedEvents.map(e => {
-                      const assignment = myAssignments.find(a => a.meet_event_id === e.id);
-                      return {
-                        id: e.id,
-                        name: e.event_name,
-                        time: assignment?.result || null,
-                        event_date: e.event_date,
-                        event_day: e.event_day,
-                        start_time: e.start_time,
-                        heat: e.heat,
-                        event_type: e.event_type,
-                        run_time: e.run_time
-                      };
-                    }).sort((a, b) => {
-                      // Sort by date first, then by time
-                      const dateA = a.event_date ? new Date(a.event_date) : new Date(0);
-                      const dateB = b.event_date ? new Date(b.event_date) : new Date(0);
-                      
-                      if (dateA.getTime() !== dateB.getTime()) {
-                        return dateA.getTime() - dateB.getTime();
-                      }
-                      
-                      // If dates are the same (or both null), sort by start_time
-                      const timeA = a.start_time || '00:00:00';
-                      const timeB = b.start_time || '00:00:00';
-                      
-                      return timeA.localeCompare(timeB);
-                    });
-                    
-                    // Get coach who assigned (use the first assignment's coach)
-                    const coachId = myAssignments[0]?.assigned_by;
-                    if (coachId) {
-                      try {
-                        const { data: coachProfile, error: coachError } = await supabase
-                          .from('profiles')
-                          .select('first_name, last_name, phone, email')
-                          .eq('id', coachId)
-                          .single();
-                        
-                        if (!coachError && coachProfile) {
-                          assignedByCoach = `${coachProfile.first_name || ''} ${coachProfile.last_name || ''}`.trim();
-                          coachPhone = coachProfile.phone || null;
-                          coachEmail = coachProfile.email || null;
-                        }
-                      } catch (coachErr) {
-                        console.warn('Coach profile query failed:', coachErr);
-                      }
-                    }
-                    
-                    athleteCount = myAssignedEvents.length; // For athlete view, show event count instead
-                  }
-                  
-                  // Also fetch all athletes assigned to this meet for the tooltip
-                  // (so athletes can see who else is participating)
-                  try {
-                    const { data: allAssignments } = await supabase
-                      .from('athlete_meet_events')
-                      .select('athlete_id')
-                      .in('meet_event_id', eventIds);
-                    
-                    const uniqueAthleteIds = [...new Set(allAssignments?.map(a => a.athlete_id) || [])];
-                    
-                    if (uniqueAthleteIds.length > 0) {
-                      const { data: athleteProfiles } = await supabase
-                        .from('profiles')
-                        .select('id, first_name, last_name')
-                        .in('id', uniqueAthleteIds);
-                      
-                      athleteNames = athleteProfiles?.map(profile => 
-                        `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
-                      ) || [];
-                      
-                      // Update athlete count to show total athletes, not just events
-                      athleteCount = uniqueAthleteIds.length;
-                    }
-                  } catch (error) {
-                    console.warn('Failed to fetch all athlete assignments for tooltip:', error);
-                  }
-                } catch (error) {
-                  console.warn('Failed to fetch athlete assignments:', error);
-                  // Continue with empty assignments
-                }
-              }
-            }
-            
-            // Calculate distance using basic geocoding (placeholder for now)
-            let distance = "Distance TBD";
-            if (meet.city && meet.state) {
-              // This could be enhanced with actual geocoding API
-              distance = `${meet.city}, ${meet.state}`;
-            }
-            
-            // For coaches, fetch per-event athlete counts
-            let allEventsWithAthletes = meetEvents || [];
-            if (isCoachUser && meetEvents && meetEvents.length > 0) {
-              try {
-                // Get athlete assignments per event - try different query approach
-                const { data: eventAssignments, error: assignmentError } = await supabase
-                  .from('athlete_meet_events')
-                  .select(`
-                    meet_event_id,
-                    athlete_id
-                  `)
-                  .in('meet_event_id', meetEvents.map(e => e.id));
-                
-                // If we have assignments, fetch the profile data separately
-                let enrichedAssignments: any[] = [];
-                if (eventAssignments && eventAssignments.length > 0) {
-                  const athleteIds = [...new Set(eventAssignments.map(a => a.athlete_id))];
-                  const { data: profilesData, error: profilesError } = await supabase
-                    .from('profiles')
-                    .select('id, first_name, last_name')
-                    .in('id', athleteIds);
-                  
-                  if (profilesData) {
-                    // Create a map of athlete_id to profile
-                    const profileMap = profilesData.reduce((acc, profile) => {
-                      acc[profile.id] = profile;
-                      return acc;
-                    }, {} as Record<string, any>);
-                    
-                    // Enrich assignments with profile data
-                    enrichedAssignments = eventAssignments.map(assignment => ({
-                      ...assignment,
-                      profiles: profileMap[assignment.athlete_id]
-                    }));
-                  }
-                } else {
-                  enrichedAssignments = eventAssignments || [];
-                }
-                
-                if (assignmentError) {
-                  console.error('Assignment query error:', assignmentError);
-                  throw assignmentError;
-                }
-                
-                // Group assignments by event
-                const assignmentsByEvent = enrichedAssignments.reduce((acc, assignment: any) => {
-                  if (!acc[assignment.meet_event_id]) {
-                    acc[assignment.meet_event_id] = [];
-                  }
-                  acc[assignment.meet_event_id].push({
-                    id: assignment.athlete_id,
-                    name: assignment.profiles ? 
-                      `${assignment.profiles.first_name || ''} ${assignment.profiles.last_name || ''}`.trim() :
-                      'Unknown Athlete'
-                  });
-                  return acc;
-                }, {} as Record<string, Array<{id: string, name: string}>>);
-                
-                // Add athlete data to events
-                allEventsWithAthletes = meetEvents.map(event => ({
-                  ...event,
-                  athleteCount: assignmentsByEvent[event.id]?.length || 0,
-                  athleteNames: assignmentsByEvent[event.id]?.map(a => a.name) || []
-                }));
-              } catch (error) {
-                console.warn('Failed to fetch per-event athlete assignments:', error);
-                // Use events without athlete data
-                allEventsWithAthletes = meetEvents.map(event => ({
-                  ...event,
-                  athleteCount: 0,
-                  athleteNames: []
-                }));
-              }
-            }
-            
-            dataMap[meet.id] = {
-              athleteCount,
-              eventCount: eventCount || 0,
-              athleteNames,
-              myAssignedEvents,
-              allEvents: allEventsWithAthletes,
-              assignedByCoach,
-              coachPhone,
-              coachEmail,
-              // Assistant coaches from meet data
-              assistantCoach1Name: meet.assistant_coach_1_name || null,
-              assistantCoach1Phone: meet.assistant_coach_1_phone || null,
-              assistantCoach1Email: meet.assistant_coach_1_email || null,
-              assistantCoach2Name: meet.assistant_coach_2_name || null,
-              assistantCoach2Phone: meet.assistant_coach_2_phone || null,
-              assistantCoach2Email: meet.assistant_coach_2_email || null,
-              assistantCoach3Name: meet.assistant_coach_3_name || null,
-              assistantCoach3Phone: meet.assistant_coach_3_phone || null,
-              assistantCoach3Email: meet.assistant_coach_3_email || null,
-              distance
-            };
-          } catch (error) {
-            console.error(`Error fetching data for meet ${meet.id}:`, error);
-            // Set defaults on error
-            dataMap[meet.id] = {
-              athleteCount: 0,
-              eventCount: 0,
-              athleteNames: [],
-              myAssignedEvents: [],
-              allEvents: [],
-              assignedByCoach: null,
-              coachPhone: null,
-              coachEmail: null,
-              // Assistant coaches - null on error
-              assistantCoach1Name: null,
-              assistantCoach1Phone: null,
-              assistantCoach1Email: null,
-              assistantCoach2Name: null,
-              assistantCoach2Phone: null,
-              assistantCoach2Email: null,
-              assistantCoach3Name: null,
-              assistantCoach3Phone: null,
-              assistantCoach3Email: null,
-              distance: "Distance TBD"
-            };
+          dataMap[meet.id] = {
+            athleteCount: 0,
+            eventCount: 0,
+            athleteNames: [],
+            myAssignedEvents: [],
+            allEvents: [],
+            assignedByCoach: null,
+            coachPhone: null,
+            coachEmail: null,
+            // Assistant coaches from meet data
+            assistantCoach1Name: meet.assistant_coach_1_name || null,
+            assistantCoach1Phone: meet.assistant_coach_1_phone || null,
+            assistantCoach1Email: meet.assistant_coach_1_email || null,
+            assistantCoach2Name: meet.assistant_coach_2_name || null,
+            assistantCoach2Phone: meet.assistant_coach_2_phone || null,
+            assistantCoach2Email: meet.assistant_coach_2_email || null,
+            assistantCoach3Name: meet.assistant_coach_3_name || null,
+            assistantCoach3Phone: meet.assistant_coach_3_phone || null,
+            assistantCoach3Email: meet.assistant_coach_3_email || null,
+            distance: meet.city && meet.state ? `${meet.city}, ${meet.state}` : "Distance TBD"
+          };
+        }
+
+        if (meetsData.length === 0) {
+          setMeetData(dataMap);
+          return;
+        }
+
+        try {
+          const meetIds = meetsData.map(meet => meet.id);
+          
+          // 1. BULK QUERY: Get all meet events for all meets
+          const { data: allMeetEvents } = await supabase
+            .from('meet_events')
+            .select('id, meet_id, event_name, event_date, event_day, start_time, heat, event_type, run_time')
+            .in('meet_id', meetIds);
+
+          if (!allMeetEvents || allMeetEvents.length === 0) {
+            setMeetData(dataMap);
+            return;
           }
+
+          // Group events by meet_id and set event counts
+          const eventsByMeet = allMeetEvents.reduce((acc, event) => {
+            if (!acc[event.meet_id]) {
+              acc[event.meet_id] = [];
+            }
+            acc[event.meet_id].push(event);
+            return acc;
+          }, {} as Record<string, any[]>);
+
+          // Set event counts
+          Object.keys(eventsByMeet).forEach(meetId => {
+            if (dataMap[meetId]) {
+              dataMap[meetId].eventCount = eventsByMeet[meetId].length;
+            }
+          });
+
+          const allEventIds = allMeetEvents.map(event => event.id);
+
+          // 2. BULK QUERY: Get all athlete assignments for all events
+          const { data: allAthleteAssignments } = await supabase
+            .from('athlete_meet_events')
+            .select('meet_event_id, athlete_id, assigned_by, result, status')
+            .in('meet_event_id', allEventIds);
+
+          if (!allAthleteAssignments || allAthleteAssignments.length === 0) {
+            // No assignments, but still set allEvents for coaches
+            if (isCoachUser) {
+              Object.keys(eventsByMeet).forEach(meetId => {
+                if (dataMap[meetId]) {
+                  dataMap[meetId].allEvents = eventsByMeet[meetId].map(event => ({
+                    ...event,
+                    athleteCount: 0,
+                    athleteNames: []
+                  }));
+                }
+              });
+            }
+            setMeetData(dataMap);
+            return;
+          }
+
+          // 3. BULK QUERY: Get all athlete profiles needed
+          const allAthleteIds = [...new Set(allAthleteAssignments.map(a => a.athlete_id))];
+          const { data: allAthleteProfiles } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, phone, email')
+            .in('id', allAthleteIds);
+
+          // Create athlete profile lookup map
+          const athleteProfileMap = (allAthleteProfiles || []).reduce((acc, profile) => {
+            acc[profile.id] = profile;
+            return acc;
+          }, {} as Record<string, any>);
+
+          // 4. BULK QUERY: Get coach profiles for athlete assignments
+          const coachIds = [...new Set(allAthleteAssignments.map(a => a.assigned_by).filter(Boolean))];
+          const { data: allCoachProfiles } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, phone, email')
+            .in('id', coachIds);
+
+          // Create coach profile lookup map
+          const coachProfileMap = (allCoachProfiles || []).reduce((acc, profile) => {
+            acc[profile.id] = profile;
+            return acc;
+          }, {} as Record<string, any>);
+
+          // Group assignments by meet_event_id
+          const assignmentsByEvent = allAthleteAssignments.reduce((acc, assignment) => {
+            if (!acc[assignment.meet_event_id]) {
+              acc[assignment.meet_event_id] = [];
+            }
+            acc[assignment.meet_event_id].push(assignment);
+            return acc;
+          }, {} as Record<string, any[]>);
+
+          // Process data for each meet
+          Object.keys(eventsByMeet).forEach(meetId => {
+            if (!dataMap[meetId]) return;
+
+            const meetEvents = eventsByMeet[meetId];
+            const meetEventIds = meetEvents.map(e => e.id);
+            
+            // Get all assignments for this meet's events
+            const meetAssignments = allAthleteAssignments.filter(a => 
+              meetEventIds.includes(a.meet_event_id)
+            );
+
+            if (isCoachUser) {
+              // Coach view: Get all athlete assignments for this meet
+              const uniqueAthleteIds = [...new Set(meetAssignments.map(a => a.athlete_id))];
+              
+              dataMap[meetId].athleteCount = uniqueAthleteIds.length;
+              dataMap[meetId].athleteNames = uniqueAthleteIds.map(athleteId => {
+                const profile = athleteProfileMap[athleteId];
+                return profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 'Unknown Athlete';
+              });
+
+              // Add per-event athlete data
+              dataMap[meetId].allEvents = meetEvents.map(event => {
+                const eventAssignments = assignmentsByEvent[event.id] || [];
+                return {
+                  ...event,
+                  athleteCount: eventAssignments.length,
+                  athleteNames: eventAssignments.map(assignment => {
+                    const profile = athleteProfileMap[assignment.athlete_id];
+                    return profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 'Unknown Athlete';
+                  })
+                };
+              });
+
+            } else {
+              // Athlete view: Get only this athlete's assignments
+              const myAssignments = meetAssignments.filter(a => a.athlete_id === user?.id);
+              
+              if (myAssignments.length > 0) {
+                // Build myAssignedEvents
+                const assignedEventIds = myAssignments.map(a => a.meet_event_id);
+                const assignedEvents = meetEvents.filter(e => assignedEventIds.includes(e.id));
+                
+                dataMap[meetId].myAssignedEvents = assignedEvents.map(e => {
+                  const assignment = myAssignments.find(a => a.meet_event_id === e.id);
+                  return {
+                    id: e.id,
+                    name: e.event_name,
+                    time: assignment?.result || null,
+                    event_date: e.event_date,
+                    event_day: e.event_day,
+                    start_time: e.start_time,
+                    heat: e.heat,
+                    event_type: e.event_type,
+                    run_time: e.run_time
+                  };
+                }).sort((a, b) => {
+                  // Sort by date first, then by time
+                  const dateA = a.event_date ? new Date(a.event_date) : new Date(0);
+                  const dateB = b.event_date ? new Date(b.event_date) : new Date(0);
+                  
+                  if (dateA.getTime() !== dateB.getTime()) {
+                    return dateA.getTime() - dateB.getTime();
+                  }
+                  
+                  // If dates are the same (or both null), sort by start_time
+                  const timeA = a.start_time || '00:00:00';
+                  const timeB = b.start_time || '00:00:00';
+                  
+                  return timeA.localeCompare(timeB);
+                });
+
+                // Get coach who assigned (use the first assignment's coach)
+                const coachId = myAssignments[0]?.assigned_by;
+                if (coachId && coachProfileMap[coachId]) {
+                  const coachProfile = coachProfileMap[coachId];
+                  dataMap[meetId].assignedByCoach = `${coachProfile.first_name || ''} ${coachProfile.last_name || ''}`.trim();
+                  dataMap[meetId].coachPhone = coachProfile.phone || null;
+                  dataMap[meetId].coachEmail = coachProfile.email || null;
+                }
+
+                dataMap[meetId].athleteCount = dataMap[meetId].myAssignedEvents.length;
+              }
+
+              // Also show all athletes assigned to this meet for the tooltip
+              const uniqueAthleteIds = [...new Set(meetAssignments.map(a => a.athlete_id))];
+              dataMap[meetId].athleteNames = uniqueAthleteIds.map(athleteId => {
+                const profile = athleteProfileMap[athleteId];
+                return profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 'Unknown Athlete';
+              });
+              
+              // Update athlete count to show total athletes, not just events
+              if (dataMap[meetId].myAssignedEvents.length === 0) {
+                dataMap[meetId].athleteCount = uniqueAthleteIds.length;
+              }
+            }
+          });
+
+        } catch (error) {
+          console.error('Error in bulk fetchMeetData:', error);
+          // Keep default data on error
         }
         
         setMeetData(dataMap);
