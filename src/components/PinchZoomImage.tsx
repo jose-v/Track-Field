@@ -12,6 +12,7 @@ interface PinchZoomImageProps {
   maxH?: string | number;
   borderRadius?: string;
   shadow?: string;
+  fullScreen?: boolean;
 }
 
 export const PinchZoomImage: React.FC<PinchZoomImageProps> = ({
@@ -21,6 +22,7 @@ export const PinchZoomImage: React.FC<PinchZoomImageProps> = ({
   maxH = "80vh",
   borderRadius = "md",
   shadow = "lg",
+  fullScreen = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -221,14 +223,14 @@ export const PinchZoomImage: React.FC<PinchZoomImageProps> = ({
   return (
     <Box
       ref={containerRef}
-      w="100%"
-      h="100%"
+      w={fullScreen ? "100vw" : "100%"}
+      h={fullScreen ? "100vh" : "100%"}
       display="flex"
       justifyContent="center"
       alignItems="center"
       overflow="hidden"
-      bg={bg}
-      borderRadius={borderRadius}
+      bg={fullScreen ? "black" : bg}
+      borderRadius={fullScreen ? 0 : borderRadius}
       position="relative"
       userSelect="none"
       cursor={scale > 1 ? 'grab' : 'zoom-in'}
@@ -240,11 +242,11 @@ export const PinchZoomImage: React.FC<PinchZoomImageProps> = ({
         ref={imageRef}
         src={src}
         alt={alt}
-        maxW={maxW}
-        maxH={maxH}
+        maxW={fullScreen ? "100vw" : maxW}
+        maxH={fullScreen ? "100vh" : maxH}
         objectFit="contain"
-        borderRadius={borderRadius}
-        shadow={shadow}
+        borderRadius={fullScreen ? 0 : borderRadius}
+        shadow={fullScreen ? "none" : shadow}
         transform={`scale(${scale}) translate(${translateX}px, ${translateY}px)`}
         transformOrigin="center"
         transition={isDragging ? 'none' : 'transform 0.2s ease-out'}

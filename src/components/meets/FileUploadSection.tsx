@@ -120,10 +120,7 @@ const FileViewer: React.FC<{ file: MeetFile; isOpen: boolean; onClose: () => voi
         <PinchZoomImage
           src={fileUrl} 
           alt={file.file_name}
-          maxW="90%"
-          maxH="80vh"
-          borderRadius="md"
-          shadow="lg"
+          fullScreen={true}
         />
       );
     }
@@ -208,23 +205,41 @@ const FileViewer: React.FC<{ file: MeetFile; isOpen: boolean; onClose: () => voi
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="full">
-      <ModalOverlay />
-      <ModalContent maxW="95vw" maxH="95vh" m={4}>
-        <ModalHeader>
-          <VStack spacing={1} align="start">
-            <HStack spacing={2}>
-              <FileIcon fileType={file.file_type} />
-              <Text>{file.file_name}</Text>
-            </HStack>
-            {file.file_type.startsWith('image/') && (
-              <Text fontSize="xs" color="gray.500">
-                📱 Pinch to zoom • 🖱️ Scroll to zoom • Double tap/click to toggle
-              </Text>
-            )}
-          </VStack>
-        </ModalHeader>
-        <ModalCloseButton />
-        <ModalBody pb={6} overflow="auto" display="flex" justifyContent="center" alignItems="center">
+      <ModalOverlay bg="blackAlpha.900" />
+      <ModalContent 
+        maxW="100vw" 
+        maxH="100vh" 
+        m={0} 
+        borderRadius={0}
+        bg={file.file_type.startsWith('image/') ? "black" : "white"}
+      >
+        {!file.file_type.startsWith('image/') && (
+          <ModalHeader>
+            <VStack spacing={1} align="start">
+              <HStack spacing={2}>
+                <FileIcon fileType={file.file_type} />
+                <Text>{file.file_name}</Text>
+              </HStack>
+            </VStack>
+          </ModalHeader>
+        )}
+        <ModalCloseButton 
+          zIndex={10}
+          color={file.file_type.startsWith('image/') ? "white" : "inherit"}
+          bg={file.file_type.startsWith('image/') ? "blackAlpha.600" : "inherit"}
+          _hover={{ 
+            bg: file.file_type.startsWith('image/') ? "blackAlpha.800" : "gray.100" 
+          }}
+        />
+        <ModalBody 
+          p={file.file_type.startsWith('image/') ? 0 : 6} 
+          overflow="auto" 
+          display="flex" 
+          justifyContent="center" 
+          alignItems="center"
+          w="100vw"
+          h="100vh"
+        >
           {renderFileContent()}
         </ModalBody>
       </ModalContent>
