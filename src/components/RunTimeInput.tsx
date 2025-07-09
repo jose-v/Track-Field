@@ -16,6 +16,14 @@ interface RunTimeInputProps {
   placeholder?: string;
 }
 
+const debounce = (func: () => void, delay: number) => {
+  let timeout: NodeJS.Timeout;
+  return () => {
+    clearTimeout(timeout);
+    timeout = setTimeout(func, delay);
+  };
+};
+
 const ScrollColumn = ({
   label,
   min,
@@ -34,17 +42,12 @@ const ScrollColumn = ({
   const listRef = useRef<HTMLDivElement>(null);
   const numbers = Array.from({ length: max - min + 1 }, (_, i) => i + min);
 
-  useEffect(() => {
-    const el = listRef.current;
-    if (el) el.scrollTop = value * 40;
-  }, [value]);
-
-  const handleScroll = () => {
+  const handleScroll = debounce(() => {
     const el = listRef.current;
     if (!el) return;
     const index = Math.round(el.scrollTop / 40);
     onChange(Math.min(max, Math.max(min, index)));
-  };
+  }, 100);
 
   return (
     <VStack spacing={1} align="center">
@@ -56,11 +59,12 @@ const ScrollColumn = ({
         onScroll={handleScroll}
         height="120px"
         width="90px"
-        overflowY="scroll"
+        overflowY="auto"
         scrollSnapType="y mandatory"
         css={{
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
+          WebkitOverflowScrolling: 'touch',
         }}
         sx={{
           '&::-webkit-scrollbar': { display: 'none' },
