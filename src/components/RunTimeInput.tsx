@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Box,
   HStack,
@@ -6,9 +6,7 @@ import {
   VStack,
   useColorModeValue,
   useBreakpointValue,
-  Icon,
 } from '@chakra-ui/react';
-import { FaStopwatch } from 'react-icons/fa';
 
 interface RunTimeInputProps {
   onTimeChange: (minutes: number, seconds: number, hundredths: number) => void;
@@ -18,197 +16,78 @@ interface RunTimeInputProps {
   placeholder?: string;
 }
 
-interface ScrollPickerProps {
-  value: number;
-  onChange: (value: number) => void;
-  min: number;
-  max: number;
-  label: string;
-  formatValue?: (value: number) => string;
-}
-
-const ScrollPicker: React.FC<ScrollPickerProps> = ({
-  value,
-  onChange,
+const ScrollColumn = ({
+  label,
   min,
   max,
-  label,
-  formatValue = (val) => val.toString()
+  value,
+  onChange,
+  formatValue = (v: number) => v.toString(),
+}: {
+  label: string;
+  min: number;
+  max: number;
+  value: number;
+  onChange: (v: number) => void;
+  formatValue?: (v: number) => string;
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startY, setStartY] = useState(0);
-  const [startValue, setStartValue] = useState(0);
+  const listRef = useRef<HTMLDivElement>(null);
+  const numbers = Array.from({ length: max - min + 1 }, (_, i) => i + min);
 
-  const modalTextColor = useColorModeValue('gray.500', 'gray.400');
-  const modalHeadingColor = useColorModeValue('gray.800', 'white');
-
-  // Generate array of numbers
-  const numbers = Array.from({ length: max - min + 1 }, (_, i) => min + i);
-
-  const handleStart = (clientY: number) => {
-    setIsDragging(true);
-    setStartY(clientY);
-    setStartValue(value);
-  };
-
-  const handleMove = (clientY: number) => {
-    if (!isDragging) return;
-    
-    const deltaY = startY - clientY;
-    const step = Math.round(deltaY / 30); // 30px per step
-    const newValue = Math.max(min, Math.min(max, startValue + step));
-    
-    if (newValue !== value) {
-      onChange(newValue);
-    }
-  };
-
-  const handleEnd = () => {
-    setIsDragging(false);
-  };
-
-  // Mouse events
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    handleStart(e.clientY);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    handleMove(e.clientY);
-  };
-
-  const handleMouseUp = () => {
-    handleEnd();
-  };
-
-  // Touch events
-  const handleTouchStart = (e: React.TouchEvent) => {
-    e.preventDefault();
-    handleStart(e.touches[0].clientY);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    e.preventDefault();
-    handleMove(e.touches[0].clientY);
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    e.preventDefault();
-    handleEnd();
-  };
-
-  // Attach global mouse events when dragging
   useEffect(() => {
-    if (isDragging) {
-      const handleGlobalMouseMove = (e: MouseEvent) => {
-        handleMove(e.clientY);
-      };
-      
-      const handleGlobalMouseUp = () => {
-        handleEnd();
-      };
+    const el = listRef.current;
+    if (el) el.scrollTop = value * 40;
+  }, [value]);
 
-      document.addEventListener('mousemove', handleGlobalMouseMove);
-      document.addEventListener('mouseup', handleGlobalMouseUp);
-      
-      return () => {
-        document.removeEventListener('mousemove', handleGlobalMouseMove);
-        document.removeEventListener('mouseup', handleGlobalMouseUp);
-      };
-    }
-  }, [isDragging, startY, startValue]);
+  const handleScroll = () => {
+    const el = listRef.current;
+    if (!el) return;
+    const index = Math.round(el.scrollTop / 40);
+    onChange(Math.min(max, Math.max(min, index)));
+  };
 
   return (
-    <VStack spacing={1}>
-      <Text 
-        color={modalTextColor} 
-        fontSize="sm"
-        fontWeight="medium"
-        textTransform="uppercase"
-        letterSpacing="wider"
-      >
+    <VStack spacing={1} align="center">
+      <Text fontSize="sm" fontWeight="medium" color={useColorModeValue('gray.500', 'gray.400')}>
         {label}
       </Text>
       <Box
-        ref={containerRef}
-        width="90px"
+        ref={listRef}
+        onScroll={handleScroll}
         height="120px"
-        position="relative"
-        overflow="hidden"
-        borderRadius="lg"
-        bg={useColorModeValue('gray.100', 'gray.600')}
-        cursor="ns-resize"
-        userSelect="none"
-        onMouseDown={handleMouseDown}
-        onMouseMove={isDragging ? handleMouseMove : undefined}
-        onMouseUp={handleMouseUp}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        style={{ touchAction: 'none' }}
+        width="90px"
+        overflowY="scroll"
+        scrollSnapType="y mandatory"
+        css={{
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+        }}
+        sx={{
+          '&::-webkit-scrollbar': { display: 'none' },
+        }}
       >
-        {/* Numbers container */}
-        <VStack
-          spacing={0}
-          position="absolute"
-          left="50%"
-          transform={`translateX(-50%) translateY(${-(value - min) * 40}px)`}
-          transition={isDragging ? 'none' : 'transform 0.2s ease-out'}
-          py="40px"
-          zIndex="3"
-        >
+        <VStack spacing={0} py="40px">
           {numbers.map((num) => (
             <Box
               key={num}
               height="40px"
+              scrollSnapAlign="center"
               display="flex"
               alignItems="center"
               justifyContent="center"
-              width="80px"
-              zIndex="3"
+              width="100%"
             >
               <Text
                 fontSize="xl"
-                fontWeight="bold"
-                color={num === value ? modalHeadingColor : modalTextColor}
-                opacity={num === value ? 1 : 0.4}
-                transition="all 0.2s"
-                zIndex="3"
+                fontWeight={num === value ? 'bold' : 'normal'}
+                color={num === value ? useColorModeValue('gray.800', 'white') : useColorModeValue('gray.500', 'gray.400')}
+                opacity={num === value ? 1 : 0.5}
               >
                 {formatValue(num)}
               </Text>
             </Box>
           ))}
         </VStack>
-
-        {/* Gradient overlays for fade effect */}
-        <Box
-          position="absolute"
-          top="0"
-          left="0"
-          right="0"
-          height="25px"
-          bg={useColorModeValue(
-            'linear-gradient(to bottom, rgba(247,250,252,1) 0%, rgba(247,250,252,0) 100%)',
-            'linear-gradient(to bottom, rgba(75,85,99,1) 0%, rgba(75,85,99,0) 100%)'
-          )}
-          zIndex="3"
-          pointerEvents="none"
-        />
-        <Box
-          position="absolute"
-          bottom="0"
-          left="0"
-          right="0"
-          height="25px"
-          bg={useColorModeValue(
-            'linear-gradient(to top, rgba(247,250,252,1) 0%, rgba(247,250,252,0) 100%)',
-            'linear-gradient(to top, rgba(75,85,99,1) 0%, rgba(75,85,99,0) 100%)'
-          )}
-          zIndex="3"
-          pointerEvents="none"
-        />
       </Box>
     </VStack>
   );
@@ -219,48 +98,31 @@ export const RunTimeInput: React.FC<RunTimeInputProps> = ({
   initialMinutes = 0,
   initialSeconds = 0,
   initialHundredths = 0,
-  placeholder = "Enter your time"
+  placeholder = "Enter your time",
 }) => {
   const [minutes, setMinutes] = useState(initialMinutes);
   const [seconds, setSeconds] = useState(initialSeconds);
   const [hundredths, setHundredths] = useState(initialHundredths);
 
-  // Theme colors matching the modal design
   const modalHeaderBg = useColorModeValue('gray.50', 'gray.700');
   const modalHeaderBorderColor = useColorModeValue('gray.200', 'gray.600');
   const modalHeadingColor = useColorModeValue('gray.800', 'white');
   const modalTextColor = useColorModeValue('gray.500', 'gray.400');
-  
-  // Responsive instruction text
-  const instructionText = useBreakpointValue({ 
-    base: "Enter your run time", 
-    md: "Scroll or drag to adjust time" 
+
+  const instructionText = useBreakpointValue({
+    base: "Enter your run time",
+    md: "Scroll to adjust time",
   });
 
-  // Sync internal state with prop changes (for form reset functionality)
-  // Only reset when props are actually being reset to zero (not during normal user input)
-  useEffect(() => {
-    if (initialMinutes === 0 && initialSeconds === 0 && initialHundredths === 0) {
-      // Only reset to zero if current values are not already zero (avoid unnecessary updates)
-      if (minutes !== 0 || seconds !== 0 || hundredths !== 0) {
-        setMinutes(0);
-        setSeconds(0);
-        setHundredths(0);
-      }
-    }
-  }, [initialMinutes, initialSeconds, initialHundredths, minutes, seconds, hundredths]);
-
-  // Call onTimeChange whenever any value changes
   useEffect(() => {
     onTimeChange(minutes, seconds, hundredths);
   }, [minutes, seconds, hundredths, onTimeChange]);
 
   return (
     <VStack spacing={1} w="100%">
-      {/* Header outside the card - Desktop only */}
-      <Text 
-        fontSize="sm" 
-        fontWeight="medium" 
+      <Text
+        fontSize="sm"
+        fontWeight="medium"
         color={modalTextColor}
         textTransform="uppercase"
         letterSpacing="wider"
@@ -268,8 +130,7 @@ export const RunTimeInput: React.FC<RunTimeInputProps> = ({
       >
         {placeholder}
       </Text>
-      
-      {/* Card content */}
+
       <Box
         bg={modalHeaderBg}
         borderRadius="xl"
@@ -278,60 +139,18 @@ export const RunTimeInput: React.FC<RunTimeInputProps> = ({
         borderColor={modalHeaderBorderColor}
         w="100%"
       >
-        {/* Scroll pickers */}
         <HStack spacing={4} justify="center" align="center" position="relative">
-          <ScrollPicker
-            value={minutes}
-            onChange={setMinutes}
-            min={0}
-            max={59}
-            label="Min"
-          />
-
+          <ScrollColumn label="Min" min={0} max={59} value={minutes} onChange={setMinutes} />
           <Text fontSize="2xl" fontWeight="bold" color={modalHeadingColor} mt={5}>:</Text>
-
-          <ScrollPicker
-            value={seconds}
-            onChange={setSeconds}
-            min={0}
-            max={59}
-            label="Sec"
-            formatValue={(val) => val.toString().padStart(2, '0')}
-          />
-
+          <ScrollColumn label="Sec" min={0} max={59} value={seconds} onChange={setSeconds} formatValue={(v) => v.toString().padStart(2, '0')} />
           <Text fontSize="2xl" fontWeight="bold" color={modalHeadingColor} mt={5}>:</Text>
-
-          <ScrollPicker
-            value={hundredths}
-            onChange={setHundredths}
-            min={0}
-            max={99}
-            label="Hun"
-            formatValue={(val) => val.toString().padStart(2, '0')}
-          />
-          
-          {/* Selection box spanning all three pickers */}
-          <Box
-            position="absolute"
-            left="-17px"
-            right="-17px"
-            top="50.2%"
-            transform="translateY(-8px)"
-            height="40px"
-            border="2px solid"
-            borderColor={useColorModeValue('gray.400', 'gray.400')}
-            borderRadius="5px"
-            pointerEvents="none"
-            zIndex="1"
-            opacity="0.5"
-          />
+          <ScrollColumn label="Hun" min={0} max={99} value={hundredths} onChange={setHundredths} formatValue={(v) => v.toString().padStart(2, '0')} />
         </HStack>
 
-        {/* Instructions */}
-        <Text 
-          fontSize="xs" 
-          color={modalTextColor} 
-          textAlign="center" 
+        <Text
+          fontSize="xs"
+          color={modalTextColor}
+          textAlign="center"
           fontStyle="italic"
           opacity={0.7}
           mt={4}
@@ -341,4 +160,4 @@ export const RunTimeInput: React.FC<RunTimeInputProps> = ({
       </Box>
     </VStack>
   );
-}; 
+};
