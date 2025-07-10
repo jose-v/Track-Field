@@ -656,10 +656,13 @@ export function Dashboard() {
             actualWorkoutId = workoutToReset.id.replace('daily-', '');
           }
           
-          await api.athleteWorkouts.updateAssignmentStatus(user.id, actualWorkoutId, 'assigned');
-          console.log(`Workout ${workoutToReset.id} (actual: ${actualWorkoutId}) status reset to 'assigned' in database`);
+          // Use the proper helper function to reset granular progress data
+          const { resetRegularWorkoutProgress } = await import('../utils/regularWorkoutHelper');
+          await resetRegularWorkoutProgress(user.id, actualWorkoutId);
+          
+          console.log(`Workout ${workoutToReset.id} (actual: ${actualWorkoutId}) progress fully reset in database`);
         } catch (error) {
-          console.error('Error resetting workout status in database:', error);
+          console.error('Error resetting workout progress in database:', error);
         }
       }
       
@@ -858,13 +861,7 @@ export function Dashboard() {
             {/* Center Column - Today's Workout Card */}
             <Box flex="1" minW={0}>
         <TodayWorkoutsCard
-          todayWorkouts={todayWorkouts}
-          upcomingWorkouts={upcomingWorkouts}
           profile={profile}
-          getWorkoutProgressData={getWorkoutProgressData}
-          handleStartWorkout={handleStartWorkout}
-          handleResetProgress={handleResetProgress}
-          workoutsLoading={workoutsLoading}
           profileLoading={profileLoading}
         />
             </Box>
@@ -889,16 +886,10 @@ export function Dashboard() {
 
         {/* Mobile Today's Workouts Card */}
         <Box display={{ base: "block", lg: "none" }} w="100%">
-          <TodayWorkoutsCard
-            todayWorkouts={todayWorkouts}
-            upcomingWorkouts={upcomingWorkouts}
-            profile={profile}
-            getWorkoutProgressData={getWorkoutProgressData}
-            handleStartWorkout={handleStartWorkout}
-            handleResetProgress={handleResetProgress}
-            workoutsLoading={workoutsLoading}
-            profileLoading={profileLoading}
-          />
+                  <TodayWorkoutsCard
+          profile={profile}
+          profileLoading={profileLoading}
+        />
         </Box>
 
         {/* Today's Check-in Section - Mobile Only */}
