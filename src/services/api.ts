@@ -301,18 +301,73 @@ export const api = {
             throw workoutError;
           }
 
-          // 2. 🔧 CRITICAL FIX: Remove athlete assignments for deleted workout
+          // 2. 🔧 COMPREHENSIVE FIX: Remove ALL assignments for deleted workout
+          
+          // Clean up old athlete_workouts table
           const { error: assignmentError } = await supabase
             .from('athlete_workouts')
             .delete()
             .eq('workout_id', id);
 
           if (assignmentError) {
-            console.error('Failed to clean up athlete assignments:', assignmentError);
-            // Don't throw here - workout is already deleted, just log the issue
-            console.warn(`Workout ${id} deleted but athlete assignments cleanup failed. This may cause orphaned assignments.`);
+            console.error('Failed to clean up athlete_workouts:', assignmentError);
           } else {
-            console.log(`✅ Cleaned up athlete assignments for deleted workout ${id}`);
+            console.log(`✅ Cleaned up athlete_workouts for deleted workout ${id}`);
+          }
+
+          // Clean up training plan assignments that reference this workout
+          const { data: planIds } = await supabase
+            .from('training_plans')
+            .select('id')
+            .contains('weekly_workout_ids', [id]);
+          
+          if (planIds && planIds.length > 0) {
+            const { error: planAssignmentError } = await supabase
+              .from('training_plan_assignments')
+              .delete()
+              .in('training_plan_id', planIds.map(p => p.id));
+
+            if (planAssignmentError) {
+              console.error('Failed to clean up training plan assignments:', planAssignmentError);
+            } else {
+              console.log(`✅ Cleaned up training plan assignments for deleted workout ${id}`);
+            }
+          }
+
+          // Clean up unified workout assignments
+          const { error: unifiedAssignmentError } = await supabase
+            .from('workout_assignments')
+            .delete()
+            .or(`exercise_block->>source_workout_id.eq.${id},exercise_block->>workout_id.eq.${id}`);
+
+          if (unifiedAssignmentError) {
+            console.error('Failed to clean up unified assignments:', unifiedAssignmentError);
+          } else {
+            console.log(`✅ Cleaned up unified assignments for deleted workout ${id}`);
+          }
+
+          // Clean up workout sessions
+          const { error: sessionsError } = await supabase
+            .from('workout_sessions')
+            .delete()
+            .eq('workout_id', id);
+
+          if (sessionsError) {
+            console.error('Failed to clean up workout sessions:', sessionsError);
+          } else {
+            console.log(`✅ Cleaned up workout sessions for deleted workout ${id}`);
+          }
+
+          // Clean up athlete workout progress
+          const { error: progressError } = await supabase
+            .from('athlete_workout_progress')
+            .delete()
+            .eq('workout_id', id);
+
+          if (progressError) {
+            console.error('Failed to clean up athlete workout progress:', progressError);
+          } else {
+            console.log(`✅ Cleaned up athlete workout progress for deleted workout ${id}`);
           }
         })();
 
@@ -541,18 +596,73 @@ export const api = {
     // Permanently delete workout (cannot be undone)
     async permanentDelete(id: string): Promise<void> {
       try {
-        // 1. 🔧 CRITICAL FIX: Remove athlete assignments first
+        // 1. 🔧 COMPREHENSIVE FIX: Remove ALL assignments and related data first
+        
+        // Clean up old athlete_workouts table
         const { error: assignmentError } = await supabase
           .from('athlete_workouts')
           .delete()
           .eq('workout_id', id);
 
         if (assignmentError) {
-          console.error('Failed to clean up athlete assignments before permanent delete:', assignmentError);
-          // Continue with deletion but log the issue
-          console.warn(`Proceeding with workout deletion but athlete assignments cleanup failed for workout ${id}`);
+          console.error('Failed to clean up athlete_workouts:', assignmentError);
         } else {
-          console.log(`✅ Cleaned up athlete assignments before permanent delete of workout ${id}`);
+          console.log(`✅ Cleaned up athlete_workouts for permanent delete of workout ${id}`);
+        }
+
+        // Clean up training plan assignments
+        const { data: planIds } = await supabase
+          .from('training_plans')
+          .select('id')
+          .contains('weekly_workout_ids', [id]);
+        
+        if (planIds && planIds.length > 0) {
+          const { error: planAssignmentError } = await supabase
+            .from('training_plan_assignments')
+            .delete()
+            .in('training_plan_id', planIds.map(p => p.id));
+
+          if (planAssignmentError) {
+            console.error('Failed to clean up training plan assignments:', planAssignmentError);
+          } else {
+            console.log(`✅ Cleaned up training plan assignments for permanent delete of workout ${id}`);
+          }
+        }
+
+        // Clean up unified workout assignments
+        const { error: unifiedAssignmentError } = await supabase
+          .from('workout_assignments')
+          .delete()
+          .or(`exercise_block->>source_workout_id.eq.${id},exercise_block->>workout_id.eq.${id}`);
+
+        if (unifiedAssignmentError) {
+          console.error('Failed to clean up unified assignments:', unifiedAssignmentError);
+        } else {
+          console.log(`✅ Cleaned up unified assignments for permanent delete of workout ${id}`);
+        }
+
+        // Clean up workout sessions
+        const { error: sessionsError } = await supabase
+          .from('workout_sessions')
+          .delete()
+          .eq('workout_id', id);
+
+        if (sessionsError) {
+          console.error('Failed to clean up workout sessions:', sessionsError);
+        } else {
+          console.log(`✅ Cleaned up workout sessions for permanent delete of workout ${id}`);
+        }
+
+        // Clean up athlete workout progress
+        const { error: progressError } = await supabase
+          .from('athlete_workout_progress')
+          .delete()
+          .eq('workout_id', id);
+
+        if (progressError) {
+          console.error('Failed to clean up athlete workout progress:', progressError);
+        } else {
+          console.log(`✅ Cleaned up athlete workout progress for permanent delete of workout ${id}`);
         }
 
         // 2. Remove exercise results for this workout
@@ -563,7 +673,6 @@ export const api = {
 
         if (resultsError) {
           console.error('Failed to clean up exercise results:', resultsError);
-          console.warn(`Proceeding with workout deletion but exercise results cleanup failed for workout ${id}`);
         } else {
           console.log(`✅ Cleaned up exercise results for workout ${id}`);
         }
@@ -3610,6 +3719,90 @@ export const api = {
       
       // Return all exercises if not in daily format
       return weeklyWorkout.exercises;
+    }
+  },
+
+  // Unified assignment progress management
+  async updateAssignmentProgress(assignmentId: string, progressData: {
+    current_exercise_index?: number;
+    current_set?: number;
+    current_rep?: number;
+    completion_percentage?: number;
+    status?: 'assigned' | 'in_progress' | 'completed';
+    started_at?: string;
+    completed_at?: string;
+  }) {
+    try {
+      // First, get the current assignment to read existing progress
+      const { data: currentAssignment, error: fetchError } = await supabase
+        .from('unified_workout_assignments')
+        .select('progress, status')
+        .eq('id', assignmentId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching current assignment:', fetchError);
+        throw fetchError;
+      }
+
+      // Parse current progress or use defaults
+      const currentProgress = currentAssignment.progress || {
+        current_exercise_index: 0,
+        current_set: 1,
+        current_rep: 1,
+        completion_percentage: 0,
+        total_exercises: 0,
+        completed_exercises: [],
+        started_at: null,
+        completed_at: null,
+        last_activity_at: null
+      };
+
+      // Merge in new progress data
+      const updatedProgress = {
+        ...currentProgress,
+        ...progressData,
+        last_activity_at: new Date().toISOString()
+      };
+
+      // Remove status and timestamps from progress object - they go in separate columns
+      const { status: newStatus, started_at, completed_at, ...progressOnly } = progressData;
+
+      // Build update data
+      const updateData: any = {
+        progress: updatedProgress,
+        updated_at: new Date().toISOString()
+      };
+
+      // Update status if provided
+      if (newStatus) {
+        updateData.status = newStatus;
+      }
+
+      // Handle started_at and completed_at if provided
+      if (started_at !== undefined) {
+        updatedProgress.started_at = started_at;
+      }
+      if (completed_at !== undefined) {
+        updatedProgress.completed_at = completed_at;
+      }
+
+      const { data, error } = await supabase
+        .from('unified_workout_assignments')
+        .update(updateData)
+        .eq('id', assignmentId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating assignment progress:', error);
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('api.updateAssignmentProgress error:', error);
+      throw error;
     }
   },
 
