@@ -7,10 +7,12 @@ import {
 } from '@chakra-ui/react';
 import { FaSearch, FaUsers, FaCalendarAlt, FaDumbbell } from 'react-icons/fa';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
 import type { Workout } from '../services/api';
 import type { TrainingPlan } from '../services/dbSchema';
 import { useCoachAthletes } from '../hooks/useCoachAthletes';
+import { AssignmentService } from '../services/assignmentService';
 import { supabase } from '../lib/supabase';
 
 interface AssignmentModalProps {
@@ -37,6 +39,7 @@ export function AssignmentModal({
   workout,
   monthlyPlan
 }: AssignmentModalProps) {
+  const { user } = useAuth();
   const toast = useToast();
   const queryClient = useQueryClient();
   
@@ -75,10 +78,16 @@ export function AssignmentModal({
       let existingAssignments: any[] = [];
       
       if (isWorkoutAssignment && workout) {
+        // Check unified assignment system for workout assignments
+        // Determine assignment type based on workout template_type
+        const assignmentType = workout.template_type === 'weekly' ? 'weekly' : 
+                               workout.template_type === 'monthly' ? 'monthly' : 'single';
+        
         const { data: workoutAssignments, error } = await supabase
-          .from('athlete_workouts')
+          .from('unified_workout_assignments')
           .select('athlete_id')
-          .eq('workout_id', workout.id);
+          .eq('meta->>original_workout_id', workout.id)
+          .eq('assignment_type', assignmentType);
 
         if (error) throw error;
         existingAssignments = workoutAssignments || [];
@@ -168,17 +177,116 @@ export function AssignmentModal({
       setLoading(true);
 
       if (isWorkoutAssignment && workout) {
+        const assignmentService = new AssignmentService();
+        
+        // Create unified assignments for new athletes
         if (athletesToAdd.length > 0) {
-          await api.athleteWorkouts.assign(workout.id, athletesToAdd);
+          // Determine assignment type based on workout template_type
+          const assignmentType = workout.template_type === 'weekly' ? 'weekly' : 
+                                 workout.template_type === 'monthly' ? 'monthly' : 'single';
+          
+          // Convert workout to unified format based on type
+          let exerciseBlock: any;
+          let endDate: string;
+          
+          if (assignmentType === 'weekly') {
+            // Weekly workout - convert blocks to daily_workouts format
+            let dailyWorkouts: any = {};
+            
+            if (workout.blocks) {
+              // Parse blocks if it's a string
+              let blocks: any = workout.blocks;
+              if (typeof blocks === 'string') {
+                try {
+                  blocks = JSON.parse(blocks);
+                } catch (e) {
+                  console.error('Failed to parse workout blocks:', e);
+                  blocks = {};
+                }
+              }
+              
+              // Use the blocks structure as-is for daily_workouts
+              if (typeof blocks === 'object' && blocks !== null) {
+                dailyWorkouts = blocks;
+              }
+            }
+            
+            exerciseBlock = {
+              workout_name: workout.name,
+              description: workout.description || workout.notes || '',
+              estimated_duration: workout.duration,
+              location: workout.location,
+              workout_type: workout.type || 'strength',
+              daily_workouts: dailyWorkouts
+            };
+            
+            // Weekly assignments span 7 days
+            const startDate = workout.date || new Date().toISOString().split('T')[0];
+            endDate = new Date(new Date(startDate).getTime() + (7 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
+          } else {
+            // Single workout - use exercises directly
+            exerciseBlock = {
+              workout_name: workout.name,
+              description: workout.description || workout.notes || '',
+              estimated_duration: workout.duration,
+              location: workout.location,
+              workout_type: workout.type || 'strength',
+              exercises: workout.exercises || []
+            };
+            
+            endDate = workout.date || new Date().toISOString().split('T')[0];
+          }
+
+          for (const athleteId of athletesToAdd) {
+            try {
+              const startDate = workout.date || new Date().toISOString().split('T')[0];
+              await assignmentService.createAssignment({
+                athlete_id: athleteId,
+                assignment_type: assignmentType,
+                exercise_block: exerciseBlock,
+                progress: {
+                  current_exercise_index: 0,
+                  current_set: 1,
+                  current_rep: 1,
+                  completed_exercises: [],
+                  total_exercises: 0, // Will be calculated by AssignmentService
+                  completion_percentage: 0
+                },
+                start_date: startDate,
+                end_date: endDate,
+                assigned_at: new Date().toISOString(),
+                assigned_by: user?.id,
+                status: 'assigned',
+                meta: {
+                  original_workout_id: workout.id,
+                  workout_type: assignmentType,
+                  estimated_duration: workout.duration,
+                  location: workout.location
+                }
+              });
+            } catch (error) {
+              console.error(`Failed to create unified assignment for athlete ${athleteId}:`, error);
+            }
+          }
         }
 
+        // Remove assignments for unselected athletes
         if (athletesToRemove.length > 0) {
           for (const athleteId of athletesToRemove) {
-            await supabase
-              .from('athlete_workouts')
-              .delete()
-              .eq('workout_id', workout.id)
-              .eq('athlete_id', athleteId);
+            try {
+              // Determine assignment type based on workout template_type  
+              const assignmentType = workout.template_type === 'weekly' ? 'weekly' : 
+                                     workout.template_type === 'monthly' ? 'monthly' : 'single';
+              
+              await supabase
+                .from('unified_workout_assignments')
+                .delete()
+                .eq('athlete_id', athleteId)
+                .eq('meta->>original_workout_id', workout.id)
+                .eq('assignment_type', assignmentType);
+            } catch (error) {
+              console.error(`Failed to remove unified assignment for athlete ${athleteId}:`, error);
+            }
           }
         }
 
@@ -190,18 +298,79 @@ export function AssignmentModal({
           isClosable: true
         });
       } else if (monthlyPlan) {
+        const assignmentService = new AssignmentService();
+        
+        // Add new monthly plan assignments
         if (athletesToAdd.length > 0) {
           await api.monthlyPlanAssignments.assign(
             monthlyPlan.id,
             athletesToAdd,
             monthlyPlan.start_date
           );
+          
+          // Also create unified assignments for monthly plans
+          const exerciseBlock = {
+            plan_name: monthlyPlan.name,
+            description: monthlyPlan.description || '',
+            duration_weeks: monthlyPlan.weeks?.length || 4,
+            weekly_structure: monthlyPlan.weeks?.map((week: any, index: number) => ({
+              week_number: index + 1,
+              workout_id: week.workout_id,
+              is_rest_week: week.is_rest_week || false
+            })) || []
+          };
+          
+          for (const athleteId of athletesToAdd) {
+            try {
+              const startDate = monthlyPlan.start_date || new Date().toISOString().split('T')[0];
+              const endDate = new Date(new Date(startDate).getTime() + ((monthlyPlan.weeks?.length || 4) * 7 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
+              
+              await assignmentService.createAssignment({
+                athlete_id: athleteId,
+                assignment_type: 'monthly',
+                exercise_block: exerciseBlock,
+                progress: {
+                  current_exercise_index: 0,
+                  current_set: 1,
+                  current_rep: 1,
+                  completed_exercises: [],
+                  total_exercises: monthlyPlan.weeks?.filter((w: any) => !w.is_rest_week).length || 0,
+                  completion_percentage: 0
+                },
+                start_date: startDate,
+                end_date: endDate,
+                assigned_at: new Date().toISOString(),
+                assigned_by: user?.id,
+                status: 'assigned',
+                meta: {
+                  original_plan_id: monthlyPlan.id,
+                  plan_type: 'monthly',
+                  total_weeks: monthlyPlan.weeks?.length || 4,
+                  rest_weeks: monthlyPlan.weeks?.filter((w: any) => w.is_rest_week).length || 0
+                }
+              });
+            } catch (error) {
+              console.error(`Failed to create unified assignment for athlete ${athleteId}:`, error);
+            }
+          }
         }
 
         // Remove athletes that were unselected
         if (athletesToRemove.length > 0) {
           for (const athleteId of athletesToRemove) {
             await api.monthlyPlanAssignments.removeByPlanAndAthlete(monthlyPlan.id, athleteId);
+            
+            // Also remove unified assignments
+            try {
+              await supabase
+                .from('unified_workout_assignments')
+                .delete()
+                .eq('athlete_id', athleteId)
+                .eq('meta->>original_plan_id', monthlyPlan.id)
+                .eq('assignment_type', 'monthly');
+            } catch (error) {
+              console.error(`Failed to remove unified assignment for athlete ${athleteId}:`, error);
+            }
           }
         }
 
@@ -233,8 +402,11 @@ export function AssignmentModal({
       // Force refresh of athlete data for all affected athletes
       const affectedAthleteIds = [...new Set([...athletesToAdd, ...athletesToRemove])];
       affectedAthleteIds.forEach(athleteId => {
-        // Invalidate the athlete's assigned workouts cache
+        // Invalidate the athlete's assigned workouts cache (old system)
         queryClient.invalidateQueries({ queryKey: ['athleteAssignedWorkouts', athleteId] });
+        // Invalidate unified assignment queries (new system)
+        queryClient.invalidateQueries({ queryKey: ['unifiedAssignments', athleteId] });
+        queryClient.invalidateQueries({ queryKey: ['unifiedTodaysWorkout', athleteId] });
         // Also invalidate athlete's training plan assignments
         queryClient.invalidateQueries({ queryKey: ['athleteMonthlyPlanAssignments', athleteId] });
       });
@@ -244,6 +416,9 @@ export function AssignmentModal({
       queryClient.invalidateQueries({ queryKey: ['athleteWorkouts'] });
       queryClient.invalidateQueries({ queryKey: ['monthlyPlans'] });
       queryClient.invalidateQueries({ queryKey: ['trainingPlanAssignments'] });
+      // Invalidate unified assignment queries
+      queryClient.invalidateQueries({ queryKey: ['unifiedAssignments'] });
+      queryClient.invalidateQueries({ queryKey: ['unifiedTodaysWorkout'] });
 
       onSuccess?.();
       onClose();

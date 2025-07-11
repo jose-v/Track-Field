@@ -40,7 +40,7 @@ export { CreateTeamModal } from './CreateTeamModal';
 export { PWARefreshButton } from './PWARefreshButton';
 export { PWAStartupHandler } from './PWAStartupHandler';
 export { RunTimeInput } from './RunTimeInput';
-export { ExerciseExecutionModal } from './ExerciseExecutionModal';
+export { ExerciseExecutionModal } from './execution/legacy/ExerciseExecutionModal';
 export { default as WorkoutCreatorNavigation } from './WorkoutCreatorNavigation';
 
 // Meets components

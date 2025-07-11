@@ -14,6 +14,7 @@ import {
 } from '@chakra-ui/react';
 import { FaChevronLeft, FaCheckCircle, FaRunning, FaInfoCircle } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
+import { useWorkoutStore } from '../../lib/workoutStore';
 import { 
   SharedWorkoutUI, 
   useWorkoutExecutionState, 
@@ -50,6 +51,16 @@ interface SequentialWorkout {
   exercises: Exercise[];
   flow_type?: 'sequential' | 'circuit';
   circuit_rounds?: number;
+  // Block-based workout support
+  is_block_based?: boolean;
+  blocks?: Array<{
+    id: string;
+    name?: string;
+    exercises: Exercise[];
+    restBetweenExercises?: number;
+    category?: string;
+    flow?: string;
+  }>;
 }
 
 interface SequentialWorkoutExecutionProps extends BaseWorkoutExecutionProps {
@@ -66,6 +77,8 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
   exerciseIdx,
   timer,
   running,
+  currentSet,
+  currentRep,
   onUpdateTimer,
   onUpdateRunning,
   onNextExercise,
@@ -74,7 +87,8 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
   onShowVideo
 }) => {
   const { user } = useAuth();
-  const state = useWorkoutExecutionState();
+  const workoutStore = useWorkoutStore();
+  const state = useWorkoutExecutionState(workout?.id, exerciseIdx, currentSet, currentRep);
   const { startCountdownTimer, startRestTimer, skipRest } = useWorkoutExecutionEffects({
     isOpen,
     timer,
@@ -109,12 +123,20 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
     };
   }, [exerciseIdx, workout?.exercises?.length]);
 
-  // Reset exercise state when changing exercises
+  // TEMPORARILY DISABLED: Reset exercise state when changing exercises
+  // This was causing the modal to reset during normal rep progression
+  // useEffect(() => {
+  //   state.setCurrentSet(1, user?.id, workout.id, exerciseIdx, workoutStore);
+  //   state.setCurrentRep(1, user?.id, workout.id, exerciseIdx, workoutStore);
+  //   state.setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
+  // }, [exerciseIdx, state.setCurrentSet, state.setCurrentRep, state.setRunTime, user?.id, workout.id, workoutStore]);
+
+  // Clear persisted state when modal closes
   useEffect(() => {
-    state.setCurrentSet(1);
-    state.setCurrentRep(1);
-    state.setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
-  }, [exerciseIdx, state.setCurrentSet, state.setCurrentRep, state.setRunTime]);
+    if (!isOpen && state.clearPersistedState) {
+      state.clearPersistedState();
+    }
+  }, [isOpen, state.clearPersistedState]);
 
   // Prevent body scrolling when modal is open
   useEffect(() => {
@@ -140,6 +162,18 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
         let actualWorkoutId = workout.id;
         if (workout.id.startsWith('daily-')) {
           actualWorkoutId = workout.id.replace('daily-', '');
+        }
+
+        // Save current progress to database immediately
+        if (state.saveProgressToDatabase) {
+          await state.saveProgressToDatabase(
+            user.id,
+            workout.id, // Use original workout ID for progress tracking
+            exerciseIdx,
+            state.currentSet,
+            state.currentRep,
+            workoutStore
+          );
         }
 
         if (isRunExercise(currentExercise.name)) {
@@ -187,8 +221,8 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
           // Move to next round, reset to first exercise
           setCurrentRound(prev => prev + 1);
           // Would need to reset exerciseIdx to 0 - this requires parent component logic
-          state.setCurrentSet(1);
-          state.setCurrentRep(1);
+          state.setCurrentSet(1, user?.id, workout.id, 0, workoutStore);
+          state.setCurrentRep(1, user?.id, workout.id, 0, workoutStore);
           state.setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
           onUpdateTimer(0);
           onUpdateRunning(false);
@@ -200,8 +234,8 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
         }
       } else {
         // Move to next exercise in current round
-        state.setCurrentSet(1);
-        state.setCurrentRep(1);
+        state.setCurrentSet(1, user?.id, workout.id, exerciseIdx + 1, workoutStore);
+        state.setCurrentRep(1, user?.id, workout.id, exerciseIdx + 1, workoutStore);
         state.setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
         onNextExercise();
         onUpdateTimer(0);
@@ -215,7 +249,7 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
       
       if (state.currentRep < maxReps) {
         // Next rep - check for rest between reps
-        state.setCurrentRep(prev => prev + 1);
+        state.setCurrentRep(prev => prev + 1, user?.id, workout.id, exerciseIdx, workoutStore);
         state.setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
         onUpdateTimer(0);
         onUpdateRunning(false);
@@ -228,8 +262,8 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
         }
       } else if (state.currentSet < maxSets) {
         // Next set - check for rest between sets
-        state.setCurrentSet(prev => prev + 1);
-        state.setCurrentRep(1);
+        state.setCurrentSet(prev => prev + 1, user?.id, workout.id, exerciseIdx, workoutStore);
+        state.setCurrentRep(1, user?.id, workout.id, exerciseIdx, workoutStore);
         state.setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
         onUpdateTimer(0);
         onUpdateRunning(false);
@@ -246,9 +280,12 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
         if (exerciseProgress.current >= exerciseProgress.total) {
           state.setShowRPEScreen(true);
         } else {
+          // Clear persisted state for current exercise before moving to next
+          state.clearPersistedState();
+          
           // Move to next exercise - check for rest between exercises
-          state.setCurrentSet(1);
-          state.setCurrentRep(1);
+          state.setCurrentSet(1, user?.id, workout.id, exerciseIdx + 1, workoutStore);
+          state.setCurrentRep(1, user?.id, workout.id, exerciseIdx + 1, workoutStore);
           state.setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
           onNextExercise();
           onUpdateTimer(0);
@@ -342,8 +379,31 @@ export const SequentialWorkoutExecution: React.FC<SequentialWorkoutExecutionProp
   // Get rest time for current exercise
   const getRestTime = useCallback((): number => {
     const exercise = getCurrentExercise();
-    return exercise?.rest ? parsePositiveInt(exercise.rest, 0) : 0;
-  }, [getCurrentExercise]);
+    
+    // Exercise-specific rest takes priority
+    if (exercise?.rest) {
+      return parsePositiveInt(exercise.rest, 0);
+    }
+    
+    // For block-based workouts, use block's default rest between exercises
+    if (workout.is_block_based && workout.blocks) {
+      // Find which block contains this exercise
+      let accumulatedIndex = 0;
+      for (const block of workout.blocks) {
+        const blockExerciseCount = block.exercises.length;
+        
+        if (exerciseIdx < accumulatedIndex + blockExerciseCount) {
+          // This exercise is in this block
+          if (block.restBetweenExercises) {
+            return parsePositiveInt(block.restBetweenExercises, 0);
+          }
+          break;
+        }
+        accumulatedIndex += blockExerciseCount;
+      }
+    }
+    return 0; // No rest
+  }, [getCurrentExercise, workout, exerciseIdx]);
 
   const handlePrevious = () => {
     if (exerciseIdx > 0) {

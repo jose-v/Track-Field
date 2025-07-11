@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExerciseExecutionModal } from './ExerciseExecutionModal';
+import { ExerciseExecutionModal } from './execution/legacy/ExerciseExecutionModal';
 import { BlockWorkoutExecution } from './execution/BlockWorkoutExecution';
 import { SequentialWorkoutExecution } from './execution/SequentialWorkoutExecution';
 
@@ -11,6 +11,7 @@ interface Workout {
   blocks?: any[];
   flow_type?: 'sequential' | 'circuit';
   circuit_rounds?: number;
+  template_type?: 'single' | 'weekly' | 'monthly';
 }
 
 interface WorkoutExecutionRouterProps {
@@ -20,6 +21,8 @@ interface WorkoutExecutionRouterProps {
   exerciseIdx: number;
   timer: number;
   running: boolean;
+  currentSet?: number;
+  currentRep?: number;
   onUpdateTimer: (timer: number) => void;
   onUpdateRunning: (running: boolean) => void;
   onNextExercise: () => void;

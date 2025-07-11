@@ -97,12 +97,14 @@ interface Exercise {
   id: string;
   name: string;
   type: string;
+  category?: string;
   sets?: number | string;
   reps?: number | string;
   weight?: number | string;
   duration?: string;
   distance?: string;
   rest?: string;
+  rest_seconds?: number | string;
   instructions?: string;
 }
 
@@ -232,11 +234,14 @@ export function UnifiedWorkoutExecution({
     const loadExercises = async () => {
       try {
         setExerciseLoadingError(null);
-        
+
         if (assignment.assignment_type === 'single') {
-          // Single workout - exercises are directly in exercise_block
           const exerciseList = assignment.exercise_block?.exercises || [];
-          setExercises(exerciseList);
+          setExercises(exerciseList.map(exercise => ({
+            ...exercise,
+            sets: Number(exercise.sets) > 0 ? Number(exercise.sets) : 1,
+            reps: Number(exercise.reps) > 0 ? Number(exercise.reps) : 1
+          })));
           setTotalExercises(exerciseList.length);
         } else if (assignment.assignment_type === 'weekly') {
           // Weekly plan - extract today's exercises from daily_workouts
@@ -245,26 +250,98 @@ export function UnifiedWorkoutExecution({
           const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
           const currentDayName = dayNames[today.getDay()];
           
-          // Look for today's workout
-          const todaysWorkout = dailyWorkouts[currentDayName];
-          if (todaysWorkout && !todaysWorkout.is_rest_day) {
-            const exerciseList = todaysWorkout.exercises || [];
-            setExercises(exerciseList);
-            setTotalExercises(exerciseList.length);
-          } else {
-            // Fallback to first available day
-            const firstAvailableDay = Object.values(dailyWorkouts).find((day: any) => 
-              day && !day.is_rest_day && day.exercises?.length > 0
-            ) as { exercises: any[]; is_rest_day: boolean } | undefined;
+          // Look for today's workout first
+          let todaysWorkout = dailyWorkouts[currentDayName];
+          
+          // If no workout for today, try to find the first available day
+          if (!todaysWorkout) {
+            const firstAvailableDay = Object.keys(dailyWorkouts).find(dayKey => {
+              const dayWorkout = dailyWorkouts[dayKey];
+              return dayWorkout && (
+                Array.isArray(dayWorkout) ? dayWorkout.length > 0 : 
+                (dayWorkout.exercises && dayWorkout.exercises.length > 0)
+              );
+            });
+            
             if (firstAvailableDay) {
-              const exerciseList = firstAvailableDay.exercises || [];
-              setExercises(exerciseList);
-              setTotalExercises(exerciseList.length);
-            } else {
-              setExercises([]);
-              setTotalExercises(0);
+              todaysWorkout = dailyWorkouts[firstAvailableDay];
             }
           }
+          
+          let exerciseList: any[] = [];
+          
+          if (todaysWorkout) {
+            if (Array.isArray(todaysWorkout)) {
+              // New blocks format: array of blocks, each with exercises
+              exerciseList = todaysWorkout.flatMap((block: any) => {
+                const exercises = block.exercises || [];
+                // Copy block-level metadata to individual exercises if they don't have it
+                return exercises.map((exercise: any) => ({
+                  ...exercise,
+                  // Use exercise-level values first, then fall back to block-level, then defaults
+                  sets: Number(exercise.sets) > 0 ? Number(exercise.sets) : 1, // Default to 1 set if not specified
+                  reps: Number(exercise.reps) > 0 ? Number(exercise.reps) : 1, // Default to 1 rep if not specified
+                  // Copy block-level rest time if exercise doesn't have one
+                  rest_seconds: exercise.rest || exercise.rest_seconds || block.restBetweenExercises || 60
+                }));
+              });
+            } else if (todaysWorkout.exercises && !todaysWorkout.is_rest_day) {
+              // Old format: { exercises: [], is_rest_day: boolean }
+              exerciseList = todaysWorkout.exercises.map((exercise: any) => ({
+                ...exercise,
+                // Ensure sets/reps are properly defined
+                sets: Number(exercise.sets) > 0 ? Number(exercise.sets) : 1, // Default to 1 set if not specified
+                reps: Number(exercise.reps) > 0 ? Number(exercise.reps) : 1, // Default to 1 rep if not specified
+                // Preserve any existing rest times
+                rest_seconds: exercise.rest || exercise.rest_seconds || 60
+              }));
+            }
+          }
+          
+          // If no exercises found, try to fallback to first available day
+          if (exerciseList.length === 0) {
+            const firstAvailableDay = Object.values(dailyWorkouts).find((day: any) => {
+              if (Array.isArray(day)) {
+                // New blocks format
+                return day.some((block: any) => block.exercises && block.exercises.length > 0);
+              } else if (day && !day.is_rest_day) {
+                // Old format
+                return day.exercises && day.exercises.length > 0;
+              }
+              return false;
+            });
+            
+            if (firstAvailableDay) {
+              if (Array.isArray(firstAvailableDay)) {
+                // New blocks format
+                exerciseList = firstAvailableDay.flatMap((block: any) => {
+                  const exercises = block.exercises || [];
+                  // Copy block-level metadata to individual exercises if they don't have it
+                  return exercises.map((exercise: any) => ({
+                    ...exercise,
+                    // Use exercise-level values first, then fall back to block-level, then defaults
+                    sets: Number(exercise.sets) > 0 ? Number(exercise.sets) : 1, // Default to 1 set if not specified
+                    reps: Number(exercise.reps) > 0 ? Number(exercise.reps) : 1, // Default to 1 rep if not specified
+                    // Copy block-level rest time if exercise doesn't have one
+                    rest_seconds: exercise.rest || exercise.rest_seconds || block.restBetweenExercises || 60
+                  }));
+                });
+              } else {
+                // Old format
+                exerciseList = (firstAvailableDay as any).exercises.map((exercise: any) => ({
+                  ...exercise,
+                  // Ensure sets/reps are properly defined
+                  sets: Number(exercise.sets) > 0 ? Number(exercise.sets) : 1, // Default to 1 set if not specified
+                  reps: Number(exercise.reps) > 0 ? Number(exercise.reps) : 1, // Default to 1 rep if not specified
+                  // Preserve any existing rest times
+                  rest_seconds: exercise.rest || exercise.rest_seconds || 60
+                }));
+              }
+            }
+          }
+          
+          setExercises(exerciseList);
+          setTotalExercises(exerciseList.length);
         } else if (assignment.assignment_type === 'monthly') {
           // Monthly plan - get current week's workout and extract today's exercises
           const weeklyStructure = assignment.exercise_block?.weekly_structure || [];
@@ -305,7 +382,15 @@ export function UnifiedWorkoutExecution({
                 if (blocks && typeof blocks === 'object') {
                   const todaysBlocks = blocks[currentDayName] || blocks.monday || [];
                   if (Array.isArray(todaysBlocks)) {
-                    exerciseList = todaysBlocks.flatMap((block: any) => block.exercises || []);
+                    exerciseList = todaysBlocks.flatMap((block: any) => {
+                      const exercises = block.exercises || [];
+                      // Copy block-level rest time to individual exercises
+                      return exercises.map((exercise: any) => ({
+                        ...exercise,
+                        // Copy block-level rest time if exercise doesn't have one
+                        rest_seconds: exercise.rest || exercise.rest_seconds || block.restBetweenExercises || 60
+                      }));
+                    });
                   }
                 }
               } else if (allWorkouts.exercises) {
@@ -340,7 +425,13 @@ export function UnifiedWorkoutExecution({
                 }
               }
               
-              setExercises(exerciseList);
+              setExercises(exerciseList.map(exercise => ({
+                ...exercise,
+                sets: Number(exercise.sets) > 0 ? Number(exercise.sets) : 1, // Default to 1 set if not specified
+                reps: Number(exercise.reps) > 0 ? Number(exercise.reps) : 1, // Default to 1 rep if not specified
+                // Preserve rest_seconds if it was set during exercise extraction
+                rest_seconds: exercise.rest_seconds || exercise.rest || 60
+              })));
               setTotalExercises(exerciseList.length);
             } else {
               setExerciseLoadingError('Weekly workout not found');
@@ -357,7 +448,6 @@ export function UnifiedWorkoutExecution({
           setTotalExercises(0);
         }
       } catch (error) {
-        console.error('Error loading exercises:', error);
         setExerciseLoadingError('Failed to load exercises');
         setExercises([]);
         setTotalExercises(0);
@@ -469,7 +559,7 @@ export function UnifiedWorkoutExecution({
 
   const currentExercise = getCurrentExercise();
   
-  // Exercise data with safe parsing
+  // Calculate sets and reps for current exercise with improved extraction
   const currentExerciseSets = parsePositiveInt(currentExercise?.sets, 1);
   const currentExerciseReps = parsePositiveInt(currentExercise?.reps, 1);
 
@@ -485,7 +575,7 @@ export function UnifiedWorkoutExecution({
            exerciseName.includes('mile') ||
            currentExercise.type === 'running';
   }, [currentExercise]);
-
+    
   // Progress calculation
   const calculateProgress = useCallback(() => {
     // For monthly plans, calculate progress based on weeks even if exercises aren't loaded
@@ -612,7 +702,7 @@ export function UnifiedWorkoutExecution({
 
   // Start countdown when transitioning to a new exercise, set, or rep
   useEffect(() => {
-    if (isOpen && !isActive && !isCountingDown && !isResting && totalExercises > 0) {
+    if (isOpen && !isActive && !isCountingDown && !isResting && !showRPEScreen && totalExercises > 0) {
       // Start countdown for any change in position (exercise, set, or rep)
       const timer = setTimeout(() => {
         startCountdown();
@@ -620,7 +710,7 @@ export function UnifiedWorkoutExecution({
       
       return () => clearTimeout(timer);
     }
-  }, [currentExerciseIndex, currentSet, currentRep, isOpen, isActive, isCountingDown, isResting, totalExercises, startCountdown]);
+  }, [currentExerciseIndex, currentSet, currentRep, isOpen, isActive, isCountingDown, isResting, showRPEScreen, totalExercises, startCountdown]);
 
   // Reset blue timer (elapsedTime) when set/rep/block changes
   useEffect(() => {
@@ -630,7 +720,7 @@ export function UnifiedWorkoutExecution({
   }, [currentExerciseIndex, currentSet, currentRep, isOpen]);
 
   // Rest countdown logic
-  const startRestCountdown = useCallback((duration: number = 90) => {
+  const startRestCountdown = useCallback((duration: number = 60) => {
     if (restCountdownRef) {
       clearInterval(restCountdownRef);
     }
@@ -805,8 +895,18 @@ export function UnifiedWorkoutExecution({
       setCurrentSet(currentSet + 1);
       setCurrentRep(1);
       
-      // Start rest countdown between sets
-      const restTime = parseInt(currentExercise?.rest || '90');
+            // Start rest countdown between sets
+      // Get rest time from exercise data (copied from block level during assignment creation)
+      let restTime = 60; // Reasonable default fallback
+      
+      if (currentExercise?.rest && currentExercise.rest !== '' && parseInt(currentExercise.rest) > 0) {
+        // Exercise-specific rest takes priority
+        restTime = parseInt(currentExercise.rest);
+      } else if (currentExercise?.rest_seconds && parseInt(String(currentExercise.rest_seconds)) > 0) {
+        // Check rest_seconds field (used in unified assignments)
+        restTime = parseInt(String(currentExercise.rest_seconds));
+      }
+      
       if (restTime > 0) {
         startRestCountdown(restTime);
       } else {
@@ -815,14 +915,19 @@ export function UnifiedWorkoutExecution({
           startCountdown();
         }, 100);
       }
-      
-      // Show RPE screen after completing a set
-      setShowRPEScreen(true);
     }
     // Finally move to next exercise
     else if (currentExerciseIndex < totalExercises - 1) {
-      // Show RPE screen after completing an exercise
-      setShowRPEScreen(true);
+      setCurrentExerciseIndex(currentExerciseIndex + 1);
+      setCurrentSet(1);
+      setCurrentRep(1);
+      
+      // Trigger countdown for next exercise
+      setTimeout(() => {
+        if (!isResting) {
+          startCountdown();
+        }
+      }, 100);
     }
     // Complete workout
     else {
@@ -988,7 +1093,7 @@ export function UnifiedWorkoutExecution({
               ) : (
                 <>
                   <Text fontSize="xs" color={currentColor} fontWeight="medium" textTransform="uppercase" textAlign="center">
-                    STRENGTH TRAINING (1/2)
+                    {assignment.exercise_block?.workout_name || assignment.exercise_block?.plan_name || 'WORKOUT'}
                   </Text>
                   <Text fontSize="lg" fontWeight="semibold" textAlign="center">
                     {currentExercise?.name || 'Exercise'}
@@ -1346,7 +1451,11 @@ export function UnifiedWorkoutExecution({
       onClose={onDetailsDrawerClose}
       flowType="Sequential"
       category="Main"
-      restBetween={currentExercise?.rest ? `${currentExercise.rest}s` : '90s'}
+      restBetween={
+                        (currentExercise?.rest && currentExercise.rest !== '' && parseInt(currentExercise.rest) > 0) ? `${currentExercise.rest}s` :
+                        (currentExercise?.rest_seconds && parseInt(String(currentExercise.rest_seconds)) > 0) ? `${currentExercise.rest_seconds}s` : 
+                        '60s'
+                      }
       contacts={currentExercise?.sets || ''}
       direction={currentExercise?.type || ''}
       movementInstructions={currentExercise?.instructions || ''}

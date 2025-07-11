@@ -2,6 +2,8 @@
 
 This directory contains the new modular workout execution system that replaces the monolithic `ExerciseExecutionModal`.
 
+📁 **Legacy components** have been moved to the `./legacy/` folder - **do not modify them during development**.
+
 ## Components Overview
 
 ### `BaseWorkoutExecution.tsx`
@@ -47,7 +49,7 @@ import { WorkoutExecutionRouter } from './components/WorkoutExecutionRouter';
 ### Routing Logic
 1. **Block-based workouts**: Uses `BlockWorkoutExecution` when `workout.is_block_based && workout.blocks.length > 0`
 2. **Regular workouts**: Uses `SequentialWorkoutExecution` for standard exercise arrays
-3. **Fallback**: Uses legacy `ExerciseExecutionModal` for edge cases
+3. **Fallback**: Uses legacy `ExerciseExecutionModal` (from `./legacy/`) for edge cases
 
 ## Benefits of This Architecture
 
@@ -113,7 +115,9 @@ import { WorkoutExecutionRouter } from './WorkoutExecutionRouter';
 The props interface remains the same, making migration seamless.
 
 ### Legacy Support
-The original `ExerciseExecutionModal` is still available as a fallback for edge cases and will be gradually phased out as we validate the new architecture.
+The original `ExerciseExecutionModal` has been moved to `./legacy/ExerciseExecutionModal.tsx` and is still available as a fallback for edge cases. It will be gradually phased out as we validate the new architecture.
+
+⚠️ **Important:** Do not modify components in the `./legacy/` folder. Work on the current execution components instead.
 
 ## Utilities
 

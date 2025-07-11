@@ -17,6 +17,7 @@ import {
 } from '@chakra-ui/react';
 import { FaChevronLeft, FaCheckCircle, FaRunning, FaInfoCircle } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
+import { useWorkoutStore } from '../../lib/workoutStore';
 import { 
   SharedWorkoutUI, 
   useWorkoutExecutionState, 
@@ -84,6 +85,8 @@ export const BlockWorkoutExecution: React.FC<BlockWorkoutExecutionProps> = ({
   exerciseIdx,
   timer,
   running,
+  currentSet,
+  currentRep,
   onUpdateTimer,
   onUpdateRunning,
   onNextExercise,
@@ -92,7 +95,8 @@ export const BlockWorkoutExecution: React.FC<BlockWorkoutExecutionProps> = ({
   onShowVideo
 }) => {
   const { user } = useAuth();
-  const state = useWorkoutExecutionState();
+  const workoutStore = useWorkoutStore();
+  const state = useWorkoutExecutionState(workout?.id, exerciseIdx, currentSet, currentRep);
   const { startCountdownTimer, startRestTimer, skipRest } = useWorkoutExecutionEffects({
     isOpen,
     timer,
@@ -235,11 +239,19 @@ export const BlockWorkoutExecution: React.FC<BlockWorkoutExecutionProps> = ({
       setCurrentExerciseIndexInBlock(blockInfo.localIndex);
     }
     
-    // Reset exercise state
-    state.setCurrentSet(1);
-    state.setCurrentRep(1);
-    state.setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
-  }, [exerciseIdx, getExerciseBlockInfo, state.setCurrentSet, state.setCurrentRep, state.setRunTime]);
+    // TEMPORARILY DISABLED: Reset exercise state WITH database saving
+    // This was causing the modal to reset during normal rep progression
+    // state.setCurrentSet(1, user?.id, workout.id, exerciseIdx, workoutStore);
+    // state.setCurrentRep(1, user?.id, workout.id, exerciseIdx, workoutStore);
+    // state.setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
+  }, [exerciseIdx, getExerciseBlockInfo]);
+
+  // Clear persisted state when modal closes
+  useEffect(() => {
+    if (!isOpen && state.clearPersistedState) {
+      state.clearPersistedState();
+    }
+  }, [isOpen, state.clearPersistedState]);
 
   // Prevent body scrolling when modal is open
   useEffect(() => {
@@ -265,6 +277,18 @@ export const BlockWorkoutExecution: React.FC<BlockWorkoutExecutionProps> = ({
         let actualWorkoutId = workout.id;
         if (workout.id.startsWith('daily-')) {
           actualWorkoutId = workout.id.replace('daily-', '');
+        }
+
+        // Save current progress to database immediately
+        if (state.saveProgressToDatabase) {
+          await state.saveProgressToDatabase(
+            user.id,
+            workout.id, // Use original workout ID for progress tracking
+            exerciseIdx,
+            state.currentSet,
+            state.currentRep,
+            workoutStore
+          );
         }
 
         if (isRunExercise(currentExercise.name)) {
@@ -304,7 +328,7 @@ export const BlockWorkoutExecution: React.FC<BlockWorkoutExecutionProps> = ({
 
     if (state.currentRep < maxReps) {
       // Next rep - check for rest between reps
-      state.setCurrentRep(prev => prev + 1);
+      state.setCurrentRep(prev => prev + 1, user?.id, workout.id, exerciseIdx, workoutStore);
       state.setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
       onUpdateTimer(0);
       onUpdateRunning(false);
@@ -317,8 +341,8 @@ export const BlockWorkoutExecution: React.FC<BlockWorkoutExecutionProps> = ({
       }
     } else if (state.currentSet < maxSets) {
       // Next set - check for rest between sets
-      state.setCurrentSet(prev => prev + 1);
-      state.setCurrentRep(1);
+      state.setCurrentSet(prev => prev + 1, user?.id, workout.id, exerciseIdx, workoutStore);
+      state.setCurrentRep(1, user?.id, workout.id, exerciseIdx, workoutStore);
       state.setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
       onUpdateTimer(0);
       onUpdateRunning(false);
@@ -335,9 +359,12 @@ export const BlockWorkoutExecution: React.FC<BlockWorkoutExecutionProps> = ({
       if (exerciseProgress.current >= exerciseProgress.total) {
         state.setShowRPEScreen(true);
       } else {
+        // Clear persisted state for current exercise before moving to next
+        state.clearPersistedState();
+        
         // Move to next exercise - check for rest between exercises
-        state.setCurrentSet(1);
-        state.setCurrentRep(1);
+        state.setCurrentSet(1, user?.id, workout.id, exerciseIdx + 1, workoutStore);
+        state.setCurrentRep(1, user?.id, workout.id, exerciseIdx + 1, workoutStore);
         state.setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
         onNextExercise();
         onUpdateTimer(0);
@@ -444,9 +471,8 @@ export const BlockWorkoutExecution: React.FC<BlockWorkoutExecutionProps> = ({
     if (block?.restBetweenExercises) {
       return parsePositiveInt(block.restBetweenExercises, 0);
     }
-    
     return 0; // No rest
-  }, [getCurrentExercise, getCurrentBlock]);
+  }, [getCurrentExercise, getCurrentBlock, exerciseIdx, workout.id]);
 
   // Get rest time for a specific exercise index
   const getRestTimeForExercise = useCallback((targetExerciseIdx: number): number => {
