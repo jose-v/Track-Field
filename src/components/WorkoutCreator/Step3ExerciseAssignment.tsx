@@ -133,6 +133,7 @@ interface BlockExercise extends Exercise {
   intensity?: string;
   direction?: string;
   movement_notes?: string;
+  timed_duration?: number; // Duration in seconds for timed exercises
 }
 
 interface WorkoutBlock {
@@ -415,6 +416,7 @@ const Step3ExerciseAssignment: React.FC<Step3ExerciseAssignmentProps> = ({
     intensity?: string;
     direction?: string;
     movement_notes?: string;
+    timed_duration?: number;
   } | null>(null);
 
   // Add exercise modal
@@ -559,7 +561,8 @@ const Step3ExerciseAssignment: React.FC<Step3ExerciseAssignmentProps> = ({
       contacts: '',
       intensity: '',
       direction: '',
-      movement_notes: ''
+      movement_notes: '',
+      timed_duration: 0, // Initialize timed_duration
     };
 
     const updatedBlocks = blocks.map(block => {
@@ -643,6 +646,7 @@ const Step3ExerciseAssignment: React.FC<Step3ExerciseAssignmentProps> = ({
       intensity: exercise.intensity,
       direction: exercise.direction,
       movement_notes: exercise.movement_notes,
+      timed_duration: exercise.timed_duration,
     };
     setCopiedExerciseData(dataToCopy);
     toast({
@@ -677,7 +681,8 @@ const Step3ExerciseAssignment: React.FC<Step3ExerciseAssignmentProps> = ({
                   ...(copiedExerciseData.movement_notes && { movement_notes: copiedExerciseData.movement_notes }),
                   ...(copiedExerciseData.rest && { rest: copiedExerciseData.rest }),
                   ...(copiedExerciseData.rpe && { rpe: copiedExerciseData.rpe }),
-                  ...(copiedExerciseData.notes && { notes: copiedExerciseData.notes })
+                  ...(copiedExerciseData.notes && { notes: copiedExerciseData.notes }),
+                  ...(copiedExerciseData.timed_duration && { timed_duration: copiedExerciseData.timed_duration })
                 }
               : ex
           )
@@ -1117,7 +1122,8 @@ const ExerciseSettingsModal: React.FC<{
     direction: '',
     weight: '',
     distance: '',
-    movement_notes: ''
+    movement_notes: '',
+    timed_duration: '' // Add timed_duration to formData
   });
 
   // Get current exercise data from blocks
@@ -1140,7 +1146,8 @@ const ExerciseSettingsModal: React.FC<{
           direction: currentExercise.direction || '',
           weight: currentExercise.weight || '',
           distance: currentExercise.distance || '',
-          movement_notes: currentExercise.movement_notes || ''
+          movement_notes: currentExercise.movement_notes || '',
+          timed_duration: currentExercise.timed_duration && currentExercise.timed_duration > 0 ? currentExercise.timed_duration.toString() : '' // Convert number to string
         });
       }
     }
@@ -1169,7 +1176,8 @@ const ExerciseSettingsModal: React.FC<{
                   direction: formData.direction,
                   weight: formData.weight,
                   distance: formData.distance,
-                  movement_notes: formData.movement_notes
+                  movement_notes: formData.movement_notes,
+                  timed_duration: formData.timed_duration && formData.timed_duration !== '' ? parseInt(formData.timed_duration, 10) : undefined // Convert string back to number, undefined if empty
                 }
               : ex
           )
@@ -1287,6 +1295,20 @@ const ExerciseSettingsModal: React.FC<{
                   bg={inputBg}
                   minH="100px"
                   resize="vertical"
+                />
+              </FormControl>
+
+              {/* Timed Duration */}
+              <FormControl>
+                <FormLabel fontSize="sm">Timed Duration (seconds)</FormLabel>
+                <Input
+                  type="number"
+                  value={formData.timed_duration}
+                  onChange={(e) => handleFieldChange('timed_duration', e.target.value)}
+                  placeholder="e.g. 180"
+                  min={0}
+                  max={3600}
+                  bg={inputBg}
                 />
               </FormControl>
             </VStack>

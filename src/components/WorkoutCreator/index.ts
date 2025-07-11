@@ -24,6 +24,7 @@ export interface Exercise {
   rest?: string;
   rpe?: string;
   notes?: string;
+  timed_duration?: number; // Duration in seconds for timed exercises
 }
 
 export interface Athlete {

@@ -31,6 +31,7 @@ import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import { supabase } from '../../lib/supabase';
+import { AssignmentService } from '../../services/assignmentService';
 
 // Import new step components
 import Step1TemplateSelection from './Step1TemplateSelection';
@@ -48,7 +49,8 @@ interface WorkoutBlock {
   category: 'warmup' | 'main' | 'accessory' | 'conditioning' | 'cooldown' | 'custom';
   flow: 'sequential' | 'circuit' | 'superset' | 'emom' | 'amrap';
   exercises: any[];
-  restBetweenExercises: number;
+  restBetweenExercises: number; // Rest between exercises
+  restBetweenSets?: number; // Rest between sets
   rounds?: number;
   timeLimit?: number;
   description?: string;
@@ -70,6 +72,7 @@ interface Exercise {
   intensity?: string;
   direction?: string;
   movement_notes?: string;
+  timed_duration?: number; // Duration in seconds for timed exercises
 }
 
 interface Athlete {
@@ -246,6 +249,13 @@ const NewWorkoutCreator: React.FC = () => {
       setWorkoutName(`${templateName} ${typeName} - ${timestamp}`);
     }
   }, [selectedTemplateType, selectedTemplate, workoutName]);
+
+  // Jump to step 2 when editing a workout (after it's loaded)
+  useEffect(() => {
+    if (isEditing && !isLoadingWorkout && currentStep === 1) {
+      setCurrentStep(2);
+    }
+  }, [isEditing, isLoadingWorkout, currentStep]);
 
   // Step validation
   const validateStep = useCallback((step: number): boolean => {
@@ -482,6 +492,61 @@ const NewWorkoutCreator: React.FC = () => {
     try {
       setIsSaving(true);
       
+      // Initialize assignment service for unified assignments
+      const assignmentService = new AssignmentService();
+      
+      // Helper function to convert workout data to unified assignment format
+      const convertToUnifiedAssignment = (
+        workoutData: any, 
+        assignmentType: 'single' | 'weekly' | 'monthly',
+        savedWorkout: any
+      ) => {
+        if (assignmentType === 'single') {
+          // Flatten exercises from all blocks for unified format
+          const allExercises = blocks.flatMap(block => 
+            block.exercises.map((exercise: any) => ({
+              id: exercise.id || `${exercise.name}-${Date.now()}`,
+              name: exercise.name,
+              category: exercise.category || block.category,
+              sets: exercise.sets || '3',
+              reps: exercise.reps || '10',
+              weight: exercise.weight,
+              distance: exercise.distance,
+              rest_seconds: exercise.rest ? parseInt(exercise.rest) : (block.restBetweenSets || 60), // Rest between sets
+              rest_between_exercises: block.restBetweenExercises || 90, // Rest between exercises
+              rpe: exercise.rpe,
+              notes: exercise.notes,
+              direction: exercise.direction,
+              movement_notes: exercise.movement_notes,
+              timed_duration: exercise.timed_duration || 0, // Duration in seconds for timed exercises
+              instructions: exercise.description || `${exercise.name} exercise`
+            }))
+          );
+
+          return {
+            workout_name: workoutData.name,
+            description: workoutData.description,
+            estimated_duration: workoutData.duration,
+            location: workoutData.location,
+            workout_type: blocks.length > 0 ? blocks[0].category : 'strength',
+            exercises: allExercises
+          };
+        } else if (assignmentType === 'weekly') {
+          return {
+            plan_name: workoutData.name,
+            description: workoutData.description,
+            daily_workouts: dailyBlocks
+          };
+        } else { // monthly
+          return {
+            plan_name: workoutData.name,
+            description: workoutData.description,
+            duration_weeks: monthlyPlanWeeks.length,
+            weekly_structure: monthlyPlanWeeks
+          };
+        }
+      };
+      
       // Helper function to extract exercises from blocks
       const extractExercisesFromBlocks = (blockList: WorkoutBlock[]): Exercise[] => {
         return blockList.flatMap(block => 
@@ -490,17 +555,18 @@ const NewWorkoutCreator: React.FC = () => {
             name: exercise.name,
             category: exercise.category || block.category,
             description: exercise.description || '',
-            sets: exercise.sets || '',
-            reps: exercise.reps || '',
+            sets: exercise.sets || '3',
+            reps: exercise.reps || '10',
             weight: exercise.weight || '',
             distance: exercise.distance || '',
-            rest: exercise.rest || block.restBetweenExercises?.toString() || '',
+            rest: exercise.rest || (block.restBetweenSets || 60).toString(),
             rpe: exercise.rpe || '',
             notes: exercise.notes || '',
             contacts: exercise.contacts || '',
             intensity: exercise.intensity || '',
             direction: exercise.direction || '',
-            movement_notes: exercise.movement_notes || ''
+            movement_notes: exercise.movement_notes || '',
+            timed_duration: exercise.timed_duration || 0
           }))
         );
       };
@@ -579,6 +645,47 @@ const NewWorkoutCreator: React.FC = () => {
         if (selectedAthleteIds.length > 0) {
           const startDate = date || new Date().toISOString().split('T')[0];
           await api.monthlyPlanAssignments.assign(savedWorkout.id, selectedAthleteIds, startDate);
+          
+          // Also create unified assignments
+          const exerciseBlock = convertToUnifiedAssignment(planData, 'monthly', savedWorkout);
+          
+          for (const athleteId of selectedAthleteIds) {
+            try {
+              await assignmentService.createAssignment({
+                athlete_id: athleteId,
+                assignment_type: 'monthly',
+                exercise_block: exerciseBlock,
+                progress: {
+                  current_exercise_index: 0,
+                  current_set: 1,
+                  current_rep: 1,
+                  completed_exercises: [],
+                  total_exercises: monthlyPlanWeeks.filter(w => !w.is_rest_week).length,
+                  completion_percentage: 0
+                },
+                start_date: startDate,
+                end_date: new Date(new Date(startDate).getTime() + (monthlyPlanWeeks.length * 7 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
+                assigned_at: new Date().toISOString(),
+                assigned_by: user?.id,
+                status: 'assigned',
+                meta: {
+                  original_plan_id: savedWorkout.id,
+                  plan_type: 'monthly',
+                  total_weeks: monthlyPlanWeeks.length,
+                  rest_weeks: monthlyPlanWeeks.filter(w => w.is_rest_week).length
+                }
+              });
+            } catch (error) {
+              console.error(`Failed to create unified assignment for athlete ${athleteId}:`, error);
+              // Show error in toast for debugging
+              toast({
+                title: 'Unified Assignment Error (Monthly)',
+                description: `Failed to create unified assignment: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                status: 'warning',
+                duration: 5000,
+              });
+            }
+          }
         }
         
         // 🔧 FIX: Mark weekly workouts as templates when used in monthly plans
@@ -627,7 +734,54 @@ const NewWorkoutCreator: React.FC = () => {
 
         // Assign to athletes if selected
         if (selectedAthleteIds.length > 0) {
-          await api.athleteWorkouts.assign(savedWorkout.id, selectedAthleteIds);
+          // Also create unified assignments
+          const exerciseBlock = convertToUnifiedAssignment(workoutData, selectedTemplateType, savedWorkout);
+          
+          for (const athleteId of selectedAthleteIds) {
+            try {
+              const startDate = workoutData.date || new Date().toISOString().split('T')[0];
+              const endDate = selectedTemplateType === 'weekly' 
+                ? new Date(new Date(startDate).getTime() + (7 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0]
+                : startDate;
+              
+              await assignmentService.createAssignment({
+                athlete_id: athleteId,
+                assignment_type: selectedTemplateType,
+                exercise_block: exerciseBlock,
+                progress: {
+                  current_exercise_index: 0,
+                  current_set: 1,
+                  current_rep: 1,
+                  completed_exercises: [],
+                  total_exercises: selectedTemplateType === 'single' 
+                    ? extractExercisesFromBlocks(blocks).length
+                    : Object.values(dailyBlocks).flat().reduce((total, block) => total + block.exercises.length, 0),
+                  completion_percentage: 0
+                },
+                start_date: startDate,
+                end_date: endDate,
+                assigned_at: new Date().toISOString(),
+                assigned_by: user?.id,
+                status: 'assigned',
+                meta: {
+                  original_workout_id: savedWorkout.id,
+                  workout_type: selectedTemplateType,
+                  estimated_duration: workoutData.duration,
+                  location: workoutData.location,
+                  is_template_derived: !!selectedTemplate && selectedTemplate !== 'scratch'
+                }
+              });
+            } catch (error) {
+              console.error(`Failed to create unified assignment for athlete ${athleteId}:`, error);
+              // Show error in toast for debugging
+              toast({
+                title: 'Unified Assignment Error',
+                description: `Failed to create unified assignment: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                status: 'warning',
+                duration: 5000,
+              });
+            }
+          }
         }
       }
 
@@ -794,9 +948,9 @@ const NewWorkoutCreator: React.FC = () => {
         if (!workout.is_template) {
           try {
             const { data: assignments, error: assignmentError } = await supabase
-              .from('athlete_workouts')
+              .from('unified_workout_assignments')
               .select('athlete_id')
-              .eq('workout_id', workoutId);
+              .eq('meta->>original_workout_id', workoutId);
             
             if (assignmentError) throw assignmentError;
             
