@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Heading,
@@ -91,6 +91,9 @@ export function AthleteWorkouts() {
   // Mobile filter modal
   const { isOpen: isFiltersOpen, onOpen: onFiltersOpen, onClose: onFiltersClose } = useDisclosure();
 
+  // Execution state management - robust solution
+  const [cachedAssignmentForExecution, setCachedAssignmentForExecution] = useState<any>(null);
+
   // Responsive design - Clean mobile/desktop separation
   const isMobile = useBreakpointValue({ base: true, lg: false });
   const isDesktop = useBreakpointValue({ base: false, lg: true });
@@ -126,17 +129,30 @@ export function AthleteWorkouts() {
   // Sidebar constants (matching existing layout)
   const mainSidebarWidth = 70; // This should match your actual sidebar width
 
-  // Workout execution handlers
+  // Workout execution handlers - robust solution
   const handleExecuteWorkout = (assignmentId: string) => {
-    setExecutingAssignmentId(assignmentId);
+    // IMMEDIATELY cache the assignment to prevent race conditions
+    const assignmentToCache = assignments?.find(a => a.id === assignmentId) || 
+                              (todaysWorkout?.id === assignmentId ? todaysWorkout : null);
+    
+    if (assignmentToCache) {
+      setCachedAssignmentForExecution(assignmentToCache);
+      setExecutingAssignmentId(assignmentId);
+    } else {
+      console.error('Assignment not found for execution:', assignmentId);
+      console.log('Available assignments:', assignments?.map(a => a.id));
+      console.log('Today\'s workout ID:', todaysWorkout?.id);
+    }
   };
 
   const handleExitExecution = () => {
     setExecutingAssignmentId(null);
+    setCachedAssignmentForExecution(null);
   };
 
   const handleCompleteWorkout = () => {
     setExecutingAssignmentId(null);
+    setCachedAssignmentForExecution(null);
     // Refresh data after completion
     refetchAssignments();
     refetchToday();
@@ -199,21 +215,32 @@ export function AthleteWorkouts() {
     setStatusFilter('all');
   };
 
-  // If executing a workout, show the execution component
-  if (executingAssignmentId) {
-    const assignmentToExecute = assignments?.find(a => a.id === executingAssignmentId);
-    if (assignmentToExecute) {
-      return (
-        <Box bg={pageBackgroundColor} minH="100vh">
-          <UnifiedWorkoutExecution
-            assignment={assignmentToExecute}
-            onComplete={handleCompleteWorkout}
-            onExit={handleExitExecution}
-            isOpen={true}
-          />
-        </Box>
-      );
+  // Safeguard: Clear invalid executingAssignmentId values
+  useEffect(() => {
+    if (executingAssignmentId && !cachedAssignmentForExecution) {
+      const assignmentExists = assignments?.find(a => a.id === executingAssignmentId) ||
+                              (todaysWorkout?.id === executingAssignmentId ? todaysWorkout : null);
+      
+      if (!assignmentExists) {
+        console.warn('Clearing invalid executingAssignmentId:', executingAssignmentId);
+        setExecutingAssignmentId(null);
+        setCachedAssignmentForExecution(null);
+      }
     }
+  }, [executingAssignmentId, cachedAssignmentForExecution, assignments, todaysWorkout]);
+
+  // Robust execution logic - use cached assignment to prevent flickering
+  if (executingAssignmentId && cachedAssignmentForExecution) {
+    return (
+      <Box bg={pageBackgroundColor} minH="100vh">
+        <UnifiedWorkoutExecution
+          assignment={cachedAssignmentForExecution}
+          onComplete={handleCompleteWorkout}
+          onExit={handleExitExecution}
+          isOpen={true}
+        />
+      </Box>
+    );
   }
 
   const renderContent = () => {
@@ -453,19 +480,10 @@ export function AthleteWorkouts() {
         {/* Mobile Navigation - Only show on mobile */}
         {isMobile && (
           <VStack spacing={4} align="stretch" mb={6}>
-            <HStack spacing={3} align="center">
-              <BiRun size="24px" color="blue.500" />
-              <Heading size="lg">Workouts</Heading>
-            </HStack>
-            <Text color="gray.600" fontSize="sm" mb={2}>
-              Your Unified Training System
-            </Text>
+            <Heading size="lg">Workouts</Heading>
             
             {/* Mobile Section Navigation */}
             <Box>
-              <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.600">
-                Section:
-              </Text>
               <Select
                 value={activeItem}
                 onChange={(e) => setActiveItem(e.target.value as WorkoutsSectionId)}
