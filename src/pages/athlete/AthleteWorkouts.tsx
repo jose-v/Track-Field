@@ -23,12 +23,7 @@ import {
   ModalBody,
   ModalCloseButton,
   useDisclosure,
-  useBreakpointValue,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel
+  useBreakpointValue
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -467,27 +462,27 @@ export function AthleteWorkouts() {
             </Text>
             
             {/* Mobile Section Navigation */}
-            <Tabs 
-              index={
-                activeItem === 'todays-workout' ? 0 :
-                activeItem === 'all-assignments' ? 1 :
-                activeItem === 'weekly-plans' ? 2 :
-                activeItem === 'monthly-plans' ? 3 : 0
-              }
-              onChange={(index) => {
-                const sections: WorkoutsSectionId[] = ['todays-workout', 'all-assignments', 'weekly-plans', 'monthly-plans'];
-                setActiveItem(sections[index]);
-              }}
-              variant="enclosed"
-              colorScheme="blue"
-            >
-              <TabList overflowX="auto" overflowY="hidden">
-                <Tab fontSize="sm" minW="fit-content" px={3}>Today's Workout</Tab>
-                <Tab fontSize="sm" minW="fit-content" px={3}>All Assignments</Tab>
-                <Tab fontSize="sm" minW="fit-content" px={3}>Weekly Plans</Tab>
-                <Tab fontSize="sm" minW="fit-content" px={3}>Monthly Plans</Tab>
-              </TabList>
-            </Tabs>
+            <Box>
+              <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.600">
+                Section:
+              </Text>
+              <Select
+                value={activeItem}
+                onChange={(e) => setActiveItem(e.target.value as WorkoutsSectionId)}
+                bg={cardBg}
+                size="md"
+                borderColor="blue.200"
+                _focus={{
+                  borderColor: "blue.500",
+                  boxShadow: "0 0 0 1px blue.500"
+                }}
+              >
+                <option value="todays-workout">Today's Workout</option>
+                <option value="all-assignments">All Assignments</option>
+                <option value="weekly-plans">Weekly Plans</option>
+                <option value="monthly-plans">Monthly Plans</option>
+              </Select>
+            </Box>
           </VStack>
         )}
 
