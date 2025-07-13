@@ -23,7 +23,12 @@ import {
   ModalBody,
   ModalCloseButton,
   useDisclosure,
-  useBreakpointValue
+  useBreakpointValue,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -450,16 +455,39 @@ export function AthleteWorkouts() {
           />
         )}
 
-        {/* Mobile Header - Only show on mobile */}
+        {/* Mobile Navigation - Only show on mobile */}
         {isMobile && (
           <VStack spacing={4} align="stretch" mb={6}>
             <HStack spacing={3} align="center">
               <BiRun size="24px" color="blue.500" />
               <Heading size="lg">Workouts</Heading>
             </HStack>
-            <Text color="gray.600" fontSize="sm">
+            <Text color="gray.600" fontSize="sm" mb={2}>
               Your Unified Training System
             </Text>
+            
+            {/* Mobile Section Navigation */}
+            <Tabs 
+              index={
+                activeItem === 'todays-workout' ? 0 :
+                activeItem === 'all-assignments' ? 1 :
+                activeItem === 'weekly-plans' ? 2 :
+                activeItem === 'monthly-plans' ? 3 : 0
+              }
+              onChange={(index) => {
+                const sections: WorkoutsSectionId[] = ['todays-workout', 'all-assignments', 'weekly-plans', 'monthly-plans'];
+                setActiveItem(sections[index]);
+              }}
+              variant="enclosed"
+              colorScheme="blue"
+            >
+              <TabList overflowX="auto" overflowY="hidden">
+                <Tab fontSize="sm" minW="fit-content" px={3}>Today's Workout</Tab>
+                <Tab fontSize="sm" minW="fit-content" px={3}>All Assignments</Tab>
+                <Tab fontSize="sm" minW="fit-content" px={3}>Weekly Plans</Tab>
+                <Tab fontSize="sm" minW="fit-content" px={3}>Monthly Plans</Tab>
+              </TabList>
+            </Tabs>
           </VStack>
         )}
 
@@ -472,49 +500,68 @@ export function AthleteWorkouts() {
         <Modal isOpen={isFiltersOpen} onClose={onFiltersClose} size="md">
           <ModalOverlay />
           <ModalContent mx={4}>
-            <ModalHeader>Filter Options</ModalHeader>
+            <ModalHeader>
+              Filter {activeItem.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+            </ModalHeader>
             <ModalCloseButton />
             <ModalBody pb={6}>
-              <VStack spacing={4} align="stretch">
-                <Box>
-                  <Text fontSize="sm" fontWeight="medium" mb={2}>Assignment Type</Text>
-                  <Select
-                    value={assignmentTypeFilter}
-                    onChange={(e) => setAssignmentTypeFilter(e.target.value as typeof assignmentTypeFilter)}
-                    bg={cardBg}
+              {activeItem === 'all-assignments' ? (
+                <VStack spacing={4} align="stretch">
+                  <Box>
+                    <Text fontSize="sm" fontWeight="medium" mb={2}>Assignment Type</Text>
+                    <Select
+                      value={assignmentTypeFilter}
+                      onChange={(e) => setAssignmentTypeFilter(e.target.value as typeof assignmentTypeFilter)}
+                      bg={cardBg}
+                    >
+                      <option value="all">All Types</option>
+                      <option value="single">Single</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                    </Select>
+                  </Box>
+                  
+                  <Box>
+                    <Text fontSize="sm" fontWeight="medium" mb={2}>Status</Text>
+                    <Select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                      bg={cardBg}
+                    >
+                      <option value="all">All Status</option>
+                      <option value="assigned">Assigned</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="completed">Completed</option>
+                    </Select>
+                  </Box>
+                  
+                  <Button
+                    onClick={() => {
+                      handleClearFilters();
+                      onFiltersClose();
+                    }}
+                    variant="outline"
+                    mt={2}
                   >
-                    <option value="all">All Types</option>
-                    <option value="single">Single</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="monthly">Monthly</option>
-                  </Select>
-                </Box>
-                
-                <Box>
-                  <Text fontSize="sm" fontWeight="medium" mb={2}>Status</Text>
-                  <Select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-                    bg={cardBg}
+                    Clear All Filters
+                  </Button>
+                </VStack>
+              ) : (
+                <VStack spacing={4} align="center" py={4}>
+                  <Text color="gray.500" textAlign="center">
+                    Filters are only available for "All Assignments" section.
+                  </Text>
+                  <Button
+                    onClick={() => {
+                      setActiveItem('all-assignments');
+                      onFiltersClose();
+                    }}
+                    colorScheme="blue"
                   >
-                    <option value="all">All Status</option>
-                    <option value="assigned">Assigned</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                  </Select>
-                </Box>
-                
-                <Button
-                  onClick={() => {
-                    handleClearFilters();
-                    onFiltersClose();
-                  }}
-                  variant="outline"
-                  mt={2}
-                >
-                  Clear All Filters
-                </Button>
-              </VStack>
+                    Go to All Assignments
+                  </Button>
+                </VStack>
+              )}
             </ModalBody>
           </ModalContent>
         </Modal>
