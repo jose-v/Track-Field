@@ -28,7 +28,7 @@ export async function getMonthlyPlanCompletionFromDB(userId: string): Promise<nu
       .from('training_plan_assignments')
       .select('id, completed_exercises, status, assigned_at')
       .eq('athlete_id', userId)
-      .in('status', ['assigned', 'in_progress'])
+      .or('status.eq.assigned,status.eq.in_progress')
       .order('assigned_at', { ascending: false });
 
     if (allError || !allAssignments) {
@@ -59,7 +59,7 @@ export async function getMonthlyPlanProgressFromDB(userId: string): Promise<Work
       .from('training_plan_assignments')
       .select('completed_exercises, current_exercise_index, current_set, current_rep')
       .eq('athlete_id', userId)
-      .in('status', ['assigned', 'in_progress'])
+      .or('status.eq.assigned,status.eq.in_progress')
       .order('assigned_at', { ascending: false })
       .limit(1)
       .single();
@@ -94,7 +94,7 @@ export async function saveMonthlyPlanProgressToDB(
       .from('training_plan_assignments')
       .select('id, status')
       .eq('athlete_id', userId)
-      .in('status', ['assigned', 'in_progress'])
+      .or('status.eq.assigned,status.eq.in_progress')
       .order('assigned_at', { ascending: false })
       .limit(1)
       .single();
@@ -173,7 +173,7 @@ async function saveMonthlyPlanCompletionToDB(userId: string, completedExercises:
       .from('training_plan_assignments')
       .select('id, status')
       .eq('athlete_id', userId)
-      .in('status', ['assigned', 'in_progress'])
+      .or('status.eq.assigned,status.eq.in_progress')
       .order('assigned_at', { ascending: false })
       .limit(1)
       .single();
@@ -499,7 +499,7 @@ export async function resetMonthlyPlanProgress(userId: string): Promise<void> {
       .from('training_plan_assignments')
       .select('id, completed_exercises, status')
       .eq('athlete_id', userId)
-      .in('status', ['assigned', 'in_progress'])
+      .or('status.eq.assigned,status.eq.in_progress')
       .order('assigned_at', { ascending: false });
 
     if (fetchError) {

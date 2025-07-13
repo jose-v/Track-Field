@@ -3503,7 +3503,7 @@ export const api = {
             .from('training_plan_assignments')
             .select('training_plan_id, completed_exercises')
             .eq('athlete_id', athleteId)
-            .in('status', ['assigned', 'in_progress'])
+            .or('status.eq.assigned,status.eq.in_progress')
             .order('assigned_at', { ascending: false })
             .limit(1);
           

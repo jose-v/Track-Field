@@ -239,7 +239,7 @@ export function UnifiedWorkoutExecution({
 
   // Load exercises with proper loading states and error handling
   useEffect(() => {
-    if (!assignment || !isOpen) {
+    if (!assignment || !isOpen || !assignment.id || !assignment.assignment_type) {
       setIsLoadingExercises(false);
       return;
     }
@@ -572,16 +572,21 @@ export function UnifiedWorkoutExecution({
 
   // Refresh assignment data when modal opens to get latest progress
   useEffect(() => {
-    if (isOpen && assignment.id) {
-      // Only invalidate queries when modal is opening (not closing)
+    if (isOpen && assignment?.id) {
+      // Only invalidate the general assignments query, not the specific today's query
+      // This prevents simultaneous API calls that cause 406 errors
       const timer = setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['unified-assignments'] });
-        queryClient.invalidateQueries({ queryKey: ['unified-todays-assignment'] });
+        try {
+          queryClient.invalidateQueries({ queryKey: ['unified-assignments'] });
+          // Don't invalidate todays-assignment simultaneously to prevent race condition
+        } catch (error) {
+          console.error('Error invalidating queries:', error);
+        }
       }, 100); // Small delay to ensure modal is fully open
       
       return () => clearTimeout(timer);
     }
-  }, [isOpen, assignment.id, queryClient]);
+  }, [isOpen, assignment?.id, queryClient]);
 
   // Sync local state with assignment progress data when it changes
   useEffect(() => {
@@ -720,10 +725,30 @@ export function UnifiedWorkoutExecution({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Save progress to database
+  // Debounced save progress to prevent race conditions
+  const [pendingSave, setPendingSave] = useState(false);
+  
   const saveProgressToDB = useCallback(async () => {
-    if (!user?.id || !assignment.id || !isOpen) return;
+    if (!user?.id || !assignment.id || !isOpen || pendingSave) return;
     
+    // Validate data before sending to prevent 406 errors
+    if (currentExerciseIndex < 0 || currentSet < 1 || currentRep < 1) {
+      console.warn('Invalid progress data, skipping save:', { currentExerciseIndex, currentSet, currentRep });
+      return;
+    }
+    
+    console.log('🚀 Attempting to save progress:', {
+      assignmentId: assignment.id,
+      userId: user.id,
+      progress: {
+        current_exercise_index: currentExerciseIndex,
+        current_set: currentSet,
+        current_rep: currentRep,
+        completion_percentage: Math.max(0, Math.min(100, progress))
+      }
+    });
+    
+    setPendingSave(true);
     try {
       const isWorkoutComplete = progress === 100;
       
@@ -733,26 +758,42 @@ export function UnifiedWorkoutExecution({
           current_exercise_index: currentExerciseIndex,
           current_set: currentSet,
           current_rep: currentRep,
-          completion_percentage: progress,
+          completion_percentage: Math.max(0, Math.min(100, progress)), // Clamp between 0-100
           workout_completed: isWorkoutComplete
         }
       });
       
-      // Progress saved successfully - log removed to prevent console flooding
+      console.log('✅ Progress saved successfully');
     } catch (error) {
-      // Only log errors if modal is still open to avoid console flooding when closing
       if (isOpen) {
-        console.error('Error saving progress:', error);
+        console.error('❌ Error saving progress:', error);
+        console.error('Error details:', {
+          error: error,
+          assignmentId: assignment.id,
+          userId: user.id,
+          progressData: {
+            current_exercise_index: currentExerciseIndex,
+            current_set: currentSet,
+            current_rep: currentRep,
+            completion_percentage: progress
+          }
+        });
       }
+    } finally {
+      setPendingSave(false);
     }
-  }, [user?.id, assignment.id, currentExerciseIndex, currentSet, currentRep, progress, updateProgress, isOpen]);
+  }, [user?.id, assignment.id, currentExerciseIndex, currentSet, currentRep, progress, updateProgress, isOpen]); // Removed pendingSave to prevent circular dependency
 
-  // Save progress when state changes (save progress even when not actively running)
+  // Debounced save progress when state changes
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) return;
+    
+    const timeoutId = setTimeout(() => {
       saveProgressToDB();
-    }
-  }, [currentExerciseIndex, currentSet, currentRep, isOpen]); // Removed saveProgressToDB from deps to prevent loop
+    }, 500); // Debounce for 500ms
+    
+    return () => clearTimeout(timeoutId);
+  }, [currentExerciseIndex, currentSet, currentRep, isOpen]);
 
   // Green countdown timer logic for timed exercises
   const startTimedCountdown = useCallback((duration: number) => {
@@ -937,17 +978,11 @@ export function UnifiedWorkoutExecution({
         startCountdown();
       }
       
-      if (assignment.status === 'assigned') {
-        await updateProgress.mutateAsync({
-          assignmentId: assignment.id,
-          progressUpdate: {
-            current_exercise_index: currentExerciseIndex,
-            current_set: currentSet,
-            current_rep: currentRep,
-            completion_percentage: progress
-          }
-        });
-      }
+      // Don't call updateProgress here - let the debounced saveProgressToDB handle it
+      // This prevents duplicate API calls and race conditions
+    },
+    onError: (error) => {
+      console.error('Error starting execution:', error);
     }
   });
 
@@ -960,15 +995,10 @@ export function UnifiedWorkoutExecution({
   const stopExecution = useMutation({
     mutationFn: async () => {
       setIsActive(false);
-      await updateProgress.mutateAsync({
-        assignmentId: assignment.id,
-        progressUpdate: {
-          current_exercise_index: currentExerciseIndex,
-          current_set: currentSet,
-          current_rep: currentRep,
-          completion_percentage: progress
-        }
-      });
+      // Progress will be saved by the debounced saveProgressToDB
+    },
+    onError: (error) => {
+      console.error('Error stopping execution:', error);
     }
   });
 
@@ -979,15 +1009,10 @@ export function UnifiedWorkoutExecution({
       setCurrentRep(1);
       setElapsedTime(0);
       setIsActive(false);
-      await updateProgress.mutateAsync({
-        assignmentId: assignment.id,
-        progressUpdate: {
-          current_exercise_index: 0,
-          current_set: 1,
-          current_rep: 1,
-          completion_percentage: 0
-        }
-      });
+      // Progress will be saved by the debounced saveProgressToDB after state updates
+    },
+    onError: (error) => {
+      console.error('Error resetting execution:', error);
     }
   });
 
@@ -995,14 +1020,22 @@ export function UnifiedWorkoutExecution({
     mutationFn: async () => {
       setIsCompleting(true); // Mark as completing to prevent start overlay
       setIsActive(false);
-      await updateProgress.mutateAsync({
+      
+      // Force immediate completion - this is important enough to not debounce
+      return await updateProgress.mutateAsync({
         assignmentId: assignment.id,
         progressUpdate: {
           workout_completed: true,
           completion_percentage: 100
         }
       });
+    },
+    onSuccess: () => {
       if (onComplete) onComplete();
+    },
+    onError: (error) => {
+      console.error('Error completing execution:', error);
+      setIsCompleting(false); // Reset if there's an error
     }
   });
 
@@ -1024,10 +1057,7 @@ export function UnifiedWorkoutExecution({
         setCurrentSet(1);
         setCurrentRep(1);
       } else {
-        // Complete workout - close modal immediately
-        setIsCompleting(true);
-        if (onComplete) onComplete(); // Close modal immediately
-        // Continue with background completion
+        // Complete workout - use mutation to handle completion properly
         completeExecution.mutate();
       }
     } catch (error) {
@@ -1048,10 +1078,7 @@ export function UnifiedWorkoutExecution({
       setCurrentSet(1);
       setCurrentRep(1);
     } else {
-      // Complete workout - close modal immediately
-      setIsCompleting(true);
-      if (onComplete) onComplete(); // Close modal immediately
-      // Continue with background completion
+      // Complete workout - use mutation to handle completion properly
       completeExecution.mutate();
     }
   }, [currentExerciseIndex, totalExercises, completeExecution]);

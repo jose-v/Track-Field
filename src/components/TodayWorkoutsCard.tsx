@@ -25,7 +25,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import { UnifiedAssignmentCard } from './UnifiedAssignmentCard';
 import { UnifiedWorkoutExecution } from './UnifiedWorkoutExecution';
 import { useAuth } from '../contexts/AuthContext';
-import { useUnifiedAssignments, useUnifiedTodaysWorkout } from './unified';
+import { useUnifiedAssignments } from '../hooks/useUnifiedAssignments';
 
 interface TodayWorkoutsCardProps {
   profile: any;
@@ -39,19 +39,13 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
   const { user } = useAuth();
   const toast = useToast();
   
-  // Unified assignment system hooks
+  // Unified assignment system hooks - optimized to prevent duplicate API calls
   const { 
     data: assignments, 
     isLoading: assignmentsLoading, 
     error: assignmentsError 
   } = useUnifiedAssignments(user?.id);
   
-  const { 
-    data: todaysWorkout, 
-    isLoading: todaysWorkoutLoading,
-    error: todaysWorkoutError 
-  } = useUnifiedTodaysWorkout(user?.id);
-
   // State for workout execution
   const [executingAssignmentId, setExecutingAssignmentId] = useState<string | null>(null);
 
@@ -65,8 +59,17 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
   const todayBg = useColorModeValue('teal.50', 'teal.900');
   const todayBorder = useColorModeValue('teal.200', 'teal.700');
 
-  // Filter assignments by date
+  // Get today's date string once and reuse for filtering
   const todayStr = new Date().toISOString().split('T')[0];
+  
+  // Derive today's workout from assignments instead of separate API call to prevent 406 errors
+  const todaysWorkout = assignments?.find(assignment => 
+    assignment.start_date?.startsWith(todayStr)
+  ) || null;
+  const todaysWorkoutLoading = assignmentsLoading; // Use same loading state
+  const todaysWorkoutError = assignmentsError; // Use same error state
+
+  // Filter assignments by date
   const todayAssignments = assignments?.filter(assignment => 
     assignment.start_date?.startsWith(todayStr)
   ) || [];

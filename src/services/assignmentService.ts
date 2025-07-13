@@ -101,6 +101,11 @@ export class AssignmentService {
 
       if (error) {
         console.error('Error fetching assignments:', error);
+        // Add specific handling for 406 errors
+        if (error.code === '406' || error.message?.includes('406') || error.message?.includes('Not Acceptable')) {
+          console.warn('PostgREST 406 error detected, returning empty array as fallback');
+          return [];
+        }
         throw error;
       }
 
@@ -118,18 +123,24 @@ export class AssignmentService {
     try {
       const today = new Date().toISOString().split('T')[0];
       
+      // Get today's assignment with assigned or in_progress status
       const { data, error } = await this.client
         .from('unified_workout_assignments')
         .select('*')
         .eq('athlete_id', athleteId)
         .eq('start_date', today)
-        .in('status', ['assigned', 'in_progress'])
+        .or('status.eq.assigned,status.eq.in_progress')
         .order('assigned_at', { ascending: false })
         .limit(1)
         .single();
 
       if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
         console.error('Error fetching today\'s assignment:', error);
+        // Add specific handling for 406 errors
+        if (error.code === '406' || error.message?.includes('406') || error.message?.includes('Not Acceptable')) {
+          console.warn('PostgREST 406 error detected in getTodaysAssignment, returning null as fallback');
+          return null;
+        }
         throw error;
       }
 

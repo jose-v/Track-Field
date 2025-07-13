@@ -39,8 +39,7 @@ import {
   TodaysWorkoutCard,
   CompactAssignmentCard,
   UnifiedWorkoutExecution,
-  useUnifiedAssignments,
-  useUnifiedTodaysWorkout
+  useUnifiedAssignments
 } from '../../components/unified';
 
 type WorkoutsSectionId = 'todays-workout' | 'all-assignments' | 'weekly-plans' | 'monthly-plans';
@@ -111,7 +110,7 @@ export function AthleteWorkouts() {
     icon: BiRun
   });
 
-  // Unified assignment system hooks
+  // Unified assignment system hooks - optimized to prevent duplicate API calls
   const { 
     data: assignments, 
     isLoading: loadingAssignments, 
@@ -119,12 +118,16 @@ export function AthleteWorkouts() {
     refetch: refetchAssignments
   } = useUnifiedAssignments(user?.id);
   
-  const { 
-    data: todaysWorkout, 
-    isLoading: loadingToday,
-    error: todayError,
-    refetch: refetchToday
-  } = useUnifiedTodaysWorkout(user?.id);
+  // Derive today's workout from assignments instead of separate API call to prevent 406 errors
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todaysWorkout = assignments?.find(assignment => 
+    assignment.start_date?.startsWith(todayStr)
+  ) || null;
+  const loadingToday = loadingAssignments; // Use same loading state
+  const todayError = assignmentsError; // Use same error state
+  
+  // Update refetch function to only use the assignments refetch
+  const refetchToday = refetchAssignments;
 
   // Sidebar constants (matching existing layout)
   const mainSidebarWidth = 70; // This should match your actual sidebar width
