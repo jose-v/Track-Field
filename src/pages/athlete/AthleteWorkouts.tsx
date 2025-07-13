@@ -22,7 +22,8 @@ import {
   ModalHeader,
   ModalBody,
   ModalCloseButton,
-  useDisclosure
+  useDisclosure,
+  useBreakpointValue
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -89,6 +90,10 @@ export function AthleteWorkouts() {
   
   // Mobile filter modal
   const { isOpen: isFiltersOpen, onOpen: onFiltersOpen, onClose: onFiltersClose } = useDisclosure();
+
+  // Responsive design - Clean mobile/desktop separation
+  const isMobile = useBreakpointValue({ base: true, lg: false });
+  const isDesktop = useBreakpointValue({ base: false, lg: true });
 
   // Styling
   const pageBackgroundColor = useColorModeValue('gray.50', 'gray.900');
@@ -188,6 +193,12 @@ export function AthleteWorkouts() {
     completed: assignments?.filter(a => a.status === 'completed').length || 0,
   };
 
+  // Clear all filters function
+  const handleClearFilters = () => {
+    setAssignmentTypeFilter('all');
+    setStatusFilter('all');
+  };
+
   // If executing a workout, show the execution component
   if (executingAssignmentId) {
     const assignmentToExecute = assignments?.find(a => a.id === executingAssignmentId);
@@ -199,70 +210,10 @@ export function AthleteWorkouts() {
             onComplete={handleCompleteWorkout}
             onExit={handleExitExecution}
             isOpen={true}
-                />
-
-      {/* Mobile Filter Modal */}
-      <Modal isOpen={isFiltersOpen} onClose={onFiltersClose} size="md">
-        <ModalOverlay />
-        <ModalContent mx={4}>
-          <ModalHeader>Filter Options</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody pb={6}>
-            <VStack spacing={4} align="stretch">
-              <Box>
-                <Text fontSize="sm" fontWeight="medium" mb={2}>Assignment Type</Text>
-                <Select
-                  value={assignmentTypeFilter}
-                  onChange={(e) => setAssignmentTypeFilter(e.target.value as typeof assignmentTypeFilter)}
-                  bg={cardBg}
-                >
-                  <option value="all">All Types</option>
-                  <option value="single">Single</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                </Select>
-              </Box>
-              
-              <Box>
-                <Text fontSize="sm" fontWeight="medium" mb={2}>Status</Text>
-                <Select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-                  bg={cardBg}
-                >
-                  <option value="all">All Status</option>
-                  <option value="assigned">Assigned</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                </Select>
-              </Box>
-              
-              <Button
-                onClick={() => {
-                  setAssignmentTypeFilter('all');
-                  setStatusFilter('all');
-                  onFiltersClose();
-                }}
-                variant="outline"
-                mt={2}
-              >
-                Clear All Filters
-              </Button>
-            </VStack>
-          </ModalBody>
-        </ModalContent>
-      </Modal>
-
-      {/* Mobile Bottom Navigation */}
-      <MobileBottomNavigation
-        onCreateWorkout={() => navigate('/athlete/workout-creator-new')}
-        onRefresh={handleRefresh}
-        onFilters={onFiltersOpen}
-        onSettings={() => navigate('/athlete/settings')}
-      />
-    </Box>
-  );
-}
+          />
+        </Box>
+      );
+    }
   }
 
   const renderContent = () => {
@@ -270,7 +221,7 @@ export function AthleteWorkouts() {
     const error = assignmentsError || todayError;
 
     if (isLoading) {
-            return (
+      return (
         <Center py={10}>
           <Spinner 
             thickness="4px" 
@@ -284,7 +235,7 @@ export function AthleteWorkouts() {
     }
 
     if (error) {
-            return (
+      return (
         <Alert status="error" mb={4} borderRadius="lg">
           <AlertIcon />
           <Box>
@@ -306,15 +257,18 @@ export function AthleteWorkouts() {
                 <Box>
                   <Heading size="lg" mb={2}>Today's Workout</Heading>
                   <Text color="gray.600">Your assigned workout for today</Text>
-                  </Box>
+                </Box>
+                {/* Desktop Refresh Button */}
+                {isDesktop && (
                   <Button
                     leftIcon={<FaRedo />}
-                  variant="outline"
+                    variant="outline"
                     onClick={handleRefresh}
-                  size="sm"
+                    size="sm"
                   >
                     Refresh
                   </Button>
+                )}
               </Flex>
               
               {todaysWorkout ? (
@@ -337,16 +291,16 @@ export function AthleteWorkouts() {
                   <Text color="gray.400" fontSize="sm">
                     Check back later or view your other assignments
                   </Text>
-            </Box>
+                </Box>
               )}
             </VStack>
           );
 
         default:
           const filteredAssignments = getFilteredAssignments();
-          const sectionTitle = workoutsSections.find(s => s.id === activeItem)?.title || 'Assignments';
+          const sectionTitle = activeItem.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
 
-    return (
+          return (
             <VStack spacing={6} align="stretch">
               <Flex justify="space-between" align="center">
                 <Box>
@@ -360,66 +314,63 @@ export function AthleteWorkouts() {
                     Your assignments and training plans
                   </Text>
                 </Box>
-            <Button
-                  leftIcon={<FaRedo />}
-                  variant="outline"
-                  onClick={handleRefresh}
-                  size="sm"
-                >
-                  Refresh
-            </Button>
-          </Flex>
-          
-          {/* Filter Controls - Show only for all-assignments */}
-          {activeItem === 'all-assignments' && (
-            <Flex direction={{ base: "column", md: "row" }} gap={3} align={{ base: "stretch", md: "center" }}>
-              <Text fontSize="sm" fontWeight="medium" color="gray.600" display={{ base: "none", md: "block" }}>
-                Filters:
-              </Text>
+                {/* Desktop Refresh Button */}
+                {isDesktop && (
+                  <Button
+                    leftIcon={<FaRedo />}
+                    variant="outline"
+                    onClick={handleRefresh}
+                    size="sm"
+                  >
+                    Refresh
+                  </Button>
+                )}
+              </Flex>
               
-              <HStack spacing={3} w={{ base: "100%", md: "auto" }} wrap="wrap">
-                <Box flex={{ base: "1", md: "none" }} minW="140px">
-                  <Select
-                    value={assignmentTypeFilter}
-                    onChange={(e) => setAssignmentTypeFilter(e.target.value as typeof assignmentTypeFilter)}
-                    size="sm"
-                    bg={cardBg}
-                  >
-                    <option value="all">All Types</option>
-                    <option value="single">Single</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="monthly">Monthly</option>
-                  </Select>
-                </Box>
-                
-                <Box flex={{ base: "1", md: "none" }} minW="140px">
-                  <Select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-                    size="sm"
-                    bg={cardBg}
-                  >
-                    <option value="all">All Status</option>
-                    <option value="assigned">Assigned</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                  </Select>
-                </Box>
-                
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    setAssignmentTypeFilter('all');
-                    setStatusFilter('all');
-                  }}
-                  display={{ base: "none", md: "flex" }}
-                >
-                  Clear Filters
-                </Button>
-              </HStack>
-            </Flex>
-          )}
+              {/* Desktop Filter Controls - Only show on desktop for all-assignments */}
+              {isDesktop && activeItem === 'all-assignments' && (
+                <Flex gap={3} align="center" wrap="wrap">
+                  <Text fontSize="sm" fontWeight="medium" color="gray.600">
+                    Filters:
+                  </Text>
+                  
+                  <HStack spacing={3}>
+                    <Select
+                      value={assignmentTypeFilter}
+                      onChange={(e) => setAssignmentTypeFilter(e.target.value as typeof assignmentTypeFilter)}
+                      size="sm"
+                      bg={cardBg}
+                      minW="140px"
+                    >
+                      <option value="all">All Types</option>
+                      <option value="single">Single</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                    </Select>
+                    
+                    <Select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                      size="sm"
+                      bg={cardBg}
+                      minW="140px"
+                    >
+                      <option value="all">All Status</option>
+                      <option value="assigned">Assigned</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="completed">Completed</option>
+                    </Select>
+                    
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleClearFilters}
+                    >
+                      Clear Filters
+                    </Button>
+                  </HStack>
+                </Flex>
+              )}
               
               {filteredAssignments.length > 0 ? (
                 <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
@@ -450,8 +401,8 @@ export function AthleteWorkouts() {
                   </Text>
                 </Box>
               )}
-      </VStack>
-    );
+            </VStack>
+          );
       }
     };
 
@@ -460,20 +411,21 @@ export function AthleteWorkouts() {
 
   return (
     <Box bg={pageBackgroundColor} minH="100vh" data-testid="athlete-workouts">
-      {/* Workouts Sidebar */}
-      <WorkoutsSidebar
-        sections={workoutsSections}
-        activeItem={activeItem}
-        onItemClick={handleItemClick}
-        createWorkoutAction={() => navigate('/athlete/workout-creator-new')}
-        workoutCounts={workoutCounts}
-      />
+      {/* Desktop Sidebar - Only show on desktop */}
+      {isDesktop && (
+        <WorkoutsSidebar
+          sections={workoutsSections}
+          activeItem={activeItem}
+          onItemClick={handleItemClick}
+          createWorkoutAction={() => navigate('/athlete/workout-creator-new')}
+          workoutCounts={workoutCounts}
+        />
+      )}
 
       {/* Main Content */}
       <Box
         ml={{ 
           base: 0, 
-          md: `${mainSidebarWidth - 50}px`, 
           lg: mainSidebarWidth === 70 
             ? `${mainSidebarWidth + 280 - 50}px`
             : `${mainSidebarWidth + 280 - 180}px`
@@ -486,19 +438,97 @@ export function AthleteWorkouts() {
         pb={{ base: 24, lg: 8 }}
         transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
         minH="100vh"
-        px={{ base: "10px", md: 0 }}
+        px={{ base: "16px", md: 0 }}
         py={8}
       >
-        {/* Desktop Header */}
-        <PageHeader
-          title="Workouts"
-          subtitle="Your Unified Training System"
-          icon={BiRun}
-        />
+        {/* Desktop Header - Only show on desktop */}
+        {isDesktop && (
+          <PageHeader
+            title="Workouts"
+            subtitle="Your Unified Training System"
+            icon={BiRun}
+          />
+        )}
+
+        {/* Mobile Header - Only show on mobile */}
+        {isMobile && (
+          <VStack spacing={4} align="stretch" mb={6}>
+            <HStack spacing={3} align="center">
+              <BiRun size="24px" color="blue.500" />
+              <Heading size="lg">Workouts</Heading>
+            </HStack>
+            <Text color="gray.600" fontSize="sm">
+              Your Unified Training System
+            </Text>
+          </VStack>
+        )}
 
         {/* Main Content */}
         {renderContent()}
-            </Box>
+      </Box>
+
+      {/* Mobile Filter Modal - Only accessible on mobile */}
+      {isMobile && (
+        <Modal isOpen={isFiltersOpen} onClose={onFiltersClose} size="md">
+          <ModalOverlay />
+          <ModalContent mx={4}>
+            <ModalHeader>Filter Options</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody pb={6}>
+              <VStack spacing={4} align="stretch">
+                <Box>
+                  <Text fontSize="sm" fontWeight="medium" mb={2}>Assignment Type</Text>
+                  <Select
+                    value={assignmentTypeFilter}
+                    onChange={(e) => setAssignmentTypeFilter(e.target.value as typeof assignmentTypeFilter)}
+                    bg={cardBg}
+                  >
+                    <option value="all">All Types</option>
+                    <option value="single">Single</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </Select>
+                </Box>
+                
+                <Box>
+                  <Text fontSize="sm" fontWeight="medium" mb={2}>Status</Text>
+                  <Select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                    bg={cardBg}
+                  >
+                    <option value="all">All Status</option>
+                    <option value="assigned">Assigned</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                  </Select>
+                </Box>
+                
+                <Button
+                  onClick={() => {
+                    handleClearFilters();
+                    onFiltersClose();
+                  }}
+                  variant="outline"
+                  mt={2}
+                >
+                  Clear All Filters
+                </Button>
+              </VStack>
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      )}
+
+      {/* Mobile Bottom Navigation - Only show on mobile */}
+      {isMobile && (
+        <MobileBottomNavigation
+          onCreateWorkout={() => navigate('/athlete/workout-creator-new')}
+          onRefresh={handleRefresh}
+          onFilters={onFiltersOpen}
+          onSettings={() => navigate('/athlete/settings')}
+        />
+      )}
     </Box>
   );
 } 

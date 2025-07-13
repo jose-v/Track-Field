@@ -13,6 +13,7 @@ import {
   IconButton,
   Button,
   SimpleGrid,
+  Spinner,
   useColorModeValue,
   Progress,
   Badge,
@@ -1249,6 +1250,24 @@ export function UnifiedWorkoutExecution({
     return 'Next Exercise';
   };
 
+  // Show loading state while exercises are being loaded
+  if (isLoadingExercises) {
+    return (
+      <Modal isOpen={isOpen} onClose={onExit || (() => {})} isCentered size="md">
+        <ModalOverlay bg="blackAlpha.600" />
+        <ModalContent bg={cardBg}>
+          <ModalBody py={8}>
+            <VStack spacing={4} textAlign="center">
+              <Spinner size="xl" color="blue.500" />
+              <Text fontSize="xl" fontWeight="semibold" color="gray.600">Loading Workout...</Text>
+              <Text color="gray.500">Please wait while we prepare your exercises.</Text>
+            </VStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    );
+  }
+
   // Only show "No Exercises Found" when we've finished loading and confirmed no exercises exist
   if (!isLoadingExercises && !exerciseLoadingError && exercises.length === 0 && totalExercises === 0) {
     return (
@@ -1265,11 +1284,6 @@ export function UnifiedWorkoutExecution({
         </ModalContent>
       </Modal>
     );
-  }
-
-  // Don't render anything while loading to prevent brief flashes
-  if (isLoadingExercises) {
-    return null;
   }
 
   return (
