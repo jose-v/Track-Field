@@ -232,14 +232,26 @@ export function UnifiedWorkoutExecution({
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [totalExercises, setTotalExercises] = useState(0);
   const [exerciseLoadingError, setExerciseLoadingError] = useState<string | null>(null);
+  const [isLoadingExercises, setIsLoadingExercises] = useState(false);
+
+  // Set loading state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setIsLoadingExercises(true);
+    }
+  }, [isOpen]);
 
   // Load exercises based on assignment type
   useEffect(() => {
     const loadExercises = async () => {
       try {
+        setIsLoadingExercises(true);
         setExerciseLoadingError(null);
 
         if (assignment.assignment_type === 'single') {
+          // Add small delay to ensure loading state takes effect
+          await new Promise(resolve => setTimeout(resolve, 50));
+          
           const exerciseList = assignment.exercise_block?.exercises || [];
           setExercises(exerciseList.map(exercise => ({
             ...exercise,
@@ -248,6 +260,9 @@ export function UnifiedWorkoutExecution({
           })));
           setTotalExercises(exerciseList.length);
         } else if (assignment.assignment_type === 'weekly') {
+          // Add small delay to ensure loading state takes effect
+          await new Promise(resolve => setTimeout(resolve, 50));
+          
           // Weekly plan - extract today's exercises from daily_workouts
           const dailyWorkouts = assignment.exercise_block?.daily_workouts || {};
           const today = new Date();
@@ -455,6 +470,8 @@ export function UnifiedWorkoutExecution({
         setExerciseLoadingError('Failed to load exercises');
         setExercises([]);
         setTotalExercises(0);
+      } finally {
+        setIsLoadingExercises(false);
       }
     };
 
@@ -470,6 +487,7 @@ export function UnifiedWorkoutExecution({
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isActive, setIsActive] = useState(false); // Always start with overlay, regardless of status
   const [isManuallyPaused, setIsManuallyPaused] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false); // Track when workout is being completed
   
   // Timer state
   const [isCountingDown, setIsCountingDown] = useState(false);
@@ -874,6 +892,14 @@ export function UnifiedWorkoutExecution({
     // Start button -> Red countdown -> Green timed countdown
   }, []);
 
+  // Reset completion state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setIsCompleting(false);
+      // Don't reset isLoadingExercises here - let it be controlled by loadExercises()
+    }
+  }, [isOpen]);
+
   // Mutations for workout control
   const startExecution = useMutation({
     mutationFn: async () => {
@@ -939,6 +965,7 @@ export function UnifiedWorkoutExecution({
 
   const completeExecution = useMutation({
     mutationFn: async () => {
+      setIsCompleting(true); // Mark as completing to prevent start overlay
       setIsActive(false);
       await updateProgress.mutateAsync({
         assignmentId: assignment.id,
@@ -969,7 +996,10 @@ export function UnifiedWorkoutExecution({
         setCurrentSet(1);
         setCurrentRep(1);
       } else {
-        // Complete workout
+        // Complete workout - close modal immediately
+        setIsCompleting(true);
+        if (onComplete) onComplete(); // Close modal immediately
+        // Continue with background completion
         completeExecution.mutate();
       }
     } catch (error) {
@@ -990,7 +1020,10 @@ export function UnifiedWorkoutExecution({
       setCurrentSet(1);
       setCurrentRep(1);
     } else {
-      // Complete workout
+      // Complete workout - close modal immediately
+      setIsCompleting(true);
+      if (onComplete) onComplete(); // Close modal immediately
+      // Continue with background completion
       completeExecution.mutate();
     }
   }, [currentExerciseIndex, totalExercises, completeExecution]);
@@ -1216,7 +1249,8 @@ export function UnifiedWorkoutExecution({
     return 'Next Exercise';
   };
 
-  if (exercises.length === 0) {
+  // Only show "No Exercises Found" when we've finished loading and confirmed no exercises exist
+  if (!isLoadingExercises && !exerciseLoadingError && exercises.length === 0 && totalExercises === 0) {
     return (
       <Modal isOpen={isOpen} onClose={onExit || (() => {})} isCentered size="md">
         <ModalOverlay bg="blackAlpha.600" />
@@ -1231,6 +1265,11 @@ export function UnifiedWorkoutExecution({
         </ModalContent>
       </Modal>
     );
+  }
+
+  // Don't render anything while loading to prevent brief flashes
+  if (isLoadingExercises) {
+    return null;
   }
 
   return (
@@ -1323,8 +1362,8 @@ export function UnifiedWorkoutExecution({
                 left="50%" 
                 transform="translate(-50%, -50%)"
                 zIndex={1000}
-                bg="rgba(0, 0, 0, 0.8)"
-                backdropFilter="blur(10px)"
+                bg="rgba(0, 0, 0, 0.5)"
+                backdropFilter="blur(7px)"
                 w="full"
                 h="full"
                 display="flex"
@@ -1355,15 +1394,15 @@ export function UnifiedWorkoutExecution({
             )}
 
             {/* Start Button - Show when not counting down and not active */}
-            {!isCountingDown && !isActive && !isResting && !showRPEScreen && totalExercises > 0 && !isManuallyPaused && !isTimedCountdown && (
+            {!isCountingDown && !isActive && !isResting && !showRPEScreen && totalExercises > 0 && !isManuallyPaused && !isTimedCountdown && !isCompleting && (
               <Box 
                 position="absolute" 
                 top="50%" 
                 left="50%" 
                 transform="translate(-50%, -50%)"
                 zIndex={999}
-                bg="rgba(0, 0, 0, 0.6)"
-                backdropFilter="blur(10px)"
+                bg="rgba(0, 0, 0, 0.5)"
+                backdropFilter="blur(7px)"
                 w="full"
                 h="full"
                 display="flex"
@@ -1406,8 +1445,8 @@ export function UnifiedWorkoutExecution({
                 left="50%" 
                 transform="translate(-50%, -50%)"
                 zIndex={1000}
-                bg="rgba(0, 0, 0, 0.8)"
-                backdropFilter="blur(10px)"
+                bg="rgba(0, 0, 0, 0.5)"
+                backdropFilter="blur(7px)"
                 w="full"
                 h="full"
                 display="flex"
@@ -1494,18 +1533,7 @@ export function UnifiedWorkoutExecution({
                   </SimpleGrid>
                 </VStack>
                 
-                {/* Selected RPE Display */}
-                {selectedRPE && (
-                  <Box w="full" bg={sectionBg} borderRadius="xl" p={4} textAlign="center">
-                    <Text fontSize="sm" color={modalTextColor}>
-                      <Text as="span" fontWeight="bold" color={currentColor}>
-                        {selectedRPE}/10
-                      </Text>
-                      {" - "}
-                      {getRPELabel(selectedRPE)}
-                    </Text>
-                  </Box>
-                )}
+
                 
                 {/* Action Buttons */}
                 <HStack spacing={4} w="full">
@@ -1560,7 +1588,7 @@ export function UnifiedWorkoutExecution({
             )}
 
             {/* Loading State */}
-            {!showRPEScreen && !exerciseLoadingError && totalExercises === 0 && (
+            {!showRPEScreen && !exerciseLoadingError && totalExercises === 0 && isLoadingExercises && (
               <Box w="full" bg={sectionBg} borderRadius="xl" p={6} textAlign="center">
                 <Text fontSize="lg" fontWeight="bold" mb={2}>
                   Loading Exercises...
@@ -1808,8 +1836,8 @@ export function UnifiedWorkoutExecution({
 
         <ModalFooter p={6}>
           <VStack spacing={4} w="full">
-            {/* Show Go Back button when there's an error or no exercises */}
-            {(exerciseLoadingError || totalExercises === 0) && (
+            {/* Show Go Back button when there's an error or no exercises (after loading completes) */}
+            {(exerciseLoadingError || (!isLoadingExercises && totalExercises === 0)) && (
               <Button
                 size="lg"
                 onClick={onExit}
