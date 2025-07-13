@@ -141,10 +141,77 @@ export class AssignmentService {
   }
 
   /**
-   * Create a new assignment
+   * Create a new assignment (with duplicate handling)
    */
   async createAssignment(assignment: Omit<WorkoutAssignment, 'id' | 'created_at' | 'updated_at'>): Promise<WorkoutAssignment> {
     try {
+      // Handle assigned_by field - convert auth ID to profile ID if needed
+      let assignedBy = assignment.assigned_by;
+      if (assignedBy) {
+        // Check if the assigned_by ID exists in profiles table
+        const { data: profileExists, error: profileError } = await this.client
+          .from('profiles')
+          .select('id')
+          .eq('id', assignedBy)
+          .single();
+
+        // If not found in profiles, set to null to avoid foreign key error
+        if (profileError && profileError.code === 'PGRST116') {
+          console.warn(`assigned_by ID ${assignedBy} not found in profiles table, setting to null`);
+          assignedBy = null;
+        } else if (profileError) {
+          // If there's a different error, log it but continue
+          console.error('Error checking assigned_by profile:', profileError);
+          assignedBy = null;
+        }
+      }
+
+      // For single workout assignments, check if this specific workout is already assigned
+      // For other types, check by athlete, type, and date
+      let existingAssignment = null;
+      let checkError = null;
+      
+      if (assignment.assignment_type === 'single') {
+        // For single workouts, check for the specific workout ID
+        const workoutId = assignment.meta?.original_workout_id || assignment.exercise_block?.workout_id;
+        
+        if (workoutId) {
+          const { data, error } = await this.client
+            .from('unified_workout_assignments')
+            .select('*')
+            .eq('athlete_id', assignment.athlete_id)
+            .eq('assignment_type', 'single')
+            .or(`meta->>original_workout_id.eq.${workoutId},exercise_block->>workout_id.eq.${workoutId}`)
+            .single();
+          
+          existingAssignment = data;
+          checkError = error;
+        }
+      } else {
+        // For weekly/monthly assignments, check by athlete, type, and date
+        const { data, error } = await this.client
+          .from('unified_workout_assignments')
+          .select('*')
+          .eq('athlete_id', assignment.athlete_id)
+          .eq('assignment_type', assignment.assignment_type)
+          .eq('start_date', assignment.start_date)
+          .single();
+          
+        existingAssignment = data;
+        checkError = error;
+      }
+
+      // If no error and assignment exists, return the existing one
+      if (!checkError && existingAssignment) {
+        return existingAssignment;
+      }
+
+      // If error is not "no rows found", throw it
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Error checking existing assignment:', checkError);
+        throw checkError;
+      }
+
       // Calculate total exercises for progress tracking
       const totalExercises = this.calculateTotalExercises(assignment.exercise_block, assignment.assignment_type);
       
@@ -159,10 +226,12 @@ export class AssignmentService {
         ...assignment.progress
       };
 
+      // Create new assignment (no upsert needed since we checked for duplicates above)
       const { data, error } = await this.client
         .from('unified_workout_assignments')
         .insert([{
           ...assignment,
+          assigned_by: assignedBy, // Use the corrected assigned_by value
           progress: initialProgress
         }])
         .select()
@@ -381,10 +450,16 @@ export class AssignmentService {
         }
       }
       
-            if (assignmentType === 'weekly') {
+      if (assignmentType === 'weekly') {
         const dailyWorkouts = exerciseBlock.daily_workouts || {};
-        return (Object.values(dailyWorkouts) as any[]).reduce((total: number, day: any) => {
-          return total + (day?.exercises?.length || 0);
+        return (Object.values(dailyWorkouts) as any[]).reduce((total: number, dayBlocks: any) => {
+          if (Array.isArray(dayBlocks)) {
+            // Each day contains an array of blocks, each block has exercises
+            return total + dayBlocks.reduce((dayTotal: number, block: any) => {
+              return dayTotal + (block.exercises?.length || 0);
+            }, 0);
+          }
+          return total;
         }, 0);
       }
         

@@ -9,6 +9,16 @@ import { api } from '../services/api';
 import { supabase } from '../lib/supabase';
 
 /**
+ * Interface for granular workout progress
+ */
+interface WorkoutProgress {
+  currentExerciseIndex: number;
+  currentSet: number;
+  currentRep: number;
+  completedExercises: number[];
+}
+
+/**
  * Get completion status for today's exercises from the database
  */
 export async function getMonthlyPlanCompletionFromDB(userId: string): Promise<number[]> {
@@ -37,6 +47,119 @@ export async function getMonthlyPlanCompletionFromDB(userId: string): Promise<nu
   } catch (error) {
     console.error('Error loading completion from DB:', error);
     return [];
+  }
+}
+
+/**
+ * Get granular workout progress from the database for monthly plans
+ */
+export async function getMonthlyPlanProgressFromDB(userId: string): Promise<WorkoutProgress | null> {
+  try {
+    const { data: assignment, error } = await supabase
+      .from('training_plan_assignments')
+      .select('completed_exercises, current_exercise_index, current_set, current_rep')
+      .eq('athlete_id', userId)
+      .in('status', ['assigned', 'in_progress'])
+      .order('assigned_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error || !assignment) {
+      return null;
+    }
+
+    // Return granular progress if available, otherwise default values
+    return {
+      currentExerciseIndex: assignment.current_exercise_index || 0,
+      currentSet: assignment.current_set || 1,
+      currentRep: assignment.current_rep || 1,
+      completedExercises: assignment.completed_exercises || []
+    };
+  } catch (error) {
+    console.error('Error loading granular progress from DB:', error);
+    return null;
+  }
+}
+
+/**
+ * Save granular workout progress to the database for monthly plans
+ */
+export async function saveMonthlyPlanProgressToDB(
+  userId: string, 
+  progress: WorkoutProgress
+): Promise<void> {
+  try {
+    // Get the current assignment ID (can be 'assigned' or 'in_progress')
+    const { data: assignment, error: fetchError } = await supabase
+      .from('training_plan_assignments')
+      .select('id, status')
+      .eq('athlete_id', userId)
+      .in('status', ['assigned', 'in_progress'])
+      .order('assigned_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (fetchError || !assignment) {
+      console.error('No training plan assignment found for saving progress:', fetchError);
+      return;
+    }
+
+    // Update with granular progress and completion data
+    const updateData: any = { 
+      completed_exercises: progress.completedExercises,
+      current_exercise_index: progress.currentExerciseIndex,
+      current_set: progress.currentSet,
+      current_rep: progress.currentRep
+    };
+    
+    // Change status to 'in_progress' if it's still 'assigned'
+    if (assignment.status === 'assigned') {
+      updateData.status = 'in_progress';
+    }
+
+    const { error: updateError } = await supabase
+      .from('training_plan_assignments')
+      .update(updateData)
+      .eq('id', assignment.id);
+
+    if (updateError) {
+      console.error('Error saving granular progress to DB:', updateError);
+    } else {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`💾 Saved monthly plan progress to DB: Exercise ${progress.currentExerciseIndex}, Set ${progress.currentSet}, Rep ${progress.currentRep}`);
+      }
+    }
+  } catch (error) {
+    console.error('Error saving granular progress to DB:', error);
+  }
+}
+
+/**
+ * Save current workout progress to database during exercise execution for monthly plans
+ */
+export async function saveCurrentMonthlyPlanProgressToDB(
+  userId: string,
+  exerciseIndex: number,
+  currentSet: number,
+  currentRep: number,
+  workoutStore: any,
+  workoutId: string
+): Promise<void> {
+  try {
+    // Get completed exercises from the store
+    const storeProgress = workoutStore.getProgress(workoutId);
+    const completedExercises = storeProgress?.completedExercises || [];
+
+    const progress: WorkoutProgress = {
+      currentExerciseIndex: exerciseIndex,
+      currentSet,
+      currentRep,
+      completedExercises
+    };
+
+    await saveMonthlyPlanProgressToDB(userId, progress);
+  } catch (error) {
+    console.error('Error saving current monthly plan progress:', error);
   }
 }
 
@@ -246,8 +369,8 @@ export async function startTodaysWorkoutExecution(
     workoutStore.updateProgress(todaysWorkout.id, 0, todaysWorkout.exercises.length);
     
     // Sync database completion status to local store
-    if (completedExercisesFromDB.length > 0) {
-      completedExercisesFromDB.forEach(exerciseIdx => {
+    if (completedExercisesFromDB && completedExercisesFromDB.length > 0) {
+      completedExercisesFromDB.forEach((exerciseIdx: number) => {
         workoutStore.markExerciseCompleted(todaysWorkout.id, exerciseIdx);
       });
       workoutStore.updateProgress(
@@ -326,10 +449,51 @@ export async function markExerciseCompletedWithSync(
 }
 
 /**
+ * Clear all localStorage keys related to monthly plan workout progress and execution
+ */
+export function clearMonthlyPlanLocalStorage(): void {
+  try {
+    // Clear workout store data (Zustand persist)
+    localStorage.removeItem('workout-progress-storage');
+    
+    // Clear athlete execution modal state
+    localStorage.removeItem('athlete-exec-modal-state');
+    
+    // Clear completed exercises
+    localStorage.removeItem('workout-completed-exercises');
+    
+    // Clear execution state for all daily workouts
+    // Since monthly plans use daily- prefixed IDs, we'll clear all matching patterns
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (
+        key.startsWith('workout-execution-state-daily-') ||
+        key.startsWith('workout-progress-daily-')
+      )) {
+        keysToRemove.push(key);
+      }
+    }
+    
+    // Remove the found keys
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🧹 Cleared localStorage for monthly plan, removed ${keysToRemove.length} execution state keys`);
+    }
+  } catch (error) {
+    console.error('Error clearing monthly plan localStorage:', error);
+  }
+}
+
+/**
  * Reset monthly plan progress by clearing completed exercises from database
  */
 export async function resetMonthlyPlanProgress(userId: string): Promise<void> {
   try {
+    // Clear localStorage first
+    clearMonthlyPlanLocalStorage();
+    
     // Get ALL current assignments and clear their completed_exercises
     const { data: assignments, error: fetchError } = await supabase
       .from('training_plan_assignments')
@@ -338,8 +502,13 @@ export async function resetMonthlyPlanProgress(userId: string): Promise<void> {
       .in('status', ['assigned', 'in_progress'])
       .order('assigned_at', { ascending: false });
 
-    if (fetchError || !assignments || assignments.length === 0) {
-      console.error('No training plan assignments found for reset:', fetchError);
+    if (fetchError) {
+      console.error('Error fetching training plan assignments for reset:', fetchError);
+      return;
+    }
+
+    if (!assignments || assignments.length === 0) {
+      console.log('No training plan assignments to reset');
       return;
     }
 
@@ -349,6 +518,9 @@ export async function resetMonthlyPlanProgress(userId: string): Promise<void> {
         .from('training_plan_assignments')
         .update({ 
           completed_exercises: [],
+          current_exercise_index: 0,
+          current_set: 1,
+          current_rep: 1,
           status: 'assigned'
         })
         .eq('id', assignment.id)

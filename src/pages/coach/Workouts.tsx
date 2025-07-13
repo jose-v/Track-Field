@@ -208,17 +208,24 @@ export function CoachWorkouts() {
     const fetchAssignments = async () => {
       setAssignmentsLoading(true);
       try {
-        // Get all athlete-workout assignments for these workout IDs
+        // Get all athlete-workout assignments for these workout IDs from unified system
         const { data, error } = await supabase
-          .from('athlete_workouts')
+          .from('unified_workout_assignments')
           .select('*')
-          .in('workout_id', workoutIds);
+          .in('meta->>original_workout_id', workoutIds);
 
         if (error) {
           throw error;
         }
 
-        setAssignments(data || []);
+        // Convert unified assignments to old format for compatibility
+        const compatibleAssignments = (data || []).map(assignment => ({
+          id: assignment.id,
+          athlete_id: assignment.athlete_id,
+          workout_id: assignment.meta?.original_workout_id || '',
+          status: assignment.status
+        }));
+        setAssignments(compatibleAssignments);
       } catch (error) {
         console.error('Error fetching assignments:', error);
       } finally {
@@ -361,7 +368,52 @@ export function CoachWorkouts() {
       
       // Then assign to athletes if there are any and we have a workout ID
       if (assignedAthletes && assignedAthletes.length > 0 && workoutId) {
-        await api.athleteWorkouts.assign(workoutId, assignedAthletes);
+        // Use unified assignment system
+        const { AssignmentService } = await import('../../services/assignmentService');
+        const assignmentService = new AssignmentService();
+        
+        // Convert workout to unified format
+        const exerciseBlock = {
+          workout_name: payloadForApi.name,
+          description: payloadForApi.description || payloadForApi.notes || '',
+          estimated_duration: payloadForApi.duration,
+          location: payloadForApi.location,
+          workout_type: payloadForApi.type || 'strength',
+          exercises: payloadForApi.exercises || []
+        };
+        
+        // Create unified assignments for each athlete
+        for (const athleteId of assignedAthletes) {
+          try {
+            const startDate = payloadForApi.date || new Date().toISOString().split('T')[0];
+            await assignmentService.createAssignment({
+              athlete_id: athleteId,
+              assignment_type: 'single',
+              exercise_block: exerciseBlock,
+              progress: {
+                current_exercise_index: 0,
+                current_set: 1,
+                current_rep: 1,
+                completed_exercises: [],
+                total_exercises: (payloadForApi.exercises || []).length,
+                completion_percentage: 0
+              },
+              start_date: startDate,
+              end_date: startDate,
+              assigned_at: new Date().toISOString(),
+              assigned_by: user?.id,
+              status: 'assigned',
+              meta: {
+                original_workout_id: workoutId,
+                workout_type: 'single',
+                estimated_duration: payloadForApi.duration,
+                location: payloadForApi.location
+              }
+            });
+          } catch (error) {
+            console.error(`Failed to create unified assignment for athlete ${athleteId}:`, error);
+          }
+        }
       }
       
       // Close the modal
@@ -376,16 +428,23 @@ export function CoachWorkouts() {
       // Only refresh stats and assignments after the refetch is complete
       await refetchStats();
       
-      // Refetch assignments
+      // Refetch assignments from unified system
       if (workoutIds.length > 0) {
         setAssignmentsLoading(true);
         const { data } = await supabase
-          .from('athlete_workouts')
+          .from('unified_workout_assignments')
           .select('*')
-          .in('workout_id', workoutIds);
+          .in('meta->>original_workout_id', workoutIds);
           
         if (data) {
-          setAssignments(data);
+          // Convert unified assignments to old format for compatibility
+          const compatibleAssignments = data.map(assignment => ({
+            id: assignment.id,
+            athlete_id: assignment.athlete_id,
+            workout_id: assignment.meta?.original_workout_id || '',
+            status: assignment.status
+          }));
+          setAssignments(compatibleAssignments);
         }
         setAssignmentsLoading(false);
       }
@@ -461,19 +520,26 @@ export function CoachWorkouts() {
       // Refetch workouts
       await refetch();
       
-      // Refetch assignments directly
+      // Refetch assignments directly from unified system
       if (workoutIds.length > 0) {
         setAssignmentsLoading(true);
         
         const { data, error } = await supabase
-          .from('athlete_workouts')
+          .from('unified_workout_assignments')
           .select('*')
-          .in('workout_id', workoutIds);
+          .in('meta->>original_workout_id', workoutIds);
           
         if (error) {
           console.error('Error refreshing assignments:', error);
         } else if (data) {
-          setAssignments(data);
+          // Convert unified assignments to old format for compatibility
+          const compatibleAssignments = data.map(assignment => ({
+            id: assignment.id,
+            athlete_id: assignment.athlete_id,
+            workout_id: assignment.meta?.original_workout_id || '',
+            status: assignment.status
+          }));
+          setAssignments(compatibleAssignments);
         }
         
         setAssignmentsLoading(false);

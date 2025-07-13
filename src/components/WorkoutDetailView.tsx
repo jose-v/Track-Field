@@ -288,21 +288,21 @@ export function WorkoutDetailView({
       });
 
       const queryPromise = (async () => {
-        // Simple, fast query - just get basic assignment data first
-        const { data: athleteWorkouts, error: workoutError } = await supabase
-          .from('athlete_workouts')
+        // Simple, fast query - get assignment data from unified system
+        const { data: unifiedAssignments, error: workoutError } = await supabase
+          .from('unified_workout_assignments')
           .select('athlete_id, status, assigned_at')
-          .eq('workout_id', workout.id)
+          .eq('meta->>original_workout_id', workout.id)
           .limit(50); // Reasonable limit
           
         if (workoutError) throw workoutError;
         
-        if (!athleteWorkouts || athleteWorkouts.length === 0) {
+        if (!unifiedAssignments || unifiedAssignments.length === 0) {
           return [];
         }
 
         // Only fetch profiles if we have assignments (avoid unnecessary query)
-        const athleteIds = athleteWorkouts.map(aw => aw.athlete_id);
+        const athleteIds = unifiedAssignments.map(aw => aw.athlete_id);
         const { data: profiles } = await supabase
           .from('profiles')
           .select('id, first_name, last_name, email, avatar_url')
@@ -310,7 +310,7 @@ export function WorkoutDetailView({
           .limit(50);
           
         // Combine the data efficiently
-        return athleteWorkouts.map(aw => ({
+        return unifiedAssignments.map(aw => ({
           athlete_id: aw.athlete_id,
           status: aw.status,
           assigned_at: aw.assigned_at,

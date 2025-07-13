@@ -80,25 +80,17 @@ export function useWorkoutsRealtime({
               }
               setLastUpdate(new Date());
               
-              // Invalidate relevant queries
-              queryClient.invalidateQueries({ queryKey: ['workoutCompletionStats'] });
-              queryClient.invalidateQueries({ queryKey: ['athleteWorkouts'] });
-              
-              // For assignment changes, invalidate the affected athlete's cache
-              const athleteId = (payload.new as AthleteWorkoutPayload)?.athlete_id || 
-                              (payload.old as AthleteWorkoutPayload)?.athlete_id;
-              if (athleteId) {
-                queryClient.invalidateQueries({ queryKey: ['athleteAssignedWorkouts', athleteId] });
-              }
-              
-              // For specific workout update - invalidate that workout
-              const workoutId = (payload.new as AthleteWorkoutPayload)?.workout_id || 
-                              (payload.old as AthleteWorkoutPayload)?.workout_id;
-              if (workoutId) {
-                queryClient.invalidateQueries({ 
-                  queryKey: ['workout', workoutId] 
-                });
-              }
+              // Debounce invalidations to prevent excessive requests
+              setTimeout(() => {
+                // Only invalidate the most essential queries for athlete workouts
+                const athleteId = (payload.new as AthleteWorkoutPayload)?.athlete_id || 
+                                (payload.old as AthleteWorkoutPayload)?.athlete_id;
+                
+                if (athleteId) {
+                  // Only invalidate athlete-specific queries, not global ones
+                  queryClient.invalidateQueries({ queryKey: ['athleteAssignedWorkouts', athleteId] });
+                }
+              }, 500); // 500ms debounce
             }
           )
           .subscribe();

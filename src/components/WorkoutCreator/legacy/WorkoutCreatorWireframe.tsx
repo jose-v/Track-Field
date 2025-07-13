@@ -371,9 +371,9 @@ const WorkoutCreatorWireframe: React.FC = () => {
         // Load athlete assignments (only for non-draft workouts)
         if (!isDraft) {
           const { data: assignments } = await supabase
-            .from('athlete_workouts')
+            .from('unified_workout_assignments')
             .select('athlete_id')
-            .eq('workout_id', workoutId);
+            .eq('meta->>original_workout_id', workoutId);
             
           if (assignments && assignments.length > 0) {
             const athleteIds = assignments.map(a => a.athlete_id);
@@ -1231,12 +1231,84 @@ const WorkoutCreatorWireframe: React.FC = () => {
         
         // For athletes creating their own workouts, automatically assign to themselves
         if (userProfile?.role === 'athlete' && newWorkout?.id) {
-          await api.athleteWorkouts.assign(newWorkout.id, [userProfile.id]);
+          // Use unified assignment system for athlete self-assignment
+          const assignmentService = new (await import('../../../services/assignmentService')).AssignmentService();
+          
+          const exerciseBlock = {
+            workout_name: workoutData.name,
+            description: workoutData.description || '',
+            estimated_duration: workoutData.duration,
+            location: workoutData.location,
+            workout_type: workoutData.type || 'strength',
+            exercises: workoutData.exercises || []
+          };
+          
+          await assignmentService.createAssignment({
+            athlete_id: userProfile.id,
+            assignment_type: 'single',
+            exercise_block: exerciseBlock,
+            progress: {
+              current_exercise_index: 0,
+              current_set: 1,
+              current_rep: 1,
+              completed_exercises: [],
+              total_exercises: workoutData.exercises?.length || 0,
+              completion_percentage: 0
+            },
+            start_date: workoutData.date || new Date().toISOString().split('T')[0],
+            end_date: workoutData.date || new Date().toISOString().split('T')[0],
+            assigned_at: new Date().toISOString(),
+            assigned_by: userProfile.id,
+            status: 'assigned',
+            meta: {
+              original_workout_id: newWorkout.id,
+              workout_type: 'single',
+              self_assigned: true
+            }
+          });
         }
         
-        // Assign athletes in the same operation context
+        // Assign athletes using unified system
         if (athleteIds.length > 0) {
-          await api.athleteWorkouts.assign(newWorkout.id, athleteIds);
+          const assignmentService = new (await import('../../../services/assignmentService')).AssignmentService();
+          
+          const exerciseBlock = {
+            workout_name: workoutData.name,
+            description: workoutData.description || '',
+            estimated_duration: workoutData.duration,
+            location: workoutData.location,
+            workout_type: workoutData.type || 'strength',
+            exercises: workoutData.exercises || []
+          };
+          
+          for (const athleteId of athleteIds) {
+            try {
+              await assignmentService.createAssignment({
+                athlete_id: athleteId,
+                assignment_type: 'single',
+                exercise_block: exerciseBlock,
+                progress: {
+                  current_exercise_index: 0,
+                  current_set: 1,
+                  current_rep: 1,
+                  completed_exercises: [],
+                  total_exercises: workoutData.exercises?.length || 0,
+                  completion_percentage: 0
+                },
+                start_date: workoutData.date || new Date().toISOString().split('T')[0],
+                end_date: workoutData.date || new Date().toISOString().split('T')[0],
+                assigned_at: new Date().toISOString(),
+                assigned_by: userProfile?.id,
+                status: 'assigned',
+                meta: {
+                  original_workout_id: newWorkout.id,
+                  workout_type: 'single'
+                }
+              });
+            } catch (error) {
+              console.error(`Failed to create unified assignment for athlete ${athleteId}:`, error);
+            }
+          }
         }
       }
 
@@ -1289,45 +1361,26 @@ const WorkoutCreatorWireframe: React.FC = () => {
   };
 
   // Manual atomic transaction fallback
-  const updateWorkoutWithAthletesManually = async (
-    workoutId: string, 
-    workoutData: EnhancedWorkoutData, 
-    athleteIds: string[]
-  ) => {
-    // Prepare the data to store based on whether we're dealing with a draft or regular workout
-    let exercisesToStore: any[] = workoutData.exercises || [];
-    
-    // For weekly workouts, store weekly_plan data in exercises field (since weekly_plan column doesn't exist)
-    if (workoutData.template_type === 'weekly' && workoutData.weekly_plan) {
-      exercisesToStore = workoutData.weekly_plan;
-    }
-    
-    // Helper function to sanitize values
-    const sanitizeValue = (value: any): any => {
-      if (value === '' || value === undefined) return null;
-      return value;
-    };
-    
-    // Use Supabase transaction pattern
+  const updateWorkoutWithAthletesManually = async (workoutId: string, workoutData: any, athleteIds: string[]) => {
+    // Update the workout
     const { error: updateError } = await supabase
       .from('workouts')
       .update({
         name: workoutData.name,
         type: workoutData.type,
         template_type: workoutData.template_type,
-        // Templates should always have null date fields, otherwise sanitize empty strings
-        date: workoutData.is_template ? null : sanitizeValue(workoutData.date),
-        time: workoutData.is_template ? null : sanitizeValue(workoutData.time),
-        duration: workoutData.is_template ? null : sanitizeValue(workoutData.duration),
-        location: sanitizeValue(workoutData.location),
+        date: workoutData.date,
+        time: workoutData.time,
+        duration: workoutData.duration,
+        location: workoutData.location,
         description: workoutData.description,
         is_template: workoutData.is_template,
-        exercises: exercisesToStore, // Store exercises or weekly plan data
+        exercises: workoutData.exercises,
+        weekly_plan: workoutData.weekly_plan,
         // Block mode fields
         is_block_based: workoutData.is_block_based,
         blocks: workoutData.blocks,
-        block_version: workoutData.block_version,
-        // Note: not storing weekly_plan since that column doesn't exist
+        block_version: workoutData.block_version
       })
       .eq('id', workoutId);
       
@@ -1335,16 +1388,54 @@ const WorkoutCreatorWireframe: React.FC = () => {
     
     // Only proceed with athlete assignment if workout update succeeded and this isn't a draft
     if (athleteIds.length > 0) {
-      // Clear existing assignments first
+      // Clear existing unified assignments first
       const { error: deleteError } = await supabase
-        .from('athlete_workouts')
+        .from('unified_workout_assignments')
         .delete()
-        .eq('workout_id', workoutId);
+        .eq('meta->>original_workout_id', workoutId);
         
       if (deleteError) throw deleteError;
       
-      // Add new assignments
-      await api.athleteWorkouts.assign(workoutId, athleteIds);
+      // Add new unified assignments
+      const assignmentService = new (await import('../../../services/assignmentService')).AssignmentService();
+      
+      const exerciseBlock = {
+        workout_name: workoutData.name,
+        description: workoutData.description || '',
+        estimated_duration: workoutData.duration,
+        location: workoutData.location,
+        workout_type: workoutData.type || 'strength',
+        exercises: workoutData.exercises || []
+      };
+      
+      for (const athleteId of athleteIds) {
+        try {
+          await assignmentService.createAssignment({
+            athlete_id: athleteId,
+            assignment_type: 'single',
+            exercise_block: exerciseBlock,
+            progress: {
+              current_exercise_index: 0,
+              current_set: 1,
+              current_rep: 1,
+              completed_exercises: [],
+              total_exercises: workoutData.exercises?.length || 0,
+              completion_percentage: 0
+            },
+            start_date: workoutData.date || new Date().toISOString().split('T')[0],
+            end_date: workoutData.date || new Date().toISOString().split('T')[0],
+            assigned_at: new Date().toISOString(),
+            assigned_by: userProfile?.id,
+            status: 'assigned',
+            meta: {
+              original_workout_id: workoutId,
+              workout_type: 'single'
+            }
+          });
+        } catch (error) {
+          console.error(`Failed to create unified assignment for athlete ${athleteId}:`, error);
+        }
+      }
     }
   };
 

@@ -5,7 +5,7 @@ import {
   IconButton, Badge, Alert, AlertIcon, Spinner, Icon, Tabs, TabList, TabPanels, Tab, TabPanel,
   Select, Drawer, DrawerBody, DrawerHeader, DrawerOverlay, DrawerContent, DrawerCloseButton
 } from '@chakra-ui/react';
-import { FaCalendarAlt, FaPlus, FaRedo, FaUsers, FaChartLine, FaLayerGroup, FaTrash, FaFileImport, FaDumbbell, FaUserFriends, FaListUl, FaCalendarWeek, FaCalendarDay, FaClock, FaBookOpen, FaHistory, FaFilter, FaCog, FaHeartbeat, FaBolt } from 'react-icons/fa';
+import { FaCalendarAlt, FaPlus, FaRedo, FaUsers, FaChartLine, FaLayerGroup, FaTrash, FaFileImport, FaDumbbell, FaUserFriends, FaListUl, FaCalendarWeek, FaCalendarDay, FaClock, FaBookOpen, FaHistory, FaFilter, FaCog, FaHeartbeat, FaBolt, FaTh, FaList } from 'react-icons/fa';
 import { AddIcon, RepeatIcon } from '@chakra-ui/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -16,6 +16,8 @@ import { AssignmentModal } from '../../components/AssignmentModal';
 import { PlanDetailView } from '../../components/PlanDetailView';
 import { WorkoutDetailView } from '../../components/WorkoutDetailView';
 import { WorkoutCard } from '../../components/WorkoutCard';
+import { WorkoutListItem } from '../../components/WorkoutListItem';
+import { MonthlyPlanListItem } from '../../components/MonthlyPlanListItem';
 import { WorkoutDeletionWarningModal } from '../../components/WorkoutDeletionWarningModal';
 import { ConvertTemplateModal } from '../../components/modals/ConvertTemplateModal';
 import type { TrainingPlan } from '../../services/dbSchema';
@@ -118,6 +120,32 @@ const WorkoutSkeletonCard = () => {
   );
 };
 
+// View Toggle Component
+const ViewToggle = ({ viewMode, setViewMode, toggleBorderColor }: { 
+  viewMode: 'grid' | 'list', 
+  setViewMode: (mode: 'grid' | 'list') => void,
+  toggleBorderColor: string 
+}) => (
+  <HStack spacing={1} border="1px" borderColor={toggleBorderColor} borderRadius="lg" p={1}>
+    <IconButton
+      aria-label="Grid view"
+      icon={<FaTh />}
+      onClick={() => setViewMode('grid')}
+      variant={viewMode === 'grid' ? 'solid' : 'ghost'}
+      colorScheme={viewMode === 'grid' ? 'blue' : 'gray'}
+      size="sm"
+    />
+    <IconButton
+      aria-label="List view"
+      icon={<FaList />}
+      onClick={() => setViewMode('list')}
+      variant={viewMode === 'list' ? 'solid' : 'ghost'}
+      colorScheme={viewMode === 'list' ? 'blue' : 'gray'}
+      size="sm"
+    />
+  </HStack>
+);
+
 export function CoachTrainingPlans() {
   const { user } = useAuth();
   const toast = useToast();
@@ -168,6 +196,9 @@ export function CoachTrainingPlans() {
   
   // Draft filter state
   const [draftFilter, setDraftFilter] = useState<'all' | 'single' | 'weekly' | 'monthly'>('all');
+  
+  // View mode state
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   // Data state for monthly plans
   const [monthlyPlans, setMonthlyPlans] = useState<MonthlyPlanWithStats[]>([]);
@@ -240,6 +271,7 @@ export function CoachTrainingPlans() {
 
   // Theme colors for the page
   const pageBackgroundColor = useColorModeValue('gray.50', 'gray.900');
+  const toggleBorderColor = useColorModeValue('gray.200', 'gray.600');
 
   // State for custom exercises
   const [customExercises, setCustomExercises] = useState<Exercise[]>([]);
@@ -289,16 +321,24 @@ export function CoachTrainingPlans() {
     const fetchAssignments = async () => {
       setAssignmentsLoading(true);
       try {
+        // Get all athlete-workout assignments for these workout IDs from unified system
         const { data, error } = await supabase
-          .from('athlete_workouts')
+          .from('unified_workout_assignments')
           .select('*')
-          .in('workout_id', workoutIds);
+          .in('meta->>original_workout_id', workoutIds);
 
         if (error) {
           throw error;
         }
 
-        setAssignments(data || []);
+        // Convert unified assignments to old format for compatibility
+        const compatibleAssignments = data.map(assignment => ({
+          id: assignment.id,
+          athlete_id: assignment.athlete_id,
+          workout_id: assignment.meta?.original_workout_id || '',
+          status: assignment.status
+        }));
+        setAssignments(compatibleAssignments);
       } catch (error) {
         console.error('Error fetching assignments:', error);
       } finally {
@@ -502,7 +542,7 @@ export function CoachTrainingPlans() {
           label: 'All Workouts',
           icon: FaListUl,
           description: 'View all created workouts',
-          badge: coachStats.workouts
+          badge: coachStats.workouts + coachStats.plans
         }
       ]
     },
@@ -771,14 +811,21 @@ export function CoachTrainingPlans() {
         setAssignmentsLoading(true);
         
         const { data, error } = await supabase
-          .from('athlete_workouts')
+          .from('unified_workout_assignments')
           .select('*')
-          .in('workout_id', workoutIds);
+          .in('meta->>original_workout_id', workoutIds);
           
         if (error) {
           console.error('Error refreshing assignments:', error);
         } else if (data) {
-          setAssignments(data);
+          // Convert unified assignments to old format for compatibility
+          const compatibleAssignments = data.map(assignment => ({
+            id: assignment.id,
+            athlete_id: assignment.athlete_id,
+            workout_id: assignment.meta?.original_workout_id || '',
+            status: assignment.status
+          }));
+          setAssignments(compatibleAssignments);
         }
         
         setAssignmentsLoading(false);
@@ -1119,13 +1166,23 @@ export function CoachTrainingPlans() {
   // Render functions for each tab content
   const renderWorkouts = () => {
     if (workoutsLoading || athletesLoading) {
-      return (
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-          {[...Array(6)].map((_, index) => (
-            <WorkoutSkeletonCard key={index} />
-          ))}
-        </SimpleGrid>
-      );
+      if (viewMode === 'grid') {
+        return (
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+            {[...Array(6)].map((_, index) => (
+              <WorkoutSkeletonCard key={index} />
+            ))}
+          </SimpleGrid>
+        );
+      } else {
+        return (
+          <VStack spacing={3} align="stretch">
+            {[...Array(6)].map((_, index) => (
+              <Skeleton key={index} height="80px" borderRadius="lg" />
+            ))}
+          </VStack>
+        );
+      }
     }
 
     // Use filteredData for "By Type" sections, otherwise use custom filtering
@@ -1189,32 +1246,59 @@ export function CoachTrainingPlans() {
       );
     }
 
-    return (
-      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-        {filteredWorkouts.map((workout) => {
-          const progress = workoutStatsLoading 
-            ? { completed: 0, total: 0, percentage: 0 }
-            : getWorkoutProgress(workout);
-          const athleteNames = assignmentsLoading
-            ? 'Loading assignments...'
-            : getAthleteNames(workout);
+    // Render based on view mode
+    if (viewMode === 'grid') {
+      return (
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+          {filteredWorkouts.map((workout) => {
+            const progress = workoutStatsLoading 
+              ? { completed: 0, total: 0, percentage: 0 }
+              : getWorkoutProgress(workout);
+            const athleteNames = assignmentsLoading
+              ? 'Loading assignments...'
+              : getAthleteNames(workout);
 
-          return (
-            <WorkoutCard
-              key={workout.id}
-              workout={workout}
-              isCoach={true}
-              assignedTo={athleteNames}
-              onEdit={() => navigate(`/coach/workout-creator-new?edit=${workout.id}`)}
-              onDelete={() => handleDeleteWorkout(workout)}
-              onAssign={() => handleAssignWorkout(workout)}
-              onViewDetails={() => handleViewWorkout(workout)}
-              // monthlyPlanUsage disabled - checked just-in-time during deletion
-            />
-          );
-        })}
-      </SimpleGrid>
-    );
+            return (
+              <WorkoutCard
+                key={workout.id}
+                workout={workout}
+                isCoach={true}
+                assignedTo={athleteNames}
+                onEdit={() => navigate(`/coach/workout-creator-new?edit=${workout.id}`)}
+                onDelete={() => handleDeleteWorkout(workout)}
+                onAssign={() => handleAssignWorkout(workout)}
+                onViewDetails={() => handleViewWorkout(workout)}
+                // monthlyPlanUsage disabled - checked just-in-time during deletion
+              />
+            );
+          })}
+        </SimpleGrid>
+      );
+    } else {
+      return (
+        <VStack spacing={3} align="stretch">
+          {filteredWorkouts.map((workout) => {
+            const athleteNames = assignmentsLoading
+              ? 'Loading assignments...'
+              : getAthleteNames(workout);
+
+            return (
+              <WorkoutListItem
+                key={workout.id}
+                workout={workout}
+                isCoach={true}
+                assignedTo={athleteNames}
+                onEdit={() => navigate(`/coach/workout-creator-new?edit=${workout.id}`)}
+                onDelete={() => handleDeleteWorkout(workout)}
+                onAssign={() => handleAssignWorkout(workout)}
+                onViewDetails={() => handleViewWorkout(workout)}
+                // monthlyPlanUsage disabled - checked just-in-time during deletion
+              />
+            );
+          })}
+        </VStack>
+      );
+    }
   };
 
   const renderTemplateWorkouts = () => {
@@ -1298,16 +1382,30 @@ export function CoachTrainingPlans() {
             >
               Refresh
             </Button>
+            
+            <ViewToggle 
+              viewMode={viewMode} 
+              setViewMode={setViewMode} 
+              toggleBorderColor={toggleBorderColor} 
+            />
           </Flex>
         </VStack>
 
-        {/* Templates Grid */}
+        {        /* Templates Grid/List */}
         {templateLoading ? (
-          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-            {[...Array(3)].map((_, i) => (
-              <Skeleton key={i} height="200px" borderRadius="lg" />
-            ))}
-          </SimpleGrid>
+          viewMode === 'grid' ? (
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} height="200px" borderRadius="lg" />
+              ))}
+            </SimpleGrid>
+          ) : (
+            <VStack spacing={3} align="stretch">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} height="80px" borderRadius="lg" />
+              ))}
+            </VStack>
+          )
         ) : filteredTemplates.length === 0 ? (
           <Alert status="info" borderRadius="md">
             <AlertIcon />
@@ -1323,7 +1421,7 @@ export function CoachTrainingPlans() {
               </Text>
             </VStack>
           </Alert>
-        ) : (
+        ) : viewMode === 'grid' ? (
           <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
             {filteredTemplates.map((template) => (
               <WorkoutCard
@@ -1340,6 +1438,23 @@ export function CoachTrainingPlans() {
               />
             ))}
           </SimpleGrid>
+        ) : (
+          <VStack spacing={3} align="stretch">
+            {filteredTemplates.map((template) => (
+              <WorkoutListItem
+                key={template.id}
+                workout={template}
+                isCoach={true}
+                isTemplate={true}
+                onEdit={() => navigate(`/coach/workout-creator-new?edit=${template.id}`)}
+                onDelete={() => handleDeleteWorkout(template)}
+                onAssign={() => handleAssignWorkout(template)}
+                onViewDetails={() => handleViewWorkout(template)}
+                onConvertToWorkout={() => handleConvertTemplate(template)}
+                monthlyPlanUsage={monthlyPlanUsageData[template.id]}
+              />
+            ))}
+          </VStack>
         )}
       </VStack>
     );
@@ -1426,16 +1541,30 @@ export function CoachTrainingPlans() {
             >
               Refresh
             </Button>
+            
+            <ViewToggle 
+              viewMode={viewMode} 
+              setViewMode={setViewMode} 
+              toggleBorderColor={toggleBorderColor} 
+            />
           </Flex>
         </VStack>
 
-        {/* Drafts Grid */}
+        {        /* Drafts Grid/List */}
         {draftsLoading ? (
-          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-            {[...Array(3)].map((_, i) => (
-              <Skeleton key={i} height="200px" borderRadius="lg" />
-            ))}
-          </SimpleGrid>
+          viewMode === 'grid' ? (
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} height="200px" borderRadius="lg" />
+              ))}
+            </SimpleGrid>
+          ) : (
+            <VStack spacing={3} align="stretch">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} height="80px" borderRadius="lg" />
+              ))}
+            </VStack>
+          )
         ) : filteredDrafts.length === 0 ? (
           <Alert status="info" borderRadius="md">
             <AlertIcon />
@@ -1451,7 +1580,7 @@ export function CoachTrainingPlans() {
               </Text>
             </VStack>
           </Alert>
-        ) : (
+        ) : viewMode === 'grid' ? (
           <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
             {filteredDrafts.map((draft) => (
               <WorkoutCard
@@ -1459,7 +1588,7 @@ export function CoachTrainingPlans() {
                 workout={draft}
                 isCoach={true}
                 isTemplate={true}
-                                            onEdit={() => navigate(`/coach/workout-creator-new?edit=${draft.id}`)}
+                onEdit={() => navigate(`/coach/workout-creator-new?edit=${draft.id}`)}
                 onDelete={() => handleDeleteWorkout(draft)}
                 onAssign={() => handleAssignWorkout(draft)}
                 onViewDetails={() => handleViewWorkout(draft)}
@@ -1467,6 +1596,22 @@ export function CoachTrainingPlans() {
               />
             ))}
           </SimpleGrid>
+        ) : (
+          <VStack spacing={3} align="stretch">
+            {filteredDrafts.map((draft) => (
+              <WorkoutListItem
+                key={draft.id}
+                workout={draft}
+                isCoach={true}
+                isTemplate={true}
+                onEdit={() => navigate(`/coach/workout-creator-new?edit=${draft.id}`)}
+                onDelete={() => handleDeleteWorkout(draft)}
+                onAssign={() => handleAssignWorkout(draft)}
+                onViewDetails={() => handleViewWorkout(draft)}
+                monthlyPlanUsage={monthlyPlanUsageData[draft.id]}
+              />
+            ))}
+          </VStack>
         )}
       </VStack>
     );
@@ -1730,8 +1875,8 @@ export function CoachTrainingPlans() {
                   )}
                 </Flex>
                 
-                {/* Refresh Button */}
-                <Flex justify="flex-start" align="center" wrap="wrap" gap={3}>
+                {/* Refresh Button and View Toggle */}
+                <Flex justify="space-between" align="center" wrap="wrap" gap={3}>
                   <Button
                     leftIcon={<FaRedo />}
                     variant="outline"
@@ -1741,6 +1886,11 @@ export function CoachTrainingPlans() {
                   >
                     Refresh
                   </Button>
+                  <ViewToggle 
+                    viewMode={viewMode} 
+                    setViewMode={setViewMode} 
+                    toggleBorderColor={toggleBorderColor} 
+                  />
                 </Flex>
               </VStack>
 
@@ -1774,35 +1924,43 @@ export function CoachTrainingPlans() {
           return (
             <VStack spacing={6} align="stretch">
               {/* Athlete Filter */}
-              <Flex justify="flex-start" align="center" wrap="wrap" gap={3}>
-                <HStack spacing={2} align="center">
-                  <FaUserFriends style={{ color: iconColor }} />
-                  <Select
-                    value={selectedAthlete}
-                    onChange={(e) => setSelectedAthlete(e.target.value)}
+              <Flex justify="space-between" align="center" wrap="wrap" gap={3}>
+                <HStack spacing={3} wrap="wrap">
+                  <HStack spacing={2} align="center">
+                    <FaUserFriends style={{ color: iconColor }} />
+                    <Select
+                      value={selectedAthlete}
+                      onChange={(e) => setSelectedAthlete(e.target.value)}
+                      size="sm"
+                      width={{ base: "180px", md: "200px" }}
+                      bg={selectBg}
+                      borderColor={selectBorderColor}
+                    >
+                      <option value="all">All Athletes</option>
+                      {athletes?.map((athlete) => (
+                        <option key={athlete.id} value={athlete.id}>
+                          {athlete.first_name} {athlete.last_name}
+                        </option>
+                      ))}
+                    </Select>
+                  </HStack>
+                  
+                  <Button
+                    leftIcon={<FaRedo />}
+                    variant="outline"
                     size="sm"
-                    width={{ base: "180px", md: "200px" }}
-                    bg={selectBg}
-                    borderColor={selectBorderColor}
+                    onClick={handleWorkoutsRefresh}
+                    isLoading={assignmentsLoading}
                   >
-                    <option value="all">All Athletes</option>
-                    {athletes?.map((athlete) => (
-                      <option key={athlete.id} value={athlete.id}>
-                        {athlete.first_name} {athlete.last_name}
-                      </option>
-                    ))}
-                  </Select>
+                    Refresh
+                  </Button>
                 </HStack>
                 
-                <Button
-                  leftIcon={<FaRedo />}
-                  variant="outline"
-                  size="sm"
-                  onClick={handleWorkoutsRefresh}
-                  isLoading={assignmentsLoading}
-                >
-                  Refresh
-                </Button>
+                <ViewToggle 
+                  viewMode={viewMode} 
+                  setViewMode={setViewMode} 
+                  toggleBorderColor={toggleBorderColor} 
+                />
               </Flex>
               {renderWorkouts()}
             </VStack>
@@ -1906,18 +2064,33 @@ export function CoachTrainingPlans() {
                   >
                     Refresh
                   </Button>
+                  
+                  {/* View Toggle */}
+                  <ViewToggle 
+                    viewMode={viewMode} 
+                    setViewMode={setViewMode} 
+                    toggleBorderColor={toggleBorderColor} 
+                  />
                 </Flex>
               </VStack>
 
               {/* Content Grid - Dynamic based on filter */}
               {workoutFilter === 'monthly' ? (
-                // Monthly Plans Grid
+                // Monthly Plans - Grid or List view
                 loading ? (
-                  <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-                    {[...Array(6)].map((_, i) => (
-                      <Skeleton key={i} height="300px" borderRadius="lg" />
-                    ))}
-                  </SimpleGrid>
+                  viewMode === 'grid' ? (
+                    <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+                      {[...Array(6)].map((_, i) => (
+                        <Skeleton key={i} height="300px" borderRadius="lg" />
+                      ))}
+                    </SimpleGrid>
+                  ) : (
+                    <VStack spacing={3} align="stretch">
+                      {[...Array(6)].map((_, i) => (
+                        <Skeleton key={i} height="80px" borderRadius="lg" />
+                      ))}
+                    </VStack>
+                  )
                 ) : monthlyPlans.length === 0 ? (
                   <Alert status="info" borderRadius="md">
                     <AlertIcon />
@@ -1926,7 +2099,7 @@ export function CoachTrainingPlans() {
                       <Text fontSize="sm">Create your first monthly training plan to get started.</Text>
                     </VStack>
                   </Alert>
-                ) : (
+                ) : viewMode === 'grid' ? (
                   <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
                     {monthlyPlans.map((plan) => (
                       <MonthlyPlanCard
@@ -1947,9 +2120,30 @@ export function CoachTrainingPlans() {
                       />
                     ))}
                   </SimpleGrid>
+                ) : (
+                  <VStack spacing={3} align="stretch">
+                    {monthlyPlans.map((plan) => (
+                      <MonthlyPlanListItem
+                        key={plan.id}
+                        monthlyPlan={plan}
+                        isCoach={true}
+                        onView={() => handleViewPlan(plan)}
+                        onEdit={() => handleEditPlan(plan)}
+                        onAssign={() => handleAssignPlan(plan)}
+                        onDelete={() => handleDeletePlan(plan)}
+                        completionStats={{
+                          totalAssigned: plan.totalAssignments,
+                          completed: plan.completedAssignments,
+                          inProgress: plan.activeAssignments - plan.completedAssignments,
+                          percentage: plan.totalAssignments > 0 ? (plan.completedAssignments / plan.totalAssignments) * 100 : 0
+                        }}
+                        statsLoading={statsLoading}
+                      />
+                    ))}
+                  </VStack>
                 )
               ) : filteredData.type === 'mixed' ? (
-                // Mixed Content Grid (All filter - both workouts and monthly plans)
+                // Mixed Content - Grid or List view (All filter - both workouts and monthly plans)
                 filteredData.data.length === 0 ? (
                   <Alert status="info" borderRadius="md">
                     <AlertIcon />
@@ -1958,7 +2152,7 @@ export function CoachTrainingPlans() {
                       <Text fontSize="sm">Create workouts or training plans to get started.</Text>
                     </VStack>
                   </Alert>
-                ) : (
+                ) : viewMode === 'grid' ? (
                   <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
                     {filteredData.data.map((item: any) => {
                       // Check if it's a monthly plan (has weeks property) or workout
@@ -2009,6 +2203,74 @@ export function CoachTrainingPlans() {
                       }
                     })}
                   </SimpleGrid>
+                ) : (
+                  // List view - show both monthly plans and workouts in list format
+                  <VStack spacing={6} align="stretch">
+                    {/* Monthly Plans (if any) - use list format */}
+                    {filteredData.data.some((item: any) => 'weeks' in item) && (
+                      <>
+                        <Text fontSize="lg" fontWeight="bold" color={useColorModeValue('gray.800', 'gray.100')}>
+                          Monthly Plans
+                        </Text>
+                        <VStack spacing={3} align="stretch">
+                          {filteredData.data.filter((item: any) => 'weeks' in item).map((item: any) => {
+                            const plan = item as MonthlyPlanWithStats;
+                            return (
+                              <MonthlyPlanListItem
+                                key={`plan-${plan.id}`}
+                                monthlyPlan={plan}
+                                isCoach={true}
+                                onView={() => handleViewPlan(plan)}
+                                onEdit={() => handleEditPlan(plan)}
+                                onAssign={() => handleAssignPlan(plan)}
+                                onDelete={() => handleDeletePlan(plan)}
+                                completionStats={{
+                                  totalAssigned: plan.totalAssignments || 0,
+                                  completed: plan.completedAssignments || 0,
+                                  inProgress: (plan.activeAssignments || 0) - (plan.completedAssignments || 0),
+                                  percentage: (plan.totalAssignments || 0) > 0 ? ((plan.completedAssignments || 0) / (plan.totalAssignments || 0)) * 100 : 0
+                                }}
+                                statsLoading={statsLoading}
+                              />
+                            );
+                          })}
+                        </VStack>
+                      </>
+                    )}
+                    
+                    {/* Workouts in List Format */}
+                    {filteredData.data.some((item: any) => !('weeks' in item)) && (
+                      <>
+                        {filteredData.data.some((item: any) => 'weeks' in item) && (
+                          <Text fontSize="lg" fontWeight="bold" color={useColorModeValue('gray.800', 'gray.100')}>
+                            Workouts
+                          </Text>
+                        )}
+                        <VStack spacing={3} align="stretch">
+                          {filteredData.data.filter((item: any) => !('weeks' in item)).map((item: any) => {
+                            const workout = item as Workout;
+                            const athleteNames = assignmentsLoading
+                              ? 'Loading assignments...'
+                              : getAthleteNames(workout);
+
+                            return (
+                              <WorkoutListItem
+                                key={`workout-${workout.id}`}
+                                workout={workout}
+                                isCoach={true}
+                                assignedTo={athleteNames}
+                                onEdit={() => navigate(`/coach/workout-creator-new?edit=${workout.id}`)}
+                                onDelete={() => handleDeleteWorkout(workout)}
+                                onAssign={() => handleAssignWorkout(workout)}
+                                onViewDetails={() => handleViewWorkout(workout)}
+                                monthlyPlanUsage={monthlyPlanUsageData[workout.id]}
+                              />
+                            );
+                          })}
+                        </VStack>
+                      </>
+                    )}
+                  </VStack>
                 )
               ) : (
                 // Workouts Grid

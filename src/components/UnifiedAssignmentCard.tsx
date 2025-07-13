@@ -35,7 +35,7 @@ export function UnifiedAssignmentCard({
         
       case 'weekly':
         return {
-          title: exercise_block.plan_name || 'Weekly Plan',
+          title: exercise_block.workout_name || exercise_block.plan_name || 'Weekly Plan',
           subtitle: `Week ${meta?.current_week || 1}`,
           duration: `${exercise_block.total_days || 7} days`,
           exercises: Object.keys(exercise_block.daily_workouts || {}).length,
@@ -98,21 +98,51 @@ export function UnifiedAssignmentCard({
         break;
         
       case 'weekly':
-        // For weekly plans, get today's exercises
+        // For weekly plans, extract exercises from daily_workouts
         const dailyWorkouts = assignment.exercise_block?.daily_workouts || {};
         const today = new Date();
         const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
         const currentDayName = dayNames[today.getDay()];
         
-        const todaysWorkout = dailyWorkouts[currentDayName];
-        if (todaysWorkout && !todaysWorkout.is_rest_day) {
-          exercises = todaysWorkout.exercises || [];
-        } else {
-          // Fallback to first available day
-          const firstAvailableDay = Object.values(dailyWorkouts).find((day: any) => 
-            day && !day.is_rest_day && day.exercises?.length > 0
-          ) as { exercises: any[]; is_rest_day: boolean } | undefined;
-          exercises = firstAvailableDay?.exercises || [];
+        // Get today's workout first
+        let todaysWorkout = dailyWorkouts[currentDayName];
+        
+        // If no workout for today, try to find the first available day
+        if (!todaysWorkout) {
+          const firstAvailableDay = Object.keys(dailyWorkouts).find(dayKey => {
+            const dayWorkout = dailyWorkouts[dayKey];
+            return dayWorkout && (Array.isArray(dayWorkout) ? dayWorkout.length > 0 : dayWorkout.exercises?.length > 0);
+          });
+          
+          if (firstAvailableDay) {
+            todaysWorkout = dailyWorkouts[firstAvailableDay];
+          }
+        }
+        
+        if (todaysWorkout) {
+          if (Array.isArray(todaysWorkout)) {
+            // New blocks format: array of blocks, each with exercises
+            exercises = todaysWorkout.flatMap((block: any) => {
+              const blockExercises = block.exercises || [];
+              // Copy block-level metadata to individual exercises if they don't have it
+              return blockExercises.map((exercise: any) => ({
+                ...exercise,
+                // Use exercise-level values first, then fall back to block-level, then defaults
+                sets: exercise.sets || exercise.Sets || block.sets || block.Sets || 1,
+                reps: exercise.reps || exercise.Reps || block.reps || block.Reps || 1,
+                rest: exercise.rest || exercise.Rest || block.rest || block.Rest || 0
+              }));
+            });
+          } else if (todaysWorkout.exercises && !todaysWorkout.is_rest_day) {
+            // Old format: { exercises: [], is_rest_day: boolean }
+            exercises = todaysWorkout.exercises.map((exercise: any) => ({
+              ...exercise,
+              // Ensure sets/reps are properly defined
+              sets: exercise.sets || exercise.Sets || 1,
+              reps: exercise.reps || exercise.Reps || 1,
+              rest: exercise.rest || exercise.Rest || 0
+            }));
+          }
         }
         break;
         
@@ -138,8 +168,24 @@ export function UnifiedAssignmentCard({
     let completedReps = 0;
 
     exercises.forEach((exercise, index) => {
-      const exerciseSets = parsePositiveInt(exercise.sets, 1);
-      const exerciseReps = parsePositiveInt(exercise.reps, 1);
+      // Improved extraction: try multiple possible fields and sources
+      let exerciseSets = 1;
+      let exerciseReps = 1;
+      
+      // Try to get sets from various possible sources
+      if (exercise.sets !== undefined && exercise.sets !== null && exercise.sets !== '') {
+        exerciseSets = parsePositiveInt(exercise.sets, 1);
+      } else if (exercise.Sets !== undefined && exercise.Sets !== null && exercise.Sets !== '') {
+        exerciseSets = parsePositiveInt(exercise.Sets, 1);
+      }
+      
+      // Try to get reps from various possible sources  
+      if (exercise.reps !== undefined && exercise.reps !== null && exercise.reps !== '') {
+        exerciseReps = parsePositiveInt(exercise.reps, 1);
+      } else if (exercise.Reps !== undefined && exercise.Reps !== null && exercise.Reps !== '') {
+        exerciseReps = parsePositiveInt(exercise.Reps, 1);
+      }
+      
       const exerciseTotalReps = exerciseSets * exerciseReps;
       
       totalSets += exerciseSets;
@@ -150,22 +196,70 @@ export function UnifiedAssignmentCard({
         completedSets += exerciseSets;
         completedReps += exerciseTotalReps;
       } else if (index === currentExerciseIndex) {
-        // Current exercise - add completed sets and current rep
-        const completedSetsInCurrentExercise = currentSet - 1;
-        const completedRepsInCurrentSet = currentRep - 1;
-        completedSets += completedSetsInCurrentExercise;
-        completedReps += (completedSetsInCurrentExercise * exerciseReps) + completedRepsInCurrentSet;
+        // Current exercise - check if we've completed all sets and reps
+        if (currentSet >= exerciseSets && currentRep >= exerciseReps) {
+          // Exercise is fully completed
+          completedSets += exerciseSets;
+          completedReps += exerciseTotalReps;
+        } else {
+          // Exercise is in progress - add completed sets and current rep progress
+          const completedSetsInCurrentExercise = currentSet - 1;
+          const completedRepsInCurrentSet = currentRep - 1;
+          completedSets += completedSetsInCurrentExercise;
+          completedReps += (completedSetsInCurrentExercise * exerciseReps) + completedRepsInCurrentSet;
+        }
       }
     });
 
-    // For blocks, we'll only show if it's a block-based workout
-    const isBlockBased = assignment.assignment_type === 'weekly' || assignment.assignment_type === 'monthly';
-    const totalBlocks = isBlockBased ? (assignment.exercise_block?.weekly_structure?.length || assignment.exercise_block?.total_weeks || 1) : 0;
-    const completedBlocks = isBlockBased ? Math.floor(currentExerciseIndex / Math.max(1, Math.ceil(exercises.length / totalBlocks))) : 0;
+    // Calculate total blocks based on assignment type
+    let totalBlocks = 0;
+    let completedBlocks = 0;
+    
+    if (assignment.assignment_type === 'weekly') {
+      // For weekly plans, count blocks in daily workouts
+      const dailyWorkouts = assignment.exercise_block?.daily_workouts || {};
+      totalBlocks = Object.values(dailyWorkouts).reduce((total: number, dayWorkout: any) => {
+        if (Array.isArray(dayWorkout)) {
+          // New blocks format
+          return total + dayWorkout.length;
+        } else if (dayWorkout && typeof dayWorkout === 'object' && 
+                   !(dayWorkout as any).is_rest_day && 
+                   (dayWorkout as any).exercises?.length > 0) {
+          // Old format - count as 1 block if has exercises
+          return total + 1;
+        }
+        return total;
+      }, 0);
+      
+      // For completed blocks, we need to know which blocks are done
+      // This is simplified - in reality we'd need to track block-level progress
+      completedBlocks = Math.floor(currentExerciseIndex / Math.max(1, Math.ceil(exercises.length / Math.max(1, totalBlocks))));
+    } else if (assignment.assignment_type === 'monthly') {
+      // For monthly plans, use weekly structure
+      totalBlocks = assignment.exercise_block?.weekly_structure?.length || assignment.exercise_block?.total_weeks || 1;
+      completedBlocks = Math.floor(currentExerciseIndex / Math.max(1, Math.ceil(exercises.length / totalBlocks)));
+    }
+
+    // Calculate completed exercises
+    let completedExercises = currentExerciseIndex; // All exercises before current are completed
+    
+    // Check if current exercise is also completed
+    if (currentExerciseIndex < exercises.length) {
+      const currentExercise = exercises[currentExerciseIndex];
+      if (currentExercise) {
+        const exerciseSets = parsePositiveInt(currentExercise.sets || currentExercise.Sets, 1);
+        const exerciseReps = parsePositiveInt(currentExercise.reps || currentExercise.Reps, 1);
+        
+        // If we've completed all sets and reps of current exercise, count it as completed
+        if (currentSet >= exerciseSets && currentRep >= exerciseReps) {
+          completedExercises += 1;
+        }
+      }
+    }
 
     return {
-      blocks: isBlockBased ? { current: completedBlocks, total: totalBlocks } : null,
-      exercises: { current: currentExerciseIndex, total: exercises.length },
+      blocks: totalBlocks > 0 ? { current: completedBlocks, total: totalBlocks } : null,
+      exercises: { current: completedExercises, total: exercises.length },
       sets: { current: completedSets, total: totalSets },
       reps: { current: completedReps, total: totalReps }
     };

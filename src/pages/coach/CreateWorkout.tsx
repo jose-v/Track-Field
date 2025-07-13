@@ -44,6 +44,7 @@ import { FaPlus, FaTrash, FaArrowLeft, FaEdit, FaSave, FaEye } from 'react-icons
 import { ChevronRightIcon } from '@chakra-ui/icons';
 import { supabase } from '../../lib/supabase';
 import { useCoachAthletes } from '../../hooks/useCoachAthletes';
+import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import type { Workout, Exercise } from '../../services/api';
 import type { WorkoutExtraction } from '../../services/fileProcessingService';
@@ -80,6 +81,7 @@ export type WorkoutFormData = Partial<Omit<Workout, 'exercises' | 'assignedAthle
 };
 
 export function CreateWorkout() {
+  const { user } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -198,7 +200,10 @@ export function CreateWorkout() {
   };
 
   const handleAddExercise = () => {
-    if (!currentExerciseInput.name || currentExerciseInput.sets <= 0 || currentExerciseInput.reps <= 0) {
+    const setsNum = typeof currentExerciseInput.sets === 'string' ? parseInt(currentExerciseInput.sets) : currentExerciseInput.sets;
+    const repsNum = typeof currentExerciseInput.reps === 'string' ? parseInt(currentExerciseInput.reps) : currentExerciseInput.reps;
+    
+    if (!currentExerciseInput.name || setsNum <= 0 || repsNum <= 0) {
       toast({ 
         title: 'Invalid exercise data', 
         description: 'Exercise name, sets, and reps are required.', 
@@ -265,9 +270,53 @@ export function CreateWorkout() {
       // Create the workout
       const newWorkout = await api.workouts.create(workoutData);
       
-      // Assign to athletes in a separate call if needed
+      // Assign to athletes using unified assignment system
       if (assignedAthletes && assignedAthletes.length > 0 && newWorkout?.id) {
-        await api.athleteWorkouts.assign(newWorkout.id, assignedAthletes);
+        const { AssignmentService } = await import('../../services/assignmentService');
+        const assignmentService = new AssignmentService();
+        
+        // Convert workout to unified format
+        const exerciseBlock = {
+          workout_name: workoutData.name,
+          description: workoutData.description || notes || '',
+          estimated_duration: workoutData.duration,
+          location: workoutData.location,
+          workout_type: workoutData.type || 'strength',
+          exercises: workoutData.exercises || []
+        };
+        
+        // Create unified assignments for each athlete
+        for (const athleteId of assignedAthletes) {
+          try {
+            const startDate = workoutData.date || new Date().toISOString().split('T')[0];
+            await assignmentService.createAssignment({
+              athlete_id: athleteId,
+              assignment_type: 'single',
+              exercise_block: exerciseBlock,
+              progress: {
+                current_exercise_index: 0,
+                current_set: 1,
+                current_rep: 1,
+                completed_exercises: [],
+                total_exercises: workoutData.exercises.length,
+                completion_percentage: 0
+              },
+              start_date: startDate,
+              end_date: startDate,
+              assigned_at: new Date().toISOString(),
+              assigned_by: user?.id,
+              status: 'assigned',
+              meta: {
+                original_workout_id: newWorkout.id,
+                workout_type: 'single',
+                estimated_duration: workoutData.duration,
+                location: workoutData.location
+              }
+            });
+          } catch (error) {
+            console.error(`Failed to create unified assignment for athlete ${athleteId}:`, error);
+          }
+        }
       }
       
       toast({

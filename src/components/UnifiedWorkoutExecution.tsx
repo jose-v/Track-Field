@@ -468,7 +468,7 @@ export function UnifiedWorkoutExecution({
   const [currentSet, setCurrentSet] = useState(assignment.progress?.current_set || 1);
   const [currentRep, setCurrentRep] = useState(assignment.progress?.current_rep || 1);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [isActive, setIsActive] = useState(assignment.status === 'in_progress');
+  const [isActive, setIsActive] = useState(false); // Always start with overlay, regardless of status
   const [isManuallyPaused, setIsManuallyPaused] = useState(false);
   
   // Timer state
@@ -708,6 +708,31 @@ export function UnifiedWorkoutExecution({
     }
   }, [currentExerciseIndex, currentSet, currentRep, isOpen]); // Removed saveProgressToDB from deps to prevent loop
 
+  // Green countdown timer logic for timed exercises
+  const startTimedCountdown = useCallback((duration: number) => {
+    if (timedCountdownRef) {
+      clearInterval(timedCountdownRef);
+    }
+    
+    setIsTimedCountdown(true);
+    setTimedCountdown(duration);
+    setHasStartedTimedCountdown(true); // Mark that countdown has started
+    
+    const interval = setInterval(() => {
+      setTimedCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setIsTimedCountdown(false);
+          setTimedCountdownRef(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    setTimedCountdownRef(interval);
+  }, [timedCountdownRef]);
+
   // Countdown timer logic
   const startCountdown = useCallback(() => {
     if (countdownRef) {
@@ -715,7 +740,9 @@ export function UnifiedWorkoutExecution({
     }
     
     setIsCountingDown(true);
-    setCountdown(5);
+    // Use 3 seconds for running exercises (for "Ready, Set, Go"), 5 seconds for others
+    const countdownDuration = isRunningExercise() ? 3 : 5;
+    setCountdown(countdownDuration);
     
     const interval = setInterval(() => {
       setCountdown(prev => {
@@ -723,8 +750,15 @@ export function UnifiedWorkoutExecution({
           clearInterval(interval);
           setIsCountingDown(false);
           setCountdownRef(null);
-          // Auto-start the timer after countdown
-          setIsActive(true);
+          
+          // For timed exercises, start green countdown instead of blue timer
+          if (isTimedExercise()) {
+            const timedDuration = currentExercise?.timed_duration || 30;
+            startTimedCountdown(timedDuration);
+          } else {
+            // For regular exercises, start the blue timer
+            setIsActive(true);
+          }
           return 0;
         }
         return prev - 1;
@@ -732,7 +766,7 @@ export function UnifiedWorkoutExecution({
     }, 1000);
     
     setCountdownRef(interval);
-  }, [countdownRef]);
+  }, [countdownRef, isRunningExercise, isTimedExercise, currentExercise, startTimedCountdown]);
 
   // Cleanup countdown on unmount
   useEffect(() => {
@@ -743,17 +777,7 @@ export function UnifiedWorkoutExecution({
     };
   }, [countdownRef]);
 
-  // Start countdown when transitioning to a new exercise, set, or rep (but not for timed exercises)
-  useEffect(() => {
-    if (isOpen && !isActive && !isCountingDown && !isResting && !showRPEScreen && totalExercises > 0 && !isManuallyPaused && !isTimedExercise()) {
-      // Start countdown for any change in position (exercise, set, or rep)
-      const timer = setTimeout(() => {
-        startCountdown();
-      }, 500); // Small delay to let UI settle
-      
-      return () => clearTimeout(timer);
-    }
-  }, [currentExerciseIndex, currentSet, currentRep, isOpen, isActive, isCountingDown, isResting, showRPEScreen, totalExercises, startCountdown, isManuallyPaused, isTimedExercise]);
+  // Note: Removed automatic countdown start - now user must click the start button
 
   // Reset blue timer (elapsedTime) when set/rep/block changes
   useEffect(() => {
@@ -795,31 +819,6 @@ export function UnifiedWorkoutExecution({
       }
     };
   }, [restCountdownRef]);
-
-  // Green countdown timer logic for timed exercises
-  const startTimedCountdown = useCallback((duration: number) => {
-    if (timedCountdownRef) {
-      clearInterval(timedCountdownRef);
-    }
-    
-    setIsTimedCountdown(true);
-    setTimedCountdown(duration);
-    setHasStartedTimedCountdown(true); // Mark that countdown has started
-    
-    const interval = setInterval(() => {
-      setTimedCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          setIsTimedCountdown(false);
-          setTimedCountdownRef(null);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    
-    setTimedCountdownRef(interval);
-  }, [timedCountdownRef]);
 
   // Start preparatory countdown (red countdown before green timer)
   const startPrepCountdown = useCallback((duration: number) => {
@@ -869,15 +868,11 @@ export function UnifiedWorkoutExecution({
       setHasStartedTimedCountdown(false);
     }
     
-    if (isOpen && !isCountingDown && !isResting && !showRPEScreen && totalExercises > 0 && !isManuallyPaused && isTimedExercise() && !isTimedCountdown && !isPrepCountdown) {
-      // Start preparatory countdown first (3 seconds), then green timer
-      const timer = setTimeout(() => {
-        startPrepCountdown(3); // 3-second red countdown
-      }, 500); // Small delay to let UI settle
-      
-      return () => clearTimeout(timer);
-    }
-  }, [currentExerciseIndex, currentSet, currentRep, isOpen, isCountingDown, isResting, showRPEScreen, totalExercises, isManuallyPaused, isTimedExercise, startPrepCountdown, currentExercise, isTimedCountdown, isPrepCountdown]);
+    // Note: Timed exercises now follow the same pattern as regular exercises:
+    // Start button -> Red countdown -> Green timed countdown
+    // Note: Timed exercises now follow the same pattern as regular exercises:
+    // Start button -> Red countdown -> Green timed countdown
+  }, []);
 
   // Mutations for workout control
   const startExecution = useMutation({
@@ -1015,12 +1010,7 @@ export function UnifiedWorkoutExecution({
       if (currentRep < totalReps) {
         setCurrentRep(prev => prev + 1);
         // For most exercises, no rest between reps
-        // Could add interval training logic here in the future
-        setTimeout(() => {
-          if (!isResting) {
-            startCountdown();
-          }
-        }, 100);
+        // User will see start button to begin next rep
         return; // Exit early to prevent further navigation
       }
       // Then progress through sets
@@ -1039,11 +1029,8 @@ export function UnifiedWorkoutExecution({
         
         if (restTime > 0) {
           startRestCountdown(restTime);
-        } else {
-          setTimeout(() => {
-            startCountdown();
-          }, 100);
         }
+        // Note: After rest or if no rest, user will see start button to begin next rep
         return; // Exit early to prevent further navigation
       }
     } else {
@@ -1064,11 +1051,8 @@ export function UnifiedWorkoutExecution({
         
         if (restTime > 0) {
           startRestCountdown(restTime);
-        } else {
-          setTimeout(() => {
-            startCountdown();
-          }, 100);
         }
+        // Note: After rest or if no rest, user will see start button to begin next set
         return; // Exit early to prevent further navigation
       }
     }
@@ -1098,14 +1082,8 @@ export function UnifiedWorkoutExecution({
       // Apply rest between exercises
       if (exerciseTransitionRest > 0) {
         startRestCountdown(exerciseTransitionRest);
-      } else {
-        // If no rest time, trigger countdown immediately
-        setTimeout(() => {
-          if (!isResting) {
-            startCountdown();
-          }
-        }, 100);
       }
+      // Note: After rest or if no rest, user will see start button to begin next exercise
     }
     // Complete workout - we've finished the last exercise
     else {
@@ -1159,23 +1137,13 @@ export function UnifiedWorkoutExecution({
       // Go back through reps first
       if (currentRep > 1) {
         setCurrentRep(prev => prev - 1);
-        // Trigger countdown for previous rep
-        setTimeout(() => {
-          if (!isResting) {
-            startCountdown();
-          }
-        }, 100);
+        // User will see start button for previous rep
       }
       // Then go back through sets
       else if (currentSet > 1) {
         setCurrentSet(prev => prev - 1);
         setCurrentRep(totalReps); // Set to max reps for the previous set
-        // Trigger countdown for previous set
-        setTimeout(() => {
-          if (!isResting) {
-            startCountdown();
-          }
-        }, 100);
+        // User will see start button for previous set
       }
       // Go to previous exercise
       else if (currentExerciseIndex > 0) {
@@ -1192,12 +1160,7 @@ export function UnifiedWorkoutExecution({
           return prevExerciseIndex;
         });
         
-        // Trigger countdown for previous exercise
-        setTimeout(() => {
-          if (!isResting) {
-            startCountdown();
-          }
-        }, 100);
+        // User will see start button for previous exercise
       }
     } else {
       // For non-running exercises: Use set-based navigation (skip reps)
@@ -1205,12 +1168,7 @@ export function UnifiedWorkoutExecution({
       if (currentSet > 1) {
         setCurrentSet(prev => prev - 1);
         setCurrentRep(1); // Reset to 1 for the previous set
-        // Trigger countdown for previous set
-        setTimeout(() => {
-          if (!isResting) {
-            startCountdown();
-          }
-        }, 100);
+        // User will see start button for previous set
       }
       // Go to previous exercise
       else if (currentExerciseIndex > 0) {
@@ -1227,12 +1185,7 @@ export function UnifiedWorkoutExecution({
           return prevExerciseIndex;
         });
         
-        // Trigger countdown for previous exercise
-        setTimeout(() => {
-          if (!isResting) {
-            startCountdown();
-          }
-        }, 100);
+        // User will see start button for previous exercise
       }
     }
   };
@@ -1371,19 +1324,133 @@ export function UnifiedWorkoutExecution({
                 transform="translate(-50%, -50%)"
                 zIndex={1000}
                 bg="rgba(0, 0, 0, 0.8)"
+                backdropFilter="blur(10px)"
                 w="full"
                 h="full"
                 display="flex"
                 alignItems="center"
                 justifyContent="center"
               >
-                <VStack spacing={2}>
-                  <Text fontSize="6xl" fontWeight="bold" color="red.400">
-                    {countdown}
+                <VStack spacing={6}>
+                  {/* Exercise Name */}
+                  {currentExercise && (
+                    <Text fontSize="2xl" fontWeight="bold" color="white" textAlign="center">
+                      {currentExercise.name}
+                    </Text>
+                  )}
+                  
+                  {/* Countdown Display */}
+                  <Text fontSize="6xl" fontWeight="bold" color="red.400" textAlign="center">
+                    {isRunningExercise() && countdown <= 3 ? 
+                      (countdown === 3 ? "Ready" : countdown === 2 ? "Set" : countdown === 1 ? "Go!" : countdown) :
+                      countdown
+                    }
                   </Text>
+                  
                   <Text fontSize="lg" color="white" textAlign="center">
                     Get Ready!
                   </Text>
+                </VStack>
+              </Box>
+            )}
+
+            {/* Start Button - Show when not counting down and not active */}
+            {!isCountingDown && !isActive && !isResting && !showRPEScreen && totalExercises > 0 && !isManuallyPaused && !isTimedCountdown && (
+              <Box 
+                position="absolute" 
+                top="50%" 
+                left="50%" 
+                transform="translate(-50%, -50%)"
+                zIndex={999}
+                bg="rgba(0, 0, 0, 0.6)"
+                backdropFilter="blur(10px)"
+                w="full"
+                h="full"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+              >
+                <VStack spacing={6}>
+                  {/* Exercise Name */}
+                  {currentExercise && (
+                    <Text fontSize="2xl" fontWeight="bold" color="white" textAlign="center">
+                      {currentExercise.name}
+                    </Text>
+                  )}
+                  
+                  {/* Start Button */}
+                  <Button
+                    size="xl"
+                    borderRadius="full"
+                    w="120px"
+                    h="120px"
+                    bg="green.500"
+                    color="white"
+                    fontSize="2xl"
+                    fontWeight="bold"
+                    onClick={startCountdown}
+                    _hover={{ bg: "green.600" }}
+                    _active={{ bg: "green.700" }}
+                  >
+                    Start
+                  </Button>
+                </VStack>
+              </Box>
+            )}
+
+            {/* Rest Time Overlay */}
+            {isResting && (
+              <Box 
+                position="absolute" 
+                top="50%" 
+                left="50%" 
+                transform="translate(-50%, -50%)"
+                zIndex={1000}
+                bg="rgba(0, 0, 0, 0.8)"
+                backdropFilter="blur(10px)"
+                w="full"
+                h="full"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+              >
+                <VStack spacing={6}>
+                  {/* Exercise Name */}
+                  {currentExercise && (
+                    <Text fontSize="2xl" fontWeight="bold" color="white" textAlign="center">
+                      {currentExercise.name}
+                    </Text>
+                  )}
+                  
+                  {/* Rest Time Display */}
+                  <VStack spacing={4}>
+                    <Text fontSize="xl" color="orange.400" fontWeight="bold" textTransform="uppercase">
+                      Rest Time
+                    </Text>
+                    <Text fontSize="6xl" fontWeight="bold" color="orange.400" textAlign="center" fontFamily="mono">
+                      {`${Math.floor(restCountdown / 60).toString().padStart(2, '0')}:${(restCountdown % 60).toString().padStart(2, '0')}`}
+                    </Text>
+                    
+                    {/* Skip Rest Button */}
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      colorScheme="orange"
+                      color="white"
+                      borderColor="orange.400"
+                      _hover={{ bg: "orange.400", borderColor: "orange.500" }}
+                      onClick={() => {
+                        if (restCountdownRef) {
+                          clearInterval(restCountdownRef);
+                          setRestCountdownRef(null);
+                        }
+                        setIsResting(false);
+                        setRestCountdown(0);
+                      }}
+                    >
+                      Skip Rest
+                    </Button>
+                  </VStack>
                 </VStack>
               </Box>
             )}
@@ -1574,29 +1641,7 @@ export function UnifiedWorkoutExecution({
                       isDisabled={(currentExerciseIndex === 0 && currentSet === 1 && currentRep === 1) || isResting || isTimedCountdown}
                     />
                     
-                    {isResting ? (
-                      <VStack spacing={2}>
-                        <Text fontSize="sm" color="orange.500" fontWeight="medium" textTransform="uppercase">
-                          REST TIME
-                        </Text>
-                        <FixedTimer 
-                          seconds={restCountdown} 
-                          color="orange.500" 
-                          isRest={true}
-                        />
-                      </VStack>
-                    ) : isPrepCountdown ? (
-                      <VStack spacing={2}>
-                        <Text fontSize="sm" color="red.500" fontWeight="medium" textTransform="uppercase">
-                          GET READY
-                        </Text>
-                        <FixedTimer 
-                          seconds={prepCountdown} 
-                          color="red.500" 
-                          isRest={false}
-                        />
-                      </VStack>
-                    ) : isTimedCountdown ? (
+                    {isTimedCountdown ? (
                       <VStack spacing={2}>
                         <Text fontSize="sm" color="green.500" fontWeight="medium" textTransform="uppercase">
                           TIMED EXERCISE
@@ -1607,6 +1652,13 @@ export function UnifiedWorkoutExecution({
                           isRest={false}
                         />
                       </VStack>
+                    ) : (isTimedExercise() && !isPrepCountdown && prepCountdown === 0) ? (
+                      // Hide timer for timed exercises when transitioning from red to green countdown
+                      <FixedTimer 
+                        seconds={0} 
+                        color="gray.400" 
+                        isRest={false}
+                      />
                     ) : (
                       <FixedTimer 
                         seconds={elapsedTime} 
@@ -1621,7 +1673,7 @@ export function UnifiedWorkoutExecution({
                       size="xl"
                       variant="ghost"
                       onClick={handleNext}
-                      isDisabled={showRPEScreen || isCountingDown || isResting || isTimedCountdown || isPrepCountdown}
+                      isDisabled={showRPEScreen || isCountingDown || isResting || isTimedCountdown}
                     />
                   </HStack>
                   
@@ -1634,7 +1686,7 @@ export function UnifiedWorkoutExecution({
                       size="md"
                       variant="outline"
                       onClick={onDetailsDrawerOpen}
-                      isDisabled={isCountingDown || isResting || isTimedCountdown || isPrepCountdown}
+                      isDisabled={isCountingDown || isResting || isTimedCountdown}
                     />
                     <IconButton
                       aria-label="Reset timer"
@@ -1646,7 +1698,7 @@ export function UnifiedWorkoutExecution({
                         // Only reset the blue timer (elapsedTime), not the entire workout
                         setElapsedTime(0);
                       }}
-                      isDisabled={isCountingDown || isResting || isTimedCountdown || isPrepCountdown}
+                      isDisabled={isCountingDown || isResting || isTimedCountdown}
                     />
                     <IconButton
                       aria-label="Tutorial"
@@ -1655,7 +1707,7 @@ export function UnifiedWorkoutExecution({
                       size="md"
                       variant="outline"
                       onClick={() => {/* TODO: Show video */}}
-                      isDisabled={isCountingDown || isResting || isTimedCountdown || isPrepCountdown}
+                      isDisabled={isCountingDown || isResting || isTimedCountdown}
                     />
                     <IconButton
                       aria-label={isActive ? "Pause timer" : "Play timer"}
@@ -1672,27 +1724,16 @@ export function UnifiedWorkoutExecution({
                           setIsManuallyPaused(false);
                         }
                       }}
-                      isDisabled={isCountingDown || isResting || isTimedCountdown || isPrepCountdown}
+                      isDisabled={isCountingDown || isResting || isTimedCountdown}
                     />
                     <IconButton
-                      aria-label={isResting ? "Skip rest" : isPrepCountdown ? "Skip prep" : isTimedCountdown ? "Skip timed exercise" : "Skip rest"}
+                      aria-label={isResting ? "Skip rest" : isTimedCountdown ? "Skip timed exercise" : "Skip rest"}
                       icon={<FaForward />}
                       borderRadius="full"
                       size="md"
-                      variant={isResting || isPrepCountdown || isTimedCountdown ? "solid" : "outline"}
-                      colorScheme={isResting ? "orange" : isPrepCountdown ? "red" : isTimedCountdown ? "green" : "gray"}
-                      onClick={isResting ? skipRest : isPrepCountdown ? () => {
-                        // Skip preparatory countdown
-                        if (prepCountdownRef) {
-                          clearInterval(prepCountdownRef);
-                        }
-                        setIsPrepCountdown(false);
-                        setPrepCountdownRef(null);
-                        setPrepCountdown(0);
-                        // Start green timer immediately
-                        const duration = currentExercise?.timed_duration || 30;
-                        startTimedCountdown(duration);
-                      } : isTimedCountdown ? () => {
+                      variant={isResting || isTimedCountdown ? "solid" : "outline"}
+                      colorScheme={isResting ? "orange" : isTimedCountdown ? "green" : "gray"}
+                      onClick={isResting ? skipRest : isTimedCountdown ? () => {
                         // Skip timed exercise
                         if (timedCountdownRef) {
                           clearInterval(timedCountdownRef);
@@ -1703,7 +1744,7 @@ export function UnifiedWorkoutExecution({
                         setHasStartedTimedCountdown(false);
                         handleNext();
                       } : skipRest}
-                      isDisabled={isCountingDown || (!isResting && !isPrepCountdown && !isTimedCountdown)}
+                      isDisabled={isCountingDown || (!isResting && !isTimedCountdown)}
                     />
                   </HStack>
                 </VStack>

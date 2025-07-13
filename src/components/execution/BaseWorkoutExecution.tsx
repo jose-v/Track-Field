@@ -58,13 +58,103 @@ export interface BaseWorkoutExecutionProps {
   onClose: () => void;
   timer: number;
   running: boolean;
+  currentSet?: number;
+  currentRep?: number;
   onUpdateTimer: (timer: number) => void;
   onUpdateRunning: (running: boolean) => void;
   onFinishWorkout: () => void;
   onShowVideo: (exerciseName: string, videoUrl: string) => void;
 }
 
-export const useWorkoutExecutionState = () => {
+export const useWorkoutExecutionState = (
+  workoutId?: string, 
+  exerciseIdx?: number,
+  initialCurrentSet?: number,
+  initialCurrentRep?: number
+) => {
+  // Create a unique key for localStorage based on workout and exercise
+  const storageKey = workoutId && exerciseIdx !== undefined 
+    ? `workout-execution-state-${workoutId}-${exerciseIdx}` 
+    : null;
+
+  // Helper function to load state from localStorage
+  const loadPersistedState = useCallback(() => {
+    if (!storageKey) return null;
+    
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Only restore if the session is recent (within 6 hours)
+        if (parsed.timestamp && Date.now() - parsed.timestamp < 6 * 60 * 60 * 1000) {
+          // Debug logging removed to prevent console flooding
+          return parsed;
+        }
+      }
+    } catch (error) {
+      console.error('Error loading execution state:', error);
+    }
+    return null;
+  }, [storageKey]);
+
+  // Helper function to save state to localStorage
+  const saveStateToStorage = useCallback((stateToSave: any) => {
+    if (!storageKey) return;
+    
+    try {
+      const stateWithTimestamp = {
+        ...stateToSave,
+        timestamp: Date.now(),
+      };
+      localStorage.setItem(storageKey, JSON.stringify(stateWithTimestamp));
+    } catch (error) {
+      console.error('Error saving execution state:', error);
+    }
+  }, [storageKey]);
+
+  // Helper function to save granular progress to database
+  const saveProgressToDatabase = useCallback(async (
+    userId: string,
+    actualWorkoutId: string,
+    currentExerciseIdx: number,
+    currentSet: number,
+    currentRep: number,
+    workoutStore: any
+  ) => {
+    if (!userId || !actualWorkoutId) return;
+    
+    try {
+      if (actualWorkoutId.startsWith('daily-')) {
+        // Monthly plan workout
+        const { saveCurrentMonthlyPlanProgressToDB } = await import('../../utils/monthlyPlanWorkoutHelper');
+        await saveCurrentMonthlyPlanProgressToDB(
+          userId,
+          currentExerciseIdx,
+          currentSet,
+          currentRep,
+          workoutStore,
+          actualWorkoutId
+        );
+      } else {
+        // Regular workout
+        const { saveCurrentProgressToDB } = await import('../../utils/regularWorkoutHelper');
+        await saveCurrentProgressToDB(
+          userId,
+          actualWorkoutId,
+          currentExerciseIdx,
+          currentSet,
+          currentRep,
+          workoutStore
+        );
+      }
+    } catch (error) {
+      console.error('Error saving progress to database:', error);
+    }
+  }, []);
+
+  // Initialize state with persistence
+  const persistedState = loadPersistedState();
+
   // Timer and countdown state
   const [countdown, setCountdown] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -75,20 +165,112 @@ export const useWorkoutExecutionState = () => {
   const [restCountdown, setRestCountdown] = useState(0);
   const [isResting, setIsResting] = useState(false);
   
-  // Exercise state
-  const [currentSet, setCurrentSet] = useState(1);
-  const [currentRep, setCurrentRep] = useState(1);
-  const [runTime, setRunTime] = useState({ minutes: 0, seconds: 0, hundredths: 0 });
+  // Exercise state - prioritize passed initial values over localStorage
+  const [currentSet, setCurrentSet] = useState(
+    initialCurrentSet || persistedState?.currentSet || 1
+  );
+  const [currentRep, setCurrentRep] = useState(
+    initialCurrentRep || persistedState?.currentRep || 1
+  );
+  const [runTime, setRunTime] = useState(persistedState?.runTime || { minutes: 0, seconds: 0, hundredths: 0 });
+  
+  // Removed hasLoadedGranularProgress state - no longer needed
   
   // RPE state
   const [showRPEScreen, setShowRPEScreen] = useState(false);
   const [selectedRPE, setSelectedRPE] = useState<number | null>(null);
   const [isLoggingRPE, setIsLoggingRPE] = useState(false);
   
+  // Refs to store latest values to avoid stale closures
+  const currentStateRef = useRef({ currentSet, currentRep, runTime });
+  
+  // Update ref whenever state changes
+  useEffect(() => {
+    currentStateRef.current = { currentSet, currentRep, runTime };
+  }, [currentSet, currentRep, runTime]);
+  
+  // TEMPORARILY DISABLED: Load granular progress from database 
+  // This was interfering with normal workout progression
+  // Granular progress restoration should happen at the higher level (AthleteWorkouts.tsx)
+  // when the modal is opened, not inside the execution components
+  
+  // useEffect(() => {
+  //   const loadGranularProgressFromDB = async () => {
+  //     // ... granular progress loading logic
+  //   };
+  //   loadGranularProgressFromDB();
+  // }, [workoutId, userId]);
+  
   // Refs
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   const restTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Create enhanced setters that persist on user action
+  const setCurrentSetWithPersistence = useCallback((
+    value: number | ((prev: number) => number),
+    userId?: string,
+    actualWorkoutId?: string,
+    exerciseIdx?: number,
+    workoutStore?: any
+  ) => {
+    setCurrentSet(prevSet => {
+      const newSet = typeof value === 'function' ? value(prevSet) : value;
+      // Only persist when user explicitly changes the set
+      if (storageKey && newSet !== prevSet) {
+        const state = currentStateRef.current;
+        saveStateToStorage({ currentSet: newSet, currentRep: state.currentRep, runTime: state.runTime });
+        
+        // Also save to database if we have the required data
+        if (userId && actualWorkoutId && exerciseIdx !== undefined && workoutStore) {
+          saveProgressToDatabase(userId, actualWorkoutId, exerciseIdx, newSet, state.currentRep, workoutStore);
+        }
+      }
+      return newSet;
+    });
+  }, [storageKey, saveStateToStorage, saveProgressToDatabase]);
+
+  const setCurrentRepWithPersistence = useCallback((
+    value: number | ((prev: number) => number),
+    userId?: string,
+    actualWorkoutId?: string,
+    exerciseIdx?: number,
+    workoutStore?: any
+  ) => {
+    setCurrentRep(prevRep => {
+      const newRep = typeof value === 'function' ? value(prevRep) : value;
+      
+      // Debug logging removed to prevent console flooding
+      
+      // Only persist when user explicitly changes the rep
+      if (storageKey && newRep !== prevRep) {
+        const state = currentStateRef.current;
+        saveStateToStorage({ currentSet: state.currentSet, currentRep: newRep, runTime: state.runTime });
+        
+        // Also save to database if we have the required data
+        if (userId && actualWorkoutId && exerciseIdx !== undefined && workoutStore) {
+          saveProgressToDatabase(userId, actualWorkoutId, exerciseIdx, state.currentSet, newRep, workoutStore);
+        }
+      }
+      return newRep;
+    });
+  }, [storageKey, saveStateToStorage, saveProgressToDatabase]);
+
+  const setRunTimeWithPersistence = useCallback((value: { minutes: number; seconds: number; hundredths: number }) => {
+    const state = currentStateRef.current;
+    // Only persist if the time actually changed
+    if (storageKey && (value.minutes !== state.runTime.minutes || value.seconds !== state.runTime.seconds || value.hundredths !== state.runTime.hundredths)) {
+      saveStateToStorage({ currentSet: state.currentSet, currentRep: state.currentRep, runTime: value });
+    }
+    setRunTime(value);
+  }, [storageKey, saveStateToStorage]);
+
+  // Clear persisted state when exercise is completed or modal closes
+  const clearPersistedState = useCallback(() => {
+    if (storageKey) {
+      localStorage.removeItem(storageKey);
+    }
+  }, [storageKey]);
 
   return {
     // Timer state
@@ -110,13 +292,13 @@ export const useWorkoutExecutionState = () => {
     setIsResting,
     restTimerRef,
     
-    // Exercise state
+    // Exercise state with persistence
     currentSet,
-    setCurrentSet,
+    setCurrentSet: setCurrentSetWithPersistence,
     currentRep,
-    setCurrentRep,
+    setCurrentRep: setCurrentRepWithPersistence,
     runTime,
-    setRunTime,
+    setRunTime: setRunTimeWithPersistence,
     
     // RPE state
     showRPEScreen,
@@ -124,7 +306,11 @@ export const useWorkoutExecutionState = () => {
     selectedRPE,
     setSelectedRPE,
     isLoggingRPE,
-    setIsLoggingRPE
+    setIsLoggingRPE,
+    
+    // Persistence control
+    clearPersistedState,
+    saveProgressToDatabase
   };
 };
 

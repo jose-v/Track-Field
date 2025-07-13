@@ -30,15 +30,17 @@ import {
   MenuList,
   MenuItem,
   useDisclosure,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  ModalCloseButton,
+  Drawer,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerHeader,
+  DrawerBody,
+  DrawerFooter,
+  DrawerCloseButton,
   useToast,
+  Switch,
 } from '@chakra-ui/react';
+import { ChevronLeftIcon } from '@chakra-ui/icons';
 import { 
   Plus, 
   Settings, 
@@ -65,7 +67,8 @@ interface WorkoutBlock {
   category: 'warmup' | 'main' | 'accessory' | 'conditioning' | 'cooldown' | 'custom';
   flow: 'sequential' | 'circuit' | 'superset' | 'emom' | 'amrap';
   exercises: any[];
-  restBetweenExercises: number;
+  restBetweenExercises: number; // Rest time when moving to next exercise
+  restBetweenSets?: number; // Rest time between sets of same exercise
   rounds?: number;
   timeLimit?: number;
   description?: string;
@@ -80,51 +83,56 @@ interface Step2BlockBuilderProps {
 }
 
 const BLOCK_CATEGORIES = [
-  { value: 'warmup', label: 'Warm-up', icon: RotateCcw, color: 'orange', defaultRest: 60 },
-  { value: 'main', label: 'Main Set', icon: Target, color: 'blue', defaultRest: 90 },
-  { value: 'accessory', label: 'Accessory', icon: Plus, color: 'green', defaultRest: 60 },
-  { value: 'conditioning', label: 'Conditioning', icon: Zap, color: 'red', defaultRest: 75 },
-  { value: 'cooldown', label: 'Cool-down', icon: Clock, color: 'purple', defaultRest: 30 },
-  { value: 'custom', label: 'Custom', icon: Settings, color: 'gray', defaultRest: 60 },
+  { value: 'warmup', label: 'Warm-up', icon: RotateCcw, color: 'orange', defaultRestBetweenSets: 45, defaultRestBetweenExercises: 60 },
+  { value: 'main', label: 'Main Set', icon: Target, color: 'blue', defaultRestBetweenSets: 90, defaultRestBetweenExercises: 120 },
+  { value: 'accessory', label: 'Accessory', icon: Plus, color: 'green', defaultRestBetweenSets: 60, defaultRestBetweenExercises: 90 },
+  { value: 'conditioning', label: 'Conditioning', icon: Zap, color: 'red', defaultRestBetweenSets: 30, defaultRestBetweenExercises: 75 },
+  { value: 'cooldown', label: 'Cool-down', icon: Clock, color: 'purple', defaultRestBetweenSets: 15, defaultRestBetweenExercises: 30 },
+  { value: 'custom', label: 'Custom', icon: Settings, color: 'gray', defaultRestBetweenSets: 60, defaultRestBetweenExercises: 90 },
 ];
 
 const FLOW_TYPES = [
   { 
     value: 'sequential', 
     label: 'Sequential', 
-    description: 'Complete all sets of one exercise before moving to the next',
+    description: 'Traditional training - full control over rest periods',
     icon: Target,
-    supportsRounds: false
+    supportsRounds: false,
+    restPattern: 'flexible' // Full control over rest times
   },
   { 
     value: 'circuit', 
     label: 'Circuit', 
-    description: 'Cycle through exercises with minimal rest',
+    description: 'Continuous movement with minimal to no rest',
     icon: RotateCcw,
-    supportsRounds: true
+    supportsRounds: true,
+    restPattern: 'minimal' // Short rest between sets, no rest between exercises
   },
   { 
     value: 'superset', 
     label: 'Superset', 
-    description: 'Pair exercises back-to-back',
+    description: 'Paired exercises with rest between sets only',
     icon: Users,
-    supportsRounds: false
+    supportsRounds: false,
+    restPattern: 'paired' // Rest between sets only, no rest between exercises
   },
   { 
     value: 'emom', 
     label: 'EMOM', 
-    description: 'Every Minute on the Minute',
+    description: 'Timer-controlled intervals - no manual rest needed',
     icon: Timer,
     supportsRounds: true,
-    requiresTime: true
+    requiresTime: true,
+    restPattern: 'timer' // Timer-controlled, no manual rest
   },
   { 
     value: 'amrap', 
     label: 'AMRAP', 
-    description: 'As Many Rounds As Possible',
+    description: 'Maximum effort in time limit - no manual rest',
     icon: Repeat,
     supportsRounds: false,
-    requiresTime: true
+    requiresTime: true,
+    restPattern: 'timer' // Timer-controlled, no manual rest
   },
 ];
 
@@ -134,13 +142,15 @@ const BLOCK_TEMPLATES = {
     exercises: ['Arm Circles', 'Leg Swings', 'High Knees', 'Butt Kicks'],
     flow: 'sequential',
     restBetweenExercises: 60,
+    restBetweenSets: 45,
     rounds: undefined
   },
   main: {
     name: 'Strength Training',
     exercises: ['Back Squat', 'Bench Press', 'Deadlift'],
     flow: 'sequential',
-    restBetweenExercises: 90,
+    restBetweenExercises: 120,
+    restBetweenSets: 90,
     rounds: undefined
   },
   conditioning: {
@@ -148,6 +158,7 @@ const BLOCK_TEMPLATES = {
     exercises: ['Burpees', 'Mountain Climbers', 'Jump Squats'],
     flow: 'circuit',
     restBetweenExercises: 75,
+    restBetweenSets: 30,
     rounds: 3
   },
   cooldown: {
@@ -155,6 +166,7 @@ const BLOCK_TEMPLATES = {
     exercises: ['Forward Fold', 'Pigeon Pose', 'Child\'s Pose'],
     flow: 'sequential',
     restBetweenExercises: 30,
+    restBetweenSets: 15,
     rounds: undefined
   }
 };
@@ -236,7 +248,14 @@ const SortableBlock: React.FC<SortableBlockProps> = ({
                 <Badge colorScheme="blue" variant="outline" size="sm">
                   {flowConfig?.label}
                 </Badge>
-                <Text>{block.restBetweenExercises}s rest</Text>
+                <HStack spacing={2} divider={<Text color="gray.400">|</Text>}>
+                  <Text>
+                    Sets: {block.restBetweenSets || 0}s
+                  </Text>
+                  <Text>
+                    Ex: {block.restBetweenExercises}s
+                  </Text>
+                </HStack>
                 {block.rounds && (
                   <Text>{block.rounds} rounds</Text>
                 )}
@@ -286,33 +305,184 @@ const BlockConfigModal: React.FC<BlockConfigModalProps> = ({
   onSave
 }) => {
   const [formData, setFormData] = useState<Partial<WorkoutBlock>>({});
+  const [noRestBetweenSets, setNoRestBetweenSets] = useState(false);
+  const [noRestBetweenExercises, setNoRestBetweenExercises] = useState(false);
   
   React.useEffect(() => {
     if (block) {
       setFormData(block);
+      // Set toggles based on whether rest times are 0
+      setNoRestBetweenSets((block.restBetweenSets || 0) === 0);
+      setNoRestBetweenExercises(block.restBetweenExercises === 0);
     }
   }, [block]);
 
   const handleSave = () => {
     if (formData.name && formData.category && formData.flow) {
-      onSave(formData as WorkoutBlock);
+      const finalFormData = {
+        ...formData,
+        restBetweenSets: noRestBetweenSets ? 0 : (formData.restBetweenSets || 60),
+        restBetweenExercises: noRestBetweenExercises ? 0 : (formData.restBetweenExercises || 90)
+      };
+      onSave(finalFormData as WorkoutBlock);
       onClose();
+    }
+  };
+
+  const handleNoRestBetweenSetsChange = (checked: boolean) => {
+    setNoRestBetweenSets(checked);
+    if (checked) {
+      // When enabling "no rest", set rest time to 0
+      setFormData(prev => ({ ...prev, restBetweenSets: 0 }));
+    } else {
+      // When disabling "no rest", restore to original block rest time or category default
+      if ((formData.restBetweenSets || 0) === 0) {
+        // Try to get the original block's rest time first
+        const originalRestTime = block?.restBetweenSets;
+        if (originalRestTime && originalRestTime > 0) {
+          setFormData(prev => ({ ...prev, restBetweenSets: originalRestTime }));
+        } else {
+          // Fall back to category default
+          const categoryConfig = BLOCK_CATEGORIES.find(c => c.value === formData.category);
+          setFormData(prev => ({ ...prev, restBetweenSets: categoryConfig?.defaultRestBetweenSets || 60 }));
+        }
+      }
+    }
+  };
+
+  const handleNoRestBetweenExercisesChange = (checked: boolean) => {
+    setNoRestBetweenExercises(checked);
+    if (checked) {
+      // When enabling "no rest", set rest time to 0
+      setFormData(prev => ({ ...prev, restBetweenExercises: 0 }));
+    } else {
+      // When disabling "no rest", restore to original block rest time or category default
+      if (formData.restBetweenExercises === 0) {
+        // Try to get the original block's rest time first
+        const originalRestTime = block?.restBetweenExercises;
+        if (originalRestTime && originalRestTime > 0) {
+          setFormData(prev => ({ ...prev, restBetweenExercises: originalRestTime }));
+        } else {
+          // Fall back to category default
+          const categoryConfig = BLOCK_CATEGORIES.find(c => c.value === formData.category);
+          setFormData(prev => ({ ...prev, restBetweenExercises: categoryConfig?.defaultRestBetweenExercises || 90 }));
+        }
+      }
+    }
+  };
+
+  // Flow-specific rest time presets
+  const applyFlowPresets = (flow: string) => {
+    const presets = {
+      sequential: { restBetweenSets: 60, restBetweenExercises: 90 },
+      circuit: { restBetweenSets: 0, restBetweenExercises: 0 },
+      superset: { restBetweenSets: 30, restBetweenExercises: 0 },
+      emom: { restBetweenSets: 0, restBetweenExercises: 0 },
+      amrap: { restBetweenSets: 0, restBetweenExercises: 0 }
+    };
+
+    const preset = presets[flow as keyof typeof presets];
+    if (preset) {
+      setFormData(prev => ({ 
+        ...prev, 
+        flow: flow as WorkoutBlock['flow'],
+        restBetweenSets: preset.restBetweenSets,
+        restBetweenExercises: preset.restBetweenExercises
+      }));
+      setNoRestBetweenSets(preset.restBetweenSets === 0);
+      setNoRestBetweenExercises(preset.restBetweenExercises === 0);
+    } else {
+      setFormData(prev => ({ ...prev, flow: flow as WorkoutBlock['flow'] }));
     }
   };
 
   const selectedFlow = FLOW_TYPES.find(f => f.value === formData.flow);
 
+  // Determine which rest controls should be available based on flow type
+  const getRestControlsConfig = () => {
+    const pattern = selectedFlow?.restPattern || 'flexible';
+    
+    switch (pattern) {
+      case 'flexible': // Sequential - full control
+        return {
+          showRestBetweenSets: true,
+          enableRestBetweenSets: true,
+          showRestBetweenExercises: true,
+          enableRestBetweenExercises: true,
+          showPresets: true,
+          explanation: null
+        };
+      
+      case 'minimal': // Circuit - minimal rest encouraged
+        return {
+          showRestBetweenSets: true,
+          enableRestBetweenSets: true,
+          showRestBetweenExercises: true,
+          enableRestBetweenExercises: true,
+          showPresets: true,
+          explanation: "Circuit training works best with minimal rest for continuous movement"
+        };
+      
+      case 'paired': // Superset - no rest between exercises
+        return {
+          showRestBetweenSets: true,
+          enableRestBetweenSets: true,
+          showRestBetweenExercises: true,
+          enableRestBetweenExercises: false,
+          showPresets: false,
+          explanation: "Superset exercises are performed back-to-back with no rest between them"
+        };
+      
+      case 'timer': // EMOM/AMRAP - timer controlled
+        return {
+          showRestBetweenSets: false,
+          enableRestBetweenSets: false,
+          showRestBetweenExercises: false,
+          enableRestBetweenExercises: false,
+          showPresets: false,
+          explanation: "Rest periods are controlled by the timer - no manual rest needed"
+        };
+      
+      default:
+        return {
+          showRestBetweenSets: true,
+          enableRestBetweenSets: true,
+          showRestBetweenExercises: true,
+          enableRestBetweenExercises: true,
+          showPresets: false, // Conservative default
+          explanation: null
+        };
+    }
+  };
+
+  const restConfig = getRestControlsConfig();
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="lg">
-      <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>
-          {block ? 'Edit Block' : 'Create New Block'}
-        </ModalHeader>
-        <ModalCloseButton />
+    <Drawer isOpen={isOpen} onClose={onClose} placement="right" size="lg">
+      <DrawerOverlay />
+      <DrawerContent>
+        <DrawerHeader borderBottom="1px solid" borderColor="gray.200" pb={4}>
+          <HStack w="full" position="relative">
+            <IconButton
+              aria-label="Back"
+              icon={<ChevronLeftIcon />}
+              variant="ghost"
+              onClick={onClose}
+              position="absolute"
+              left={0}
+              zIndex={2}
+            />
+            
+            <VStack spacing={0} textAlign="center" w="full" align="center">
+              <Text fontSize="lg" fontWeight="semibold">
+                Configure Block - {formData.name || 'New Block'}
+              </Text>
+            </VStack>
+          </HStack>
+        </DrawerHeader>
         
-        <ModalBody>
-          <VStack spacing={4} align="stretch">
+        <DrawerBody py={6} overflowY="auto">
+          <VStack spacing={6} align="stretch">
             <FormControl>
               <FormLabel>Block Name</FormLabel>
               <Input
@@ -332,7 +502,8 @@ const BlockConfigModal: React.FC<BlockConfigModalProps> = ({
                   setFormData(prev => ({ 
                     ...prev, 
                     category,
-                    restBetweenExercises: categoryConfig?.defaultRest || 60
+                    restBetweenExercises: categoryConfig?.defaultRestBetweenExercises || 90,
+                    restBetweenSets: categoryConfig?.defaultRestBetweenSets || 60
                   }));
                 }}
                 placeholder="Select category"
@@ -347,9 +518,10 @@ const BlockConfigModal: React.FC<BlockConfigModalProps> = ({
             
             <FormControl>
               <FormLabel>Flow Type</FormLabel>
+              <VStack align="stretch" spacing={3}>
               <Select
                 value={formData.flow || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, flow: e.target.value as WorkoutBlock['flow'] }))}
+                  onChange={(e) => applyFlowPresets(e.target.value)}
                 placeholder="Select flow type"
               >
                 {FLOW_TYPES.map(flow => (
@@ -358,25 +530,249 @@ const BlockConfigModal: React.FC<BlockConfigModalProps> = ({
                   </option>
                 ))}
               </Select>
+                
+                {/* Flow-specific rest time info */}
+                {selectedFlow && (
+                  <Box p={3} bg="blue.50" borderRadius="md" borderLeft="4px solid" borderLeftColor="blue.400">
+                    <Text fontSize="sm" fontWeight="medium" color="blue.700" mb={1}>
+                      {selectedFlow.label} Rest Pattern:
+                    </Text>
+                    <Text fontSize="xs" color="blue.600">
+                      {selectedFlow.value === 'sequential' && "Full manual control - set any rest times for your training goals"}
+                      {selectedFlow.value === 'circuit' && "Encourages continuous movement - can override if needed for safety"}
+                      {selectedFlow.value === 'superset' && "Exercises must be back-to-back - only rest between sets allowed"}
+                      {selectedFlow.value === 'emom' && "Work/rest controlled by timer - manual rest times not applicable"}
+                      {selectedFlow.value === 'amrap' && "Continuous maximum effort - manual rest times not applicable"}
+                    </Text>
+                  </Box>
+                )}
+              </VStack>
             </FormControl>
             
-            <SimpleGrid columns={2} spacing={4}>
+            {/* Rest Time Configuration */}
               <FormControl>
-                <FormLabel>Rest Between Exercises (seconds)</FormLabel>
+              <FormLabel>Rest Time Settings</FormLabel>
+              <VStack align="stretch" spacing={4}>
+                
+                {/* Flow-specific explanation */}
+                {restConfig.explanation && (
+                  <Box p={3} bg="blue.50" borderRadius="md" borderLeft="4px solid" borderLeftColor="blue.400">
+                    <Text fontSize="sm" color="blue.700">
+                      <strong>{selectedFlow?.label}:</strong> {restConfig.explanation}
+                    </Text>
+                  </Box>
+                )}
+
+                {/* Timer-controlled flow message */}
+                {selectedFlow?.restPattern === 'timer' && (
+                  <Box p={4} bg="purple.50" borderRadius="md" borderLeft="4px solid" borderLeftColor="purple.400" textAlign="center">
+                    <Text fontSize="md" fontWeight="medium" color="purple.700" mb={1}>
+                      ⏱️ Timer-Controlled Workout
+                    </Text>
+                    <Text fontSize="sm" color="purple.600">
+                      Rest periods are managed by the {selectedFlow.label.toLowerCase()} timer. 
+                      Set your time limit above and let the clock control the pace!
+                    </Text>
+                  </Box>
+                )}
+                
+                {/* Quick Presets - only show for flexible flows */}
+                {restConfig.showPresets && (
+                  <Box>
+                    <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.700">
+                      {selectedFlow?.value === 'sequential' ? 'Training Style Presets:' : 
+                       selectedFlow?.value === 'circuit' ? 'Circuit Presets:' : 
+                       'Quick Presets:'}
+                    </Text>
+                    <HStack spacing={2} flexWrap="wrap">
+                      {/* Sequential: Show all options for maximum flexibility */}
+                      {selectedFlow?.value === 'sequential' && (
+                        <>
+                          <Button 
+                            size="xs" 
+                            variant="outline" 
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, restBetweenSets: 90, restBetweenExercises: 120 }));
+                              setNoRestBetweenSets(false);
+                              setNoRestBetweenExercises(false);
+                            }}
+                          >
+                            Strength (90s/2min)
+                          </Button>
+                          <Button 
+                            size="xs" 
+                            variant="outline" 
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, restBetweenSets: 60, restBetweenExercises: 90 }));
+                              setNoRestBetweenSets(false);
+                              setNoRestBetweenExercises(false);
+                            }}
+                          >
+                            Endurance (60s/90s)
+                          </Button>
+                          <Button 
+                            size="xs" 
+                            variant="outline" 
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, restBetweenSets: 45, restBetweenExercises: 75 }));
+                              setNoRestBetweenSets(false);
+                              setNoRestBetweenExercises(false);
+                            }}
+                          >
+                            HIIT (45s/75s)
+                          </Button>
+                          <Button 
+                            size="xs" 
+                            variant="outline" 
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, restBetweenSets: 0, restBetweenExercises: 0 }));
+                              setNoRestBetweenSets(true);
+                              setNoRestBetweenExercises(true);
+                            }}
+                          >
+                            No Rest
+                          </Button>
+                        </>
+                      )}
+                      
+                      {/* Circuit: Show minimal rest options */}
+                      {selectedFlow?.value === 'circuit' && (
+                        <>
+                          <Button 
+                            size="xs" 
+                            variant="outline" 
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, restBetweenSets: 0, restBetweenExercises: 0 }));
+                              setNoRestBetweenSets(true);
+                              setNoRestBetweenExercises(true);
+                            }}
+                          >
+                            Continuous (No rest)
+                          </Button>
+                          <Button 
+                            size="xs" 
+                            variant="outline" 
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, restBetweenSets: 15, restBetweenExercises: 30 }));
+                              setNoRestBetweenSets(false);
+                              setNoRestBetweenExercises(false);
+                            }}
+                          >
+                            Minimal (15s/30s)
+                          </Button>
+                          <Button 
+                            size="xs" 
+                            variant="outline" 
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, restBetweenSets: 30, restBetweenExercises: 45 }));
+                              setNoRestBetweenSets(false);
+                              setNoRestBetweenExercises(false);
+                            }}
+                          >
+                            Moderate (30s/45s)
+                          </Button>
+                        </>
+                      )}
+                    </HStack>
+                  </Box>
+                )}
+
+            <SimpleGrid columns={restConfig.showRestBetweenSets && restConfig.showRestBetweenExercises ? 2 : 1} spacing={4}>
+              {restConfig.showRestBetweenSets && (
+                <FormControl opacity={restConfig.enableRestBetweenSets ? 1 : 0.6}>
+                  <FormLabel>Rest Between Sets</FormLabel>
+                  <VStack align="stretch" spacing={3}>
+                    <HStack>
+                      <Switch
+                        id="no-rest-between-sets"
+                        isChecked={noRestBetweenSets}
+                        onChange={(e) => restConfig.enableRestBetweenSets ? handleNoRestBetweenSetsChange(e.target.checked) : null}
+                        colorScheme="red"
+                        isDisabled={!restConfig.enableRestBetweenSets}
+                      />
+                      <FormLabel htmlFor="no-rest-between-sets" mb="0" fontSize="sm" color="gray.600">
+                        No rest between sets
+                      </FormLabel>
+                    </HStack>
+                    {!noRestBetweenSets && (
+                      <NumberInput
+                        value={formData.restBetweenSets || 60}
+                        onChange={(_, num) => restConfig.enableRestBetweenSets ? setFormData(prev => ({ ...prev, restBetweenSets: num })) : null}
+                        min={1}
+                        max={300}
+                        isDisabled={!restConfig.enableRestBetweenSets}
+                      >
+                        <NumberInputField placeholder="Seconds" />
+                        <NumberInputStepper>
+                          <NumberIncrementStepper />
+                          <NumberDecrementStepper />
+                        </NumberInputStepper>
+                      </NumberInput>
+                    )}
+                    {noRestBetweenSets && (
+                      <Text fontSize="sm" color="gray.500" fontStyle="italic">
+                        Sets will transition immediately with no rest
+                      </Text>
+                    )}
+                    {!noRestBetweenSets && restConfig.enableRestBetweenSets && (
+                      <Text fontSize="sm" color="gray.500" fontStyle="italic">
+                        Rest time after completing all reps in a set
+                      </Text>
+                    )}
+                  </VStack>
+                </FormControl>
+              )}
+              
+              {restConfig.showRestBetweenExercises && (
+                <FormControl opacity={restConfig.enableRestBetweenExercises ? 1 : 0.6}>
+                  <FormLabel>Rest Between Exercises</FormLabel>
+                  <VStack align="stretch" spacing={3}>
+                    <HStack>
+                      <Switch
+                        id="no-rest-between-exercises"
+                        isChecked={noRestBetweenExercises}
+                        onChange={(e) => restConfig.enableRestBetweenExercises ? handleNoRestBetweenExercisesChange(e.target.checked) : null}
+                        colorScheme="red"
+                        isDisabled={!restConfig.enableRestBetweenExercises}
+                      />
+                      <FormLabel htmlFor="no-rest-between-exercises" mb="0" fontSize="sm" color="gray.600">
+                        No rest between exercises
+                      </FormLabel>
+                    </HStack>
+                    {!noRestBetweenExercises && (
                 <NumberInput
-                  value={formData.restBetweenExercises || 60}
-                  onChange={(_, num) => setFormData(prev => ({ ...prev, restBetweenExercises: num }))}
+                        value={formData.restBetweenExercises || 90}
+                        onChange={(_, num) => restConfig.enableRestBetweenExercises ? setFormData(prev => ({ ...prev, restBetweenExercises: num })) : null}
                   min={0}
                   max={300}
+                        isDisabled={!restConfig.enableRestBetweenExercises}
                 >
-                  <NumberInputField />
+                        <NumberInputField placeholder="Seconds" />
                   <NumberInputStepper>
                     <NumberIncrementStepper />
                     <NumberDecrementStepper />
                   </NumberInputStepper>
                 </NumberInput>
+                    )}
+                    {noRestBetweenExercises && (
+                      <Text fontSize="sm" color="gray.500" fontStyle="italic">
+                        Exercises will transition immediately with no rest
+                      </Text>
+                    )}
+                    {!noRestBetweenExercises && restConfig.enableRestBetweenExercises && (
+                      <Text fontSize="sm" color="gray.500" fontStyle="italic">
+                        Rest time when moving to the next exercise
+                      </Text>
+                    )}
+                  </VStack>
+                </FormControl>
+              )}
+            </SimpleGrid>
+            
+            </VStack>
               </FormControl>
               
+            <SimpleGrid columns={2} spacing={4}>
               {selectedFlow?.supportsRounds && (
                 <FormControl>
                   <FormLabel>Rounds</FormLabel>
@@ -414,18 +810,18 @@ const BlockConfigModal: React.FC<BlockConfigModalProps> = ({
               )}
             </SimpleGrid>
           </VStack>
-        </ModalBody>
+        </DrawerBody>
         
-        <ModalFooter>
+        <DrawerFooter borderTop="1px solid" borderColor="gray.200">
           <Button variant="ghost" mr={3} onClick={onClose}>
             Cancel
           </Button>
           <Button colorScheme="blue" onClick={handleSave}>
             Save Block
           </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
   );
 };
 
@@ -466,16 +862,17 @@ const Step2BlockBuilder: React.FC<Step2BlockBuilderProps> = ({
   };
 
   const handleAddBlock = (category: string) => {
+    const template = BLOCK_TEMPLATES[category];
     const categoryConfig = BLOCK_CATEGORIES.find(c => c.value === category);
-    const template = BLOCK_TEMPLATES[category as keyof typeof BLOCK_TEMPLATES];
     
     const newBlock: WorkoutBlock = {
-      id: `${category}-block-${Date.now()}`,
-      name: template?.name || `${categoryConfig?.label} Block`,
+      id: `${category}-${Date.now()}`,
+      name: template?.name || categoryConfig?.label || 'New Block',
       category: category as WorkoutBlock['category'],
       flow: template?.flow as WorkoutBlock['flow'] || 'sequential',
       exercises: [],
-      restBetweenExercises: template?.restBetweenExercises || categoryConfig?.defaultRest || 60,
+      restBetweenExercises: template?.restBetweenExercises || categoryConfig?.defaultRestBetweenExercises || 90,
+      restBetweenSets: template?.restBetweenSets || categoryConfig?.defaultRestBetweenSets || 60,
       rounds: template?.rounds,
     };
 
@@ -517,7 +914,8 @@ const Step2BlockBuilder: React.FC<Step2BlockBuilderProps> = ({
       category: 'custom',
       flow: 'sequential',
       exercises: [],
-      restBetweenExercises: 60,
+      restBetweenExercises: 90,
+      restBetweenSets: 60,
     });
     onOpen();
   };

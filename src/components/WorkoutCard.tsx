@@ -8,6 +8,7 @@ import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaEdit, FaTrash, FaPlayCircle, F
 import type { Workout, Exercise } from '../services/api';
 import { dateUtils } from '../utils/date';
 import { ProgressBar } from './ProgressBar';
+import { DetailedProgressDisplay } from './DetailedProgressDisplay';
 import { Link as RouterLink } from 'react-router-dom';
 import { format } from 'date-fns';
 import { getExercisesFromWorkout, getBlocksFromWorkout } from '../utils/workoutUtils';
@@ -59,6 +60,7 @@ interface WorkoutCardProps {
     percentage: number;
     inProgressCount?: number;
     exerciseCount?: number;
+    hasProgress?: boolean; // Override for granular progress detection
   };
   assignedTo?: string;
   onEdit?: () => void;
@@ -366,84 +368,7 @@ export function WorkoutCard({
               </HStack>
             )}
             
-            {/* Exercises/Blocks info - Hide for coaches */}
-            {!isCoach && (
-              <Box width="100%" py={2}>
-                {(workout as any).is_block_based && workoutBlocks.length > 0 ? (
-                  // Block-based workout: Show blocks instead of individual exercises
-                  <>
-                    <Flex align="center" mb={2}>
-                      <Icon as={FaLayerGroup} mr={2} color={typeColor} boxSize={4} />
-                      <Text fontSize="md" fontWeight="medium" color={exerciseTextColor}>
-                        Blocks: {workoutBlocks.length}
-                      </Text>
-                      {/* Show total exercise count for monthly plans */}
-                      {workout.template_type === 'monthly' && (workout as any)._planTotalExercises && (
-                        <Text fontSize="sm" color={infoColor} ml={2}>
-                          ({(workout as any)._planTotalExercises} total exercises)
-                        </Text>
-                      )}
-                    </Flex>
-                    <Box maxH="100px" overflowY="auto" fontSize="sm" color={infoColor} pl={6}>
-                      {workoutBlocks.slice(0, 3).map((block: any, idx: number) => {
-                        const exerciseCount = block.exercises?.length || 0;
-                        const exerciseText = exerciseCount === 1 ? 'exercise' : 'exercises';
-                        return (
-                          <Box key={idx} mb={2}>
-                            <Text noOfLines={1} mb={1} color={exerciseTextColor}>
-                              • {block.name || `Block ${idx + 1}`} ({exerciseCount} {exerciseText})
-                            </Text>
-                            {/* Show up to three exercises with sets × reps */}
-                            {block.exercises && block.exercises.slice(0, 3).map((ex: any, exIdx: number) => (
-                              <Text key={exIdx} pl={4} color={exerciseTextColor} fontSize="sm" noOfLines={1}>
-                                - {ex.name} {ex.sets && ex.reps ? `(${ex.sets}×${ex.reps})` : ''}
-                              </Text>
-                            ))}
-                            {exerciseCount > 3 && (
-                              <Text pl={4} fontStyle="italic" color={exerciseTextColor} fontSize="sm">
-                                +{exerciseCount - 3} more...
-                              </Text>
-                            )}
-                          </Box>
-                        );
-                      })}
-                      {workoutBlocks.length > 3 && (
-                        <Text fontStyle="italic" color={exerciseTextColor}>
-                          +{workoutBlocks.length - 3} more...
-                        </Text>
-                      )}
-                    </Box>
-                  </>
-                ) : (
-                  // Regular workout: Show individual exercises
-                  <>
-                    <Flex align="center" mb={2}>
-                      <Icon as={FaTasks} mr={2} color={typeColor} boxSize={4} />
-                      <Text fontSize="md" fontWeight="medium" color={exerciseTextColor}>
-                        Exercises: {workout.template_type === 'monthly' && (workout as any)._planTotalExercises ? 
-                          (workout as any)._planTotalExercises : allExercises.length}
-                      </Text>
-                    </Flex>
-                    {displayExercises.length > 0 && (
-                      <Box maxH="100px" overflowY="auto" fontSize="sm" color={infoColor} pl={6}>
-                        {displayExercises.slice(0, 3).map((ex, idx) => (
-                          <Text key={idx} noOfLines={1} mb={1} color={exerciseTextColor}>
-                            • {ex.name} {ex.sets && ex.reps ? `(${ex.sets}×${ex.reps})` : ''}
-                          </Text>
-                        ))}
-                        {(workout.template_type === 'monthly' && (workout as any)._planTotalExercises ? 
-                          (workout as any)._planTotalExercises : allExercises.length) > 3 && (
-                          <Text fontStyle="italic" color={exerciseTextColor}>
-                            +{(workout.template_type === 'monthly' && (workout as any)._planTotalExercises ? 
-                              (workout as any)._planTotalExercises : allExercises.length) - 3} more...
-                          </Text>
-                        )}
-                      </Box>
-                    )}
-                  </>
-                )}
-              </Box>
-            )}
+
             
             {/* Exercise/Block count only for coaches - simplified display */}
             {isCoach && (
@@ -488,14 +413,20 @@ export function WorkoutCard({
               </Flex>
             )}
             
-            {/* Card description/notes */}
-            {(workout.notes || workout.description) && (
-              <Box width="100%" bg={descriptionBg} p={3} borderRadius="md">
-                <Text fontSize="sm" color={infoColor} noOfLines={3}>
-                  {workout.notes || workout.description}
-                </Text>
-              </Box>
-            )}
+            {/* Card description/notes - Hide auto-generated descriptions */}
+            {(() => {
+              const description = workout.notes || workout.description;
+              // Hide auto-generated descriptions that match the pattern "X workout with Y block(s) and Z exercise(s)"
+              const isAutoGenerated = description && /^\w+ workout with \d+ blocks? and \d+ exercises?$/.test(description);
+              
+              return description && !isAutoGenerated && (
+                <Box width="100%" bg={descriptionBg} p={3} borderRadius="md">
+                  <Text fontSize="sm" color={infoColor} noOfLines={3}>
+                    {description}
+                  </Text>
+                </Box>
+              );
+            })()}
           </VStack>
           
           {/* Bottom section with progress bar and action button - Hide progress for templates and coaches */}
@@ -522,13 +453,61 @@ export function WorkoutCard({
                   )}
                 </Flex>
                 
-                <ProgressBar
-                  completed={progress.completed}
-                  total={progress.total}
-                  percentage={progress.percentage}
-                  colorScheme={progress.completed === progress.total && progress.total > 0 ? "green" : "primary"}
-                  itemLabel={(workout as any).is_block_based ? "blocks" : "exercises"}
-                  textColor={infoColor}
+                <DetailedProgressDisplay
+                  exerciseProgress={{
+                    current: progress.completed,
+                    total: progress.total,
+                    currentExerciseName: progress.completed < progress.total ? 
+                      `${progress.completed + 1} of ${progress.total}` : 'Completed!'
+                  }}
+                  blockProgress={(workout as any).is_block_based && workoutBlocks.length > 0 ? {
+                    current: Math.floor(progress.completed / Math.max(1, Math.ceil(progress.total / workoutBlocks.length))),
+                    total: workoutBlocks.length,
+                    currentBlockName: `Block ${Math.floor(progress.completed / Math.max(1, Math.ceil(progress.total / workoutBlocks.length))) + 1}`
+                  } : undefined}
+                  setProgress={(() => {
+                    // Calculate total sets across all exercises
+                    const totalSets = allExercises.reduce((total, ex) => {
+                      return total + (ex.sets ? parseInt(String(ex.sets)) : 1);
+                    }, 0);
+                    
+                    // Estimate completed sets based on completed exercises
+                    let completedSets = 0;
+                    for (let i = 0; i < progress.completed && i < allExercises.length; i++) {
+                      const exercise = allExercises[i];
+                      completedSets += exercise.sets ? parseInt(String(exercise.sets)) : 1;
+                    }
+                    
+                    return totalSets > 0 ? {
+                      current: completedSets,
+                      total: totalSets
+                    } : undefined;
+                  })()}
+                  repProgress={(() => {
+                    // Calculate total reps across all exercises
+                    const totalReps = allExercises.reduce((total, ex) => {
+                      const sets = ex.sets ? parseInt(String(ex.sets)) : 1;
+                      const reps = ex.reps ? parseInt(String(ex.reps)) : 10;
+                      return total + (sets * reps);
+                    }, 0);
+                    
+                    // Estimate completed reps based on completed exercises
+                    let completedReps = 0;
+                    for (let i = 0; i < progress.completed && i < allExercises.length; i++) {
+                      const exercise = allExercises[i];
+                      const sets = exercise.sets ? parseInt(String(exercise.sets)) : 1;
+                      const reps = exercise.reps ? parseInt(String(exercise.reps)) : 10;
+                      completedReps += sets * reps;
+                    }
+                    
+                    return totalReps > 0 ? {
+                      current: completedReps,
+                      total: totalReps
+                    } : undefined;
+                  })()}
+                  layout="compact"
+                  showLabels={true}
+                  showPercentages={false}
                 />
               </Box>
             )}
@@ -571,7 +550,7 @@ export function WorkoutCard({
                   >
                     {!isCoach && progress.completed === progress.total && progress.total > 0 
                       ? "Start Again" 
-                      : !isCoach && progress.completed > 0 
+                      : !isCoach && (progress.completed > 0 || progress.hasProgress) 
                         ? "Continue Workout" 
                         : "Start Workout"}
                   </Button>
