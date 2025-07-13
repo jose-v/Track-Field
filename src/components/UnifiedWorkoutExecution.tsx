@@ -1563,11 +1563,16 @@ export function UnifiedWorkoutExecution({
                 justifyContent="center"
               >
                 <VStack spacing={6}>
-                  {/* Exercise Name */}
+                  {/* Next & Exercise Name */}
                   {currentExercise && (
-                    <Text fontSize="2xl" fontWeight="bold" color="white" textAlign="center">
-                      {currentExercise.name}
-                    </Text>
+                    <VStack spacing={2}>
+                      <Text fontSize="lg" color="orange.400" fontWeight="bold" textTransform="uppercase" textAlign="center">
+                        Next
+                      </Text>
+                      <Text fontSize="2xl" fontWeight="bold" color="white" textAlign="center">
+                        {currentExercise.name}
+                      </Text>
+                    </VStack>
                   )}
                   
                   {/* Rest Time Display */}

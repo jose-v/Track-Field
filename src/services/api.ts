@@ -336,7 +336,7 @@ export const api = {
 
           // Clean up unified assignment system (REQUIRED after migration completion) - FIXED: Handle both single AND weekly assignments
           const { error: unifiedAssignmentError } = await supabase
-            .from('workout_assignments')
+            .from('unified_workout_assignments')
             .delete()
             .eq('workout_id', id);
             
@@ -619,7 +619,7 @@ export const api = {
 
         // Clean up unified assignment system (REQUIRED after migration completion) - FIXED: Handle both single AND weekly assignments
         const { error: unifiedAssignmentError } = await supabase
-          .from('workout_assignments')
+          .from('unified_workout_assignments')
           .delete()
           .eq('workout_id', id);
           
