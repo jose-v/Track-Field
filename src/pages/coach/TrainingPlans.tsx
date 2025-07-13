@@ -1185,28 +1185,17 @@ export function CoachTrainingPlans() {
       }
     }
 
-    // Use filteredData for "By Type" sections, otherwise use custom filtering
-    let filteredWorkouts;
+    // Use the filteredData from the useMemo hook consistently
+    let filteredWorkouts: Workout[] = [];
     
-    if (activeItem === 'strength' || activeItem === 'cardio' || activeItem === 'speed') {
-      // For "By Type" sections, use the pre-filtered data
+    if (filteredData.type === 'workouts') {
       filteredWorkouts = filteredData.data as Workout[];
+    } else if (filteredData.type === 'mixed') {
+      // For mixed data, filter out only the workouts (not monthly plans)
+      filteredWorkouts = (filteredData.data as any[]).filter(item => !('weeks' in item)) as Workout[];
     } else {
-      // For other sections, apply custom filtering
-      filteredWorkouts = workouts?.filter(workout => !workout.is_draft) || [];
-      
-      // Apply template type filter
-      if (workoutFilter === 'single') {
-        filteredWorkouts = filteredWorkouts.filter(workout => workout.template_type === 'single' || !workout.template_type);
-      } else if (workoutFilter === 'weekly') {
-        filteredWorkouts = filteredWorkouts.filter(workout => workout.template_type === 'weekly');
-      }
-      // 'all' shows everything (no additional filtering)
-
-      // Apply athlete filter
-      if (selectedAthlete !== 'all') {
-        filteredWorkouts = filteredWorkouts.filter(workout => isWorkoutAssignedToAthlete(workout, selectedAthlete));
-      }
+      // For other types (plans, exercises, etc.), no workouts to show
+      filteredWorkouts = [];
     }
 
     if (filteredWorkouts.length === 0) {

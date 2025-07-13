@@ -14,13 +14,22 @@ import {
   useColorModeValue,
   SimpleGrid,
   Badge,
-  HStack
+  HStack,
+  Select,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalCloseButton,
+  useDisclosure
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { BiRun } from 'react-icons/bi';
 import { FaPlus, FaRedo, FaCalendarDay } from 'react-icons/fa';
 import { WorkoutsSidebar } from '../../components';
+import { MobileBottomNavigation } from '../../components/MobileBottomNavigation';
 import PageHeader from '../../components/PageHeader';
 import { useScrollDirection } from '../../hooks/useScrollDirection';
 import { usePageHeader } from '../../hooks/usePageHeader';
@@ -73,6 +82,13 @@ export function AthleteWorkouts() {
   const navigate = useNavigate();
   const [activeItem, setActiveItem] = useState<WorkoutsSectionId>('todays-workout');
   const [executingAssignmentId, setExecutingAssignmentId] = useState<string | null>(null);
+  
+  // Enhanced filtering states
+  const [assignmentTypeFilter, setAssignmentTypeFilter] = useState<'all' | 'single' | 'weekly' | 'monthly'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'assigned' | 'in_progress' | 'completed'>('all');
+  
+  // Mobile filter modal
+  const { isOpen: isFiltersOpen, onOpen: onFiltersOpen, onClose: onFiltersClose } = useDisclosure();
 
   // Styling
   const pageBackgroundColor = useColorModeValue('gray.50', 'gray.900');
@@ -131,19 +147,37 @@ export function AthleteWorkouts() {
     setActiveItem(itemId as WorkoutsSectionId);
   };
 
-  // Filter assignments by type
+  // Filter assignments by type and additional filters
   const getFilteredAssignments = () => {
     if (!assignments) return [];
     
+    let filteredAssignments = assignments;
+    
+    // First filter by sidebar item
     switch (activeItem) {
       case 'weekly-plans':
-        return assignments.filter(a => a.assignment_type === 'weekly');
+        filteredAssignments = assignments.filter(a => a.assignment_type === 'weekly');
+        break;
       case 'monthly-plans':
-        return assignments.filter(a => a.assignment_type === 'monthly');
+        filteredAssignments = assignments.filter(a => a.assignment_type === 'monthly');
+        break;
       case 'all-assignments':
       default:
-        return assignments;
+        filteredAssignments = assignments;
+        break;
     }
+    
+    // Apply assignment type filter (for all-assignments view)
+    if (activeItem === 'all-assignments' && assignmentTypeFilter !== 'all') {
+      filteredAssignments = filteredAssignments.filter(a => a.assignment_type === assignmentTypeFilter);
+    }
+    
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filteredAssignments = filteredAssignments.filter(a => a.status === statusFilter);
+    }
+    
+    return filteredAssignments;
   };
 
   // Get workout counts for sidebar (matching expected interface)
@@ -165,10 +199,70 @@ export function AthleteWorkouts() {
             onComplete={handleCompleteWorkout}
             onExit={handleExitExecution}
             isOpen={true}
-          />
-        </Box>
-      );
-    }
+                />
+
+      {/* Mobile Filter Modal */}
+      <Modal isOpen={isFiltersOpen} onClose={onFiltersClose} size="md">
+        <ModalOverlay />
+        <ModalContent mx={4}>
+          <ModalHeader>Filter Options</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <VStack spacing={4} align="stretch">
+              <Box>
+                <Text fontSize="sm" fontWeight="medium" mb={2}>Assignment Type</Text>
+                <Select
+                  value={assignmentTypeFilter}
+                  onChange={(e) => setAssignmentTypeFilter(e.target.value as typeof assignmentTypeFilter)}
+                  bg={cardBg}
+                >
+                  <option value="all">All Types</option>
+                  <option value="single">Single</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </Select>
+              </Box>
+              
+              <Box>
+                <Text fontSize="sm" fontWeight="medium" mb={2}>Status</Text>
+                <Select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                  bg={cardBg}
+                >
+                  <option value="all">All Status</option>
+                  <option value="assigned">Assigned</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                </Select>
+              </Box>
+              
+              <Button
+                onClick={() => {
+                  setAssignmentTypeFilter('all');
+                  setStatusFilter('all');
+                  onFiltersClose();
+                }}
+                variant="outline"
+                mt={2}
+              >
+                Clear All Filters
+              </Button>
+            </VStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNavigation
+        onCreateWorkout={() => navigate('/athlete/workout-creator-new')}
+        onRefresh={handleRefresh}
+        onFilters={onFiltersOpen}
+        onSettings={() => navigate('/athlete/settings')}
+      />
+    </Box>
+  );
+}
   }
 
   const renderContent = () => {
@@ -275,6 +369,57 @@ export function AthleteWorkouts() {
                   Refresh
             </Button>
           </Flex>
+          
+          {/* Filter Controls - Show only for all-assignments */}
+          {activeItem === 'all-assignments' && (
+            <Flex direction={{ base: "column", md: "row" }} gap={3} align={{ base: "stretch", md: "center" }}>
+              <Text fontSize="sm" fontWeight="medium" color="gray.600" display={{ base: "none", md: "block" }}>
+                Filters:
+              </Text>
+              
+              <HStack spacing={3} w={{ base: "100%", md: "auto" }} wrap="wrap">
+                <Box flex={{ base: "1", md: "none" }} minW="140px">
+                  <Select
+                    value={assignmentTypeFilter}
+                    onChange={(e) => setAssignmentTypeFilter(e.target.value as typeof assignmentTypeFilter)}
+                    size="sm"
+                    bg={cardBg}
+                  >
+                    <option value="all">All Types</option>
+                    <option value="single">Single</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </Select>
+                </Box>
+                
+                <Box flex={{ base: "1", md: "none" }} minW="140px">
+                  <Select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                    size="sm"
+                    bg={cardBg}
+                  >
+                    <option value="all">All Status</option>
+                    <option value="assigned">Assigned</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                  </Select>
+                </Box>
+                
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setAssignmentTypeFilter('all');
+                    setStatusFilter('all');
+                  }}
+                  display={{ base: "none", md: "flex" }}
+                >
+                  Clear Filters
+                </Button>
+              </HStack>
+            </Flex>
+          )}
               
               {filteredAssignments.length > 0 ? (
                 <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
