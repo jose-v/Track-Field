@@ -38,7 +38,7 @@ export const MobileFriendlySlider: React.FC<MobileFriendlySliderProps> = ({
       focusThumbOnChange={false}
       // Smooth touch handling
       style={{
-        touchAction: 'pan-y', // Allow vertical scrolling but prevent horizontal pan
+        touchAction: 'manipulation', // Allow slider dragging
         userSelect: 'none',   // Prevent text selection
       }}
     >
@@ -57,7 +57,7 @@ export const MobileFriendlySlider: React.FC<MobileFriendlySliderProps> = ({
           boxShadow: 'outline',
         }}
         style={{
-          touchAction: 'pan-y',
+          touchAction: 'manipulation',
           cursor: 'grab',
         }}
       />

@@ -196,13 +196,13 @@ export const MobileWeatherCard: React.FC<MobileWeatherCardProps> = ({
                 leftIcon={<Icon as={FaThermometerHalf} onClick={(e) => {
                   e.stopPropagation();
                   setIsCelsius(!isCelsius);
-                }} cursor="pointer" />}
+                }} />}
                 width="full"
                 justifyContent="flex-start"
                 fontWeight="medium"
                 color={textColor}
-                _hover={{ bg: 'gray.700' }}
                 cursor="default"
+                _hover={{}}
                 _active={{}}
               >
                 5-Day Forecast

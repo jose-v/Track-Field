@@ -163,7 +163,7 @@ export const MobileTodayCard: React.FC<MobileTodayCardProps> = ({
         <Button
           position="absolute"
           top="50%"
-          right="50px"
+          right="80px"
           transform="translateY(-50%)"
           bg={startButtonBg}
           color="white"

@@ -213,56 +213,51 @@ export const MobileWellnessCard: React.FC<MobileWellnessCardProps> = ({ onLogCom
   };
 
   const MetricCard = ({ metric }: { metric: WellnessMetric }) => (
-    <Box p={3}>
-      <VStack spacing={3} align="stretch">
-        {/* Top row: Badge with fixed width */}
-        <Box>
-          <Badge 
-            colorScheme="gray" 
-            variant="solid" 
-            fontSize="xs"
-            px={2}
-            py={1}
-            w="100%"
-            textAlign="center"
-            display="block"
-            minW="80px"
-          >
-            {metric.label}
-          </Badge>
-        </Box>
-
-        {/* Score display with fixed width to prevent layout shift */}
-        <Text 
-          fontSize="md" 
-          fontWeight="normal" 
-          color={getScoreColor(metric.value, metric.isReverse)} 
+    <Box p={2} display="flex" flexDirection="column" height="100%">
+      {/* Top row: Badge with fixed width */}
+      <Box mb={2}>
+        <Badge 
+          colorScheme="gray" 
+          variant="solid" 
+          fontSize="xs"
+          px={2}
+          py={1}
+          w="100%"
           textAlign="center"
-          minH="24px"
+          display="block"
           minW="80px"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
         >
-          {getScoreText(metric.value, metric.isReverse)}
-        </Text>
+          {metric.label}
+        </Badge>
+      </Box>
 
-        {/* Touch-friendly slider */}
-        <Box
-          // Ensure touch events don't get blocked by parent elements
-          style={{ touchAction: 'none' }}
-          py={2}
-        >
-          <MobileFriendlySlider
-            value={metric.value}
-            onChange={metric.setValue}
-            min={1}
-            max={10}
-            step={1}
-            colorScheme="blue"
-          />
-        </Box>
-      </VStack>
+      {/* Score display with fixed width to prevent layout shift */}
+      <Text 
+        fontSize="md" 
+        fontWeight="normal" 
+        color={getScoreColor(metric.value, metric.isReverse)} 
+        textAlign="center"
+        minH="24px"
+        minW="80px"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        mb={2}
+      >
+        {getScoreText(metric.value, metric.isReverse)}
+      </Text>
+
+      {/* Touch-friendly slider - EXACT same structure as sleep slider */}
+      <Box flex="1" display="flex" flexDirection="column" justifyContent="center">
+        <MobileFriendlySlider
+          value={metric.value}
+          onChange={metric.setValue}
+          min={1}
+          max={10}
+          step={1}
+          colorScheme="blue"
+        />
+      </Box>
     </Box>
   );
 
@@ -279,13 +274,7 @@ export const MobileWellnessCard: React.FC<MobileWellnessCardProps> = ({ onLogCom
     >
       <VStack spacing={4} align="stretch" flex="1">
         {/* 2x2 Grid of Metrics */}
-        <SimpleGrid 
-          columns={2} 
-          spacing={2} 
-          flex="1"
-          // Ensure touch events work properly in grid
-          style={{ touchAction: 'pan-y' }}
-        >
+        <SimpleGrid columns={2} spacing={4} flex="1">
           {metrics.map((metric) => (
             <MetricCard key={metric.key} metric={metric} />
           ))}
