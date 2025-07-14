@@ -6,6 +6,7 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
+  ModalCloseButton,
   VStack,
   HStack,
   Box,
@@ -19,7 +20,8 @@ import {
   Badge,
   Flex,
   Circle,
-  useDisclosure
+  useDisclosure,
+  Image
 } from '@chakra-ui/react';
 import { ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
 import { FaPlay, FaPause, FaSquare, FaStepBackward, FaStepForward, FaCheckCircle, FaInfoCircle, FaRedo, FaVideo, FaForward } from 'react-icons/fa';
@@ -30,6 +32,131 @@ import { useUnifiedAssignmentActions } from '../hooks/useUnifiedAssignments';
 import { supabase } from '../lib/supabase';
 import { WorkoutInfoDrawer } from './execution/WorkoutInfoDrawer';
 import { RunTimeInput } from './RunTimeInput';
+
+// Helper function to get video URL for exercise
+function getVideoUrl(exerciseName: string): string {
+  const exercise = exerciseName.toLowerCase();
+  if (exercise.includes('sprint') || exercise.includes('dash')) return 'https://www.youtube.com/embed/6kNvYDTT-NU';
+  if (exercise.includes('hurdle')) return 'https://www.youtube.com/embed/6Wk65Jf_qSc';
+  if (exercise.includes('jump') || exercise.includes('leap')) return 'https://www.youtube.com/embed/7O454Z8efs0';
+  if (exercise.includes('shot put') || exercise.includes('throw')) return 'https://www.youtube.com/embed/axc0FXuTdI8';
+  if (exercise.includes('javelin')) return 'https://www.youtube.com/embed/ZG3_Rfo6_VE';
+  if (exercise.includes('squat')) return 'https://www.youtube.com/embed/aclHkVaku9U';
+  if (exercise.includes('push') || exercise.includes('pushup')) return 'https://www.youtube.com/embed/_l3ySVKYVJ8';
+  if (exercise.includes('lunge')) return 'https://www.youtube.com/embed/QOVaHwm-Q6U';
+  if (exercise.includes('plank')) return 'https://www.youtube.com/embed/pSHjTRCQxIw';
+  if (exercise.includes('deadlift')) return 'https://www.youtube.com/embed/r4MzxtBKyNE';
+  if (exercise.includes('bench press')) return 'https://www.youtube.com/embed/SCVCLChPQFY';
+  if (exercise.includes('stretch') || exercise.includes('dynamic')) return 'https://www.youtube.com/embed/nPHfEnZD1Wk';
+  if (exercise.includes('warm up') || exercise.includes('warmup')) return 'https://www.youtube.com/embed/R0mMyV5OtcM';
+  return 'https://www.youtube.com/embed/dQw4w9WgXcQ'; // Default
+}
+
+// Helper function to get exercise image path
+function getExerciseImagePath(exerciseName: string): string | null {
+  const exercise = exerciseName.toLowerCase();
+  
+  // Map exercise names to category and specific image
+  if (exercise.includes('stretch') || exercise.includes('flexibility')) {
+    return '/exercise-media/images/flexibility/calf-stretch.png';
+  }
+  if (exercise.includes('jump') || exercise.includes('broad') || exercise.includes('leap')) {
+    return '/exercise-media/images/plyometric/broad-jump.png';
+  }
+  if (exercise.includes('warm') || exercise.includes('circle')) {
+    return '/exercise-media/images/warmup/arm-circles.png';
+  }
+  
+  // Add more mappings as needed based on available images
+  // For now, return null if no specific mapping found
+  return null;
+}
+
+// Component for displaying exercise images
+const ExerciseImageDisplay = ({ exerciseName }: { exerciseName: string }) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const imagePath = getExerciseImagePath(exerciseName);
+  
+  if (!imagePath) {
+    // Show placeholder when no image is available
+    return (
+      <Box
+        w="full"
+        flex="1"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        flexDirection="column"
+        minH="200px"
+      >
+        <FaVideo size={40} color="gray" opacity={0.4} />
+        <Text fontSize="sm" color="gray.500" mt={2} textAlign="center">
+          Exercise Demonstration
+        </Text>
+        <Text fontSize="xs" color="gray.400" textAlign="center">
+          {exerciseName}
+        </Text>
+      </Box>
+    );
+  }
+  
+  return (
+    <Box
+      w="full"
+      flex="1"
+      overflow="hidden"
+      position="relative"
+      minH="200px"
+    >
+      {!imageLoaded && !imageError && (
+        <Box
+          position="absolute"
+          inset={0}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+        >
+          <Spinner size="lg" color="blue.500" />
+        </Box>
+      )}
+      {!imageError ? (
+        <Box
+          as="img"
+          src={imagePath}
+          alt={`${exerciseName} demonstration`}
+          w="full"
+          h="full"
+          objectFit="contain"
+          onLoad={() => setImageLoaded(true)}
+          onError={() => {
+            setImageError(true);
+            setImageLoaded(false);
+          }}
+          opacity={imageLoaded ? 1 : 0}
+          transition="opacity 0.3s"
+        />
+      ) : (
+        <Box
+          w="full"
+          h="full"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          flexDirection="column"
+        >
+          <FaVideo size={40} color="gray" opacity={0.4} />
+          <Text fontSize="sm" color="gray.500" mt={2} textAlign="center">
+            Exercise Demonstration
+          </Text>
+          <Text fontSize="xs" color="gray.400" textAlign="center">
+            {exerciseName}
+          </Text>
+        </Box>
+      )}
+    </Box>
+  );
+};
 
 interface AssignmentProgress {
   current_exercise_index: number;
@@ -220,6 +347,9 @@ export function UnifiedWorkoutExecution({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { updateProgress } = useUnifiedAssignmentActions();
+
+  // Video modal state
+  const [videoModal, setVideoModal] = useState({ isOpen: false, videoUrl: '', exerciseName: '' });
 
   // Theme colors matching old execution modal
   const cardBg = useColorModeValue('white', 'gray.800');
@@ -1057,7 +1187,10 @@ export function UnifiedWorkoutExecution({
         setCurrentSet(1);
         setCurrentRep(1);
       } else {
-        // Complete workout - use mutation to handle completion properly
+        // Complete workout - close modal immediately to prevent flash
+        if (onComplete) onComplete();
+        if (onExit) onExit();
+        // Use mutation to handle completion properly
         completeExecution.mutate();
       }
     } catch (error) {
@@ -1065,7 +1198,7 @@ export function UnifiedWorkoutExecution({
     } finally {
       setIsLoggingRPE(false);
     }
-  }, [selectedRPE, user?.id, assignment.id, currentExerciseIndex, totalExercises, completeExecution]);
+  }, [selectedRPE, user?.id, assignment.id, currentExerciseIndex, totalExercises, completeExecution, onComplete, onExit]);
 
   // Skip RPE
   const handleSkipRPE = useCallback(() => {
@@ -1078,10 +1211,13 @@ export function UnifiedWorkoutExecution({
       setCurrentSet(1);
       setCurrentRep(1);
     } else {
-      // Complete workout - use mutation to handle completion properly
+      // Complete workout - close modal immediately to prevent flash
+      if (onComplete) onComplete();
+      if (onExit) onExit();
+      // Use mutation to handle completion properly
       completeExecution.mutate();
     }
-  }, [currentExerciseIndex, totalExercises, completeExecution]);
+  }, [currentExerciseIndex, totalExercises, completeExecution, onComplete, onExit]);
 
   // Navigation handlers
   const handleNext = () => {
@@ -1097,6 +1233,8 @@ export function UnifiedWorkoutExecution({
       // Progress through reps first
       if (currentRep < totalReps) {
         setCurrentRep(prev => prev + 1);
+        // Reset run time for next rep
+        setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
         // For most exercises, no rest between reps
         // User will see start button to begin next rep
         return; // Exit early to prevent further navigation
@@ -1105,6 +1243,8 @@ export function UnifiedWorkoutExecution({
       else if (currentSet < totalSets) {
         setCurrentSet(prev => prev + 1);
         setCurrentRep(1);
+        // Reset run time for next set
+        setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
         
         // REST BETWEEN SETS
         let restTime = 60; // Default fallback
@@ -1151,6 +1291,8 @@ export function UnifiedWorkoutExecution({
       setCurrentExerciseIndex(prev => prev + 1);
       setCurrentSet(1);
       setCurrentRep(1);
+      // Reset run time for next exercise
+      setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
       
       // REST BETWEEN EXERCISES
       // Use the specific rest_between_exercises field if available
@@ -1553,6 +1695,13 @@ export function UnifiedWorkoutExecution({
                     </Text>
                   )}
                   
+                  {/* Rep Count Display */}
+                  {currentExercise && (
+                    <Text fontSize="lg" color="white" opacity={0.8} textAlign="center">
+                      {currentExerciseReps} {currentExerciseReps === 1 ? 'Rep' : 'Reps'}
+                    </Text>
+                  )}
+                  
                   {/* Start Button */}
                   <Button
                     size="xl"
@@ -1839,7 +1988,16 @@ export function UnifiedWorkoutExecution({
                       borderRadius="full"
                       size="md"
                       variant="outline"
-                      onClick={() => {/* TODO: Show video */}}
+                      onClick={() => {
+                        if (currentExercise) {
+                          const videoUrl = getVideoUrl(currentExercise.name);
+                          setVideoModal({
+                            isOpen: true,
+                            videoUrl,
+                            exerciseName: currentExercise.name
+                          });
+                        }
+                      }}
                       isDisabled={isCountingDown || isResting || isTimedCountdown}
                     />
                     <IconButton
@@ -1888,6 +2046,7 @@ export function UnifiedWorkoutExecution({
             {!isLoadingExercises && !exerciseLoadError && !isRestDay && !showRPEScreen && totalExercises > 0 && isRunningExercise() && !isTimedExercise() && (
               <Box w="full">
                 <RunTimeInput
+                  key={`runtime-${currentExerciseIndex}-${currentSet}-${currentRep}`}
                   onTimeChange={handleTimeChange}
                   initialMinutes={runTime.minutes}
                   initialSeconds={runTime.seconds}
@@ -1897,44 +2056,32 @@ export function UnifiedWorkoutExecution({
               </Box>
             )}
 
-            {/* Exercise Notes */}
-            {!isLoadingExercises && !exerciseLoadError && !isRestDay && !showRPEScreen && totalExercises > 0 && currentExercise && (currentExercise.notes || currentExercise.movement_notes) && (
-              <Box w="full" bg={sectionBg} borderRadius="xl" p={4}>
-                <VStack spacing={3} align="stretch">
-                  {currentExercise.notes && (
-                    <Box>
-                      <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textTransform="uppercase" mb={1}>
-                        Exercise Notes
+            {/* Exercise Image Display for Non-Running Exercises */}
+            {!isLoadingExercises && !exerciseLoadError && !isRestDay && !showRPEScreen && totalExercises > 0 && !isRunningExercise() && currentExercise && (
+              <VStack spacing={2} align="stretch" w="full">
+                <ExerciseImageDisplay exerciseName={currentExercise.name} />
+                
+                {/* Exercise Instructions directly under image without title/card/background */}
+                {(currentExercise.instructions || currentExercise.notes || currentExercise.movement_notes) && (
+                  <VStack spacing={2} align="stretch" w="full">
+                    {currentExercise.instructions && (
+                      <Text fontSize="sm" color={modalTextColor} textAlign="center" lineHeight="1.5">
+                        {currentExercise.instructions}
                       </Text>
-                      <Text fontSize="sm" color={modalTextColor} lineHeight="1.5">
+                    )}
+                    {currentExercise.notes && (
+                      <Text fontSize="sm" color={modalTextColor} textAlign="center" lineHeight="1.5">
                         {currentExercise.notes}
                       </Text>
-                    </Box>
-                  )}
-                  {currentExercise.movement_notes && (
-                    <Box>
-                      <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textTransform="uppercase" mb={1}>
-                        Movement Instructions
-                      </Text>
-                      <Text fontSize="sm" color={modalTextColor} lineHeight="1.5">
+                    )}
+                    {currentExercise.movement_notes && (
+                      <Text fontSize="sm" color={modalTextColor} textAlign="center" lineHeight="1.5">
                         {currentExercise.movement_notes}
                       </Text>
-                    </Box>
-                  )}
-                </VStack>
-              </Box>
-            )}
-
-            {/* Instructions */}
-            {!isLoadingExercises && !exerciseLoadError && !isRestDay && !showRPEScreen && totalExercises > 0 && currentExercise?.instructions && (
-              <Box w="full" bg={sectionBg} borderRadius="xl" p={4} textAlign="center">
-                <Text fontSize="xs" color={modalTextColor} fontWeight="medium" textTransform="uppercase" mb={2}>
-                  Instructions
-                </Text>
-                <Text fontSize="sm" color={modalTextColor}>
-                  {currentExercise.instructions}
-                </Text>
-              </Box>
+                    )}
+                  </VStack>
+                )}
+              </VStack>
             )}
               </>
             )}
@@ -1964,6 +2111,38 @@ export function UnifiedWorkoutExecution({
       direction={currentExercise?.type || ''}
       movementInstructions={currentExercise?.instructions || ''}
     />
+      {/* Video Modal */}
+      <Modal 
+        isOpen={videoModal.isOpen} 
+        onClose={() => setVideoModal({ ...videoModal, isOpen: false })} 
+        size="xl"
+        isCentered
+        closeOnOverlayClick={true}
+      >
+        <ModalOverlay bg="blackAlpha.800" />
+        <ModalContent bg="white" color="black">
+          <ModalHeader>How to: {videoModal.exerciseName}</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <Box position="relative" paddingTop="56.25%">
+              <iframe
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                }}
+                src={videoModal.videoUrl}
+                title="Exercise Tutorial"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </Box>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </>
   );
 } 

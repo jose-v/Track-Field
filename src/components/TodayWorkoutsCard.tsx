@@ -18,7 +18,13 @@ import {
   CardBody,
   Flex,
   Tag,
-  useToast
+  useToast,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody
 } from '@chakra-ui/react';
 import { FaRunning, FaCalendarAlt, FaArrowRight, FaClock, FaFire, FaBed, FaDumbbell } from 'react-icons/fa';
 import { Link as RouterLink } from 'react-router-dom';
@@ -48,6 +54,9 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
   
   // State for workout execution
   const [executingAssignmentId, setExecutingAssignmentId] = useState<string | null>(null);
+  
+  // Video modal state
+  const [videoModal, setVideoModal] = useState({ isOpen: false, videoUrl: '', exerciseName: '' });
 
   // Color mode values
   const cardBg = useColorModeValue('white', 'gray.800');
@@ -90,6 +99,14 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
 
   const handleCloseExecution = () => {
     setExecutingAssignmentId(null);
+  };
+
+  const handleShowVideo = (exerciseName: string, videoUrl: string) => {
+    setVideoModal({
+      isOpen: true,
+      videoUrl,
+      exerciseName
+    });
   };
 
   // Loading state
@@ -337,8 +354,44 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
           isOpen={!!executingAssignmentId}
           onExit={handleCloseExecution}
           onComplete={handleCloseExecution}
+          onShowVideo={handleShowVideo}
         />
       )}
+
+
+
+      {/* Video Modal */}
+      <Modal 
+        isOpen={videoModal.isOpen} 
+        onClose={() => setVideoModal({ ...videoModal, isOpen: false })} 
+        size="xl"
+        isCentered
+        closeOnOverlayClick={true}
+      >
+        <ModalOverlay bg="blackAlpha.600" />
+        <ModalContent bg="white" color="black">
+          <ModalHeader>How to: {videoModal.exerciseName}</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <Box position="relative" paddingTop="56.25%">
+              <iframe
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                }}
+                src={videoModal.videoUrl}
+                title="Exercise Tutorial"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </Box>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 };

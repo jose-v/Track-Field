@@ -33,6 +33,7 @@ export { default as MobileHeader } from './MobileHeader';
 export { MobileWelcomeMessage } from './MobileWelcomeMessage';
 export { MobileTopNavBar } from './MobileTopNavBar';
 export { MobileBottomNavigation } from './MobileBottomNavigation';
+export { MobileAthleteDashboard } from './MobileAthleteDashboard';
 export { default as MyTeamsCard } from './MyTeamsCard';
 export { CoachTeamsCard } from './CoachTeamsCard';
 export { JoinTeamModal } from './JoinTeamModal';
@@ -48,6 +49,7 @@ export { MinimalistMeetsView } from './meets/MinimalistMeetsView';
 
 // Quick Log Components
 export { default as SleepQuickLogCard } from './SleepQuickLogCard';
+export { MobileSleepCard } from './MobileSleepCard';
 export { default as WellnessQuickLogCard } from './WellnessQuickLogCard';
 export { default as RPEPromptCard } from './RPEPromptCard';
 export { default as TodaysCheckInSection } from './TodaysCheckInSection';

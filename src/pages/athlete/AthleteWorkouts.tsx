@@ -92,6 +92,8 @@ export function AthleteWorkouts() {
 
   // Execution state management - robust solution
   const [cachedAssignmentForExecution, setCachedAssignmentForExecution] = useState<any>(null);
+  
+
 
   // Responsive design - Clean mobile/desktop separation
   const isMobile = useBreakpointValue({ base: true, lg: false });
@@ -165,6 +167,8 @@ export function AthleteWorkouts() {
     refetchAssignments();
     refetchToday();
   };
+
+
 
   // Handle sidebar item clicks
   const handleItemClick = (itemId: string) => {
@@ -582,6 +586,10 @@ export function AthleteWorkouts() {
           </ModalContent>
         </Modal>
       )}
+
+
+
+
 
       {/* Mobile Bottom Navigation - Only show on mobile */}
       {isMobile && (

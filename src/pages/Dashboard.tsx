@@ -32,7 +32,8 @@ import {
   // ExerciseExecutionModal, // Replaced with WorkoutExecutionRouter
   MonthlyPlanAssignments,
   MyTeamsCard,
-  MobileTopNavBar
+  MobileTopNavBar,
+  MobileAthleteDashboard
 } from '../components'
 import SleepQuickLogCard from '../components/SleepQuickLogCard'
 import WellnessQuickLogCard from '../components/WellnessQuickLogCard'
@@ -167,6 +168,9 @@ export function Dashboard() {
   const { stats: nutritionStats, isLoading: nutritionLoading } = useNutritionStats()
   const { isHeaderVisible } = useScrollDirection(20)
   const [teamInfo, setTeamInfo] = useState<any>(null)
+  
+  // Feature flag for new mobile layout - set to true to use new layout
+  const USE_NEW_MOBILE_LAYOUT = true
   const [isLoadingTeam, setIsLoadingTeam] = useState(false)
   const [isAIModalOpen, setIsAIModalOpen] = useState(false)
   // Default weather data as fallback
@@ -808,19 +812,21 @@ export function Dashboard() {
           </Box>
         </Box>
 
-        {/* Mobile Weather Card */}
-        <Box display={{ base: "block", lg: "none" }} w="100%" mb={8}>
-            <WeatherCard 
-              city={profile?.city || "Greensboro"}
-              state={profile?.state ? getStateAbbr(profile.state) : "NC"}
-              weather={{
-                temp: "71",
-                condition: "Clouds",
-                description: "scattered clouds"
-              }}
-              isLoading={profileLoading}
-            />
-        </Box>
+        {/* OLD Mobile Weather Card - Hidden via feature flag */}
+        {!USE_NEW_MOBILE_LAYOUT && (
+          <Box display={{ base: "block", lg: "none" }} w="100%" mb={8}>
+              <WeatherCard 
+                city={profile?.city || "Greensboro"}
+                state={profile?.state ? getStateAbbr(profile.state) : "NC"}
+                weather={{
+                  temp: "71",
+                  condition: "Clouds",
+                  description: "scattered clouds"
+                }}
+                isLoading={profileLoading}
+              />
+          </Box>
+        )}
 
         {/* Desktop 3-Column Layout */}
         <Box display={{ base: "none", lg: "block" }} w="100%" mb={8}>
@@ -884,34 +890,50 @@ export function Dashboard() {
           </Flex>
         </Box>
 
-        {/* Mobile Today's Workouts Card */}
-        <Box display={{ base: "block", lg: "none" }} w="100%">
-                  <TodayWorkoutsCard
-          profile={profile}
-          profileLoading={profileLoading}
-        />
-        </Box>
-
-        {/* Today's Check-in Section - Mobile Only */}
-        <Box display={{ base: "block", lg: "none" }} w="100%">
-          <TodaysCheckInSection onDataUpdate={handleDataUpdate} />
-        </Box>
-
-        {/* Mobile Sleep Card - Before other cards */}
-        <Box display={{ base: "block", lg: "none" }} w="100%" mb={8}>
-          {profileLoading ? (
-            <SkeletonCard
-              height="330px"
-              cardBg={cardBg}
-              borderColor={borderColor}
-              cardShadow={cardShadow}
-              skeletonStartColor={skeletonStartColor}
-              skeletonEndColor={skeletonEndColor}
+        {/* NEW Mobile Athlete Dashboard - Card-based Layout */}
+        {USE_NEW_MOBILE_LAYOUT && (
+          <Box display={{ base: "block", lg: "none" }} w="100%">
+            <MobileAthleteDashboard 
+              onStartWorkout={() => navigate('/athlete/workouts')}
+              onDataUpdate={handleDataUpdate}
             />
-          ) : (
-            <SleepStatsCard />
-          )}
-        </Box>
+          </Box>
+        )}
+
+        {/* OLD Mobile Today's Workouts Card - Hidden via feature flag */}
+        {!USE_NEW_MOBILE_LAYOUT && (
+          <Box display={{ base: "block", lg: "none" }} w="100%">
+                    <TodayWorkoutsCard
+            profile={profile}
+            profileLoading={profileLoading}
+          />
+          </Box>
+        )}
+
+        {/* OLD Today's Check-in Section - Mobile Only - Hidden via feature flag */}
+        {!USE_NEW_MOBILE_LAYOUT && (
+          <Box display={{ base: "block", lg: "none" }} w="100%">
+            <TodaysCheckInSection onDataUpdate={handleDataUpdate} />
+          </Box>
+        )}
+
+        {/* OLD Mobile Sleep Card - Before other cards - Hidden via feature flag */}
+        {!USE_NEW_MOBILE_LAYOUT && (
+          <Box display={{ base: "block", lg: "none" }} w="100%" mb={8}>
+            {profileLoading ? (
+              <SkeletonCard
+                height="330px"
+                cardBg={cardBg}
+                borderColor={borderColor}
+                cardShadow={cardShadow}
+                skeletonStartColor={skeletonStartColor}
+                skeletonEndColor={skeletonEndColor}
+              />
+            ) : (
+              <SleepStatsCard />
+            )}
+          </Box>
+        )}
 
         {/* Analytics & Info Cards */}
         <SimpleGrid 
@@ -920,39 +942,51 @@ export function Dashboard() {
           my={{ base: 6, md: 10 }}
           w="100%"
         >
-          {/* My Teams Card - Mobile Only */}
-          <Box display={{ base: "block", lg: "none" }}>
-            <MyTeamsCard maxTeamsToShow={3} />
-          </Box>
+          {/* OLD My Teams Card - Mobile Only - Hidden via feature flag */}
+          {!USE_NEW_MOBILE_LAYOUT && (
+            <Box display={{ base: "block", lg: "none" }}>
+              <MyTeamsCard maxTeamsToShow={3} />
+            </Box>
+          )}
 
-          {/* Track Meets Card - Mobile Only */}
-          <Box display={{ base: "block", lg: "none" }}>
-            <TrackMeetsCard viewAllLink="/athlete/meets" />
-          </Box>
+          {/* OLD Track Meets Card - Mobile Only - Hidden via feature flag */}
+          {!USE_NEW_MOBILE_LAYOUT && (
+            <Box display={{ base: "block", lg: "none" }}>
+              <TrackMeetsCard viewAllLink="/athlete/meets" />
+            </Box>
+          )}
 
-          {/* RPE Card - Shows on all screen sizes */}
-          <Box w="100%">
+          {/* RPE Card - Hidden on mobile with new layout */}
+          <Box 
+            w="100%" 
+            display={{ base: USE_NEW_MOBILE_LAYOUT ? "none" : "block", md: "block" }}
+          >
             <RPEPromptCard onLogComplete={handleDataUpdate} />
           </Box>
 
-          {/* Nutrition Card */}
-          {(profileLoading || nutritionLoading) ? (
-            <SkeletonCard
-              height="330px"
-              cardBg={cardBg}
-              borderColor={borderColor}
-              cardShadow={cardShadow}
-              skeletonStartColor={skeletonStartColor}
-              skeletonEndColor={skeletonEndColor}
-            />
-          ) : (
-            <NutritionStatsCard
-              nutritionStats={nutritionStats}
-              isLoading={nutritionLoading}
-            />
-          )}
+          {/* Nutrition Card - Hidden on mobile with new layout */}
+          <Box 
+            w="100%" 
+            display={{ base: USE_NEW_MOBILE_LAYOUT ? "none" : "block", md: "block" }}
+          >
+            {(profileLoading || nutritionLoading) ? (
+              <SkeletonCard
+                height="330px"
+                cardBg={cardBg}
+                borderColor={borderColor}
+                cardShadow={cardShadow}
+                skeletonStartColor={skeletonStartColor}
+                skeletonEndColor={skeletonEndColor}
+              />
+            ) : (
+              <NutritionStatsCard
+                nutritionStats={nutritionStats}
+                isLoading={nutritionLoading}
+              />
+            )}
+          </Box>
 
-          {/* Gamification Card - Development Only */}
+          {/* Gamification Card - Development Only - Hidden on mobile with new layout */}
         {process.env.NODE_ENV !== 'production' && (
           <Box 
             bg={cardBg}
@@ -961,7 +995,8 @@ export function Dashboard() {
             border="1px solid"
             borderColor={borderColor}
             boxShadow={cardShadowLg}
-              w="100%"
+            w="100%"
+            display={{ base: USE_NEW_MOBILE_LAYOUT ? "none" : "block", md: "block" }}
           >
             <VStack spacing={5} align="stretch">
               {/* Header */}

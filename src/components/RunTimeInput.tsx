@@ -113,10 +113,7 @@ export const RunTimeInput: React.FC<RunTimeInputProps> = ({
   const modalHeadingColor = useColorModeValue('gray.800', 'white');
   const modalTextColor = useColorModeValue('gray.500', 'gray.400');
 
-  const instructionText = useBreakpointValue({
-    base: "Enter your run time",
-    md: "Scroll to adjust time",
-  });
+  const instructionText = "ENTER YOUR RUN TIME";
 
   useEffect(() => {
     onTimeChange(minutes, seconds, hundredths);
@@ -124,17 +121,6 @@ export const RunTimeInput: React.FC<RunTimeInputProps> = ({
 
   return (
     <VStack spacing={1} w="100%">
-      <Text
-        fontSize="sm"
-        fontWeight="medium"
-        color={modalTextColor}
-        textTransform="uppercase"
-        letterSpacing="wider"
-        display={{ base: "none", md: "block" }}
-      >
-        {placeholder}
-      </Text>
-
       <Box
         bg={modalHeaderBg}
         borderRadius="xl"
@@ -152,11 +138,11 @@ export const RunTimeInput: React.FC<RunTimeInputProps> = ({
         </HStack>
 
         <Text
-          fontSize="xs"
+          fontSize="sm"
           color={modalTextColor}
           textAlign="center"
-          fontStyle="italic"
-          opacity={0.7}
+          fontWeight="medium"
+          textTransform="uppercase"
           mt={4}
         >
           {instructionText}
