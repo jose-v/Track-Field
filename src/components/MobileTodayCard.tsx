@@ -18,11 +18,14 @@ import {
   useToast,
 } from '@chakra-ui/react';
 import { BsThreeDots } from 'react-icons/bs';
-import { FaTimes, FaEdit, FaTrash, FaCalendarAlt, FaShare } from 'react-icons/fa';
+import { FaTimes, FaEdit, FaTrash, FaCalendarAlt, FaShare, FaPlay, FaExternalLinkAlt } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkoutStore } from '../lib/workoutStore';
 import { startTodaysWorkoutExecution } from '../utils/monthlyPlanWorkoutHelper';
 import { WorkoutExecutionRouter } from './WorkoutExecutionRouter';
+import { useUnifiedAssignments } from '../hooks/useUnifiedAssignments';
+import { useProfile } from '../hooks/useProfile';
+import { useNavigate } from 'react-router-dom';
 
 interface TodayWorkout {
   time: string;
@@ -57,8 +60,18 @@ export const MobileTodayCard: React.FC<MobileTodayCardProps> = ({
   });
   
   const { user } = useAuth();
+  const { profile, isLoading: profileLoading } = useProfile();
   const workoutStore = useWorkoutStore();
   const toast = useToast();
+  const navigate = useNavigate();
+  
+  // Use unified assignments instead of workouts hook
+  const { data: assignments, isLoading: assignmentsLoading } = useUnifiedAssignments(user?.id);
+  
+  // Get top 3 available assignments (not completed)
+  const availableAssignments = assignments?.filter(assignment => 
+    assignment.status !== 'completed'
+  ).slice(0, 3) || [];
   
   // Dark theme colors to match other cards
   const cardBg = 'gray.800';
@@ -116,6 +129,83 @@ export const MobileTodayCard: React.FC<MobileTodayCardProps> = ({
       setIsLoading(false);
     }
   };
+
+  // Function to handle assignment execution
+  const handleExecuteAssignment = (assignmentId: string) => {
+    if (!user?.id) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please log in to start your workout',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    // Find the assignment to execute
+    const assignment = availableAssignments.find(a => a.id === assignmentId);
+    if (!assignment) {
+      toast({
+        title: 'Assignment not found',
+        description: 'Could not find the selected assignment',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    // Convert assignment to workout format for the execution modal
+    const workoutForExecution = {
+      id: assignment.id,
+      name: assignment.exercise_block?.workout_name || 'Workout',
+      description: assignment.exercise_block?.description || '',
+      type: assignment.exercise_block?.workout_type || 'strength',
+      exercises: assignment.exercise_block?.exercises || [],
+      blocks: assignment.exercise_block?.blocks || [],
+      is_block_based: assignment.exercise_block?.is_block_based || false,
+      location: assignment.exercise_block?.location || '',
+      duration: assignment.exercise_block?.estimated_duration || '',
+      user_id: user.id,
+      created_at: assignment.created_at
+    };
+
+    // Get current progress from the assignment
+    const currentProgress = assignment.progress || {
+      current_exercise_index: 0,
+      current_set: 1,
+      current_rep: 1
+    };
+
+    // Close the drawer and open execution modal
+    setIsDrawerOpen(false);
+    
+    // Open the execution modal with the converted workout
+    setExecModal({
+      isOpen: true,
+      workout: workoutForExecution,
+      exerciseIdx: currentProgress.current_exercise_index || 0,
+      timer: 0,
+      running: false
+    });
+
+
+  };
+
+  // Function to navigate to workouts page
+  const handleGoToWorkouts = () => {
+    navigate('/athlete/workouts');
+    setIsDrawerOpen(false);
+  };
+
+  // Debug logging for context
+  if (isDrawerOpen) {
+    console.log('Drawer user:', user);
+    console.log('Drawer profile:', profile);
+    console.log('Drawer assignments:', assignments);
+    console.log('Available assignments:', availableAssignments);
+  }
 
   return (
     <>
@@ -232,10 +322,8 @@ export const MobileTodayCard: React.FC<MobileTodayCardProps> = ({
               flexShrink={0}
             >
               <Text fontSize="xl" fontWeight="bold" color={drawerText}>
-                Today's Schedule
+                Top Workouts
               </Text>
-              
-              {/* Close Button */}
               <IconButton
                 aria-label="Close menu"
                 icon={<FaTimes />}
@@ -248,82 +336,60 @@ export const MobileTodayCard: React.FC<MobileTodayCardProps> = ({
                 fontSize="18px"
               />
             </Flex>
-
-            {/* Menu Content */}
-            <VStack spacing={0} flex="1" align="stretch" p={4}>
-              {/* Edit Schedule */}
-              <Button
-                leftIcon={<FaEdit />}
-                variant="ghost"
-                size="lg"
-                justifyContent="flex-start"
-                h="60px"
-                color={drawerText}
-                _hover={{ bg: buttonHoverBg }}
-                onClick={() => {
-                  setIsDrawerOpen(false);
-                  onMenuClick?.();
-                }}
-              >
-                Edit Schedule
-              </Button>
-              
-              <Divider />
-              
-              {/* View Calendar */}
-              <Button
-                leftIcon={<FaCalendarAlt />}
-                variant="ghost"
-                size="lg"
-                justifyContent="flex-start"
-                h="60px"
-                color={drawerText}
-                _hover={{ bg: buttonHoverBg }}
-                onClick={() => {
-                  setIsDrawerOpen(false);
-                  // Add calendar navigation logic here
-                }}
-              >
-                View Full Calendar
-              </Button>
-              
-              <Divider />
-              
-              {/* Share Schedule */}
-              <Button
-                leftIcon={<FaShare />}
-                variant="ghost"
-                size="lg"
-                justifyContent="flex-start"
-                h="60px"
-                color={drawerText}
-                _hover={{ bg: buttonHoverBg }}
-                onClick={() => {
-                  setIsDrawerOpen(false);
-                  // Add share functionality here
-                }}
-              >
-                Share Schedule
-              </Button>
-              
-              <Divider />
-              
-              {/* Delete Schedule */}
-              <Button
-                leftIcon={<FaTrash />}
-                variant="ghost"
-                size="lg"
-                justifyContent="flex-start"
-                h="60px"
-                color="red.500"
-                _hover={{ bg: buttonHoverBg }}
-                onClick={() => {
-                  setIsDrawerOpen(false);
-                  // Add delete confirmation logic here
-                }}
-              >
-                Delete Schedule
-              </Button>
+            {/* List of top 3 workouts */}
+            <VStack spacing={2} flex="1" align="stretch" p={4}>
+              {assignmentsLoading ? (
+                <Text color={drawerText}>Loading assignments...</Text>
+              ) : availableAssignments.length > 0 ? (
+                availableAssignments.map((assignment) => (
+                  <Flex key={assignment.id} align="center" justify="space-between" bg={cardBg} borderRadius="md" px={4} py={3} boxShadow="sm">
+                    <Flex align="center" minW={0} flex="1">
+                      <Text fontWeight="medium" color={drawerText} isTruncated>
+                      {assignment.exercise_block?.workout_name || assignment.meta?.workout_name || 'Workout'}
+                    </Text>
+                      <IconButton
+                        aria-label="Go to workout page"
+                        icon={<FaExternalLinkAlt />}
+                        size="sm"
+                        variant="ghost"
+                        color={drawerText}
+                        ml={2}
+                        onClick={() => {
+                          setIsDrawerOpen(false);
+                          handleGoToWorkouts();
+                        }}
+                        _hover={{ bg: buttonHoverBg }}
+                      />
+                    </Flex>
+                                      <IconButton
+                    aria-label="Start workout"
+                    icon={<FaPlay />}
+                    size="md"
+                    variant="ghost"
+                    color="green.500"
+                    borderRadius="full"
+                    ml={2}
+                    onClick={() => {
+                      setIsDrawerOpen(false);
+                      handleExecuteAssignment(assignment.id);
+                    }}
+                  />
+                  </Flex>
+                ))
+              ) : (
+                <VStack spacing={3} py={6}>
+                  <Text color={drawerText} textAlign="center" fontSize="md">
+                    No assignments available
+                  </Text>
+                  <Button
+                    colorScheme="blue"
+                    size="sm"
+                    onClick={handleGoToWorkouts}
+                  >
+                    View All Workouts
+                  </Button>
+                </VStack>
+              )}
             </VStack>
           </ModalBody>
         </ModalContent>
