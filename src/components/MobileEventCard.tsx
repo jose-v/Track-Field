@@ -107,7 +107,6 @@ export const MobileEventCard: React.FC<MobileEventCardProps> = ({ onEventClick }
         h="160px"
         cursor="pointer"
         onClick={onEventClick}
-        _hover={{ transform: 'translateY(-2px)' }}
         transition="all 0.2s"
         position="relative"
       >

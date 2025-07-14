@@ -91,25 +91,25 @@ export const MobileWellnessCard: React.FC<MobileWellnessCardProps> = ({ onLogCom
   }, [existingLogs]);
 
   // Validation functions to ensure values stay within bounds (like sleep card)
-  const setValidFatigue = (value: number) => {
+  const setValidFatigue = React.useCallback((value: number) => {
     const validValue = !isNaN(value) ? Math.max(1, Math.min(10, value)) : 5;
     setFatigue(validValue);
-  };
+  }, []);
 
-  const setValidPerformance = (value: number) => {
+  const setValidPerformance = React.useCallback((value: number) => {
     const validValue = !isNaN(value) ? Math.max(1, Math.min(10, value)) : 9;
     setPerformance(validValue);
-  };
+  }, []);
 
-  const setValidSoreness = (value: number) => {
+  const setValidSoreness = React.useCallback((value: number) => {
     const validValue = !isNaN(value) ? Math.max(1, Math.min(10, value)) : 2;
     setSoreness(validValue);
-  };
+  }, []);
 
-  const setValidStress = (value: number) => {
+  const setValidStress = React.useCallback((value: number) => {
     const validValue = !isNaN(value) ? Math.max(1, Math.min(10, value)) : 8;
     setStress(validValue);
-  };
+  }, []);
 
   const metrics: WellnessMetric[] = [
     {
@@ -248,7 +248,11 @@ export const MobileWellnessCard: React.FC<MobileWellnessCardProps> = ({ onLogCom
         </Text>
 
         {/* Touch-friendly slider */}
-        <Box>
+        <Box
+          // Ensure touch events don't get blocked by parent elements
+          style={{ touchAction: 'none' }}
+          py={2}
+        >
           <MobileFriendlySlider
             value={metric.value}
             onChange={metric.setValue}
@@ -275,7 +279,13 @@ export const MobileWellnessCard: React.FC<MobileWellnessCardProps> = ({ onLogCom
     >
       <VStack spacing={4} align="stretch" flex="1">
         {/* 2x2 Grid of Metrics */}
-        <SimpleGrid columns={2} spacing={2} flex="1">
+        <SimpleGrid 
+          columns={2} 
+          spacing={2} 
+          flex="1"
+          // Ensure touch events work properly in grid
+          style={{ touchAction: 'pan-y' }}
+        >
           {metrics.map((metric) => (
             <MetricCard key={metric.key} metric={metric} />
           ))}

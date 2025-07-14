@@ -122,14 +122,6 @@ export const MobileAthleteDashboard: React.FC<MobileAthleteDashboardProps> = ({
       overflowX="hidden"
     >
       <VStack spacing={4} align="stretch">
-        {/* Today Card - Full Width */}
-        <Box>
-          <MobileTodayCard 
-            onStartWorkout={onStartWorkout}
-            onMenuClick={() => console.log('Today menu clicked')}
-          />
-        </Box>
-
         {/* Weather Card - Full Width */}
         <Box>
           <MobileWeatherCard 
@@ -139,6 +131,14 @@ export const MobileAthleteDashboard: React.FC<MobileAthleteDashboardProps> = ({
             forecast={forecast}
             isLoading={weatherLoading || profileLoading}
             onMenuClick={() => console.log('Weather menu clicked')}
+          />
+        </Box>
+
+        {/* Today Card - Full Width */}
+        <Box>
+          <MobileTodayCard 
+            onStartWorkout={onStartWorkout}
+            onMenuClick={() => console.log('Today menu clicked')}
           />
         </Box>
 
