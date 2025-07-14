@@ -166,13 +166,12 @@ export const MobileSleepCard: React.FC<MobileSleepCardProps> = ({ onLogComplete 
       borderRadius="xl"
       p={6}
       boxShadow="lg"
-      h="200px"
+      minH="220px"
       display="flex"
       flexDirection="column"
-      justifyContent="space-between"
     >
       <VStack spacing={4} align="stretch" flex="1">
-        {/* Top Row: Sleep badge | Quality text | Hours */}
+        {/* Top Row: Sleep badge | Quality text | Hours with fixed widths */}
         <HStack justify="space-between" align="center">
           <Badge
             bg={badgeBg}
@@ -182,13 +181,27 @@ export const MobileSleepCard: React.FC<MobileSleepCardProps> = ({ onLogComplete 
             py={1}
             borderRadius="lg"
             fontWeight="normal"
+            minW="60px"
+            textAlign="center"
           >
-            Sleep
+            SLEEP
           </Badge>
-          <Text fontSize="lg" fontWeight="bold" color={textColor}>
+          <Text 
+            fontSize="lg" 
+            fontWeight="bold" 
+            color={textColor}
+            minW="90px"
+            textAlign="center"
+          >
             {getQualityText(quality)}
           </Text>
-          <Text fontSize="lg" fontWeight="bold" color={textColor}>
+          <Text 
+            fontSize="lg" 
+            fontWeight="bold" 
+            color={textColor}
+            minW="50px"
+            textAlign="center"
+          >
             {duration}h
           </Text>
         </HStack>
@@ -221,6 +234,14 @@ export const MobileSleepCard: React.FC<MobileSleepCardProps> = ({ onLogComplete 
           />
         </Box>
 
+        {/* Header above button */}
+        <Text fontSize="sm" color={subtitleColor} textAlign="center">
+          {existingLogs.hasLastNightLogs 
+            ? "You already logged sleep for last night" 
+            : "How did you sleep last night?"
+          }
+        </Text>
+
         {/* Fourth Row: Submit Button */}
         <Button
           bg={buttonBg}
@@ -233,8 +254,9 @@ export const MobileSleepCard: React.FC<MobileSleepCardProps> = ({ onLogComplete 
           fontWeight="semibold"
           _hover={{ bg: 'gray.100' }}
           _active={{ bg: 'gray.200' }}
+          mt={2}
         >
-          Log Sleep
+          {existingLogs.hasLastNightLogs ? 'Update Sleep' : 'Log Sleep'}
         </Button>
       </VStack>
     </Box>

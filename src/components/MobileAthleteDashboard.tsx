@@ -16,7 +16,8 @@ import {
 import { FaPlay, FaRunning } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../hooks/useProfile';
-import { WeatherCard } from './WeatherCard';
+import { useWeatherData } from '../hooks/useWeatherData';
+import { MobileWeatherCard } from './MobileWeatherCard';
 import { MobileSleepCard } from './MobileSleepCard';
 import { MobileWellnessCard } from './MobileWellnessCard';
 import { MobileEventCard } from './MobileEventCard';
@@ -33,6 +34,17 @@ export const MobileAthleteDashboard: React.FC<MobileAthleteDashboardProps> = ({
 }) => {
   const { user } = useAuth();
   const { profile, isLoading: profileLoading } = useProfile();
+  
+  // Weather data hook
+  const { weather, forecast, isLoading: weatherLoading } = useWeatherData(
+    profile?.city || "Greensboro",
+    profile?.state || "North Carolina",
+    {
+      temp: "71", 
+      condition: "Clouds",
+      description: "scattered clouds"
+    }
+  );
   
   // Color mode values
   const bgColor = useColorModeValue('gray.50', 'gray.900');
@@ -120,15 +132,13 @@ export const MobileAthleteDashboard: React.FC<MobileAthleteDashboardProps> = ({
 
         {/* Weather Card - Full Width */}
         <Box>
-          <WeatherCard 
+          <MobileWeatherCard 
             city={profile?.city || "Greensboro"}
             state={profile?.state ? getStateAbbr(profile.state) : "NC"}
-            weather={{
-              temp: "71", 
-              condition: "Clouds",
-              description: "scattered clouds"
-            }}
-            isLoading={profileLoading}
+            weather={weather}
+            forecast={forecast}
+            isLoading={weatherLoading || profileLoading}
+            onMenuClick={() => console.log('Weather menu clicked')}
           />
         </Box>
 

@@ -41,6 +41,7 @@ export const MobileWellnessCard: React.FC<MobileWellnessCardProps> = ({ onLogCom
   // Dark theme colors to match screenshot
   const cardBg = 'gray.800';
   const textColor = 'white';
+  const subtitleColor = 'gray.300';
   const buttonBg = 'white';
   const buttonTextColor = 'gray.800';
 
@@ -89,33 +90,54 @@ export const MobileWellnessCard: React.FC<MobileWellnessCardProps> = ({ onLogCom
     }
   }, [existingLogs]);
 
+  // Validation functions to ensure values stay within bounds (like sleep card)
+  const setValidFatigue = (value: number) => {
+    const validValue = !isNaN(value) ? Math.max(1, Math.min(10, value)) : 5;
+    setFatigue(validValue);
+  };
+
+  const setValidPerformance = (value: number) => {
+    const validValue = !isNaN(value) ? Math.max(1, Math.min(10, value)) : 9;
+    setPerformance(validValue);
+  };
+
+  const setValidSoreness = (value: number) => {
+    const validValue = !isNaN(value) ? Math.max(1, Math.min(10, value)) : 2;
+    setSoreness(validValue);
+  };
+
+  const setValidStress = (value: number) => {
+    const validValue = !isNaN(value) ? Math.max(1, Math.min(10, value)) : 8;
+    setStress(validValue);
+  };
+
   const metrics: WellnessMetric[] = [
     {
       key: 'fatigue',
       label: 'Fatigue',
       value: fatigue,
-      setValue: setFatigue,
+      setValue: setValidFatigue,
       isReverse: true // Lower fatigue = better
     },
     {
       key: 'performance',
       label: 'Motivation',
       value: performance,
-      setValue: setPerformance,
+      setValue: setValidPerformance,
       isReverse: false // Higher motivation = better
     },
     {
       key: 'soreness',
       label: 'Soreness',
       value: soreness,
-      setValue: setSoreness,
+      setValue: setValidSoreness,
       isReverse: true // Lower soreness = better
     },
     {
       key: 'stress',
       label: 'Stress',
       value: stress,
-      setValue: setStress,
+      setValue: setValidStress,
       isReverse: true // Lower stress = better
     }
   ];
@@ -191,9 +213,9 @@ export const MobileWellnessCard: React.FC<MobileWellnessCardProps> = ({ onLogCom
   };
 
   const MetricCard = ({ metric }: { metric: WellnessMetric }) => (
-    <Box p={4}>
+    <Box p={3}>
       <VStack spacing={3} align="stretch">
-        {/* Top row: Badge only */}
+        {/* Top row: Badge with fixed width */}
         <Box>
           <Badge 
             colorScheme="gray" 
@@ -204,17 +226,28 @@ export const MobileWellnessCard: React.FC<MobileWellnessCardProps> = ({ onLogCom
             w="100%"
             textAlign="center"
             display="block"
+            minW="80px"
           >
             {metric.label}
           </Badge>
         </Box>
 
-        {/* Score display */}
-        <Text fontSize="1xl" fontWeight="normal" color={getScoreColor(metric.value, metric.isReverse)} textAlign="center">
+        {/* Score display with fixed width to prevent layout shift */}
+        <Text 
+          fontSize="md" 
+          fontWeight="normal" 
+          color={getScoreColor(metric.value, metric.isReverse)} 
+          textAlign="center"
+          minH="24px"
+          minW="80px"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+        >
           {getScoreText(metric.value, metric.isReverse)}
         </Text>
 
-        {/* Slider */}
+        {/* Touch-friendly slider */}
         <Box>
           <MobileFriendlySlider
             value={metric.value}
@@ -236,21 +269,31 @@ export const MobileWellnessCard: React.FC<MobileWellnessCardProps> = ({ onLogCom
       p={6}
       boxShadow="lg"
       w="100%"
-      minH="300px"
+      minH="320px"
+      display="flex"
+      flexDirection="column"
     >
-      <VStack spacing={6} align="stretch">
+      <VStack spacing={4} align="stretch" flex="1">
         {/* 2x2 Grid of Metrics */}
-        <SimpleGrid columns={2} spacing={4}>
+        <SimpleGrid columns={2} spacing={2} flex="1">
           {metrics.map((metric) => (
             <MetricCard key={metric.key} metric={metric} />
           ))}
         </SimpleGrid>
 
+        {/* Header above button */}
+        <Text fontSize="sm" color={subtitleColor} textAlign="center" mt={2}>
+          {existingLogs.hasTodayLogs 
+            ? "You already logged wellness for today" 
+            : "How are you feeling today?"
+          }
+        </Text>
+
         {/* Wellness Check-in Button */}
         <Button
           bg={buttonBg}
           color={buttonTextColor}
-          size="lg"
+          size="md"
           onClick={handleWellnessLog}
           isLoading={isLogging}
           loadingText="Logging..."
@@ -258,8 +301,9 @@ export const MobileWellnessCard: React.FC<MobileWellnessCardProps> = ({ onLogCom
           fontWeight="semibold"
           _hover={{ bg: 'gray.100' }}
           _active={{ bg: 'gray.200' }}
+          mt={2}
         >
-          Wellness Check-in
+          {existingLogs.hasTodayLogs ? 'Update Wellness' : 'Wellness Check-in'}
         </Button>
       </VStack>
     </Box>
