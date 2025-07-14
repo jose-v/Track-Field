@@ -16,9 +16,10 @@ import {
   ModalBody,
   Divider,
 } from '@chakra-ui/react';
-import { FaTimes, FaEdit, FaTrash, FaCalendarAlt, FaShare, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaTimes, FaCalendarAlt, FaShare, FaMapMarkerAlt, FaExternalLinkAlt, FaClock } from 'react-icons/fa';
 import { BsThreeDots } from 'react-icons/bs';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface MobileEventCardProps {
   onEventClick?: () => void;
@@ -29,12 +30,17 @@ interface UpcomingEvent {
   date: string;
   title: string;
   location?: string;
+  entryDeadline?: string;
+  events?: string[];
+  venue?: string;
+  address?: string;
 }
 
 export const MobileEventCard: React.FC<MobileEventCardProps> = ({ onEventClick }) => {
   const [upcomingEvent, setUpcomingEvent] = useState<UpcomingEvent | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Dark theme colors to match screenshot
   const cardBg = 'gray.800';
@@ -54,7 +60,11 @@ export const MobileEventCard: React.FC<MobileEventCardProps> = ({ onEventClick }
       id: '1',
       date: 'Jul, 28 2025',
       title: '2025 AAU Junior Olympics',
-      location: 'Eugene, OR'
+      location: 'Eugene, OR',
+      entryDeadline: 'Jul, 15 2025',
+      events: ['100m Dash', '200m Dash', 'Long Jump'],
+      venue: 'Hayward Field',
+      address: '1580 E 15th Ave, Eugene, OR 97403'
     };
 
     setUpcomingEvent(mockEvent);
@@ -76,6 +86,30 @@ export const MobileEventCard: React.FC<MobileEventCardProps> = ({ onEventClick }
     } catch {
       return dateStr;
     }
+  };
+
+  // Function to handle location click - opens map app
+  const handleLocationClick = () => {
+    if (upcomingEvent?.address) {
+      const encodedAddress = encodeURIComponent(upcomingEvent.address);
+      // Try to open in native map app first, fallback to Google Maps
+      const mapUrl = `https://maps.apple.com/?q=${encodedAddress}`;
+      const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+      
+      // For iOS devices, try Apple Maps first
+      if (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad')) {
+        window.location.href = mapUrl;
+      } else {
+        window.open(googleMapsUrl, '_blank');
+      }
+    }
+    setIsDrawerOpen(false);
+  };
+
+  // Function to handle view event details
+  const handleViewEventDetails = () => {
+    navigate('/athlete/meets');
+    setIsDrawerOpen(false);
   };
 
   if (!upcomingEvent) {
@@ -214,7 +248,7 @@ export const MobileEventCard: React.FC<MobileEventCardProps> = ({ onEventClick }
               flexShrink={0}
             >
               <Text fontSize="xl" fontWeight="bold" color={drawerText}>
-                Event Options
+                {upcomingEvent?.title || 'Event Details'}
               </Text>
               
               {/* Close Button */}
@@ -231,100 +265,104 @@ export const MobileEventCard: React.FC<MobileEventCardProps> = ({ onEventClick }
               />
             </Flex>
 
-            {/* Menu Content */}
-            <VStack spacing={0} flex="1" align="stretch" p={4}>
-              {/* View Event Details */}
-              <Button
-                leftIcon={<FaCalendarAlt />}
-                variant="ghost"
-                size="lg"
-                justifyContent="flex-start"
-                h="60px"
-                color={drawerText}
-                _hover={{ bg: buttonHoverBg }}
-                onClick={() => {
-                  setIsDrawerOpen(false);
-                  onEventClick?.();
-                }}
-              >
-                View Event Details
-              </Button>
-              
+            {/* Event Information */}
+            <VStack spacing={4} flex="1" align="stretch" p={6}>
+              {/* Event Date */}
+              <HStack spacing={3}>
+                <Icon as={FaCalendarAlt} color="blue.500" boxSize={5} />
+                <VStack align="start" spacing={0}>
+                  <Text fontSize="sm" fontWeight="medium" color={drawerText}>
+                    Event Date
+                  </Text>
+                  <Text fontSize="md" color={drawerText}>
+                    {upcomingEvent?.date}
+                  </Text>
+                </VStack>
+              </HStack>
+
+              {/* Entry Deadline */}
+              {upcomingEvent?.entryDeadline && (
+                <HStack spacing={3}>
+                  <Icon as={FaClock} color="orange.500" boxSize={5} />
+                  <VStack align="start" spacing={0}>
+                    <Text fontSize="sm" fontWeight="medium" color={drawerText}>
+                      Entry Deadline
+                    </Text>
+                    <Text fontSize="md" color={drawerText}>
+                      {upcomingEvent.entryDeadline}
+                    </Text>
+                  </VStack>
+                </HStack>
+              )}
+
+              {/* Your Events */}
+              {upcomingEvent?.events && upcomingEvent.events.length > 0 && (
+                <VStack align="start" spacing={2}>
+                  <HStack spacing={3}>
+                    <Icon as={FaExternalLinkAlt} color="green.500" boxSize={5} />
+                    <Text fontSize="sm" fontWeight="medium" color={drawerText}>
+                      Your Events
+                    </Text>
+                  </HStack>
+                  <VStack align="start" spacing={1} pl={8}>
+                    {upcomingEvent.events.map((event, index) => (
+                      <Text key={index} fontSize="md" color={drawerText}>
+                        • {event}
+                      </Text>
+                    ))}
+                  </VStack>
+                </VStack>
+              )}
+
               <Divider />
-              
-              {/* Show Location */}
-              <Button
-                leftIcon={<FaMapMarkerAlt />}
-                variant="ghost"
-                size="lg"
-                justifyContent="flex-start"
-                h="60px"
-                color={drawerText}
-                _hover={{ bg: buttonHoverBg }}
-                onClick={() => {
-                  setIsDrawerOpen(false);
-                  // Add map/location functionality here
-                }}
-              >
-                Show Location
-              </Button>
-              
-              <Divider />
-              
-              {/* Edit Event */}
-              <Button
-                leftIcon={<FaEdit />}
-                variant="ghost"
-                size="lg"
-                justifyContent="flex-start"
-                h="60px"
-                color={drawerText}
-                _hover={{ bg: buttonHoverBg }}
-                onClick={() => {
-                  setIsDrawerOpen(false);
-                  // Add edit functionality here
-                }}
-              >
-                Edit Event
-              </Button>
-              
-              <Divider />
-              
-              {/* Share Event */}
-              <Button
-                leftIcon={<FaShare />}
-                variant="ghost"
-                size="lg"
-                justifyContent="flex-start"
-                h="60px"
-                color={drawerText}
-                _hover={{ bg: buttonHoverBg }}
-                onClick={() => {
-                  setIsDrawerOpen(false);
-                  // Add share functionality here
-                }}
-              >
-                Share Event
-              </Button>
-              
-              <Divider />
-              
-              {/* Remove Event */}
-              <Button
-                leftIcon={<FaTrash />}
-                variant="ghost"
-                size="lg"
-                justifyContent="flex-start"
-                h="60px"
-                color="red.500"
-                _hover={{ bg: buttonHoverBg }}
-                onClick={() => {
-                  setIsDrawerOpen(false);
-                  // Add remove functionality here
-                }}
-              >
-                Remove Event
-              </Button>
+
+              {/* Action Buttons */}
+              <VStack spacing={2} align="stretch">
+                {/* View Event Details */}
+                <Button
+                  leftIcon={<FaCalendarAlt />}
+                  variant="ghost"
+                  size="lg"
+                  justifyContent="flex-start"
+                  h="50px"
+                  color={drawerText}
+                  _hover={{ bg: buttonHoverBg }}
+                  onClick={handleViewEventDetails}
+                >
+                  View Event Details
+                </Button>
+                
+                {/* Show Location */}
+                <Button
+                  leftIcon={<FaMapMarkerAlt />}
+                  variant="ghost"
+                  size="lg"
+                  justifyContent="flex-start"
+                  h="50px"
+                  color={drawerText}
+                  _hover={{ bg: buttonHoverBg }}
+                  onClick={handleLocationClick}
+                >
+                  Show Location
+                </Button>
+                
+                {/* Share Event */}
+                <Button
+                  leftIcon={<FaShare />}
+                  variant="ghost"
+                  size="lg"
+                  justifyContent="flex-start"
+                  h="50px"
+                  color={drawerText}
+                  _hover={{ bg: buttonHoverBg }}
+                  onClick={() => {
+                    setIsDrawerOpen(false);
+                    // Add share functionality here
+                  }}
+                >
+                  Share Event
+                </Button>
+              </VStack>
             </VStack>
           </ModalBody>
         </ModalContent>
