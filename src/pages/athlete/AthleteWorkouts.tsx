@@ -120,13 +120,58 @@ export function AthleteWorkouts() {
     refetch: refetchAssignments
   } = useUnifiedAssignments(user?.id);
   
-  // Derive today's workout from assignments instead of separate API call to prevent 406 errors
+  // Derive today's workout from assignments using flexible logic like the today cards
   const todayStr = new Date().toISOString().split('T')[0];
-  const todaysWorkout = assignments?.find(assignment => 
-    assignment.start_date?.startsWith(todayStr)
-  ) || null;
+  const yesterdayStr = new Date(new Date().getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  
+  // Priority order: 1) Today's date, 2) In progress, 3) Recent assignments
+  const todaysWorkout = assignments?.find(assignment => {
+    if (assignment.status === 'completed') return false;
+    if (!assignment.start_date) return false;
+    
+    // Handle both date formats: YYYY-MM-DD and YYYY-MM-DDTHH:MM:SS
+    const assignmentDate = assignment.start_date.split('T')[0];
+    
+    // First priority: exact date match
+    if (assignmentDate === todayStr || assignmentDate === yesterdayStr) {
+      return true;
+    }
+    
+    // Second priority: in-progress workouts (can be continued any day)
+    if (assignment.status === 'in_progress') {
+      return true;
+    }
+    
+    // Third priority: recent assignments (within 3 days) that aren't completed
+    const assignmentDateObj = new Date(assignmentDate);
+    const todayDateObj = new Date(todayStr);
+    const daysDiff = Math.abs((todayDateObj.getTime() - assignmentDateObj.getTime()) / (1000 * 60 * 60 * 24));
+    
+    return daysDiff <= 3 && assignment.status === 'assigned';
+  }) || null;
   const loadingToday = loadingAssignments; // Use same loading state
   const todayError = assignmentsError; // Use same error state
+  
+  // Debug logging for athlete workouts page
+  console.log('=== ATHLETE WORKOUTS PAGE DEBUG ===');
+  console.log('Today\'s date string:', todayStr);
+  console.log('Yesterday\'s date string:', yesterdayStr);
+  console.log('Total assignments:', assignments?.length || 0);
+  console.log('Selected today\'s workout:', todaysWorkout ? {
+    id: todaysWorkout.id,
+    name: todaysWorkout.exercise_block?.workout_name,
+    start_date: todaysWorkout.start_date,
+    status: todaysWorkout.status,
+    reason: (() => {
+      if (!todaysWorkout.start_date) return 'No date';
+      const assignmentDate = todaysWorkout.start_date.split('T')[0];
+      if (assignmentDate === todayStr) return 'Today\'s date';
+      if (assignmentDate === yesterdayStr) return 'Yesterday\'s date';
+      if (todaysWorkout.status === 'in_progress') return 'In progress';
+      return 'Recent assignment';
+    })()
+  } : null);
+  console.log('=== END ATHLETE WORKOUTS DEBUG ===');
   
   // Update refetch function to only use the assignments refetch
   const refetchToday = refetchAssignments;

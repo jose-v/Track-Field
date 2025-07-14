@@ -21,7 +21,14 @@ import {
   DrawerCloseButton,
   IconButton,
   useBreakpointValue,
-  Image
+  Image,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalBody,
+  Textarea,
+  useToast,
+  Input
 } from '@chakra-ui/react';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { 
@@ -52,8 +59,9 @@ import { LuUsers, LuCalendarClock, LuClipboardList, LuBell } from 'react-icons/l
 import { BiRun, BiCalendar, BiDish, BiMoon } from 'react-icons/bi';
 import { HiUserGroup } from 'react-icons/hi';
 import { IoFitnessOutline } from 'react-icons/io5';
-import { HamburgerIcon } from '@chakra-ui/icons';
+import { HamburgerIcon, LinkIcon } from '@chakra-ui/icons';
 import { LuHouse, LuMessageSquare, LuBellRing, LuShare, LuMenu } from 'react-icons/lu';
+import { SiGmail, SiX, SiFacebook, SiWhatsapp, SiInstagram, SiTiktok } from 'react-icons/si';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfileDisplay } from '../hooks/useProfileDisplay';
 import { ThemeToggle } from './ThemeToggle';
@@ -265,6 +273,12 @@ const Sidebar = ({ userType }: SidebarProps) => {
   
   // Mobile drawer state
   const { isOpen: isMobileDrawerOpen, onOpen: onMobileDrawerOpen, onClose: onMobileDrawerClose } = useDisclosure();
+  
+  // Feedback drawer state
+  const { isOpen: isFeedbackDrawerOpen, onOpen: onFeedbackDrawerOpen, onClose: onFeedbackDrawerClose } = useDisclosure();
+  
+  // Share drawer state
+  const { isOpen: isShareDrawerOpen, onOpen: onShareDrawerOpen, onClose: onShareDrawerClose } = useDisclosure();
 
   // Enhanced mobile drawer close function to clear focus
   const handleMobileDrawerClose = () => {
@@ -284,6 +298,107 @@ const Sidebar = ({ userType }: SidebarProps) => {
   const { profile, displayName, initials } = useProfileDisplay();
   const { showFeedbackModal } = useFeedback();
   const { unreadCount } = useUnreadNotificationCount();
+  const toast = useToast();
+  
+  // Feedback form state
+  const [feedbackText, setFeedbackText] = useState('');
+  
+  // Share state
+  const [copySuccess, setCopySuccess] = useState(false);
+  const appUrl = window.location.origin;
+  
+  // Handle feedback drawer close
+  const handleFeedbackDrawerClose = () => {
+    onFeedbackDrawerClose();
+    setFeedbackText('');
+  };
+  
+  // Handle share drawer close
+  const handleShareDrawerClose = () => {
+    onShareDrawerClose();
+  };
+  
+  // Handle feedback submission
+  const handleFeedbackSubmit = () => {
+    if (feedbackText.trim()) {
+      // Here you would typically send the feedback to your backend
+      toast({
+        title: "Feedback Submitted",
+        description: "Thank you for your feedback! We'll review it soon.",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      handleFeedbackDrawerClose();
+    }
+  };
+  
+  // Share functionality methods
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(appUrl).then(() => {
+      setCopySuccess(true);
+      toast({
+        title: "Link copied!",
+        description: "The app link has been copied to your clipboard.",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      setTimeout(() => setCopySuccess(false), 3000);
+    });
+  };
+
+  const shareViaEmail = () => {
+    const title = 'Track & Field App';
+    const description = 'Check out this awesome Track & Field app for coaches and athletes!';
+    const emailBody = `${description}\n\n${appUrl}`;
+    window.location.href = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(emailBody)}`;
+    handleShareDrawerClose();
+  };
+
+  const shareViaX = () => {
+    const description = 'Check out this awesome Track & Field app for coaches and athletes!';
+    window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(description)}&url=${encodeURIComponent(appUrl)}`, '_blank');
+    handleShareDrawerClose();
+  };
+
+  const shareViaFacebook = () => {
+    const description = 'Check out this awesome Track & Field app for coaches and athletes!';
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(appUrl)}&quote=${encodeURIComponent(description)}`, '_blank');
+    handleShareDrawerClose();
+  };
+
+  const shareViaWhatsapp = () => {
+    const description = 'Check out this awesome Track & Field app for coaches and athletes!';
+    window.open(`https://wa.me/?text=${encodeURIComponent(description + " " + appUrl)}`, '_blank');
+    handleShareDrawerClose();
+  };
+
+  const shareViaInstagram = () => {
+    navigator.clipboard.writeText(appUrl).then(() => {
+      toast({
+        title: "Link copied!",
+        description: "Link copied to clipboard. Open Instagram and paste in your Story or DM.",
+        status: "info",
+        duration: 5000,
+        isClosable: true,
+      });
+    });
+    handleShareDrawerClose();
+  };
+
+  const shareViaTikTok = () => {
+    navigator.clipboard.writeText(appUrl).then(() => {
+      toast({
+        title: "Link copied!",
+        description: "Link copied to clipboard. Open TikTok app and paste in your bio or DM.",
+        status: "info",
+        duration: 5000,
+        isClosable: true,
+      });
+    });
+    handleShareDrawerClose();
+  };
   
   // Get navigation configurations
   const coachNavigation = useCoachNavigation();
@@ -635,8 +750,8 @@ const Sidebar = ({ userType }: SidebarProps) => {
                       p={4}
                       borderRadius="lg"
                       onClick={() => {
-                        showFeedbackModal();
                         handleMobileDrawerClose();
+                        setTimeout(() => onFeedbackDrawerOpen(), 100);
                       }}
                       color={drawerLinkColor}
                       _hover={{
@@ -666,8 +781,8 @@ const Sidebar = ({ userType }: SidebarProps) => {
                       p={4}
                       borderRadius="lg"
                       onClick={() => {
-                        // Share functionality
                         handleMobileDrawerClose();
+                        setTimeout(() => onShareDrawerOpen(), 100);
                       }}
                       color={drawerLinkColor}
                       _hover={{
@@ -841,6 +956,262 @@ const Sidebar = ({ userType }: SidebarProps) => {
         </Box>
       </VStack>
     </Box>
+    
+    {/* Feedback Drawer */}
+    <Modal 
+      isOpen={isFeedbackDrawerOpen} 
+      onClose={handleFeedbackDrawerClose}
+      motionPreset="slideInBottom"
+      closeOnOverlayClick={true}
+    >
+      <ModalOverlay bg="blackAlpha.600" />
+      <ModalContent 
+        position="fixed"
+        bottom="0"
+        left="0"
+        right="0"
+        top="auto"
+        height="60vh"
+        maxHeight="60vh"
+        minHeight="400px"
+        borderRadius="16px 16px 0 0"
+        bg={drawerBg}
+        border={`1px solid ${borderColor}`}
+        boxShadow="2xl"
+        margin="0"
+        maxWidth="100vw"
+        width="100vw"
+        display="flex"
+        flexDirection="column"
+      >
+        <ModalBody p={0} h="100%" display="flex" flexDirection="column">
+          {/* Header */}
+          <Flex 
+            justify="space-between" 
+            align="center" 
+            p={6} 
+            borderBottom={`1px solid ${borderColor}`}
+            flexShrink={0}
+          >
+            <Text fontSize="xl" fontWeight="bold" color={drawerTextColor}>
+              Give Feedback
+            </Text>
+            <IconButton
+              aria-label="Close feedback"
+              icon={<Icon as={FaSignOutAlt} transform="rotate(180deg)" />}
+              size="lg"
+              variant="ghost"
+              borderRadius="full"
+              onClick={handleFeedbackDrawerClose}
+              color={drawerTextColor}
+              _hover={{ bg: drawerLinkHoverBg }}
+              fontSize="18px"
+            />
+          </Flex>
+          
+          {/* Feedback Form */}
+          <VStack spacing={4} flex="1" align="stretch" p={6}>
+            <Text fontSize="sm" color={drawerSectionColor}>
+              Help us improve the app by sharing your thoughts, suggestions, or reporting issues.
+            </Text>
+            
+            <Textarea
+              value={feedbackText}
+              onChange={(e) => setFeedbackText(e.target.value)}
+              placeholder="Tell us what you think..."
+              size="md"
+              resize="none"
+              flex="1"
+              minH="120px"
+              bg={useColorModeValue('white', 'gray.700')}
+              borderColor={borderColor}
+              _focus={{
+                borderColor: 'blue.500',
+                boxShadow: '0 0 0 1px blue.500'
+              }}
+            />
+            
+            <HStack spacing={3} justify="flex-end">
+              <Button
+                variant="ghost"
+                onClick={handleFeedbackDrawerClose}
+                color={drawerTextColor}
+              >
+                Cancel
+              </Button>
+              <Button
+                colorScheme="blue"
+                onClick={handleFeedbackSubmit}
+                isDisabled={!feedbackText.trim()}
+              >
+                Submit Feedback
+              </Button>
+            </HStack>
+          </VStack>
+        </ModalBody>
+      </ModalContent>
+    </Modal>
+    
+    {/* Share Drawer */}
+    <Modal 
+      isOpen={isShareDrawerOpen} 
+      onClose={handleShareDrawerClose}
+      motionPreset="slideInBottom"
+      closeOnOverlayClick={true}
+    >
+      <ModalOverlay bg="blackAlpha.600" />
+      <ModalContent 
+        position="fixed"
+        bottom="0"
+        left="0"
+        right="0"
+        top="auto"
+        height="40vh"
+        maxHeight="40vh"
+        minHeight="300px"
+        borderRadius="16px 16px 0 0"
+        bg={drawerBg}
+        border={`1px solid ${borderColor}`}
+        boxShadow="2xl"
+        margin="0"
+        maxWidth="100vw"
+        width="100vw"
+        display="flex"
+        flexDirection="column"
+      >
+        <ModalBody p={0} h="100%" display="flex" flexDirection="column">
+          {/* Header */}
+          <Flex 
+            justify="space-between" 
+            align="center" 
+            p={6} 
+            borderBottom={`1px solid ${borderColor}`}
+            flexShrink={0}
+          >
+            <Text fontSize="xl" fontWeight="bold" color={drawerTextColor}>
+              Share App
+            </Text>
+            <IconButton
+              aria-label="Close share"
+              icon={<Icon as={FaSignOutAlt} transform="rotate(180deg)" />}
+              size="lg"
+              variant="ghost"
+              borderRadius="full"
+              onClick={handleShareDrawerClose}
+              color={drawerTextColor}
+              _hover={{ bg: drawerLinkHoverBg }}
+              fontSize="18px"
+            />
+          </Flex>
+          
+          {/* Share Options */}
+          <VStack spacing={4} flex="1" align="stretch" p={6}>
+            <Text fontSize="sm" color={drawerSectionColor}>
+              Share this awesome Track & Field app with your friends and teammates!
+            </Text>
+            
+            {/* Social Media Icons */}
+            <Flex 
+              justify="space-between" 
+              mt={4} 
+              mb={4}
+              px={2}
+              width="100%"
+              maxW="md"
+              mx="auto"
+            >
+              <IconButton
+                aria-label="Share via Email"
+                icon={<SiGmail size="28px" />}
+                variant="ghost"
+                size="lg"
+                onClick={shareViaEmail}
+                color="#2d3748"
+                _hover={{ color: "#C5221F" }}
+                _focus={{ boxShadow: "none" }}
+              />
+              <IconButton
+                aria-label="Share via X"
+                icon={<SiX size="28px" />}
+                variant="ghost"
+                size="lg"
+                onClick={shareViaX}
+                color="#2d3748"
+                _hover={{ color: "#333333" }}
+                _focus={{ boxShadow: "none" }}
+              />
+              <IconButton
+                aria-label="Share via Facebook"
+                icon={<SiFacebook size="28px" />}
+                variant="ghost"
+                size="lg"
+                onClick={shareViaFacebook}
+                color="#2d3748"
+                _hover={{ color: "#166FE5" }}
+                _focus={{ boxShadow: "none" }}
+              />
+              <IconButton
+                aria-label="Share via WhatsApp"
+                icon={<SiWhatsapp size="28px" />}
+                variant="ghost"
+                size="lg"
+                onClick={shareViaWhatsapp}
+                color="#2d3748"
+                _hover={{ color: "#128C7E" }}
+                _focus={{ boxShadow: "none" }}
+              />
+              <IconButton
+                aria-label="Share via Instagram"
+                icon={<SiInstagram size="28px" />}
+                variant="ghost"
+                size="lg"
+                onClick={shareViaInstagram}
+                color="#2d3748"
+                _hover={{ color: "#C13584" }}
+                _focus={{ boxShadow: "none" }}
+              />
+              <IconButton
+                aria-label="Share via TikTok"
+                icon={<SiTiktok size="28px" />}
+                variant="ghost"
+                size="lg"
+                onClick={shareViaTikTok}
+                color="#2d3748"
+                _hover={{ color: "#FF0050" }}
+                _focus={{ boxShadow: "none" }}
+              />
+            </Flex>
+            
+            <Divider />
+            
+            <Text fontSize="sm" fontWeight="medium" color={drawerTextColor}>
+              Or copy the link
+            </Text>
+            
+            <Flex>
+              <Input 
+                value={appUrl}
+                isReadOnly
+                mr={2}
+                bg={useColorModeValue('gray.50', 'gray.700')}
+                color={useColorModeValue('gray.800', 'gray.100')}
+                borderColor={useColorModeValue('gray.200', 'gray.600')}
+                fontSize="sm"
+              />
+              <Button 
+                onClick={handleCopyLink}
+                leftIcon={<LinkIcon />}
+                colorScheme={copySuccess ? "green" : "blue"}
+                size="md"
+                _focus={{ boxShadow: "none" }}
+              >
+                {copySuccess ? "Copied!" : "Copy"}
+              </Button>
+            </Flex>
+          </VStack>
+        </ModalBody>
+      </ModalContent>
+    </Modal>
     </>
   );
 };

@@ -32,6 +32,7 @@ import { UnifiedAssignmentCard } from './UnifiedAssignmentCard';
 import { UnifiedWorkoutExecution } from './UnifiedWorkoutExecution';
 import { useAuth } from '../contexts/AuthContext';
 import { useUnifiedAssignments } from '../hooks/useUnifiedAssignments';
+import { getTodayLocalDate, getYesterdayLocalDate } from '../utils/dateUtils';
 
 interface TodayWorkoutsCardProps {
   profile: any;
@@ -68,29 +69,71 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
   const todayBg = useColorModeValue('teal.50', 'teal.900');
   const todayBorder = useColorModeValue('teal.200', 'teal.700');
 
-  // Get today's date string once and reuse for filtering
-  const todayStr = new Date().toISOString().split('T')[0];
+  // Get today's date string once and reuse for filtering - using timezone-safe method
+  const todayStr = getTodayLocalDate();
+  const yesterdayStr = getYesterdayLocalDate();
   
-  // Derive today's workout from assignments instead of separate API call to prevent 406 errors
-  const todaysWorkout = assignments?.find(assignment => 
-    assignment.start_date?.startsWith(todayStr)
-  ) || null;
+  // Derive today's workout from assignments using flexible logic like MobileTodayCard
+  // Priority order: 1) Today's date, 2) In progress, 3) Recent assignments
+  const todaysWorkout = assignments?.find(assignment => {
+    if (assignment.status === 'completed') return false;
+    if (!assignment.start_date) return false;
+    
+    // Handle both date formats: YYYY-MM-DD and YYYY-MM-DDTHH:MM:SS
+    const assignmentDate = assignment.start_date.split('T')[0];
+    
+    // First priority: exact date match
+    if (assignmentDate === todayStr || assignmentDate === yesterdayStr) {
+      return true;
+    }
+    
+    // Second priority: in-progress workouts (can be continued any day)
+    if (assignment.status === 'in_progress') {
+      return true;
+    }
+    
+    // Third priority: recent assignments (within 3 days) that aren't completed
+    const assignmentDateObj = new Date(assignmentDate);
+    const todayDateObj = new Date(todayStr);
+    const daysDiff = Math.abs((todayDateObj.getTime() - assignmentDateObj.getTime()) / (1000 * 60 * 60 * 24));
+    
+    return daysDiff <= 3 && assignment.status === 'assigned';
+  }) || null;
   const todaysWorkoutLoading = assignmentsLoading; // Use same loading state
   const todaysWorkoutError = assignmentsError; // Use same error state
 
-  // Filter assignments by date
-  const todayAssignments = assignments?.filter(assignment => 
-    assignment.start_date?.startsWith(todayStr)
-  ) || [];
+  // Filter assignments by date - keep strict filtering for display sections
+  const todayAssignments = assignments?.filter(assignment => {
+    if (!assignment.start_date) return false;
+    // Handle both date formats: YYYY-MM-DD and YYYY-MM-DDTHH:MM:SS
+    const assignmentDate = assignment.start_date.split('T')[0];
+    return assignmentDate === todayStr;
+  }) || [];
   
-  const upcomingAssignments = assignments?.filter(assignment => 
-    assignment.start_date && !assignment.start_date.startsWith(todayStr)
-  ) || [];
+  // For upcoming assignments, also include recent assignments if they're selected as today's workout
+  const upcomingAssignments = assignments?.filter(assignment => {
+    if (!assignment.start_date) return false;
+    // Handle both date formats: YYYY-MM-DD and YYYY-MM-DDTHH:MM:SS
+    const assignmentDate = assignment.start_date.split('T')[0];
+    
+    // Include if not today's date
+    if (assignmentDate !== todayStr) {
+      return true;
+    }
+    
+    return false;
+  }) || [];
+
+  // If we have a selected workout that's not in today's assignments, add it to today's list
+  const displayTodayAssignments = todaysWorkout && !todayAssignments.find(a => a.id === todaysWorkout.id) 
+    ? [...todayAssignments, todaysWorkout] 
+    : todayAssignments;
+
+
 
   // Calculate stats
-  const totalWorkouts = todayAssignments.length + upcomingAssignments.length + (todaysWorkout ? 1 : 0);
-  const completedToday = todayAssignments.filter(a => a.status === 'completed').length + 
-                         (todaysWorkout?.status === 'completed' ? 1 : 0);
+  const totalWorkouts = displayTodayAssignments.length + upcomingAssignments.length;
+  const completedToday = displayTodayAssignments.filter(a => a.status === 'completed').length;
 
   // Handle workout execution
   const handleExecuteWorkout = (assignmentId: string) => {
@@ -257,10 +300,10 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
         </HStack>
 
         {/* Today's Assignments */}
-        {todayAssignments.length > 0 ? (
+        {displayTodayAssignments.length > 0 ? (
           <Box>
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-              {todayAssignments.map((assignment) => (
+              {displayTodayAssignments.map((assignment) => (
                 <UnifiedAssignmentCard
                   key={assignment.id}
                   assignment={assignment}
@@ -271,7 +314,7 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
               ))}
             </SimpleGrid>
           </Box>
-        ) : !todaysWorkout && (
+        ) : (
           <Box
             bg={emptyStateBg}
             p={6}
@@ -354,7 +397,6 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
           isOpen={!!executingAssignmentId}
           onExit={handleCloseExecution}
           onComplete={handleCloseExecution}
-          onShowVideo={handleShowVideo}
         />
       )}
 

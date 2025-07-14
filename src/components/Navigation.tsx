@@ -37,7 +37,7 @@ import {
   bellIconStyle,
   navNotificationBadgeStyle
 } from '../styles/navIconStyles'
-import { getProfilePathForRole, getNotificationsPathForRole } from '../utils/roleUtils'
+import { getProfilePathForRole, getNotificationsPathForRole, getDashboardPathForRole } from '../utils/roleUtils'
 import { useUnreadNotificationCount } from '../hooks/useUnreadNotificationCount'
 
 const Navigation = () => {
@@ -224,7 +224,7 @@ const Navigation = () => {
                   </MenuButton>
                   <MenuList>
                     <MenuItem as={RouterLink} to="/" color={menuTextColor} _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}>Home</MenuItem>
-                    <MenuItem as={RouterLink} to="/dashboard" color={menuTextColor} _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}>Dashboard</MenuItem>
+                    <MenuItem as={RouterLink} to={getDashboardPathForRole(displayProfile?.role)} color={menuTextColor} _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}>Dashboard</MenuItem>
                     <MenuItem as={RouterLink} 
                       to={getProfilePathForRole(displayProfile?.role)}
                       color={menuTextColor}
@@ -290,7 +290,7 @@ const Navigation = () => {
                 {/* Dashboard Button - Uses dashboard icon */}
                 <IconButton
                   as={RouterLink}
-                  to="/dashboard"
+                  to={getDashboardPathForRole(displayProfile?.role)}
                   icon={<FaTachometerAlt />}
                   aria-label="Dashboard"
                   variant="ghost"
@@ -374,7 +374,7 @@ const Navigation = () => {
                   </MenuButton>
                   <MenuList>
                     <MenuItem as={RouterLink} to="/" color={menuTextColor} _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}>Home</MenuItem>
-                    <MenuItem as={RouterLink} to="/dashboard" color={menuTextColor} _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}>Dashboard</MenuItem>
+                    <MenuItem as={RouterLink} to={getDashboardPathForRole(displayProfile?.role)} color={menuTextColor} _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}>Dashboard</MenuItem>
                     <MenuItem as={RouterLink} 
                       to={getProfilePathForRole(displayProfile?.role)}
                       color={menuTextColor}
@@ -456,7 +456,7 @@ const Navigation = () => {
                     size="sm"
                     onClick={onToggle}
                     as={RouterLink} 
-                    to="/dashboard"
+                    to={getDashboardPathForRole(displayProfile?.role)}
                     w="100%"
                     justifyContent="flex-start"
                     leftIcon={<FaTachometerAlt />}
@@ -577,7 +577,7 @@ const Navigation = () => {
                   size="sm"
                   onClick={onToggle}
                   as={RouterLink} 
-                  to="/dashboard"
+                  to={getDashboardPathForRole(displayProfile?.role)}
                   w="100%"
                   justifyContent="flex-start"
                   leftIcon={<FaTachometerAlt />}

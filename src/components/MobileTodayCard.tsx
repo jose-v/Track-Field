@@ -304,74 +304,7 @@ export const MobileTodayCard: React.FC<MobileTodayCardProps> = ({
     console.log('Available assignments:', availableAssignments);
   }
 
-  // Debug logging for today's assignment
-  console.log('=== TODAY CARD DEBUG ===');
-  console.log('Today\'s date string:', todayStr);
-  console.log('Yesterday\'s date string:', yesterdayStr);
-  console.log('User ID:', user?.id);
-  console.log('Profile role:', profile?.role);
-  console.log('Assignments loading:', assignmentsLoading);
-  console.log('Workouts loading:', workoutsLoading);
-  console.log('Today\'s unified assignment found:', todaysAssignment);
-  if (todaysAssignment) {
-    const assignmentDate = todaysAssignment.start_date ? todaysAssignment.start_date.split('T')[0] : null;
-    const isToday = assignmentDate === todayStr;
-    const isYesterday = assignmentDate === yesterdayStr;
-    const isInProgress = todaysAssignment.status === 'in_progress';
-    console.log('Selected assignment reason:', {
-      date: assignmentDate,
-      status: todaysAssignment.status,
-      isToday,
-      isYesterday,
-      isInProgress,
-      reason: isToday ? 'Today\'s date' : isYesterday ? 'Yesterday\'s date' : isInProgress ? 'In progress' : 'Recent assignment'
-    });
-  }
-  console.log('Today\'s regular workout found:', todaysRegularWorkout);
-  console.log('Has workout to start?', !!(todaysAssignment || todaysRegularWorkout));
-  
-  if (assignments) {
-    console.log('Unified assignments count:', assignments.length);
-    assignments.forEach((a, index) => {
-      const assignmentDate = a.start_date ? a.start_date.split('T')[0] : null;
-      console.log(`Assignment ${index + 1}:`, {
-        id: a.id, 
-        start_date: a.start_date,
-        parsed_date: assignmentDate,
-        status: a.status,
-        assignment_type: a.assignment_type,
-        name: a.exercise_block?.workout_name,
-        original_workout_id: a.meta?.original_workout_id,
-        // Check if this assignment's date matches today
-        is_today_match: assignmentDate === todayStr,
-        is_yesterday_match: assignmentDate === yesterdayStr,
-        is_completed: a.status === 'completed'
-      });
-    });
-  } else {
-    console.log('No unified assignments received');
-  }
-  
-  if (regularWorkouts) {
-    console.log('Regular workouts count:', regularWorkouts.length);
-    console.log('All regular workouts:', regularWorkouts.map(w => {
-      const workoutDate = w.date ? w.date.split('T')[0] : null;
-      return { 
-        id: w.id, 
-        name: w.name,
-        date: w.date,
-        parsed_date: workoutDate,
-        is_template: w.is_template,
-        user_id: w.user_id,
-        // Check if this workout's date matches today
-        is_today_match: workoutDate === todayStr,
-        is_yesterday_match: workoutDate === yesterdayStr
-      };
-    }));
-  } else {
-    console.log('No regular workouts received');
-  }
-  console.log('=== END DEBUG ===');
+
 
   return (
     <>
