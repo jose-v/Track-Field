@@ -237,7 +237,8 @@ export const MobileWeatherCard: React.FC<MobileWeatherCardProps> = ({
             bg={drawerBg}
             borderTopRadius="xl"
             borderBottomRadius="none"
-            maxH="50vh"
+            maxH="75vh"
+            minH="300px"
             borderTop="1px solid"
             borderColor={drawerBorder}
           >
@@ -248,7 +249,7 @@ export const MobileWeatherCard: React.FC<MobileWeatherCardProps> = ({
               <DrawerCloseButton />
             </DrawerHeader>
             
-            <DrawerBody pb={6}>
+            <DrawerBody pb={8} overflowY="auto">
               {/* Forecast Header */}
               <HStack justify="space-between" mb={3} fontSize="xs" fontWeight="bold" color={drawerText} textTransform="uppercase">
                 <Text flex={1}>Day</Text>

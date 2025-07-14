@@ -25,6 +25,7 @@ import { useScrollDirection } from '../hooks/useScrollDirection';
 import { NotificationsModal } from './NotificationsModal';
 import { useUnreadNotificationCount } from '../hooks/useUnreadNotificationCount';
 import { usePageHeaderListener } from '../hooks/usePageHeader';
+import { MobileProfileDrawer } from './MobileProfileDrawer';
 
 interface SimplifiedNavProps {
   roleTitle: string;
@@ -77,6 +78,9 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
   // State for notifications
   const { unreadCount, refreshCount, resetCount } = useUnreadNotificationCount();
   const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
+  
+  // State for profile drawer
+  const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
 
   // Don't render on workout creator routes - those use the unified navigation
   const isWorkoutCreatorRoute = location.pathname.includes('/workout-creator');
@@ -211,21 +215,38 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
         </Box>
 
         {/* User Avatar */}
-        <Avatar
-          size="sm"
-          name={displayName || 'User'}
-          src={displayProfile?.avatar_url || undefined}
-          bg="blue.500"
-          color="white"
-          cursor="pointer"
-          _hover={{ 
-            transform: 'scale(1.05)',
-            boxShadow: 'md'
-          }}
-          transition="all 0.2s"
-        >
-          {!displayProfile?.avatar_url && (initials || '?')}
-        </Avatar>
+        <Box position="relative">
+          <Avatar
+            size="sm"
+            name={displayName || 'User'}
+            src={displayProfile?.avatar_url || undefined}
+            bg="blue.500"
+            color="white"
+            cursor="pointer"
+            _hover={{ 
+              transform: 'scale(1.05)',
+              boxShadow: 'md'
+            }}
+            transition="all 0.2s"
+            onClick={() => setIsProfileDrawerOpen(true)}
+          >
+            {!displayProfile?.avatar_url && (initials || '?')}
+          </Avatar>
+          {/* Red dot indicator for unread notifications */}
+          {unreadCount > 0 && (
+            <Box
+              position="absolute"
+              top="0"
+              right="0"
+              w="8px"
+              h="8px"
+              bg="red.500"
+              borderRadius="full"
+              border="2px solid white"
+              zIndex={1}
+            />
+          )}
+        </Box>
       </Box>
 
       {/* Desktop Navigation Bar */}
@@ -374,6 +395,12 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
           </Flex>
         </Flex>
       </Box>
+
+      {/* Mobile Profile Drawer */}
+      <MobileProfileDrawer
+        isOpen={isProfileDrawerOpen}
+        onClose={() => setIsProfileDrawerOpen(false)}
+      />
     </>
   );
 };

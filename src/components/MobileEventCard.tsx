@@ -225,8 +225,8 @@ export const MobileEventCard: React.FC<MobileEventCardProps> = ({ onEventClick }
           left="0"
           right="0"
           top="auto"
-          height="50vh"
-          maxHeight="50vh"
+          height="auto"
+          maxHeight="75vh"
           minHeight="300px"
           borderRadius="16px 16px 0 0"
           bg={drawerBg}
@@ -238,7 +238,7 @@ export const MobileEventCard: React.FC<MobileEventCardProps> = ({ onEventClick }
           display="flex"
           flexDirection="column"
         >
-          <ModalBody p={0} h="100%" display="flex" flexDirection="column">
+          <ModalBody p={0} display="flex" flexDirection="column" overflowY="auto">
             {/* Header */}
             <Flex 
               justify="space-between" 
@@ -266,53 +266,56 @@ export const MobileEventCard: React.FC<MobileEventCardProps> = ({ onEventClick }
             </Flex>
 
             {/* Event Information */}
-            <VStack spacing={4} flex="1" align="stretch" p={6}>
-              {/* Event Date */}
-              <HStack spacing={3}>
-                <Icon as={FaCalendarAlt} color="blue.500" boxSize={5} />
-                <VStack align="start" spacing={0}>
+            <VStack spacing={4} align="stretch" p={6} pb={8}>
+              {/* Top Section - 2 Columns */}
+              <HStack spacing={6} align="start">
+                {/* Left Column */}
+                <VStack flex="1" spacing={4} align="stretch">
+                  {/* Event Date */}
+                  <HStack spacing={3}>
+                    <Icon as={FaCalendarAlt} color="white" boxSize={5} />
+                    <VStack align="start" spacing={0}>
+                      <Text fontSize="sm" fontWeight="medium" color={drawerText}>
+                        Event Date
+                      </Text>
+                      <Text fontSize="md" color={drawerText}>
+                        {upcomingEvent?.date}
+                      </Text>
+                    </VStack>
+                  </HStack>
+
+                  {/* Entry Deadline */}
+                  {upcomingEvent?.entryDeadline && (
+                    <HStack spacing={3}>
+                      <Icon as={FaClock} color="white" boxSize={5} />
+                      <VStack align="start" spacing={0}>
+                        <Text fontSize="sm" fontWeight="medium" color={drawerText}>
+                          Entry Deadline
+                        </Text>
+                        <Text fontSize="md" color={drawerText}>
+                          {upcomingEvent.entryDeadline}
+                        </Text>
+                      </VStack>
+                    </HStack>
+                  )}
+                </VStack>
+
+                {/* Right Column - Your Events */}
+                <VStack flex="1" align="start" spacing={2}>
                   <Text fontSize="sm" fontWeight="medium" color={drawerText}>
-                    Event Date
+                    Your Events
                   </Text>
-                  <Text fontSize="md" color={drawerText}>
-                    {upcomingEvent?.date}
-                  </Text>
+                  {upcomingEvent?.events && upcomingEvent.events.length > 0 && (
+                    <VStack align="start" spacing={1} pl={0}>
+                      {upcomingEvent.events.map((event, index) => (
+                        <Text key={index} fontSize="md" color={drawerText}>
+                          • {event}
+                        </Text>
+                      ))}
+                    </VStack>
+                  )}
                 </VStack>
               </HStack>
-
-              {/* Entry Deadline */}
-              {upcomingEvent?.entryDeadline && (
-                <HStack spacing={3}>
-                  <Icon as={FaClock} color="orange.500" boxSize={5} />
-                  <VStack align="start" spacing={0}>
-                    <Text fontSize="sm" fontWeight="medium" color={drawerText}>
-                      Entry Deadline
-                    </Text>
-                    <Text fontSize="md" color={drawerText}>
-                      {upcomingEvent.entryDeadline}
-                    </Text>
-                  </VStack>
-                </HStack>
-              )}
-
-              {/* Your Events */}
-              {upcomingEvent?.events && upcomingEvent.events.length > 0 && (
-                <VStack align="start" spacing={2}>
-                  <HStack spacing={3}>
-                    <Icon as={FaExternalLinkAlt} color="green.500" boxSize={5} />
-                    <Text fontSize="sm" fontWeight="medium" color={drawerText}>
-                      Your Events
-                    </Text>
-                  </HStack>
-                  <VStack align="start" spacing={1} pl={8}>
-                    {upcomingEvent.events.map((event, index) => (
-                      <Text key={index} fontSize="md" color={drawerText}>
-                        • {event}
-                      </Text>
-                    ))}
-                  </VStack>
-                </VStack>
-              )}
 
               <Divider />
 
@@ -320,7 +323,7 @@ export const MobileEventCard: React.FC<MobileEventCardProps> = ({ onEventClick }
               <VStack spacing={2} align="stretch">
                 {/* View Event Details */}
                 <Button
-                  leftIcon={<FaCalendarAlt />}
+                  leftIcon={<Icon as={FaCalendarAlt} color="white" />}
                   variant="ghost"
                   size="lg"
                   justifyContent="flex-start"
@@ -334,7 +337,7 @@ export const MobileEventCard: React.FC<MobileEventCardProps> = ({ onEventClick }
                 
                 {/* Show Location */}
                 <Button
-                  leftIcon={<FaMapMarkerAlt />}
+                  leftIcon={<Icon as={FaMapMarkerAlt} color="white" />}
                   variant="ghost"
                   size="lg"
                   justifyContent="flex-start"
@@ -348,7 +351,7 @@ export const MobileEventCard: React.FC<MobileEventCardProps> = ({ onEventClick }
                 
                 {/* Share Event */}
                 <Button
-                  leftIcon={<FaShare />}
+                  leftIcon={<Icon as={FaShare} color="white" />}
                   variant="ghost"
                   size="lg"
                   justifyContent="flex-start"

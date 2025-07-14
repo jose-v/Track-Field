@@ -207,7 +207,7 @@ export const MobileSleepCard: React.FC<MobileSleepCardProps> = ({ onLogComplete 
         </HStack>
 
         {/* Second Row: Star Rating */}
-        <HStack spacing={2} justify="center">
+        <HStack spacing={2} justify="center" py="15px">
           {[1, 2, 3, 4].map((rating) => (
             <Icon
               key={rating}
