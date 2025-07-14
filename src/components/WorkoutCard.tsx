@@ -134,7 +134,7 @@ export function WorkoutCard({
   
   // Format schedule date
   const formattedScheduleDate = workout.date 
-    ? format(new Date(workout.date), 'MMM d, yyyy')
+    ? dateUtils.format(workout.date, 'MMM d, yyyy')
     : 'No date set';
 
   // Get exercises using the helper function that handles both regular and weekly plan structures

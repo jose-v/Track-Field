@@ -32,6 +32,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import { supabase } from '../../lib/supabase';
 import { AssignmentService } from '../../services/assignmentService';
+import { getTodayLocalDate } from '../../utils/dateUtils';
 
 // Import new step components
 import Step1TemplateSelection from './Step1TemplateSelection';
@@ -205,6 +206,8 @@ const NewWorkoutCreator: React.FC = () => {
   const [selectedAthletes, setSelectedAthletes] = useState<Record<string, Athlete>>({});
   const [selectedAthleteIds, setSelectedAthleteIds] = useState<string[]>([]);
   const [date, setDate] = useState('');
+  
+
   const [time, setTime] = useState('');
   const [duration, setDuration] = useState('');
   const [workoutLocation, setWorkoutLocation] = useState('');
@@ -643,7 +646,7 @@ const NewWorkoutCreator: React.FC = () => {
         
         // Assign to athletes if selected
         if (selectedAthleteIds.length > 0) {
-          const startDate = date || new Date().toISOString().split('T')[0];
+          const startDate = date || getTodayLocalDate();
           await api.monthlyPlanAssignments.assign(savedWorkout.id, selectedAthleteIds, startDate);
           
           // Also create unified assignments
@@ -739,7 +742,7 @@ const NewWorkoutCreator: React.FC = () => {
           
           for (const athleteId of selectedAthleteIds) {
             try {
-              const startDate = workoutData.date || new Date().toISOString().split('T')[0];
+              const startDate = workoutData.date || getTodayLocalDate();
               const endDate = selectedTemplateType === 'weekly' 
                 ? new Date(new Date(startDate).getTime() + (7 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0]
                 : startDate;

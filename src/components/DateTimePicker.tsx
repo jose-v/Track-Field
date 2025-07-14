@@ -60,7 +60,12 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
 
   // Helper functions
   const formatDate = (date: Date): string => {
-    return date.toISOString().split('T')[0];
+    // Use local timezone instead of UTC to prevent date shifting
+    // This ensures that a date selected in the UI matches what gets saved
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   const isDateSelected = (date: string): boolean => {
@@ -378,7 +383,11 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                   Selected Dates ({selectedDates.length}):
                 </Text>
                 <Text fontSize="xs" color={mutedTextColor} mt={1} noOfLines={2}>
-                  {selectedDates.map(date => new Date(date).toLocaleDateString()).join(' ')}
+                  {selectedDates.map(date => {
+                    // Parse date string manually to avoid timezone conversion
+                    const [year, month, day] = date.split('-');
+                    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).toLocaleDateString();
+                  }).join(' ')}
                 </Text>
               </>
             ) : (

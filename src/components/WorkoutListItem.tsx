@@ -7,6 +7,7 @@ import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaEdit, FaTrash, FaEye, FaUsers,
 import type { Workout } from '../services/api';
 import { getTypeIcon, getTypeColor, getTypeName } from './WorkoutCard';
 import { getExercisesFromWorkout, getBlocksFromWorkout } from '../utils/workoutUtils';
+import { dateUtils } from '../utils/date';
 import { format } from 'date-fns';
 import { Link as RouterLink } from 'react-router-dom';
 
@@ -55,7 +56,7 @@ export function WorkoutListItem({
   
   // Format date
   const formattedDate = workout.date 
-    ? format(new Date(workout.date), 'MMM d, yyyy')
+    ? dateUtils.format(workout.date, 'MMM d, yyyy')
     : 'No date';
 
   // Get exercises and blocks info

@@ -13,6 +13,7 @@ import type { Workout } from '../services/api';
 import type { TrainingPlan } from '../services/dbSchema';
 import { useCoachAthletes } from '../hooks/useCoachAthletes';
 import { AssignmentService } from '../services/assignmentService';
+import { getTodayLocalDate } from '../utils/dateUtils';
 import { supabase } from '../lib/supabase';
 
 interface AssignmentModalProps {
@@ -234,12 +235,12 @@ export function AssignmentModal({
               exercises: workout.exercises || []
             };
             
-            endDate = workout.date || new Date().toISOString().split('T')[0];
+            endDate = workout.date || getTodayLocalDate();
           }
 
           for (const athleteId of athletesToAdd) {
             try {
-              const startDate = workout.date || new Date().toISOString().split('T')[0];
+              const startDate = workout.date || getTodayLocalDate();
               await assignmentService.createAssignment({
                 athlete_id: athleteId,
                 assignment_type: assignmentType,
@@ -322,7 +323,7 @@ export function AssignmentModal({
           
           for (const athleteId of athletesToAdd) {
             try {
-              const startDate = monthlyPlan.start_date || new Date().toISOString().split('T')[0];
+              const startDate = monthlyPlan.start_date || getTodayLocalDate();
               const endDate = new Date(new Date(startDate).getTime() + ((monthlyPlan.weeks?.length || 4) * 7 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
               
               await assignmentService.createAssignment({

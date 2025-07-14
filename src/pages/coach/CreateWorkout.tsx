@@ -43,6 +43,7 @@ import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { FaPlus, FaTrash, FaArrowLeft, FaEdit, FaSave, FaEye } from 'react-icons/fa';
 import { ChevronRightIcon } from '@chakra-ui/icons';
 import { supabase } from '../../lib/supabase';
+import { getTodayLocalDate } from '../../utils/dateUtils';
 import { useCoachAthletes } from '../../hooks/useCoachAthletes';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
@@ -288,7 +289,7 @@ export function CreateWorkout() {
         // Create unified assignments for each athlete
         for (const athleteId of assignedAthletes) {
           try {
-            const startDate = workoutData.date || new Date().toISOString().split('T')[0];
+            const startDate = workoutData.date || getTodayLocalDate();
             await assignmentService.createAssignment({
               athlete_id: athleteId,
               assignment_type: 'single',

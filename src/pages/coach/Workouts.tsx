@@ -18,6 +18,7 @@ import { supabase } from '../../lib/supabase'; // Import supabase client
 import { RepeatIcon, AddIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
 import { FaFileImport } from 'react-icons/fa';
+import { getTodayLocalDate } from '../../utils/dateUtils';
 import { useQueryClient } from '@tanstack/react-query';
 import { useWorkoutsRealtime } from '../../hooks/useWorkoutsRealtime';
 import { useAuth } from '../../contexts/AuthContext';
@@ -385,7 +386,7 @@ export function CoachWorkouts() {
         // Create unified assignments for each athlete
         for (const athleteId of assignedAthletes) {
           try {
-            const startDate = payloadForApi.date || new Date().toISOString().split('T')[0];
+            const startDate = payloadForApi.date || getTodayLocalDate();
             await assignmentService.createAssignment({
               athlete_id: athleteId,
               assignment_type: 'single',

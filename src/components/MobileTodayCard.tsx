@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Text,
@@ -24,6 +24,8 @@ import { UnifiedWorkoutExecution } from './UnifiedWorkoutExecution';
 import { useUnifiedAssignments } from '../hooks/useUnifiedAssignments';
 import { useProfile } from '../hooks/useProfile';
 import { useNavigate } from 'react-router-dom';
+import { useWorkouts } from '../hooks/useWorkouts';
+import { getTodayLocalDate, getYesterdayLocalDate } from '../utils/dateUtils';
 
 interface TodayWorkout {
   time: string;
@@ -60,7 +62,81 @@ export const MobileTodayCard: React.FC<MobileTodayCardProps> = ({
   // Use unified assignments instead of workouts hook
   const { data: assignments, isLoading: assignmentsLoading } = useUnifiedAssignments(user?.id);
   
-  // Get top 3 available assignments (not completed)
+  // Also get regular workouts as fallback - need to fetch both assigned AND created workouts
+  const { workouts: assignedWorkouts, isLoading: workoutsLoading } = useWorkouts();
+  
+  // For athletes, also fetch workouts they created themselves (not just assigned ones)
+  const [createdWorkouts, setCreatedWorkouts] = useState<any[]>([]);
+  const [createdWorkoutsLoading, setCreatedWorkoutsLoading] = useState(false);
+  
+  useEffect(() => {
+    if (user?.id && profile?.role === 'athlete') {
+      setCreatedWorkoutsLoading(true);
+      // Fetch workouts created by this athlete
+      import('../services/api').then(({ api }) => {
+        api.workouts.getByCreator(user.id, { includeTemplates: false })
+          .then(workouts => {
+            console.log('Created workouts fetched:', workouts?.length || 0);
+            setCreatedWorkouts(workouts || []);
+          })
+          .catch(error => {
+            console.error('Error fetching created workouts:', error);
+            setCreatedWorkouts([]);
+          })
+          .finally(() => {
+            setCreatedWorkoutsLoading(false);
+          });
+      });
+    }
+  }, [user?.id, profile?.role]);
+  
+  // Combine both assigned and created workouts for athletes
+  const regularWorkouts = profile?.role === 'athlete' 
+    ? [...(assignedWorkouts || []), ...(createdWorkouts || [])]
+    : (assignedWorkouts || []);
+  
+  // Get today's and yesterday's date strings using local timezone
+  const todayStr = getTodayLocalDate();
+  const yesterdayStr = getYesterdayLocalDate();
+  
+  // Get today's assignment (for start button) - unified assignments first
+  // Priority order: 1) Today's date, 2) In progress, 3) Recent assignments
+  const todaysAssignment = assignments?.find(assignment => {
+    if (assignment.status === 'completed') return false;
+    if (!assignment.start_date) return false;
+    
+    // Handle both date formats: YYYY-MM-DD and YYYY-MM-DDTHH:MM:SS
+    const assignmentDate = assignment.start_date.split('T')[0];
+    
+    // First priority: exact date match
+    if (assignmentDate === todayStr || assignmentDate === yesterdayStr) {
+      return true;
+    }
+    
+    // Second priority: in-progress workouts (can be continued any day)
+    if (assignment.status === 'in_progress') {
+      return true;
+    }
+    
+    // Third priority: recent assignments (within 3 days) that aren't completed
+    const assignmentDateObj = new Date(assignmentDate);
+    const todayDateObj = new Date(todayStr);
+    const daysDiff = Math.abs((todayDateObj.getTime() - assignmentDateObj.getTime()) / (1000 * 60 * 60 * 24));
+    
+    return daysDiff <= 3 && assignment.status === 'assigned';
+  }) || null;
+  
+  // Fallback: Check for regular workouts with today's or yesterday's date if no unified assignment found
+  const todaysRegularWorkout = !todaysAssignment ? regularWorkouts?.find(workout => {
+    if (workout.is_template) return false;
+    if (!workout.date) return false;
+    
+    // Handle both date formats: YYYY-MM-DD and YYYY-MM-DDTHH:MM:SS
+    const workoutDate = workout.date.split('T')[0];
+    return workoutDate === todayStr || workoutDate === yesterdayStr;
+  }) : null;
+  
+  // Get top 3 available assignments (not completed) for the drawer
   const availableAssignments = assignments?.filter(assignment => 
     assignment.status !== 'completed'
   ).slice(0, 3) || [];
@@ -93,15 +169,48 @@ export const MobileTodayCard: React.FC<MobileTodayCardProps> = ({
 
     setIsLoading(true);
     try {
-      // Find today's assignment
-      const todayStr = new Date().toISOString().split('T')[0];
-      const todaysAssignment = availableAssignments.find(assignment => 
-        assignment.start_date?.startsWith(todayStr)
-      );
-
       if (todaysAssignment) {
+        // Use unified assignment
         setCachedAssignmentForExecution(todaysAssignment);
         setExecutingAssignmentId(todaysAssignment.id);
+      } else if (todaysRegularWorkout) {
+        // Convert regular workout to assignment format for execution
+        const convertedAssignment = {
+          id: `temp-${todaysRegularWorkout.id}`,
+          athlete_id: user.id,
+          assignment_type: 'single' as const,
+          status: 'assigned' as const,
+          start_date: todaysRegularWorkout.date || todayStr,
+          assigned_at: new Date().toISOString(),
+          exercise_block: {
+            workout_id: todaysRegularWorkout.id,
+            workout_name: todaysRegularWorkout.name,
+            description: todaysRegularWorkout.description || todaysRegularWorkout.notes || '',
+            estimated_duration: todaysRegularWorkout.duration,
+            location: todaysRegularWorkout.location,
+            workout_type: todaysRegularWorkout.type || 'strength',
+            exercises: todaysRegularWorkout.exercises || [],
+            blocks: todaysRegularWorkout.blocks || [],
+            is_block_based: todaysRegularWorkout.is_block_based || false
+          },
+          progress: {
+            current_exercise_index: 0,
+            current_set: 1,
+            current_rep: 1,
+            completed_exercises: [],
+            total_exercises: todaysRegularWorkout.exercises?.length || 0,
+            completion_percentage: 0
+          },
+          meta: {
+            original_workout_id: todaysRegularWorkout.id,
+            is_converted_from_regular_workout: true
+          },
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        setCachedAssignmentForExecution(convertedAssignment);
+        setExecutingAssignmentId(convertedAssignment.id);
       } else {
         toast({
           title: 'No workout scheduled',
@@ -195,6 +304,75 @@ export const MobileTodayCard: React.FC<MobileTodayCardProps> = ({
     console.log('Available assignments:', availableAssignments);
   }
 
+  // Debug logging for today's assignment
+  console.log('=== TODAY CARD DEBUG ===');
+  console.log('Today\'s date string:', todayStr);
+  console.log('Yesterday\'s date string:', yesterdayStr);
+  console.log('User ID:', user?.id);
+  console.log('Profile role:', profile?.role);
+  console.log('Assignments loading:', assignmentsLoading);
+  console.log('Workouts loading:', workoutsLoading);
+  console.log('Today\'s unified assignment found:', todaysAssignment);
+  if (todaysAssignment) {
+    const assignmentDate = todaysAssignment.start_date ? todaysAssignment.start_date.split('T')[0] : null;
+    const isToday = assignmentDate === todayStr;
+    const isYesterday = assignmentDate === yesterdayStr;
+    const isInProgress = todaysAssignment.status === 'in_progress';
+    console.log('Selected assignment reason:', {
+      date: assignmentDate,
+      status: todaysAssignment.status,
+      isToday,
+      isYesterday,
+      isInProgress,
+      reason: isToday ? 'Today\'s date' : isYesterday ? 'Yesterday\'s date' : isInProgress ? 'In progress' : 'Recent assignment'
+    });
+  }
+  console.log('Today\'s regular workout found:', todaysRegularWorkout);
+  console.log('Has workout to start?', !!(todaysAssignment || todaysRegularWorkout));
+  
+  if (assignments) {
+    console.log('Unified assignments count:', assignments.length);
+    assignments.forEach((a, index) => {
+      const assignmentDate = a.start_date ? a.start_date.split('T')[0] : null;
+      console.log(`Assignment ${index + 1}:`, {
+        id: a.id, 
+        start_date: a.start_date,
+        parsed_date: assignmentDate,
+        status: a.status,
+        assignment_type: a.assignment_type,
+        name: a.exercise_block?.workout_name,
+        original_workout_id: a.meta?.original_workout_id,
+        // Check if this assignment's date matches today
+        is_today_match: assignmentDate === todayStr,
+        is_yesterday_match: assignmentDate === yesterdayStr,
+        is_completed: a.status === 'completed'
+      });
+    });
+  } else {
+    console.log('No unified assignments received');
+  }
+  
+  if (regularWorkouts) {
+    console.log('Regular workouts count:', regularWorkouts.length);
+    console.log('All regular workouts:', regularWorkouts.map(w => {
+      const workoutDate = w.date ? w.date.split('T')[0] : null;
+      return { 
+        id: w.id, 
+        name: w.name,
+        date: w.date,
+        parsed_date: workoutDate,
+        is_template: w.is_template,
+        user_id: w.user_id,
+        // Check if this workout's date matches today
+        is_today_match: workoutDate === todayStr,
+        is_yesterday_match: workoutDate === yesterdayStr
+      };
+    }));
+  } else {
+    console.log('No regular workouts received');
+  }
+  console.log('=== END DEBUG ===');
+
   return (
     <>
       <Box
@@ -256,7 +434,7 @@ export const MobileTodayCard: React.FC<MobileTodayCardProps> = ({
           _hover={{ bg: 'green.600' }}
           _active={{ bg: 'green.700' }}
         >
-          START
+          {todaysAssignment?.status === 'in_progress' ? 'CONTINUE' : 'START'}
         </Button>
 
         {/* Three dots menu in bottom right */}
