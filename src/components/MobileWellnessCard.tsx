@@ -289,6 +289,10 @@ export const MobileWellnessCard: React.FC<MobileWellnessCardProps> = ({ onLogCom
               <MobileFriendlySlider value={performance} onChange={setValidPerformance} min={1} max={10} step={1} colorScheme="blue" />
             </Box>
           </Box>
+          {/* Spacer between rows */}
+          <Box width="100%" height="55px" display="flex" alignItems="center" justifyContent="center">
+  <Box width="95%" height="1px" bg="gray.600" borderRadius="full" />
+</Box>
           <Box width="50%" p={3} boxSizing="border-box" display="flex" flexDirection="column" alignItems="center" minH="140px">
             <Badge colorScheme="gray" variant="solid" fontSize="xs" px={2} py={1} w="100%" textAlign="center" display="block" minW="80px">Soreness</Badge>
             <Text fontSize="md" fontWeight="normal" color={getScoreColor(soreness, true)} textAlign="center" minH="24px" minW="80px" paddingTop="25px" display="flex" alignItems="center" justifyContent="center" flexGrow={1}>{getScoreText(soreness, true)}</Text>
