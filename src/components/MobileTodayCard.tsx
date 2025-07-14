@@ -20,9 +20,7 @@ import {
 import { BsThreeDots } from 'react-icons/bs';
 import { FaTimes, FaEdit, FaTrash, FaCalendarAlt, FaShare, FaPlay, FaExternalLinkAlt } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
-import { useWorkoutStore } from '../lib/workoutStore';
-import { startTodaysWorkoutExecution } from '../utils/monthlyPlanWorkoutHelper';
-import { WorkoutExecutionRouter } from './WorkoutExecutionRouter';
+import { UnifiedWorkoutExecution } from './UnifiedWorkoutExecution';
 import { useUnifiedAssignments } from '../hooks/useUnifiedAssignments';
 import { useProfile } from '../hooks/useProfile';
 import { useNavigate } from 'react-router-dom';
@@ -50,18 +48,12 @@ export const MobileTodayCard: React.FC<MobileTodayCardProps> = ({
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
-  // Workout execution state
-  const [execModal, setExecModal] = useState({
-    isOpen: false,
-    workout: null as any,
-    exerciseIdx: 0,
-    timer: 0,
-    running: false
-  });
+  // Unified execution state
+  const [executingAssignmentId, setExecutingAssignmentId] = useState<string | null>(null);
+  const [cachedAssignmentForExecution, setCachedAssignmentForExecution] = useState<any>(null);
   
   const { user } = useAuth();
   const { profile, isLoading: profileLoading } = useProfile();
-  const workoutStore = useWorkoutStore();
   const toast = useToast();
   const navigate = useNavigate();
   
@@ -101,13 +93,16 @@ export const MobileTodayCard: React.FC<MobileTodayCardProps> = ({
 
     setIsLoading(true);
     try {
-      const workoutStarted = await startTodaysWorkoutExecution(
-        user.id,
-        workoutStore,
-        setExecModal
+      // Find today's assignment
+      const todayStr = new Date().toISOString().split('T')[0];
+      const todaysAssignment = availableAssignments.find(assignment => 
+        assignment.start_date?.startsWith(todayStr)
       );
 
-      if (!workoutStarted) {
+      if (todaysAssignment) {
+        setCachedAssignmentForExecution(todaysAssignment);
+        setExecutingAssignmentId(todaysAssignment.id);
+      } else {
         toast({
           title: 'No workout scheduled',
           description: 'You don\'t have a workout scheduled for today',
@@ -178,17 +173,10 @@ export const MobileTodayCard: React.FC<MobileTodayCardProps> = ({
       current_rep: 1
     };
 
-    // Close the drawer and open execution modal
+    // Close the drawer and cache assignment for execution
     setIsDrawerOpen(false);
-    
-    // Open the execution modal with the converted workout
-    setExecModal({
-      isOpen: true,
-      workout: workoutForExecution,
-      exerciseIdx: currentProgress.current_exercise_index || 0,
-      timer: 0,
-      running: false
-    });
+    setCachedAssignmentForExecution(assignment);
+    setExecutingAssignmentId(assignmentId);
 
 
   };
@@ -395,33 +383,18 @@ export const MobileTodayCard: React.FC<MobileTodayCardProps> = ({
         </ModalContent>
       </Modal>
       
-      {/* Workout Execution Modal */}
-      {execModal.workout && (
-        <WorkoutExecutionRouter
-          isOpen={execModal.isOpen}
-          onClose={() => setExecModal(prev => ({ ...prev, isOpen: false }))}
-          workout={execModal.workout}
-          exerciseIdx={execModal.exerciseIdx}
-          timer={execModal.timer}
-          running={execModal.running}
-          onUpdateTimer={(timer) => setExecModal(prev => ({ ...prev, timer }))}
-          onUpdateRunning={(running) => setExecModal(prev => ({ ...prev, running }))}
-          onNextExercise={() => {
-            // Handle next exercise logic
-            const nextIdx = execModal.exerciseIdx + 1;
-            if (nextIdx < execModal.workout.exercises.length) {
-              setExecModal(prev => ({ ...prev, exerciseIdx: nextIdx, timer: 0, running: false }));
-            }
+      {/* Unified Workout Execution */}
+      {executingAssignmentId && cachedAssignmentForExecution && (
+        <UnifiedWorkoutExecution
+          assignment={cachedAssignmentForExecution}
+          isOpen={!!executingAssignmentId}
+          onExit={() => {
+            setExecutingAssignmentId(null);
+            setCachedAssignmentForExecution(null);
           }}
-          onPreviousExercise={() => {
-            // Handle previous exercise logic
-            const prevIdx = execModal.exerciseIdx - 1;
-            if (prevIdx >= 0) {
-              setExecModal(prev => ({ ...prev, exerciseIdx: prevIdx, timer: 0, running: false }));
-            }
-          }}
-          onFinishWorkout={() => {
-            setExecModal({ isOpen: false, workout: null, exerciseIdx: 0, timer: 0, running: false });
+          onComplete={() => {
+            setExecutingAssignmentId(null);
+            setCachedAssignmentForExecution(null);
             toast({
               title: 'Workout completed!',
               description: 'Great job on finishing your workout',
@@ -429,10 +402,6 @@ export const MobileTodayCard: React.FC<MobileTodayCardProps> = ({
               duration: 3000,
               isClosable: true,
             });
-          }}
-          onShowVideo={(exerciseName, videoUrl) => {
-            // Handle video display - could open a video modal
-            console.log('Show video for:', exerciseName, videoUrl);
           }}
         />
       )}
