@@ -6,11 +6,12 @@ import {
   HStack,
   Icon,
   Button,
+  Badge,
   useColorModeValue,
   useToast,
   Flex,
 } from '@chakra-ui/react';
-import { FaMoon, FaStar, FaBed } from 'react-icons/fa';
+import { FaStar, FaBed } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { getSleepQualityText } from '../utils/analytics/performance';
 import { useSleepRecords } from '../hooks/useSleepRecords';
@@ -37,6 +38,7 @@ export const MobileSleepCard: React.FC<MobileSleepCardProps> = ({ onLogComplete 
   const subtitleColor = 'gray.300';
   const buttonBg = 'white';
   const buttonTextColor = 'gray.800';
+  const badgeBg = 'gray.600';
 
   // Check if there are any sleep logs for last night
   const existingLogs = useMemo(() => {
@@ -164,15 +166,25 @@ export const MobileSleepCard: React.FC<MobileSleepCardProps> = ({ onLogComplete 
       borderRadius="xl"
       p={6}
       boxShadow="lg"
-      aspectRatio="1"
+      h="200px"
       display="flex"
       flexDirection="column"
       justifyContent="space-between"
     >
       <VStack spacing={4} align="stretch" flex="1">
-        {/* Top Row: Moon icon | Quality text | Hours */}
+        {/* Top Row: Sleep badge | Quality text | Hours */}
         <HStack justify="space-between" align="center">
-          <Icon as={FaMoon} boxSize={6} color="blue.400" />
+          <Badge
+            bg={badgeBg}
+            color={textColor}
+            fontSize="sm"
+            px={3}
+            py={1}
+            borderRadius="lg"
+            fontWeight="normal"
+          >
+            Sleep
+          </Badge>
           <Text fontSize="lg" fontWeight="bold" color={textColor}>
             {getQualityText(quality)}
           </Text>

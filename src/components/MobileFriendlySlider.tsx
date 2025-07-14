@@ -115,10 +115,11 @@ export const MobileFriendlySlider: React.FC<MobileFriendlySliderProps> = ({
         colorScheme={colorScheme}
         {...props}
       >
-        <SliderTrack>
+        <SliderTrack h={2}>
           <SliderFilledTrack />
         </SliderTrack>
         <SliderThumb 
+          boxSize={6}
           style={{
             cursor: isDragging ? 'grabbing' : 'grab',
           }}

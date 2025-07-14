@@ -13,12 +13,14 @@ import {
   CardBody,
   Flex,
 } from '@chakra-ui/react';
-import { FaPlay, FaRunning, FaCalendarAlt, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaPlay, FaRunning } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../hooks/useProfile';
 import { WeatherCard } from './WeatherCard';
 import { MobileSleepCard } from './MobileSleepCard';
-import { WellnessQuickLogCard } from './WellnessQuickLogCard';
+import { MobileWellnessCard } from './MobileWellnessCard';
+import { MobileEventCard } from './MobileEventCard';
+import { MobileTodayCard } from './MobileTodayCard';
 
 interface MobileAthleteDashboardProps {
   onStartWorkout?: () => void;
@@ -95,11 +97,7 @@ export const MobileAthleteDashboard: React.FC<MobileAthleteDashboardProps> = ({
     return stateMap[state] || state;
   };
 
-  // Mock upcoming event data - in production this would come from your API
-  const upcomingEvent = {
-    date: 'Jul, 28 2025',
-    title: '2025 AAU Junior Olympics'
-  };
+
 
   return (
     <Box
@@ -111,106 +109,42 @@ export const MobileAthleteDashboard: React.FC<MobileAthleteDashboardProps> = ({
       maxW="100%"
       overflowX="hidden"
     >
-      <VStack spacing={6} align="stretch">
-        {/* Row 1: Start Button and Weather */}
-        <SimpleGrid columns={2} spacing={4}>
-          {/* Start Button Card */}
-          <Card
-            bg={cardBg}
-            borderRadius="xl"
-            border="1px solid"
-            borderColor={borderColor}
-            boxShadow="lg"
-            cursor="pointer"
-            onClick={onStartWorkout}
-            _hover={{ transform: 'translateY(-2px)' }}
-            transition="all 0.2s"
-            aspectRatio="1"
-          >
-            <CardBody
-              display="flex"
-              flexDirection="column"
-              alignItems="center"
-              justifyContent="center"
-              position="relative"
-            >
-              <Icon as={FaRunning} boxSize={8} color="gray.400" position="absolute" top={4} left={4} />
-              <Circle
-                size="80px"
-                bg="green.500"
-                color="white"
-                _hover={{ bg: 'green.600' }}
-                transition="all 0.2s"
-              >
-                <Text fontSize="xl" fontWeight="bold">
-                  Start
-                </Text>
-              </Circle>
-              <Box position="absolute" bottom={4} right={4}>
-                <Icon as={FaPlay} boxSize={3} color="gray.400" />
-              </Box>
-            </CardBody>
-          </Card>
+      <VStack spacing={4} align="stretch">
+        {/* Today Card - Full Width */}
+        <Box>
+          <MobileTodayCard 
+            onStartWorkout={onStartWorkout}
+            onMenuClick={() => console.log('Today menu clicked')}
+          />
+        </Box>
 
-          {/* Weather Card */}
-          <Box>
-            <WeatherCard 
-              city={profile?.city || "Greensboro"}
-              state={profile?.state ? getStateAbbr(profile.state) : "NC"}
-              weather={{
-                temp: "71", 
-                condition: "Clouds",
-                description: "scattered clouds"
-              }}
-              isLoading={profileLoading}
-            />
-          </Box>
-        </SimpleGrid>
+        {/* Weather Card - Full Width */}
+        <Box>
+          <WeatherCard 
+            city={profile?.city || "Greensboro"}
+            state={profile?.state ? getStateAbbr(profile.state) : "NC"}
+            weather={{
+              temp: "71", 
+              condition: "Clouds",
+              description: "scattered clouds"
+            }}
+            isLoading={profileLoading}
+          />
+        </Box>
 
-        {/* Row 2: Sleep and Event Cards */}
-        <SimpleGrid columns={2} spacing={4}>
-          {/* Sleep Card */}
-          <Box>
-            <MobileSleepCard onLogComplete={onDataUpdate} />
-          </Box>
+        {/* Sleep Card - Full Width */}
+        <Box>
+          <MobileSleepCard onLogComplete={onDataUpdate} />
+        </Box>
 
-          {/* Event Card */}
-          <Card
-            bg={cardBg}
-            borderRadius="xl"
-            border="1px solid"
-            borderColor={borderColor}
-            boxShadow="lg"
-            aspectRatio="1"
-          >
-            <CardBody
-              display="flex"
-              flexDirection="column"
-              alignItems="center"
-              justifyContent="center"
-              position="relative"
-            >
-              <Icon as={FaCalendarAlt} boxSize={8} color="gray.400" position="absolute" top={4} left={4} />
-              
-              <VStack spacing={2} align="center">
-                <Text fontSize="lg" fontWeight="bold" color={textPrimary}>
-                  {upcomingEvent.date}
-                </Text>
-                <Text fontSize="sm" color={textSecondary} textAlign="center" px={2}>
-                  {upcomingEvent.title}
-                </Text>
-              </VStack>
-              
-              <Box position="absolute" bottom={4} right={4}>
-                <Icon as={FaMapMarkerAlt} boxSize={3} color="gray.400" />
-              </Box>
-            </CardBody>
-          </Card>
-        </SimpleGrid>
+        {/* Event Card - Full Width */}
+        <Box>
+          <MobileEventCard onEventClick={() => console.log('Event clicked')} />
+        </Box>
 
         {/* Row 3: Full-width Wellness Card */}
         <Box>
-          <WellnessQuickLogCard onLogComplete={onDataUpdate} />
+          <MobileWellnessCard onLogComplete={onDataUpdate} />
         </Box>
       </VStack>
     </Box>
