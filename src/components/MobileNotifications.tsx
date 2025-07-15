@@ -21,6 +21,9 @@ const MobileNotifications: React.FC = () => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
   const [userProfiles, setUserProfiles] = useState<{ [key: string]: any }>({});
   const [debugInfo, setDebugInfo] = useState<string>('Ready to swipe');
   const [swipeStates, setSwipeStates] = useState<{[key: string]: { 
@@ -30,7 +33,13 @@ const MobileNotifications: React.FC = () => {
     currentX: number; 
     direction: 'left' | 'right' | null 
   }}>({});
+  const swipeRefs = useRef<{[key: string]: {
+    element: HTMLElement | null;
+    deleteBackground: HTMLElement | null;
+    readBackground: HTMLElement | null;
+  }}>({});
   const toast = useToast();
+  const ITEMS_PER_PAGE = 20;
 
   // Light/Dark mode colors
   const bgColor = useColorModeValue('white', 'gray.800');
@@ -48,25 +57,62 @@ const MobileNotifications: React.FC = () => {
     }
   }, [user]);
 
-  const fetchNotifications = async () => {
+  useEffect(() => {
+    const handleScroll = () => {
+      if (
+        window.innerHeight + document.documentElement.scrollTop
+        >= document.documentElement.offsetHeight - 1000 // Load more when 1000px from bottom
+      ) {
+        loadMoreNotifications();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [loadingMore, hasMore, page]);
+
+  // Clean up refs when notifications change
+  useEffect(() => {
+    const currentNotificationIds = new Set(notifications.map(n => n.id));
+    const refKeys = Object.keys(swipeRefs.current);
+    
+    refKeys.forEach(refId => {
+      if (!currentNotificationIds.has(refId)) {
+        delete swipeRefs.current[refId];
+      }
+    });
+  }, [notifications]);
+
+  const fetchNotifications = async (pageNum = 0, append = false) => {
     try {
-      setIsLoading(true);
+      if (!append) setIsLoading(true);
+      else setLoadingMore(true);
       
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(pageNum * ITEMS_PER_PAGE, (pageNum + 1) * ITEMS_PER_PAGE - 1);
       
       if (error) throw error;
       
-      setNotifications(data || []);
+      const newNotifications = data || [];
+      
+      if (append) {
+        setNotifications(prev => [...prev, ...newNotifications]);
+      } else {
+        setNotifications(newNotifications);
+      }
 
+      // Check if we have more data
+      setHasMore(newNotifications.length === ITEMS_PER_PAGE);
+      
       // Extract user IDs from notification metadata to fetch avatars
-      if (data && data.length > 0) {
+      if (newNotifications.length > 0) {
         const userIds = new Set<string>();
         
-        data.forEach(notification => {
+        newNotifications.forEach(notification => {
           if (notification.metadata) {
             if (notification.metadata.coach_id) {
               userIds.add(notification.metadata.coach_id);
@@ -93,7 +139,7 @@ const MobileNotifications: React.FC = () => {
               return acc;
             }, {} as { [key: string]: any });
             
-            setUserProfiles(profilesMap);
+            setUserProfiles(prev => ({ ...prev, ...profilesMap }));
           }
         }
       }
@@ -108,6 +154,15 @@ const MobileNotifications: React.FC = () => {
       });
     } finally {
       setIsLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMoreNotifications = () => {
+    if (!loadingMore && hasMore) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchNotifications(nextPage, true);
     }
   };
 
@@ -123,6 +178,9 @@ const MobileNotifications: React.FC = () => {
       setNotifications(prev => 
         prev.filter(notification => notification.id !== notificationId)
       );
+
+      // Clean up refs for deleted notification
+      delete swipeRefs.current[notificationId];
 
       setDebugInfo(`Deleted notification ${notificationId}`);
       toast({
@@ -224,6 +282,42 @@ const MobileNotifications: React.FC = () => {
     setDebugInfo(`Touch started on ${notificationId}`);
   };
 
+  const updateSwipeVisuals = (notificationId: string, deltaX: number) => {
+    const refs = swipeRefs.current[notificationId];
+    if (!refs) return;
+
+    requestAnimationFrame(() => {
+      // Update main element transform
+      if (refs.element) {
+        const maxSwipe = 400;
+        const clampedDelta = Math.max(-maxSwipe, Math.min(maxSwipe, deltaX));
+        refs.element.style.transform = `translateX(${clampedDelta}px)`;
+        refs.element.style.transition = 'none';
+      }
+
+      // Update background opacities and widths
+      const distance = Math.abs(deltaX);
+      const opacity = Math.min(distance / 80, 1);
+      const width = Math.max(120, distance + 50);
+
+      if (deltaX < 0 && refs.deleteBackground) {
+        // Swiping left - show delete background
+        refs.deleteBackground.style.opacity = opacity.toString();
+        refs.deleteBackground.style.width = `${width}px`;
+        if (refs.readBackground) {
+          refs.readBackground.style.opacity = '0';
+        }
+      } else if (deltaX > 0 && refs.readBackground) {
+        // Swiping right - show read background
+        refs.readBackground.style.opacity = opacity.toString();
+        refs.readBackground.style.width = `${width}px`;
+        if (refs.deleteBackground) {
+          refs.deleteBackground.style.opacity = '0';
+        }
+      }
+    });
+  };
+
   const handleTouchMove = (e: React.TouchEvent, notificationId: string) => {
     const state = swipeStates[notificationId];
     if (!state) return;
@@ -246,23 +340,52 @@ const MobileNotifications: React.FC = () => {
           direction: deltaX > 0 ? 'right' : 'left'
         }
       }));
-      // Prevent scrolling only when we're in horizontal swipe mode
+      // Prevent all scrolling when we're in horizontal swipe mode
       e.preventDefault();
+      e.stopPropagation();
+      document.body.style.overflow = 'hidden';
     } else if (state.isDragging) {
-      // Continue horizontal swiping
+      // Continue horizontal swiping - update visuals directly without React re-render
+      updateSwipeVisuals(notificationId, deltaX);
+      
+      // Only update React state for direction tracking
       const direction = deltaX > 0 ? 'right' : 'left';
-      setSwipeStates(prev => ({
-        ...prev,
-        [notificationId]: {
-          ...state,
-          currentX: touch.clientX,
-          direction: Math.abs(deltaX) > 20 ? direction : null
-        }
-      }));
-      setDebugInfo(`Swiping ${notificationId}: ${Math.round(deltaX)}px ${direction}`);
+      const currentState = swipeStates[notificationId];
+      if (currentState.direction !== direction && Math.abs(deltaX) > 20) {
+        setSwipeStates(prev => ({
+          ...prev,
+          [notificationId]: {
+            ...prev[notificationId],
+            currentX: touch.clientX,
+            direction
+          }
+        }));
+      }
+      
       e.preventDefault();
+      e.stopPropagation();
     }
     // If not horizontal gesture and not already dragging, allow normal vertical scrolling
+  };
+
+  const resetSwipeVisuals = (notificationId: string) => {
+    const refs = swipeRefs.current[notificationId];
+    if (!refs) return;
+
+    requestAnimationFrame(() => {
+      if (refs.element) {
+        refs.element.style.transform = 'translateX(0px)';
+        refs.element.style.transition = 'transform 0.3s ease-out';
+      }
+      if (refs.deleteBackground) {
+        refs.deleteBackground.style.opacity = '0';
+        refs.deleteBackground.style.width = '120px';
+      }
+      if (refs.readBackground) {
+        refs.readBackground.style.opacity = '0';
+        refs.readBackground.style.width = '120px';
+      }
+    });
   };
 
   const handleTouchEnd = (e: React.TouchEvent, notificationId: string, notification: Notification) => {
@@ -284,10 +407,15 @@ const MobileNotifications: React.FC = () => {
           markAsRead(notificationId);
         } else {
           setDebugInfo(`Swipe right ignored - already read`);
+          resetSwipeVisuals(notificationId);
         }
       } else {
         setDebugInfo(`Swipe canceled - not far enough (${Math.round(distance)}px, need 120px)`);
+        resetSwipeVisuals(notificationId);
       }
+      
+      // Restore scrolling
+      document.body.style.overflow = '';
     }
 
     // Reset drag state
@@ -298,47 +426,7 @@ const MobileNotifications: React.FC = () => {
     });
   };
 
-  const getSwipeTransform = (notificationId: string) => {
-    const state = swipeStates[notificationId];
-    if (!state?.isDragging) return 'translateX(0px)';
-    
-    const deltaX = state.currentX - state.startX;
-    const maxSwipe = 400; // Allow much more visual movement like Gmail
-    const clampedDelta = Math.max(-maxSwipe, Math.min(maxSwipe, deltaX));
-    return `translateX(${clampedDelta}px)`;
-  };
 
-  const getBackgroundOpacity = (notificationId: string, direction: 'left' | 'right') => {
-    const state = swipeStates[notificationId];
-    if (!state?.isDragging) return 0;
-    
-    const deltaX = state.currentX - state.startX;
-    const distance = Math.abs(deltaX);
-    // Opacity reaches 1.0 at 80px and stays there for larger swipes
-    const opacity = Math.min(distance / 80, 1);
-    
-    if (direction === 'left' && deltaX < 0) return opacity;
-    if (direction === 'right' && deltaX > 0) return opacity;
-    return 0;
-  };
-
-  const getBackgroundWidth = (notificationId: string, direction: 'left' | 'right') => {
-    const state = swipeStates[notificationId];
-    if (!state?.isDragging) return '120px';
-    
-    const deltaX = state.currentX - state.startX;
-    const distance = Math.abs(deltaX);
-    
-    // Only extend width if swiping in the correct direction
-    if (direction === 'left' && deltaX < 0) {
-      return `${Math.max(120, distance + 50)}px`; // Extend beyond swipe distance
-    }
-    if (direction === 'right' && deltaX > 0) {
-      return `${Math.max(120, distance + 50)}px`; // Extend beyond swipe distance
-    }
-    
-    return '120px';
-  };
 
   if (isLoading) {
     return (
@@ -363,22 +451,29 @@ const MobileNotifications: React.FC = () => {
             notification.title;
 
           return (
-            <Box key={notification.id} position="relative" w="100%" overflow="hidden">
+            <Box key={notification.id} position="relative" w="100%" overflow="hidden" px={2} py={1}>
               {/* Delete Background (Left) */}
               <Box
+                ref={(el) => {
+                  if (!swipeRefs.current[notification.id]) {
+                    swipeRefs.current[notification.id] = { element: null, deleteBackground: null, readBackground: null };
+                  }
+                  swipeRefs.current[notification.id].deleteBackground = el;
+                }}
                 position="absolute"
-                top="0"
-                right="0"
-                bottom="0"
-                w={getBackgroundWidth(notification.id, 'left')}
+                top="1"
+                right="2"
+                bottom="1"
+                w="120px"
                 bg="red.500"
                 display="flex"
                 flexDirection="column"
                 justifyContent="center"
                 alignItems="center"
-                opacity={getBackgroundOpacity(notification.id, 'left')}
+                opacity={0}
                 transition="opacity 0.1s ease-out"
                 zIndex={1}
+                borderRadius="lg"
               >
                 <Box color="white" fontSize="3xl" mb={1}>
                   <FaTrash />
@@ -390,19 +485,26 @@ const MobileNotifications: React.FC = () => {
 
               {/* Mark as Read Background (Right) */}
               <Box
+                ref={(el) => {
+                  if (!swipeRefs.current[notification.id]) {
+                    swipeRefs.current[notification.id] = { element: null, deleteBackground: null, readBackground: null };
+                  }
+                  swipeRefs.current[notification.id].readBackground = el;
+                }}
                 position="absolute"
-                top="0"
-                left="0"
-                bottom="0"
-                w={getBackgroundWidth(notification.id, 'right')}
+                top="1"
+                left="2"
+                bottom="1"
+                w="120px"
                 bg="blue.400"
                 display="flex"
                 flexDirection="column"
                 justifyContent="center"
                 alignItems="center"
-                opacity={getBackgroundOpacity(notification.id, 'right')}
+                opacity={0}
                 transition="opacity 0.1s ease-out"
                 zIndex={1}
+                borderRadius="lg"
               >
                 <Box color="white" fontSize="3xl" mb={1}>
                   <FaEnvelopeOpen />
@@ -414,13 +516,21 @@ const MobileNotifications: React.FC = () => {
 
               {/* Main notification content */}
               <Box
+                ref={(el) => {
+                  if (!swipeRefs.current[notification.id]) {
+                    swipeRefs.current[notification.id] = { element: null, deleteBackground: null, readBackground: null };
+                  }
+                  swipeRefs.current[notification.id].element = el;
+                }}
                 bg={bgColor}
-                borderBottom="1px solid"
-                borderColor={borderColor}
+                mt="2px"
+                mb="2px"
+                mx={2}
+                borderRadius="lg"
                 position="relative"
                 zIndex={2}
-                transform={getSwipeTransform(notification.id)}
-                transition={swipeStates[notification.id]?.isDragging ? 'none' : 'transform 0.3s ease-out'}
+                transform="translateX(0px)"
+                transition="transform 0.3s ease-out"
                 onTouchStart={(e) => handleTouchStart(e, notification.id)}
                 onTouchMove={(e) => handleTouchMove(e, notification.id)}
                 onTouchEnd={(e) => handleTouchEnd(e, notification.id, notification)}
@@ -492,6 +602,20 @@ const MobileNotifications: React.FC = () => {
             </Box>
           );
         })
+      )}
+      
+      {/* Loading More Indicator */}
+      {loadingMore && (
+        <Box p={4} textAlign="center" bg={bgColor}>
+          <Text color={textColor}>Loading more notifications...</Text>
+        </Box>
+      )}
+      
+      {/* End of List */}
+      {!hasMore && notifications.length > 0 && (
+        <Box p={4} textAlign="center" bg={bgColor}>
+          <Text color={emptyTextColor} fontSize="sm">No more notifications</Text>
+        </Box>
       )}
     </Box>
   );
