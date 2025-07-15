@@ -12,14 +12,9 @@ interface Notification {
 }
 
 const MobileNotifications: React.FC = () => {
-  const [swipingNotificationId, setSwipingNotificationId] = useState<string | null>(null);
-  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
-  const [processingNotifications, setProcessingNotifications] = useState<Set<string>>(new Set());
-  const [bigIcon, setBigIcon] = useState<boolean>(false);
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  const [markingAsReadIds, setMarkingAsReadIds] = useState<Set<string>>(new Set());
   const toast = useToast();
-
-  // Breakpoint from Ionic example
-  const ANIMATION_BREAKPOINT = 70;
 
   // Mock data for testing
   const mockNotifications: Notification[] = [
@@ -41,132 +36,68 @@ const MobileNotifications: React.FC = () => {
     }
   ];
 
-  const handleSwipeRight = (notificationId: string) => {
-    if (processingNotifications.has(notificationId)) {
-      console.log('⏳ Already processing notification:', notificationId);
-      return;
-    }
-    
-    console.log('✅ WOULD mark as read:', notificationId);
-    setProcessingNotifications(prev => new Set(prev).add(notificationId));
-    
-    // Simple feedback instead of database call
-    toast({
-      title: '📖 Would mark as read',
-      status: 'info',
-      duration: 1000,
-      isClosable: true,
-    });
-    
-    // Clear processing state after short delay
-    setTimeout(() => {
-      setProcessingNotifications(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(notificationId);
-        return newSet;
-      });
-    }, 500);
-  };
-
-  const handleSwipeLeft = (notificationId: string) => {
-    if (processingNotifications.has(notificationId)) {
-      console.log('⏳ Already processing notification:', notificationId);
-      return;
-    }
-    
-    console.log('✅ WOULD delete:', notificationId);
-    setProcessingNotifications(prev => new Set(prev).add(notificationId));
-    
-    // Simple feedback instead of database call
+  const handleDelete = (notificationId: string) => {
+    console.log('✅ Would delete notification:', notificationId);
     toast({
       title: '🗑️ Would delete',
       status: 'info',
       duration: 1000,
       isClosable: true,
     });
-    
-    // Clear processing state after short delay
-    setTimeout(() => {
-      setProcessingNotifications(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(notificationId);
-        return newSet;
-      });
-    }, 500);
+  };
+
+  const handleMarkAsRead = (notificationId: string) => {
+    console.log('✅ Would mark as read:', notificationId);
+    toast({
+      title: '📖 Would mark as read',
+      status: 'info',
+      duration: 1000,
+      isClosable: true,
+    });
   };
 
   const getSwipeHandlers = (notificationId: string) => {
     return useSwipeable({
-      onSwipedLeft: (eventData) => {
-        console.log('✅ Swipe left ended with deltaX:', eventData.deltaX);
+      onSwipedLeft: () => {
+        console.log('Swiped left on:', notificationId);
+        setDeletingIds(prev => new Set(prev).add(notificationId));
         
-        // Only trigger action if past breakpoint (like Ionic example)
-        if (Math.abs(eventData.deltaX) >= ANIMATION_BREAKPOINT && !processingNotifications.has(notificationId)) {
-          console.log('🎯 Breakpoint reached! Triggering delete action');
-          handleSwipeLeft(notificationId);
-        } else {
-          console.log('❌ Breakpoint not reached, no action');
-        }
-        
-        // Reset visual state
-        setSwipingNotificationId(null);
-        setSwipeDirection(null);
-        setBigIcon(false);
+        // Add delay for visual animation before action
+        setTimeout(() => {
+          handleDelete(notificationId);
+          setDeletingIds(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(notificationId);
+            return newSet;
+          });
+        }, 300);
       },
-      onSwipedRight: (eventData) => {
-        console.log('✅ Swipe right ended with deltaX:', eventData.deltaX);
+      onSwipedRight: () => {
+        console.log('Swiped right on:', notificationId);
+        setMarkingAsReadIds(prev => new Set(prev).add(notificationId));
         
-        // Only trigger action if past breakpoint (like Ionic example)
-        if (Math.abs(eventData.deltaX) >= ANIMATION_BREAKPOINT && !processingNotifications.has(notificationId)) {
-          console.log('🎯 Breakpoint reached! Triggering mark read action');
-          handleSwipeRight(notificationId);
-        } else {
-          console.log('❌ Breakpoint not reached, no action');
-        }
-        
-        // Reset visual state
-        setSwipingNotificationId(null);
-        setSwipeDirection(null);
-        setBigIcon(false);
+        // Add delay for visual animation before action
+        setTimeout(() => {
+          handleMarkAsRead(notificationId);
+          setMarkingAsReadIds(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(notificationId);
+            return newSet;
+          });
+        }, 300);
       },
-      onSwiping: (eventData) => {
-        console.log('🔄 Swiping deltaX:', eventData.deltaX, 'breakpoint:', ANIMATION_BREAKPOINT);
-        
-        // Visual feedback only (like Ionic onMove)
-        if (Math.abs(eventData.deltaX) > 20) {
-          setSwipingNotificationId(notificationId);
-          setSwipeDirection(eventData.deltaX > 0 ? 'right' : 'left');
-          
-          // Big icon when past breakpoint (like Ionic example)
-          setBigIcon(Math.abs(eventData.deltaX) >= ANIMATION_BREAKPOINT);
-          
-          console.log('📊 Visual state - bigIcon:', Math.abs(eventData.deltaX) >= ANIMATION_BREAKPOINT);
-        }
-      },
-      onSwiped: () => {
-        console.log('🛑 Swipe gesture ended');
-        // Keep visual state until onSwipedLeft/Right handles it
-      },
-      trackMouse: true,
       trackTouch: true,
-      delta: 20, // Low threshold for starting visual feedback
       preventScrollOnSwipe: true,
-      swipeDuration: 1000,
-      touchEventOptions: { passive: false },
-      rotationAngle: 0,
     });
-  };
-
-  const handleNotificationClick = (notificationId: string) => {
-    if (swipingNotificationId) return; // Prevent click during swipe
-    console.log('Clicked notification:', notificationId);
   };
 
   return (
     <Box w="100%" minH="100vh">
       {mockNotifications.map((notification) => {
         const swipeHandlers = getSwipeHandlers(notification.id);
-        const isCurrentlySwiping = swipingNotificationId === notification.id;
+        const isDeleting = deletingIds.has(notification.id);
+        const isMarkingAsRead = markingAsReadIds.has(notification.id);
+        const isAnimating = isDeleting || isMarkingAsRead;
         
         return (
           <Box
@@ -174,36 +105,51 @@ const MobileNotifications: React.FC = () => {
             {...swipeHandlers}
             position="relative"
             overflow="hidden"
+            style={{
+              transform: isDeleting ? 'translateX(-100%)' : 
+                        isMarkingAsRead ? 'translateX(100%)' : 
+                        'translateX(0)',
+              transition: 'transform 0.3s ease-out',
+            }}
           >
-            {/* Background action indicators */}
-            {isCurrentlySwiping && (
+            {/* Delete background */}
+            {isDeleting && (
               <Box
                 position="absolute"
                 top="0"
                 left="0"
                 right="0"
                 bottom="0"
-                zIndex={0}
-                bg={swipeDirection === 'right' ? 
-                  (bigIcon ? 'blue.300' : 'blue.200') : 
-                  (bigIcon ? 'red.300' : 'red.200')
-                }
+                bg="red.500"
                 display="flex"
+                justifyContent="flex-end"
                 alignItems="center"
-                justifyContent={swipeDirection === 'right' ? 'flex-start' : 'flex-end'}
-                px={6}
+                pr={5}
+                zIndex={0}
               >
-                <Text
-                  color={swipeDirection === 'right' ? 'blue.800' : 'red.800'}
-                  fontWeight="bold"
-                  fontSize={bigIcon ? "xl" : "lg"}
-                  transform={bigIcon ? "scale(1.2)" : "scale(1)"}
-                  transition="all 0.2s ease"
-                >
-                  {swipeDirection === 'right' ? 
-                    (bigIcon ? '📖 RELEASE TO MARK READ' : '📖 Keep Swiping...') : 
-                    (bigIcon ? '🗑️ RELEASE TO DELETE' : '🗑️ Keep Swiping...')
-                  }
+                <Text color="white" fontWeight="bold">
+                  Deleting...
+                </Text>
+              </Box>
+            )}
+
+            {/* Mark as read background */}
+            {isMarkingAsRead && (
+              <Box
+                position="absolute"
+                top="0"
+                left="0"
+                right="0"
+                bottom="0"
+                bg="blue.500"
+                display="flex"
+                justifyContent="flex-start"
+                alignItems="center"
+                pl={5}
+                zIndex={0}
+              >
+                <Text color="white" fontWeight="bold">
+                  Marking as Read...
                 </Text>
               </Box>
             )}
@@ -215,21 +161,9 @@ const MobileNotifications: React.FC = () => {
               borderBottom="1px solid"
               borderColor="gray.200"
               minH="80px"
+              bg="white"
               position="relative"
               zIndex={1}
-              bg="white"
-              style={{
-                transform: isCurrentlySwiping && swipeDirection ? 
-                  `translateX(${swipeDirection === 'right' ? 
-                    (bigIcon ? '100px' : '50px') : 
-                    (bigIcon ? '-100px' : '-50px')
-                  })` : 
-                  'translateX(0)',
-                transition: isCurrentlySwiping ? 'none' : 'transform 0.3s ease',
-                opacity: isCurrentlySwiping ? (bigIcon ? 0.7 : 0.85) : 1,
-                boxShadow: bigIcon ? '0 4px 12px rgba(0,0,0,0.15)' : 'none'
-              }}
-              onClick={() => handleNotificationClick(notification.id)}
             >
               {/* Avatar */}
               <Avatar
