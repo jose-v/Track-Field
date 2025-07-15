@@ -181,6 +181,23 @@ const NotificationsTable: React.FC = () => {
     }
   };
 
+  const deleteNotification = async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId);
+      
+      if (error) throw error;
+      
+      setNotifications(prev => 
+        prev.filter(notification => notification.id !== notificationId)
+      );
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+    }
+  };
+
   const updateNotificationMessage = async (
     notificationId: string, 
     newTitle: string, 
@@ -907,6 +924,7 @@ const NotificationsTable: React.FC = () => {
         notifications={notifications}
         onMarkAsRead={markAsRead}
         onMarkAsArchived={markAsArchived}
+        onDelete={deleteNotification}
         onMarkAllAsRead={markAllAsRead}
         isProcessing={isProcessing}
         userProfiles={userProfiles}

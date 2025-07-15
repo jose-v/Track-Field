@@ -18,7 +18,7 @@ import {
   TabPanel,
   Button,
 } from '@chakra-ui/react';
-import { FaCheckCircle, FaTimesCircle, FaBell, FaUserPlus, FaTrophy, FaCalendarAlt } from 'react-icons/fa';
+import { FaCheckCircle, FaTimesCircle, FaBell, FaUserPlus, FaTrophy, FaCalendarAlt, FaEnvelopeOpen, FaTrash } from 'react-icons/fa';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { format, formatDistanceToNow, isToday, isYesterday, isThisWeek } from 'date-fns';
@@ -46,6 +46,7 @@ interface MobileNotificationsProps {
   notifications: Notification[];
   onMarkAsRead: (id: string) => Promise<void>;
   onMarkAsArchived: (id: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
   onMarkAllAsRead: () => Promise<void>;
   isProcessing: boolean;
   userProfiles: { [key: string]: any };
@@ -59,6 +60,7 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
   notifications,
   onMarkAsRead,
   onMarkAsArchived,
+  onDelete,
   onMarkAllAsRead,
   isProcessing,
   userProfiles,
@@ -69,7 +71,7 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
 }) => {
   const { user } = useAuth();
   const [swipedNotification, setSwipedNotification] = useState<string | null>(null);
-  const [swipeAction, setSwipeAction] = useState<'read' | 'archive' | null>(null);
+  const [swipeAction, setSwipeAction] = useState<'read' | 'delete' | null>(null);
   const swipeRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const toast = useToast();
 
@@ -81,7 +83,7 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
   const sectionHeaderColor = useColorModeValue('gray.500', 'gray.400');
   const sectionHeaderBg = useColorModeValue('gray.50', 'gray.750');
   const readActionBg = useColorModeValue('blue.50', 'blue.900');
-  const archiveActionBg = useColorModeValue('red.50', 'red.900');
+  const deleteActionBg = useColorModeValue('red.50', 'red.900');
 
   const getNotificationColor = (type: string) => {
     switch (type) {
@@ -243,19 +245,16 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
           setSwipedNotification(notificationId);
           setSwipeAction('read');
           element.style.transform = `translateX(${Math.min(deltaX, 150)}px)`;
-          element.style.backgroundColor = readActionBg;
         } else if (deltaX < -threshold) {
-          // Swipe left - archive
+          // Swipe left - delete
           setSwipedNotification(notificationId);
-          setSwipeAction('archive');
+          setSwipeAction('delete');
           element.style.transform = `translateX(${Math.max(deltaX, -150)}px)`;
-          element.style.backgroundColor = archiveActionBg;
         } else {
           // Reset
           setSwipedNotification(null);
           setSwipeAction(null);
           element.style.transform = 'translateX(0)';
-          element.style.backgroundColor = '';
         }
       }
     }
@@ -276,10 +275,10 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
             duration: 2000,
             isClosable: true,
           });
-        } else if (swipeAction === 'archive' && !notification.is_archived) {
-          await onMarkAsArchived(notification.id);
+        } else if (swipeAction === 'delete') {
+          await onDelete(notification.id);
           toast({
-            title: 'Archived',
+            title: 'Deleted',
             status: 'success',
             duration: 2000,
             isClosable: true,
@@ -291,8 +290,7 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
       setSwipedNotification(null);
       setSwipeAction(null);
       element.style.transform = 'translateX(0)';
-      element.style.backgroundColor = '';
-      element.style.transition = 'transform 0.2s ease, background-color 0.2s ease';
+      element.style.transition = 'transform 0.2s ease';
       
       setTimeout(() => {
         element.style.transition = '';
@@ -304,7 +302,48 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
     const userProfile = getUserProfileForNotification(notification);
     
     return (
-      <Box key={notification.id}>
+      <Box key={notification.id} position="relative" overflow="hidden">
+        {/* Background Action Layers */}
+        <Box
+          position="absolute"
+          top={0}
+          left={0}
+          right={0}
+          bottom={0}
+          display="flex"
+          alignItems="center"
+          justifyContent="space-between"
+          px={8}
+          zIndex={0}
+        >
+          {/* Read Action (Left Side) */}
+          <Flex
+            align="center"
+            justify="center"
+            bg="blue.500"
+            color="white"
+            w="80px"
+            h="100%"
+            borderRadius="md"
+          >
+            <Icon as={FaEnvelopeOpen} boxSize={6} />
+          </Flex>
+
+          {/* Delete Action (Right Side) */}
+          <Flex
+            align="center"
+            justify="center"
+            bg="red.500"
+            color="white"
+            w="80px"
+            h="100%"
+            borderRadius="md"
+          >
+            <Icon as={FaTrash} boxSize={6} />
+          </Flex>
+        </Box>
+
+        {/* Main Notification Card */}
         <Box
           ref={(el) => (swipeRefs.current[notification.id] = el)}
           onTouchStart={(e) => handleTouchStart(e, notification.id)}
@@ -313,7 +352,8 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
           onClick={() => handleNotificationClick(notification)}
           cursor="pointer"
           position="relative"
-          overflow="hidden"
+          zIndex={1}
+          bg={bgColor}
         >
           <Flex
             align="center"
