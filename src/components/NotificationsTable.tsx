@@ -19,13 +19,15 @@ import {
   Tab,
   TabPanel,
   Container,
-  Heading
+  Heading,
+  useBreakpointValue
 } from '@chakra-ui/react';
 import { FaCheckCircle, FaTimesCircle, FaEye, FaBell, FaUserPlus, FaTrophy, FaCalendarAlt } from 'react-icons/fa';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { format, formatDistanceToNow, isToday, isYesterday, isThisWeek } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
+import { MobileNotifications } from './MobileNotifications';
 
 interface Notification {
   id: string;
@@ -54,6 +56,9 @@ const NotificationsTable: React.FC = () => {
   const [userProfiles, setUserProfiles] = useState<{ [key: string]: any }>({});
   const toast = useToast();
   const queryClient = useQueryClient();
+
+  // Mobile/Desktop detection
+  const isMobile = useBreakpointValue({ base: true, md: false });
 
   // Color mode values
   const bgColor = useColorModeValue('white', 'gray.800');
@@ -895,6 +900,25 @@ const NotificationsTable: React.FC = () => {
     );
   }
 
+  // Render mobile notifications on mobile devices
+  if (isMobile) {
+    return (
+      <MobileNotifications
+        notifications={notifications}
+        onMarkAsRead={markAsRead}
+        onMarkAsArchived={markAsArchived}
+        onMarkAllAsRead={markAllAsRead}
+        isProcessing={isProcessing}
+        userProfiles={userProfiles}
+        activeFilter={activeFilter}
+        setActiveFilter={setActiveFilter}
+        handleAthleteRequest={handleAthleteRequest}
+        handleCoachRequest={handleCoachRequest}
+      />
+    );
+  }
+
+  // Desktop version (unchanged)
   return (
     <Container maxW="container.lg" py={0}>
       <VStack spacing={0} align="stretch">

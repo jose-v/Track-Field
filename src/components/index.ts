@@ -71,6 +71,7 @@ export type { WorkoutsSection, WorkoutsItem } from './workouts';
 export { DateTimePicker } from './DateTimePicker' 
 export { AssignmentModal } from './AssignmentModal'
 export { NotificationsModal } from './NotificationsModal'
+export { MobileNotifications } from './MobileNotifications'
 export { TimePickerInput } from './TimePickerInput' 
 
 // Mobile workout creator restrictions
