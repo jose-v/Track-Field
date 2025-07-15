@@ -219,15 +219,14 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
     }
   }, [onMarkAsRead]);
 
-  const renderNotificationItem = (notification: Notification, index: number, groupNotifications: Notification[]) => {
-    const userProfile = getUserProfileForNotification(notification);
-    
-    // Create swipe handlers for this specific notification
-    const swipeHandlers = useSwipeable({
-      onSwipedLeft: async ({ event, absX }) => {
-        if (absX > 50) {
+  // Create swipe handlers at component level
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: async ({ event, absX }) => {
+      if (absX > 50) {
+        const notificationId = (event.target as HTMLElement).closest('[data-notification-id]')?.getAttribute('data-notification-id');
+        if (notificationId) {
           try {
-            await onDelete(notification.id);
+            await onDelete(notificationId);
             queryClient.invalidateQueries({ queryKey: ['notifications'] });
             toast({
               title: 'Deleted',
@@ -246,9 +245,13 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
             });
           }
         }
-      },
-      onSwipedRight: async ({ event, absX }) => {
-        if (absX > 50 && !notification.is_read) {
+      }
+    },
+    onSwipedRight: async ({ event, absX }) => {
+      if (absX > 50) {
+        const notificationId = (event.target as HTMLElement).closest('[data-notification-id]')?.getAttribute('data-notification-id');
+        const notification = notifications.find(n => n.id === notificationId);
+        if (notification && !notification.is_read) {
           try {
             await onMarkAsRead(notification.id);
             queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -269,12 +272,16 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
             });
           }
         }
-      },
-      delta: 10,
-      preventScrollOnSwipe: true,
-      trackTouch: true,
-      trackMouse: false,
-    });
+      }
+    },
+    delta: 10,
+    preventScrollOnSwipe: true,
+    trackTouch: true,
+    trackMouse: false,
+  });
+
+  const renderNotificationItem = (notification: Notification, index: number, groupNotifications: Notification[]) => {
+    const userProfile = getUserProfileForNotification(notification);
     
     return (
       <Box key={notification.id} position="relative" w="100%">
@@ -323,6 +330,7 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
         {/* Main Notification Card */}
         <Box
           {...swipeHandlers}
+          data-notification-id={notification.id}
           onClick={(e) => handleNotificationClick(e, notification)}
           cursor="pointer"
           position="relative"
