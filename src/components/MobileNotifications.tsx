@@ -156,8 +156,14 @@ const MobileNotifications: React.FC = () => {
         const isMarkingAsRead = markingAsReadIds.has(notification.id);
         const isSwiping = swipingIds.has(notification.id);
         const currentSwipeDirection = swipeDirection[notification.id];
+        // Fix the conditional logic - the issue was here!
         const showDeleteBackground = isDeleting || (isSwiping && currentSwipeDirection === 'left');
         const showReadBackground = isMarkingAsRead || (isSwiping && currentSwipeDirection === 'right');
+        
+        // Update debug info with all state details
+        if (isSwiping || isDeleting || isMarkingAsRead) {
+          setDebugInfo(`States: swiping=${isSwiping} dir=${currentSwipeDirection} deleting=${isDeleting} reading=${isMarkingAsRead} showDel=${showDeleteBackground} showRead=${showReadBackground}`);
+        }
         
         return (
           <Box
@@ -181,19 +187,11 @@ const MobileNotifications: React.FC = () => {
                 left="0"
                 right="0"
                 bottom="0"
-                bgGradient="linear(to-l, red.500, red.400)"
-                display="flex"
-                flexDirection="column"
-                justifyContent="center"
-                alignItems="flex-end"
-                pr={8}
-                zIndex={-1}
+                bg="red"
+                zIndex={1}
               >
-                <Box color="white" fontSize="3xl" mb={1}>
-                  <FaTrash />
-                </Box>
-                <Text color="white" fontWeight="bold" fontSize="md">
-                  Delete
+                <Text color="white" fontSize="xl" p={4}>
+                  RED BACKGROUND SHOWING!
                 </Text>
               </Box>
             )}
@@ -206,18 +204,18 @@ const MobileNotifications: React.FC = () => {
                 left="0"
                 right="0"
                 bottom="0"
-                bgGradient="linear(to-r, blue.500, blue.400)"
+                bg="blue.400"
                 display="flex"
                 flexDirection="column"
                 justifyContent="center"
                 alignItems="flex-start"
                 pl={8}
-                zIndex={-1}
+                zIndex={1}
               >
-                <Box color="white" fontSize="3xl" mb={1}>
+                <Box color="white" fontSize="4xl" mb={1}>
                   <FaEnvelopeOpen />
                 </Box>
-                <Text color="white" fontWeight="bold" fontSize="md">
+                <Text color="white" fontWeight="bold" fontSize="lg">
                   Read
                 </Text>
               </Box>
@@ -232,7 +230,8 @@ const MobileNotifications: React.FC = () => {
               minH="80px"
               bg="white"
               position="relative"
-              zIndex={1}
+              zIndex={2}
+              opacity={0.5}
             >
               {/* Avatar */}
               <Avatar
