@@ -17,9 +17,8 @@ const MobileNotifications: React.FC = () => {
   const [markingAsReadIds, setMarkingAsReadIds] = useState<Set<string>>(new Set());
   const [swipingIds, setSwipingIds] = useState<Set<string>>(new Set());
   const [swipeDirection, setSwipeDirection] = useState<{[key: string]: 'left' | 'right'}>({});
+  const [debugInfo, setDebugInfo] = useState<string>('Ready to swipe');
   const toast = useToast();
-
-  console.log('🎯 MobileNotifications component rendered');
 
   // Mock data for testing
   const mockNotifications: Notification[] = [
@@ -42,7 +41,6 @@ const MobileNotifications: React.FC = () => {
   ];
 
   const handleDelete = (notificationId: string) => {
-    console.log('✅ Would delete notification:', notificationId);
     toast({
       title: '🗑️ Would delete',
       status: 'info',
@@ -52,7 +50,6 @@ const MobileNotifications: React.FC = () => {
   };
 
   const handleMarkAsRead = (notificationId: string) => {
-    console.log('✅ Would mark as read:', notificationId);
     toast({
       title: '📖 Would mark as read',
       status: 'info',
@@ -62,11 +59,9 @@ const MobileNotifications: React.FC = () => {
   };
 
   const getSwipeHandlers = (notificationId: string) => {
-    console.log('🔧 Creating swipe handlers for:', notificationId);
-    
     const handlers = useSwipeable({
       onSwipedLeft: () => {
-        console.log('Swiped left on:', notificationId);
+        setDebugInfo(`Swiped left on ${notificationId} - deleting`);
         setSwipingIds(prev => {
           const newSet = new Set(prev);
           newSet.delete(notificationId);
@@ -87,10 +82,11 @@ const MobileNotifications: React.FC = () => {
             newSet.delete(notificationId);
             return newSet;
           });
+          setDebugInfo('Delete completed');
         }, 300);
       },
       onSwipedRight: () => {
-        console.log('Swiped right on:', notificationId);
+        setDebugInfo(`Swiped right on ${notificationId} - marking read`);
         setSwipingIds(prev => {
           const newSet = new Set(prev);
           newSet.delete(notificationId);
@@ -111,16 +107,18 @@ const MobileNotifications: React.FC = () => {
             newSet.delete(notificationId);
             return newSet;
           });
+          setDebugInfo('Mark read completed');
         }, 300);
       },
       onSwiping: (eventData) => {
-        console.log('🔄 SWIPING deltaX:', eventData.deltaX);
+        setDebugInfo(`Swiping deltaX: ${eventData.deltaX}`);
         if (Math.abs(eventData.deltaX) > 20) {
-          console.log('📍 Setting swiping state for:', notificationId, 'direction:', eventData.deltaX > 0 ? 'right' : 'left');
+          const direction = eventData.deltaX > 0 ? 'right' : 'left';
+          setDebugInfo(`Setting ${direction} swipe for ${notificationId}`);
           setSwipingIds(prev => new Set(prev).add(notificationId));
           setSwipeDirection(prev => ({
             ...prev,
-            [notificationId]: eventData.deltaX > 0 ? 'right' : 'left'
+            [notificationId]: direction
           }));
         }
       },
@@ -131,15 +129,28 @@ const MobileNotifications: React.FC = () => {
       preventScrollOnSwipe: true,
     });
     
-    console.log('✅ Swipe handlers created:', handlers);
     return handlers;
   };
 
   return (
     <Box w="100%" minH="100vh">
+      {/* Visual Debug Overlay */}
+      <Box
+        position="sticky"
+        top="0"
+        bg="yellow.100"
+        p={2}
+        borderBottom="2px solid"
+        borderColor="yellow.300"
+        zIndex={10}
+      >
+        <Text fontSize="sm" fontWeight="bold" color="black">
+          DEBUG: {debugInfo}
+        </Text>
+      </Box>
+      
       {mockNotifications.map((notification) => {
         const swipeHandlers = getSwipeHandlers(notification.id);
-        console.log('🎨 Swipe handlers for', notification.id, ':', Object.keys(swipeHandlers));
         
         const isDeleting = deletingIds.has(notification.id);
         const isMarkingAsRead = markingAsReadIds.has(notification.id);
@@ -148,25 +159,13 @@ const MobileNotifications: React.FC = () => {
         const showDeleteBackground = isDeleting || (isSwiping && currentSwipeDirection === 'left');
         const showReadBackground = isMarkingAsRead || (isSwiping && currentSwipeDirection === 'right');
         
-        // Debug logging
-        if (isSwiping || isDeleting || isMarkingAsRead) {
-          console.log('🎨 RENDER DEBUG for', notification.id, {
-            isSwiping,
-            currentSwipeDirection,
-            isDeleting,
-            isMarkingAsRead,
-            showDeleteBackground,
-            showReadBackground
-          });
-        }
-
         return (
           <Box
             key={notification.id}
             {...swipeHandlers}
             position="relative"
             overflow="hidden"
-            onClick={() => console.log('🖱️ CLICKED notification:', notification.id)}
+            onClick={() => setDebugInfo(`Clicked notification ${notification.id}`)}
             style={{
               transform: isDeleting ? 'translateX(-100%)' : 
                         isMarkingAsRead ? 'translateX(100%)' : 
