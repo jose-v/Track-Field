@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Box, Flex, Avatar, Text, useToast } from '@chakra-ui/react';
-import SwipeToDelete from 'react-swipe-to-delete-component';
 import { FaTrash, FaEnvelopeOpen } from 'react-icons/fa';
 
 interface Notification {
@@ -14,6 +13,12 @@ interface Notification {
 
 const MobileNotifications: React.FC = () => {
   const [debugInfo, setDebugInfo] = useState<string>('Ready to swipe');
+  const [swipeStates, setSwipeStates] = useState<{[key: string]: { 
+    isDragging: boolean; 
+    startX: number; 
+    currentX: number; 
+    direction: 'left' | 'right' | null 
+  }}>({});
   const toast = useToast();
 
   // Mock data for testing
@@ -56,45 +61,92 @@ const MobileNotifications: React.FC = () => {
     });
   };
 
-  const deleteBackground = (
-    <Box
-      w="100%"
-      h="100%"
-      bg="red.500"
-      display="flex"
-      flexDirection="column"
-      justifyContent="center"
-      alignItems="flex-end"
-      pr={8}
-    >
-      <Box color="white" fontSize="4xl" mb={1}>
-        <FaTrash />
-      </Box>
-      <Text color="white" fontWeight="bold" fontSize="lg">
-        Delete
-      </Text>
-    </Box>
-  );
+  const handleTouchStart = (e: React.TouchEvent, notificationId: string) => {
+    const touch = e.touches[0];
+    setSwipeStates(prev => ({
+      ...prev,
+      [notificationId]: {
+        isDragging: true,
+        startX: touch.clientX,
+        currentX: touch.clientX,
+        direction: null
+      }
+    }));
+    setDebugInfo(`Touch started on ${notificationId}`);
+  };
 
-  const markAsReadBackground = (
-    <Box
-      w="100%"
-      h="100%"
-      bg="blue.400"
-      display="flex"
-      flexDirection="column"
-      justifyContent="center"
-      alignItems="flex-start"
-      pl={8}
-    >
-      <Box color="white" fontSize="4xl" mb={1}>
-        <FaEnvelopeOpen />
-      </Box>
-      <Text color="white" fontWeight="bold" fontSize="lg">
-        Read
-      </Text>
-    </Box>
-  );
+  const handleTouchMove = (e: React.TouchEvent, notificationId: string) => {
+    const state = swipeStates[notificationId];
+    if (!state?.isDragging) return;
+
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - state.startX;
+    const direction = deltaX > 0 ? 'right' : 'left';
+
+    setSwipeStates(prev => ({
+      ...prev,
+      [notificationId]: {
+        ...state,
+        currentX: touch.clientX,
+        direction: Math.abs(deltaX) > 20 ? direction : null
+      }
+    }));
+
+    setDebugInfo(`Swiping ${notificationId}: ${Math.round(deltaX)}px ${direction}`);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent, notificationId: string, notification: Notification) => {
+    const state = swipeStates[notificationId];
+    if (!state?.isDragging) return;
+
+    const deltaX = state.currentX - state.startX;
+    const distance = Math.abs(deltaX);
+
+    // Reset drag state
+    setSwipeStates(prev => {
+      const newStates = { ...prev };
+      delete newStates[notificationId];
+      return newStates;
+    });
+
+    // Trigger actions if swipe was far enough
+    if (distance > 80) {
+      if (deltaX < 0) {
+        // Swiped left - delete
+        handleDelete(notificationId);
+      } else if (deltaX > 0 && !notification.is_read) {
+        // Swiped right - mark as read (only if unread)
+        handleMarkAsRead(notificationId);
+      } else {
+        setDebugInfo(`Swipe right ignored - already read`);
+      }
+    } else {
+      setDebugInfo(`Swipe canceled - not far enough (${Math.round(distance)}px)`);
+    }
+  };
+
+  const getSwipeTransform = (notificationId: string) => {
+    const state = swipeStates[notificationId];
+    if (!state?.isDragging) return 'translateX(0px)';
+    
+    const deltaX = state.currentX - state.startX;
+    const maxSwipe = 120;
+    const clampedDelta = Math.max(-maxSwipe, Math.min(maxSwipe, deltaX));
+    return `translateX(${clampedDelta}px)`;
+  };
+
+  const getBackgroundOpacity = (notificationId: string, direction: 'left' | 'right') => {
+    const state = swipeStates[notificationId];
+    if (!state?.isDragging) return 0;
+    
+    const deltaX = state.currentX - state.startX;
+    const distance = Math.abs(deltaX);
+    const opacity = Math.min(distance / 80, 1);
+    
+    if (direction === 'left' && deltaX < 0) return opacity;
+    if (direction === 'right' && deltaX > 0) return opacity;
+    return 0;
+  };
 
   return (
     <Box w="100%" minH="100vh">
@@ -114,24 +166,73 @@ const MobileNotifications: React.FC = () => {
       </Box>
 
       {mockNotifications.map((notification) => (
-        <SwipeToDelete
-          key={notification.id}
-          onDelete={() => handleDelete(notification.id)}
-          deleteSwipe={deleteBackground}
-          onCancel={() => setDebugInfo(`Canceled swipe on ${notification.id}`)}
-          deleteWidth={120}
-          deleteHeight="auto"
-          disabled={false}
-          rightSwipe={!notification.is_read}
-          rightSwipeItem={markAsReadBackground}
-          onRightSwipe={() => handleMarkAsRead(notification.id)}
-          rightSwipeWidth={120}
-        >
+        <Box key={notification.id} position="relative" w="100%" overflow="hidden">
+          {/* Delete Background (Left) */}
+          <Box
+            position="absolute"
+            top="0"
+            right="0"
+            bottom="0"
+            w="120px"
+            bg="red.500"
+            display="flex"
+            flexDirection="column"
+            justifyContent="center"
+            alignItems="center"
+            opacity={getBackgroundOpacity(notification.id, 'left')}
+            transition="opacity 0.1s ease-out"
+            zIndex={1}
+          >
+            <Box color="white" fontSize="3xl" mb={1}>
+              <FaTrash />
+            </Box>
+            <Text color="white" fontWeight="bold" fontSize="sm">
+              Delete
+            </Text>
+          </Box>
+
+          {/* Mark as Read Background (Right) */}
+          <Box
+            position="absolute"
+            top="0"
+            left="0"
+            bottom="0"
+            w="120px"
+            bg="blue.400"
+            display="flex"
+            flexDirection="column"
+            justifyContent="center"
+            alignItems="center"
+            opacity={getBackgroundOpacity(notification.id, 'right')}
+            transition="opacity 0.1s ease-out"
+            zIndex={1}
+          >
+            <Box color="white" fontSize="3xl" mb={1}>
+              <FaEnvelopeOpen />
+            </Box>
+            <Text color="white" fontWeight="bold" fontSize="sm">
+              Read
+            </Text>
+          </Box>
+
+          {/* Main notification content */}
           <Box
             bg="white"
             borderBottom="1px solid"
             borderColor="gray.200"
+            position="relative"
+            zIndex={2}
+            transform={getSwipeTransform(notification.id)}
+            transition={swipeStates[notification.id]?.isDragging ? 'none' : 'transform 0.3s ease-out'}
+            onTouchStart={(e) => handleTouchStart(e, notification.id)}
+            onTouchMove={(e) => handleTouchMove(e, notification.id)}
+            onTouchEnd={(e) => handleTouchEnd(e, notification.id, notification)}
             onClick={() => setDebugInfo(`Clicked notification ${notification.id}`)}
+            sx={{
+              touchAction: 'pan-x',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+            }}
           >
             <Flex
               align="center"
@@ -176,7 +277,7 @@ const MobileNotifications: React.FC = () => {
               )}
             </Flex>
           </Box>
-        </SwipeToDelete>
+        </Box>
       ))}
     </Box>
   );
