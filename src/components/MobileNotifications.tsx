@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import { Box, Flex, Avatar, Text, useToast } from '@chakra-ui/react';
 import { useSwipeable } from 'react-swipeable';
 import { FaTrash, FaEnvelopeOpen } from 'react-icons/fa';
@@ -40,122 +40,23 @@ const MobileNotifications: React.FC = () => {
     },
   ];
 
-  const handleDelete = useCallback((notificationId: string) => {
+  const handleDelete = (notificationId: string) => {
     toast({
       title: '🗑️ Would delete',
       status: 'info',
       duration: 1000,
       isClosable: true,
     });
-  }, [toast]);
+  };
 
-  const handleMarkAsRead = useCallback((notificationId: string) => {
+  const handleMarkAsRead = (notificationId: string) => {
     toast({
       title: '📖 Would mark as read',
       status: 'info',
       duration: 1000,
       isClosable: true,
     });
-  }, [toast]);
-
-  // Create swipe handler factory to avoid recreating handlers
-  const createSwipeHandlers = useCallback((notification: Notification) => {
-    return useSwipeable({
-      onSwiping: ({ deltaX }) => {
-        setDebugInfo(`Swiping ${notification.id} with deltaX: ${deltaX}`);
-        setSwipeOffsets(prev => ({
-          ...prev,
-          [notification.id]: Math.max(Math.min(deltaX, 120), -120),
-        }));
-      },
-      onSwipedLeft: () => {
-        const currentOffset = swipeOffsets[notification.id] || 0;
-        if (Math.abs(currentOffset) > 50) {
-          setDebugInfo(`Swiped left on ${notification.id} - deleting`);
-          setDeletingIds(prev => new Set(prev).add(notification.id));
-          const element = swipeRefs.current[notification.id];
-          if (element) {
-            element.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
-            element.style.transform = 'translateX(-100%)';
-            element.style.opacity = '0';
-          }
-          setTimeout(() => {
-            handleDelete(notification.id);
-            setDeletingIds(prev => {
-              const newSet = new Set(prev);
-              newSet.delete(notification.id);
-              return newSet;
-            });
-            setSwipeOffsets(prev => {
-              const newOffsets = { ...prev };
-              delete newOffsets[notification.id];
-              return newOffsets;
-            });
-            setDebugInfo('Delete completed');
-          }, 300);
-        } else {
-          setSwipeOffsets(prev => {
-            const newOffsets = { ...prev };
-            delete newOffsets[notification.id];
-            return newOffsets;
-          });
-          setDebugInfo(`Swipe left canceled on ${notification.id}`);
-        }
-      },
-      onSwipedRight: () => {
-        const currentOffset = swipeOffsets[notification.id] || 0;
-        if (Math.abs(currentOffset) > 50 && !notification.is_read) {
-          setDebugInfo(`Swiped right on ${notification.id} - marking read`);
-          setMarkingAsReadIds(prev => new Set(prev).add(notification.id));
-          const element = swipeRefs.current[notification.id];
-          if (element) {
-            element.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
-            element.style.transform = 'translateX(100%)';
-            element.style.opacity = '0';
-          }
-          setTimeout(() => {
-            handleMarkAsRead(notification.id);
-            setMarkingAsReadIds(prev => {
-              const newSet = new Set(prev);
-              newSet.delete(notification.id);
-              return newSet;
-            });
-            setSwipeOffsets(prev => {
-              const newOffsets = { ...prev };
-              delete newOffsets[notification.id];
-              return newOffsets;
-            });
-            setDebugInfo('Mark read completed');
-          }, 300);
-        } else {
-          setSwipeOffsets(prev => {
-            const newOffsets = { ...prev };
-            delete newOffsets[notification.id];
-            return newOffsets;
-          });
-          setDebugInfo(`Swipe right canceled on ${notification.id}`);
-        }
-      },
-      onSwiped: () => {
-        const element = swipeRefs.current[notification.id];
-        if (element) {
-          element.style.transition = 'transform 0.3s ease-out';
-          element.style.transform = 'translateX(0)';
-          element.style.opacity = '1';
-        }
-        setSwipeOffsets(prev => {
-          const newOffsets = { ...prev };
-          delete newOffsets[notification.id];
-          return newOffsets;
-        });
-        setDebugInfo(`Swipe reset on ${notification.id}`);
-      },
-      delta: 10,
-      preventScrollOnSwipe: true,
-      trackTouch: true,
-      trackMouse: false,
-    });
-  }, [swipeOffsets, handleDelete, handleMarkAsRead]);
+  };
 
   return (
     <Box w="100%" minH="100vh" sx={{ touchAction: 'pan-y' }}>
@@ -182,8 +83,6 @@ const MobileNotifications: React.FC = () => {
         // Calculate opacity based on swipe progress (0-1 scale)
         const rightOpacity = Math.min(Math.max(swipeOffset / 80, 0), 1);
         const leftOpacity = Math.min(Math.max(-swipeOffset / 80, 0), 1);
-        
-        const swipeHandlers = createSwipeHandlers(notification);
 
         return (
           <Box key={notification.id} position="relative" w="100%">
@@ -240,7 +139,101 @@ const MobileNotifications: React.FC = () => {
 
             {/* Main notification content */}
             <Box
-              {...swipeHandlers}
+              {...useSwipeable({
+                onSwiping: ({ deltaX }) => {
+                  setDebugInfo(`Swiping ${notification.id} with deltaX: ${deltaX}`);
+                  setSwipeOffsets(prev => ({
+                    ...prev,
+                    [notification.id]: Math.max(Math.min(deltaX, 120), -120),
+                  }));
+                },
+                onSwipedLeft: () => {
+                  const currentOffset = swipeOffsets[notification.id] || 0;
+                  if (Math.abs(currentOffset) > 50) {
+                    setDebugInfo(`Swiped left on ${notification.id} - deleting`);
+                    setDeletingIds(prev => new Set(prev).add(notification.id));
+                    const element = swipeRefs.current[notification.id];
+                    if (element) {
+                      element.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
+                      element.style.transform = 'translateX(-100%)';
+                      element.style.opacity = '0';
+                    }
+                    setTimeout(() => {
+                      handleDelete(notification.id);
+                      setDeletingIds(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete(notification.id);
+                        return newSet;
+                      });
+                      setSwipeOffsets(prev => {
+                        const newOffsets = { ...prev };
+                        delete newOffsets[notification.id];
+                        return newOffsets;
+                      });
+                      setDebugInfo('Delete completed');
+                    }, 300);
+                  } else {
+                    setSwipeOffsets(prev => {
+                      const newOffsets = { ...prev };
+                      delete newOffsets[notification.id];
+                      return newOffsets;
+                    });
+                    setDebugInfo(`Swipe left canceled on ${notification.id}`);
+                  }
+                },
+                onSwipedRight: () => {
+                  const currentOffset = swipeOffsets[notification.id] || 0;
+                  if (Math.abs(currentOffset) > 50 && !notification.is_read) {
+                    setDebugInfo(`Swiped right on ${notification.id} - marking read`);
+                    setMarkingAsReadIds(prev => new Set(prev).add(notification.id));
+                    const element = swipeRefs.current[notification.id];
+                    if (element) {
+                      element.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
+                      element.style.transform = 'translateX(100%)';
+                      element.style.opacity = '0';
+                    }
+                    setTimeout(() => {
+                      handleMarkAsRead(notification.id);
+                      setMarkingAsReadIds(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete(notification.id);
+                        return newSet;
+                      });
+                      setSwipeOffsets(prev => {
+                        const newOffsets = { ...prev };
+                        delete newOffsets[notification.id];
+                        return newOffsets;
+                      });
+                      setDebugInfo('Mark read completed');
+                    }, 300);
+                  } else {
+                    setSwipeOffsets(prev => {
+                      const newOffsets = { ...prev };
+                      delete newOffsets[notification.id];
+                      return newOffsets;
+                    });
+                    setDebugInfo(`Swipe right canceled on ${notification.id}`);
+                  }
+                },
+                onSwiped: () => {
+                  const element = swipeRefs.current[notification.id];
+                  if (element) {
+                    element.style.transition = 'transform 0.3s ease-out';
+                    element.style.transform = 'translateX(0)';
+                    element.style.opacity = '1';
+                  }
+                  setSwipeOffsets(prev => {
+                    const newOffsets = { ...prev };
+                    delete newOffsets[notification.id];
+                    return newOffsets;
+                  });
+                  setDebugInfo(`Swipe reset on ${notification.id}`);
+                },
+                delta: 10,
+                preventScrollOnSwipe: true,
+                trackTouch: true,
+                trackMouse: false,
+              })}
               ref={(el) => (swipeRefs.current[notification.id] = el)}
               onTouchStart={() => {
                 setDebugInfo(`Touch started on ${notification.id}`);
