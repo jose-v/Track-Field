@@ -19,6 +19,8 @@ const MobileNotifications: React.FC = () => {
   const [swipeDirection, setSwipeDirection] = useState<{[key: string]: 'left' | 'right'}>({});
   const toast = useToast();
 
+  console.log('🎯 MobileNotifications component rendered');
+
   // Mock data for testing
   const mockNotifications: Notification[] = [
     {
@@ -60,7 +62,9 @@ const MobileNotifications: React.FC = () => {
   };
 
   const getSwipeHandlers = (notificationId: string) => {
-    return useSwipeable({
+    console.log('🔧 Creating swipe handlers for:', notificationId);
+    
+    const handlers = useSwipeable({
       onSwipedLeft: () => {
         console.log('Swiped left on:', notificationId);
         setSwipingIds(prev => {
@@ -126,12 +130,17 @@ const MobileNotifications: React.FC = () => {
       trackTouch: true,
       preventScrollOnSwipe: true,
     });
+    
+    console.log('✅ Swipe handlers created:', handlers);
+    return handlers;
   };
 
   return (
     <Box w="100%" minH="100vh">
       {mockNotifications.map((notification) => {
         const swipeHandlers = getSwipeHandlers(notification.id);
+        console.log('🎨 Swipe handlers for', notification.id, ':', Object.keys(swipeHandlers));
+        
         const isDeleting = deletingIds.has(notification.id);
         const isMarkingAsRead = markingAsReadIds.has(notification.id);
         const isSwiping = swipingIds.has(notification.id);
@@ -157,6 +166,7 @@ const MobileNotifications: React.FC = () => {
             {...swipeHandlers}
             position="relative"
             overflow="hidden"
+            onClick={() => console.log('🖱️ CLICKED notification:', notification.id)}
             style={{
               transform: isDeleting ? 'translateX(-100%)' : 
                         isMarkingAsRead ? 'translateX(100%)' : 
