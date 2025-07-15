@@ -15,7 +15,11 @@ const MobileNotifications: React.FC = () => {
   const [swipingNotificationId, setSwipingNotificationId] = useState<string | null>(null);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const [processingNotifications, setProcessingNotifications] = useState<Set<string>>(new Set());
+  const [bigIcon, setBigIcon] = useState<boolean>(false);
   const toast = useToast();
+
+  // Breakpoint from Ionic example
+  const ANIMATION_BREAKPOINT = 70;
 
   // Mock data for testing
   const mockNotifications: Notification[] = [
@@ -93,39 +97,59 @@ const MobileNotifications: React.FC = () => {
 
   const getSwipeHandlers = (notificationId: string) => {
     return useSwipeable({
-      onSwipedLeft: () => {
-        console.log('✅ Completed swipe left on:', notificationId);
-        setSwipingNotificationId(null);
-        setSwipeDirection(null);
-        if (!processingNotifications.has(notificationId)) {
+      onSwipedLeft: (eventData) => {
+        console.log('✅ Swipe left ended with deltaX:', eventData.deltaX);
+        
+        // Only trigger action if past breakpoint (like Ionic example)
+        if (Math.abs(eventData.deltaX) >= ANIMATION_BREAKPOINT && !processingNotifications.has(notificationId)) {
+          console.log('🎯 Breakpoint reached! Triggering delete action');
           handleSwipeLeft(notificationId);
+        } else {
+          console.log('❌ Breakpoint not reached, no action');
         }
-      },
-      onSwipedRight: () => {
-        console.log('✅ Completed swipe right on:', notificationId);
+        
+        // Reset visual state
         setSwipingNotificationId(null);
         setSwipeDirection(null);
-        if (!processingNotifications.has(notificationId)) {
+        setBigIcon(false);
+      },
+      onSwipedRight: (eventData) => {
+        console.log('✅ Swipe right ended with deltaX:', eventData.deltaX);
+        
+        // Only trigger action if past breakpoint (like Ionic example)
+        if (Math.abs(eventData.deltaX) >= ANIMATION_BREAKPOINT && !processingNotifications.has(notificationId)) {
+          console.log('🎯 Breakpoint reached! Triggering mark read action');
           handleSwipeRight(notificationId);
+        } else {
+          console.log('❌ Breakpoint not reached, no action');
         }
+        
+        // Reset visual state
+        setSwipingNotificationId(null);
+        setSwipeDirection(null);
+        setBigIcon(false);
       },
       onSwiping: (eventData) => {
-        console.log('🔄 Swiping:', eventData.deltaX, 'px, velocity:', eventData.velocity);
+        console.log('🔄 Swiping deltaX:', eventData.deltaX, 'breakpoint:', ANIMATION_BREAKPOINT);
         
-        // Only show visual feedback, don't trigger actions during swipe
-        if (Math.abs(eventData.deltaX) > 30) {
+        // Visual feedback only (like Ionic onMove)
+        if (Math.abs(eventData.deltaX) > 20) {
           setSwipingNotificationId(notificationId);
           setSwipeDirection(eventData.deltaX > 0 ? 'right' : 'left');
+          
+          // Big icon when past breakpoint (like Ionic example)
+          setBigIcon(Math.abs(eventData.deltaX) >= ANIMATION_BREAKPOINT);
+          
+          console.log('📊 Visual state - bigIcon:', Math.abs(eventData.deltaX) >= ANIMATION_BREAKPOINT);
         }
       },
       onSwiped: () => {
-        console.log('🛑 Swipe ended');
-        setSwipingNotificationId(null);
-        setSwipeDirection(null);
+        console.log('🛑 Swipe gesture ended');
+        // Keep visual state until onSwipedLeft/Right handles it
       },
       trackMouse: true,
       trackTouch: true,
-      delta: 150, // Much higher threshold like React Native example (was 10)
+      delta: 20, // Low threshold for starting visual feedback
       preventScrollOnSwipe: true,
       swipeDuration: 1000,
       touchEventOptions: { passive: false },
@@ -160,18 +184,26 @@ const MobileNotifications: React.FC = () => {
                 right="0"
                 bottom="0"
                 zIndex={0}
-                bg={swipeDirection === 'right' ? 'blue.200' : 'red.200'}
+                bg={swipeDirection === 'right' ? 
+                  (bigIcon ? 'blue.300' : 'blue.200') : 
+                  (bigIcon ? 'red.300' : 'red.200')
+                }
                 display="flex"
                 alignItems="center"
                 justifyContent={swipeDirection === 'right' ? 'flex-start' : 'flex-end'}
                 px={6}
               >
                 <Text
-                  color={swipeDirection === 'right' ? 'blue.700' : 'red.700'}
+                  color={swipeDirection === 'right' ? 'blue.800' : 'red.800'}
                   fontWeight="bold"
-                  fontSize="lg"
+                  fontSize={bigIcon ? "xl" : "lg"}
+                  transform={bigIcon ? "scale(1.2)" : "scale(1)"}
+                  transition="all 0.2s ease"
                 >
-                  {swipeDirection === 'right' ? '📖 Swipe More to Mark Read' : '🗑️ Swipe More to Delete'}
+                  {swipeDirection === 'right' ? 
+                    (bigIcon ? '📖 RELEASE TO MARK READ' : '📖 Keep Swiping...') : 
+                    (bigIcon ? '🗑️ RELEASE TO DELETE' : '🗑️ Keep Swiping...')
+                  }
                 </Text>
               </Box>
             )}
@@ -188,10 +220,14 @@ const MobileNotifications: React.FC = () => {
               bg="white"
               style={{
                 transform: isCurrentlySwiping && swipeDirection ? 
-                  `translateX(${swipeDirection === 'right' ? '120px' : '-120px'})` : 
+                  `translateX(${swipeDirection === 'right' ? 
+                    (bigIcon ? '100px' : '50px') : 
+                    (bigIcon ? '-100px' : '-50px')
+                  })` : 
                   'translateX(0)',
                 transition: isCurrentlySwiping ? 'none' : 'transform 0.3s ease',
-                opacity: isCurrentlySwiping ? 0.8 : 1
+                opacity: isCurrentlySwiping ? (bigIcon ? 0.7 : 0.85) : 1,
+                boxShadow: bigIcon ? '0 4px 12px rgba(0,0,0,0.15)' : 'none'
               }}
               onClick={() => handleNotificationClick(notification.id)}
             >
