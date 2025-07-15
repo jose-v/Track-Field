@@ -74,6 +74,7 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
   const [swipeAction, setSwipeAction] = useState<'read' | 'delete' | null>(null);
   const swipeRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const toast = useToast();
+  const queryClient = useQueryClient();
 
   // Color mode values
   const bgColor = useColorModeValue('white', 'gray.800');
@@ -231,7 +232,6 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
 
   // Swipe handling
   const handleTouchStart = (e: React.TouchEvent, notificationId: string) => {
-    console.log('Touch start on notification:', notificationId);
     const touch = e.touches[0];
     const element = swipeRefs.current[notificationId];
     if (element) {
@@ -251,8 +251,6 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
       const deltaY = touch.clientY - parseInt(element.dataset.startY);
       const threshold = 50; // Reduced threshold for easier triggering
       
-      console.log('Touch move deltaX:', deltaX, 'deltaY:', deltaY);
-      
       // Check if this is a horizontal swipe (more horizontal than vertical movement)
       if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 20) {
         e.preventDefault(); // Prevent scrolling when swiping horizontally
@@ -260,14 +258,12 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
         
         if (deltaX > threshold) {
           // Swipe right - mark as read
-          console.log('Swipe right detected');
           setSwipedNotification(notificationId);
           setSwipeAction('read');
           const translateX = Math.min(deltaX, 120);
           element.style.transform = `translateX(${translateX}px)`;
         } else if (deltaX < -threshold) {
           // Swipe left - delete
-          console.log('Swipe left detected');
           setSwipedNotification(notificationId);
           setSwipeAction('delete');
           const translateX = Math.max(deltaX, -120);
@@ -286,53 +282,97 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
   };
 
   const handleTouchEnd = async (e: React.TouchEvent, notification: Notification) => {
-    console.log('Touch end on notification:', notification.id);
     const element = swipeRefs.current[notification.id];
     if (element && element.dataset.startX && element.dataset.startTime) {
       const deltaTime = Date.now() - parseInt(element.dataset.startTime);
       const isSwiping = element.dataset.isSwiping === 'true';
       
-      console.log('Touch end - isSwiping:', isSwiping, 'swipeAction:', swipeAction);
-      
       // If this was a swipe gesture and we have an action
       if (isSwiping && swipedNotification === notification.id && swipeAction) {
         e.stopPropagation(); // Prevent click event
-        console.log('Executing swipe action:', swipeAction);
         
-        // Execute swipe action
+        // Execute swipe action with slide-out animation
         try {
+          // Add slide-out animation before executing action
+          element.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+          
           if (swipeAction === 'read' && !notification.is_read) {
+            // Slide out to indicate action
+            element.style.transform = 'translateX(100%)';
+            element.style.opacity = '0.5';
+            
+            // Execute the action
             await onMarkAsRead(notification.id);
+            
+            // Invalidate queries to refresh the notification list
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
+            
             toast({
               title: 'Marked as read',
               status: 'success',
               duration: 2000,
               isClosable: true,
             });
+            
           } else if (swipeAction === 'delete') {
-            await onDelete(notification.id);
-            toast({
-              title: 'Deleted',
-              status: 'success',
-              duration: 2000,
-              isClosable: true,
-            });
+            // Slide out to indicate deletion
+            element.style.transform = 'translateX(-100%)';
+            element.style.opacity = '0';
+            
+            // Wait for animation, then execute delete
+            setTimeout(async () => {
+              try {
+                await onDelete(notification.id);
+                
+                                 // Invalidate queries to refresh the notification list
+                 queryClient.invalidateQueries({ queryKey: ['notifications'] });
+                
+                toast({
+                  title: 'Deleted',
+                  status: 'success',
+                  duration: 2000,
+                  isClosable: true,
+                });
+              } catch (error) {
+                console.error('Error deleting notification:', error);
+                // Reset on error
+                requestAnimationFrame(() => {
+                  element.style.transition = 'transform 0.3s ease';
+                  element.style.transform = 'translateX(0)';
+                  element.style.opacity = '1';
+                });
+              }
+            }, 300);
           }
         } catch (error) {
           console.error('Error executing swipe action:', error);
+          // Reset on error
+          requestAnimationFrame(() => {
+            element.style.transition = 'transform 0.3s ease';
+            element.style.transform = 'translateX(0)';
+            element.style.opacity = '1';
+          });
         }
+      } else {
+        // No action taken, reset smoothly
+        requestAnimationFrame(() => {
+          element.style.transition = 'transform 0.3s ease';
+          element.style.transform = 'translateX(0)';
+          element.style.opacity = '1';
+        });
       }
       
-      // Reset
+      // Reset state
       setSwipedNotification(null);
       setSwipeAction(null);
-      element.style.transform = 'translateX(0)';
-      element.style.transition = 'transform 0.3s ease';
       element.dataset.isSwiping = 'false';
       
+      // Clean up transition after animation
       setTimeout(() => {
-        element.style.transition = '';
-      }, 300);
+        if (element) {
+          element.style.transition = '';
+        }
+      }, 350);
     }
   };
 
