@@ -249,48 +249,51 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
     const touch = e.touches[0];
     const element = swipeRefs.current[notificationId];
     if (!element || !element.dataset.startX || !element.dataset.startY) return;
-    
+
     const startX = parseInt(element.dataset.startX);
     const startY = parseInt(element.dataset.startY);
     const deltaX = touch.clientX - startX;
     const deltaY = touch.clientY - startY;
     const threshold = 50;
-    
-    // Check if this is a horizontal swipe
+
+    // Horizontal swipe
     if (Math.abs(deltaX) > Math.abs(deltaY)) {
-      e.preventDefault(); // Prevent scrolling when swiping horizontally
-      
+      e.preventDefault(); // Prevent vertical scroll
+
+      // Apply transition only once per gesture
+      if (element.dataset.transitionApplied !== 'true') {
+        element.style.transition = 'transform 0.2s ease-out';
+        element.dataset.transitionApplied = 'true';
+      }
+
       if (Math.abs(deltaX) > 20) {
         element.dataset.isSwiping = 'true';
-        
-        // Apply visual feedback immediately
+
         if (deltaX > threshold) {
-          // Swipe right - mark as read
+          // Swipe right – mark as read
           setSwipedNotification(notificationId);
           setSwipeAction('read');
-          const translateX = Math.min(deltaX, 120);
-          element.style.transform = `translateX(${translateX}px)`;
+          element.style.transform = `translateX(${Math.min(deltaX, 120)}px)`;
           element.style.opacity = '0.8';
         } else if (deltaX < -threshold) {
-          // Swipe left - delete
+          // Swipe left – delete
           setSwipedNotification(notificationId);
           setSwipeAction('delete');
-          const translateX = Math.max(deltaX, -120);
-          element.style.transform = `translateX(${translateX}px)`;
+          element.style.transform = `translateX(${Math.max(deltaX, -120)}px)`;
           element.style.opacity = '0.8';
         } else {
-          // Show partial movement
-          const dampedMovement = deltaX * 0.4;
-          element.style.transform = `translateX(${dampedMovement}px)`;
+          // Damped feedback
+          element.style.transform = `translateX(${deltaX * 0.4}px)`;
           element.style.opacity = '1';
           setSwipedNotification(null);
           setSwipeAction(null);
         }
       }
     } else {
-      // Vertical swipe - reset any horizontal movement
+      // Vertical movement – cancel swipe
       element.style.transform = 'translateX(0)';
       element.style.opacity = '1';
+      element.dataset.transitionApplied = 'false';
       setSwipedNotification(null);
       setSwipeAction(null);
     }
@@ -299,44 +302,39 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
   const handleTouchEnd = async (e: React.TouchEvent, notification: Notification) => {
     const element = swipeRefs.current[notification.id];
     if (!element) return;
-    
+
     const isSwiping = element.dataset.isSwiping === 'true';
     const hasAction = swipedNotification === notification.id && swipeAction;
-    
-    // If this was a swipe gesture with an action
+
     if (isSwiping && hasAction) {
-      e.stopPropagation(); // Prevent click event
-      
+      e.stopPropagation(); // Prevent click
+
       try {
-        // Add smooth transition for the final animation
         element.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
-        
+
         if (swipeAction === 'read' && !notification.is_read) {
-          // Slide out right with fade
           element.style.transform = 'translateX(100%)';
           element.style.opacity = '0.3';
-          
+
           await onMarkAsRead(notification.id);
           queryClient.invalidateQueries({ queryKey: ['notifications'] });
-          
+
           toast({
             title: 'Marked as read',
             status: 'success',
             duration: 2000,
             isClosable: true,
           });
-          
+
         } else if (swipeAction === 'delete') {
-          // Slide out left with fade
           element.style.transform = 'translateX(-100%)';
           element.style.opacity = '0';
-          
-          // Wait for animation, then execute delete
+
           setTimeout(async () => {
             try {
               await onDelete(notification.id);
               queryClient.invalidateQueries({ queryKey: ['notifications'] });
-              
+
               toast({
                 title: 'Deleted',
                 status: 'success',
@@ -344,34 +342,30 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
                 isClosable: true,
               });
             } catch (error) {
-              console.error('Error deleting notification:', error);
-              // Reset on error
-              element.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+              console.error('Delete error:', error);
               element.style.transform = 'translateX(0)';
               element.style.opacity = '1';
             }
           }, 300);
         }
       } catch (error) {
-        console.error('Error executing swipe action:', error);
-        // Reset on error
-        element.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+        console.error('Swipe action error:', error);
         element.style.transform = 'translateX(0)';
         element.style.opacity = '1';
       }
     } else {
-      // No action or incomplete swipe - smoothly reset
+      // Not a valid swipe – reset
       element.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
       element.style.transform = 'translateX(0)';
       element.style.opacity = '1';
     }
-    
-    // Reset state
+
+    // Reset flags
     setSwipedNotification(null);
     setSwipeAction(null);
     element.dataset.isSwiping = 'false';
-    
-    // Clean up transition after animation
+    element.dataset.transitionApplied = 'false';
+
     setTimeout(() => {
       if (element) {
         element.style.transition = '';
