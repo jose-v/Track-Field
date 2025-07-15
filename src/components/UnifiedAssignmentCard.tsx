@@ -29,11 +29,13 @@ export function UnifiedAssignmentCard({
 }: UnifiedAssignmentCardProps) {
   const { resetProgress } = useUnifiedAssignmentActions();
 
-  // Theme colors - using dark theme to match the design
-  const cardBg = useColorModeValue('gray.800', 'gray.800');
-  const textColor = useColorModeValue('white', 'white');
-  const secondaryTextColor = useColorModeValue('gray.300', 'gray.300');
-  const borderColor = useColorModeValue('gray.700', 'gray.700');
+  // Theme colors - responsive light/dark mode
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const textColor = useColorModeValue('gray.800', 'white');
+  const secondaryTextColor = useColorModeValue('gray.500', 'gray.300');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const progressTextColor = useColorModeValue('gray.700', 'white');
+  const separatorColor = useColorModeValue('gray.300', 'gray.500');
 
   // Extract assignment details
   const getAssignmentDetails = () => {
@@ -196,7 +198,7 @@ export function UnifiedAssignmentCard({
       <Box position="relative" display="inline-flex">
         <svg height={radius * 2} width={radius * 2}>
           <circle
-            stroke="rgba(255, 255, 255, 0.2)"
+            stroke={useColorModeValue("rgba(0, 0, 0, 0.1)", "rgba(255, 255, 255, 0.2)")}
             fill="transparent"
             strokeWidth={strokeWidth}
             r={normalizedRadius}
@@ -225,7 +227,7 @@ export function UnifiedAssignmentCard({
           <Text
             fontSize="xl"
             fontWeight="bold"
-            color="white"
+            color={progressTextColor}
             textAlign="center"
           >
             {Math.round(percentage)}%
@@ -245,7 +247,11 @@ export function UnifiedAssignmentCard({
       color={textColor}
       maxW={{ base: "100%", md: "340px" }}
       w="100%"
-      _hover={{ transform: 'translateY(-2px)' }}
+      boxShadow={useColorModeValue("md", "lg")}
+      _hover={{ 
+        transform: 'translateY(-2px)', 
+        boxShadow: useColorModeValue("lg", "xl") 
+      }}
       transition="all 0.2s"
     >
       <VStack spacing={4} align="stretch">
@@ -253,20 +259,20 @@ export function UnifiedAssignmentCard({
         <HStack justify="space-between" align="center">
           <ButtonGroup size="sm" isAttached variant="outline">
             <Button 
-              bg="gray.600" 
-              color="white" 
-              _hover={{ bg: "gray.500" }}
+              bg={useColorModeValue("gray.200", "gray.600")} 
+              color={useColorModeValue("gray.700", "white")} 
+              _hover={{ bg: useColorModeValue("gray.300", "gray.500") }}
               border="1px solid"
-              borderColor="gray.500"
+              borderColor={separatorColor}
             >
               COACH
             </Button>
             <Button 
-              bg="gray.600" 
-              color="white" 
-              _hover={{ bg: "gray.500" }}
+              bg={useColorModeValue("gray.200", "gray.600")} 
+              color={useColorModeValue("gray.700", "white")} 
+              _hover={{ bg: useColorModeValue("gray.300", "gray.500") }}
               border="1px solid"
-              borderColor="gray.500"
+              borderColor={separatorColor}
             >
               SINGLE
             </Button>
@@ -277,7 +283,7 @@ export function UnifiedAssignmentCard({
         {/* Workout ID, Status and Date Information - Two Columns */}
         <HStack align="start" justify="space-between" w="100%">
           <VStack align="start" spacing={2}>
-            <Text fontSize="2xl" fontWeight="bold" color="white">
+            <Text fontSize="2xl" fontWeight="bold" color={textColor}>
               {workoutId}
             </Text>
             <Badge
@@ -312,29 +318,29 @@ export function UnifiedAssignmentCard({
             <Text fontSize="xs" color={secondaryTextColor} fontWeight="bold">
               EXERCISES
             </Text>
-            <Text fontSize="lg" fontWeight="bold" color="white">
+            <Text fontSize="lg" fontWeight="bold" color={progressTextColor}>
               {progressMetrics.exercises.current}/{progressMetrics.exercises.total}
             </Text>
           </VStack>
           
-          <Box w="1px" h="40px" bg="rgba(255, 255, 255, 0.2)" />
+          <Box w="1px" h="40px" bg={useColorModeValue("rgba(0, 0, 0, 0.1)", "rgba(255, 255, 255, 0.2)")} />
           
           <VStack spacing={1} flex={1}>
             <Text fontSize="xs" color={secondaryTextColor} fontWeight="bold">
               SETS
             </Text>
-            <Text fontSize="lg" fontWeight="bold" color="white">
+            <Text fontSize="lg" fontWeight="bold" color={progressTextColor}>
               {progressMetrics.sets.current}/{progressMetrics.sets.total}
             </Text>
           </VStack>
           
-          <Box w="1px" h="40px" bg="rgba(255, 255, 255, 0.2)" />
+          <Box w="1px" h="40px" bg={useColorModeValue("rgba(0, 0, 0, 0.1)", "rgba(255, 255, 255, 0.2)")} />
           
           <VStack spacing={1} flex={1}>
             <Text fontSize="xs" color={secondaryTextColor} fontWeight="bold">
               REPS
             </Text>
-            <Text fontSize="lg" fontWeight="bold" color="white">
+            <Text fontSize="lg" fontWeight="bold" color={progressTextColor}>
               {progressMetrics.reps.current}/{progressMetrics.reps.total}
             </Text>
           </VStack>
