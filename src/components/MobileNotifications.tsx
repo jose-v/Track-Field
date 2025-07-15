@@ -23,7 +23,7 @@ import { useSwipeable } from 'react-swipeable';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { format, formatDistanceToNow, isToday, isYesterday, isThisWeek } from 'date-fns';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, QueryClient } from '@tanstack/react-query';
 
 interface Notification {
   id: string;
@@ -56,6 +56,141 @@ interface MobileNotificationsProps {
   handleAthleteRequest?: (notificationId: string, athleteId: string, approved: boolean) => Promise<void>;
   handleCoachRequest?: (notificationId: string, coachId: string, accepted: boolean) => Promise<void>;
 }
+
+// Custom hook for swipe handlers
+const useNotificationSwipeHandlers = (
+  notification: Notification,
+  swipeRefs: React.MutableRefObject<{ [key: string]: HTMLDivElement | null }>,
+  setSwipeOffsets: React.Dispatch<React.SetStateAction<{ [key: string]: number }>>,
+  onDelete: (id: string) => Promise<void>,
+  onMarkAsRead: (id: string) => Promise<void>,
+  queryClient: QueryClient,
+  toast: ReturnType<typeof useToast>
+) => {
+  return useSwipeable({
+    onSwiping: ({ deltaX }) => {
+      const element = swipeRefs.current[notification.id];
+      if (element) {
+        setSwipeOffsets(prev => ({
+          ...prev,
+          [notification.id]: Math.max(Math.min(deltaX, 120), -120),
+        }));
+      }
+    },
+    onSwipedLeft: async ({ absX }) => {
+      if (absX > 80) {
+        try {
+          const element = swipeRefs.current[notification.id];
+          if (element) {
+            element.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+            element.style.transform = 'translateX(-120px)';
+            element.style.opacity = '0';
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
+          await onDelete(notification.id);
+          queryClient.invalidateQueries({ queryKey: ['notifications'] });
+          toast({
+            title: 'Deleted',
+            status: 'success',
+            duration: 2000,
+            isClosable: true,
+          });
+        } catch (error) {
+          console.error('Delete error:', error);
+          toast({
+            title: 'Action failed',
+            description: 'Please try again',
+            status: 'error',
+            duration: 3000,
+            isClosable: true,
+          });
+          // Reset position if error occurs
+          const element = swipeRefs.current[notification.id];
+          if (element) {
+            element.style.transform = 'translateX(0)';
+            element.style.opacity = '1';
+          }
+        } finally {
+          setSwipeOffsets(prev => {
+            const newOffsets = { ...prev };
+            delete newOffsets[notification.id];
+            return newOffsets;
+          });
+        }
+      } else {
+        // Reset position if swipe wasn't far enough
+        const element = swipeRefs.current[notification.id];
+        if (element) {
+          element.style.transition = 'transform 0.3s ease';
+          element.style.transform = 'translateX(0)';
+        }
+        setSwipeOffsets(prev => {
+          const newOffsets = { ...prev };
+          delete newOffsets[notification.id];
+          return newOffsets;
+        });
+      }
+    },
+    onSwipedRight: async ({ absX }) => {
+      if (absX > 80 && !notification.is_read) {
+        try {
+          const element = swipeRefs.current[notification.id];
+          if (element) {
+            element.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+            element.style.transform = 'translateX(120px)';
+            element.style.opacity = '0.5';
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
+          await onMarkAsRead(notification.id);
+          queryClient.invalidateQueries({ queryKey: ['notifications'] });
+          toast({
+            title: 'Marked as read',
+            status: 'success',
+            duration: 2000,
+            isClosable: true,
+          });
+        } catch (error) {
+          console.error('Mark as read error:', error);
+          toast({
+            title: 'Action failed',
+            description: 'Please try again',
+            status: 'error',
+            duration: 3000,
+            isClosable: true,
+          });
+          // Reset position if error occurs
+          const element = swipeRefs.current[notification.id];
+          if (element) {
+            element.style.transform = 'translateX(0)';
+            element.style.opacity = '1';
+          }
+        } finally {
+          setSwipeOffsets(prev => {
+            const newOffsets = { ...prev };
+            delete newOffsets[notification.id];
+            return newOffsets;
+          });
+        }
+      } else {
+        // Reset position if swipe wasn't far enough
+        const element = swipeRefs.current[notification.id];
+        if (element) {
+          element.style.transition = 'transform 0.3s ease';
+          element.style.transform = 'translateX(0)';
+        }
+        setSwipeOffsets(prev => {
+          const newOffsets = { ...prev };
+          delete newOffsets[notification.id];
+          return newOffsets;
+        });
+      }
+    },
+    delta: 10,
+    preventScrollOnSwipe: true,
+    trackTouch: true,
+    trackMouse: false,
+  });
+};
 
 export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
   notifications,
@@ -223,116 +358,15 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
     const userProfile = getUserProfileForNotification(notification);
     const swipeOffset = swipeOffsets[notification.id] || 0;
 
-    const swipeHandlers = useSwipeable({
-      onSwiping: ({ deltaX }) => {
-        const element = swipeRefs.current[notification.id];
-        if (element) {
-          setSwipeOffsets(prev => ({
-            ...prev,
-            [notification.id]: Math.max(Math.min(deltaX, 120), -120),
-          }));
-        }
-      },
-      onSwipedLeft: async ({ absX }) => {
-        if (absX > 50) {
-          try {
-            const element = swipeRefs.current[notification.id];
-            if (element) {
-              element.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
-              element.style.transform = 'translateX(-100%)';
-              element.style.opacity = '0';
-            }
-            await onDelete(notification.id);
-            queryClient.invalidateQueries({ queryKey: ['notifications'] });
-            toast({
-              title: 'Deleted',
-              status: 'success',
-              duration: 2000,
-              isClosable: true,
-            });
-          } catch (error) {
-            console.error('Delete error:', error);
-            toast({
-              title: 'Action failed',
-              description: 'Please try again',
-              status: 'error',
-              duration: 3000,
-              isClosable: true,
-            });
-          } finally {
-            setSwipeOffsets(prev => {
-              const newOffsets = { ...prev };
-              delete newOffsets[notification.id];
-              return newOffsets;
-            });
-          }
-        } else {
-          setSwipeOffsets(prev => {
-            const newOffsets = { ...prev };
-            delete newOffsets[notification.id];
-            return newOffsets;
-          });
-        }
-      },
-      onSwipedRight: async ({ absX }) => {
-        if (absX > 50 && !notification.is_read) {
-          try {
-            const element = swipeRefs.current[notification.id];
-            if (element) {
-              element.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
-              element.style.transform = 'translateX(100%)';
-              element.style.opacity = '0';
-            }
-            await onMarkAsRead(notification.id);
-            queryClient.invalidateQueries({ queryKey: ['notifications'] });
-            toast({
-              title: 'Marked as read',
-              status: 'success',
-              duration: 2000,
-              isClosable: true,
-            });
-          } catch (error) {
-            console.error('Mark as read error:', error);
-            toast({
-              title: 'Action failed',
-              description: 'Please try again',
-              status: 'error',
-              duration: 3000,
-              isClosable: true,
-            });
-          } finally {
-            setSwipeOffsets(prev => {
-              const newOffsets = { ...prev };
-              delete newOffsets[notification.id];
-              return newOffsets;
-            });
-          }
-        } else {
-          setSwipeOffsets(prev => {
-            const newOffsets = { ...prev };
-            delete newOffsets[notification.id];
-            return newOffsets;
-          });
-        }
-      },
-      onSwiped: () => {
-        const element = swipeRefs.current[notification.id];
-        if (element) {
-          element.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
-          element.style.transform = 'translateX(0)';
-          element.style.opacity = '1';
-        }
-        setSwipeOffsets(prev => {
-          const newOffsets = { ...prev };
-          delete newOffsets[notification.id];
-          return newOffsets;
-        });
-      },
-      delta: 10,
-      preventScrollOnSwipe: true,
-      trackTouch: true,
-      trackMouse: false,
-    });
+    const swipeHandlers = useNotificationSwipeHandlers(
+      notification,
+      swipeRefs,
+      setSwipeOffsets,
+      onDelete,
+      onMarkAsRead,
+      queryClient,
+      toast
+    );
 
     return (
       <Box key={notification.id} position="relative" w="100%">
@@ -548,7 +582,7 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
   const groupedNotifications = groupNotificationsByDate(filteredNotifications);
 
   return (
-    <Box w="100%" sx={{ touchAction: 'pan-y' }}>
+    <Box w="100%" sx={{ touchAction: 'manipulation' }}>
       <Tabs 
         variant="line" 
         size="md" 
