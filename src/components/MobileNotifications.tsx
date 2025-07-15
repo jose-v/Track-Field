@@ -110,7 +110,9 @@ const MobileNotifications: React.FC = () => {
         }, 300);
       },
       onSwiping: (eventData) => {
+        console.log('🔄 SWIPING deltaX:', eventData.deltaX);
         if (Math.abs(eventData.deltaX) > 20) {
+          console.log('📍 Setting swiping state for:', notificationId, 'direction:', eventData.deltaX > 0 ? 'right' : 'left');
           setSwipingIds(prev => new Set(prev).add(notificationId));
           setSwipeDirection(prev => ({
             ...prev,
@@ -137,6 +139,18 @@ const MobileNotifications: React.FC = () => {
         const showDeleteBackground = isDeleting || (isSwiping && currentSwipeDirection === 'left');
         const showReadBackground = isMarkingAsRead || (isSwiping && currentSwipeDirection === 'right');
         
+        // Debug logging
+        if (isSwiping || isDeleting || isMarkingAsRead) {
+          console.log('🎨 RENDER DEBUG for', notification.id, {
+            isSwiping,
+            currentSwipeDirection,
+            isDeleting,
+            isMarkingAsRead,
+            showDeleteBackground,
+            showReadBackground
+          });
+        }
+
         return (
           <Box
             key={notification.id}
@@ -158,18 +172,18 @@ const MobileNotifications: React.FC = () => {
                 left="0"
                 right="0"
                 bottom="0"
-                bgGradient="linear(to-l, red.600, red.500)"
+                bgGradient="linear(to-l, red.500, red.400)"
                 display="flex"
                 flexDirection="column"
                 justifyContent="center"
                 alignItems="flex-end"
                 pr={8}
-                zIndex={0}
+                zIndex={-1}
               >
-                <Box color="white" fontSize="2xl" mb={1}>
+                <Box color="white" fontSize="3xl" mb={1}>
                   <FaTrash />
                 </Box>
-                <Text color="white" fontWeight="bold" fontSize="sm">
+                <Text color="white" fontWeight="bold" fontSize="md">
                   Delete
                 </Text>
               </Box>
@@ -183,18 +197,18 @@ const MobileNotifications: React.FC = () => {
                 left="0"
                 right="0"
                 bottom="0"
-                bgGradient="linear(to-r, blue.600, blue.500)"
+                bgGradient="linear(to-r, blue.500, blue.400)"
                 display="flex"
                 flexDirection="column"
                 justifyContent="center"
                 alignItems="flex-start"
                 pl={8}
-                zIndex={0}
+                zIndex={-1}
               >
-                <Box color="white" fontSize="2xl" mb={1}>
+                <Box color="white" fontSize="3xl" mb={1}>
                   <FaEnvelopeOpen />
                 </Box>
-                <Text color="white" fontWeight="bold" fontSize="sm">
+                <Text color="white" fontWeight="bold" fontSize="md">
                   Read
                 </Text>
               </Box>
