@@ -111,25 +111,11 @@ const MobileNotifications: React.FC = () => {
       },
       onSwiping: (eventData) => {
         console.log('🔄 Swiping:', eventData.deltaX, 'px, velocity:', eventData.velocity);
-        if (Math.abs(eventData.deltaX) > 15) {
+        
+        // Only show visual feedback, don't trigger actions during swipe
+        if (Math.abs(eventData.deltaX) > 30) {
           setSwipingNotificationId(notificationId);
           setSwipeDirection(eventData.deltaX > 0 ? 'right' : 'left');
-        }
-        
-        // Trigger action if swipe is far enough
-        if (Math.abs(eventData.deltaX) > 80 && !processingNotifications.has(notificationId)) {
-          console.log('🚀 Auto-completing swipe at 80px');
-          if (eventData.deltaX > 0) {
-            console.log('✅ Auto-completed swipe right');
-            setSwipingNotificationId(null);
-            setSwipeDirection(null);
-            handleSwipeRight(notificationId);
-          } else {
-            console.log('✅ Auto-completed swipe left');
-            setSwipingNotificationId(null);
-            setSwipeDirection(null);
-            handleSwipeLeft(notificationId);
-          }
         }
       },
       onSwiped: () => {
@@ -139,9 +125,9 @@ const MobileNotifications: React.FC = () => {
       },
       trackMouse: true,
       trackTouch: true,
-      delta: 10, // Very low threshold
+      delta: 150, // Much higher threshold like React Native example (was 10)
       preventScrollOnSwipe: true,
-      swipeDuration: 1000, // Allow longer swipes
+      swipeDuration: 1000,
       touchEventOptions: { passive: false },
       rotationAngle: 0,
     });
@@ -185,7 +171,7 @@ const MobileNotifications: React.FC = () => {
                   fontWeight="bold"
                   fontSize="lg"
                 >
-                  {swipeDirection === 'right' ? '📖 Mark as Read' : '🗑️ Delete'}
+                  {swipeDirection === 'right' ? '📖 Swipe More to Mark Read' : '🗑️ Swipe More to Delete'}
                 </Text>
               </Box>
             )}
@@ -202,10 +188,10 @@ const MobileNotifications: React.FC = () => {
               bg="white"
               style={{
                 transform: isCurrentlySwiping && swipeDirection ? 
-                  `translateX(${swipeDirection === 'right' ? '60px' : '-60px'})` : 
+                  `translateX(${swipeDirection === 'right' ? '120px' : '-120px'})` : 
                   'translateX(0)',
-                transition: isCurrentlySwiping ? 'none' : 'transform 0.2s ease',
-                opacity: isCurrentlySwiping ? 0.9 : 1
+                transition: isCurrentlySwiping ? 'none' : 'transform 0.3s ease',
+                opacity: isCurrentlySwiping ? 0.8 : 1
               }}
               onClick={() => handleNotificationClick(notification.id)}
             >
