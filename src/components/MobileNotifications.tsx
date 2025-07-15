@@ -19,6 +19,7 @@ import {
   Button,
 } from '@chakra-ui/react';
 import { FaCheckCircle, FaTimesCircle, FaBell, FaUserPlus, FaTrophy, FaCalendarAlt, FaEnvelopeOpen, FaTrash } from 'react-icons/fa';
+import { useSwipeable } from 'react-swipeable';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { format, formatDistanceToNow, isToday, isYesterday, isThisWeek } from 'date-fns';
@@ -70,9 +71,6 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
   handleCoachRequest,
 }) => {
   const { user } = useAuth();
-  const [swipedNotification, setSwipedNotification] = useState<string | null>(null);
-  const [swipeAction, setSwipeAction] = useState<'read' | 'delete' | null>(null);
-  const swipeRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const toast = useToast();
   const queryClient = useQueryClient();
 
@@ -216,163 +214,67 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
   };
 
   const handleNotificationClick = useCallback((e: React.MouseEvent, notification: Notification) => {
-    const element = swipeRefs.current[notification.id];
-    const isSwiping = element?.dataset.isSwiping === 'true';
-    
-    if (isSwiping) {
-      e.preventDefault();
-      return;
-    }
-    
     if (!notification.is_read) {
       onMarkAsRead(notification.id);
     }
   }, [onMarkAsRead]);
 
-  const handleTouchStart = useCallback((e: React.TouchEvent, notificationId: string) => {
-    const touch = e.touches[0];
-    const element = swipeRefs.current[notificationId];
-    if (element) {
-      element.dataset.startX = touch.clientX.toString();
-      element.dataset.startY = touch.clientY.toString();
-      element.dataset.startTime = Date.now().toString();
-      element.dataset.isSwiping = 'false';
-      element.style.transform = 'translateX(0)';
-      element.style.transition = '';
-      element.style.willChange = 'transform, opacity';
-    }
-  }, []);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent, notificationId: string) => {
-    requestAnimationFrame(() => {
-      const touch = e.touches[0];
-      const element = swipeRefs.current[notificationId];
-      if (!element || !element.dataset.startX || !element.dataset.startY) return;
-
-      const startX = parseInt(element.dataset.startX);
-      const startY = parseInt(element.dataset.startY);
-      const deltaX = touch.clientX - startX;
-      const deltaY = touch.clientY - startY;
-      const threshold = 30;
-
-      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
-        e.preventDefault();
-        element.dataset.isSwiping = 'true';
-        if (element.dataset.transitionApplied !== 'true') {
-          element.style.transition = 'transform 0.1s ease-out';
-          element.dataset.transitionApplied = 'true';
-        }
-
-        if (deltaX > threshold) {
-          setSwipedNotification(notificationId);
-          setSwipeAction('read');
-          element.style.transform = `translateX(${Math.min(deltaX, 120)}px)`;
-          element.style.opacity = '0.9';
-        } else if (deltaX < -threshold) {
-          setSwipedNotification(notificationId);
-          setSwipeAction('delete');
-          element.style.transform = `translateX(${Math.max(deltaX, -120)}px)`;
-          element.style.opacity = '0.9';
-        } else {
-          element.style.transform = `translateX(${deltaX}px)`;
-          element.style.opacity = '1';
-          setSwipedNotification(null);
-          setSwipeAction(null);
-        }
-      } else {
-        element.style.transform = 'translateX(0)';
-        element.style.opacity = '1';
-        element.dataset.transitionApplied = 'false';
-        setSwipedNotification(null);
-        setSwipeAction(null);
-      }
-    });
-  }, []);
-
-  const handleTouchEnd = useCallback(async (e: React.TouchEvent, notification: Notification) => {
-    const element = swipeRefs.current[notification.id];
-    if (!element) return;
-
-    const isSwiping = element.dataset.isSwiping === 'true';
-    const hasAction = swipedNotification === notification.id && swipeAction;
-
-    if (isSwiping && hasAction) {
-      e.stopPropagation();
-      element.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
-
-      try {
-        if (swipeAction === 'read' && !notification.is_read) {
-          element.style.transform = 'translateX(100%)';
-          element.style.opacity = '0.3';
-          await onMarkAsRead(notification.id);
-          queryClient.invalidateQueries({ queryKey: ['notifications'] });
-          toast({
-            title: 'Marked as read',
-            status: 'success',
-            duration: 2000,
-            isClosable: true,
-          });
-        } else if (swipeAction === 'delete') {
-          element.style.transform = 'translateX(-100%)';
-          element.style.opacity = '0';
-          const timeoutId = setTimeout(async () => {
-            try {
-              await onDelete(notification.id);
-              queryClient.invalidateQueries({ queryKey: ['notifications'] });
-              toast({
-                title: 'Deleted',
-                status: 'success',
-                duration: 2000,
-                isClosable: true,
-              });
-            } catch (error) {
-              console.error('Delete error:', error);
-              element.style.transform = 'translateX(0)';
-              element.style.opacity = '1';
-              toast({
-                title: 'Action failed',
-                description: 'Please try again',
-                status: 'error',
-                duration: 3000,
-                isClosable: true,
-              });
-            }
-          }, 300);
-          return () => clearTimeout(timeoutId);
-        }
-      } catch (error) {
-        console.error('Swipe action error:', error);
-        element.style.transform = 'translateX(0)';
-        element.style.opacity = '1';
-        toast({
-          title: 'Action failed',
-          description: 'Please try again',
-          status: 'error',
-          duration: 3000,
-          isClosable: true,
-        });
-      }
-    } else {
-      element.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
-      element.style.transform = 'translateX(0)';
-      element.style.opacity = '1';
-    }
-
-    setSwipedNotification(null);
-    setSwipeAction(null);
-    element.dataset.isSwiping = 'false';
-    element.dataset.transitionApplied = 'false';
-    element.style.willChange = 'auto';
-
-    setTimeout(() => {
-      if (element) {
-        element.style.transition = '';
-      }
-    }, 350);
-  }, [onMarkAsRead, onDelete, queryClient, toast, swipeAction, swipedNotification]);
-
   const renderNotificationItem = (notification: Notification, index: number, groupNotifications: Notification[]) => {
     const userProfile = getUserProfileForNotification(notification);
+    
+    // Create swipe handlers for this specific notification
+    const swipeHandlers = useSwipeable({
+      onSwipedLeft: async ({ event, absX }) => {
+        if (absX > 50) {
+          try {
+            await onDelete(notification.id);
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
+            toast({
+              title: 'Deleted',
+              status: 'success',
+              duration: 2000,
+              isClosable: true,
+            });
+          } catch (error) {
+            console.error('Delete error:', error);
+            toast({
+              title: 'Action failed',
+              description: 'Please try again',
+              status: 'error',
+              duration: 3000,
+              isClosable: true,
+            });
+          }
+        }
+      },
+      onSwipedRight: async ({ event, absX }) => {
+        if (absX > 50 && !notification.is_read) {
+          try {
+            await onMarkAsRead(notification.id);
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
+            toast({
+              title: 'Marked as read',
+              status: 'success',
+              duration: 2000,
+              isClosable: true,
+            });
+          } catch (error) {
+            console.error('Mark as read error:', error);
+            toast({
+              title: 'Action failed',
+              description: 'Please try again',
+              status: 'error',
+              duration: 3000,
+              isClosable: true,
+            });
+          }
+        }
+      },
+      delta: 10,
+      preventScrollOnSwipe: true,
+      trackTouch: true,
+      trackMouse: false,
+    });
     
     return (
       <Box key={notification.id} position="relative" w="100%">
@@ -420,19 +322,13 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
 
         {/* Main Notification Card */}
         <Box
-          ref={(el) => (swipeRefs.current[notification.id] = el)}
-          onTouchStart={(e) => handleTouchStart(e, notification.id)}
-          onTouchMove={(e) => handleTouchMove(e, notification.id)}
-          onTouchEnd={(e) => handleTouchEnd(e, notification)}
+          {...swipeHandlers}
           onClick={(e) => handleNotificationClick(e, notification)}
           cursor="pointer"
           position="relative"
           zIndex={1}
           bg={bgColor}
-          transform="translateX(0)"
-          willChange="transform, opacity"
           sx={{
-            touchAction: 'none',
             userSelect: 'none',
             WebkitTouchCallout: 'none',
             WebkitUserSelect: 'none',
@@ -589,7 +485,7 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
   const groupedNotifications = groupNotificationsByDate(filteredNotifications);
 
   return (
-    <Box w="100%" sx={{ touchAction: 'pan-y' }}>
+    <Box w="100%">
       <Tabs 
         variant="line" 
         size="md" 
