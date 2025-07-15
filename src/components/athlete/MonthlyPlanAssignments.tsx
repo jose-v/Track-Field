@@ -934,9 +934,27 @@ export function MonthlyPlanAssignments({ onViewPlan }: MonthlyPlanAssignmentsPro
               <Icon as={FaRunning} mr={2} color="blue.500" />
               Current Month
             </Heading>
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-              {currentAssignments.map(renderAssignmentCard)}
-            </SimpleGrid>
+            <Box 
+              overflowX={{ base: "hidden", md: "auto" }} 
+              pb={4}
+            >
+              <Stack 
+                direction={{ base: "column", md: "row" }}
+                spacing={{ base: 4, md: 4 }} 
+                align="start" 
+                minW={{ base: "100%", md: "fit-content" }}
+              >
+                {currentAssignments.map((assignment) => (
+                  <Box 
+                    key={assignment.id}
+                    w={{ base: "100%", md: "auto" }}
+                    minW={{ base: "100%", md: "340px" }}
+                  >
+                    {renderAssignmentCard(assignment)}
+                  </Box>
+                ))}
+              </Stack>
+            </Box>
           </Box>
         )}
 
@@ -947,9 +965,27 @@ export function MonthlyPlanAssignments({ onViewPlan }: MonthlyPlanAssignmentsPro
               <Icon as={FaClock} mr={2} color="orange.500" />
               Upcoming Plans
             </Heading>
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-              {upcomingAssignments.map(renderAssignmentCard)}
-            </SimpleGrid>
+            <Box 
+              overflowX={{ base: "hidden", md: "auto" }} 
+              pb={4}
+            >
+              <Stack 
+                direction={{ base: "column", md: "row" }}
+                spacing={{ base: 4, md: 4 }} 
+                align="start" 
+                minW={{ base: "100%", md: "fit-content" }}
+              >
+                {upcomingAssignments.map((assignment) => (
+                  <Box 
+                    key={assignment.id}
+                    w={{ base: "100%", md: "auto" }}
+                    minW={{ base: "100%", md: "340px" }}
+                  >
+                    {renderAssignmentCard(assignment)}
+                  </Box>
+                ))}
+              </Stack>
+            </Box>
           </Box>
         )}
 
@@ -960,9 +996,27 @@ export function MonthlyPlanAssignments({ onViewPlan }: MonthlyPlanAssignmentsPro
               <Icon as={FaChartLine} mr={2} color="green.500" />
               Completed Plans
             </Heading>
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-              {pastAssignments.map(renderAssignmentCard)}
-            </SimpleGrid>
+            <Box 
+              overflowX={{ base: "hidden", md: "auto" }} 
+              pb={4}
+            >
+              <Stack 
+                direction={{ base: "column", md: "row" }}
+                spacing={{ base: 4, md: 4 }} 
+                align="start" 
+                minW={{ base: "100%", md: "fit-content" }}
+              >
+                {pastAssignments.map((assignment) => (
+                  <Box 
+                    key={assignment.id}
+                    w={{ base: "100%", md: "auto" }}
+                    minW={{ base: "100%", md: "340px" }}
+                  >
+                    {renderAssignmentCard(assignment)}
+                  </Box>
+                ))}
+              </Stack>
+            </Box>
           </Box>
         )}
       </VStack>

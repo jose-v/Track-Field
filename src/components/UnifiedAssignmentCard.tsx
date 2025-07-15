@@ -243,7 +243,8 @@ export function UnifiedAssignmentCard({
       borderWidth="1px"
       borderColor={borderColor}
       color={textColor}
-      maxW="340px"
+      maxW={{ base: "100%", md: "340px" }}
+      w="100%"
       _hover={{ transform: 'translateY(-2px)' }}
       transition="all 0.2s"
     >

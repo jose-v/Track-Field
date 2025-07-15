@@ -4,6 +4,7 @@ import {
   Text,
   VStack,
   HStack,
+  Stack,
   Icon,
   Badge,
   Button,
@@ -301,18 +302,31 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
 
         {/* Today's Assignments */}
         {displayTodayAssignments.length > 0 ? (
-          <Box>
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+          <Box 
+            overflowX={{ base: "hidden", md: "auto" }} 
+            pb={4}
+          >
+            <Stack 
+              direction={{ base: "column", md: "row" }}
+              spacing={{ base: 4, md: 4 }} 
+              align="start" 
+              minW={{ base: "100%", md: "fit-content" }}
+            >
               {displayTodayAssignments.map((assignment) => (
-                <UnifiedAssignmentCard
+                <Box 
                   key={assignment.id}
-                  assignment={assignment}
-                  onExecute={handleExecuteWorkout}
-                  showActions={true}
-                  compact={false}
-                />
+                  w={{ base: "100%", md: "auto" }}
+                  minW={{ base: "100%", md: "340px" }}
+                >
+                  <UnifiedAssignmentCard
+                    assignment={assignment}
+                    onExecute={handleExecuteWorkout}
+                    showActions={true}
+                    compact={false}
+                  />
+                </Box>
               ))}
-            </SimpleGrid>
+            </Stack>
           </Box>
         ) : (
           <Box
@@ -357,17 +371,32 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
               </Badge>
             </HStack>
             
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-              {upcomingAssignments.slice(0, 6).map((assignment) => (
-                <UnifiedAssignmentCard
-                  key={assignment.id}
-                  assignment={assignment}
-                  onExecute={handleExecuteWorkout}
-                  showActions={true}
-                  compact={true}
-                />
-              ))}
-            </SimpleGrid>
+            <Box 
+              overflowX={{ base: "hidden", md: "auto" }} 
+              pb={4}
+            >
+              <Stack 
+                direction={{ base: "column", md: "row" }}
+                spacing={{ base: 4, md: 4 }} 
+                align="start" 
+                minW={{ base: "100%", md: "fit-content" }}
+              >
+                {upcomingAssignments.slice(0, 6).map((assignment) => (
+                  <Box 
+                    key={assignment.id}
+                    w={{ base: "100%", md: "auto" }}
+                    minW={{ base: "100%", md: "340px" }}
+                  >
+                    <UnifiedAssignmentCard
+                      assignment={assignment}
+                      onExecute={handleExecuteWorkout}
+                      showActions={true}
+                      compact={true}
+                    />
+                  </Box>
+                ))}
+              </Stack>
+            </Box>
           </Box>
         )}
 

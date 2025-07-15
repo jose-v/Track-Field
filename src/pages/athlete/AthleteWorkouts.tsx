@@ -452,17 +452,32 @@ export function AthleteWorkouts() {
               )}
               
               {filteredAssignments.length > 0 ? (
-                <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
-                  {filteredAssignments.map((assignment) => (
-                    <UnifiedAssignmentCard
-                      key={assignment.id}
-                      assignment={assignment}
-                      onExecute={handleExecuteWorkout}
-                      showActions={true}
-                      compact={false}
-                    />
-                  ))}
-                </SimpleGrid>
+                <Box 
+                  overflowX={{ base: "hidden", md: "auto" }} 
+                  pb={4}
+                >
+                  <Stack 
+                    direction={{ base: "column", md: "row" }}
+                    spacing={{ base: 4, md: 6 }} 
+                    align="start" 
+                    minW={{ base: "100%", md: "fit-content" }}
+                  >
+                    {filteredAssignments.map((assignment) => (
+                      <Box 
+                        key={assignment.id}
+                        w={{ base: "100%", md: "auto" }}
+                        minW={{ base: "100%", md: "340px" }}
+                      >
+                        <UnifiedAssignmentCard
+                          assignment={assignment}
+                          onExecute={handleExecuteWorkout}
+                          showActions={true}
+                          compact={false}
+                        />
+                      </Box>
+                    ))}
+                  </Stack>
+                </Box>
               ) : (
                 <Box 
                   bg={cardBg} 
