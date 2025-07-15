@@ -73,6 +73,8 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
   const { user } = useAuth();
   const toast = useToast();
   const queryClient = useQueryClient();
+  const swipeRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const [swipeOffsets, setSwipeOffsets] = useState<{ [key: string]: number }>({});
 
   // Color mode values
   const bgColor = useColorModeValue('white', 'gray.800');
@@ -81,8 +83,6 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
   const subtitleColor = useColorModeValue('gray.600', 'gray.400');
   const sectionHeaderColor = useColorModeValue('gray.500', 'gray.400');
   const sectionHeaderBg = useColorModeValue('gray.50', 'gray.750');
-  const readActionBg = useColorModeValue('blue.50', 'blue.900');
-  const deleteActionBg = useColorModeValue('red.50', 'red.900');
 
   const getNotificationColor = (type: string) => {
     switch (type) {
@@ -219,14 +219,30 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
     }
   }, [onMarkAsRead]);
 
-  // Create swipe handlers at component level
-  const swipeHandlers = useSwipeable({
-    onSwipedLeft: async ({ event, absX }) => {
-      if (absX > 50) {
-        const notificationId = (event.target as HTMLElement).closest('[data-notification-id]')?.getAttribute('data-notification-id');
-        if (notificationId) {
+  const renderNotificationItem = (notification: Notification, index: number, groupNotifications: Notification[]) => {
+    const userProfile = getUserProfileForNotification(notification);
+    const swipeOffset = swipeOffsets[notification.id] || 0;
+
+    const swipeHandlers = useSwipeable({
+      onSwiping: ({ deltaX }) => {
+        const element = swipeRefs.current[notification.id];
+        if (element) {
+          setSwipeOffsets(prev => ({
+            ...prev,
+            [notification.id]: Math.max(Math.min(deltaX, 120), -120),
+          }));
+        }
+      },
+      onSwipedLeft: async ({ absX }) => {
+        if (absX > 50) {
           try {
-            await onDelete(notificationId);
+            const element = swipeRefs.current[notification.id];
+            if (element) {
+              element.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+              element.style.transform = 'translateX(-100%)';
+              element.style.opacity = '0';
+            }
+            await onDelete(notification.id);
             queryClient.invalidateQueries({ queryKey: ['notifications'] });
             toast({
               title: 'Deleted',
@@ -243,16 +259,30 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
               duration: 3000,
               isClosable: true,
             });
+          } finally {
+            setSwipeOffsets(prev => {
+              const newOffsets = { ...prev };
+              delete newOffsets[notification.id];
+              return newOffsets;
+            });
           }
+        } else {
+          setSwipeOffsets(prev => {
+            const newOffsets = { ...prev };
+            delete newOffsets[notification.id];
+            return newOffsets;
+          });
         }
-      }
-    },
-    onSwipedRight: async ({ event, absX }) => {
-      if (absX > 50) {
-        const notificationId = (event.target as HTMLElement).closest('[data-notification-id]')?.getAttribute('data-notification-id');
-        const notification = notifications.find(n => n.id === notificationId);
-        if (notification && !notification.is_read) {
+      },
+      onSwipedRight: async ({ absX }) => {
+        if (absX > 50 && !notification.is_read) {
           try {
+            const element = swipeRefs.current[notification.id];
+            if (element) {
+              element.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+              element.style.transform = 'translateX(100%)';
+              element.style.opacity = '0';
+            }
             await onMarkAsRead(notification.id);
             queryClient.invalidateQueries({ queryKey: ['notifications'] });
             toast({
@@ -270,19 +300,40 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
               duration: 3000,
               isClosable: true,
             });
+          } finally {
+            setSwipeOffsets(prev => {
+              const newOffsets = { ...prev };
+              delete newOffsets[notification.id];
+              return newOffsets;
+            });
           }
+        } else {
+          setSwipeOffsets(prev => {
+            const newOffsets = { ...prev };
+            delete newOffsets[notification.id];
+            return newOffsets;
+          });
         }
-      }
-    },
-    delta: 10,
-    preventScrollOnSwipe: true,
-    trackTouch: true,
-    trackMouse: false,
-  });
+      },
+      onSwiped: () => {
+        const element = swipeRefs.current[notification.id];
+        if (element) {
+          element.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+          element.style.transform = 'translateX(0)';
+          element.style.opacity = '1';
+        }
+        setSwipeOffsets(prev => {
+          const newOffsets = { ...prev };
+          delete newOffsets[notification.id];
+          return newOffsets;
+        });
+      },
+      delta: 10,
+      preventScrollOnSwipe: true,
+      trackTouch: true,
+      trackMouse: false,
+    });
 
-  const renderNotificationItem = (notification: Notification, index: number, groupNotifications: Notification[]) => {
-    const userProfile = getUserProfileForNotification(notification);
-    
     return (
       <Box key={notification.id} position="relative" w="100%">
         {/* Background Action Layers */}
@@ -299,7 +350,7 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
           {/* Read Action Background - Left Side */}
           <Box
             w="50%"
-            bg="blue.500"
+            bg="blue.600"
             display="flex"
             alignItems="center"
             justifyContent="flex-start"
@@ -314,7 +365,7 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
           {/* Delete Action Background - Right Side */}
           <Box
             w="50%"
-            bg="red.500"
+            bg="red.600"
             display="flex"
             alignItems="center"
             justifyContent="flex-end"
@@ -330,13 +381,17 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
         {/* Main Notification Card */}
         <Box
           {...swipeHandlers}
+          ref={(el) => (swipeRefs.current[notification.id] = el)}
           data-notification-id={notification.id}
           onClick={(e) => handleNotificationClick(e, notification)}
           cursor="pointer"
           position="relative"
           zIndex={1}
           bg={bgColor}
+          transform={`translateX(${swipeOffset}px)`}
+          transition="transform 0.1s ease-out, opacity 0.1s ease-out"
           sx={{
+            touchAction: 'none',
             userSelect: 'none',
             WebkitTouchCallout: 'none',
             WebkitUserSelect: 'none',
@@ -493,7 +548,7 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
   const groupedNotifications = groupNotificationsByDate(filteredNotifications);
 
   return (
-    <Box w="100%">
+    <Box w="100%" sx={{ touchAction: 'pan-y' }}>
       <Tabs 
         variant="line" 
         size="md" 
