@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Box,
   VStack,
@@ -215,11 +215,10 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
     }
   };
 
-  const handleNotificationClick = (e: React.MouseEvent, notification: Notification) => {
+  const handleNotificationClick = useCallback((e: React.MouseEvent, notification: Notification) => {
     const element = swipeRefs.current[notification.id];
     const isSwiping = element?.dataset.isSwiping === 'true';
     
-    // Don't handle click if we just finished swiping
     if (isSwiping) {
       e.preventDefault();
       return;
@@ -228,10 +227,9 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
     if (!notification.is_read) {
       onMarkAsRead(notification.id);
     }
-  };
+  }, [onMarkAsRead]);
 
-  // Swipe handling
-  const handleTouchStart = (e: React.TouchEvent, notificationId: string) => {
+  const handleTouchStart = useCallback((e: React.TouchEvent, notificationId: string) => {
     const touch = e.touches[0];
     const element = swipeRefs.current[notificationId];
     if (element) {
@@ -239,67 +237,59 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
       element.dataset.startY = touch.clientY.toString();
       element.dataset.startTime = Date.now().toString();
       element.dataset.isSwiping = 'false';
-      // Clear any existing transform
       element.style.transform = 'translateX(0)';
       element.style.transition = '';
+      element.style.willChange = 'transform, opacity';
     }
-  };
+  }, []);
 
-  const handleTouchMove = (e: React.TouchEvent, notificationId: string) => {
-    const touch = e.touches[0];
-    const element = swipeRefs.current[notificationId];
-    if (!element || !element.dataset.startX || !element.dataset.startY) return;
+  const handleTouchMove = useCallback((e: React.TouchEvent, notificationId: string) => {
+    requestAnimationFrame(() => {
+      const touch = e.touches[0];
+      const element = swipeRefs.current[notificationId];
+      if (!element || !element.dataset.startX || !element.dataset.startY) return;
 
-    const startX = parseInt(element.dataset.startX);
-    const startY = parseInt(element.dataset.startY);
-    const deltaX = touch.clientX - startX;
-    const deltaY = touch.clientY - startY;
-    const threshold = 50;
+      const startX = parseInt(element.dataset.startX);
+      const startY = parseInt(element.dataset.startY);
+      const deltaX = touch.clientX - startX;
+      const deltaY = touch.clientY - startY;
+      const threshold = 30;
 
-    // Horizontal swipe
-    if (Math.abs(deltaX) > Math.abs(deltaY)) {
-      e.preventDefault(); // Prevent vertical scroll
-
-      // Apply transition only once per gesture
-      if (element.dataset.transitionApplied !== 'true') {
-        element.style.transition = 'transform 0.2s ease-out';
-        element.dataset.transitionApplied = 'true';
-      }
-
-      if (Math.abs(deltaX) > 20) {
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+        e.preventDefault();
         element.dataset.isSwiping = 'true';
+        if (element.dataset.transitionApplied !== 'true') {
+          element.style.transition = 'transform 0.1s ease-out';
+          element.dataset.transitionApplied = 'true';
+        }
 
         if (deltaX > threshold) {
-          // Swipe right – mark as read
           setSwipedNotification(notificationId);
           setSwipeAction('read');
           element.style.transform = `translateX(${Math.min(deltaX, 120)}px)`;
-          element.style.opacity = '0.8';
+          element.style.opacity = '0.9';
         } else if (deltaX < -threshold) {
-          // Swipe left – delete
           setSwipedNotification(notificationId);
           setSwipeAction('delete');
           element.style.transform = `translateX(${Math.max(deltaX, -120)}px)`;
-          element.style.opacity = '0.8';
+          element.style.opacity = '0.9';
         } else {
-          // Damped feedback
-          element.style.transform = `translateX(${deltaX * 0.4}px)`;
+          element.style.transform = `translateX(${deltaX}px)`;
           element.style.opacity = '1';
           setSwipedNotification(null);
           setSwipeAction(null);
         }
+      } else {
+        element.style.transform = 'translateX(0)';
+        element.style.opacity = '1';
+        element.dataset.transitionApplied = 'false';
+        setSwipedNotification(null);
+        setSwipeAction(null);
       }
-    } else {
-      // Vertical movement – cancel swipe
-      element.style.transform = 'translateX(0)';
-      element.style.opacity = '1';
-      element.dataset.transitionApplied = 'false';
-      setSwipedNotification(null);
-      setSwipeAction(null);
-    }
-  };
+    });
+  }, []);
 
-  const handleTouchEnd = async (e: React.TouchEvent, notification: Notification) => {
+  const handleTouchEnd = useCallback(async (e: React.TouchEvent, notification: Notification) => {
     const element = swipeRefs.current[notification.id];
     if (!element) return;
 
@@ -307,34 +297,28 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
     const hasAction = swipedNotification === notification.id && swipeAction;
 
     if (isSwiping && hasAction) {
-      e.stopPropagation(); // Prevent click
+      e.stopPropagation();
+      element.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
 
       try {
-        element.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
-
         if (swipeAction === 'read' && !notification.is_read) {
           element.style.transform = 'translateX(100%)';
           element.style.opacity = '0.3';
-
           await onMarkAsRead(notification.id);
           queryClient.invalidateQueries({ queryKey: ['notifications'] });
-
           toast({
             title: 'Marked as read',
             status: 'success',
             duration: 2000,
             isClosable: true,
           });
-
         } else if (swipeAction === 'delete') {
           element.style.transform = 'translateX(-100%)';
           element.style.opacity = '0';
-
-          setTimeout(async () => {
+          const timeoutId = setTimeout(async () => {
             try {
               await onDelete(notification.id);
               queryClient.invalidateQueries({ queryKey: ['notifications'] });
-
               toast({
                 title: 'Deleted',
                 status: 'success',
@@ -345,39 +329,53 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
               console.error('Delete error:', error);
               element.style.transform = 'translateX(0)';
               element.style.opacity = '1';
+              toast({
+                title: 'Action failed',
+                description: 'Please try again',
+                status: 'error',
+                duration: 3000,
+                isClosable: true,
+              });
             }
           }, 300);
+          return () => clearTimeout(timeoutId);
         }
       } catch (error) {
         console.error('Swipe action error:', error);
         element.style.transform = 'translateX(0)';
         element.style.opacity = '1';
+        toast({
+          title: 'Action failed',
+          description: 'Please try again',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
       }
     } else {
-      // Not a valid swipe – reset
       element.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
       element.style.transform = 'translateX(0)';
       element.style.opacity = '1';
     }
 
-    // Reset flags
     setSwipedNotification(null);
     setSwipeAction(null);
     element.dataset.isSwiping = 'false';
     element.dataset.transitionApplied = 'false';
+    element.style.willChange = 'auto';
 
     setTimeout(() => {
       if (element) {
         element.style.transition = '';
       }
     }, 350);
-  };
+  }, [onMarkAsRead, onDelete, queryClient, toast, swipeAction, swipedNotification]);
 
   const renderNotificationItem = (notification: Notification, index: number, groupNotifications: Notification[]) => {
     const userProfile = getUserProfileForNotification(notification);
     
     return (
-      <Box key={notification.id} position="relative" overflow="hidden">
+      <Box key={notification.id} position="relative" w="100%">
         {/* Background Action Layers */}
         <Box
           position="absolute"
@@ -386,35 +384,36 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
           right={0}
           bottom={0}
           zIndex={0}
-          pointerEvents="none"
+          display="flex"
+          justifyContent="space-between"
         >
           {/* Read Action Background - Left Side */}
           <Box
-            position="absolute"
-            left={0}
-            top={0}
-            bottom={0}
-            w="120px"
+            w="50%"
             bg="blue.500"
             display="flex"
             alignItems="center"
-            justifyContent="center"
+            justifyContent="flex-start"
+            pl={4}
           >
             <Icon as={FaEnvelopeOpen} boxSize={6} color="white" />
+            <Text color="white" ml={2} fontSize="sm" fontWeight="medium">
+              Mark as Read
+            </Text>
           </Box>
 
           {/* Delete Action Background - Right Side */}
           <Box
-            position="absolute"
-            right={0}
-            top={0}
-            bottom={0}
-            w="120px"
+            w="50%"
             bg="red.500"
             display="flex"
             alignItems="center"
-            justifyContent="center"
+            justifyContent="flex-end"
+            pr={4}
           >
+            <Text color="white" mr={2} fontSize="sm" fontWeight="medium">
+              Delete
+            </Text>
             <Icon as={FaTrash} boxSize={6} color="white" />
           </Box>
         </Box>
@@ -430,13 +429,13 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
           position="relative"
           zIndex={1}
           bg={bgColor}
+          transform="translateX(0)"
+          willChange="transform, opacity"
           sx={{
-            touchAction: 'manipulation',
+            touchAction: 'none',
             userSelect: 'none',
             WebkitTouchCallout: 'none',
             WebkitUserSelect: 'none',
-            transform: 'translateX(0)',
-            willChange: 'transform, opacity',
           }}
         >
           <Flex
@@ -590,8 +589,7 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
   const groupedNotifications = groupNotificationsByDate(filteredNotifications);
 
   return (
-    <Box w="100%">
-      {/* Tabs - Full Width */}
+    <Box w="100%" sx={{ touchAction: 'pan-y' }}>
       <Tabs 
         variant="line" 
         size="md" 
@@ -683,7 +681,6 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
                 <VStack spacing={0} align="stretch">
                   {Object.entries(groupedNotifications).map(([dateGroup, groupNotifications]) => (
                     <Box key={dateGroup}>
-                      {/* Date Section Header */}
                       <Flex 
                         justify="space-between" 
                         align="center" 
@@ -692,7 +689,7 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
                         borderBottom="1px" 
                         borderColor={borderColor}
                         position="sticky"
-                        top="49px" // Below the tabs
+                        top="49px"
                         zIndex={5}
                       >
                         <Text fontSize="sm" fontWeight="semibold" color={sectionHeaderColor}>
@@ -703,7 +700,6 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
                         </Text>
                       </Flex>
                       
-                      {/* Notifications in this date group */}
                       {groupNotifications.map((notification, index) => 
                         renderNotificationItem(notification, index, groupNotifications)
                       )}
@@ -712,7 +708,6 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
                 </VStack>
               )}
 
-              {/* Mark All as Read Button */}
               {filteredNotifications.length > 0 && activeFilter === 'unread' && (
                 <Box px={4} py={4} borderTop="1px" borderColor={borderColor}>
                   <Button
@@ -734,4 +729,4 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
       </Tabs>
     </Box>
   );
-}; 
+};
