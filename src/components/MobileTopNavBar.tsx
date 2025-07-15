@@ -65,22 +65,22 @@ export const MobileTopNavBar: React.FC<MobileTopNavBarProps> = ({ welcomeMessage
 
       {/* User Avatar */}
       <Box position="relative">
-        <Avatar
-          size="sm"
-          name={displayName || 'User'}
-          src={profile?.avatar_url || undefined}
-          bg="blue.500"
-          color="white"
-          cursor="pointer"
-          _hover={{ 
-            transform: 'scale(1.05)',
-            boxShadow: 'md'
-          }}
-          transition="all 0.2s"
+      <Avatar
+        size="sm"
+        name={displayName || 'User'}
+        src={profile?.avatar_url || undefined}
+        bg="blue.500"
+        color="white"
+        cursor="pointer"
+        _hover={{ 
+          transform: 'scale(1.05)',
+          boxShadow: 'md'
+        }}
+        transition="all 0.2s"
           onClick={() => setIsProfileDrawerOpen(true)}
-        >
-          {!profile?.avatar_url && (initials || '?')}
-        </Avatar>
+      >
+        {!profile?.avatar_url && (initials || '?')}
+      </Avatar>
         {/* Red dot indicator for unread notifications */}
         {unreadCount > 0 && (
           <Box

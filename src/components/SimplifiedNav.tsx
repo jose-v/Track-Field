@@ -216,22 +216,22 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
 
         {/* User Avatar */}
         <Box position="relative">
-          <Avatar
-            size="sm"
-            name={displayName || 'User'}
-            src={displayProfile?.avatar_url || undefined}
-            bg="blue.500"
-            color="white"
-            cursor="pointer"
-            _hover={{ 
-              transform: 'scale(1.05)',
-              boxShadow: 'md'
-            }}
-            transition="all 0.2s"
+        <Avatar
+          size="sm"
+          name={displayName || 'User'}
+          src={displayProfile?.avatar_url || undefined}
+          bg="blue.500"
+          color="white"
+          cursor="pointer"
+          _hover={{ 
+            transform: 'scale(1.05)',
+            boxShadow: 'md'
+          }}
+          transition="all 0.2s"
             onClick={() => setIsProfileDrawerOpen(true)}
-          >
-            {!displayProfile?.avatar_url && (initials || '?')}
-          </Avatar>
+        >
+          {!displayProfile?.avatar_url && (initials || '?')}
+        </Avatar>
           {/* Red dot indicator for unread notifications */}
           {unreadCount > 0 && (
             <Box

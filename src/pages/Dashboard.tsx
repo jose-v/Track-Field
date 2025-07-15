@@ -814,18 +814,18 @@ export function Dashboard() {
 
         {/* OLD Mobile Weather Card - Hidden via feature flag */}
         {!USE_NEW_MOBILE_LAYOUT && (
-          <Box display={{ base: "block", lg: "none" }} w="100%" mb={8}>
-              <WeatherCard 
-                city={profile?.city || "Greensboro"}
-                state={profile?.state ? getStateAbbr(profile.state) : "NC"}
-                weather={{
-                  temp: "71",
-                  condition: "Clouds",
-                  description: "scattered clouds"
-                }}
-                isLoading={profileLoading}
-              />
-          </Box>
+        <Box display={{ base: "block", lg: "none" }} w="100%" mb={8}>
+            <WeatherCard 
+              city={profile?.city || "Greensboro"}
+              state={profile?.state ? getStateAbbr(profile.state) : "NC"}
+              weather={{
+                temp: "71",
+                condition: "Clouds",
+                description: "scattered clouds"
+              }}
+              isLoading={profileLoading}
+            />
+        </Box>
         )}
 
         {/* Desktop 3-Column Layout */}
@@ -902,37 +902,37 @@ export function Dashboard() {
 
         {/* OLD Mobile Today's Workouts Card - Hidden via feature flag */}
         {!USE_NEW_MOBILE_LAYOUT && (
-          <Box display={{ base: "block", lg: "none" }} w="100%">
-                    <TodayWorkoutsCard
-            profile={profile}
-            profileLoading={profileLoading}
-          />
-          </Box>
+        <Box display={{ base: "block", lg: "none" }} w="100%">
+                  <TodayWorkoutsCard
+          profile={profile}
+          profileLoading={profileLoading}
+        />
+        </Box>
         )}
 
         {/* OLD Today's Check-in Section - Mobile Only - Hidden via feature flag */}
         {!USE_NEW_MOBILE_LAYOUT && (
-          <Box display={{ base: "block", lg: "none" }} w="100%">
-            <TodaysCheckInSection onDataUpdate={handleDataUpdate} />
-          </Box>
+        <Box display={{ base: "block", lg: "none" }} w="100%">
+          <TodaysCheckInSection onDataUpdate={handleDataUpdate} />
+        </Box>
         )}
 
         {/* OLD Mobile Sleep Card - Before other cards - Hidden via feature flag */}
         {!USE_NEW_MOBILE_LAYOUT && (
-          <Box display={{ base: "block", lg: "none" }} w="100%" mb={8}>
-            {profileLoading ? (
-              <SkeletonCard
-                height="330px"
-                cardBg={cardBg}
-                borderColor={borderColor}
-                cardShadow={cardShadow}
-                skeletonStartColor={skeletonStartColor}
-                skeletonEndColor={skeletonEndColor}
-              />
-            ) : (
-              <SleepStatsCard />
-            )}
-          </Box>
+        <Box display={{ base: "block", lg: "none" }} w="100%" mb={8}>
+          {profileLoading ? (
+            <SkeletonCard
+              height="330px"
+              cardBg={cardBg}
+              borderColor={borderColor}
+              cardShadow={cardShadow}
+              skeletonStartColor={skeletonStartColor}
+              skeletonEndColor={skeletonEndColor}
+            />
+          ) : (
+            <SleepStatsCard />
+          )}
+        </Box>
         )}
 
         {/* Analytics & Info Cards */}
@@ -944,16 +944,16 @@ export function Dashboard() {
         >
           {/* OLD My Teams Card - Mobile Only - Hidden via feature flag */}
           {!USE_NEW_MOBILE_LAYOUT && (
-            <Box display={{ base: "block", lg: "none" }}>
-              <MyTeamsCard maxTeamsToShow={3} />
-            </Box>
+          <Box display={{ base: "block", lg: "none" }}>
+            <MyTeamsCard maxTeamsToShow={3} />
+          </Box>
           )}
 
           {/* OLD Track Meets Card - Mobile Only - Hidden via feature flag */}
           {!USE_NEW_MOBILE_LAYOUT && (
-            <Box display={{ base: "block", lg: "none" }}>
-              <TrackMeetsCard viewAllLink="/athlete/meets" />
-            </Box>
+          <Box display={{ base: "block", lg: "none" }}>
+            <TrackMeetsCard viewAllLink="/athlete/meets" />
+          </Box>
           )}
 
           {/* RPE Card - Hidden on mobile with new layout */}
@@ -969,21 +969,21 @@ export function Dashboard() {
             w="100%" 
             display={{ base: USE_NEW_MOBILE_LAYOUT ? "none" : "block", md: "block" }}
           >
-            {(profileLoading || nutritionLoading) ? (
-              <SkeletonCard
-                height="330px"
-                cardBg={cardBg}
-                borderColor={borderColor}
-                cardShadow={cardShadow}
-                skeletonStartColor={skeletonStartColor}
-                skeletonEndColor={skeletonEndColor}
-              />
-            ) : (
-              <NutritionStatsCard
-                nutritionStats={nutritionStats}
-                isLoading={nutritionLoading}
-              />
-            )}
+          {(profileLoading || nutritionLoading) ? (
+            <SkeletonCard
+              height="330px"
+              cardBg={cardBg}
+              borderColor={borderColor}
+              cardShadow={cardShadow}
+              skeletonStartColor={skeletonStartColor}
+              skeletonEndColor={skeletonEndColor}
+            />
+          ) : (
+            <NutritionStatsCard
+              nutritionStats={nutritionStats}
+              isLoading={nutritionLoading}
+            />
+          )}
           </Box>
 
           {/* Gamification Card - Development Only - Hidden on mobile with new layout */}
@@ -995,7 +995,7 @@ export function Dashboard() {
             border="1px solid"
             borderColor={borderColor}
             boxShadow={cardShadowLg}
-            w="100%"
+              w="100%"
             display={{ base: USE_NEW_MOBILE_LAYOUT ? "none" : "block", md: "block" }}
           >
             <VStack spacing={5} align="stretch">

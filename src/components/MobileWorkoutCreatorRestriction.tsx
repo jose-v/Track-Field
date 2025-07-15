@@ -43,40 +43,52 @@ export const MobileWorkoutCreatorRestriction: React.FC = () => {
   };
 
   return (
-    <Box bg={bgColor} minH="100vh" py={8}>
-      <Container maxW="md" centerContent>
-        <VStack spacing={8} textAlign="center" pt={16}>
+    <Box 
+      position="fixed"
+      top="0"
+      left="0"
+      right="0"
+      bottom="0"
+      bg={bgColor} 
+      zIndex={1000}
+      display="flex" 
+      alignItems="center"
+      justifyContent="center"
+      p={4}
+    >
+      <Container maxW="sm" px={6}>
+        <VStack spacing={6} textAlign="center" w="100%">
           {/* Icons */}
-          <Flex align="center" justify="center" gap={4}>
+          <Flex align="center" justify="center" gap={3}>
             <Box
-              p={4}
+              p={3}
               bg={cardBg}
               borderRadius="full"
               border="2px solid"
               borderColor={borderColor}
               opacity={0.5}
             >
-              <Icon as={Smartphone} size="32px" color="orange.500" />
+              <Icon as={Smartphone} boxSize="24px" color="orange.500" />
             </Box>
             
-            <Text fontSize="3xl" color={subtitleColor}>→</Text>
+            <Text fontSize="2xl" color={subtitleColor}>→</Text>
             
             <Box
-              p={4}
+              p={3}
               bg={cardBg}
               borderRadius="full"
               border="2px solid"
               borderColor="blue.500"
               boxShadow="0 0 0 4px rgba(66, 153, 225, 0.1)"
             >
-              <Icon as={Monitor} size="32px" color="blue.500" />
+              <Icon as={Monitor} boxSize="24px" color="blue.500" />
             </Box>
           </Flex>
 
           {/* Main message */}
-          <VStack spacing={4}>
+          <VStack spacing={3}>
             <Heading 
-              size="lg" 
+              size="md" 
               color={textColor}
               textAlign="center"
               lineHeight="short"
@@ -85,11 +97,11 @@ export const MobileWorkoutCreatorRestriction: React.FC = () => {
             </Heading>
             
             <Text 
-              fontSize="lg" 
+              fontSize="md" 
               color={subtitleColor}
               textAlign="center"
-              maxW="400px"
-              lineHeight="tall"
+              lineHeight="base"
+              px={2}
             >
               The Workout Creator needs a bigger screen—try switching to desktop for the best experience.
             </Text>
@@ -97,34 +109,33 @@ export const MobileWorkoutCreatorRestriction: React.FC = () => {
 
           {/* Why desktop section */}
           <Box
-            p={6}
+            p={4}
             bg={cardBg}
             borderRadius="lg"
             border="1px solid"
             borderColor={borderColor}
             w="100%"
-            maxW="400px"
           >
-            <VStack spacing={3} textAlign="left" align="stretch">
-              <Text fontWeight="semibold" color={textColor} textAlign="center">
+            <VStack spacing={2} textAlign="left" align="stretch">
+              <Text fontWeight="semibold" color={textColor} textAlign="center" fontSize="sm">
                 Why desktop works better:
               </Text>
-              <VStack spacing={2} align="start" fontSize="sm" color={subtitleColor}>
+              <VStack spacing={1} align="start" fontSize="xs" color={subtitleColor}>
                 <Text>• Drag & drop block building</Text>
-                <Text>• Multiple exercise libraries side-by-side</Text>
-                <Text>• Advanced template configurations</Text>
-                <Text>• Better multi-step workflow</Text>
+                <Text>• Multiple exercise libraries</Text>
+                <Text>• Advanced configurations</Text>
+                <Text>• Better workflow</Text>
               </VStack>
             </VStack>
           </Box>
 
           {/* Action buttons */}
-          <VStack spacing={3} w="100%" maxW="300px">
+          <VStack spacing={2} w="100%">
             <Button
               leftIcon={<ArrowLeft size={16} />}
               variant="solid"
               colorScheme="blue"
-              size="lg"
+              size="md"
               w="100%"
               onClick={() => navigate(getBackPath())}
             >

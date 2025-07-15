@@ -26,14 +26,14 @@ export const MobileFriendlySlider: React.FC<MobileFriendlySliderProps> = ({
   ...props
 }) => {
   return (
-    <Slider
-      value={value}
-      onChange={onChange}
-      min={min}
-      max={max}
-      step={step}
-      colorScheme={colorScheme}
-      {...props}
+      <Slider
+        value={value}
+        onChange={onChange}
+        min={min}
+        max={max}
+        step={step}
+        colorScheme={colorScheme}
+        {...props}
       // Optimize for touch interactions
       focusThumbOnChange={false}
       // Smooth touch handling
@@ -41,11 +41,11 @@ export const MobileFriendlySlider: React.FC<MobileFriendlySliderProps> = ({
         touchAction: 'manipulation', // Allow slider dragging
         userSelect: 'none',   // Prevent text selection
       }}
-    >
+      >
       <SliderTrack h={3} borderRadius="full">
         <SliderFilledTrack borderRadius="full" />
-      </SliderTrack>
-      <SliderThumb 
+        </SliderTrack>
+        <SliderThumb 
         boxSize={7}
         borderRadius="full"
         boxShadow="lg"
@@ -56,11 +56,11 @@ export const MobileFriendlySlider: React.FC<MobileFriendlySliderProps> = ({
         _focus={{
           boxShadow: 'outline',
         }}
-        style={{
+          style={{
           touchAction: 'manipulation',
           cursor: 'grab',
-        }}
-      />
-    </Slider>
+          }}
+        />
+      </Slider>
   );
 }; 
