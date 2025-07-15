@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Flex, Avatar, Text, useToast } from '@chakra-ui/react';
 import { useSwipeable } from 'react-swipeable';
+import { FaTrash, FaEnvelopeOpen } from 'react-icons/fa';
 
 interface Notification {
   id: string;
@@ -120,15 +121,19 @@ const MobileNotifications: React.FC = () => {
                 left="0"
                 right="0"
                 bottom="0"
-                bg="red.500"
+                bgGradient="linear(to-l, red.600, red.500)"
                 display="flex"
-                justifyContent="flex-end"
-                alignItems="center"
-                pr={5}
+                flexDirection="column"
+                justifyContent="center"
+                alignItems="flex-end"
+                pr={8}
                 zIndex={0}
               >
-                <Text color="white" fontWeight="bold">
-                  Deleting...
+                <Box color="white" fontSize="2xl" mb={1}>
+                  <FaTrash />
+                </Box>
+                <Text color="white" fontWeight="bold" fontSize="sm">
+                  Delete
                 </Text>
               </Box>
             )}
@@ -141,15 +146,19 @@ const MobileNotifications: React.FC = () => {
                 left="0"
                 right="0"
                 bottom="0"
-                bg="blue.500"
+                bgGradient="linear(to-r, blue.600, blue.500)"
                 display="flex"
-                justifyContent="flex-start"
-                alignItems="center"
-                pl={5}
+                flexDirection="column"
+                justifyContent="center"
+                alignItems="flex-start"
+                pl={8}
                 zIndex={0}
               >
-                <Text color="white" fontWeight="bold">
-                  Marking as Read...
+                <Box color="white" fontSize="2xl" mb={1}>
+                  <FaEnvelopeOpen />
+                </Box>
+                <Text color="white" fontWeight="bold" fontSize="sm">
+                  Read
                 </Text>
               </Box>
             )}
