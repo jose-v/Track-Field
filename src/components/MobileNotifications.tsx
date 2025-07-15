@@ -469,7 +469,24 @@ const MobileNotifications: React.FC = () => {
             notification.title;
 
           return (
-            <Box key={notification.id} position="relative" w="100%" overflow="hidden" px={2} py={1}>
+            <Box 
+              key={notification.id} 
+              position="relative" 
+              w="100%" 
+              overflow="hidden" 
+              px={2} 
+              py={1}
+              onTouchStart={(e) => {
+                e.stopPropagation();
+              }}
+              onTouchMove={(e) => {
+                const state = swipeStates[notification.id];
+                if (state?.isDragging) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }
+              }}
+            >
               {/* Delete Background (Left) */}
               <Box
                 ref={(el) => {
@@ -479,9 +496,9 @@ const MobileNotifications: React.FC = () => {
                   swipeRefs.current[notification.id].deleteBackground = el;
                 }}
                 position="absolute"
-                top="2px"
+                top="3px"
                 right="8px"
-                bottom="2px"
+                h="calc(100% - 6px)"
                 w="120px"
                 bg="red.500"
                 display="flex"
@@ -510,9 +527,9 @@ const MobileNotifications: React.FC = () => {
                   swipeRefs.current[notification.id].readBackground = el;
                 }}
                 position="absolute"
-                top="2px"
+                top="3px"
                 left="8px"
-                bottom="2px"
+                h="calc(100% - 6px)"
                 w="120px"
                 bg="blue.400"
                 display="flex"
