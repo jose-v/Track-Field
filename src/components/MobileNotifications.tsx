@@ -110,29 +110,35 @@ const MobileNotifications: React.FC = () => {
   const getSwipeHandlers = (notificationId: string) => {
     return useSwipeable({
       onSwipedLeft: () => {
+        console.log('✅ Completed swipe left on:', notificationId);
         setSwipingNotificationId(null);
         setSwipeDirection(null);
         handleSwipeLeft(notificationId);
       },
       onSwipedRight: () => {
+        console.log('✅ Completed swipe right on:', notificationId);
         setSwipingNotificationId(null);
         setSwipeDirection(null);
         handleSwipeRight(notificationId);
       },
       onSwiping: (eventData) => {
-        if (Math.abs(eventData.deltaX) > 30) {
+        console.log('🔄 Swiping:', eventData.deltaX, 'px');
+        if (Math.abs(eventData.deltaX) > 20) {
           setSwipingNotificationId(notificationId);
           setSwipeDirection(eventData.deltaX > 0 ? 'right' : 'left');
         }
       },
       onSwiped: () => {
+        console.log('🛑 Swipe ended');
         setSwipingNotificationId(null);
         setSwipeDirection(null);
       },
-      trackMouse: false,
+      trackMouse: true, // Enable for testing on desktop
       trackTouch: true,
-      delta: 30,
+      delta: 20, // Lower threshold for easier swiping
       preventScrollOnSwipe: true,
+      swipeDuration: 500, // Allow longer swipe duration
+      touchEventOptions: { passive: false }, // Prevent default touch behavior
     });
   };
 
@@ -163,18 +169,18 @@ const MobileNotifications: React.FC = () => {
                 right="0"
                 bottom="0"
                 zIndex={0}
-                bg={swipeDirection === 'right' ? 'blue.100' : 'red.100'}
+                bg={swipeDirection === 'right' ? 'blue.200' : 'red.200'}
                 display="flex"
                 alignItems="center"
                 justifyContent={swipeDirection === 'right' ? 'flex-start' : 'flex-end'}
-                px={4}
+                px={6}
               >
                 <Text
-                  color={swipeDirection === 'right' ? 'blue.600' : 'red.600'}
+                  color={swipeDirection === 'right' ? 'blue.700' : 'red.700'}
                   fontWeight="bold"
-                  fontSize="sm"
+                  fontSize="lg"
                 >
-                  {swipeDirection === 'right' ? 'Mark as Read' : 'Delete'}
+                  {swipeDirection === 'right' ? '📖 Mark as Read' : '🗑️ Delete'}
                 </Text>
               </Box>
             )}
@@ -191,9 +197,10 @@ const MobileNotifications: React.FC = () => {
               bg="white"
               style={{
                 transform: isCurrentlySwiping && swipeDirection ? 
-                  `translateX(${swipeDirection === 'right' ? '20px' : '-20px'})` : 
+                  `translateX(${swipeDirection === 'right' ? '60px' : '-60px'})` : 
                   'translateX(0)',
-                transition: isCurrentlySwiping ? 'none' : 'transform 0.2s ease'
+                transition: isCurrentlySwiping ? 'none' : 'transform 0.2s ease',
+                opacity: isCurrentlySwiping ? 0.9 : 1
               }}
               onClick={() => handleNotificationClick(notification.id)}
             >
