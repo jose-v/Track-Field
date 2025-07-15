@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { Box, Flex, Avatar, Text, HStack, useToast } from '@chakra-ui/react';
+import { Box, Flex, Avatar, Text, useToast } from '@chakra-ui/react';
 import { useSwipeable } from 'react-swipeable';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
 
 interface Notification {
   id: string;
@@ -18,7 +16,6 @@ const MobileNotifications: React.FC = () => {
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const [processingNotifications, setProcessingNotifications] = useState<Set<string>>(new Set());
   const toast = useToast();
-  const queryClient = useQueryClient();
 
   // Mock data for testing
   const mockNotifications: Notification[] = [
@@ -40,93 +37,31 @@ const MobileNotifications: React.FC = () => {
     }
   ];
 
-  // Mark notification as read
-  const markAsReadMutation = useMutation({
-    mutationFn: async (notificationId: string) => {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', notificationId);
-      
-      if (error) throw error;
-    },
-    onSuccess: (_, notificationId) => {
-      setProcessingNotifications(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(notificationId);
-        return newSet;
-      });
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      toast({
-        title: 'Notification marked as read',
-        status: 'success',
-        duration: 2000,
-        isClosable: true,
-      });
-    },
-    onError: (_, notificationId) => {
-      setProcessingNotifications(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(notificationId);
-        return newSet;
-      });
-      toast({
-        title: 'Failed to mark notification as read',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  });
-
-  // Delete notification
-  const deleteNotificationMutation = useMutation({
-    mutationFn: async (notificationId: string) => {
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', notificationId);
-      
-      if (error) throw error;
-    },
-    onSuccess: (_, notificationId) => {
-      setProcessingNotifications(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(notificationId);
-        return newSet;
-      });
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      toast({
-        title: 'Notification deleted',
-        status: 'success',
-        duration: 2000,
-        isClosable: true,
-      });
-    },
-    onError: (_, notificationId) => {
-      setProcessingNotifications(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(notificationId);
-        return newSet;
-      });
-      toast({
-        title: 'Failed to delete notification',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  });
-
   const handleSwipeRight = (notificationId: string) => {
     if (processingNotifications.has(notificationId)) {
       console.log('⏳ Already processing notification:', notificationId);
       return;
     }
     
-    console.log('Swiped right on notification:', notificationId);
+    console.log('✅ WOULD mark as read:', notificationId);
     setProcessingNotifications(prev => new Set(prev).add(notificationId));
-    markAsReadMutation.mutate(notificationId);
+    
+    // Simple feedback instead of database call
+    toast({
+      title: '📖 Would mark as read',
+      status: 'info',
+      duration: 1000,
+      isClosable: true,
+    });
+    
+    // Clear processing state after short delay
+    setTimeout(() => {
+      setProcessingNotifications(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(notificationId);
+        return newSet;
+      });
+    }, 500);
   };
 
   const handleSwipeLeft = (notificationId: string) => {
@@ -135,9 +70,25 @@ const MobileNotifications: React.FC = () => {
       return;
     }
     
-    console.log('Swiped left on notification:', notificationId);
+    console.log('✅ WOULD delete:', notificationId);
     setProcessingNotifications(prev => new Set(prev).add(notificationId));
-    deleteNotificationMutation.mutate(notificationId);
+    
+    // Simple feedback instead of database call
+    toast({
+      title: '🗑️ Would delete',
+      status: 'info',
+      duration: 1000,
+      isClosable: true,
+    });
+    
+    // Clear processing state after short delay
+    setTimeout(() => {
+      setProcessingNotifications(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(notificationId);
+        return newSet;
+      });
+    }, 500);
   };
 
   const getSwipeHandlers = (notificationId: string) => {
