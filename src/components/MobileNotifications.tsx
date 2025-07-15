@@ -122,10 +122,26 @@ const MobileNotifications: React.FC = () => {
         handleSwipeRight(notificationId);
       },
       onSwiping: (eventData) => {
-        console.log('🔄 Swiping:', eventData.deltaX, 'px');
-        if (Math.abs(eventData.deltaX) > 20) {
+        console.log('🔄 Swiping:', eventData.deltaX, 'px, velocity:', eventData.velocity);
+        if (Math.abs(eventData.deltaX) > 15) {
           setSwipingNotificationId(notificationId);
           setSwipeDirection(eventData.deltaX > 0 ? 'right' : 'left');
+        }
+        
+        // Trigger action if swipe is far enough
+        if (Math.abs(eventData.deltaX) > 80) {
+          console.log('🚀 Auto-completing swipe at 80px');
+          if (eventData.deltaX > 0) {
+            console.log('✅ Auto-completed swipe right');
+            setSwipingNotificationId(null);
+            setSwipeDirection(null);
+            handleSwipeRight(notificationId);
+          } else {
+            console.log('✅ Auto-completed swipe left');
+            setSwipingNotificationId(null);
+            setSwipeDirection(null);
+            handleSwipeLeft(notificationId);
+          }
         }
       },
       onSwiped: () => {
@@ -133,12 +149,13 @@ const MobileNotifications: React.FC = () => {
         setSwipingNotificationId(null);
         setSwipeDirection(null);
       },
-      trackMouse: true, // Enable for testing on desktop
+      trackMouse: true,
       trackTouch: true,
-      delta: 20, // Lower threshold for easier swiping
+      delta: 10, // Very low threshold
       preventScrollOnSwipe: true,
-      swipeDuration: 500, // Allow longer swipe duration
-      touchEventOptions: { passive: false }, // Prevent default touch behavior
+      swipeDuration: 1000, // Allow longer swipes
+      touchEventOptions: { passive: false },
+      rotationAngle: 0,
     });
   };
 
