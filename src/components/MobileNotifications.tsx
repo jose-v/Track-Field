@@ -344,23 +344,20 @@ const MobileNotifications: React.FC = () => {
       e.preventDefault();
       e.stopPropagation();
       document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
     } else if (state.isDragging) {
       // Continue horizontal swiping - update visuals directly without React re-render
       updateSwipeVisuals(notificationId, deltaX);
       
-      // Only update React state for direction tracking
-      const direction = deltaX > 0 ? 'right' : 'left';
-      const currentState = swipeStates[notificationId];
-      if (currentState.direction !== direction && Math.abs(deltaX) > 20) {
-        setSwipeStates(prev => ({
-          ...prev,
-          [notificationId]: {
-            ...prev[notificationId],
-            currentX: touch.clientX,
-            direction
-          }
-        }));
-      }
+      // Update current position for end calculation
+      setSwipeStates(prev => ({
+        ...prev,
+        [notificationId]: {
+          ...prev[notificationId],
+          currentX: touch.clientX,
+          direction: deltaX > 0 ? 'right' : 'left'
+        }
+      }));
       
       e.preventDefault();
       e.stopPropagation();
@@ -392,12 +389,18 @@ const MobileNotifications: React.FC = () => {
     const state = swipeStates[notificationId];
     if (!state) return;
 
+    // Always restore scrolling first
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+
     // Only process swipe actions if we were actually in dragging mode
     if (state.isDragging) {
       const deltaX = state.currentX - state.startX;
       const distance = Math.abs(deltaX);
 
-      // Trigger actions if swipe was far enough (increased from 80px to 120px)
+      setDebugInfo(`Swipe ended: ${Math.round(distance)}px (need 120px)`);
+
+      // Trigger actions if swipe was far enough
       if (distance > 120) {
         if (deltaX < 0) {
           // Swiped left - delete
@@ -413,9 +416,6 @@ const MobileNotifications: React.FC = () => {
         setDebugInfo(`Swipe canceled - not far enough (${Math.round(distance)}px, need 120px)`);
         resetSwipeVisuals(notificationId);
       }
-      
-      // Restore scrolling
-      document.body.style.overflow = '';
     }
 
     // Reset drag state
@@ -438,6 +438,24 @@ const MobileNotifications: React.FC = () => {
 
   return (
     <Box w="100%" minH="100vh">
+      {/* Temporary Debug Overlay */}
+      <Box
+        position="fixed"
+        top="0"
+        left="0"
+        right="0"
+        bg="yellow.100"
+        p={2}
+        borderBottom="2px solid"
+        borderColor="yellow.300"
+        zIndex={1000}
+      >
+        <Text fontSize="xs" fontWeight="bold" color="black">
+          DEBUG: {debugInfo}
+        </Text>
+      </Box>
+      
+      <Box pt="50px">
       {notifications.length === 0 ? (
         <Box p={8} textAlign="center" bg={bgColor}>
           <Text color={emptyTextColor}>No notifications yet</Text>
@@ -461,9 +479,9 @@ const MobileNotifications: React.FC = () => {
                   swipeRefs.current[notification.id].deleteBackground = el;
                 }}
                 position="absolute"
-                top="1"
-                right="2"
-                bottom="1"
+                top="2px"
+                right="8px"
+                bottom="2px"
                 w="120px"
                 bg="red.500"
                 display="flex"
@@ -492,9 +510,9 @@ const MobileNotifications: React.FC = () => {
                   swipeRefs.current[notification.id].readBackground = el;
                 }}
                 position="absolute"
-                top="1"
-                left="2"
-                bottom="1"
+                top="2px"
+                left="8px"
+                bottom="2px"
                 w="120px"
                 bg="blue.400"
                 display="flex"
@@ -611,12 +629,13 @@ const MobileNotifications: React.FC = () => {
         </Box>
       )}
       
-      {/* End of List */}
-      {!hasMore && notifications.length > 0 && (
-        <Box p={4} textAlign="center" bg={bgColor}>
-          <Text color={emptyTextColor} fontSize="sm">No more notifications</Text>
-        </Box>
-      )}
+             {/* End of List */}
+       {!hasMore && notifications.length > 0 && (
+         <Box p={4} textAlign="center" bg={bgColor}>
+           <Text color={emptyTextColor} fontSize="sm">No more notifications</Text>
+         </Box>
+       )}
+       </Box>
     </Box>
   );
 };
