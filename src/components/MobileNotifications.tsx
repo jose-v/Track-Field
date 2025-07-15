@@ -15,6 +15,8 @@ interface Notification {
 const MobileNotifications: React.FC = () => {
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [markingAsReadIds, setMarkingAsReadIds] = useState<Set<string>>(new Set());
+  const [swipingIds, setSwipingIds] = useState<Set<string>>(new Set());
+  const [swipeDirection, setSwipeDirection] = useState<{[key: string]: 'left' | 'right'}>({});
   const toast = useToast();
 
   // Mock data for testing
@@ -61,6 +63,16 @@ const MobileNotifications: React.FC = () => {
     return useSwipeable({
       onSwipedLeft: () => {
         console.log('Swiped left on:', notificationId);
+        setSwipingIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(notificationId);
+          return newSet;
+        });
+        setSwipeDirection(prev => {
+          const newDir = {...prev};
+          delete newDir[notificationId];
+          return newDir;
+        });
         setDeletingIds(prev => new Set(prev).add(notificationId));
         
         // Add delay for visual animation before action
@@ -75,6 +87,16 @@ const MobileNotifications: React.FC = () => {
       },
       onSwipedRight: () => {
         console.log('Swiped right on:', notificationId);
+        setSwipingIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(notificationId);
+          return newSet;
+        });
+        setSwipeDirection(prev => {
+          const newDir = {...prev};
+          delete newDir[notificationId];
+          return newDir;
+        });
         setMarkingAsReadIds(prev => new Set(prev).add(notificationId));
         
         // Add delay for visual animation before action
@@ -87,6 +109,18 @@ const MobileNotifications: React.FC = () => {
           });
         }, 300);
       },
+      onSwiping: (eventData) => {
+        if (Math.abs(eventData.deltaX) > 20) {
+          setSwipingIds(prev => new Set(prev).add(notificationId));
+          setSwipeDirection(prev => ({
+            ...prev,
+            [notificationId]: eventData.deltaX > 0 ? 'right' : 'left'
+          }));
+        }
+      },
+      onSwiped: () => {
+        // Keep swiping state until onSwipedLeft/Right handles cleanup
+      },
       trackTouch: true,
       preventScrollOnSwipe: true,
     });
@@ -98,7 +132,10 @@ const MobileNotifications: React.FC = () => {
         const swipeHandlers = getSwipeHandlers(notification.id);
         const isDeleting = deletingIds.has(notification.id);
         const isMarkingAsRead = markingAsReadIds.has(notification.id);
-        const isAnimating = isDeleting || isMarkingAsRead;
+        const isSwiping = swipingIds.has(notification.id);
+        const currentSwipeDirection = swipeDirection[notification.id];
+        const showDeleteBackground = isDeleting || (isSwiping && currentSwipeDirection === 'left');
+        const showReadBackground = isMarkingAsRead || (isSwiping && currentSwipeDirection === 'right');
         
         return (
           <Box
@@ -114,7 +151,7 @@ const MobileNotifications: React.FC = () => {
             }}
           >
             {/* Delete background */}
-            {isDeleting && (
+            {showDeleteBackground && (
               <Box
                 position="absolute"
                 top="0"
@@ -139,7 +176,7 @@ const MobileNotifications: React.FC = () => {
             )}
 
             {/* Mark as read background */}
-            {isMarkingAsRead && (
+            {showReadBackground && (
               <Box
                 position="absolute"
                 top="0"
