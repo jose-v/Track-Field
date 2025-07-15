@@ -345,6 +345,8 @@ const MobileNotifications: React.FC = () => {
       e.stopPropagation();
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
     } else if (state.isDragging) {
       // Continue horizontal swiping - update visuals directly without React re-render
       updateSwipeVisuals(notificationId, deltaX);
@@ -392,6 +394,8 @@ const MobileNotifications: React.FC = () => {
     // Always restore scrolling first
     document.body.style.overflow = '';
     document.documentElement.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.width = '';
 
     // Only process swipe actions if we were actually in dragging mode
     if (state.isDragging) {
@@ -476,16 +480,6 @@ const MobileNotifications: React.FC = () => {
               overflow="hidden" 
               px={2} 
               py={1}
-              onTouchStart={(e) => {
-                e.stopPropagation();
-              }}
-              onTouchMove={(e) => {
-                const state = swipeStates[notification.id];
-                if (state?.isDragging) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }
-              }}
             >
               {/* Delete Background (Left) */}
               <Box
@@ -496,9 +490,9 @@ const MobileNotifications: React.FC = () => {
                   swipeRefs.current[notification.id].deleteBackground = el;
                 }}
                 position="absolute"
-                top="3px"
-                right="8px"
-                h="calc(100% - 6px)"
+                top="6px"
+                right="16px"
+                bottom="6px"
                 w="120px"
                 bg="red.500"
                 display="flex"
@@ -527,9 +521,9 @@ const MobileNotifications: React.FC = () => {
                   swipeRefs.current[notification.id].readBackground = el;
                 }}
                 position="absolute"
-                top="3px"
-                left="8px"
-                h="calc(100% - 6px)"
+                top="6px"
+                left="16px"
+                bottom="6px"
                 w="120px"
                 bg="blue.400"
                 display="flex"
