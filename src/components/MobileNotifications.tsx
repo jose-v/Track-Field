@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Box, Flex, Avatar, Text, useToast } from '@chakra-ui/react';
 import { useSwipeable } from 'react-swipeable';
 import { FaTrash, FaEnvelopeOpen } from 'react-icons/fa';
@@ -18,6 +18,7 @@ const MobileNotifications: React.FC = () => {
   const [swipingIds, setSwipingIds] = useState<Set<string>>(new Set());
   const [swipeDirection, setSwipeDirection] = useState<{[key: string]: 'left' | 'right'}>({});
   const [debugInfo, setDebugInfo] = useState<string>('Ready to swipe');
+  const [activeNotificationId, setActiveNotificationId] = useState<string>('');
   const toast = useToast();
 
   // Mock data for testing
@@ -58,84 +59,84 @@ const MobileNotifications: React.FC = () => {
     });
   };
 
-  // Create swipe handlers for each notification using useMemo to avoid recreating on every render
-  const swipeHandlers = useMemo(() => {
-    const handlers: {[key: string]: any} = {};
-    
-    mockNotifications.forEach(notification => {
-      handlers[notification.id] = useSwipeable({
-        onSwipedLeft: () => {
-          setDebugInfo(`Swiped left on ${notification.id} - deleting`);
-          setSwipingIds(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(notification.id);
-            return newSet;
-          });
-          setSwipeDirection(prev => {
-            const newDir = {...prev};
-            delete newDir[notification.id];
-            return newDir;
-          });
-          setDeletingIds(prev => new Set(prev).add(notification.id));
-          
-          // Add delay for visual animation before action
-          setTimeout(() => {
-            handleDelete(notification.id);
-            setDeletingIds(prev => {
-              const newSet = new Set(prev);
-              newSet.delete(notification.id);
-              return newSet;
-            });
-            setDebugInfo('Delete completed');
-          }, 300);
-        },
-        onSwipedRight: () => {
-          setDebugInfo(`Swiped right on ${notification.id} - marking read`);
-          setSwipingIds(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(notification.id);
-            return newSet;
-          });
-          setSwipeDirection(prev => {
-            const newDir = {...prev};
-            delete newDir[notification.id];
-            return newDir;
-          });
-          setMarkingAsReadIds(prev => new Set(prev).add(notification.id));
-          
-          // Add delay for visual animation before action
-          setTimeout(() => {
-            handleMarkAsRead(notification.id);
-            setMarkingAsReadIds(prev => {
-              const newSet = new Set(prev);
-              newSet.delete(notification.id);
-              return newSet;
-            });
-            setDebugInfo('Mark read completed');
-          }, 300);
-        },
-        onSwiping: (eventData) => {
-          setDebugInfo(`Swiping deltaX: ${eventData.deltaX}`);
-          if (Math.abs(eventData.deltaX) > 20) {
-            const direction = eventData.deltaX > 0 ? 'right' : 'left';
-            setDebugInfo(`Setting ${direction} swipe for ${notification.id}`);
-            setSwipingIds(prev => new Set(prev).add(notification.id));
-            setSwipeDirection(prev => ({
-              ...prev,
-              [notification.id]: direction
-            }));
-          }
-        },
-        onSwiped: () => {
-          // Keep swiping state until onSwipedLeft/Right handles cleanup
-        },
-        trackTouch: true,
-        preventScrollOnSwipe: true,
+  // Single swipe handler that works with activeNotificationId
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: () => {
+      if (!activeNotificationId) return;
+      
+      setDebugInfo(`Swiped left on ${activeNotificationId} - deleting`);
+      setSwipingIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(activeNotificationId);
+        return newSet;
       });
-    });
-    
-    return handlers;
-  }, [toast]); // Only recreate if toast changes
+      setSwipeDirection(prev => {
+        const newDir = {...prev};
+        delete newDir[activeNotificationId];
+        return newDir;
+      });
+      setDeletingIds(prev => new Set(prev).add(activeNotificationId));
+      
+      // Add delay for visual animation before action
+      setTimeout(() => {
+        handleDelete(activeNotificationId);
+        setDeletingIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(activeNotificationId);
+          return newSet;
+        });
+        setDebugInfo('Delete completed');
+        setActiveNotificationId('');
+      }, 300);
+    },
+    onSwipedRight: () => {
+      if (!activeNotificationId) return;
+      
+      setDebugInfo(`Swiped right on ${activeNotificationId} - marking read`);
+      setSwipingIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(activeNotificationId);
+        return newSet;
+      });
+      setSwipeDirection(prev => {
+        const newDir = {...prev};
+        delete newDir[activeNotificationId];
+        return newDir;
+      });
+      setMarkingAsReadIds(prev => new Set(prev).add(activeNotificationId));
+      
+      // Add delay for visual animation before action
+      setTimeout(() => {
+        handleMarkAsRead(activeNotificationId);
+        setMarkingAsReadIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(activeNotificationId);
+          return newSet;
+        });
+        setDebugInfo('Mark read completed');
+        setActiveNotificationId('');
+      }, 300);
+    },
+    onSwiping: (eventData) => {
+      if (!activeNotificationId) return;
+      
+      setDebugInfo(`Swiping deltaX: ${eventData.deltaX}`);
+      if (Math.abs(eventData.deltaX) > 20) {
+        const direction = eventData.deltaX > 0 ? 'right' : 'left';
+        setDebugInfo(`Setting ${direction} swipe for ${activeNotificationId}`);
+        setSwipingIds(prev => new Set(prev).add(activeNotificationId));
+        setSwipeDirection(prev => ({
+          ...prev,
+          [activeNotificationId]: direction
+        }));
+      }
+    },
+    onSwiped: () => {
+      // Keep swiping state until onSwipedLeft/Right handles cleanup
+    },
+    trackTouch: true,
+    preventScrollOnSwipe: true,
+  });
 
   return (
     <Box w="100%" minH="100vh">
@@ -150,13 +151,11 @@ const MobileNotifications: React.FC = () => {
         zIndex={10}
       >
         <Text fontSize="sm" fontWeight="bold" color="black">
-          DEBUG: {debugInfo}
+          DEBUG: {debugInfo} | Active: {activeNotificationId}
         </Text>
       </Box>
       
       {mockNotifications.map((notification) => {
-        const currentSwipeHandlers = swipeHandlers[notification.id];
-        
         const isDeleting = deletingIds.has(notification.id);
         const isMarkingAsRead = markingAsReadIds.has(notification.id);
         const isSwiping = swipingIds.has(notification.id);
@@ -167,9 +166,13 @@ const MobileNotifications: React.FC = () => {
         return (
           <Box
             key={notification.id}
-            {...currentSwipeHandlers}
+            {...swipeHandlers}
             position="relative"
             overflow="hidden"
+            onTouchStart={() => {
+              setActiveNotificationId(notification.id);
+              setDebugInfo(`Touch started on ${notification.id}`);
+            }}
             onClick={() => setDebugInfo(`Clicked notification ${notification.id}`)}
             style={{
               transform: isDeleting ? 'translateX(-100%)' : 
