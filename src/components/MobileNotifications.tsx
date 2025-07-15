@@ -214,7 +214,16 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
     }
   };
 
-  const handleNotificationClick = (notification: Notification) => {
+  const handleNotificationClick = (e: React.MouseEvent, notification: Notification) => {
+    const element = swipeRefs.current[notification.id];
+    const isSwiping = element?.dataset.isSwiping === 'true';
+    
+    // Don't handle click if we just finished swiping
+    if (isSwiping) {
+      e.preventDefault();
+      return;
+    }
+    
     if (!notification.is_read) {
       onMarkAsRead(notification.id);
     }
@@ -222,36 +231,52 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
 
   // Swipe handling
   const handleTouchStart = (e: React.TouchEvent, notificationId: string) => {
+    console.log('Touch start on notification:', notificationId);
     const touch = e.touches[0];
     const element = swipeRefs.current[notificationId];
     if (element) {
       element.dataset.startX = touch.clientX.toString();
+      element.dataset.startY = touch.clientY.toString();
       element.dataset.startTime = Date.now().toString();
+      element.dataset.isSwiping = 'false';
+      element.style.touchAction = 'pan-y';
     }
   };
 
   const handleTouchMove = (e: React.TouchEvent, notificationId: string) => {
     const touch = e.touches[0];
     const element = swipeRefs.current[notificationId];
-    if (element && element.dataset.startX) {
+    if (element && element.dataset.startX && element.dataset.startY) {
       const deltaX = touch.clientX - parseInt(element.dataset.startX);
-      const threshold = 80;
+      const deltaY = touch.clientY - parseInt(element.dataset.startY);
+      const threshold = 50; // Reduced threshold for easier triggering
       
-      if (Math.abs(deltaX) > 10) {
+      console.log('Touch move deltaX:', deltaX, 'deltaY:', deltaY);
+      
+      // Check if this is a horizontal swipe (more horizontal than vertical movement)
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 20) {
         e.preventDefault(); // Prevent scrolling when swiping horizontally
+        element.dataset.isSwiping = 'true';
         
         if (deltaX > threshold) {
           // Swipe right - mark as read
+          console.log('Swipe right detected');
           setSwipedNotification(notificationId);
           setSwipeAction('read');
-          element.style.transform = `translateX(${Math.min(deltaX, 150)}px)`;
+          const translateX = Math.min(deltaX, 120);
+          element.style.transform = `translateX(${translateX}px)`;
         } else if (deltaX < -threshold) {
           // Swipe left - delete
+          console.log('Swipe left detected');
           setSwipedNotification(notificationId);
           setSwipeAction('delete');
-          element.style.transform = `translateX(${Math.max(deltaX, -150)}px)`;
+          const translateX = Math.max(deltaX, -120);
+          element.style.transform = `translateX(${translateX}px)`;
+        } else if (Math.abs(deltaX) > 5) {
+          // Show partial movement
+          element.style.transform = `translateX(${deltaX * 0.5}px)`;
         } else {
-          // Reset
+          // Reset if not past threshold
           setSwipedNotification(null);
           setSwipeAction(null);
           element.style.transform = 'translateX(0)';
@@ -261,28 +286,40 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
   };
 
   const handleTouchEnd = async (e: React.TouchEvent, notification: Notification) => {
+    console.log('Touch end on notification:', notification.id);
     const element = swipeRefs.current[notification.id];
     if (element && element.dataset.startX && element.dataset.startTime) {
       const deltaTime = Date.now() - parseInt(element.dataset.startTime);
+      const isSwiping = element.dataset.isSwiping === 'true';
       
-      if (swipedNotification === notification.id && deltaTime > 100) {
+      console.log('Touch end - isSwiping:', isSwiping, 'swipeAction:', swipeAction);
+      
+      // If this was a swipe gesture and we have an action
+      if (isSwiping && swipedNotification === notification.id && swipeAction) {
+        e.stopPropagation(); // Prevent click event
+        console.log('Executing swipe action:', swipeAction);
+        
         // Execute swipe action
-        if (swipeAction === 'read' && !notification.is_read) {
-          await onMarkAsRead(notification.id);
-          toast({
-            title: 'Marked as read',
-            status: 'success',
-            duration: 2000,
-            isClosable: true,
-          });
-        } else if (swipeAction === 'delete') {
-          await onDelete(notification.id);
-          toast({
-            title: 'Deleted',
-            status: 'success',
-            duration: 2000,
-            isClosable: true,
-          });
+        try {
+          if (swipeAction === 'read' && !notification.is_read) {
+            await onMarkAsRead(notification.id);
+            toast({
+              title: 'Marked as read',
+              status: 'success',
+              duration: 2000,
+              isClosable: true,
+            });
+          } else if (swipeAction === 'delete') {
+            await onDelete(notification.id);
+            toast({
+              title: 'Deleted',
+              status: 'success',
+              duration: 2000,
+              isClosable: true,
+            });
+          }
+        } catch (error) {
+          console.error('Error executing swipe action:', error);
         }
       }
       
@@ -290,11 +327,12 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
       setSwipedNotification(null);
       setSwipeAction(null);
       element.style.transform = 'translateX(0)';
-      element.style.transition = 'transform 0.2s ease';
+      element.style.transition = 'transform 0.3s ease';
+      element.dataset.isSwiping = 'false';
       
       setTimeout(() => {
         element.style.transition = '';
-      }, 200);
+      }, 300);
     }
   };
 
@@ -310,37 +348,38 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
           left={0}
           right={0}
           bottom={0}
-          display="flex"
-          alignItems="center"
-          justifyContent="space-between"
-          px={8}
           zIndex={0}
+          pointerEvents="none"
         >
-          {/* Read Action (Left Side) */}
-          <Flex
-            align="center"
-            justify="center"
+          {/* Read Action Background - Left Side */}
+          <Box
+            position="absolute"
+            left={0}
+            top={0}
+            bottom={0}
+            w="120px"
             bg="blue.500"
-            color="white"
-            w="80px"
-            h="100%"
-            borderRadius="md"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
           >
-            <Icon as={FaEnvelopeOpen} boxSize={6} />
-          </Flex>
+            <Icon as={FaEnvelopeOpen} boxSize={6} color="white" />
+          </Box>
 
-          {/* Delete Action (Right Side) */}
-          <Flex
-            align="center"
-            justify="center"
+          {/* Delete Action Background - Right Side */}
+          <Box
+            position="absolute"
+            right={0}
+            top={0}
+            bottom={0}
+            w="120px"
             bg="red.500"
-            color="white"
-            w="80px"
-            h="100%"
-            borderRadius="md"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
           >
-            <Icon as={FaTrash} boxSize={6} />
-          </Flex>
+            <Icon as={FaTrash} boxSize={6} color="white" />
+          </Box>
         </Box>
 
         {/* Main Notification Card */}
@@ -349,11 +388,17 @@ export const MobileNotifications: React.FC<MobileNotificationsProps> = ({
           onTouchStart={(e) => handleTouchStart(e, notification.id)}
           onTouchMove={(e) => handleTouchMove(e, notification.id)}
           onTouchEnd={(e) => handleTouchEnd(e, notification)}
-          onClick={() => handleNotificationClick(notification)}
+          onClick={(e) => handleNotificationClick(e, notification)}
           cursor="pointer"
           position="relative"
           zIndex={1}
           bg={bgColor}
+          sx={{
+            touchAction: 'pan-y',
+            userSelect: 'none',
+            WebkitTouchCallout: 'none',
+            WebkitUserSelect: 'none',
+          }}
         >
           <Flex
             align="center"
