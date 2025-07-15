@@ -322,6 +322,24 @@ const MobileNotifications: React.FC = () => {
     return 0;
   };
 
+  const getBackgroundWidth = (notificationId: string, direction: 'left' | 'right') => {
+    const state = swipeStates[notificationId];
+    if (!state?.isDragging) return '120px';
+    
+    const deltaX = state.currentX - state.startX;
+    const distance = Math.abs(deltaX);
+    
+    // Only extend width if swiping in the correct direction
+    if (direction === 'left' && deltaX < 0) {
+      return `${Math.max(120, distance + 50)}px`; // Extend beyond swipe distance
+    }
+    if (direction === 'right' && deltaX > 0) {
+      return `${Math.max(120, distance + 50)}px`; // Extend beyond swipe distance
+    }
+    
+    return '120px';
+  };
+
   if (isLoading) {
     return (
       <Box w="100%" minH="100vh" bg={loadingBg} display="flex" alignItems="center" justifyContent="center">
@@ -352,7 +370,7 @@ const MobileNotifications: React.FC = () => {
                 top="0"
                 right="0"
                 bottom="0"
-                w="120px"
+                w={getBackgroundWidth(notification.id, 'left')}
                 bg="red.500"
                 display="flex"
                 flexDirection="column"
@@ -376,7 +394,7 @@ const MobileNotifications: React.FC = () => {
                 top="0"
                 left="0"
                 bottom="0"
-                w="120px"
+                w={getBackgroundWidth(notification.id, 'right')}
                 bg="blue.400"
                 display="flex"
                 flexDirection="column"
