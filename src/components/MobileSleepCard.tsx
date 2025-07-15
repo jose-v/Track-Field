@@ -10,14 +10,18 @@ import {
   useColorModeValue,
   useToast,
   Flex,
+  useDisclosure,
+  IconButton,
 } from '@chakra-ui/react';
 import { FaStar, FaBed } from 'react-icons/fa';
+import { BsThreeDots } from 'react-icons/bs';
 import { useAuth } from '../contexts/AuthContext';
 import { getSleepQualityText } from '../utils/analytics/performance';
 import { useSleepRecords } from '../hooks/useSleepRecords';
 import { ServiceMigration } from '../utils/migration/ServiceMigration';
 import { getYesterdayLocalDate } from '../utils/dateUtils';
 import { MobileFriendlySlider } from './MobileFriendlySlider';
+import { SleepAnalysisDrawer } from './SleepAnalysisDrawer';
 
 interface MobileSleepCardProps {
   onLogComplete?: () => void;
@@ -29,6 +33,9 @@ export const MobileSleepCard: React.FC<MobileSleepCardProps> = ({ onLogComplete 
   const [isLogging, setIsLogging] = useState(false);
   const { user } = useAuth();
   const toast = useToast();
+  
+  // Sleep analysis drawer state
+  const { isOpen: isAnalysisOpen, onOpen: onAnalysisOpen, onClose: onAnalysisClose } = useDisclosure();
   
   // Get recent sleep records to check for today's logs
   const { data: recentRecords = [] } = useSleepRecords(7);
@@ -153,18 +160,34 @@ export const MobileSleepCard: React.FC<MobileSleepCardProps> = ({ onLogComplete 
   };
 
   return (
-    <Box
-      bg={cardBg}
-      borderRadius="xl"
-      p={6}
-      boxShadow="lg"
-      minH="220px"
-      display="flex"
-      flexDirection="column"
-    >
-      <VStack spacing={4} align="stretch" flex="1">
-        {/* Top Row: Sleep badge | Quality text | Hours with fixed widths */}
-        <HStack justify="space-between" align="center">
+    <>
+      <Box
+        bg={cardBg}
+        borderRadius="xl"
+        p={6}
+        boxShadow="lg"
+        minH="220px"
+        display="flex"
+        flexDirection="column"
+        position="relative"
+      >
+              {/* 3-dot menu button in top right */}
+        <IconButton
+          aria-label="Open sleep analysis"
+          icon={<BsThreeDots />}
+          size="sm"
+          variant="ghost"
+          color={textColor}
+          position="absolute"
+          top={4}
+          right={4}
+          onClick={onAnalysisOpen}
+          _hover={{ bg: 'gray.700' }}
+        />
+
+        <VStack spacing={4} align="stretch" flex="1">
+        {/* Top Row: Sleep badge */}
+        <HStack justify="flex-start" align="center">
           <Badge
             bg={badgeBg}
             color={textColor}
@@ -173,45 +196,34 @@ export const MobileSleepCard: React.FC<MobileSleepCardProps> = ({ onLogComplete 
             py={1}
             borderRadius="lg"
             fontWeight="normal"
-            minW="60px"
-            textAlign="center"
           >
             SLEEP
           </Badge>
+        </HStack>
+
+        {/* Second Row: Stars (left) and Hours (right) */}
+        <HStack justify="space-between" align="center" py="15px">
+          <HStack spacing={2}>
+            {[1, 2, 3, 4].map((rating) => (
+              <Icon
+                key={rating}
+                as={FaStar}
+                boxSize={6}
+                color={rating <= quality ? getQualityColor(quality) : 'gray.600'}
+                cursor="pointer"
+                onClick={() => setValidQuality(rating)}
+                _hover={{ transform: 'scale(1.1)' }}
+                transition="all 0.2s"
+              />
+            ))}
+          </HStack>
           <Text 
             fontSize="lg" 
             fontWeight="bold" 
             color={textColor}
-            minW="90px"
-            textAlign="center"
-          >
-            {getQualityText(quality)}
-          </Text>
-          <Text 
-            fontSize="lg" 
-            fontWeight="bold" 
-            color={textColor}
-            minW="50px"
-            textAlign="center"
           >
             {duration}h
           </Text>
-        </HStack>
-
-        {/* Second Row: Star Rating */}
-        <HStack spacing={2} justify="center" py="15px">
-          {[1, 2, 3, 4].map((rating) => (
-            <Icon
-              key={rating}
-              as={FaStar}
-              boxSize={6}
-              color={rating <= quality ? getQualityColor(quality) : 'gray.600'}
-              cursor="pointer"
-              onClick={() => setValidQuality(rating)}
-              _hover={{ transform: 'scale(1.1)' }}
-              transition="all 0.2s"
-            />
-          ))}
         </HStack>
 
         {/* Third Row: Hours Slider */}
@@ -252,5 +264,12 @@ export const MobileSleepCard: React.FC<MobileSleepCardProps> = ({ onLogComplete 
         </Button>
       </VStack>
     </Box>
+
+    {/* Sleep Analysis Drawer */}
+    <SleepAnalysisDrawer 
+      isOpen={isAnalysisOpen} 
+      onClose={onAnalysisClose} 
+    />
+  </>
   );
 }; 

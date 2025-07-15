@@ -3,6 +3,7 @@ export { default as TeamCard } from './TeamCard';
 export { WorkoutCard } from './WorkoutCard';
 export { WorkoutDeletionWarningModal } from './WorkoutDeletionWarningModal';
 export { default as SleepStatsCard } from './SleepStatsCard';
+export { SleepAnalysisDrawer } from './SleepAnalysisDrawer';
 export { default as NutritionStatsCard } from './NutritionStatsCard';
 export { default as WeatherCard } from './WeatherCard';
 export { ProgressBar } from './ProgressBar';

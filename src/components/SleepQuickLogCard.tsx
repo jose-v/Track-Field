@@ -12,6 +12,7 @@ import {
   Flex,
   Alert,
   AlertIcon,
+  useDisclosure,
 } from '@chakra-ui/react';
 import { FaMoon, FaStar, FaBed, FaClock, FaCheckCircle } from 'react-icons/fa';
 import { useQueryClient } from '@tanstack/react-query';
@@ -21,6 +22,7 @@ import { useSleepRecords } from '../hooks/useSleepRecords';
 import { ServiceMigration } from '../utils/migration/ServiceMigration';
 import { getYesterdayLocalDate, getTodayLocalDate } from '../utils/dateUtils';
 import { MobileFriendlySlider } from './MobileFriendlySlider';
+import { SleepAnalysisDrawer } from './SleepAnalysisDrawer';
 
 interface SleepQuickLogCardProps {
   onLogComplete?: () => void;
@@ -33,6 +35,9 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
   const { user } = useAuth();
   const toast = useToast();
   const queryClient = useQueryClient();
+  
+  // Sleep analysis drawer state
+  const { isOpen: isAnalysisOpen, onOpen: onAnalysisOpen, onClose: onAnalysisClose } = useDisclosure();
   
   // Get recent sleep records to check for today's logs
   const { data: recentRecords = [] } = useSleepRecords(7);
@@ -237,14 +242,19 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
   };
 
   return (
-    <Box
-      bg={cardBg}
-      borderRadius="xl"
-      p={6}
-      border="1px solid"
-      borderColor={borderColor}
-      boxShadow="lg"
-    >
+    <>
+      <Box
+        bg={cardBg}
+        borderRadius="xl"
+        p={6}
+        border="1px solid"
+        borderColor={borderColor}
+        boxShadow="lg"
+        cursor="pointer"
+        onClick={onAnalysisOpen}
+        _hover={{ transform: 'translateY(-2px)', boxShadow: 'xl' }}
+        transition="all 0.2s"
+      >
       <VStack spacing={5} align="stretch">
         {/* Header */}
         <HStack spacing={3}>
@@ -332,7 +342,10 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
         <Button
           colorScheme="blue"
           size="md"
-          onClick={handleQuickLog}
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent card click when clicking button
+            handleQuickLog();
+          }}
           isLoading={isLogging}
           loadingText="Logging..."
           leftIcon={<Icon as={FaBed} />}
@@ -342,6 +355,13 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
         </Button>
       </VStack>
     </Box>
+
+    {/* Sleep Analysis Drawer */}
+    <SleepAnalysisDrawer 
+      isOpen={isAnalysisOpen} 
+      onClose={onAnalysisClose} 
+    />
+  </>
   );
 };
 
