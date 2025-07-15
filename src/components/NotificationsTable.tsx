@@ -27,7 +27,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { format, formatDistanceToNow, isToday, isYesterday, isThisWeek } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
-import { MobileNotifications } from './MobileNotifications';
+import MobileNotifications from './MobileNotifications';
 
 interface Notification {
   id: string;
