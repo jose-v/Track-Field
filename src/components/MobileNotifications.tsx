@@ -26,6 +26,7 @@ const MobileNotifications: React.FC = () => {
   const [swipeStates, setSwipeStates] = useState<{[key: string]: { 
     isDragging: boolean; 
     startX: number; 
+    startY: number;
     currentX: number; 
     direction: 'left' | 'right' | null 
   }}>({});
@@ -213,8 +214,9 @@ const MobileNotifications: React.FC = () => {
     setSwipeStates(prev => ({
       ...prev,
       [notificationId]: {
-        isDragging: true,
+        isDragging: false, // Start as false, only enable after we detect horizontal intent
         startX: touch.clientX,
+        startY: touch.clientY,
         currentX: touch.clientX,
         direction: null
       }
@@ -224,30 +226,69 @@ const MobileNotifications: React.FC = () => {
 
   const handleTouchMove = (e: React.TouchEvent, notificationId: string) => {
     const state = swipeStates[notificationId];
-    if (!state?.isDragging) return;
+    if (!state) return;
 
     const touch = e.touches[0];
     const deltaX = touch.clientX - state.startX;
-    const direction = deltaX > 0 ? 'right' : 'left';
-
-    setSwipeStates(prev => ({
-      ...prev,
-      [notificationId]: {
-        ...state,
-        currentX: touch.clientX,
-        direction: Math.abs(deltaX) > 20 ? direction : null
-      }
-    }));
-
-    setDebugInfo(`Swiping ${notificationId}: ${Math.round(deltaX)}px ${direction}`);
+    const deltaY = touch.clientY - state.startY;
+    
+    // Only start horizontal swiping if the gesture is more horizontal than vertical
+    const isHorizontalGesture = Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10;
+    
+    if (isHorizontalGesture && !state.isDragging) {
+      // Start horizontal swiping mode
+      setSwipeStates(prev => ({
+        ...prev,
+        [notificationId]: {
+          ...state,
+          isDragging: true,
+          currentX: touch.clientX,
+          direction: deltaX > 0 ? 'right' : 'left'
+        }
+      }));
+      // Prevent scrolling only when we're in horizontal swipe mode
+      e.preventDefault();
+    } else if (state.isDragging) {
+      // Continue horizontal swiping
+      const direction = deltaX > 0 ? 'right' : 'left';
+      setSwipeStates(prev => ({
+        ...prev,
+        [notificationId]: {
+          ...state,
+          currentX: touch.clientX,
+          direction: Math.abs(deltaX) > 20 ? direction : null
+        }
+      }));
+      setDebugInfo(`Swiping ${notificationId}: ${Math.round(deltaX)}px ${direction}`);
+      e.preventDefault();
+    }
+    // If not horizontal gesture and not already dragging, allow normal vertical scrolling
   };
 
   const handleTouchEnd = (e: React.TouchEvent, notificationId: string, notification: Notification) => {
     const state = swipeStates[notificationId];
-    if (!state?.isDragging) return;
+    if (!state) return;
 
-    const deltaX = state.currentX - state.startX;
-    const distance = Math.abs(deltaX);
+    // Only process swipe actions if we were actually in dragging mode
+    if (state.isDragging) {
+      const deltaX = state.currentX - state.startX;
+      const distance = Math.abs(deltaX);
+
+      // Trigger actions if swipe was far enough (increased from 80px to 120px)
+      if (distance > 120) {
+        if (deltaX < 0) {
+          // Swiped left - delete
+          deleteNotification(notificationId);
+        } else if (deltaX > 0 && !notification.is_read) {
+          // Swiped right - mark as read (only if unread)
+          markAsRead(notificationId);
+        } else {
+          setDebugInfo(`Swipe right ignored - already read`);
+        }
+      } else {
+        setDebugInfo(`Swipe canceled - not far enough (${Math.round(distance)}px, need 120px)`);
+      }
+    }
 
     // Reset drag state
     setSwipeStates(prev => {
@@ -255,21 +296,6 @@ const MobileNotifications: React.FC = () => {
       delete newStates[notificationId];
       return newStates;
     });
-
-    // Trigger actions if swipe was far enough (increased from 80px to 120px)
-    if (distance > 120) {
-      if (deltaX < 0) {
-        // Swiped left - delete
-        deleteNotification(notificationId);
-      } else if (deltaX > 0 && !notification.is_read) {
-        // Swiped right - mark as read (only if unread)
-        markAsRead(notificationId);
-      } else {
-        setDebugInfo(`Swipe right ignored - already read`);
-      }
-    } else {
-      setDebugInfo(`Swipe canceled - not far enough (${Math.round(distance)}px, need 120px)`);
-    }
   };
 
   const getSwipeTransform = (notificationId: string) => {
@@ -277,7 +303,7 @@ const MobileNotifications: React.FC = () => {
     if (!state?.isDragging) return 'translateX(0px)';
     
     const deltaX = state.currentX - state.startX;
-    const maxSwipe = 150; // Increased max swipe distance
+    const maxSwipe = 400; // Allow much more visual movement like Gmail
     const clampedDelta = Math.max(-maxSwipe, Math.min(maxSwipe, deltaX));
     return `translateX(${clampedDelta}px)`;
   };
@@ -288,7 +314,8 @@ const MobileNotifications: React.FC = () => {
     
     const deltaX = state.currentX - state.startX;
     const distance = Math.abs(deltaX);
-    const opacity = Math.min(distance / 120, 1); // Updated to match new threshold
+    // Opacity reaches 1.0 at 80px and stays there for larger swipes
+    const opacity = Math.min(distance / 80, 1);
     
     if (direction === 'left' && deltaX < 0) return opacity;
     if (direction === 'right' && deltaX > 0) return opacity;
@@ -305,21 +332,6 @@ const MobileNotifications: React.FC = () => {
 
   return (
     <Box w="100%" minH="100vh">
-      {/* Visual Debug Overlay */}
-      <Box
-        position="sticky"
-        top="0"
-        bg="yellow.100"
-        p={2}
-        borderBottom="2px solid"
-        borderColor="yellow.300"
-        zIndex={10}
-      >
-        <Text fontSize="sm" fontWeight="bold" color="black">
-          DEBUG: {debugInfo} | Total: {notifications.length} notifications
-        </Text>
-      </Box>
-
       {notifications.length === 0 ? (
         <Box p={8} textAlign="center" bg={bgColor}>
           <Text color={emptyTextColor}>No notifications yet</Text>
@@ -396,7 +408,7 @@ const MobileNotifications: React.FC = () => {
                 onTouchEnd={(e) => handleTouchEnd(e, notification.id, notification)}
                 onClick={() => setDebugInfo(`Clicked notification ${notification.id}`)}
                 sx={{
-                  touchAction: 'pan-x',
+                  touchAction: 'manipulation',
                   userSelect: 'none',
                   WebkitUserSelect: 'none',
                 }}
