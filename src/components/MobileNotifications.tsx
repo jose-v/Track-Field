@@ -16,6 +16,7 @@ interface Notification {
 const MobileNotifications: React.FC = () => {
   const [swipingNotificationId, setSwipingNotificationId] = useState<string | null>(null);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+  const [processingNotifications, setProcessingNotifications] = useState<Set<string>>(new Set());
   const toast = useToast();
   const queryClient = useQueryClient();
 
@@ -49,7 +50,12 @@ const MobileNotifications: React.FC = () => {
       
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, notificationId) => {
+      setProcessingNotifications(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(notificationId);
+        return newSet;
+      });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       toast({
         title: 'Notification marked as read',
@@ -58,7 +64,12 @@ const MobileNotifications: React.FC = () => {
         isClosable: true,
       });
     },
-    onError: () => {
+    onError: (_, notificationId) => {
+      setProcessingNotifications(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(notificationId);
+        return newSet;
+      });
       toast({
         title: 'Failed to mark notification as read',
         status: 'error',
@@ -78,7 +89,12 @@ const MobileNotifications: React.FC = () => {
       
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, notificationId) => {
+      setProcessingNotifications(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(notificationId);
+        return newSet;
+      });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       toast({
         title: 'Notification deleted',
@@ -87,7 +103,12 @@ const MobileNotifications: React.FC = () => {
         isClosable: true,
       });
     },
-    onError: () => {
+    onError: (_, notificationId) => {
+      setProcessingNotifications(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(notificationId);
+        return newSet;
+      });
       toast({
         title: 'Failed to delete notification',
         status: 'error',
@@ -98,12 +119,24 @@ const MobileNotifications: React.FC = () => {
   });
 
   const handleSwipeRight = (notificationId: string) => {
+    if (processingNotifications.has(notificationId)) {
+      console.log('⏳ Already processing notification:', notificationId);
+      return;
+    }
+    
     console.log('Swiped right on notification:', notificationId);
+    setProcessingNotifications(prev => new Set(prev).add(notificationId));
     markAsReadMutation.mutate(notificationId);
   };
 
   const handleSwipeLeft = (notificationId: string) => {
+    if (processingNotifications.has(notificationId)) {
+      console.log('⏳ Already processing notification:', notificationId);
+      return;
+    }
+    
     console.log('Swiped left on notification:', notificationId);
+    setProcessingNotifications(prev => new Set(prev).add(notificationId));
     deleteNotificationMutation.mutate(notificationId);
   };
 
@@ -113,13 +146,17 @@ const MobileNotifications: React.FC = () => {
         console.log('✅ Completed swipe left on:', notificationId);
         setSwipingNotificationId(null);
         setSwipeDirection(null);
-        handleSwipeLeft(notificationId);
+        if (!processingNotifications.has(notificationId)) {
+          handleSwipeLeft(notificationId);
+        }
       },
       onSwipedRight: () => {
         console.log('✅ Completed swipe right on:', notificationId);
         setSwipingNotificationId(null);
         setSwipeDirection(null);
-        handleSwipeRight(notificationId);
+        if (!processingNotifications.has(notificationId)) {
+          handleSwipeRight(notificationId);
+        }
       },
       onSwiping: (eventData) => {
         console.log('🔄 Swiping:', eventData.deltaX, 'px, velocity:', eventData.velocity);
@@ -129,7 +166,7 @@ const MobileNotifications: React.FC = () => {
         }
         
         // Trigger action if swipe is far enough
-        if (Math.abs(eventData.deltaX) > 80) {
+        if (Math.abs(eventData.deltaX) > 80 && !processingNotifications.has(notificationId)) {
           console.log('🚀 Auto-completing swipe at 80px');
           if (eventData.deltaX > 0) {
             console.log('✅ Auto-completed swipe right');
