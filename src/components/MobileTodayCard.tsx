@@ -375,7 +375,8 @@ export const MobileTodayCard: React.FC<MobileTodayCardProps> = ({
           <IconButton
             aria-label="Menu"
             icon={<Icon as={BsThreeDots} />}
-            size="sm"
+            w="38px"
+            h="38px"
             variant="ghost"
             color={textColor}
             onClick={() => setIsDrawerOpen(true)}

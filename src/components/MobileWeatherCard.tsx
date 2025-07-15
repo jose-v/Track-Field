@@ -214,7 +214,8 @@ export const MobileWeatherCard: React.FC<MobileWeatherCardProps> = ({
         {/* Three dots menu - opens forecast drawer */}
         <IconButton
           icon={<BsThreeDots />}
-          size="sm"
+          w="38px"
+          h="38px"
           variant="ghost"
           color={textColor}
           position="absolute"

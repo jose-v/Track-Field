@@ -175,7 +175,8 @@ export const MobileSleepCard: React.FC<MobileSleepCardProps> = ({ onLogComplete 
         <IconButton
           aria-label="Open sleep analysis"
           icon={<BsThreeDots />}
-          size="sm"
+          w="38px"
+          h="38px"
           variant="ghost"
           color={textColor}
           position="absolute"

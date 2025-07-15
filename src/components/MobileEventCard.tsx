@@ -198,7 +198,8 @@ export const MobileEventCard: React.FC<MobileEventCardProps> = ({ onEventClick }
             <IconButton
               aria-label="Menu"
               icon={<Icon as={BsThreeDots} />}
-              size="sm"
+              w="38px"
+              h="38px"
               variant="ghost"
               color={textColor}
               onClick={(e) => {
