@@ -16,6 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getSleepQualityText } from '../utils/analytics/performance';
 import { useSleepRecords } from '../hooks/useSleepRecords';
 import { ServiceMigration } from '../utils/migration/ServiceMigration';
+import { getYesterdayLocalDate } from '../utils/dateUtils';
 import { MobileFriendlySlider } from './MobileFriendlySlider';
 
 interface MobileSleepCardProps {
@@ -42,12 +43,8 @@ export const MobileSleepCard: React.FC<MobileSleepCardProps> = ({ onLogComplete 
 
   // Check if there are any sleep logs for last night
   const existingLogs = useMemo(() => {
-    const now = new Date();
-    const lastNight = new Date(now);
-    lastNight.setDate(lastNight.getDate() - 1);
-    const lastNightStr = lastNight.getFullYear() + '-' + 
-      String(lastNight.getMonth() + 1).padStart(2, '0') + '-' + 
-      String(lastNight.getDate()).padStart(2, '0');
+    // Use timezone-aware date utility to prevent timezone issues
+    const lastNightStr = getYesterdayLocalDate();
     
     const lastNightLogs = recentRecords.filter(record => record.sleep_date === lastNightStr);
     
@@ -88,13 +85,8 @@ export const MobileSleepCard: React.FC<MobileSleepCardProps> = ({ onLogComplete 
 
     setIsLogging(true);
     try {
-      const now = new Date();
-      const lastNight = new Date(now);
-      lastNight.setDate(lastNight.getDate() - 1);
-      
-      const sleepDate = lastNight.getFullYear() + '-' + 
-        String(lastNight.getMonth() + 1).padStart(2, '0') + '-' + 
-        String(lastNight.getDate()).padStart(2, '0');
+      // Use timezone-aware date utility to prevent timezone issues
+      const sleepDate = getYesterdayLocalDate();
       
       const wakeTime = new Date();
       const sleepTime = new Date(wakeTime.getTime() - (duration * 60 * 60 * 1000));

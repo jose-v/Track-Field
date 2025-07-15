@@ -19,6 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getSleepQualityText } from '../utils/analytics/performance';
 import { useSleepRecords } from '../hooks/useSleepRecords';
 import { ServiceMigration } from '../utils/migration/ServiceMigration';
+import { getYesterdayLocalDate, getTodayLocalDate } from '../utils/dateUtils';
 import { MobileFriendlySlider } from './MobileFriendlySlider';
 
 interface SleepQuickLogCardProps {
@@ -45,20 +46,9 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
 
   // Check if there are any sleep logs for today or yesterday
   const existingLogs = useMemo(() => {
-    // Get current date in local timezone
-    const now = new Date();
-    
-    // Format today's date in local timezone (YYYY-MM-DD)
-    const todayStr = now.getFullYear() + '-' + 
-      String(now.getMonth() + 1).padStart(2, '0') + '-' + 
-      String(now.getDate()).padStart(2, '0');
-    
-    // Get yesterday's date in local timezone  
-    const lastNight = new Date(now);
-    lastNight.setDate(lastNight.getDate() - 1);
-    const lastNightStr = lastNight.getFullYear() + '-' + 
-      String(lastNight.getMonth() + 1).padStart(2, '0') + '-' + 
-      String(lastNight.getDate()).padStart(2, '0');
+    // Use timezone-aware date utilities to prevent timezone issues
+    const todayStr = getTodayLocalDate();
+    const lastNightStr = getYesterdayLocalDate();
     
     const todayLogs = recentRecords.filter(record => record.sleep_date === todayStr);
     const lastNightLogs = recentRecords.filter(record => record.sleep_date === lastNightStr);
@@ -136,15 +126,8 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
 
     setIsLogging(true);
     try {
-      // Use consistent local timezone date handling
-      const now = new Date();
-      const lastNight = new Date(now);
-      lastNight.setDate(lastNight.getDate() - 1);
-      
-      // Format date as YYYY-MM-DD in local timezone (same as in existingLogs check)
-      const sleepDate = lastNight.getFullYear() + '-' + 
-        String(lastNight.getMonth() + 1).padStart(2, '0') + '-' + 
-        String(lastNight.getDate()).padStart(2, '0');
+      // Use timezone-aware date utility to prevent timezone issues
+      const sleepDate = getYesterdayLocalDate();
       
       // Calculate start and end times based on duration
       // Assume they woke up at current time and calculate backwards

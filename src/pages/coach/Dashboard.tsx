@@ -420,7 +420,7 @@ export function CoachDashboard() {
           <HStack spacing={3} justify="space-between">
             <Button 
               as={RouterLink} 
-              to="/coach/workout-creator" 
+              to="/coach/workout-creator-new" 
               variant="solid" 
               colorScheme="blue"
               size="sm"
@@ -465,7 +465,7 @@ export function CoachDashboard() {
             <HStack spacing={3} flexWrap="wrap">
               <Button 
                 as={RouterLink} 
-                to="/coach/workout-creator" 
+                to="/coach/workout-creator-new" 
                 variant="solid" 
                 colorScheme="blue"
                 size="sm"

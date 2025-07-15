@@ -1,5 +1,6 @@
 import { dbClient } from '../../lib/dbClient';
 import { sleepService } from '../../services/domain/SleepService';
+import { getTodayLocalDate } from '../dateUtils';
 
 /**
  * Service Migration Utility
@@ -39,16 +40,18 @@ export class ServiceMigration {
       return ServiceMigration.withFallback(
         () => sleepService.getRecentSleepRecords(userId, days),
         async () => {
-          // Legacy implementation (from existing code)
-          const endDate = new Date().toISOString().split('T')[0];
-          const startDate = new Date(Date.now() - (days * 24 * 60 * 60 * 1000))
-            .toISOString().split('T')[0];
+          // Legacy implementation using timezone-aware dates
+          const endDate = getTodayLocalDate();
+          const startDate = new Date(Date.now() - (days * 24 * 60 * 60 * 1000));
+          const startDateLocal = startDate.getFullYear() + '-' + 
+            String(startDate.getMonth() + 1).padStart(2, '0') + '-' + 
+            String(startDate.getDate()).padStart(2, '0');
           
           const { data, error } = await dbClient.supabase
             .from('sleep_records')
             .select('*')
             .eq('athlete_id', userId)
-            .gte('sleep_date', startDate)
+            .gte('sleep_date', startDateLocal)
             .lte('sleep_date', endDate)
             .order('sleep_date', { ascending: false });
 

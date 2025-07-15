@@ -50,6 +50,7 @@ import { useSleepRecords, SleepRecord } from '../../hooks/useSleepRecords';
 import { MobileHeader } from '../../components';
 import PageHeader from '../../components/PageHeader';
 import { usePageHeader } from '../../hooks/usePageHeader';
+import { getTodayLocalDate } from '../../utils/dateUtils';
 
 export function Sleep() {
   const { user } = useAuth();
@@ -68,7 +69,7 @@ export function Sleep() {
   
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    sleep_date: new Date().toISOString().split('T')[0],
+    sleep_date: getTodayLocalDate(), // Use timezone-aware date to prevent date shifting
     start_time: '',
     end_time: '',
     quality: 3, // Default to 3 (good)
@@ -168,7 +169,7 @@ export function Sleep() {
       });
 
       setFormData({
-        sleep_date: new Date().toISOString().split('T')[0],
+        sleep_date: getTodayLocalDate(), // Use timezone-aware date to prevent date shifting
         start_time: '',
         end_time: '',
         quality: 3,

@@ -14,6 +14,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { saveWellnessSurvey } from '../services/analytics/wellnessService';
+import { getTodayLocalDate } from '../utils/dateUtils';
 import { MobileFriendlySlider } from './MobileFriendlySlider';
 
 interface MobileWellnessCardProps {
@@ -70,7 +71,7 @@ export const MobileWellnessCard: React.FC<MobileWellnessCardProps> = ({ onLogCom
 
   // Check if there are any wellness logs for today
   const existingLogs = useMemo(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getTodayLocalDate();
     const todayLogs = recentWellnessRecords.filter(record => record.survey_date === todayStr);
     
     return {
@@ -147,7 +148,7 @@ export const MobileWellnessCard: React.FC<MobileWellnessCardProps> = ({ onLogCom
 
     setIsLogging(true);
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayLocalDate();
       
       await saveWellnessSurvey(user.id, {
         fatigue,

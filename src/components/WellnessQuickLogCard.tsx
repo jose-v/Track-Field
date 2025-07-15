@@ -17,6 +17,7 @@ import { FaHeart, FaBolt, FaBrain, FaRunning, FaCheckCircle } from 'react-icons/
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { saveWellnessSurvey } from '../services/analytics/wellnessService';
+import { getTodayLocalDate } from '../utils/dateUtils';
 import { MobileFriendlySlider } from './MobileFriendlySlider';
 
 interface WellnessQuickLogCardProps {
@@ -74,8 +75,8 @@ export const WellnessQuickLogCard: React.FC<WellnessQuickLogCardProps> = ({ onLo
 
   // Check if there are any wellness logs for today
   const existingLogs = useMemo(() => {
-    // Use same date format as in handleQuickLog to ensure consistency
-    const todayStr = new Date().toISOString().split('T')[0];
+    // Use timezone-aware date utility to prevent timezone issues
+    const todayStr = getTodayLocalDate();
     
     const todayLogs = recentWellnessRecords.filter(record => record.survey_date === todayStr);
     
@@ -136,7 +137,7 @@ export const WellnessQuickLogCard: React.FC<WellnessQuickLogCardProps> = ({ onLo
 
     setIsLogging(true);
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayLocalDate();
       
       // Use the wellness service upsert method to avoid duplicate key errors
       await saveWellnessSurvey(user.id, {

@@ -21,6 +21,7 @@ import LoopRouteWrapper from '../pages/LoopRouteWrapper';
 import WorkoutCreatorDemo from '../pages/WorkoutCreatorDemo';
 import { NewWorkoutCreator } from '../components/WorkoutCreator';
 import CreateWorkoutChoice from '../pages/coach/CreateWorkoutChoice';
+import { WorkoutCreatorMobileWrapper } from '../components';
 import { Meets } from '../pages/Meets';
 import Events from '../pages/Events';
 import Account from '../pages/Account';
@@ -139,9 +140,9 @@ export default function AppRoutes() {
         <Route path="/coach/calendar" element={<RoleProtectedRoute allowedRoles={['coach']}><CoachCalendar /></RoleProtectedRoute>} />
         <Route path="/coach/notifications" element={<RoleProtectedRoute allowedRoles={['coach']}><NotificationsPage /></RoleProtectedRoute>} />
         <Route path="/coach/loop" element={<RoleProtectedRoute allowedRoles={['coach']}><Loop /></RoleProtectedRoute>} />
-        <Route path="/coach/workout-creator" element={<RoleProtectedRoute allowedRoles={['coach']}><WorkoutCreatorDemo /></RoleProtectedRoute>} />
-        <Route path="/coach/workout-creator-choice" element={<RoleProtectedRoute allowedRoles={['coach']}><CreateWorkoutChoice /></RoleProtectedRoute>} />
-        <Route path="/coach/workout-creator-new" element={<RoleProtectedRoute allowedRoles={['coach']}><NewWorkoutCreator /></RoleProtectedRoute>} />
+        <Route path="/coach/workout-creator" element={<RoleProtectedRoute allowedRoles={['coach']}><WorkoutCreatorMobileWrapper><WorkoutCreatorDemo /></WorkoutCreatorMobileWrapper></RoleProtectedRoute>} />
+        <Route path="/coach/workout-creator-choice" element={<RoleProtectedRoute allowedRoles={['coach']}><WorkoutCreatorMobileWrapper><CreateWorkoutChoice /></WorkoutCreatorMobileWrapper></RoleProtectedRoute>} />
+        <Route path="/coach/workout-creator-new" element={<RoleProtectedRoute allowedRoles={['coach']}><WorkoutCreatorMobileWrapper><NewWorkoutCreator /></WorkoutCreatorMobileWrapper></RoleProtectedRoute>} />
         <Route path="/coach/analytics" element={<RoleProtectedRoute allowedRoles={['coach']}><Analytics /></RoleProtectedRoute>} />
         <Route path="/account" element={<RoleProtectedRoute allowedRoles={['coach']}><Account /></RoleProtectedRoute>} />
         <Route path="/coach/meets" element={<RoleProtectedRoute allowedRoles={['coach']}><Meets /></RoleProtectedRoute>} />
@@ -157,9 +158,9 @@ export default function AppRoutes() {
         <Route path="/team-manager/coaches" element={<RoleProtectedRoute allowedRoles={['team_manager']}><TeamManagerCoaches /></RoleProtectedRoute>} />
         <Route path="/team-manager/athletes" element={<RoleProtectedRoute allowedRoles={['team_manager']}><TeamManagerAthletes /></RoleProtectedRoute>} />
         <Route path="/team-manager/training-plans" element={<RoleProtectedRoute allowedRoles={['team_manager']}><CoachTrainingPlans /></RoleProtectedRoute>} />
-        <Route path="/team-manager/workout-creator" element={<RoleProtectedRoute allowedRoles={['team_manager']}><WorkoutCreatorDemo /></RoleProtectedRoute>} />
-        <Route path="/team-manager/workout-creator-choice" element={<RoleProtectedRoute allowedRoles={['team_manager']}><CreateWorkoutChoice /></RoleProtectedRoute>} />
-        <Route path="/team-manager/workout-creator-new" element={<RoleProtectedRoute allowedRoles={['team_manager']}><NewWorkoutCreator /></RoleProtectedRoute>} />
+        <Route path="/team-manager/workout-creator" element={<RoleProtectedRoute allowedRoles={['team_manager']}><WorkoutCreatorMobileWrapper><WorkoutCreatorDemo /></WorkoutCreatorMobileWrapper></RoleProtectedRoute>} />
+        <Route path="/team-manager/workout-creator-choice" element={<RoleProtectedRoute allowedRoles={['team_manager']}><WorkoutCreatorMobileWrapper><CreateWorkoutChoice /></WorkoutCreatorMobileWrapper></RoleProtectedRoute>} />
+        <Route path="/team-manager/workout-creator-new" element={<RoleProtectedRoute allowedRoles={['team_manager']}><WorkoutCreatorMobileWrapper><NewWorkoutCreator /></WorkoutCreatorMobileWrapper></RoleProtectedRoute>} />
         <Route path="/team-manager/calendar" element={<RoleProtectedRoute allowedRoles={['team_manager']}><CoachCalendar /></RoleProtectedRoute>} />
         <Route path="/team-manager/meets" element={<RoleProtectedRoute allowedRoles={['team_manager']}><Meets /></RoleProtectedRoute>} />
         <Route path="/team-manager/stats" element={<RoleProtectedRoute allowedRoles={['team_manager']}><CoachStats /></RoleProtectedRoute>} />
@@ -182,8 +183,8 @@ export default function AppRoutes() {
         <Route path="/athlete/notifications" element={<RoleProtectedRoute allowedRoles={['athlete']}><NotificationsPage /></RoleProtectedRoute>} />
         <Route path="/athlete/loop" element={<RoleProtectedRoute allowedRoles={['athlete']}><Loop /></RoleProtectedRoute>} />
         <Route path="/gamification" element={<RoleProtectedRoute allowedRoles={['athlete']}><GamificationTestPage /></RoleProtectedRoute>} />
-        <Route path="/athlete/workout-creator" element={<RoleProtectedRoute allowedRoles={['athlete']}><WorkoutCreatorDemo /></RoleProtectedRoute>} />
-        <Route path="/athlete/workout-creator-new" element={<RoleProtectedRoute allowedRoles={['athlete']}><NewWorkoutCreator /></RoleProtectedRoute>} />
+        <Route path="/athlete/workout-creator" element={<RoleProtectedRoute allowedRoles={['athlete']}><WorkoutCreatorMobileWrapper><WorkoutCreatorDemo /></WorkoutCreatorMobileWrapper></RoleProtectedRoute>} />
+        <Route path="/athlete/workout-creator-new" element={<RoleProtectedRoute allowedRoles={['athlete']}><WorkoutCreatorMobileWrapper><NewWorkoutCreator /></WorkoutCreatorMobileWrapper></RoleProtectedRoute>} />
         <Route path="/athlete/analytics" element={<RoleProtectedRoute allowedRoles={['athlete']}><Analytics /></RoleProtectedRoute>} />
         <Route path="/account" element={<RoleProtectedRoute allowedRoles={['athlete']}><Account /></RoleProtectedRoute>} />
         <Route path="/athlete/meets" element={<RoleProtectedRoute allowedRoles={['athlete']}><Meets /></RoleProtectedRoute>} />
