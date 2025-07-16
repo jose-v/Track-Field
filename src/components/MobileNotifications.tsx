@@ -580,7 +580,7 @@ const MobileNotifications: React.FC = () => {
     
     // Only start horizontal swiping if the gesture is more horizontal than vertical
     const isHorizontalGesture = Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10;
-    
+
     if (isHorizontalGesture && !state.isDragging) {
       // Start horizontal swiping mode
       setSwipeStates(prev => ({
@@ -592,13 +592,12 @@ const MobileNotifications: React.FC = () => {
           direction: deltaX > 0 ? 'right' : 'left'
         }
       }));
-      // Prevent all scrolling ONLY when horizontal swipe is active
+    }
+    if (state.isDragging || (isHorizontalGesture && !state.isDragging)) {
+      // Block scroll only during active swipe
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
       document.body.setAttribute('data-swipe-active', 'true');
-      e.preventDefault();
-      e.stopPropagation();
-    } else if (state.isDragging) {
       // Continue horizontal swiping - update visuals directly without React re-render
       updateSwipeVisuals(notificationId, deltaX);
       setSwipeStates(prev => ({
@@ -614,6 +613,8 @@ const MobileNotifications: React.FC = () => {
     } else {
       // Not horizontal, allow normal scroll, remove swipe-active
       document.body.removeAttribute('data-swipe-active');
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     }
   };
 
@@ -928,7 +929,7 @@ const MobileNotifications: React.FC = () => {
                 onTouchMove={!notification.is_archived ? (e) => handleTouchMove(e, notification.id) : undefined}
                 onTouchEnd={!notification.is_archived ? (e) => handleTouchEnd(e, notification.id, notification) : undefined}
                 sx={{
-                  touchAction: 'manipulation',
+                  touchAction: swipeStates[notification.id]?.isDragging ? 'none' : 'manipulation',
                   userSelect: 'none',
                   WebkitUserSelect: 'none',
                   opacity: notification.is_archived ? 0.7 : 1,
