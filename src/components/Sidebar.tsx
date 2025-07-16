@@ -429,6 +429,19 @@ const Sidebar = ({ userType }: SidebarProps) => {
     window.dispatchEvent(new CustomEvent('sidebarToggle', { detail: { width } }));
   }, [isCollapsed]);
 
+  // Listen for global open mobile sidebar events
+  useEffect(() => {
+    const handleOpenMobileSidebar = () => {
+      onMobileDrawerOpen();
+    };
+
+    window.addEventListener('openMobileSidebar', handleOpenMobileSidebar);
+    
+    return () => {
+      window.removeEventListener('openMobileSidebar', handleOpenMobileSidebar);
+    };
+  }, [onMobileDrawerOpen]);
+
   const toggleSidebar = () => {
     const newCollapsed = !isCollapsed;
     setIsCollapsed(newCollapsed);
@@ -843,9 +856,6 @@ const Sidebar = ({ userType }: SidebarProps) => {
 
   return (
     <>
-      {/* Mobile Hamburger Trigger */}
-      <MobileHamburgerTrigger />
-      
       {/* Mobile Drawer */}
       <MobileDrawerContent />
       
@@ -1066,8 +1076,8 @@ const Sidebar = ({ userType }: SidebarProps) => {
         left="0"
         right="0"
         top="auto"
-        height="40vh"
-        maxHeight="40vh"
+        height="auto"
+        maxHeight="85vh"
         minHeight="300px"
         borderRadius="16px 16px 0 0"
         bg={drawerBg}

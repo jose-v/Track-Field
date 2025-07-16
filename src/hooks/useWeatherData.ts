@@ -21,6 +21,7 @@ interface WeatherData {
 interface UseWeatherDataResult {
   weather: WeatherData;
   forecast: ForecastDay[];
+  hourlyForecast: any[];
   isLoading: boolean;
   hasError: boolean;
 }
@@ -43,6 +44,7 @@ export const useWeatherData = (
     description: "scattered clouds"
   });
   const [forecast, setForecast] = useState<ForecastDay[]>([]);
+  const [hourlyForecast, setHourlyForecast] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const toast = useToast();
@@ -123,6 +125,23 @@ export const useWeatherData = (
           description: data.current.weather[0].description
         });
         
+        // Process hourly forecast data (next 24 hours)
+        if (data.hourly && data.hourly.length > 0) {
+          const hourlyData = data.hourly.slice(0, 24).map((hour: any) => {
+            const date = new Date(hour.dt * 1000);
+            return {
+              time: date.toISOString(),
+              hour: date.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true }),
+              temp: Math.round(hour.temp),
+              condition: hour.weather[0].main,
+              description: hour.weather[0].description,
+              icon: hour.weather[0].icon,
+              rainProbability: Math.round((hour.pop || 0) * 100)
+            };
+          });
+          setHourlyForecast(hourlyData);
+        }
+
         // Process forecast data (next 5 days)
         if (data.daily && data.daily.length > 0) {
           const forecastData = data.daily.slice(0, 5).map((day: any, index: number) => {
@@ -165,6 +184,7 @@ export const useWeatherData = (
   return {
     weather,
     forecast,
+    hourlyForecast,
     isLoading,
     hasError
   };

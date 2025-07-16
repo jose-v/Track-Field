@@ -165,7 +165,7 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
         display={{ base: "flex", md: "none" }}
         alignItems="center"
         justifyContent="space-between"
-        pl={16}
+        pl={4}
         pr={4}
         bg="rgba(255, 255, 255, 0.8)"
         backdropFilter="blur(10px)"
@@ -174,8 +174,23 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
         transition="top 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
         transform="translateZ(0)"
       >
+        {/* Hamburger Menu for Mobile */}
+        <IconButton
+          aria-label="Open Menu"
+          icon={<LuMenu size="20px" />}
+          variant="ghost"
+          size="sm"
+          onClick={onOpen}
+          color="gray.700"
+          bg="transparent"
+          _hover={{ bg: 'transparent' }}
+          _active={{ bg: 'transparent' }}
+          _focus={{ bg: 'transparent', boxShadow: 'none' }}
+          display={{ base: "flex", md: "none" }}
+        />
+        
         {/* Title and Subtitle for mobile ONLY */}
-        <Box flex="1" mr={3} display={{ base: "block", md: "none" }}>
+        <Box flex="1" mx={3} display={{ base: "block", md: "none" }}>
           {pageHeaderInfo ? (
             <Box>
               <Text 
@@ -332,66 +347,7 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
               onClick={onOpen}
             />
           )}
-          {/* Inline user menu for portals */}
-          {!isPublicPage && (
-            <Menu>
-              <MenuButton
-                as={IconButton}
-                aria-label="Open Menu"
-                variant="ghost"
-                size="sm"
-                sx={iconStyle}
-                icon={<LuMenu size="18px" />}
-              />
-              <MenuList zIndex={9999}>
-                <MenuItem as={RouterLink} 
-                  to={
-                    displayProfile?.role === 'coach' ? '/coach/profile' : 
-                    displayProfile?.role === 'athlete' ? '/athlete/profile' : 
-                    displayProfile?.role === 'team_manager' ? '/team-manager/profile' : '/profile'
-                  }
-                  color={menuTextColor}
-                  _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
-                  _focus={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
-                >
-                  My Profile
-                </MenuItem>
-                <MenuItem onClick={() => window.location.href = '/account'}
-                  color={menuTextColor}
-                  _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
-                  _focus={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
-                >
-                  Account & Billing
-                </MenuItem>
-                <MenuItem as={RouterLink} 
-                  to={
-                    displayProfile?.role === 'coach' ? '/coach/settings' : 
-                    displayProfile?.role === 'athlete' ? '/athlete/settings' : 
-                    displayProfile?.role === 'team_manager' ? '/team-manager/settings' : '/settings'
-                  }
-                  color={menuTextColor}
-                  _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
-                  _focus={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
-                >
-                  Settings
-                </MenuItem>
-                <MenuItem onClick={showFeedbackModal}
-                  color={menuTextColor}
-                  _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
-                  _focus={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
-                >
-                  Give Feedback
-                </MenuItem>
-                <MenuItem onClick={signOut}
-                  color={menuTextColor}
-                  _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
-                  _focus={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
-                >
-                  Sign out
-                </MenuItem>
-              </MenuList>
-            </Menu>
-                      )}
+
           </Flex>
         </Flex>
       </Box>

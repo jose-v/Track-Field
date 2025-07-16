@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Flex, useColorModeValue, useDisclosure } from '@chakra-ui/react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Box, Flex, useColorModeValue } from '@chakra-ui/react';
 import Sidebar from './Sidebar';
 import { useCoachNavigation } from './layout/CoachNavigation';
 import SimplifiedNav from './SimplifiedNav';
@@ -13,7 +13,11 @@ export function CoachLayout({ children }: { children: React.ReactNode }) {
     const savedSidebarState = localStorage.getItem('sidebarCollapsed');
     return savedSidebarState === 'true' ? 70 : 200;
   });
-  const { onOpen } = useDisclosure();
+  
+  // Function to handle hamburger menu click using global event
+  const handleHamburgerClick = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('openMobileSidebar'));
+  }, []);
   
   // Listen for sidebar toggle events
   useEffect(() => {
@@ -32,7 +36,9 @@ export function CoachLayout({ children }: { children: React.ReactNode }) {
   return (
     <Flex width="100%" height="100vh" bg={bgColor}>
       {/* Sidebar for coach navigation */}
-      <Sidebar userType="coach" />
+      <Sidebar 
+        userType="coach"
+      />
       
       {/* Main content area */}
       <Box
@@ -55,7 +61,7 @@ export function CoachLayout({ children }: { children: React.ReactNode }) {
           shareTitle={coachNav.shareTitle}
           shareDescription={coachNav.shareDescription}
           isPublicPage={false}
-          onOpen={onOpen}
+          onOpen={handleHamburgerClick}
         />
         
         {/* Main content with padding to account for the top navigation */}

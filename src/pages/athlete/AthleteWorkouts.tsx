@@ -337,7 +337,7 @@ export function AthleteWorkouts() {
                   <Heading size="lg" mb={2}>Today's Workout</Heading>
                   <Text color="gray.600">Your assigned workout for today</Text>
                 </Box>
-                {/* Desktop Refresh Button */}
+                {/* Refresh Button for Today's Workout */}
                 {isDesktop && (
                   <Button
                     leftIcon={<FaRedo />}
@@ -381,7 +381,7 @@ export function AthleteWorkouts() {
 
           return (
             <VStack spacing={6} align="stretch">
-              <Flex justify="space-between" align="center">
+              <Flex justify="flex-start" align="center">
                 <Box>
                   <HStack spacing={3} align="center">
                     <Heading size="lg">{sectionTitle}</Heading>
@@ -393,61 +393,62 @@ export function AthleteWorkouts() {
                     Your assignments and training plans
                   </Text>
                 </Box>
-                {/* Desktop Refresh Button */}
-                {isDesktop && (
-                  <Button
-                    leftIcon={<FaRedo />}
-                    variant="outline"
-                    onClick={handleRefresh}
-                    size="sm"
-                  >
-                    Refresh
-                  </Button>
-                )}
               </Flex>
               
               {/* Desktop Filter Controls - Only show on desktop for all-assignments */}
               {isDesktop && activeItem === 'all-assignments' && (
-                <Flex gap={3} align="center" wrap="wrap">
-                  <Text fontSize="sm" fontWeight="medium" color="gray.600">
+                <Flex gap={4} align="center" wrap="wrap" w="100%">
+                  <Text fontSize="sm" fontWeight="medium" color="gray.600" flexShrink={0}>
                     Filters:
                   </Text>
                   
-                  <HStack spacing={3}>
-                    <Select
-                      value={assignmentTypeFilter}
-                      onChange={(e) => setAssignmentTypeFilter(e.target.value as typeof assignmentTypeFilter)}
-                      size="sm"
-                      bg={cardBg}
-                      minW="140px"
-                    >
-                      <option value="all">All Types</option>
-                      <option value="single">Single</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="monthly">Monthly</option>
-                    </Select>
-                    
-                    <Select
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-                      size="sm"
-                      bg={cardBg}
-                      minW="140px"
-                    >
-                      <option value="all">All Status</option>
-                      <option value="assigned">Assigned</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="completed">Completed</option>
-                    </Select>
-                    
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={handleClearFilters}
-                    >
-                      Clear Filters
-                    </Button>
-                  </HStack>
+                  <Select
+                    value={assignmentTypeFilter}
+                    onChange={(e) => setAssignmentTypeFilter(e.target.value as typeof assignmentTypeFilter)}
+                    size="sm"
+                    bg={cardBg}
+                    minW="140px"
+                    maxW="140px"
+                  >
+                    <option value="all">All Types</option>
+                    <option value="single">Single</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </Select>
+                  
+                  <Select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                    size="sm"
+                    bg={cardBg}
+                    minW="140px"
+                    maxW="140px"
+                  >
+                    <option value="all">All Status</option>
+                    <option value="assigned">Assigned</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                  </Select>
+                  
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleRefresh}
+                    leftIcon={<FaRedo />}
+                    flexShrink={0}
+                    whiteSpace="nowrap"
+                  >
+                    Refresh
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleClearFilters}
+                    flexShrink={0}
+                    whiteSpace="nowrap"
+                  >
+                    Clear Filters
+                  </Button>
                 </Flex>
               )}
               

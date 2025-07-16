@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box, HStack, VStack, Text, Icon, Flex, Button, Badge, IconButton, 
   useColorModeValue, Tooltip, Menu, MenuButton, MenuList, MenuItem, Portal
@@ -10,6 +10,7 @@ import { getExercisesFromWorkout, getBlocksFromWorkout } from '../utils/workoutU
 import { dateUtils } from '../utils/date';
 import { format } from 'date-fns';
 import { Link as RouterLink } from 'react-router-dom';
+import { WorkoutDetailsDrawer } from './WorkoutDetailsDrawer';
 
 interface WorkoutListItemProps {
   workout: Workout;
@@ -41,6 +42,17 @@ export function WorkoutListItem({
   monthlyPlanUsage,
   onConvertToWorkout
 }: WorkoutListItemProps) {
+  // State for workout details drawer
+  const [isDetailsDrawerOpen, setIsDetailsDrawerOpen] = useState(false);
+  
+  // Handle view details - use drawer or existing callback
+  const handleViewDetails = () => {
+    if (onViewDetails) {
+      onViewDetails();
+    } else {
+      setIsDetailsDrawerOpen(true);
+    }
+  };
   // Theme colors
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const cardBg = useColorModeValue('white', 'gray.800');
@@ -81,7 +93,7 @@ export function WorkoutListItem({
       transition="all 0.2s"
       _hover={{ bg: hoverBg, transform: 'translateY(-1px)' }}
       cursor="pointer"
-      onClick={onViewDetails}
+      onClick={handleViewDetails}
     >
       <HStack spacing={4} align="center">
         {/* Icon and Type Badge */}
@@ -202,18 +214,16 @@ export function WorkoutListItem({
             >
               Edit
             </MenuItem>
-            {onViewDetails && (
-              <MenuItem 
-                icon={<FaEye />} 
-                onClick={(e) => { 
-                  e.preventDefault(); 
-                  e.stopPropagation(); 
-                  onViewDetails(); 
-                }}
-              >
-                View Details
-              </MenuItem>
-            )}
+            <MenuItem 
+              icon={<FaEye />} 
+              onClick={(e) => { 
+                e.preventDefault(); 
+                e.stopPropagation(); 
+                handleViewDetails(); 
+              }}
+            >
+              View Details
+            </MenuItem>
             {isTemplate && onConvertToWorkout && (
               <MenuItem 
                 icon={<FaExchangeAlt />} 
@@ -270,6 +280,13 @@ export function WorkoutListItem({
           </Portal>
         </Menu>
       </HStack>
+
+      {/* Workout Details Drawer */}
+      <WorkoutDetailsDrawer
+        isOpen={isDetailsDrawerOpen}
+        onClose={() => setIsDetailsDrawerOpen(false)}
+        workout={workout}
+      />
     </Box>
   );
 } 

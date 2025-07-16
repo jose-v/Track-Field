@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   VStack,
@@ -8,26 +8,75 @@ import {
   useColorModeValue,
   Flex,
   Badge,
-  ButtonGroup
+  ButtonGroup,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  IconButton,
+  Portal
 } from '@chakra-ui/react';
+import { FaEllipsisV, FaEye, FaTrash, FaUsers } from 'react-icons/fa';
 
 import { WorkoutAssignment } from '../services/assignmentService';
 import { useUnifiedAssignmentActions } from '../hooks/useUnifiedAssignments';
+import { WorkoutDetailsDrawer } from './WorkoutDetailsDrawer';
 
 interface UnifiedAssignmentCardProps {
   assignment: WorkoutAssignment;
   onExecute?: (assignmentId: string) => void;
   showActions?: boolean;
   compact?: boolean;
+  onDelete?: () => void;
+  onAssign?: () => void;
+  isCoach?: boolean;
+  currentUserId?: string;
 }
 
 export function UnifiedAssignmentCard({ 
   assignment, 
   onExecute, 
   showActions = true,
-  compact = false 
+  compact = false,
+  onDelete,
+  onAssign,
+  isCoach = false,
+  currentUserId
 }: UnifiedAssignmentCardProps) {
-  const { resetProgress } = useUnifiedAssignmentActions();
+  
+  // State for workout details drawer
+  const [isDetailsDrawerOpen, setIsDetailsDrawerOpen] = useState(false);
+  
+  // Handle view details
+  const handleViewDetails = () => {
+    setIsDetailsDrawerOpen(true);
+  };
+  
+  // Check if current user can delete (user who created/assigned the workout)
+  const canDelete = currentUserId && (
+    assignment.assigned_by === currentUserId || 
+    assignment.athlete_id === currentUserId ||
+    isCoach
+  );
+
+  // Convert WorkoutAssignment to Workout format for the drawer
+  const convertAssignmentToWorkout = () => {
+    const workout = {
+      id: assignment.id,
+      name: assignment.exercise_block?.workout_name || assignment.exercise_block?.plan_name || 'Assignment Workout',
+      description: assignment.exercise_block?.description || '',
+      type: assignment.assignment_type,
+      date: assignment.start_date,
+      duration: assignment.exercise_block?.estimated_duration || '',
+      notes: assignment.exercise_block?.notes || '',
+      created_at: assignment.created_at,
+      exercises: assignment.exercise_block?.exercises || [],
+      blocks: assignment.exercise_block?.blocks || [],
+      is_block_based: assignment.exercise_block?.is_block_based || false,
+      template_type: assignment.assignment_type as 'single' | 'weekly' | 'monthly'
+    };
+    return workout;
+  };
 
   // Theme colors - responsive light/dark mode
   const cardBg = useColorModeValue('white', 'gray.800');
@@ -182,8 +231,11 @@ export function UnifiedAssignmentCard({
     }
   };
 
-  // Generate workout ID (using assignment ID as base)
-  const workoutId = assignment.id ? `S${assignment.id.slice(-4).toUpperCase()}` : 'S0000';
+  // Get the actual workout name from assignment data
+  const workoutName = assignment.exercise_block?.workout_name || 
+                     assignment.exercise_block?.plan_name || 
+                     assignment.exercise_block?.name ||
+                     `Workout ${assignment.id.slice(-4).toUpperCase()}`;
 
   // Circular progress component
   const CircularProgress = ({ percentage }: { percentage: number }) => {
@@ -265,7 +317,7 @@ export function UnifiedAssignmentCard({
               border="1px solid"
               borderColor={separatorColor}
             >
-              COACH
+              {assignment.assigned_by ? 'COACH' : 'ATHLETE'}
             </Button>
             <Button 
               bg={useColorModeValue("gray.200", "gray.600")} 
@@ -274,17 +326,53 @@ export function UnifiedAssignmentCard({
               border="1px solid"
               borderColor={separatorColor}
             >
-              SINGLE
+              {assignment.assignment_type.toUpperCase()}
             </Button>
           </ButtonGroup>
-          <Text fontSize="sm" color={secondaryTextColor}>•••</Text>
+                      <Menu>
+              <MenuButton
+                as={IconButton}
+                icon={<FaEllipsisV />}
+                variant="ghost"
+                aria-label="Options"
+                size="sm"
+                color={secondaryTextColor}
+              />
+              <Portal>
+                <MenuList>
+                  <MenuItem 
+                    icon={<FaEye />} 
+                    onClick={handleViewDetails}
+                  >
+                    View Details
+                  </MenuItem>
+                  {onAssign && (
+                    <MenuItem 
+                      icon={<FaUsers />} 
+                      onClick={onAssign}
+                    >
+                      Assign Athletes
+                    </MenuItem>
+                  )}
+                  {onDelete && canDelete && (
+                    <MenuItem 
+                      icon={<FaTrash />} 
+                      onClick={onDelete}
+                      color="red.500"
+                    >
+                      Delete Workout
+                    </MenuItem>
+                  )}
+                </MenuList>
+              </Portal>
+            </Menu>
         </HStack>
 
         {/* Workout ID, Status and Date Information - Two Columns */}
         <HStack align="start" justify="space-between" w="100%">
           <VStack align="start" spacing={2}>
             <Text fontSize="2xl" fontWeight="bold" color={textColor}>
-              {workoutId}
+              {workoutName}
             </Text>
             <Badge
               colorScheme={isInProgress ? "orange" : isCompleted ? "green" : "gray"}
@@ -353,26 +441,7 @@ export function UnifiedAssignmentCard({
 
         {/* Action Buttons */}
         {showActions && (
-          <HStack justify="space-between" w="100%">
-            <VStack spacing={2} align="center">
-              <Button
-                size="lg"
-                bg="#F59E0B" // Yellow color
-                color="white"
-                borderRadius="full"
-                w="80px"
-                h="80px"
-                fontSize="xs"
-                fontWeight="bold"
-                _hover={{ bg: "#D97706" }}
-                _active={{ bg: "#B45309" }}
-                onClick={() => resetProgress.mutate(assignment.id)}
-                isLoading={resetProgress.isPending}
-              >
-                RESET
-              </Button>
-            </VStack>
-            
+          <Flex justify="center" w="100%">
             <VStack spacing={2} align="center">
               <Button
                 size="lg"
@@ -390,9 +459,16 @@ export function UnifiedAssignmentCard({
                 START
               </Button>
             </VStack>
-          </HStack>
+          </Flex>
         )}
       </VStack>
+
+      {/* Workout Details Drawer */}
+      <WorkoutDetailsDrawer
+        isOpen={isDetailsDrawerOpen}
+        onClose={() => setIsDetailsDrawerOpen(false)}
+        workout={convertAssignmentToWorkout()}
+      />
     </Box>
   );
 }

@@ -57,6 +57,33 @@ const MobileNotifications: React.FC = () => {
     }
   }, [user]);
 
+  // Prevent browser pull-to-refresh globally while this component is mounted
+  useEffect(() => {
+    // Set document styles to prevent native pull-to-refresh
+    const originalOverscrollBehavior = document.documentElement.style.overscrollBehavior;
+    const originalTouchAction = document.body.style.touchAction;
+    
+    document.documentElement.style.overscrollBehavior = 'none';
+    document.body.style.touchAction = 'pan-x pan-y';
+    
+    // Add passive: false event listener to body for better control
+    const preventPullToRefresh = (e: TouchEvent) => {
+      if (window.scrollY === 0 && e.touches.length === 1) {
+        // Prevent any downward touch movement at the top
+        e.preventDefault();
+      }
+    };
+    
+    document.body.addEventListener('touchmove', preventPullToRefresh, { passive: false });
+    
+    // Cleanup on unmount
+    return () => {
+      document.documentElement.style.overscrollBehavior = originalOverscrollBehavior;
+      document.body.style.touchAction = originalTouchAction;
+      document.body.removeEventListener('touchmove', preventPullToRefresh);
+    };
+  }, []);
+
 
 
   // Real-time notifications subscription (temporarily disabled for testing)
@@ -304,25 +331,37 @@ const MobileNotifications: React.FC = () => {
   };
 
   const handlePullStart = (e: React.TouchEvent) => {
-    if (window.scrollY === 0) {
+    // Only allow pull-to-refresh when at the very top AND on the unread tab
+    if (window.scrollY === 0 && activeTab === 'unread') {
       setStartY(e.touches[0].clientY);
     }
   };
 
   const handlePullMove = (e: React.TouchEvent) => {
-    if (window.scrollY === 0 && startY > 0) {
+    // Always prevent default behavior when at top to stop browser pull-to-refresh
+    if (window.scrollY === 0) {
       const currentY = e.touches[0].clientY;
-      const distance = Math.max(0, currentY - startY);
+      const distance = startY > 0 ? currentY - startY : 0;
       
+      // Prevent browser pull-to-refresh for any downward movement at top
       if (distance > 0) {
         e.preventDefault();
-        setPullDistance(Math.min(distance, 80)); // Max pull distance
+        e.stopPropagation();
+      }
+      
+      // Only show our custom pull-to-refresh on unread tab
+      if (startY > 0 && activeTab === 'unread') {
+        // Only trigger if it's a significant, deliberate downward pull
+        if (distance > 20) { // Minimum 20px before any visual feedback
+          setPullDistance(Math.min(distance, 120)); // Increased max pull distance
+        }
       }
     }
   };
 
   const handlePullEnd = () => {
-    if (pullDistance > 50 && !isRefreshing) {
+    // Require much more deliberate pull (100px instead of 50px) and not refreshing
+    if (pullDistance > 100 && !isRefreshing && activeTab === 'unread') {
       refreshNotifications();
     } else {
       setPullDistance(0);
@@ -650,19 +689,25 @@ const MobileNotifications: React.FC = () => {
       onTouchStart={handlePullStart}
       onTouchMove={handlePullMove}
       onTouchEnd={handlePullEnd}
+      sx={{
+        // Prevent native browser pull-to-refresh
+        overscrollBehavior: 'none',
+        touchAction: 'pan-y pinch-zoom',
+        WebkitOverflowScrolling: 'touch',
+      }}
     >
-      {/* Pull to Refresh Indicator */}
-      {pullDistance > 0 && (
+      {/* Pull to Refresh Indicator - Only on Unread tab */}
+      {pullDistance > 20 && activeTab === 'unread' && (
         <Box
           position="fixed"
-          top={`${pullDistance - 50}px`}
+          top={`${Math.max(10, pullDistance - 80)}px`}
           left="50%"
           transform="translateX(-50%)"
           zIndex={999}
           bg="white"
           borderRadius="full"
-          p={2}
-          boxShadow="md"
+          p={3}
+          boxShadow="lg"
           transition="top 0.1s ease-out"
         >
           <Box
@@ -670,7 +715,7 @@ const MobileNotifications: React.FC = () => {
             h="24px"
             borderRadius="full"
             border="2px solid"
-            borderColor={pullDistance > 50 ? "blue.500" : "gray.300"}
+            borderColor={pullDistance > 100 ? "blue.500" : "gray.300"}
             borderTopColor="transparent"
             animation={isRefreshing ? "spin 1s linear infinite" : "none"}
             sx={{
@@ -680,6 +725,11 @@ const MobileNotifications: React.FC = () => {
               }
             }}
           />
+          {pullDistance > 80 && (
+            <Text fontSize="xs" color="gray.600" mt={1} textAlign="center">
+              {pullDistance > 100 ? "Release to refresh" : "Pull down"}
+            </Text>
+          )}
         </Box>
       )}
 

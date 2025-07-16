@@ -281,6 +281,9 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
 
         {/* Duration Slider */}
         <Box>
+          <Text fontSize="sm" fontWeight="medium" color={statNumberColor} mb={1}>
+            Duration
+          </Text>
           <HStack justify="space-between" mb={2}>
             <Text fontSize="sm" fontWeight="medium" color={statNumberColor}>
               Sleep Duration
@@ -292,15 +295,17 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
               </Text>
             </HStack>
           </HStack>
-          <MobileFriendlySlider
-            value={duration}
-            onChange={setValidDuration}
-            min={4}
-            max={12}
-            step={0.5}
-            colorScheme="blue"
-          />
-          <HStack justify="space-between" mt={1}>
+          <Box maxW="220px" mx="auto">
+            <MobileFriendlySlider
+              value={duration}
+              onChange={setValidDuration}
+              min={4}
+              max={12}
+              step={0.5}
+              colorScheme="blue"
+            />
+          </Box>
+          <HStack justify="space-between" mt={1} maxW="220px" mx="auto">
             <Text fontSize="xs" color={statLabelColor}>4h</Text>
             <Text fontSize="xs" color={statLabelColor}>12h</Text>
           </HStack>
@@ -308,6 +313,9 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
 
         {/* Quality Rating */}
         <Box>
+          <Text fontSize="sm" fontWeight="medium" color={statNumberColor} mb={1}>
+            Quality
+          </Text>
           <HStack justify="space-between" mb={3}>
             <Text fontSize="sm" fontWeight="medium" color={statNumberColor}>
               Sleep Quality
@@ -321,7 +329,6 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
               </Text>
             </HStack>
           </HStack>
-          
           <HStack spacing={2} justify="center">
             {[1, 2, 3, 4].map((rating) => (
               <Icon

@@ -23,7 +23,7 @@ import { HamburgerIcon, CloseIcon } from '@chakra-ui/icons'
 import { Link as RouterLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useProfileDisplay } from '../hooks/useProfileDisplay'
-import { FaBell, FaHome, FaCommentDots, FaExpand, FaDownload, FaCompress, FaTachometerAlt } from 'react-icons/fa'
+import { FaBell, FaHome, FaCommentDots, FaExpand, FaDownload, FaCompress, FaTachometerAlt, FaUserAlt } from 'react-icons/fa'
 import { useState, useEffect } from 'react'
 import { useFeedback } from './FeedbackProvider'
 import { ShareComponent } from './ShareComponent'
@@ -476,6 +476,7 @@ const Navigation = () => {
                     to={getProfilePathForRole(displayProfile?.role)}
                     w="100%"
                     justifyContent="flex-start"
+                    leftIcon={<FaUserAlt />}
                     color="gray.700"
                     _hover={{ 
                       bg: "gray.100",
@@ -597,6 +598,7 @@ const Navigation = () => {
                   to={getProfilePathForRole(displayProfile?.role)}
                   w="100%"
                   justifyContent="flex-start"
+                  leftIcon={<FaUserAlt />}
                   color="gray.700"
                   _hover={{ 
                     bg: "gray.100",

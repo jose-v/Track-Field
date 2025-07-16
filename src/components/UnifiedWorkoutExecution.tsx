@@ -21,10 +21,11 @@ import {
   Flex,
   Circle,
   useDisclosure,
-  Image
+  Image,
+  Icon
 } from '@chakra-ui/react';
 import { ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
-import { FaPlay, FaPause, FaSquare, FaStepBackward, FaStepForward, FaCheckCircle, FaInfoCircle, FaRedo, FaVideo, FaForward } from 'react-icons/fa';
+import { FaPlay, FaPause, FaSquare, FaStepBackward, FaStepForward, FaCheckCircle, FaInfoCircle, FaRedo, FaVideo, FaForward, FaSignOutAlt } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/api';
@@ -1493,7 +1494,7 @@ export function UnifiedWorkoutExecution({
           <HStack w="full" position="relative">
             <IconButton
               aria-label="Back"
-              icon={<ChevronLeftIcon />}
+              icon={<Icon as={FaSignOutAlt} transform="rotate(180deg)" />}
               variant="ghost"
               onClick={onExit}
               position="absolute"
@@ -1635,15 +1636,14 @@ export function UnifiedWorkoutExecution({
             {/* Countdown Display */}
             {isCountingDown && (
               <Box 
-                position="absolute" 
-                top="50%" 
-                left="50%" 
-                transform="translate(-50%, -50%)"
+                position="fixed" 
+                top={0}
+                left={0}
+                right={0}
+                bottom={0}
                 zIndex={1000}
                 bg="rgba(0, 0, 0, 0.5)"
                 backdropFilter="blur(7px)"
-                w="full"
-                h="full"
                 display="flex"
                 alignItems="center"
                 justifyContent="center"
@@ -1674,15 +1674,14 @@ export function UnifiedWorkoutExecution({
             {/* Start Button - Show when not counting down and not active */}
             {!isLoadingExercises && !exerciseLoadError && !isRestDay && !isCountingDown && !isActive && !isResting && !showRPEScreen && totalExercises > 0 && !isManuallyPaused && !isTimedCountdown && !isCompleting && (
               <Box 
-                position="absolute" 
-                top="50%" 
-                left="50%" 
-                transform="translate(-50%, -50%)"
+                position="fixed" 
+                top={0}
+                left={0}
+                right={0}
+                bottom={0}
                 zIndex={999}
                 bg="rgba(0, 0, 0, 0.5)"
                 backdropFilter="blur(7px)"
-                w="full"
-                h="full"
                 display="flex"
                 alignItems="center"
                 justifyContent="center"
@@ -1698,7 +1697,18 @@ export function UnifiedWorkoutExecution({
                   {/* Rep Count Display */}
                   {currentExercise && (
                     <Text fontSize="lg" color="white" opacity={0.8} textAlign="center">
-                      {currentExerciseReps} {currentExerciseReps === 1 ? 'Rep' : 'Reps'}
+                      {isRunningExercise() ? (
+                        (() => {
+                          const repsToGo = currentExerciseReps - currentRep + 1;
+                          if (repsToGo === 1) {
+                            return 'Your Last Rep!';
+                          } else {
+                            return `${repsToGo} Reps to go`;
+                          }
+                        })()
+                      ) : (
+                        `${currentExerciseReps} ${currentExerciseReps === 1 ? 'Rep' : 'Reps'}`
+                      )}
                     </Text>
                   )}
                   
@@ -1725,15 +1735,14 @@ export function UnifiedWorkoutExecution({
             {/* Rest Time Overlay */}
             {isResting && (
               <Box 
-                position="absolute" 
-                top="50%" 
-                left="50%" 
-                transform="translate(-50%, -50%)"
+                position="fixed" 
+                top={0}
+                left={0}
+                right={0}
+                bottom={0}
                 zIndex={1000}
                 bg="rgba(0, 0, 0, 0.5)"
                 backdropFilter="blur(7px)"
-                w="full"
-                h="full"
                 display="flex"
                 alignItems="center"
                 justifyContent="center"
