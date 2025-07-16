@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Box, Flex, Avatar, Text, useToast, useColorModeValue } from '@chakra-ui/react';
+import { Box, Flex, Avatar, Text, useToast, useColorModeValue, Button } from '@chakra-ui/react';
 import { FaTrash, FaEnvelopeOpen } from 'react-icons/fa';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,7 +25,11 @@ const MobileNotifications: React.FC = () => {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
   const [userProfiles, setUserProfiles] = useState<{ [key: string]: any }>({});
-  const [debugInfo, setDebugInfo] = useState<string>('Ready to swipe');
+  const [debugInfo, setDebugInfo] = useState<string>('Mobile notifications loaded');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [startY, setStartY] = useState(0);
+  const [activeTab, setActiveTab] = useState<'unread' | 'read' | 'archived'>('unread');
   const [swipeStates, setSwipeStates] = useState<{[key: string]: { 
     isDragging: boolean; 
     startX: number; 
@@ -57,19 +61,133 @@ const MobileNotifications: React.FC = () => {
     }
   }, [user]);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      if (
-        window.innerHeight + document.documentElement.scrollTop
-        >= document.documentElement.offsetHeight - 1000 // Load more when 1000px from bottom
-      ) {
-        loadMoreNotifications();
-      }
-    };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [loadingMore, hasMore, page]);
+
+  // Real-time notifications subscription (temporarily disabled for testing)
+  // useEffect(() => {
+  //   if (!user?.id) return;
+
+  //   setDebugInfo('Setting up real-time subscription...');
+    
+  //   const channel = supabase
+  //     .channel('notifications-channel')
+  //     .on(
+  //       'postgres_changes',
+  //       {
+  //         event: 'INSERT',
+  //         schema: 'public',
+  //         table: 'notifications',
+  //         filter: `user_id=eq.${user.id}`,
+  //       },
+  //       (payload) => {
+  //         setDebugInfo(`New notification received: ${payload.new.title}`);
+          
+  //         // Add the new notification to the top of the list
+  //         setNotifications(prev => [payload.new as Notification, ...prev]);
+          
+  //         // Fetch user profile for the new notification if needed
+  //         const newNotification = payload.new as Notification;
+  //         if (newNotification.metadata) {
+  //           const userIds = new Set<string>();
+            
+  //           if (newNotification.metadata.coach_id) {
+  //             userIds.add(newNotification.metadata.coach_id);
+  //           }
+  //           if (newNotification.metadata.athlete_id) {
+  //             userIds.add(newNotification.metadata.athlete_id);
+  //           }
+  //           if (newNotification.metadata.sender_id) {
+  //             userIds.add(newNotification.metadata.sender_id);
+  //           }
+
+  //           // Fetch missing user profiles
+  //           if (userIds.size > 0) {
+  //             const missingUserIds = Array.from(userIds).filter(
+  //               id => !userProfiles[id]
+  //             );
+              
+  //             if (missingUserIds.length > 0) {
+  //               supabase
+  //                 .from('profiles')
+  //                 .select('id, first_name, last_name, avatar_url')
+  //                 .in('id', missingUserIds)
+  //                 .then(({ data: profiles }) => {
+  //                   if (profiles) {
+  //                     const newProfilesMap = profiles.reduce((acc, profile) => {
+  //                       acc[profile.id] = profile;
+  //                       return acc;
+  //                     }, {} as { [key: string]: any });
+                      
+  //                     setUserProfiles(prev => ({ ...prev, ...newProfilesMap }));
+  //                   }
+  //                 });
+  //             }
+  //           }
+  //         }
+  //       }
+  //     )
+  //     .on(
+  //       'postgres_changes',
+  //       {
+  //         event: 'UPDATE',
+  //         schema: 'public',
+  //         table: 'notifications',
+  //         filter: `user_id=eq.${user.id}`,
+  //       },
+  //       (payload) => {
+  //         setDebugInfo(`Notification updated: ${payload.new.id}`);
+          
+  //         // Update the notification in the list
+  //         setNotifications(prev =>
+  //           prev.map(notification =>
+  //             notification.id === payload.new.id
+  //               ? { ...notification, ...payload.new }
+  //               : notification
+  //           )
+  //         );
+  //       }
+  //     )
+  //     .on(
+  //       'postgres_changes',
+  //       {
+  //         event: 'DELETE',
+  //         schema: 'public',
+  //         table: 'notifications',
+  //         filter: `user_id=eq.${user.id}`,
+  //       },
+  //       (payload) => {
+  //         setDebugInfo(`Notification deleted: ${payload.old.id}`);
+          
+  //         // Remove the notification from the list
+  //         setNotifications(prev =>
+  //           prev.filter(notification => notification.id !== payload.old.id)
+  //         );
+  //       }
+  //     )
+  //     .subscribe((status) => {
+  //       setDebugInfo(`Subscription status: ${status}`);
+  //     });
+
+  //   return () => {
+  //     setDebugInfo('Cleaning up subscription...');
+  //     supabase.removeChannel(channel);
+  //   };
+  // }, [user?.id, userProfiles]);
+
+  // Disabled lazy loading for now - we fetch all notifications at once
+  // useEffect(() => {
+  //   const handleScroll = () => {
+  //     if (
+  //       window.innerHeight + document.documentElement.scrollTop
+  //       >= document.documentElement.offsetHeight - 1000 // Load more when 1000px from bottom
+  //     ) {
+  //       loadMoreNotifications();
+  //     }
+  //   };
+
+  //   window.addEventListener('scroll', handleScroll);
+  //   return () => window.removeEventListener('scroll', handleScroll);
+  // }, [loadingMore, hasMore, page]);
 
   // Clean up refs when notifications change
   useEffect(() => {
@@ -83,30 +201,57 @@ const MobileNotifications: React.FC = () => {
     });
   }, [notifications]);
 
+  // Filter notifications based on active tab
+  const filteredNotifications = notifications.filter(notification => {
+    switch (activeTab) {
+      case 'unread':
+        return !notification.is_read && !notification.is_archived;
+      case 'read':
+        return notification.is_read && !notification.is_archived;
+      case 'archived':
+        return notification.is_archived;
+      default:
+        return true;
+    }
+  });
+
+  // Get counts for each tab
+  const unreadCount = notifications.filter(n => !n.is_read && !n.is_archived).length;
+  const readCount = notifications.filter(n => n.is_read && !n.is_archived).length;
+  const archivedCount = notifications.filter(n => n.is_archived).length;
+
   const fetchNotifications = async (pageNum = 0, append = false) => {
     try {
       if (!append) setIsLoading(true);
       else setLoadingMore(true);
       
+      // CRITICAL FIX: Refresh authentication before queries
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        console.error('Session error:', sessionError);
+        return;
+      }
+      
+      // For now, fetch ALL notifications like desktop to ensure we get everything
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .range(pageNum * ITEMS_PER_PAGE, (pageNum + 1) * ITEMS_PER_PAGE - 1);
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       
       const newNotifications = data || [];
       
       if (append) {
-        setNotifications(prev => [...prev, ...newNotifications]);
+        // For now, just replace all data since we're fetching everything
+        setNotifications(newNotifications);
       } else {
         setNotifications(newNotifications);
       }
 
-      // Check if we have more data
-      setHasMore(newNotifications.length === ITEMS_PER_PAGE);
+      // Check if we have more data (disabled for now)
+      setHasMore(false);
       
       // Extract user IDs from notification metadata to fetch avatars
       if (newNotifications.length > 0) {
@@ -158,12 +303,56 @@ const MobileNotifications: React.FC = () => {
     }
   };
 
+
+
   const loadMoreNotifications = () => {
     if (!loadingMore && hasMore) {
       const nextPage = page + 1;
       setPage(nextPage);
       fetchNotifications(nextPage, true);
     }
+  };
+
+  const refreshNotifications = async () => {
+    try {
+      setIsRefreshing(true);
+      
+      // Fetch all fresh data (no pagination)
+      await fetchNotifications(0, false);
+      
+    } catch (error) {
+      console.error('Error refreshing notifications:', error);
+    } finally {
+      setIsRefreshing(false);
+      setPullDistance(0);
+    }
+  };
+
+  const handlePullStart = (e: React.TouchEvent) => {
+    if (window.scrollY === 0) {
+      setStartY(e.touches[0].clientY);
+    }
+  };
+
+  const handlePullMove = (e: React.TouchEvent) => {
+    if (window.scrollY === 0 && startY > 0) {
+      const currentY = e.touches[0].clientY;
+      const distance = Math.max(0, currentY - startY);
+      
+      if (distance > 0) {
+        e.preventDefault();
+        setPullDistance(Math.min(distance, 80)); // Max pull distance
+      }
+    }
+  };
+
+  const handlePullEnd = () => {
+    if (pullDistance > 50 && !isRefreshing) {
+      refreshNotifications();
+    } else {
+      setPullDistance(0);
+    }
+    setStartY(0);
   };
 
   const deleteNotification = async (notificationId: string) => {
@@ -182,7 +371,6 @@ const MobileNotifications: React.FC = () => {
       // Clean up refs for deleted notification
       delete swipeRefs.current[notificationId];
 
-      setDebugInfo(`Deleted notification ${notificationId}`);
       toast({
         title: '🗑️ Notification deleted',
         status: 'success',
@@ -218,7 +406,6 @@ const MobileNotifications: React.FC = () => {
         )
       );
 
-      setDebugInfo(`Marked as read notification ${notificationId}`);
       toast({
         title: '📖 Marked as read',
         status: 'success',
@@ -230,6 +417,41 @@ const MobileNotifications: React.FC = () => {
       toast({
         title: 'Error',
         description: 'Failed to mark as read',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const archiveNotification = async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_archived: true })
+        .eq('id', notificationId);
+      
+      if (error) throw error;
+      
+      setNotifications(prev => 
+        prev.map(notification => 
+          notification.id === notificationId 
+            ? { ...notification, is_archived: true } 
+            : notification
+        )
+      );
+
+      toast({
+        title: '📁 Archived',
+        status: 'success',
+        duration: 2000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error('Error archiving notification:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to archive notification',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -260,7 +482,8 @@ const MobileNotifications: React.FC = () => {
       } else if (isYesterday(date)) {
         return 'Yesterday';
       } else {
-        return format(date, 'MMM d');
+        // Use relative format for consistency: "8 days ago", "2 weeks ago"
+        return formatDistanceToNow(date, { addSuffix: true });
       }
     } catch {
       return 'Recently';
@@ -279,7 +502,6 @@ const MobileNotifications: React.FC = () => {
         direction: null
       }
     }));
-    setDebugInfo(`Touch started on ${notificationId}`);
   };
 
   const updateSwipeVisuals = (notificationId: string, deltaX: number) => {
@@ -402,22 +624,28 @@ const MobileNotifications: React.FC = () => {
       const deltaX = state.currentX - state.startX;
       const distance = Math.abs(deltaX);
 
-      setDebugInfo(`Swipe ended: ${Math.round(distance)}px (need 120px)`);
-
       // Trigger actions if swipe was far enough
       if (distance > 120) {
         if (deltaX < 0) {
           // Swiped left - delete
           deleteNotification(notificationId);
-        } else if (deltaX > 0 && !notification.is_read) {
-          // Swiped right - mark as read (only if unread)
-          markAsRead(notificationId);
+        } else if (deltaX > 0) {
+          // Swiped right - mark as read OR archive
+          if (!notification.is_read) {
+            // Mark as read if unread
+            markAsRead(notificationId);
+            setTimeout(() => resetSwipeVisuals(notificationId), 100);
+          } else if (!notification.is_archived) {
+            // Archive if already read
+            archiveNotification(notificationId);
+            setTimeout(() => resetSwipeVisuals(notificationId), 100);
+          } else {
+            resetSwipeVisuals(notificationId);
+          }
         } else {
-          setDebugInfo(`Swipe right ignored - already read`);
           resetSwipeVisuals(notificationId);
         }
       } else {
-        setDebugInfo(`Swipe canceled - not far enough (${Math.round(distance)}px, need 120px)`);
         resetSwipeVisuals(notificationId);
       }
     }
@@ -441,43 +669,161 @@ const MobileNotifications: React.FC = () => {
   }
 
   return (
-    <Box w="100%" minH="100vh">
-      {/* Temporary Debug Overlay */}
+    <Box 
+      w="100%" 
+      minH="100vh"
+      onTouchStart={handlePullStart}
+      onTouchMove={handlePullMove}
+      onTouchEnd={handlePullEnd}
+    >
+      {/* Pull to Refresh Indicator */}
+      {pullDistance > 0 && (
+        <Box
+          position="fixed"
+          top={`${pullDistance - 50}px`}
+          left="50%"
+          transform="translateX(-50%)"
+          zIndex={999}
+          bg="white"
+          borderRadius="full"
+          p={2}
+          boxShadow="md"
+          transition="top 0.1s ease-out"
+        >
+          <Box
+            w="24px"
+            h="24px"
+            borderRadius="full"
+            border="2px solid"
+            borderColor={pullDistance > 50 ? "blue.500" : "gray.300"}
+            borderTopColor="transparent"
+            animation={isRefreshing ? "spin 1s linear infinite" : "none"}
+            sx={{
+              "@keyframes spin": {
+                "0%": { transform: "rotate(0deg)" },
+                "100%": { transform: "rotate(360deg)" }
+              }
+            }}
+          />
+        </Box>
+      )}
+
+      {/* Success Overlay - Can be removed later */}
       <Box
         position="fixed"
         top="0"
         left="0"
         right="0"
-        bg="yellow.100"
-        p={2}
-        borderBottom="2px solid"
-        borderColor="yellow.300"
+        bg="green.100"
+        p={1}
+        borderBottom="1px solid"
+        borderColor="green.300"
         zIndex={1000}
       >
-        <Text fontSize="xs" fontWeight="bold" color="black">
-          DEBUG: {debugInfo}
+        <Text fontSize="xs" textAlign="center" color="green.800" fontWeight="bold">
+          ✅ Mobile Notifications Fixed! Showing {notifications.length} notifications
         </Text>
       </Box>
       
-      <Box pt="50px">
-      {notifications.length === 0 ? (
+      <Box pt="30px">
+        
+        {/* Notification Tabs */}
+        <Box bg={bgColor} borderBottom="1px solid" borderColor={borderColor} position="sticky" top="30px" zIndex={100}>
+          <Flex>
+            {/* Unread Tab */}
+            <Box
+              flex="1"
+              py={3}
+              px={4}
+              textAlign="center"
+              borderBottom="3px solid"
+              borderColor={activeTab === 'unread' ? 'blue.500' : 'transparent'}
+              bg="transparent"
+              cursor="pointer"
+              onClick={() => setActiveTab('unread')}
+            >
+              <Text
+                fontWeight={activeTab === 'unread' ? 'bold' : 'normal'}
+                color={activeTab === 'unread' ? 'blue.500' : textColor}
+                fontSize="sm"
+              >
+                Unread {unreadCount > 0 && (
+                  <Box as="span" ml={1} px={2} py={0.5} bg="blue.500" color="white" borderRadius="full" fontSize="xs">
+                    {unreadCount}
+                  </Box>
+                )}
+              </Text>
+            </Box>
+
+            {/* Read Tab */}
+            <Box
+              flex="1"
+              py={3}
+              px={4}
+              textAlign="center"
+              borderBottom="3px solid"
+              borderColor={activeTab === 'read' ? 'blue.500' : 'transparent'}
+              bg="transparent"
+              cursor="pointer"
+              onClick={() => setActiveTab('read')}
+            >
+              <Text
+                fontWeight={activeTab === 'read' ? 'bold' : 'normal'}
+                color={activeTab === 'read' ? 'blue.500' : textColor}
+                fontSize="sm"
+              >
+                Read
+              </Text>
+            </Box>
+
+            {/* Archived Tab */}
+            <Box
+              flex="1"
+              py={3}
+              px={4}
+              textAlign="center"
+              borderBottom="3px solid"
+              borderColor={activeTab === 'archived' ? 'blue.500' : 'transparent'}
+              bg="transparent"
+              cursor="pointer"
+              onClick={() => setActiveTab('archived')}
+            >
+              <Text
+                fontWeight={activeTab === 'archived' ? 'bold' : 'normal'}
+                color={activeTab === 'archived' ? 'blue.500' : textColor}
+                fontSize="sm"
+              >
+                Archived
+              </Text>
+            </Box>
+          </Flex>
+        </Box>
+      
+
+      
+      {filteredNotifications.length === 0 ? (
         <Box p={8} textAlign="center" bg={bgColor}>
-          <Text color={emptyTextColor}>No notifications yet</Text>
+          <Text color={emptyTextColor}>
+            {activeTab === 'unread' ? 'No unread notifications' : 
+             activeTab === 'read' ? 'No read notifications' : 
+             'No archived notifications'}
+          </Text>
         </Box>
       ) : (
-        notifications.map((notification) => {
-          const userProfile = getUserProfileForNotification(notification);
-          const avatarUrl = userProfile?.avatar_url;
-          const displayName = userProfile ? 
-            `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() : 
-            notification.title;
+        filteredNotifications.map((notification, index) => {
+          try {
+            const userProfile = getUserProfileForNotification(notification);
+            const avatarUrl = userProfile?.avatar_url;
+            const displayName = userProfile ? 
+              `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() : 
+              notification.title;
 
-          return (
+            return (
             <Box 
               key={notification.id} 
               position="relative" 
               w="100%" 
-              overflow="hidden" 
+              overflow="hidden"
               px={2} 
               py={1}
             >
@@ -512,7 +858,7 @@ const MobileNotifications: React.FC = () => {
                 </Text>
               </Box>
 
-              {/* Mark as Read Background (Right) */}
+              {/* Mark as Read/Archive Background (Right) */}
               <Box
                 ref={(el) => {
                   if (!swipeRefs.current[notification.id]) {
@@ -525,7 +871,7 @@ const MobileNotifications: React.FC = () => {
                 left="16px"
                 bottom="6px"
                 w="120px"
-                bg="blue.400"
+                bg={notification.is_read ? "purple.400" : "blue.400"}
                 display="flex"
                 flexDirection="column"
                 justifyContent="center"
@@ -536,10 +882,10 @@ const MobileNotifications: React.FC = () => {
                 borderRadius="lg"
               >
                 <Box color="white" fontSize="3xl" mb={1}>
-                  <FaEnvelopeOpen />
+                  {notification.is_read ? "📁" : <FaEnvelopeOpen />}
                 </Box>
                 <Text color="white" fontWeight="bold" fontSize="sm">
-                  Read
+                  {notification.is_read ? "Archive" : "Read"}
                 </Text>
               </Box>
 
@@ -560,14 +906,14 @@ const MobileNotifications: React.FC = () => {
                 zIndex={2}
                 transform="translateX(0px)"
                 transition="transform 0.3s ease-out"
-                onTouchStart={(e) => handleTouchStart(e, notification.id)}
-                onTouchMove={(e) => handleTouchMove(e, notification.id)}
-                onTouchEnd={(e) => handleTouchEnd(e, notification.id, notification)}
-                onClick={() => setDebugInfo(`Clicked notification ${notification.id}`)}
+                onTouchStart={!notification.is_archived ? (e) => handleTouchStart(e, notification.id) : undefined}
+                onTouchMove={!notification.is_archived ? (e) => handleTouchMove(e, notification.id) : undefined}
+                onTouchEnd={!notification.is_archived ? (e) => handleTouchEnd(e, notification.id, notification) : undefined}
                 sx={{
                   touchAction: 'manipulation',
                   userSelect: 'none',
                   WebkitUserSelect: 'none',
+                  opacity: notification.is_archived ? 0.7 : 1,
                 }}
               >
                 <Flex
@@ -629,23 +975,26 @@ const MobileNotifications: React.FC = () => {
                 </Flex>
               </Box>
             </Box>
-          );
+                    );
+          } catch (error) {
+            console.error(`❌ Error rendering notification ${index}:`, error);
+            return (
+              <Box key={notification.id} p={4} bg="red.100" color="red.800">
+                <Text>Error rendering notification: {notification.title}</Text>
+              </Box>
+            );
+          }
         })
       )}
       
-      {/* Loading More Indicator */}
-      {loadingMore && (
+      {/* Tab-specific footer */}
+      {filteredNotifications.length > 0 && (
         <Box p={4} textAlign="center" bg={bgColor}>
-          <Text color={textColor}>Loading more notifications...</Text>
+          <Text color={emptyTextColor} fontSize="sm">
+            {filteredNotifications.length} {activeTab} notification{filteredNotifications.length !== 1 ? 's' : ''}
+          </Text>
         </Box>
       )}
-      
-             {/* End of List */}
-       {!hasMore && notifications.length > 0 && (
-         <Box p={4} textAlign="center" bg={bgColor}>
-           <Text color={emptyTextColor} fontSize="sm">No more notifications</Text>
-         </Box>
-       )}
        </Box>
     </Box>
   );
