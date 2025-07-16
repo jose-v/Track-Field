@@ -24,7 +24,7 @@ Athletes are connected to meets through a three-table relationship:
 
 ## Components Added/Modified
 
-### 1. Database Triggers (`create_meet_notification_triggers.sql`)
+### 1. Database Triggers (`src/db/triggers/create_meet_notification_triggers.sql`)
 
 #### Functions Created:
 - `get_meet_assigned_athletes(meet_id)` - Returns all athletes assigned to any event within a meet
@@ -128,7 +128,7 @@ The system builds intelligent change descriptions:
 ### 1. Run Database Migration
 ```sql
 -- Execute the SQL file to create triggers and functions
-\i create_meet_notification_triggers.sql
+\i src/db/triggers/create_meet_notification_triggers.sql
 ```
 
 ### 2. Verify Installation
