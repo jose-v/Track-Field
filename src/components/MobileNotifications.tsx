@@ -69,8 +69,14 @@ const MobileNotifications: React.FC = () => {
     // Add passive: false event listener to body for better control
     const preventPullToRefresh = (e: TouchEvent) => {
       if (window.scrollY === 0 && e.touches.length === 1) {
-        // Prevent any downward touch movement at the top
-        e.preventDefault();
+        // Only block downward pull at top, on unread tab, and not during horizontal swipe
+        const touch = e.touches[0];
+        // Use a data attribute to track if a horizontal swipe is active
+        if (document.body.getAttribute('data-swipe-active') !== 'true') {
+          if (typeof startY === 'number' && startY > 0 && touch.clientY - startY > 0 && activeTab === 'unread') {
+            e.preventDefault();
+          }
+        }
       }
     };
     
@@ -589,6 +595,7 @@ const MobileNotifications: React.FC = () => {
       // Prevent all scrolling ONLY when horizontal swipe is active
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
+      document.body.setAttribute('data-swipe-active', 'true');
       e.preventDefault();
       e.stopPropagation();
     } else if (state.isDragging) {
@@ -604,8 +611,10 @@ const MobileNotifications: React.FC = () => {
       }));
       e.preventDefault();
       e.stopPropagation();
+    } else {
+      // Not horizontal, allow normal scroll, remove swipe-active
+      document.body.removeAttribute('data-swipe-active');
     }
-    // If not horizontal gesture and not already dragging, allow normal vertical scrolling (do not block scroll)
   };
 
   const resetSwipeVisuals = (notificationId: string) => {
@@ -633,6 +642,7 @@ const MobileNotifications: React.FC = () => {
     // Always restore scrolling immediately after touch ends (now handled globally)
     document.body.style.overflow = '';
     document.documentElement.style.overflow = '';
+    document.body.removeAttribute('data-swipe-active');
     if (!state) return;
 
     // Only process swipe actions if we were actually in dragging mode
@@ -690,8 +700,8 @@ const MobileNotifications: React.FC = () => {
       onTouchMove={handlePullMove}
       onTouchEnd={handlePullEnd}
       sx={{
-        // Prevent native browser pull-to-refresh
-        overscrollBehavior: 'none',
+        // Prevent native browser pull-to-refresh only for Y, allow scroll chaining
+        overscrollBehaviorY: 'contain',
         touchAction: 'pan-y pinch-zoom',
         WebkitOverflowScrolling: 'touch',
       }}
