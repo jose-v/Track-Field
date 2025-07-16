@@ -25,54 +25,40 @@ export interface Workout {
  * Extracts blocks from a workout, handling both daily and weekly structures
  */
 export function getBlocksFromWorkout(workout: Workout): any[] {
-  if (!(workout as any).is_block_based || !(workout as any).blocks) {
-    return [];
+  // Always check for blocks, even if is_block_based is not set
+  const blocks = (workout as any).blocks;
+  const dailyWorkouts = (workout as any).daily_workouts;
+  if (dailyWorkouts && typeof dailyWorkouts === 'object') {
+    // Weekly plan structure: daily_workouts is an object of days to blocks
+    const allBlocks: any[] = [];
+    Object.values(dailyWorkouts).forEach((dayBlocks: any) => {
+      if (Array.isArray(dayBlocks)) {
+        allBlocks.push(...dayBlocks);
+      }
+    });
+    return allBlocks;
   }
-
+  if (!blocks) return [];
   try {
-    const blocks = (workout as any).blocks;
-    
-    // If blocks is a string, parse it
+    let parsedBlocks = blocks;
     if (typeof blocks === 'string') {
-      const parsedBlocks = JSON.parse(blocks);
-      
-      // Check if it's a weekly structure (object with day keys)
-      if (typeof parsedBlocks === 'object' && !Array.isArray(parsedBlocks)) {
-        // Extract blocks from all days
-        const allBlocks: any[] = [];
-        Object.values(parsedBlocks).forEach((dayBlocks: any) => {
-          if (Array.isArray(dayBlocks)) {
-            allBlocks.push(...dayBlocks);
-          }
-        });
-        return allBlocks;
-      }
-      
-      // If it's already an array, return it
-      if (Array.isArray(parsedBlocks)) {
-        return parsedBlocks;
-      }
+      parsedBlocks = JSON.parse(blocks);
     }
-    
-    // If blocks is already an array
-    if (Array.isArray(blocks)) {
-      return blocks;
-    }
-    
-    // If it's an object (weekly structure)
-    if (typeof blocks === 'object') {
+    if (typeof parsedBlocks === 'object' && !Array.isArray(parsedBlocks)) {
       const allBlocks: any[] = [];
-      Object.values(blocks).forEach((dayBlocks: any) => {
+      Object.values(parsedBlocks).forEach((dayBlocks: any) => {
         if (Array.isArray(dayBlocks)) {
           allBlocks.push(...dayBlocks);
         }
       });
       return allBlocks;
     }
+    if (Array.isArray(parsedBlocks)) {
+      return parsedBlocks;
+    }
   } catch (error) {
     console.error('Error parsing workout blocks:', error);
   }
-  
   return [];
 }
 
@@ -80,9 +66,24 @@ export function getBlocksFromWorkout(workout: Workout): any[] {
  * Extracts all exercises from a workout, handling block-based, weekly, and regular structures
  */
 export function getExercisesFromWorkout(workout: Workout): Exercise[] {
-  // Handle block-based workouts first
-  if ((workout as any).is_block_based && (workout as any).blocks) {
-    const blocks = getBlocksFromWorkout(workout);
+  // Check for daily_workouts (weekly plan structure)
+  const dailyWorkouts = (workout as any).daily_workouts;
+  if (dailyWorkouts && typeof dailyWorkouts === 'object') {
+    const allExercises: Exercise[] = [];
+    Object.values(dailyWorkouts).forEach((dayBlocks: any) => {
+      if (Array.isArray(dayBlocks)) {
+        dayBlocks.forEach((block: any) => {
+          if (block.exercises && Array.isArray(block.exercises)) {
+            allExercises.push(...block.exercises);
+          }
+        });
+      }
+    });
+    return allExercises;
+  }
+  // Always check for blocks, even if is_block_based is not set
+  const blocks = getBlocksFromWorkout(workout);
+  if (blocks.length > 0) {
     return blocks.reduce((allExercises: Exercise[], block: any) => {
       if (block.exercises && Array.isArray(block.exercises)) {
         return [...allExercises, ...block.exercises];
@@ -90,15 +91,12 @@ export function getExercisesFromWorkout(workout: Workout): Exercise[] {
       return allExercises;
     }, []);
   }
-
   // Handle regular workouts with exercises array
   if (workout.exercises && Array.isArray(workout.exercises)) {
-    // Check if it's a weekly plan structure (array of day objects)
     if (workout.exercises.length > 0 && 
         typeof workout.exercises[0] === 'object' && 
         'day' in workout.exercises[0] && 
         'exercises' in workout.exercises[0]) {
-      // It's a weekly plan structure - flatten all exercises from all days
       const weeklyPlan = workout.exercises as any[];
       return weeklyPlan.reduce((allExercises: Exercise[], dayPlan: any) => {
         if (dayPlan.exercises && Array.isArray(dayPlan.exercises) && !dayPlan.isRestDay) {
@@ -107,11 +105,9 @@ export function getExercisesFromWorkout(workout: Workout): Exercise[] {
         return allExercises;
       }, []);
     } else {
-      // It's a regular exercise array
       return workout.exercises;
     }
   }
-  
   return [];
 }
 

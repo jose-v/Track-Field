@@ -151,7 +151,7 @@ export const WorkoutDetailsDrawer: React.FC<WorkoutDetailsDrawerProps> = ({
       <Divider />
 
       {/* Exercises/Blocks Content */}
-      {isBlockBased && workoutBlocks.length > 0 ? (
+      {workoutBlocks.length > 0 ? (
         <VStack spacing={4} align="stretch">
           <Text fontSize="lg" fontWeight="bold" color={drawerText}>
             Workout Blocks ({workoutBlocks.length})
@@ -172,14 +172,16 @@ export const WorkoutDetailsDrawer: React.FC<WorkoutDetailsDrawerProps> = ({
                     {block.exercises?.map((exercise, exerciseIndex) => (
                       <Box key={exerciseIndex} p={3} bg={exerciseCardBg} borderRadius="md">
                         <VStack spacing={2} align="stretch">
-                          <Text fontWeight="medium" color={drawerText}>
-                            {exercise.name}
-                          </Text>
-                          {exercise.sets && exercise.reps && (
-                            <Text fontSize="sm" color={sectionTitleColor}>
-                              {exercise.sets} sets × {exercise.reps} reps
+                          <HStack align="center" spacing={3}>
+                            <Text fontWeight="medium" color={drawerText}>
+                              {exercise.name}
                             </Text>
-                          )}
+                            {exercise.sets && exercise.reps && (
+                              <Text fontSize="sm" color={sectionTitleColor}>
+                                {exercise.sets} sets × {exercise.reps} reps
+                              </Text>
+                            )}
+                          </HStack>
                           {exercise.rest && (
                             <Text fontSize="sm" color={sectionTitleColor}>
                               Rest: {exercise.rest}
@@ -213,14 +215,16 @@ export const WorkoutDetailsDrawer: React.FC<WorkoutDetailsDrawerProps> = ({
             {allExercises.map((exercise, index) => (
               <Box key={index} p={4} bg={exerciseCardBg} borderRadius="md">
                 <VStack spacing={2} align="stretch">
-                  <Text fontWeight="medium" color={drawerText}>
-                    {exercise.name}
-                  </Text>
-                  {exercise.sets && exercise.reps && (
-                    <Text fontSize="sm" color={sectionTitleColor}>
-                      {exercise.sets} sets × {exercise.reps} reps
+                  <HStack align="center" spacing={3}>
+                    <Text fontWeight="medium" color={drawerText}>
+                      {exercise.name}
                     </Text>
-                  )}
+                    {exercise.sets && exercise.reps && (
+                      <Text fontSize="sm" color={sectionTitleColor}>
+                        {exercise.sets} sets × {exercise.reps} reps
+                      </Text>
+                    )}
+                  </HStack>
                   {exercise.rest && (
                     <Text fontSize="sm" color={sectionTitleColor}>
                       Rest: {exercise.rest}

@@ -576,18 +576,16 @@ const MobileNotifications: React.FC = () => {
           direction: deltaX > 0 ? 'right' : 'left'
         }
       }));
-      // Prevent all scrolling when we're in horizontal swipe mode
-      e.preventDefault();
-      e.stopPropagation();
+      // Prevent all scrolling ONLY when horizontal swipe is active
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
       document.body.style.position = 'fixed';
       document.body.style.width = '100%';
+      e.preventDefault();
+      e.stopPropagation();
     } else if (state.isDragging) {
       // Continue horizontal swiping - update visuals directly without React re-render
       updateSwipeVisuals(notificationId, deltaX);
-      
-      // Update current position for end calculation
       setSwipeStates(prev => ({
         ...prev,
         [notificationId]: {
@@ -596,7 +594,6 @@ const MobileNotifications: React.FC = () => {
           direction: deltaX > 0 ? 'right' : 'left'
         }
       }));
-      
       e.preventDefault();
       e.stopPropagation();
     }
@@ -627,7 +624,7 @@ const MobileNotifications: React.FC = () => {
     const state = swipeStates[notificationId];
     if (!state) return;
 
-    // Always restore scrolling first
+    // Always restore scrolling immediately after swipe ends
     document.body.style.overflow = '';
     document.documentElement.style.overflow = '';
     document.body.style.position = '';
@@ -646,11 +643,9 @@ const MobileNotifications: React.FC = () => {
         } else if (deltaX > 0) {
           // Swiped right - mark as read OR archive
           if (!notification.is_read) {
-            // Mark as read if unread
             markAsRead(notificationId);
             setTimeout(() => resetSwipeVisuals(notificationId), 100);
           } else if (!notification.is_archived) {
-            // Archive if already read
             archiveNotification(notificationId);
             setTimeout(() => resetSwipeVisuals(notificationId), 100);
           } else {

@@ -42,7 +42,7 @@ import {
   useUnifiedAssignments
 } from '../../components/unified';
 
-type WorkoutsSectionId = 'todays-workout' | 'all-assignments' | 'weekly-plans' | 'monthly-plans';
+type WorkoutsSectionId = 'todays-workout' | 'all-assignments' | 'single-workouts' | 'weekly-plans' | 'monthly-plans';
 
 const workoutsSections = [
   {
@@ -60,6 +60,12 @@ const workoutsSections = [
         label: 'All Assignments',
         icon: BiRun,
         description: "All your workout assignments"
+      },
+      {
+        id: 'single-workouts',
+        label: 'Single Workouts',
+        icon: BiRun,
+        description: "Your single workout assignments"
       },
       {
         id: 'weekly-plans',
@@ -375,8 +381,41 @@ export function AthleteWorkouts() {
             </VStack>
           );
 
+        case 'single-workouts':
+          const filteredSingleAssignments = (assignments || []).filter(a => a.assignment_type === 'single');
+          return (
+            <VStack spacing={6} align="stretch" w="100%">
+              <Heading size="md">Single Workouts</Heading>
+              {filteredSingleAssignments.length > 0 ? (
+                <Box overflowX={{ base: "hidden", md: "auto" }} pb={4}>
+                  <Stack direction={{ base: "column", md: "row" }} spacing={{ base: 4, md: 6 }} align="start" minW={{ base: "100%", md: "fit-content" }}>
+                    {filteredSingleAssignments.map((assignment) => (
+                      <Box key={assignment.id} w={{ base: "100%", md: "auto" }} minW={{ base: "100%", md: "340px" }}>
+                        <UnifiedAssignmentCard
+                          assignment={assignment}
+                          onExecute={handleExecuteWorkout}
+                          showActions={true}
+                          compact={false}
+                        />
+                      </Box>
+                    ))}
+                  </Stack>
+                </Box>
+              ) : (
+                <Box bg={cardBg} p={8} borderRadius="lg" border="1px" borderColor="gray.200" textAlign="center">
+                  <Text color="gray.500" fontSize="lg" mb={2}>
+                    No single workouts found
+                  </Text>
+                  <Text color="gray.400" fontSize="sm">
+                    Your single workout assignments will appear here when available
+                  </Text>
+                </Box>
+              )}
+            </VStack>
+          );
+
         default:
-          const filteredAssignments = getFilteredAssignments();
+          const filteredDefaultAssignments = getFilteredAssignments();
           const sectionTitle = activeItem.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
 
           return (
@@ -386,7 +425,7 @@ export function AthleteWorkouts() {
                   <HStack spacing={3} align="center">
                     <Heading size="lg">{sectionTitle}</Heading>
                     <Badge colorScheme="blue" variant="subtle" borderRadius="full">
-                      {filteredAssignments.length}
+                      {filteredDefaultAssignments.length}
                     </Badge>
                   </HStack>
                   <Text color="gray.600" mt={1}>
@@ -452,7 +491,7 @@ export function AthleteWorkouts() {
                 </Flex>
               )}
               
-              {filteredAssignments.length > 0 ? (
+              {filteredDefaultAssignments.length > 0 ? (
                 <Box 
                   overflowX={{ base: "hidden", md: "auto" }} 
                   pb={4}
@@ -463,7 +502,7 @@ export function AthleteWorkouts() {
                     align="start" 
                     minW={{ base: "100%", md: "fit-content" }}
                   >
-                    {filteredAssignments.map((assignment) => (
+                    {filteredDefaultAssignments.map((assignment) => (
                       <Box 
                         key={assignment.id}
                         w={{ base: "100%", md: "auto" }}
@@ -565,6 +604,7 @@ export function AthleteWorkouts() {
               >
                 <option value="todays-workout">Today's Workout</option>
                 <option value="all-assignments">All Assignments</option>
+                <option value="single-workouts">Single Workouts</option>
                 <option value="weekly-plans">Weekly Plans</option>
                 <option value="monthly-plans">Monthly Plans</option>
               </Select>
@@ -586,7 +626,7 @@ export function AthleteWorkouts() {
             </ModalHeader>
             <ModalCloseButton />
             <ModalBody pb={6}>
-              {activeItem === 'all-assignments' ? (
+              {(activeItem === 'all-assignments' || activeItem === 'single-workouts') ? (
                 <VStack spacing={4} align="stretch">
                   <Box>
                     <Text fontSize="sm" fontWeight="medium" mb={2}>Assignment Type</Text>
@@ -601,7 +641,6 @@ export function AthleteWorkouts() {
                       <option value="monthly">Monthly</option>
                     </Select>
                   </Box>
-                  
                   <Box>
                     <Text fontSize="sm" fontWeight="medium" mb={2}>Status</Text>
                     <Select
@@ -615,7 +654,6 @@ export function AthleteWorkouts() {
                       <option value="completed">Completed</option>
                     </Select>
                   </Box>
-                  
                   <Button
                     onClick={() => {
                       handleClearFilters();
@@ -630,7 +668,7 @@ export function AthleteWorkouts() {
               ) : (
                 <VStack spacing={4} align="center" py={4}>
                   <Text color="gray.500" textAlign="center">
-                    Filters are only available for "All Assignments" section.
+                    Filters are only available for "All Assignments" and "Single Workouts" sections.
                   </Text>
                   <Button
                     onClick={() => {

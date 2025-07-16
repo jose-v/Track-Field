@@ -73,8 +73,11 @@ export function UnifiedAssignmentCard({
       exercises: assignment.exercise_block?.exercises || [],
       blocks: assignment.exercise_block?.blocks || [],
       is_block_based: assignment.exercise_block?.is_block_based || false,
-      template_type: assignment.assignment_type as 'single' | 'weekly' | 'monthly'
+      template_type: assignment.assignment_type as 'single' | 'weekly' | 'monthly',
+      daily_workouts: assignment.exercise_block?.daily_workouts || undefined,
     };
+    // DEBUG: Log the constructed workout object
+    console.log('UnifiedAssignmentCard: convertAssignmentToWorkout', workout);
     return workout;
   };
 
@@ -289,6 +292,8 @@ export function UnifiedAssignmentCard({
     );
   };
 
+  const { resetProgress } = useUnifiedAssignmentActions();
+
   return (
     <Box
       bg={cardBg}
@@ -441,24 +446,37 @@ export function UnifiedAssignmentCard({
 
         {/* Action Buttons */}
         {showActions && (
-          <Flex justify="center" w="100%">
-            <VStack spacing={2} align="center">
-              <Button
-                size="lg"
-                bg="#10B981" // Green color
-                color="white"
-                borderRadius="full"
-                w="80px"
-                h="80px"
-                fontSize="xs"
-                fontWeight="bold"
-                _hover={{ bg: "#059669" }}
-                _active={{ bg: "#047857" }}
-                onClick={() => onExecute?.(assignment.id)}
-              >
-                START
-              </Button>
-            </VStack>
+          <Flex justify="space-between" w="100%" mt={2}>
+            <Button
+              size="lg"
+              bg="#FBBF24" // Yellow color
+              color="white"
+              borderRadius="full"
+              w="80px"
+              h="80px"
+              fontSize="xs"
+              fontWeight="bold"
+              _hover={{ bg: "#F59E42" }}
+              _active={{ bg: "#B45309" }}
+              onClick={() => resetProgress.mutate(assignment.id)}
+            >
+              RESET
+            </Button>
+            <Button
+              size="lg"
+              bg="#10B981" // Green color
+              color="white"
+              borderRadius="full"
+              w="80px"
+              h="80px"
+              fontSize="xs"
+              fontWeight="bold"
+              _hover={{ bg: "#059669" }}
+              _active={{ bg: "#047857" }}
+              onClick={() => onExecute?.(assignment.id)}
+            >
+              START
+            </Button>
           </Flex>
         )}
       </VStack>
