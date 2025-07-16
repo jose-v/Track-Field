@@ -81,6 +81,11 @@ const MobileNotifications: React.FC = () => {
       document.documentElement.style.overscrollBehavior = originalOverscrollBehavior;
       document.body.style.touchAction = originalTouchAction;
       document.body.removeEventListener('touchmove', preventPullToRefresh);
+      // Failsafe: always restore scroll styles
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
     };
   }, []);
 
@@ -597,7 +602,7 @@ const MobileNotifications: React.FC = () => {
       e.preventDefault();
       e.stopPropagation();
     }
-    // If not horizontal gesture and not already dragging, allow normal vertical scrolling
+    // If not horizontal gesture and not already dragging, allow normal vertical scrolling (do not block scroll)
   };
 
   const resetSwipeVisuals = (notificationId: string) => {
@@ -622,13 +627,12 @@ const MobileNotifications: React.FC = () => {
 
   const handleTouchEnd = (e: React.TouchEvent, notificationId: string, notification: Notification) => {
     const state = swipeStates[notificationId];
-    if (!state) return;
-
-    // Always restore scrolling immediately after swipe ends
+    // Always restore scrolling immediately after touch ends
     document.body.style.overflow = '';
     document.documentElement.style.overflow = '';
     document.body.style.position = '';
     document.body.style.width = '';
+    if (!state) return;
 
     // Only process swipe actions if we were actually in dragging mode
     if (state.isDragging) {
