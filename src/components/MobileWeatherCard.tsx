@@ -19,6 +19,11 @@ import {
   DrawerBody,
   DrawerCloseButton,
   IconButton,
+  Tabs,
+  TabList,
+  Tab,
+  TabPanels,
+  TabPanel,
 } from '@chakra-ui/react';
 import { FaCloudSun, FaCloudRain, FaSnowflake, FaSun, FaCloudMeatball, FaBolt, FaThermometerHalf } from 'react-icons/fa';
 import { BsThreeDots } from 'react-icons/bs';
@@ -34,6 +39,16 @@ interface ForecastDay {
   rainProbability: number;
 }
 
+interface HourlyForecast {
+  time: string;
+  hour: string;
+  temp: number;
+  condition: string;
+  description: string;
+  icon: string;
+  rainProbability: number;
+}
+
 interface MobileWeatherCardProps {
   city?: string;
   state?: string;
@@ -43,6 +58,7 @@ interface MobileWeatherCardProps {
     description: string;
   };
   forecast?: ForecastDay[];
+  hourlyForecast?: HourlyForecast[];
   isLoading: boolean;
   fixedDate?: string;
   onMenuClick?: () => void;
@@ -53,12 +69,14 @@ export const MobileWeatherCard: React.FC<MobileWeatherCardProps> = ({
   state, 
   weather, 
   forecast = [],
+  hourlyForecast = [],
   isLoading,
   fixedDate,
   onMenuClick
 }) => {
   const [isForecastOpen, setIsForecastOpen] = useState(false);
   const [isCelsius, setIsCelsius] = useState(false);
+  const [tabIndex, setTabIndex] = useState(0); // <-- Add tab index state at top level
 
   // Dark theme colors to match other mobile cards
   const cardBg = 'gray.800';
@@ -205,7 +223,7 @@ export const MobileWeatherCard: React.FC<MobileWeatherCardProps> = ({
                 _hover={{}}
                 _active={{}}
               >
-                5-Day Forecast
+                Weather Forecast
               </Button>
             </CardBody>
           )}
@@ -239,7 +257,7 @@ export const MobileWeatherCard: React.FC<MobileWeatherCardProps> = ({
             borderTopRadius="xl"
             borderBottomRadius="none"
             maxH="75vh"
-            minH="300px"
+            minH="440px" // Match 5-day panel height to prevent layout shift
             borderTop="1px solid"
             borderColor={drawerBorder}
           >
@@ -251,62 +269,157 @@ export const MobileWeatherCard: React.FC<MobileWeatherCardProps> = ({
             </DrawerHeader>
             
             <DrawerBody pb={8} overflowY="auto">
-              {/* Forecast Header */}
-              <HStack justify="space-between" mb={3} fontSize="xs" fontWeight="bold" color={drawerText} textTransform="uppercase">
-                <Text flex={1}>Day</Text>
-                <Text textAlign="center" minW="60px">Rain</Text>
-                <VStack spacing={0} minW="80px">
-                  <HStack spacing={4}>
-                    <Text fontSize="xs">Max</Text>
-                    <Text fontSize="xs">Min</Text>
+              {/* Custom tab bar matching SleepAnalysisDrawer */}
+              {(hourlyForecast.length > 0 || forecast.length > 0) && (
+                <Box mb={4}>
+                  <HStack spacing={0} bg={useColorModeValue('gray.100', 'gray.700')} borderRadius="lg" p={1} h="44px" minH="44px" maxH="44px">
+                    <Button
+                      size="sm"
+                      variant={tabIndex === 0 ? 'solid' : 'ghost'}
+                      bg={tabIndex === 0 ? useColorModeValue('blue.500', 'blue.600') : 'transparent'}
+                      color={tabIndex === 0 ? 'white' : drawerText}
+                      borderRadius="md"
+                      flex={1}
+                      h="44px"
+                      minH="44px"
+                      maxH="44px"
+                      fontWeight="bold"
+                      fontSize="md"
+                      onClick={() => setTabIndex(0)}
+                      _hover={{ bg: tabIndex === 0 ? useColorModeValue('blue.500', 'blue.600') : 'transparent' }}
+                    >
+                      24-hr
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={tabIndex === 1 ? 'solid' : 'ghost'}
+                      bg={tabIndex === 1 ? useColorModeValue('blue.500', 'blue.600') : 'transparent'}
+                      color={tabIndex === 1 ? 'white' : drawerText}
+                      borderRadius="md"
+                      flex={1}
+                      h="44px"
+                      minH="44px"
+                      maxH="44px"
+                      fontWeight="bold"
+                      fontSize="md"
+                      onClick={() => setTabIndex(1)}
+                      _hover={{ bg: tabIndex === 1 ? useColorModeValue('blue.500', 'blue.600') : 'transparent' }}
+                    >
+                      5-day
+                    </Button>
                   </HStack>
-                </VStack>
-              </HStack>
-              <Divider mb={3} />
-              
-              <VStack spacing={3} align="stretch">
-                {forecast.map((day, index) => (
-                  <HStack key={day.date} justify="space-between" py={2}>
-                    {/* Day and Weather Info */}
-                    <HStack spacing={3} flex={1}>
-                      <Icon 
-                        as={getWeatherIcon(day.condition)} 
-                        boxSize={5} 
-                        color={drawerText}
-                      />
-                      <VStack align="start" spacing={0}>
-                        <Text fontSize="sm" fontWeight="medium" color={drawerText}>
-                          {day.dayName}
-                        </Text>
-                        <Text fontSize="xs" color={drawerText} opacity={0.7} textTransform="capitalize">
-                          {day.description}
-                        </Text>
-                      </VStack>
-                    </HStack>
-                    
-                    {/* Rain Probability */}
-                    <Box textAlign="center" minW="60px">
-                      <Text 
-                        fontSize="sm" 
-                        fontWeight="medium" 
-                        color={getRainColor(day.rainProbability)}
-                      >
-                        {day.rainProbability}%
-                      </Text>
-                    </Box>
-                    
-                    {/* Temperature Range */}
-                    <HStack spacing={4} justify="flex-end" minW="80px">
-                      <Text fontSize="sm" fontWeight="bold" color={drawerText}>
-                        {getTempDisplay(day.high)}
-                      </Text>
-                      <Text fontSize="sm" color={drawerText} opacity={0.7}>
-                        {getTempDisplay(day.low)}
-                      </Text>
-                    </HStack>
+                </Box>
+              )}
+              {/* Tab Panels */}
+              {tabIndex === 0 ? (
+                <Box minH="360px" maxH="360px" pt={2} display="flex" flexDirection="column">
+                  {hourlyForecast.length > 0 ? (
+                    <VStack spacing={2} align="stretch" flex="1" overflowY="auto">
+                      <HStack justify="space-between" mb={3} fontSize="xs" fontWeight="bold" color={drawerText} textTransform="uppercase">
+                        <Text flex={1}>Time</Text>
+                        <Text textAlign="center" minW="60px">Rain</Text>
+                        <Text textAlign="center" minW="60px">Temp</Text>
+                      </HStack>
+                      <Divider mb={3} />
+                      {hourlyForecast.slice(0, 24).map((hour, index) => (
+                        <HStack key={hour.time} justify="space-between" py={2}>
+                          {/* Time and Weather Info */}
+                          <HStack spacing={3} flex={1}>
+                            <Icon 
+                              as={getWeatherIcon(hour.condition)} 
+                              boxSize={4} 
+                              color={drawerText}
+                            />
+                            <VStack align="start" spacing={0}>
+                              <Text fontSize="sm" fontWeight="medium" color={drawerText}>
+                                {hour.hour}
+                              </Text>
+                              <Text fontSize="xs" color={drawerText} opacity={0.7} textTransform="capitalize">
+                                {hour.description}
+                              </Text>
+                            </VStack>
+                          </HStack>
+                          {/* Rain Probability */}
+                          <Box textAlign="center" minW="60px">
+                            <Text 
+                              fontSize="sm" 
+                              fontWeight="medium" 
+                              color={getRainColor(hour.rainProbability)}
+                            >
+                              {hour.rainProbability}%
+                            </Text>
+                          </Box>
+                          {/* Temperature */}
+                          <Box textAlign="center" minW="60px">
+                            <Text fontSize="sm" fontWeight="bold" color={drawerText}>
+                              {getTempDisplay(hour.temp)}
+                            </Text>
+                          </Box>
+                        </HStack>
+                      ))}
+                    </VStack>
+                  ) : (
+                    <Text color={drawerText} textAlign="center" mt={8}>No data</Text>
+                  )}
+                </Box>
+              ) : (
+                <Box minH="360px" maxH="360px" pt={2}>
+                  {/* Forecast Header */}
+                  <HStack justify="space-between" mb={3} fontSize="xs" fontWeight="bold" color={drawerText} textTransform="uppercase">
+                    <Text flex={1}>Day</Text>
+                    <Text textAlign="center" minW="60px">Rain</Text>
+                    <VStack spacing={0} minW="80px">
+                      <HStack spacing={4}>
+                        <Text fontSize="xs">Max</Text>
+                        <Text fontSize="xs">Min</Text>
+                      </HStack>
+                    </VStack>
                   </HStack>
-                ))}
-              </VStack>
+                  <Divider mb={3} />
+                  <VStack spacing={3} align="stretch">
+                    {forecast.map((day, index) => (
+                      <HStack key={day.date} justify="space-between" py={2}>
+                        {/* Day and Weather Info */}
+                        <HStack spacing={3} flex={1}>
+                          <Icon 
+                            as={getWeatherIcon(day.condition)} 
+                            boxSize={5} 
+                            color={drawerText}
+                          />
+                          <VStack align="start" spacing={0}>
+                            <Text fontSize="sm" fontWeight="medium" color={drawerText}>
+                              {day.dayName}
+                            </Text>
+                            <Text fontSize="xs" color={drawerText} opacity={0.7} textTransform="capitalize">
+                              {day.description}
+                            </Text>
+                          </VStack>
+                        </HStack>
+                        {/* Rain Probability */}
+                        <Box textAlign="center" minW="60px">
+                          <Text 
+                            fontSize="sm" 
+                            fontWeight="medium" 
+                            color={getRainColor(day.rainProbability)}
+                          >
+                            {day.rainProbability}%
+                          </Text>
+                        </Box>
+                        {/* Temperature Range */}
+                        <HStack spacing={4} justify="flex-end" minW="80px">
+                          <Text fontSize="sm" fontWeight="bold" color={drawerText}>
+                            {getTempDisplay(day.high)}
+                          </Text>
+                          <Text fontSize="sm" color={drawerText} opacity={0.7}>
+                            {getTempDisplay(day.low)}
+                          </Text>
+                        </HStack>
+                      </HStack>
+                    ))}
+                  </VStack>
+                </Box>
+              )}
+              {/* End custom tab panels */}
             </DrawerBody>
           </DrawerContent>
         </Drawer>
