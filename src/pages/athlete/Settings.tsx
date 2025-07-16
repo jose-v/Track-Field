@@ -8,7 +8,8 @@ import {
   SimpleGrid,
   Button,
   HStack,
-  Icon
+  Icon,
+  useBreakpointValue
 } from '@chakra-ui/react';
 import {
   FaCog,
@@ -27,8 +28,14 @@ import {
   NotificationFormData,
   PrivacyFormData
 } from '../../types/settings';
+import { usePageHeader } from '../../hooks/usePageHeader';
 
 const AthleteSettings = () => {
+  usePageHeader({
+    title: 'Settings',
+    subtitle: 'Manage your preferences and privacy',
+    icon: FaCog
+  });
   const {
     settings,
     isLoading,
@@ -47,6 +54,8 @@ const AthleteSettings = () => {
   });
 
   const { isHeaderVisible } = useScrollDirection(15);
+
+  const isMobile = useBreakpointValue({ base: true, lg: false });
 
   // Listen for main sidebar toggle events
   useEffect(() => {
@@ -67,7 +76,8 @@ const AthleteSettings = () => {
     theme: 'system',
     language: 'en',
     timezone: 'America/New_York',
-    units: 'imperial'
+    units: 'imperial',
+    timeFormat: '12'
   });
   
   const [notificationForm, setNotificationForm] = useState<NotificationFormData>({
@@ -149,7 +159,8 @@ const AthleteSettings = () => {
         theme: settings.settings.theme,
         language: settings.settings.language,
         timezone: settings.settings.timezone,
-        units: settings.settings.units
+        units: settings.settings.units,
+        timeFormat: settings.settings.timeFormat || '12'
       });
       
       setNotificationForm({
@@ -527,12 +538,48 @@ const AthleteSettings = () => {
 
   return (
     <Box minH="100vh" bg={pageBackgroundColor}>
-      <SettingsSidebar
-        sections={settingsSections}
-        activeItem={activeItem}
-        onItemClick={setActiveItem}
-      />
-      
+      {/* Mobile Tab Bar */}
+      {isMobile && (
+        <Box borderBottom="1px solid" borderColor={useColorModeValue('gray.200', 'gray.700')} w="100vw" position="relative" left="50%" right="50%" style={{ transform: 'translateX(-50%)' }}>
+          <HStack spacing={0}>
+            {(
+              settingsSections.flatMap(section => section.items).map((item) => {
+                let label = item.label;
+                label = label.replace('Contacts', '').replace('Information', '').trim();
+                return (
+                  <Box
+                    key={item.id}
+                    flex="1"
+                    py={3}
+                    textAlign="center"
+                    borderBottom="3px solid"
+                    borderColor={activeItem === item.id ? 'blue.500' : 'transparent'}
+                    bg="transparent"
+                    cursor="pointer"
+                    onClick={() => setActiveItem(item.id)}
+                  >
+                    <Text
+                      fontWeight={activeItem === item.id ? 'bold' : 'normal'}
+                      color={activeItem === item.id ? 'blue.500' : useColorModeValue('gray.700', 'gray.200')}
+                      fontSize="sm"
+                    >
+                      {label}
+                    </Text>
+                  </Box>
+                );
+              })
+            )}
+          </HStack>
+        </Box>
+      )}
+      {/* Desktop Sidebar */}
+      {!isMobile && (
+        <SettingsSidebar
+          sections={settingsSections}
+          activeItem={activeItem}
+          onItemClick={setActiveItem}
+        />
+      )}
       {/* Main Content */}
       <Box
         ml={{ 
@@ -551,6 +598,7 @@ const AthleteSettings = () => {
         minH="100vh"
         px={0} // Remove padding since AthleteLayout already adds it
         py={8}
+        mx={{ base: '15px', md: 0 }}
       >
         {renderContent()}
       </Box>

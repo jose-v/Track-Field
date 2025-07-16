@@ -281,10 +281,7 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
 
         {/* Duration Slider */}
         <Box>
-          <Text fontSize="sm" fontWeight="medium" color={statNumberColor} mb={1}>
-            Duration
-          </Text>
-          <HStack justify="space-between" mb={2}>
+          <HStack justify="space-between" mb={6}>
             <Text fontSize="sm" fontWeight="medium" color={statNumberColor}>
               Sleep Duration
             </Text>
@@ -295,7 +292,7 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
               </Text>
             </HStack>
           </HStack>
-          <Box maxW="220px" mx="auto">
+          <Box maxW="100%" mx="auto">
             <MobileFriendlySlider
               value={duration}
               onChange={setValidDuration}
@@ -305,7 +302,7 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
               colorScheme="blue"
             />
           </Box>
-          <HStack justify="space-between" mt={1} maxW="220px" mx="auto">
+          <HStack justify="space-between" mt={1} maxW="100%" mx="auto">
             <Text fontSize="xs" color={statLabelColor}>4h</Text>
             <Text fontSize="xs" color={statLabelColor}>12h</Text>
           </HStack>
@@ -313,9 +310,6 @@ export const SleepQuickLogCard: React.FC<SleepQuickLogCardProps> = ({ onLogCompl
 
         {/* Quality Rating */}
         <Box>
-          <Text fontSize="sm" fontWeight="medium" color={statNumberColor} mb={1}>
-            Quality
-          </Text>
           <HStack justify="space-between" mb={3}>
             <Text fontSize="sm" fontWeight="medium" color={statNumberColor}>
               Sleep Quality

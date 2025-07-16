@@ -115,7 +115,6 @@ export const MobileAthleteDashboard: React.FC<MobileAthleteDashboardProps> = ({
     <Box
       bg={bgColor}
       minH="100vh"
-      px={4}
       py={6}
       w="100%"
       maxW="100%"

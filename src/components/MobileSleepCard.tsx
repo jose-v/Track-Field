@@ -202,7 +202,10 @@ export const MobileSleepCard: React.FC<MobileSleepCardProps> = ({ onLogComplete 
           </Badge>
         </HStack>
 
-        {/* Second Row: Stars (left) and Hours (right) */}
+        {/* Second Row: Quality label, then stars and hours */}
+        <Text fontWeight="bold" fontSize="sm" color={textColor} mb={0} textAlign="left" w="full">
+          Quality
+        </Text>
         <HStack justify="space-between" align="center" py="15px">
           <HStack spacing={2}>
             {[1, 2, 3, 4].map((rating) => (
@@ -229,6 +232,9 @@ export const MobileSleepCard: React.FC<MobileSleepCardProps> = ({ onLogComplete 
 
         {/* Third Row: Hours Slider */}
         <Box flex="1" display="flex" flexDirection="column" justifyContent="center">
+          <Text fontWeight="bold" fontSize="sm" color={textColor} mb={8} textAlign="left" w="full">
+            Duration
+          </Text>
           <MobileFriendlySlider
             value={duration}
             onChange={setValidDuration}

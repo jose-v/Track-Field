@@ -77,7 +77,10 @@ export const MobileWeatherCard: React.FC<MobileWeatherCardProps> = ({
   const [isForecastOpen, setIsForecastOpen] = useState(false);
   const [isCelsius, setIsCelsius] = useState(false);
   const [tabIndex, setTabIndex] = useState(0); // <-- Add tab index state at top level
-
+  // Move all useColorModeValue calls to the top level
+  const tabBarBg = useColorModeValue('gray.100', 'gray.700');
+  const tabActiveBg = useColorModeValue('blue.500', 'blue.600');
+  const tabInactiveBg = 'transparent';
   // Dark theme colors to match other mobile cards
   const cardBg = 'gray.800';
   const textColor = 'white';
@@ -272,11 +275,11 @@ export const MobileWeatherCard: React.FC<MobileWeatherCardProps> = ({
               {/* Custom tab bar matching SleepAnalysisDrawer */}
               {(hourlyForecast.length > 0 || forecast.length > 0) && (
                 <Box mb={4}>
-                  <HStack spacing={0} bg={useColorModeValue('gray.100', 'gray.700')} borderRadius="lg" p={1} h="44px" minH="44px" maxH="44px">
+                  <HStack spacing={0} bg={tabBarBg} borderRadius="lg" p={1} h="44px" minH="44px" maxH="44px">
                     <Button
                       size="sm"
                       variant={tabIndex === 0 ? 'solid' : 'ghost'}
-                      bg={tabIndex === 0 ? useColorModeValue('blue.500', 'blue.600') : 'transparent'}
+                      bg={tabIndex === 0 ? tabActiveBg : tabInactiveBg}
                       color={tabIndex === 0 ? 'white' : drawerText}
                       borderRadius="md"
                       flex={1}
@@ -286,14 +289,14 @@ export const MobileWeatherCard: React.FC<MobileWeatherCardProps> = ({
                       fontWeight="bold"
                       fontSize="md"
                       onClick={() => setTabIndex(0)}
-                      _hover={{ bg: tabIndex === 0 ? useColorModeValue('blue.500', 'blue.600') : 'transparent' }}
+                      _hover={{ bg: tabIndex === 0 ? tabActiveBg : tabInactiveBg }}
                     >
                       24-hr
                     </Button>
                     <Button
                       size="sm"
                       variant={tabIndex === 1 ? 'solid' : 'ghost'}
-                      bg={tabIndex === 1 ? useColorModeValue('blue.500', 'blue.600') : 'transparent'}
+                      bg={tabIndex === 1 ? tabActiveBg : tabInactiveBg}
                       color={tabIndex === 1 ? 'white' : drawerText}
                       borderRadius="md"
                       flex={1}
@@ -303,7 +306,7 @@ export const MobileWeatherCard: React.FC<MobileWeatherCardProps> = ({
                       fontWeight="bold"
                       fontSize="md"
                       onClick={() => setTabIndex(1)}
-                      _hover={{ bg: tabIndex === 1 ? useColorModeValue('blue.500', 'blue.600') : 'transparent' }}
+                      _hover={{ bg: tabIndex === 1 ? tabActiveBg : tabInactiveBg }}
                     >
                       5-day
                     </Button>
