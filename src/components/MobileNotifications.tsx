@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Box, Flex, Avatar, Text, useToast, useColorModeValue, Button } from '@chakra-ui/react';
-import { FaTrash, FaEnvelopeOpen } from 'react-icons/fa';
+import { FaTrash, FaEnvelopeOpen, FaArchive } from 'react-icons/fa';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDistanceToNow, format, isToday, isYesterday } from 'date-fns';
@@ -21,9 +21,6 @@ const MobileNotifications: React.FC = () => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(0);
   const [userProfiles, setUserProfiles] = useState<{ [key: string]: any }>({});
   const [debugInfo, setDebugInfo] = useState<string>('Mobile notifications loaded');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -43,7 +40,6 @@ const MobileNotifications: React.FC = () => {
     readBackground: HTMLElement | null;
   }}>({});
   const toast = useToast();
-  const ITEMS_PER_PAGE = 20;
 
   // Light/Dark mode colors
   const bgColor = useColorModeValue('white', 'gray.800');
@@ -220,10 +216,9 @@ const MobileNotifications: React.FC = () => {
   const readCount = notifications.filter(n => n.is_read && !n.is_archived).length;
   const archivedCount = notifications.filter(n => n.is_archived).length;
 
-  const fetchNotifications = async (pageNum = 0, append = false) => {
+  const fetchNotifications = async () => {
     try {
-      if (!append) setIsLoading(true);
-      else setLoadingMore(true);
+      setIsLoading(true);
       
       // CRITICAL FIX: Refresh authentication before queries
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -232,7 +227,7 @@ const MobileNotifications: React.FC = () => {
         return;
       }
       
-      // For now, fetch ALL notifications like desktop to ensure we get everything
+      // Fetch ALL notifications like desktop to ensure we get everything
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
@@ -242,16 +237,7 @@ const MobileNotifications: React.FC = () => {
       if (error) throw error;
       
       const newNotifications = data || [];
-      
-      if (append) {
-        // For now, just replace all data since we're fetching everything
-        setNotifications(newNotifications);
-      } else {
-        setNotifications(newNotifications);
-      }
-
-      // Check if we have more data (disabled for now)
-      setHasMore(false);
+      setNotifications(newNotifications);
       
       // Extract user IDs from notification metadata to fetch avatars
       if (newNotifications.length > 0) {
@@ -299,17 +285,6 @@ const MobileNotifications: React.FC = () => {
       });
     } finally {
       setIsLoading(false);
-      setLoadingMore(false);
-    }
-  };
-
-
-
-  const loadMoreNotifications = () => {
-    if (!loadingMore && hasMore) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      fetchNotifications(nextPage, true);
     }
   };
 
@@ -317,8 +292,8 @@ const MobileNotifications: React.FC = () => {
     try {
       setIsRefreshing(true);
       
-      // Fetch all fresh data (no pagination)
-      await fetchNotifications(0, false);
+      // Fetch all fresh data
+      await fetchNotifications();
       
     } catch (error) {
       console.error('Error refreshing notifications:', error);
@@ -372,7 +347,7 @@ const MobileNotifications: React.FC = () => {
       delete swipeRefs.current[notificationId];
 
       toast({
-        title: '🗑️ Notification deleted',
+        title: 'Notification deleted',
         status: 'success',
         duration: 2000,
         isClosable: true,
@@ -407,7 +382,7 @@ const MobileNotifications: React.FC = () => {
       );
 
       toast({
-        title: '📖 Marked as read',
+        title: 'Marked as read',
         status: 'success',
         duration: 2000,
         isClosable: true,
@@ -442,7 +417,7 @@ const MobileNotifications: React.FC = () => {
       );
 
       toast({
-        title: '📁 Archived',
+        title: 'Archived',
         status: 'success',
         duration: 2000,
         isClosable: true,
@@ -708,27 +683,10 @@ const MobileNotifications: React.FC = () => {
         </Box>
       )}
 
-      {/* Success Overlay - Can be removed later */}
-      <Box
-        position="fixed"
-        top="0"
-        left="0"
-        right="0"
-        bg="green.100"
-        p={1}
-        borderBottom="1px solid"
-        borderColor="green.300"
-        zIndex={1000}
-      >
-        <Text fontSize="xs" textAlign="center" color="green.800" fontWeight="bold">
-          ✅ Mobile Notifications Fixed! Showing {notifications.length} notifications
-        </Text>
-      </Box>
-      
-      <Box pt="30px">
+      <Box>
         
         {/* Notification Tabs */}
-        <Box bg={bgColor} borderBottom="1px solid" borderColor={borderColor} position="sticky" top="30px" zIndex={100}>
+        <Box bg={bgColor} borderBottom="1px solid" borderColor={borderColor} position="sticky" top="0" zIndex={100}>
           <Flex>
             {/* Unread Tab */}
             <Box
@@ -882,7 +840,7 @@ const MobileNotifications: React.FC = () => {
                 borderRadius="lg"
               >
                 <Box color="white" fontSize="3xl" mb={1}>
-                  {notification.is_read ? "📁" : <FaEnvelopeOpen />}
+                  {notification.is_read ? <FaArchive /> : <FaEnvelopeOpen />}
                 </Box>
                 <Text color="white" fontWeight="bold" fontSize="sm">
                   {notification.is_read ? "Archive" : "Read"}
