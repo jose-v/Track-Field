@@ -76,16 +76,21 @@ const MobileNotifications: React.FC = () => {
     
     document.body.addEventListener('touchmove', preventPullToRefresh, { passive: false });
     
-    // Cleanup on unmount
-    return () => {
-      document.documentElement.style.overscrollBehavior = originalOverscrollBehavior;
-      document.body.style.touchAction = originalTouchAction;
-      document.body.removeEventListener('touchmove', preventPullToRefresh);
-      // Failsafe: always restore scroll styles
+    // Failsafe: always restore scroll styles
+    const resetScrollStyles = () => {
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
       document.body.style.position = '';
       document.body.style.width = '';
+    };
+    document.addEventListener('touchend', resetScrollStyles, { passive: true });
+    return () => {
+      document.documentElement.style.overscrollBehavior = originalOverscrollBehavior;
+      document.body.style.touchAction = originalTouchAction;
+      document.body.removeEventListener('touchmove', preventPullToRefresh);
+      document.removeEventListener('touchend', resetScrollStyles);
+      // Failsafe: always restore scroll styles
+      resetScrollStyles();
     };
   }, []);
 
@@ -584,8 +589,6 @@ const MobileNotifications: React.FC = () => {
       // Prevent all scrolling ONLY when horizontal swipe is active
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
       e.preventDefault();
       e.stopPropagation();
     } else if (state.isDragging) {
@@ -627,11 +630,9 @@ const MobileNotifications: React.FC = () => {
 
   const handleTouchEnd = (e: React.TouchEvent, notificationId: string, notification: Notification) => {
     const state = swipeStates[notificationId];
-    // Always restore scrolling immediately after touch ends
+    // Always restore scrolling immediately after touch ends (now handled globally)
     document.body.style.overflow = '';
     document.documentElement.style.overflow = '';
-    document.body.style.position = '';
-    document.body.style.width = '';
     if (!state) return;
 
     // Only process swipe actions if we were actually in dragging mode
