@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Heading, Flex, Text, Divider, useColorModeValue, Spinner, Grid, GridItem, Button, Drawer, DrawerOverlay, DrawerContent, DrawerHeader, DrawerBody, useDisclosure } from '@chakra-ui/react';
+import { Box, Heading, Flex, Text, Divider, useColorModeValue, Spinner, Grid, GridItem, Button, Drawer, DrawerOverlay, DrawerContent, DrawerHeader, DrawerBody, useDisclosure, Tooltip, Icon } from '@chakra-ui/react';
+import { InfoIcon } from '@chakra-ui/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import { supabase } from '../../lib/supabase';
@@ -369,7 +370,24 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
                       <Box key={e.id} mb={3} p={3} borderRadius="md" bg={eventBg}>
                         {/* Event name and event on same line */}
                         <Flex justify="space-between" align="center" mb={2}>
-                          <Text fontWeight="semibold" color={textColor}>{e.meet_name}</Text>
+                          <Flex align="center" gap={2}>
+                            <Text fontWeight="semibold" color={textColor}>{e.meet_name}</Text>
+                            {e.description && (
+                              <Tooltip 
+                                label={e.description} 
+                                placement="top" 
+                                hasArrow 
+                                bg="gray.700" 
+                                color="white"
+                                fontSize="sm"
+                                p={2}
+                                borderRadius="md"
+                                maxW="300px"
+                              >
+                                <InfoIcon boxSize={3} color={mutedTextColor} cursor="pointer" />
+                              </Tooltip>
+                            )}
+                          </Flex>
                           <Text fontSize="sm" color={subtextColor}>{e.event_name}</Text>
                         </Flex>
                         
@@ -377,12 +395,6 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
                         <Grid templateColumns="1fr 1fr" gap={3} fontSize="sm">
                           {/* Left column */}
                           <Box>
-                            {e.description && (
-                              <Box mb={1}>
-                                <Text color={mutedTextColor}>Notes:</Text>
-                                <Text color={textColor}>{e.description}</Text>
-                              </Box>
-                            )}
                             {(e.entry_deadline_date || e.registration_deadline) && (
                               <Box mb={1}>
                                 <Text color={mutedTextColor}>Entry Deadline:</Text>
