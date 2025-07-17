@@ -55,6 +55,10 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
 
   const cardBg = useColorModeValue('white', 'gray.800');
   const dividerColor = useColorModeValue('gray.200', 'gray.700');
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const textColor = useColorModeValue('gray.800', 'white');
+  const subtextColor = useColorModeValue('gray.600', 'gray.300');
+  const mutedTextColor = useColorModeValue('gray.500', 'gray.400');
 
   useEffect(() => {
     let isMounted = true;
@@ -166,7 +170,7 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
         <Box key={month} mb={4}>
           <Heading size="md" mb={4}>{month}</Heading>
           {/* Days in a 7-column grid */}
-          <Grid templateColumns="repeat(7, 1fr)" gap={1}>
+          <Grid templateColumns="repeat(7, 1fr)" gap={1} w="100%">
             {/* Days of week header */}
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
               <GridItem key={d} p={1} textAlign="center" fontWeight="bold" color="gray.400" fontSize="sm">{d}</GridItem>
@@ -186,15 +190,83 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
                 const dayEvents = (monthlyEvents[idx] || []).filter(e => new Date(e.meet_date).getDate() === day);
                 const isTodayCell = isTodayMonth && today.getDate() === day;
                 return (
-                  <GridItem key={day} p={1} borderRadius="md" border={isTodayCell ? "2px solid orange" : undefined} bg={isTodayCell ? "orange.50" : undefined} minH="48px" cursor="pointer" onClick={() => handleDayClick(idx, day)}>
-                    <Text fontWeight="bold" fontSize="sm" textAlign="center">{day}</Text>
-                    <Box>
-                      {dayWorkouts.map(w => (
-                        <Text key={w.id} fontSize="xs" color="blue.500" bg="blue.50" px={1} borderRadius="md" mt={1}>{w.name}</Text>
-                      ))}
-                      {dayEvents.map(e => (
-                        <Text key={e.id} fontSize="xs" color="purple.500" bg="purple.50" px={1} borderRadius="md" mt={1}>{e.meet_name}</Text>
-                      ))}
+                  <GridItem key={day} p={1} borderRadius="md" border={isTodayCell ? "2px solid orange" : undefined} bg={isTodayCell ? "orange.50" : undefined} h="60px" cursor="pointer" onClick={() => handleDayClick(idx, day)} overflow="hidden" w="100%">
+                    <Text fontWeight="bold" fontSize="sm" textAlign="center" mb={1}>{day}</Text>
+                    <Box h="36px" display="flex" flexDirection="column" gap="2px">
+                      {(() => {
+                        // Combine all events (workouts + meets) with their types
+                        const allEvents = [
+                          ...dayWorkouts.map(w => ({ ...w, type: 'workout' })),
+                          ...dayEvents.map(e => ({ ...e, type: 'event' }))
+                        ];
+                        
+                        if (allEvents.length === 0) return null;
+                        
+                        const firstEvent = allEvents[0];
+                        const remainingCount = allEvents.length - 1;
+                        
+                        return (
+                          <>
+                            {/* First event/workout */}
+                            <Box
+                              fontSize="10px" 
+                              color={firstEvent.type === 'workout' ? "blue.600" : "purple.600"}
+                              bg={firstEvent.type === 'workout' ? "blue.100" : "purple.100"}
+                              px={1} 
+                              py={0.5}
+                              borderRadius="full" 
+                              lineHeight="1"
+                              width="100%"
+                              maxW="100%"
+                              overflow="hidden"
+                              textAlign="center"
+                              minH="16px"
+                              position="relative"
+                            >
+                              <Text
+                                fontSize="10px"
+                                color={firstEvent.type === 'workout' ? "blue.600" : "purple.600"}
+                                lineHeight="1"
+                                overflow="hidden"
+                                textOverflow="ellipsis"
+                                whiteSpace="nowrap"
+                                width="100%"
+                                maxW="100%"
+                              >
+                                {firstEvent.type === 'workout' ? (firstEvent as any).name : (firstEvent as any).meet_name}
+                              </Text>
+                            </Box>
+                            
+                            {/* Show +X for remaining events */}
+                            {remainingCount > 0 && (
+                              <Box
+                                fontSize="10px" 
+                                color="gray.600"
+                                bg="gray.100"
+                                px={1} 
+                                py={0.5}
+                                borderRadius="full" 
+                                lineHeight="1"
+                                width="100%"
+                                maxW="100%"
+                                overflow="hidden"
+                                textAlign="center"
+                                minH="16px"
+                                position="relative"
+                              >
+                                <Text
+                                  fontSize="10px"
+                                  color="gray.600"
+                                  lineHeight="1"
+                                  fontWeight="semibold"
+                                >
+                                  +{remainingCount}
+                                </Text>
+                              </Box>
+                            )}
+                          </>
+                        );
+                      })()}
                     </Box>
                   </GridItem>
                 );
@@ -207,21 +279,28 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
       {/* Bottom drawer for daily view */}
       <Drawer isOpen={isOpen} placement="bottom" onClose={() => { setSelectedDay(null); onClose(); }} size="md">
         <DrawerOverlay />
-        <DrawerContent borderTopRadius="2xl" pb={4}>
-          <DrawerHeader textAlign="center" fontWeight="bold" fontSize="lg" borderBottomWidth="1px">
+        <DrawerContent borderTopRadius="2xl" pb={4} bg={bgColor}>
+          <DrawerHeader 
+            textAlign="center" 
+            fontWeight="bold" 
+            fontSize="lg" 
+            borderBottomWidth="1px"
+            borderColor={dividerColor}
+            color={textColor}
+          >
             {selectedDay ? `${months[selectedDay.monthIdx]} ${selectedDay.day}, ${currentYear}` : 'Day Details'}
           </DrawerHeader>
           <DrawerBody>
             {selectedDayWorkouts.length === 0 && selectedDayEvents.length === 0 ? (
-              <Text textAlign="center" color="gray.400" mt={8}>No activities for this day.</Text>
+              <Text textAlign="center" color={mutedTextColor} mt={8}>No activities for this day.</Text>
             ) : (
               <>
                 {selectedDayWorkouts.length > 0 && (
                   <Box mb={4}>
                     <Text fontWeight="bold" mb={2} color="blue.500">Workouts</Text>
                     {selectedDayWorkouts.map(w => (
-                      <Box key={w.id} mb={2} p={3} borderRadius="md" bg="blue.50">
-                        <Text fontWeight="semibold">{w.name}</Text>
+                      <Box key={w.id} mb={2} p={3} borderRadius="md" bg={useColorModeValue('blue.50', 'blue.900')}>
+                        <Text fontWeight="semibold" color={textColor}>{w.name}</Text>
                         {/* Add more workout details here if available */}
                       </Box>
                     ))}
@@ -231,10 +310,10 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
                   <Box mb={2}>
                     <Text fontWeight="bold" mb={2} color="purple.500">Events</Text>
                     {selectedDayEvents.map(e => (
-                      <Box key={e.id} mb={2} p={3} borderRadius="md" bg="purple.50">
-                        <Text fontWeight="semibold">{e.meet_name}</Text>
-                        <Text fontSize="sm" color="gray.600">{e.event_name}</Text>
-                        <Text fontSize="xs" color="gray.500">{e.location}</Text>
+                      <Box key={e.id} mb={2} p={3} borderRadius="md" bg={useColorModeValue('purple.50', 'purple.900')}>
+                        <Text fontWeight="semibold" color={textColor}>{e.meet_name}</Text>
+                        <Text fontSize="sm" color={subtextColor}>{e.event_name}</Text>
+                        <Text fontSize="xs" color={mutedTextColor}>{e.location}</Text>
                       </Box>
                     ))}
                   </Box>
