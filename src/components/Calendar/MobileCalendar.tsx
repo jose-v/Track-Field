@@ -30,6 +30,14 @@ interface EventData {
   location?: string;
   meet_id: string;
   event_name: string;
+  description?: string;
+  registration_deadline?: string;
+  entry_deadline_date?: string;
+  venue_name?: string;
+  venue_type?: string;
+  event_day?: number;
+  event_type?: string;
+  start_time?: string;
 }
 
 const months = [
@@ -94,12 +102,20 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
                 id,
                 meet_id,
                 event_name,
+                event_day,
+                event_type,
+                start_time,
                 track_meets (
                   id,
                   name,
                   meet_date,
                   city,
-                  state
+                  state,
+                  description,
+                  registration_deadline,
+                  entry_deadline_date,
+                  venue_name,
+                  venue_type
                 )
               )
             `)
@@ -114,7 +130,15 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
                 meet_name: trackMeet?.name || 'Unknown Meet',
                 meet_date: trackMeet?.meet_date || '',
                 location: `${trackMeet?.city || ''}, ${trackMeet?.state || ''}`.trim() || 'Unknown Location',
-                event_name: meetEvent?.event_name || 'Unknown Event'
+                event_name: meetEvent?.event_name || 'Unknown Event',
+                description: trackMeet?.description || '',
+                registration_deadline: trackMeet?.registration_deadline || '',
+                entry_deadline_date: trackMeet?.entry_deadline_date || '',
+                venue_name: trackMeet?.venue_name || '',
+                venue_type: trackMeet?.venue_type || '',
+                event_day: meetEvent?.event_day || null,
+                event_type: meetEvent?.event_type || '',
+                start_time: meetEvent?.start_time || ''
               };
             }).filter(event => new Date(event.meet_date).getFullYear() === currentYear);
           }
@@ -342,10 +366,88 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
                   <Box mb={2}>
                     <Text fontWeight="bold" mb={2} color={eventColor}>Events</Text>
                     {selectedDayEvents.map(e => (
-                      <Box key={e.id} mb={2} p={3} borderRadius="md" bg={eventBg}>
-                        <Text fontWeight="semibold" color={textColor}>{e.meet_name}</Text>
-                        <Text fontSize="sm" color={subtextColor}>{e.event_name}</Text>
-                        <Text fontSize="xs" color={mutedTextColor}>{e.location}</Text>
+                      <Box key={e.id} mb={3} p={3} borderRadius="md" bg={eventBg}>
+                        {/* Event name and event on same line */}
+                        <Flex justify="space-between" align="center" mb={2}>
+                          <Text fontWeight="semibold" color={textColor}>{e.meet_name}</Text>
+                          <Text fontSize="sm" color={subtextColor}>{e.event_name}</Text>
+                        </Flex>
+                        
+                        {/* Two columns layout */}
+                        <Grid templateColumns="1fr 1fr" gap={3} fontSize="sm">
+                          {/* Left column */}
+                          <Box>
+                            {e.description && (
+                              <Box mb={1}>
+                                <Text color={mutedTextColor}>Notes:</Text>
+                                <Text color={textColor}>{e.description}</Text>
+                              </Box>
+                            )}
+                            {(e.entry_deadline_date || e.registration_deadline) && (
+                              <Box mb={1}>
+                                <Text color={mutedTextColor}>Entry Deadline:</Text>
+                                <Text color={textColor}>{e.entry_deadline_date || e.registration_deadline}</Text>
+                              </Box>
+                            )}
+                            {e.location && (
+                              <Box mb={1}>
+                                <Text color={mutedTextColor}>
+                                  <Text as="span" 
+                                    textDecoration="underline" 
+                                    cursor="pointer"
+                                    onClick={() => {
+                                      const query = encodeURIComponent(e.location || '');
+                                      window.open(`https://maps.google.com?q=${query}`, '_blank');
+                                    }}
+                                  >
+                                    Location
+                                  </Text>
+                                </Text>
+                                <Text color={textColor}>{e.location}</Text>
+                              </Box>
+                            )}
+                            {e.meet_date && (
+                              <Box mb={1}>
+                                <Text color={mutedTextColor}>Event Date:</Text>
+                                <Text color={textColor}>{new Date(e.meet_date).toLocaleDateString()}</Text>
+                              </Box>
+                            )}
+                          </Box>
+                          
+                          {/* Right column */}
+                          <Box>
+                            {e.event_day && (
+                              <Box mb={1}>
+                                <Text color={mutedTextColor}>Day Number:</Text>
+                                <Text color={textColor}>Day {e.event_day}</Text>
+                              </Box>
+                            )}
+                            {e.event_type && (
+                              <Box mb={1}>
+                                <Text color={mutedTextColor}>Type:</Text>
+                                <Text color={textColor}>{e.event_type}</Text>
+                              </Box>
+                            )}
+                            {e.start_time && (
+                              <Box mb={1}>
+                                <Text color={mutedTextColor}>Start Time:</Text>
+                                <Text color={textColor}>
+                                  {(() => {
+                                    try {
+                                      const [hours, minutes] = e.start_time.split(':');
+                                      const hour24 = parseInt(hours);
+                                      const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+                                      const period = hour24 >= 12 ? 'pm' : 'am';
+                                      return `${hour12}:${minutes} ${period}`;
+                                    } catch {
+                                      return e.start_time;
+                                    }
+                                  })()}
+                                </Text>
+                              </Box>
+                            )}
+                          </Box>
+                        </Grid>
                       </Box>
                     ))}
                   </Box>
