@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, RefObject } from 'react';
 
 interface ScrollState {
   scrollDirection: 'up' | 'down' | null;
@@ -6,7 +6,10 @@ interface ScrollState {
   isHeaderVisible: boolean;
 }
 
-export const useScrollDirection = (threshold: number = 10) => {
+export const useScrollDirection = (
+  threshold: number = 10,
+  scrollContainerRef?: RefObject<HTMLElement>
+) => {
   const [scrollState, setScrollState] = useState<ScrollState>({
     scrollDirection: null,
     scrollY: 0,
@@ -18,59 +21,38 @@ export const useScrollDirection = (threshold: number = 10) => {
     let ticking = false;
     let hideHeaderScrollY = 0; // Track when we started hiding the header
 
-    const updateScrollDirection = () => {
-      // Try multiple ways to get scroll position
+    const getScrollY = () => {
+      if (scrollContainerRef && scrollContainerRef.current) {
+        return scrollContainerRef.current.scrollTop;
+      }
       const windowScrollY = window.pageYOffset || window.scrollY;
       const documentScrollY = document.documentElement.scrollTop || document.body.scrollTop;
-      
-      // Use whichever scroll value is greater (indicates active scrolling)
-      let scrollY = Math.max(windowScrollY, documentScrollY);
-      
-      // Also check for any scrollable containers with class 'main' or similar
-      const mainContainer = document.querySelector('main, [role="main"], .main-content');
-      if (mainContainer && mainContainer.scrollTop > 0) {
-        scrollY = Math.max(scrollY, mainContainer.scrollTop);
-      }
+      return Math.max(windowScrollY, documentScrollY);
+    };
 
+    const updateScrollDirection = () => {
+      let scrollY = getScrollY();
       const direction = scrollY > lastScrollY ? 'down' : 'up';
       const scrollDifference = Math.abs(scrollY - lastScrollY);
 
-      // Only update if scroll difference is greater than threshold
       if (scrollDifference < threshold) {
         ticking = false;
         return;
       }
 
-      // Use hysteresis: different thresholds for showing vs hiding header
       let isHeaderVisible: boolean;
-      
-      if (scrollY < 30) {
-        // Always show header at top of page
+      if (scrollY < 1) {
         isHeaderVisible = true;
         hideHeaderScrollY = 0;
       } else if (direction === 'down') {
-        // Hide header when scrolling down, but only if we've scrolled enough
-        if (scrollY > 80) {
-          isHeaderVisible = false;
-          hideHeaderScrollY = scrollY;
-        } else {
-          isHeaderVisible = scrollState.isHeaderVisible; // Keep current state
-        }
+        isHeaderVisible = false;
+        hideHeaderScrollY = scrollY;
       } else if (direction === 'up') {
-        // Show header when scrolling up, with hysteresis
-        // Only show if we've scrolled up by at least 20px from where we hid it
-        // OR if we've scrolled up significantly (30px+ difference)
-        const scrollUpFromHide = hideHeaderScrollY > 0 ? hideHeaderScrollY - scrollY : 0;
-        if (scrollUpFromHide > 20 || scrollDifference > 30) {
-          isHeaderVisible = true;
-        } else {
-          isHeaderVisible = scrollState.isHeaderVisible; // Keep current state
-        }
+        isHeaderVisible = true;
       } else {
-        isHeaderVisible = scrollState.isHeaderVisible; // Keep current state
+        isHeaderVisible = scrollState.isHeaderVisible;
       }
 
-      // Only update state if something actually changed
       if (
         scrollState.scrollDirection !== direction ||
         scrollState.scrollY !== scrollY ||
@@ -94,24 +76,13 @@ export const useScrollDirection = (threshold: number = 10) => {
       }
     };
 
-    // Listen to multiple scroll sources
-    window.addEventListener('scroll', onScroll, { passive: true });
-    document.addEventListener('scroll', onScroll, { passive: true });
-    
-    // Also listen to the main content container if it exists
-    const mainContainer = document.querySelector('main, [role="main"], .main-content');
-    if (mainContainer) {
-      mainContainer.addEventListener('scroll', onScroll, { passive: true });
-    }
+    const scrollTarget = scrollContainerRef && scrollContainerRef.current ? scrollContainerRef.current : window;
+    scrollTarget.addEventListener('scroll', onScroll, { passive: true });
 
     return () => {
-      window.removeEventListener('scroll', onScroll);
-      document.removeEventListener('scroll', onScroll);
-      if (mainContainer) {
-        mainContainer.removeEventListener('scroll', onScroll);
-      }
+      scrollTarget.removeEventListener('scroll', onScroll);
     };
-  }, [threshold]);
+  }, [threshold, scrollContainerRef]);
 
   return scrollState;
 }; 

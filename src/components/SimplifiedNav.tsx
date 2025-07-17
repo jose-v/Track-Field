@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, RefObject, createContext, useContext } from 'react';
 import { 
   Box, 
   Flex, 
@@ -40,7 +40,30 @@ interface SimplifiedNavProps {
   isPublicPage: boolean;
   onOpen: () => void;
   welcomeMessage?: string;
+  scrollContainerRef?: RefObject<HTMLElement>;
 }
+
+// Navbar visibility context
+interface NavbarVisibilityContextType {
+  navbarVisible: boolean;
+  setNavbarVisible: (visible: boolean) => void;
+}
+const NavbarVisibilityContext = createContext<NavbarVisibilityContextType | undefined>(undefined);
+
+export const NavbarVisibilityProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [navbarVisible, setNavbarVisible] = useState(true);
+  return (
+    <NavbarVisibilityContext.Provider value={{ navbarVisible, setNavbarVisible }}>
+      {children}
+    </NavbarVisibilityContext.Provider>
+  );
+};
+
+export const useNavbarVisibility = () => {
+  const ctx = useContext(NavbarVisibilityContext);
+  if (!ctx) throw new Error('useNavbarVisibility must be used within a NavbarVisibilityProvider');
+  return ctx;
+};
 
 const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
   roleTitle,
@@ -51,13 +74,18 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
   shareDescription,
   isPublicPage,
   onOpen,
-  welcomeMessage
+  welcomeMessage,
+  scrollContainerRef
 }) => {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { profile: displayProfile, displayName, initials } = useProfileDisplay();
   const { showFeedbackModal } = useFeedback();
-  const { isHeaderVisible } = useScrollDirection(15);
+  const { isHeaderVisible } = useScrollDirection(15, scrollContainerRef);
+  const { setNavbarVisible } = useNavbarVisibility();
+  useEffect(() => {
+    setNavbarVisible(isHeaderVisible);
+  }, [isHeaderVisible, setNavbarVisible]);
   const pageHeaderInfo = usePageHeaderListener();
 
   const [sidebarWidth, setSidebarWidth] = useState(() => {

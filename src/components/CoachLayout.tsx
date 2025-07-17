@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Flex, useColorModeValue } from '@chakra-ui/react';
 import Sidebar from './Sidebar';
 import { useCoachNavigation } from './layout/CoachNavigation';
 import SimplifiedNav from './SimplifiedNav';
+import { NavbarVisibilityProvider } from './SimplifiedNav';
 
 export function CoachLayout({ children }: { children: React.ReactNode }) {
   // Get coach navigation configuration
@@ -32,53 +33,57 @@ export function CoachLayout({ children }: { children: React.ReactNode }) {
       window.removeEventListener('sidebarToggle', handleSidebarToggle as EventListener);
     };
   }, []);
+
+  const mainContentRef = useRef<HTMLDivElement>(null);
   
   return (
-    <Flex width="100%" height="100vh" bg={bgColor}>
-      {/* Sidebar for coach navigation */}
-      <Sidebar 
-        userType="coach"
-      />
-      
-      {/* Main content area */}
-      <Box
-        flex="1"
-        ml={{ base: 0, md: `${sidebarWidth}px` }}
-        transition="margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-        bg={bgColor}
-        minH="100vh"
-        position="relative"
-        w="100%"
-        maxW="100%"
-        overflowX="hidden"
-      >
-        {/* Simplified top navigation */}
-        <SimplifiedNav 
-          roleTitle={coachNav.roleTitle}
-          roleBadge={coachNav.roleBadge}
-          notificationsPath={coachNav.notificationsPath}
-          storageKey={coachNav.storageKey}
-          shareTitle={coachNav.shareTitle}
-          shareDescription={coachNav.shareDescription}
-          isPublicPage={false}
-          onOpen={handleHamburgerClick}
+    <NavbarVisibilityProvider>
+      <Flex width="100%" height="100vh" bg={bgColor}>
+        {/* Sidebar for coach navigation */}
+        <Sidebar 
+          userType="coach"
         />
-        
-        {/* Main content with padding to account for the top navigation */}
-        <Box 
-          as="main" 
-          pt="80px" 
-          px={{ base: 0, md: 6 }}
-          pb="8"
-          height="100%"
-          overflowY="auto"
+        {/* Main content area */}
+        <Box
+          flex="1"
+          ml={{ base: 0, md: `${sidebarWidth}px` }}
+          transition="margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+          bg={bgColor}
+          minH="100vh"
+          position="relative"
           w="100%"
           maxW="100%"
           overflowX="hidden"
         >
-          {children}
+          {/* Simplified top navigation */}
+          <SimplifiedNav 
+            roleTitle={coachNav.roleTitle}
+            roleBadge={coachNav.roleBadge}
+            notificationsPath={coachNav.notificationsPath}
+            storageKey={coachNav.storageKey}
+            shareTitle={coachNav.shareTitle}
+            shareDescription={coachNav.shareDescription}
+            isPublicPage={false}
+            onOpen={handleHamburgerClick}
+            scrollContainerRef={mainContentRef}
+          />
+          {/* Main content with padding to account for the top navigation */}
+          <Box 
+            as="main" 
+            pt="80px" 
+            px={{ base: 0, md: 6 }}
+            pb="8"
+            height="100%"
+            overflowY="auto"
+            w="100%"
+            maxW="100%"
+            overflowX="hidden"
+            ref={mainContentRef}
+          >
+            {children}
+          </Box>
         </Box>
-      </Box>
-    </Flex>
+      </Flex>
+    </NavbarVisibilityProvider>
   );
 } 
