@@ -52,6 +52,7 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
   const { isOpen, onOpen, onClose } = useDisclosure();
   const scrollRef = useRef<HTMLDivElement>(null);
   const navSentinelRef = useNavSentinelRef();
+  const currentMonthRef = useRef<HTMLDivElement>(null);
 
   const cardBg = useColorModeValue('white', 'gray.800');
   const dividerColor = useColorModeValue('gray.200', 'gray.700');
@@ -59,6 +60,8 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
   const textColor = useColorModeValue('gray.800', 'white');
   const subtextColor = useColorModeValue('gray.600', 'gray.300');
   const mutedTextColor = useColorModeValue('gray.500', 'gray.400');
+  const eventBg = useColorModeValue('blue.100', 'blue.800');
+  const eventColor = useColorModeValue('blue.600', 'blue.200');
 
   useEffect(() => {
     let isMounted = true;
@@ -140,6 +143,19 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
     return () => { isMounted = false; };
   }, [currentYear, user, athleteId, isCoach]);
 
+  // Scroll to current month on initial load
+  useEffect(() => {
+    if (!loading && currentMonthRef.current) {
+      const timer = setTimeout(() => {
+        currentMonthRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' // Center the month instead of start to avoid nav overlap
+        });
+      }, 100); // Small delay to ensure rendering is complete
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
+
   // Handler for day click
   const handleDayClick = (monthIdx: number, day: number) => {
     setSelectedDay({ monthIdx, day });
@@ -166,9 +182,13 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
           </Button>
         </Flex>
       </Box> */}
-      {months.map((month, idx) => (
-        <Box key={month} mb={4}>
-          <Heading size="md" mb={4}>{month}</Heading>
+      {months.map((month, idx) => {
+        const today = new Date();
+        const isCurrentMonth = today.getFullYear() === currentYear && today.getMonth() === idx;
+        
+        return (
+          <Box key={month} mb={4} ref={isCurrentMonth ? currentMonthRef : undefined}>
+            <Heading size="md" mb={4}>{month}</Heading>
           {/* Days in a 7-column grid */}
           <Grid templateColumns="repeat(7, 1fr)" gap={1} w="100%">
             {/* Days of week header */}
@@ -190,9 +210,20 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
                 const dayEvents = (monthlyEvents[idx] || []).filter(e => new Date(e.meet_date).getDate() === day);
                 const isTodayCell = isTodayMonth && today.getDate() === day;
                 return (
-                  <GridItem key={day} p={1} borderRadius="md" border={isTodayCell ? "2px solid orange" : undefined} bg={isTodayCell ? "orange.50" : undefined} h="60px" cursor="pointer" onClick={() => handleDayClick(idx, day)} overflow="hidden" w="100%">
-                    <Text fontWeight="bold" fontSize="sm" textAlign="center" mb={1}>{day}</Text>
-                    <Box h="36px" display="flex" flexDirection="column" gap="2px">
+                  <GridItem key={day} p={1} borderRadius="md" h="68px" cursor="pointer" onClick={() => handleDayClick(idx, day)} overflow="hidden" w="100%">
+                    <Flex align="center" justify="center" mb={1}>
+                      <Text fontWeight="bold" fontSize="sm" textAlign="center">{day}</Text>
+                      {isTodayCell && (
+                        <Box
+                          w="6px"
+                          h="6px"
+                          bg="orange.500"
+                          borderRadius="full"
+                          ml={1}
+                        />
+                      )}
+                    </Flex>
+                    <Box h="42px" display="flex" flexDirection="column" gap="2px">
                       {(() => {
                         // Combine all events (workouts + meets) with their types
                         const allEvents = [
@@ -210,8 +241,8 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
                             {/* First event/workout */}
                             <Box
                               fontSize="10px" 
-                              color={firstEvent.type === 'workout' ? "blue.600" : "purple.600"}
-                              bg={firstEvent.type === 'workout' ? "blue.100" : "purple.100"}
+                              color={firstEvent.type === 'workout' ? eventColor : eventColor}
+                              bg={firstEvent.type === 'workout' ? eventBg : eventBg}
                               px={1} 
                               py={0.5}
                               borderRadius="full" 
@@ -225,7 +256,7 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
                             >
                               <Text
                                 fontSize="10px"
-                                color={firstEvent.type === 'workout' ? "blue.600" : "purple.600"}
+                                color={firstEvent.type === 'workout' ? eventColor : eventColor}
                                 lineHeight="1"
                                 overflow="hidden"
                                 textOverflow="ellipsis"
@@ -275,7 +306,8 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
             })()}
           </Grid>
         </Box>
-      ))}
+        );
+      })}
       {/* Bottom drawer for daily view */}
       <Drawer isOpen={isOpen} placement="bottom" onClose={() => { setSelectedDay(null); onClose(); }} size="md">
         <DrawerOverlay />
@@ -297,9 +329,9 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
               <>
                 {selectedDayWorkouts.length > 0 && (
                   <Box mb={4}>
-                    <Text fontWeight="bold" mb={2} color="blue.500">Workouts</Text>
+                    <Text fontWeight="bold" mb={2} color={eventColor}>Workouts</Text>
                     {selectedDayWorkouts.map(w => (
-                      <Box key={w.id} mb={2} p={3} borderRadius="md" bg={useColorModeValue('blue.50', 'blue.900')}>
+                      <Box key={w.id} mb={2} p={3} borderRadius="md" bg={eventBg}>
                         <Text fontWeight="semibold" color={textColor}>{w.name}</Text>
                         {/* Add more workout details here if available */}
                       </Box>
@@ -308,9 +340,9 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
                 )}
                 {selectedDayEvents.length > 0 && (
                   <Box mb={2}>
-                    <Text fontWeight="bold" mb={2} color="purple.500">Events</Text>
+                    <Text fontWeight="bold" mb={2} color={eventColor}>Events</Text>
                     {selectedDayEvents.map(e => (
-                      <Box key={e.id} mb={2} p={3} borderRadius="md" bg={useColorModeValue('purple.50', 'purple.900')}>
+                      <Box key={e.id} mb={2} p={3} borderRadius="md" bg={eventBg}>
                         <Text fontWeight="semibold" color={textColor}>{e.meet_name}</Text>
                         <Text fontSize="sm" color={subtextColor}>{e.event_name}</Text>
                         <Text fontSize="xs" color={mutedTextColor}>{e.location}</Text>
