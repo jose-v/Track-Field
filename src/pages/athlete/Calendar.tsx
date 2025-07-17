@@ -1,9 +1,12 @@
 import { Box } from '@chakra-ui/react';
+import { useState } from 'react';
 import { TrainingCalendar } from '../../components/Calendar';
 import { useAuth } from '../../contexts/AuthContext';
 import PageHeader from '../../components/PageHeader';
 import { usePageHeader } from '../../hooks/usePageHeader';
 import { FaCalendarAlt } from 'react-icons/fa';
+import { useNavbarVisibility } from '../../components/SimplifiedNav';
+import CalendarYearNavBar from '../../components/Calendar/CalendarYearNavBar';
 
 /**
  * Athlete Calendar Page
@@ -11,7 +14,9 @@ import { FaCalendarAlt } from 'react-icons/fa';
  */
 export function Calendar() {
   const { user } = useAuth();
-  
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const { navbarVisible } = useNavbarVisibility();
+
   // Use page header hook
   usePageHeader({
     title: 'Calendar',
@@ -21,16 +26,21 @@ export function Calendar() {
   
   return (
     <Box>
-      {/* Desktop Header */}
       <PageHeader
         title="Calendar"
         subtitle="View your training schedule and upcoming events"
         icon={FaCalendarAlt}
       />
-      
+      <CalendarYearNavBar
+        currentYear={currentYear}
+        setCurrentYear={setCurrentYear}
+        topOffset={navbarVisible ? 0 : -56}
+      />
       <TrainingCalendar 
         isCoach={false} 
         athleteId={user?.id} 
+        currentYear={currentYear}
+        setCurrentYear={setCurrentYear}
       />
     </Box>
   );
