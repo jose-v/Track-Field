@@ -149,7 +149,7 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
   if (loading) return <Flex justify="center" align="center" minH="60vh"><Spinner /></Flex>;
 
   return (
-    <Box bg={cardBg} borderRadius="md" p={2} pt="72px" ref={scrollRef}>
+    <Box borderRadius="md" p={2} pt="42px" mx={2.5} ref={scrollRef}>
       {/* Spacer to prevent content from being hidden under the fixed nav bar */}
       {/* REMOVE: <Box position="fixed" top={yearNavAtTop ? 0 : `${NAV_BAR_HEIGHT}px`} left={0} right={0} zIndex={1000} bg={cardBg} boxShadow="sm" borderBottom="1px solid" borderColor={dividerColor}>
         <Flex align="center" justify="center" gap={4} py={2}>
@@ -164,12 +164,12 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
       </Box> */}
       {months.map((month, idx) => (
         <Box key={month} mb={4}>
-          <Heading size="md" mb={2}>{month}</Heading>
+          <Heading size="md" mb={4}>{month}</Heading>
           {/* Days in a 7-column grid */}
           <Grid templateColumns="repeat(7, 1fr)" gap={1}>
             {/* Days of week header */}
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-              <GridItem key={d} textAlign="center" fontWeight="bold" color="gray.400" fontSize="sm">{d}</GridItem>
+              <GridItem key={d} p={1} textAlign="center" fontWeight="bold" color="gray.400" fontSize="sm">{d}</GridItem>
             ))}
             {/* Calculate padding for first day of month */}
             {(() => {
@@ -187,7 +187,7 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
                 const isTodayCell = isTodayMonth && today.getDate() === day;
                 return (
                   <GridItem key={day} p={1} borderRadius="md" border={isTodayCell ? "2px solid orange" : undefined} bg={isTodayCell ? "orange.50" : undefined} minH="48px" cursor="pointer" onClick={() => handleDayClick(idx, day)}>
-                    <Text fontWeight="bold" fontSize="sm">{day}</Text>
+                    <Text fontWeight="bold" fontSize="sm" textAlign="center">{day}</Text>
                     <Box>
                       {dayWorkouts.map(w => (
                         <Text key={w.id} fontSize="xs" color="blue.500" bg="blue.50" px={1} borderRadius="md" mt={1}>{w.name}</Text>
