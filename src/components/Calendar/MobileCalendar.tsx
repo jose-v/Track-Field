@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Heading, Flex, Text, Divider, useColorModeValue, Spinner, Grid, GridItem, Button, Drawer, DrawerOverlay, DrawerContent, DrawerHeader, DrawerBody, useDisclosure, Tooltip, Icon } from '@chakra-ui/react';
-import { InfoIcon } from '@chakra-ui/icons';
+import { Box, Heading, Flex, Text, Divider, useColorModeValue, Spinner, Grid, GridItem, Button, Drawer, DrawerOverlay, DrawerContent, DrawerHeader, DrawerBody, useDisclosure, Collapse, Icon } from '@chakra-ui/react';
+import { InfoIcon, ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import { supabase } from '../../lib/supabase';
@@ -59,6 +59,7 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
   // REMOVE: const [yearNavAtTop, setYearNavAtTop] = useState(false);
   const [selectedDay, setSelectedDay] = useState<{ monthIdx: number; day: number } | null>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const navSentinelRef = useNavSentinelRef();
   const currentMonthRef = useRef<HTMLDivElement>(null);
@@ -336,7 +337,14 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
       {/* Bottom drawer for daily view */}
       <Drawer isOpen={isOpen} placement="bottom" onClose={() => { setSelectedDay(null); onClose(); }} size="md">
         <DrawerOverlay />
-        <DrawerContent borderTopRadius="2xl" pb={4} bg={bgColor}>
+        <DrawerContent 
+          borderTopRadius="2xl" 
+          pb={4} 
+          bg={bgColor} 
+          h="75vh" 
+          display="flex"
+          flexDirection="column"
+        >
           <DrawerHeader 
             textAlign="center" 
             fontWeight="bold" 
@@ -344,10 +352,12 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
             borderBottomWidth="1px"
             borderColor={dividerColor}
             color={textColor}
+            flexShrink={0}
           >
             {selectedDay ? `${months[selectedDay.monthIdx]} ${selectedDay.day}, ${currentYear}` : 'Day Details'}
           </DrawerHeader>
-          <DrawerBody>
+          <DrawerBody overflowY="auto" flex="1" p={0}>
+            <Box p={6}>
             {selectedDayWorkouts.length === 0 && selectedDayEvents.length === 0 ? (
               <Text textAlign="center" color={mutedTextColor} mt={8}>No activities for this day.</Text>
             ) : (
@@ -373,19 +383,15 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
                           <Flex align="center" gap={2}>
                             <Text fontWeight="semibold" color={textColor}>{e.meet_name}</Text>
                             {e.description && (
-                              <Tooltip 
-                                label={e.description} 
-                                placement="top" 
-                                hasArrow 
-                                bg="gray.700" 
-                                color="white"
-                                fontSize="sm"
-                                p={2}
-                                borderRadius="md"
-                                maxW="300px"
-                              >
-                                <InfoIcon boxSize={3} color={mutedTextColor} cursor="pointer" />
-                              </Tooltip>
+                              <Icon 
+                                as={expandedEventId === e.id ? ChevronUpIcon : ChevronDownIcon}
+                                boxSize={4} 
+                                color={mutedTextColor} 
+                                cursor="pointer" 
+                                onClick={() => {
+                                  setExpandedEventId(expandedEventId === e.id ? null : e.id);
+                                }}
+                              />
                             )}
                           </Flex>
                           <Text fontSize="sm" color={subtextColor}>{e.event_name}</Text>
@@ -460,12 +466,36 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({ isCoach = false,
                             )}
                           </Box>
                         </Grid>
+                        
+                        {/* Expandable Notes Section */}
+                        <Collapse 
+                          in={expandedEventId === e.id} 
+                          animateOpacity 
+                          transition={{ 
+                            enter: { duration: 0.3, ease: "easeOut" },
+                            exit: { duration: 0.2, ease: "easeIn" }
+                          }}
+                        >
+                          <Box 
+                            mt={3} 
+                            pt={3} 
+                            borderTop="1px" 
+                            borderColor={dividerColor}
+                            style={{
+                              transition: "all 0.3s ease-out"
+                            }}
+                          >
+                            <Text fontSize="sm" color={mutedTextColor} mb={1}>Notes:</Text>
+                            <Text fontSize="sm" color={textColor}>{e.description}</Text>
+                          </Box>
+                        </Collapse>
                       </Box>
                     ))}
                   </Box>
                 )}
               </>
             )}
+            </Box>
           </DrawerBody>
         </DrawerContent>
       </Drawer>
