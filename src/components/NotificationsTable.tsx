@@ -80,6 +80,13 @@ const NotificationsTable: React.FC = () => {
     try {
       setIsLoading(true);
       
+      // CRITICAL FIX: Refresh authentication before queries
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        console.error('Desktop notifications - session error:', sessionError);
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
@@ -919,21 +926,7 @@ const NotificationsTable: React.FC = () => {
 
   // Render mobile notifications on mobile devices
   if (isMobile) {
-    return (
-      <MobileNotifications
-        notifications={notifications}
-        onMarkAsRead={markAsRead}
-        onMarkAsArchived={markAsArchived}
-        onDelete={deleteNotification}
-        onMarkAllAsRead={markAllAsRead}
-        isProcessing={isProcessing}
-        userProfiles={userProfiles}
-        activeFilter={activeFilter}
-        setActiveFilter={setActiveFilter}
-        handleAthleteRequest={handleAthleteRequest}
-        handleCoachRequest={handleCoachRequest}
-      />
-    );
+    return <MobileNotifications />;
   }
 
   // Desktop version (unchanged)

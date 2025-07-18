@@ -22,6 +22,33 @@ import { useAuth } from '../contexts/AuthContext';
 import { useProfileDisplay } from '../hooks/useProfileDisplay';
 import { useUnreadNotificationCount } from '../hooks/useUnreadNotificationCount';
 import { getProfilePathForRole, getNotificationsPathForRole } from '../utils/roleUtils';
+// Utility to get settings path for a given role
+function getSettingsPathForRole(role) {
+  switch (role) {
+    case 'coach':
+      return '/coach/settings';
+    case 'athlete':
+      return '/athlete/settings';
+    case 'team_manager':
+      return '/team-manager/settings';
+    default:
+      return '/settings';
+  }
+}
+
+// Utility to get account path for a given role
+function getAccountPathForRole(role) {
+  switch (role) {
+    case 'coach':
+      return '/coach/account';
+    case 'athlete':
+      return '/athlete/account';
+    case 'team_manager':
+      return '/team-manager/account';
+    default:
+      return '/account';
+  }
+}
 
 interface MobileProfileDrawerProps {
   isOpen: boolean;
@@ -56,6 +83,8 @@ export const MobileProfileDrawer: React.FC<MobileProfileDrawerProps> = ({ isOpen
   // Get role-specific paths
   const profilePath = getProfilePathForRole(profile?.role);
   const notificationsPath = getNotificationsPathForRole(profile?.role);
+  const settingsPath = getSettingsPathForRole(profile?.role);
+  const accountPath = getAccountPathForRole(profile?.role);
 
   return (
     <Modal 
@@ -189,7 +218,7 @@ export const MobileProfileDrawer: React.FC<MobileProfileDrawerProps> = ({ isOpen
                 h="50px"
                 color={drawerText}
                 _hover={{ bg: buttonHoverBg }}
-                onClick={() => handleNavigation('/settings')}
+                onClick={() => handleNavigation(settingsPath)}
               >
                 Settings
               </Button>
@@ -203,7 +232,7 @@ export const MobileProfileDrawer: React.FC<MobileProfileDrawerProps> = ({ isOpen
                 h="50px"
                 color={drawerText}
                 _hover={{ bg: buttonHoverBg }}
-                onClick={() => handleNavigation('/account')}
+                onClick={() => handleNavigation(accountPath)}
               >
                 Account & Billing
               </Button>

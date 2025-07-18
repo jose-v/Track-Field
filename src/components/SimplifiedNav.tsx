@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, RefObject, createContext, useContext } from 'react';
 import { 
   Box, 
   Flex, 
@@ -40,7 +40,30 @@ interface SimplifiedNavProps {
   isPublicPage: boolean;
   onOpen: () => void;
   welcomeMessage?: string;
+  scrollContainerRef?: RefObject<HTMLElement>;
 }
+
+// Navbar visibility context
+interface NavbarVisibilityContextType {
+  navbarVisible: boolean;
+  setNavbarVisible: (visible: boolean) => void;
+}
+const NavbarVisibilityContext = createContext<NavbarVisibilityContextType | undefined>(undefined);
+
+export const NavbarVisibilityProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [navbarVisible, setNavbarVisible] = useState(true);
+  return (
+    <NavbarVisibilityContext.Provider value={{ navbarVisible, setNavbarVisible }}>
+      {children}
+    </NavbarVisibilityContext.Provider>
+  );
+};
+
+export const useNavbarVisibility = () => {
+  const ctx = useContext(NavbarVisibilityContext);
+  if (!ctx) throw new Error('useNavbarVisibility must be used within a NavbarVisibilityProvider');
+  return ctx;
+};
 
 const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
   roleTitle,
@@ -51,13 +74,18 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
   shareDescription,
   isPublicPage,
   onOpen,
-  welcomeMessage
+  welcomeMessage,
+  scrollContainerRef
 }) => {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { profile: displayProfile, displayName, initials } = useProfileDisplay();
   const { showFeedbackModal } = useFeedback();
-  const { isHeaderVisible } = useScrollDirection(15);
+  const { isHeaderVisible } = useScrollDirection(15, scrollContainerRef);
+  const { setNavbarVisible } = useNavbarVisibility();
+  useEffect(() => {
+    setNavbarVisible(isHeaderVisible);
+  }, [isHeaderVisible, setNavbarVisible]);
   const pageHeaderInfo = usePageHeaderListener();
 
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -165,7 +193,7 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
         display={{ base: "flex", md: "none" }}
         alignItems="center"
         justifyContent="space-between"
-        pl={16}
+        pl={4}
         pr={4}
         bg="rgba(255, 255, 255, 0.8)"
         backdropFilter="blur(10px)"
@@ -174,8 +202,23 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
         transition="top 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
         transform="translateZ(0)"
       >
+        {/* Hamburger Menu for Mobile */}
+        <IconButton
+          aria-label="Open Menu"
+          icon={<LuMenu size="20px" />}
+          variant="ghost"
+          size="sm"
+          onClick={onOpen}
+          color="gray.700"
+          bg="transparent"
+          _hover={{ bg: 'transparent' }}
+          _active={{ bg: 'transparent' }}
+          _focus={{ bg: 'transparent', boxShadow: 'none' }}
+          display={{ base: "flex", md: "none" }}
+        />
+        
         {/* Title and Subtitle for mobile ONLY */}
-        <Box flex="1" mr={3} display={{ base: "block", md: "none" }}>
+        <Box flex="1" mx={3} display={{ base: "block", md: "none" }}>
           {pageHeaderInfo ? (
             <Box>
               <Text 
@@ -332,66 +375,7 @@ const SimplifiedNav: React.FC<SimplifiedNavProps> = ({
               onClick={onOpen}
             />
           )}
-          {/* Inline user menu for portals */}
-          {!isPublicPage && (
-            <Menu>
-              <MenuButton
-                as={IconButton}
-                aria-label="Open Menu"
-                variant="ghost"
-                size="sm"
-                sx={iconStyle}
-                icon={<LuMenu size="18px" />}
-              />
-              <MenuList zIndex={9999}>
-                <MenuItem as={RouterLink} 
-                  to={
-                    displayProfile?.role === 'coach' ? '/coach/profile' : 
-                    displayProfile?.role === 'athlete' ? '/athlete/profile' : 
-                    displayProfile?.role === 'team_manager' ? '/team-manager/profile' : '/profile'
-                  }
-                  color={menuTextColor}
-                  _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
-                  _focus={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
-                >
-                  My Profile
-                </MenuItem>
-                <MenuItem onClick={() => window.location.href = '/account'}
-                  color={menuTextColor}
-                  _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
-                  _focus={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
-                >
-                  Account & Billing
-                </MenuItem>
-                <MenuItem as={RouterLink} 
-                  to={
-                    displayProfile?.role === 'coach' ? '/coach/settings' : 
-                    displayProfile?.role === 'athlete' ? '/athlete/settings' : 
-                    displayProfile?.role === 'team_manager' ? '/team-manager/settings' : '/settings'
-                  }
-                  color={menuTextColor}
-                  _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
-                  _focus={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
-                >
-                  Settings
-                </MenuItem>
-                <MenuItem onClick={showFeedbackModal}
-                  color={menuTextColor}
-                  _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
-                  _focus={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
-                >
-                  Give Feedback
-                </MenuItem>
-                <MenuItem onClick={signOut}
-                  color={menuTextColor}
-                  _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
-                  _focus={{ bg: menuItemHoverBg, color: menuItemHoverColor }}
-                >
-                  Sign out
-                </MenuItem>
-              </MenuList>
-            </Menu>
-                      )}
+
           </Flex>
         </Flex>
       </Box>

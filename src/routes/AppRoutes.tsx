@@ -187,6 +187,7 @@ export default function AppRoutes() {
         <Route path="/athlete/workout-creator-new" element={<RoleProtectedRoute allowedRoles={['athlete']}><WorkoutCreatorMobileWrapper><NewWorkoutCreator /></WorkoutCreatorMobileWrapper></RoleProtectedRoute>} />
         <Route path="/athlete/analytics" element={<RoleProtectedRoute allowedRoles={['athlete']}><Analytics /></RoleProtectedRoute>} />
         <Route path="/account" element={<RoleProtectedRoute allowedRoles={['athlete']}><Account /></RoleProtectedRoute>} />
+        <Route path="/athlete/account" element={<RoleProtectedRoute allowedRoles={['athlete']}><Account /></RoleProtectedRoute>} />
         <Route path="/athlete/meets" element={<RoleProtectedRoute allowedRoles={['athlete']}><Meets /></RoleProtectedRoute>} />
         <Route path="/athlete/settings" element={<RoleProtectedRoute allowedRoles={['athlete']}><AthleteSettings /></RoleProtectedRoute>} />
       </Route>

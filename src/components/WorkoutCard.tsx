@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box, Card, CardBody, Heading, Text, Icon, Flex, HStack, VStack, 
   Button, Badge, IconButton, useColorModeValue, Tooltip,
@@ -12,6 +12,7 @@ import { DetailedProgressDisplay } from './DetailedProgressDisplay';
 import { Link as RouterLink } from 'react-router-dom';
 import { format } from 'date-fns';
 import { getExercisesFromWorkout, getBlocksFromWorkout } from '../utils/workoutUtils';
+import { WorkoutDetailsDrawer } from './WorkoutDetailsDrawer';
 
 // Shared utility functions
 export function getTypeIcon(type: string | undefined) {
@@ -102,6 +103,18 @@ export function WorkoutCard({
   monthlyPlanUsage,
   onConvertToWorkout
 }: WorkoutCardProps) {
+  // State for workout details drawer
+  const [isDetailsDrawerOpen, setIsDetailsDrawerOpen] = useState(false);
+  
+  // Handle view details - use drawer or existing callback
+  const handleViewDetails = () => {
+    if (onViewDetails) {
+      onViewDetails();
+    } else {
+      setIsDetailsDrawerOpen(true);
+    }
+  };
+  
   // All useColorModeValue calls must be at the top level to follow Rules of Hooks
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const iconBgColor = useColorModeValue('white', 'gray.800');
@@ -220,11 +233,9 @@ export function WorkoutCard({
             >
               Edit
             </MenuItem>
-            {onViewDetails && (
-              <MenuItem icon={<FaEye />} onClick={onViewDetails}>
-                View Details
-              </MenuItem>
-            )}
+            <MenuItem icon={<FaEye />} onClick={handleViewDetails}>
+              View Details
+            </MenuItem>
             {isTemplate && onConvertToWorkout && (
               <MenuItem icon={<FaExchangeAlt />} onClick={onConvertToWorkout}>
                 Convert to Workout
@@ -574,6 +585,13 @@ export function WorkoutCard({
           </VStack>
         </VStack>
       </CardBody>
+
+      {/* Workout Details Drawer */}
+      <WorkoutDetailsDrawer
+        isOpen={isDetailsDrawerOpen}
+        onClose={() => setIsDetailsDrawerOpen(false)}
+        workout={workout}
+      />
     </Card>
   );
 } 

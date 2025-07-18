@@ -16,6 +16,8 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
+  Image,
+  SimpleGrid,
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
@@ -104,6 +106,7 @@ const Loop: React.FC = () => {
   
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
+  const [fetchToken, setFetchToken] = useState(0);
   
   useEffect(() => {
     // Hide footer when component mounts
@@ -132,7 +135,6 @@ const Loop: React.FC = () => {
   }, [user]);
   
   const fetchTeamMembers = async () => {
-    console.log('fetchTeamMembers called with user:', user?.id);
     
     try {
       // First try to get team members from teams user belongs to
@@ -144,7 +146,6 @@ const Loop: React.FC = () => {
       
       if (userTeamsError) throw userTeamsError;
       
-      console.log('User teams found:', userTeams?.length || 0);
       let profiles = [];
       
       if (userTeams && userTeams.length > 0) {
@@ -159,7 +160,6 @@ const Loop: React.FC = () => {
         
         if (teamMembersError) throw teamMembersError;
         
-        console.log('Team members found in teams:', teamMembers?.length || 0);
         if (teamMembers && teamMembers.length > 0) {
           // Get unique user IDs
           const uniqueUserIds = [...new Set(teamMembers.map(member => member.user_id))];
@@ -171,7 +171,6 @@ const Loop: React.FC = () => {
             .in('id', uniqueUserIds);
           
           if (!profilesError && teamProfiles) {
-            console.log('Team profiles found:', teamProfiles.length);
             profiles = teamProfiles;
           }
         }
@@ -179,7 +178,6 @@ const Loop: React.FC = () => {
       
       // If no team members found, fallback to show coaches/active users with proper profiles
       if (profiles.length === 0) {
-        console.log('No team members found, falling back to active profiles');
         const { data: fallbackProfiles, error: fallbackError } = await supabase
           .from('profiles')
           .select('id, first_name, last_name, avatar_url')
@@ -188,7 +186,6 @@ const Loop: React.FC = () => {
           .limit(10);
         
         if (!fallbackError && fallbackProfiles) {
-          console.log('Fallback profiles found:', fallbackProfiles.length);
           profiles = fallbackProfiles;
         }
       }
@@ -220,7 +217,6 @@ const Loop: React.FC = () => {
         .sort((a, b) => a.first_name.localeCompare(b.first_name))
         .slice(0, 15);
       
-      console.log('Team members found:', sortedMembers.length);
       setTeamMembers(sortedMembers);
     } catch (error) {
       console.error('Error fetching team members:', error);
@@ -228,7 +224,8 @@ const Loop: React.FC = () => {
     }
   };
   
-  const fetchPosts = async (pageToFetch = 0, append = false) => {
+  const fetchPosts = async (pageToFetch = 0, append = false, filter = activeFilter, token = fetchToken) => {
+    const currentToken = token;
     if (isFetchingMore) return;
     setIsFetchingMore(true);
     if (!append) setIsLoading(true);
@@ -244,14 +241,24 @@ const Loop: React.FC = () => {
         `)
         .order('created_at', { ascending: false })
         .range(from, to);
-      if (activeFilter !== 'all') {
-        postsQuery = postsQuery.eq('post_type', activeFilter);
+      if (filter !== 'all') {
+        postsQuery = postsQuery.eq('post_type', filter);
       }
       const { data: postsData, error: postsError } = await postsQuery;
       if (postsError) throw postsError;
+      // Fallback: If postsData is empty, fetch all posts and log them for debugging
+      if ((!postsData || postsData.length === 0) && filter !== 'all') {
+        const { data: allPosts, error: allPostsError } = await supabase
+          .from('loop_posts')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (allPostsError) {
+        } else {
+        }
+      }
       if (!postsData || postsData.length === 0) {
         if (append) setHasMore(false);
-        if (!append) setPosts([]);
+        if (!append && currentToken === fetchToken) setPosts([]);
         setIsLoading(false);
         setIsFetchingMore(false);
         return;
@@ -285,10 +292,16 @@ const Loop: React.FC = () => {
           previewComments: (commentsByPost[post.id] || []).reverse() // show oldest first
         };
       });
-      if (append) {
-        setPosts(prev => [...prev, ...postsWithUsersAndComments]);
+      if (currentToken === fetchToken) {
+        if (append) {
+          setPosts(prev => {
+            const newPosts = [...prev, ...postsWithUsersAndComments];
+            return newPosts;
+          });
+        } else {
+          setPosts(postsWithUsersAndComments);
+        }
       } else {
-        setPosts(postsWithUsersAndComments);
       }
       setHasMore(postsData.length === PAGE_SIZE);
     } catch (error) {
@@ -309,6 +322,13 @@ const Loop: React.FC = () => {
   const handleFilterChange = (filter: string) => {
     setActiveFilter(filter);
     fetchPosts();
+  };
+
+  // Add a handler to atomically update tab/filter and fetchToken
+  const handleTabFilterChange = (filter: string, tab: number) => {
+    setActiveTab(tab);
+    setActiveFilter(filter);
+    setFetchToken(t => t + 1); // force a new fetch
   };
   
   const handleCreatePost = async (newPost: any) => {
@@ -352,7 +372,24 @@ const Loop: React.FC = () => {
     );
   };
 
-  // Add scroll event listener for infinite scroll
+  // On filter change: clear posts, set loading, increment fetchToken, and fetch with correct filter
+  useEffect(() => {
+    setPosts([]); // Clear posts immediately
+    setPage(0);
+    setHasMore(true);
+    setIsLoading(true);
+    setFetchToken(t => t + 1); // Increment fetchToken
+    // fetchPosts will be called in another useEffect below
+    // eslint-disable-next-line
+  }, [activeFilter]);
+
+  // Fetch posts when fetchToken changes (after filter change)
+  useEffect(() => {
+    fetchPosts(0, false, activeFilter, fetchToken);
+    // eslint-disable-next-line
+  }, [fetchToken]);
+
+  // Infinite scroll: pass activeFilter
   useEffect(() => {
     const handleScroll = () => {
       if (!hasMore || isLoading || isFetchingMore) return;
@@ -363,22 +400,14 @@ const Loop: React.FC = () => {
       if (scrollY + viewportHeight >= fullHeight - 200) {
         setPage(prevPage => {
           const nextPage = prevPage + 1;
-          fetchPosts(nextPage, true);
+          fetchPosts(nextPage, true, activeFilter, fetchToken);
           return nextPage;
         });
       }
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [hasMore, isLoading, isFetchingMore, activeFilter]);
-
-  // Reset posts and pagination when filter changes
-  useEffect(() => {
-    setPage(0);
-    setHasMore(true);
-    fetchPosts(0, false);
-    // eslint-disable-next-line
-  }, [activeFilter]);
+  }, [hasMore, isLoading, isFetchingMore, activeFilter, fetchToken]);
 
   // Render content based on active tab
   const renderTabContent = () => {
@@ -386,6 +415,85 @@ const Loop: React.FC = () => {
       return (
         <Flex justify="center" align="center" py={10}>
           <Spinner size="xl" color="blue.500" />
+        </Flex>
+      );
+    }
+
+    // Photos tab
+    if (activeFilter === 'image') {
+      if (isLoading) {
+        return (
+          <Flex justify="center" align="center" py={10}>
+            <Spinner size="xl" color="blue.500" />
+          </Flex>
+        );
+      }
+      const photoPosts = posts.filter(post => post.post_type === 'image' && post.media_urls && post.media_urls.length > 0);
+      if (photoPosts.length === 0) {
+        return (
+          <Flex direction="column" align="center" justify="center" py={10} textAlign="center">
+            <Text fontSize="lg" color={textColor}>No photos found.</Text>
+          </Flex>
+        );
+      }
+      return (
+        <SimpleGrid columns={2} spacing={3} w="100%">
+          {photoPosts.map(post => (
+            post.media_urls.map((url, idx) => (
+              <Box key={post.id + '-' + idx} w="100%" position="relative" borderRadius="md" overflow="hidden" boxShadow="md" borderWidth="1px" borderColor={borderColor} bg={bgColor}>
+                <Box w="100%" pt="100%" position="relative">
+                  <Image
+                    src={url}
+                    alt="User photo"
+                    position="absolute"
+                    top={0}
+                    left={0}
+                    w="100%"
+                    h="100%"
+                    objectFit="cover"
+                  />
+                </Box>
+                <Box p={2}>
+                  <Text fontSize="sm" color={textColor} noOfLines={2}>{post.content}</Text>
+                  <Text fontSize="xs" color={subtitleColor}>{post.user.first_name} {post.user.last_name}</Text>
+                </Box>
+              </Box>
+            ))
+          ))}
+        </SimpleGrid>
+      );
+    }
+
+    // Videos tab
+    if (activeFilter === 'video') {
+      if (isLoading) {
+        return (
+          <Flex justify="center" align="center" py={10}>
+            <Spinner size="xl" color="blue.500" />
+          </Flex>
+        );
+      }
+      const videoPosts = posts.filter(post => post.post_type === 'video' && post.media_urls && post.media_urls.length > 0);
+      if (videoPosts.length === 0) {
+        return (
+          <Flex direction="column" align="center" justify="center" py={10} textAlign="center">
+            <Text fontSize="lg" color={textColor}>No videos found.</Text>
+          </Flex>
+        );
+      }
+      return (
+        <Flex wrap="wrap" gap={4} justify="flex-start">
+          {videoPosts.map(post => (
+            post.media_urls.map((url, idx) => (
+              <Box key={post.id + '-' + idx} maxW="220px" borderRadius="md" overflow="hidden" boxShadow="md" borderWidth="1px" borderColor={borderColor} bg={bgColor}>
+                <video src={url} controls style={{ width: '100%', height: '220px', objectFit: 'cover' }} />
+                <Box p={2}>
+                  <Text fontSize="sm" color={textColor} noOfLines={2}>{post.content}</Text>
+                  <Text fontSize="xs" color={subtitleColor}>{post.user.first_name} {post.user.last_name}</Text>
+                </Box>
+              </Box>
+            ))
+          ))}
         </Flex>
       );
     }
@@ -471,7 +579,7 @@ const Loop: React.FC = () => {
   };
   
   return (
-    <div className="loop-page-wrapper">
+    <Box mx="10px">
       {/* Desktop Header */}
       <PageHeader
         title="Loop"
@@ -578,7 +686,7 @@ const Loop: React.FC = () => {
             size="sm"
             variant={activeFilter === 'all' ? 'solid' : 'ghost'}
             colorScheme={activeFilter === 'all' ? 'blue' : 'gray'}
-            onClick={() => { setActiveFilter('all'); setActiveTab(0); fetchPosts(); }}
+            onClick={() => handleTabFilterChange('all', 0)}
             flexShrink={0}
           >
             All
@@ -588,7 +696,7 @@ const Loop: React.FC = () => {
             size="sm"
             variant={activeFilter === 'image' ? 'solid' : 'ghost'}
             colorScheme={activeFilter === 'image' ? 'blue' : 'gray'}
-            onClick={() => { setActiveFilter('image'); setActiveTab(0); fetchPosts(); }}
+            onClick={() => handleTabFilterChange('image', 0)}
             flexShrink={0}
           >
             Photos
@@ -598,7 +706,7 @@ const Loop: React.FC = () => {
             size="sm"
             variant={activeFilter === 'video' ? 'solid' : 'ghost'}
             colorScheme={activeFilter === 'video' ? 'blue' : 'gray'}
-            onClick={() => { setActiveFilter('video'); setActiveTab(0); fetchPosts(); }}
+            onClick={() => handleTabFilterChange('video', 0)}
             flexShrink={0}
           >
             Videos
@@ -607,7 +715,7 @@ const Loop: React.FC = () => {
             size="sm"
             variant={activeTab === 0 && activeFilter === 'all' ? 'solid' : 'ghost'}
             colorScheme={activeTab === 0 && activeFilter === 'all' ? 'blue' : 'gray'}
-            onClick={() => { setActiveTab(0); setActiveFilter('all'); fetchPosts(); }}
+            onClick={() => handleTabFilterChange('all', 0)}
             flexShrink={0}
           >
             Team Feed
@@ -616,13 +724,13 @@ const Loop: React.FC = () => {
             size="sm"
             variant={activeTab === 1 ? 'solid' : 'ghost'}
             colorScheme={activeTab === 1 ? 'blue' : 'gray'}
-            onClick={() => { setActiveTab(1); setActiveFilter('all'); fetchPosts(); }}
+            onClick={() => handleTabFilterChange('all', 1)}
             flexShrink={0}
           >
             My Feed
           </Button>
         </Box>
-        <div className="loop-tab-content">
+        <div className="loop-tab-content" key={activeFilter}>
           {renderTabContent()}
         </div>
 
@@ -643,7 +751,7 @@ const Loop: React.FC = () => {
         />
       )}
 
-    </div>
+    </Box>
   );
 };
 

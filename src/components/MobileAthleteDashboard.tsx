@@ -36,7 +36,7 @@ export const MobileAthleteDashboard: React.FC<MobileAthleteDashboardProps> = ({
   const { profile, isLoading: profileLoading } = useProfile();
   
   // Weather data hook
-  const { weather, forecast, isLoading: weatherLoading } = useWeatherData(
+  const { weather, forecast, hourlyForecast, isLoading: weatherLoading } = useWeatherData(
     profile?.city || "Greensboro",
     profile?.state || "North Carolina",
     {
@@ -115,7 +115,6 @@ export const MobileAthleteDashboard: React.FC<MobileAthleteDashboardProps> = ({
     <Box
       bg={bgColor}
       minH="100vh"
-      px={4}
       py={6}
       w="100%"
       maxW="100%"
@@ -129,6 +128,7 @@ export const MobileAthleteDashboard: React.FC<MobileAthleteDashboardProps> = ({
             state={profile?.state ? getStateAbbr(profile.state) : "NC"}
             weather={weather}
             forecast={forecast}
+            hourlyForecast={hourlyForecast}
             isLoading={weatherLoading || profileLoading}
             onMenuClick={() => console.log('Weather menu clicked')}
           />

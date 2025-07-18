@@ -915,6 +915,7 @@ const CoachSettings = () => {
         minH="100vh"
         px={0} // Remove padding since CoachLayout already adds it
         py={8}
+        mx={{ base: '5px', md: 0 }}
       >
         {renderContent()}
       </Box>
