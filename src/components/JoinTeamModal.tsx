@@ -65,14 +65,43 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({
     if (code.length >= 6) {
       setIsLoading(true);
       try {
-        // Look up team by invite code
+        console.log('🔍 Looking up invite code:', code.toUpperCase());
+        
+        // Look up team by invite code - include is_active filter and better error handling
         const { data: team, error } = await supabase
           .from('teams')
-          .select('id, name, description, team_type, invite_code')
-          .eq('invite_code', code.toUpperCase())
+          .select('id, name, description, team_type, invite_code, is_active')
+          .eq('invite_code', code.toUpperCase().trim())
+          .eq('is_active', true)
           .single();
 
-        if (error || !team) {
+        console.log('🔍 Team lookup result:', { team, error });
+
+        if (error) {
+          console.error('❌ Database error:', error);
+          if (error.code === 'PGRST116') {
+            // No rows found
+            toast({
+              title: 'Invalid Invite Code',
+              description: 'No team found with this invite code.',
+              status: 'error',
+              duration: 3000,
+              isClosable: true,
+            });
+          } else {
+            // Other database error
+            toast({
+              title: 'Database Error',
+              description: 'Failed to look up team. Please try again.',
+              status: 'error',
+              duration: 3000,
+              isClosable: true,
+            });
+          }
+          return;
+        }
+
+        if (!team) {
           toast({
             title: 'Invalid Invite Code',
             description: 'No team found with this invite code.',

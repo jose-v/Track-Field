@@ -172,26 +172,32 @@ export async function getAllTeams(): Promise<Team[]> {
  */
 export async function getTeamByInviteCode(invite_code: string): Promise<Team | null> {
   try {
-    console.log('🔍 Looking up invite code:', invite_code);
+    console.log('🔍 [teamService] Looking up invite code:', invite_code);
+    
+    const normalizedCode = invite_code.toUpperCase().trim();
+    console.log('🔧 [teamService] Normalized code:', normalizedCode);
     
     const { data, error } = await supabase
       .from('teams')
       .select('id, name, description, invite_code, created_by, team_type, is_active, created_at, updated_at')
-      .eq('invite_code', invite_code.toUpperCase().trim())  // Exact match for 6-digit codes
+      .eq('invite_code', normalizedCode)
       .eq('is_active', true)
       .single();
 
-    console.log('🔍 Supabase response:', { data, error });
+    console.log('🔍 [teamService] Supabase response:', { data, error });
 
     if (error) {
-      console.log('❌ Error details:', error);
+      console.log('❌ [teamService] Error details:', error);
+      if (error.code === 'PGRST116') {
+        console.log('❌ [teamService] No team found with invite code:', normalizedCode);
+      }
       return null;
     }
 
-    console.log('✅ Found team:', data);
+    console.log('✅ [teamService] Found team:', data);
     return data;
   } catch (error) {
-    console.error('Error fetching team by invite code:', error);
+    console.error('[teamService] Error fetching team by invite code:', error);
     return null;
   }
 }

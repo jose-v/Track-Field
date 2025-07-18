@@ -325,7 +325,11 @@ const AddAthleteToTeamModal: React.FC<AddAthleteToTeamModalProps> = ({
   );
 };
 
-const CoachRequestStatusTable: React.FC = () => {
+interface CoachRequestStatusTableProps {
+  showOnlyPending?: boolean;
+}
+
+const CoachRequestStatusTable: React.FC<CoachRequestStatusTableProps> = ({ showOnlyPending = false }) => {
   const { user } = useAuth();
   const [requests, setRequests] = useState<RequestStatus[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -353,11 +357,18 @@ const CoachRequestStatusTable: React.FC = () => {
     try {
       setIsLoading(true);
       
-      // Get all coach-athlete relationships where this coach is the sender
-      const { data: relationships, error: relationshipsError } = await supabase
+      // Get coach-athlete relationships where this coach is the sender
+      let query = supabase
         .from('coach_athletes')
         .select('id, athlete_id, approval_status, requested_at, approved_at')
-        .eq('coach_id', user.id)
+        .eq('coach_id', user.id);
+      
+      // Filter to only pending if requested
+      if (showOnlyPending) {
+        query = query.eq('approval_status', 'pending');
+      }
+      
+      const { data: relationships, error: relationshipsError } = await query
         .order('requested_at', { ascending: false });
       
       if (relationshipsError) throw relationshipsError;
@@ -541,7 +552,12 @@ const CoachRequestStatusTable: React.FC = () => {
   if (requests.length === 0) {
     return (
       <Box textAlign="center" p={4}>
-        <Text color={emptyStateColor}>You haven't sent any athlete requests yet</Text>
+        <Text color={emptyStateColor}>
+          {showOnlyPending 
+            ? "No pending invitations - all requests have been responded to!" 
+            : "You haven't sent any athlete requests yet"
+          }
+        </Text>
       </Box>
     );
   }

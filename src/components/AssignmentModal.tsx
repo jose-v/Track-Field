@@ -62,8 +62,10 @@ export function AssignmentModal({
     isWorkoutAssignment ? 'blue.900' : 'teal.900'
   );
 
-  // Athletes data
-  const { data: coachAthletes, isLoading: athletesLoading } = useCoachAthletes();
+  // Athletes data (include both pending and approved, plus team-based athletes)
+  const { data: coachAthletes, isLoading: athletesLoading } = useCoachAthletes({
+    includeStatuses: ['approved', 'pending']
+  });
   
   // Modal state
   const [selectedAthletes, setSelectedAthletes] = useState<string[]>([]);

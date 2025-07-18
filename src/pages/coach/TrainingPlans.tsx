@@ -152,7 +152,9 @@ export function CoachTrainingPlans() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { data: athletes, isLoading: athletesLoading } = useCoachAthletes();
+  const { data: athletes, isLoading: athletesLoading } = useCoachAthletes({
+    includeStatuses: ['approved', 'pending']
+  });
   
   // Modal state
   const { isOpen: isCreatorOpen, onOpen: onCreatorOpen, onClose: onCreatorClose } = useDisclosure();

@@ -25,10 +25,12 @@ import {
   Alert,
   AlertIcon,
   SimpleGrid,
+  Tooltip,
 } from '@chakra-ui/react';
-import { ArrowLeft, ArrowRight, Save, Sparkles, Users, Calendar, CalendarDays } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Sparkles, Users, Calendar, CalendarDays, AlertCircle, CheckCircle } from 'lucide-react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useProfile } from '../../hooks/useProfile';
 import { api } from '../../services/api';
 import { supabase } from '../../lib/supabase';
 import { AssignmentService } from '../../services/assignmentService';
@@ -116,10 +118,10 @@ const WORKFLOW_STEPS = [
   }
 ];
 
-// Dynamic workflow steps based on template type
-const getWorkflowSteps = (templateType: 'single' | 'weekly' | 'monthly') => {
+// Dynamic workflow steps based on template type and user role
+const getWorkflowSteps = (templateType: 'single' | 'weekly' | 'monthly', userRole?: string) => {
   if (templateType === 'monthly') {
-    return [
+    const steps = [
       { 
         id: 1, 
         title: 'Choose Template', 
@@ -137,21 +139,36 @@ const getWorkflowSteps = (templateType: 'single' | 'weekly' | 'monthly') => {
         title: 'Name & Schedule', 
         shortTitle: 'Schedule',
         description: 'Set plan name, details and training dates'
-      },
-      { 
+      }
+    ];
+
+    // Only add athlete assignment step for coaches
+    if (userRole !== 'athlete') {
+      steps.push({ 
         id: 4, 
         title: 'Assign Athletes', 
         shortTitle: 'Athletes',
         description: 'Choose who gets this monthly plan'
-      }
-    ];
+      });
+    }
+
+    return steps;
   }
   
-  return WORKFLOW_STEPS;
+  // For single and weekly workouts
+  const steps = [...WORKFLOW_STEPS];
+  
+  // Remove athlete assignment step for athletes
+  if (userRole === 'athlete') {
+    return steps.filter(step => step.id !== 5); // Remove step 5 (Assign Athletes)
+  }
+  
+  return steps;
 };
 
 const NewWorkoutCreator: React.FC = () => {
   const { user } = useAuth();
+  const { profile } = useProfile();
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
@@ -290,30 +307,99 @@ const NewWorkoutCreator: React.FC = () => {
         return allBlocks.some(block => block.exercises.length > 0);
       case 4:
         if (selectedTemplateType === 'monthly') {
-          // For monthly plans, step 4 is athlete assignment (optional)
+          // For monthly plans, step 4 is athlete assignment (optional, only for coaches)
           return true;
         }
         return workoutName.trim() !== '';
       case 5:
-        // Only for single/weekly workflows
-        return selectedTemplateType !== 'monthly';
+        // Only for single/weekly workflows and only for coaches
+        return selectedTemplateType !== 'monthly' && profile?.role !== 'athlete';
       default:
         return true;
     }
   }, [selectedTemplateType, selectedTemplate, blocks, dailyBlocks, workoutName, monthlyPlanWeeks, isEditing]);
 
+  // Enhanced validation with detailed error messages
+  const getStepErrors = useCallback((step: number): string[] => {
+    const errors: string[] = [];
+    
+    switch (step) {
+      case 1:
+        if (isEditing) {
+          if (!selectedTemplateType) errors.push('Template type is required');
+        } else {
+          if (!selectedTemplateType) errors.push('Please select a workout type');
+          if (!selectedTemplate) errors.push('Please choose a starting template');
+        }
+        break;
+        
+      case 2:
+        if (selectedTemplateType === 'monthly') {
+          if (!monthlyPlanWeeks.some(week => !week.is_rest_week && week.workout_id !== '')) {
+            errors.push('Select at least one weekly workout template');
+          }
+        } else if (selectedTemplateType === 'weekly') {
+          if (!Object.values(dailyBlocks).some(dayBlocks => dayBlocks.length > 0)) {
+            errors.push('Add workout blocks to at least one day');
+          }
+        } else {
+          if (blocks.length === 0) {
+            errors.push('Add at least one workout block');
+          }
+        }
+        break;
+        
+      case 3:
+        if (selectedTemplateType === 'monthly') {
+          if (!workoutName.trim()) errors.push('Plan name is required');
+        } else {
+          const allBlocks = selectedTemplateType === 'weekly' 
+            ? Object.values(dailyBlocks).flat()
+            : blocks;
+          if (!allBlocks.some(block => block.exercises.length > 0)) {
+            errors.push('Add exercises to at least one block');
+          }
+        }
+        break;
+        
+      case 4:
+        if (selectedTemplateType === 'monthly') {
+          // Step 4 for monthly is athlete assignment (optional, only for coaches)
+        } else {
+          if (!workoutName.trim()) errors.push('Workout name is required');
+        }
+        break;
+        
+      case 5:
+        // Athlete assignment is optional
+        break;
+        
+      default:
+        break;
+    }
+    
+    return errors;
+  }, [selectedTemplateType, selectedTemplate, blocks, dailyBlocks, workoutName, monthlyPlanWeeks, isEditing]);
+
   // Navigation handlers
   const handleNext = () => {
-    const currentWorkflowSteps = getWorkflowSteps(selectedTemplateType);
+    const currentWorkflowSteps = getWorkflowSteps(selectedTemplateType, profile?.role);
+    const stepErrors = getStepErrors(currentStep);
+    
     if (validateStep(currentStep)) {
       setCompletedSteps(prev => new Set([...prev, currentStep]));
       setCurrentStep(prev => Math.min(prev + 1, currentWorkflowSteps.length));
     } else {
+      const errorMessage = stepErrors.length > 0 
+        ? stepErrors.join('. ') + '.'
+        : 'Please complete the current step before proceeding.';
+      
       toast({
         title: 'Step incomplete',
-        description: 'Please complete the current step before proceeding.',
+        description: errorMessage,
         status: 'warning',
-        duration: 3000,
+        duration: 4000,
+        isClosable: true,
       });
     }
   };
@@ -801,11 +887,11 @@ const NewWorkoutCreator: React.FC = () => {
         duration: 4000,
       });
 
-      // Navigate to appropriate page based on what was created
+      // Navigate to appropriate page based on what was created and user role
       if (selectedTemplateType === 'monthly') {
-        navigate('/coach/training-plans');
+        navigate(profile?.role === 'athlete' ? '/athlete/workouts' : '/coach/training-plans');
       } else {
-        navigate('/coach/workouts');
+        navigate(profile?.role === 'athlete' ? '/athlete/workouts' : '/coach/workouts');
       }
     } catch (error) {
       console.error('Error saving workout:', error);
@@ -1220,8 +1306,8 @@ const NewWorkoutCreator: React.FC = () => {
           </VStack>
         );
       case 4:
-        // Monthly plans: Assign Athletes (was Step 5)
-        if (selectedTemplateType === 'monthly') {
+        // Monthly plans: Assign Athletes (was Step 5) - only for coaches
+        if (selectedTemplateType === 'monthly' && profile?.role !== 'athlete') {
           return (
             <Step5AthleteAssignment
               templateType={selectedTemplateType}
@@ -1253,8 +1339,8 @@ const NewWorkoutCreator: React.FC = () => {
           />
         );
       case 5:
-        // Only for single/weekly workflows
-        if (selectedTemplateType !== 'monthly') {
+        // Only for single/weekly workflows and only for coaches
+        if (selectedTemplateType !== 'monthly' && profile?.role !== 'athlete') {
           return (
             <Step5AthleteAssignment
               templateType={selectedTemplateType}
@@ -1337,7 +1423,7 @@ const NewWorkoutCreator: React.FC = () => {
         <VStack spacing={0} align="stretch">
           {/* Progress Bar - Full Width at Top */}
           <Progress 
-            value={(currentStep / getWorkflowSteps(selectedTemplateType).length) * 100} 
+            value={(currentStep / getWorkflowSteps(selectedTemplateType, profile?.role).length) * 100} 
             colorScheme="blue" 
             size="sm"
             bg={useColorModeValue('gray.100', 'gray.700')}
@@ -1358,8 +1444,12 @@ const NewWorkoutCreator: React.FC = () => {
                 
                 {/* Step Navigation - Centered */}
                 <HStack spacing={6} justify="center" flex="1">
-                  {getWorkflowSteps(selectedTemplateType).map((step, index) => {
-                    const stepColor = currentStep === step.id 
+                  {getWorkflowSteps(selectedTemplateType, profile?.role).map((step, index) => {
+                    const stepErrors = getStepErrors(step.id);
+                    const hasErrors = stepErrors.length > 0 && step.id < currentStep;
+                    const stepColor = hasErrors
+                      ? "red.500"
+                      : currentStep === step.id 
                       ? "blue.500" 
                       : completedSteps.has(step.id) 
                       ? "green.500" 
@@ -1382,7 +1472,20 @@ const NewWorkoutCreator: React.FC = () => {
                       >
                         <Text>{step.id}</Text>
                         <Text>{step.shortTitle}</Text>
-                        {index < getWorkflowSteps(selectedTemplateType).length - 1 && (
+                        {hasErrors && (
+                          <Tooltip 
+                            label={`${stepErrors.length} issue${stepErrors.length > 1 ? 's' : ''}: ${stepErrors.join(', ')}`}
+                            placement="bottom"
+                          >
+                            <Icon 
+                              as={AlertCircle} 
+                              w={3} 
+                              h={3} 
+                              color="red.500"
+                            />
+                          </Tooltip>
+                        )}
+                        {index < getWorkflowSteps(selectedTemplateType, profile?.role).length - 1 && (
                           <Box color={stepColor}>
                             <ArrowRight size={14} />
                           </Box>
@@ -1432,16 +1535,26 @@ const NewWorkoutCreator: React.FC = () => {
         transition="left 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
       >
         <Flex justify="space-between" align="center" maxW="100%" mx="auto">
-          <Button
-            leftIcon={<ArrowLeft size={16} />}
-            variant="outline"
-            onClick={handlePrevious}
-            isDisabled={currentStep === 1}
-            size="lg"
-            w="140px"
-          >
-            Previous
-          </Button>
+          <HStack spacing={3}>
+            <Button
+              variant="ghost"
+              onClick={() => navigate(profile?.role === 'athlete' ? '/athlete/workouts' : '/coach/workouts')}
+              size="lg"
+              w="100px"
+            >
+              Cancel
+            </Button>
+            <Button
+              leftIcon={<ArrowLeft size={16} />}
+              variant="outline"
+              onClick={handlePrevious}
+              isDisabled={currentStep === 1}
+              size="lg"
+              w="140px"
+            >
+              Previous
+            </Button>
+          </HStack>
           
           {/* Workout Information - Center */}
           <VStack spacing={1} align="center">
@@ -1475,15 +1588,15 @@ const NewWorkoutCreator: React.FC = () => {
             )}
             
             <Button
-              rightIcon={currentStep === getWorkflowSteps(selectedTemplateType).length ? <Save size={16} /> : <ArrowRight size={16} />}
+              rightIcon={currentStep === getWorkflowSteps(selectedTemplateType, profile?.role).length ? <Save size={16} /> : <ArrowRight size={16} />}
               colorScheme="blue"
-              onClick={currentStep === getWorkflowSteps(selectedTemplateType).length ? () => handleSave('save') : handleNext}
+              onClick={currentStep === getWorkflowSteps(selectedTemplateType, profile?.role).length ? () => handleSave('save') : handleNext}
               isDisabled={!validateStep(currentStep)}
-              isLoading={currentStep === getWorkflowSteps(selectedTemplateType).length ? isSaving : false}
+              isLoading={currentStep === getWorkflowSteps(selectedTemplateType, profile?.role).length ? isSaving : false}
               size="lg"
               w="140px"
             >
-              {currentStep === getWorkflowSteps(selectedTemplateType).length ? 'Save' : 'Continue'}
+              {currentStep === getWorkflowSteps(selectedTemplateType, profile?.role).length ? 'Save' : 'Continue'}
             </Button>
           </HStack>
         </Flex>

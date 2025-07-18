@@ -88,7 +88,9 @@ export function CreateWorkout() {
   const location = useLocation();
   const { timeFormat, formatTime } = useTimeFormat();
   const [isSaving, setIsSaving] = useState(false);
-  const { data: coachAthletes, isLoading: athletesLoading } = useCoachAthletes();
+  const { data: coachAthletes, isLoading: athletesLoading } = useCoachAthletes({
+    includeStatuses: ['approved', 'pending']
+  });
   const [isImported, setIsImported] = useState(false);
   
   // New state for database exercises

@@ -36,6 +36,7 @@ import {
   MenuList,
   MenuItem,
   IconButton,
+  Portal,
   useDisclosure,
   Modal,
   ModalOverlay,
@@ -55,25 +56,31 @@ import {
   StatNumber,
   StatHelpText,
 } from '@chakra-ui/react'
-import { FaSearch, FaUserPlus, FaEnvelope, FaPhone, FaCalendarAlt, FaTrophy, FaRunning, FaEllipsisV, FaFilter, FaPlus, FaUsers, FaClock, FaCheckCircle } from 'react-icons/fa'
+import { FaSearch, FaUserPlus, FaEnvelope, FaPhone, FaCalendarAlt, FaTrophy, FaRunning, FaEllipsisV, FaFilter, FaPlus, FaUsers, FaClock, FaCheckCircle, FaTh, FaList } from 'react-icons/fa'
 import { useState, useEffect } from 'react'
 import { useCoachAthletes } from '../../hooks/useCoachAthletes'
 import { useAuth } from '../../contexts/AuthContext'
 import { useProfile } from '../../hooks/useProfile'
 import AddAthleteModal from '../../components/AddAthleteModal'
 import CoachRequestStatusTable from '../../components/CoachRequestStatusTable'
+import AthleteTeamManagementDrawer from '../../components/AthleteTeamManagementDrawer'
 import { MobileHeader } from '../../components'
 import { supabase } from '../../lib/supabase'
 
 export function CoachAthletes() {
   const { user } = useAuth()
   const { profile, isLoading: profileLoading } = useProfile()
-  const { data: athletes = [], isLoading, isError, error } = useCoachAthletes()
+  const { data: athletes = [], isLoading, isError, error, refetch } = useCoachAthletes({ includeStatuses: ['approved', 'pending'] })
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedAthlete, setSelectedAthlete] = useState<any>(null)
+  const [selectedAthleteTeams, setSelectedAthleteTeams] = useState<any[]>([])
+  const [selectedAthleteForTeamManagement, setSelectedAthleteForTeamManagement] = useState<any>(null)
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0)
+  const [isLoadingTeams, setIsLoadingTeams] = useState(false)
+  const [viewType, setViewType] = useState<'grid' | 'table'>('grid')
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { isOpen: isAddAthleteOpen, onOpen: onAddAthleteOpen, onClose: onAddAthleteClose } = useDisclosure()
+  const { isOpen: isTeamManagementOpen, onOpen: onTeamManagementOpen, onClose: onTeamManagementClose } = useDisclosure()
   
   // Theme colors
   const bgColor = useColorModeValue('gray.50', 'gray.900')
@@ -126,10 +133,58 @@ export function CoachAthletes() {
     setSearchTerm(e.target.value)
   }
   
+  // Function to fetch athlete teams
+  const fetchAthleteTeams = async (athleteId: string) => {
+    setIsLoadingTeams(true)
+    try {
+      const { data: teamMemberships, error } = await supabase
+        .from('team_members')
+        .select(`
+          team_id,
+          status,
+          joined_at,
+          teams!inner(id, name, team_type)
+        `)
+        .eq('user_id', athleteId)
+        .eq('role', 'athlete')
+        .eq('status', 'active')
+        .order('joined_at', { ascending: false })
+
+      if (error) throw error
+      
+      const teams = teamMemberships?.map(tm => tm.teams).filter(Boolean) || []
+      setSelectedAthleteTeams(teams)
+    } catch (error) {
+      console.error('Error fetching athlete teams:', error)
+      setSelectedAthleteTeams([])
+    } finally {
+      setIsLoadingTeams(false)
+    }
+  }
+
   // Function to open athlete details
   const openAthleteDetails = (athlete: any) => {
     setSelectedAthlete(athlete)
+    setSelectedAthleteTeams([]) // Clear previous teams
     onOpen()
+    fetchAthleteTeams(athlete.id) // Fetch teams for this athlete
+  }
+  
+  // Function to open team management drawer
+  const openTeamManagement = (athlete: any) => {
+    setSelectedAthleteForTeamManagement(athlete)
+    onTeamManagementOpen()
+  }
+  
+  // Function to handle team changes and refresh data
+  const handleTeamChange = () => {
+    // Refetch athlete data when team memberships change
+    refetch()
+    
+    // If athlete details modal is open, refresh the teams for that athlete
+    if (isOpen && selectedAthlete?.id) {
+      fetchAthleteTeams(selectedAthlete.id)
+    }
   }
   
   // Helper function to get Badge color based on completion rate
@@ -173,161 +228,226 @@ export function CoachAthletes() {
       <Container maxW="container.xl" px={{ base: 4, md: 6 }} mt={{ base: "20px", lg: 8 }}>
         <Tabs variant="enclosed" colorScheme="blue">
           <TabList>
+            <Tab>Overview</Tab>
             <Tab>Manage Athletes</Tab>
-            <Tab>Grid View</Tab>
-            <Tab>Table View</Tab>
           </TabList>
           
           <TabPanels>
-            {/* Manage Athletes Tab Panel */}
+            {/* Overview Tab Panel */}
             <TabPanel px={0}>
               <VStack spacing={6} align="stretch">
                 
-                {/* Quick Stats */}
-                <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
-                  <Card bg={cardBg} borderColor={borderColor} borderWidth="1px">
-                    <CardBody>
-                      <Stat>
-                        <StatLabel color={textColor}>Total Athletes</StatLabel>
-                        <StatNumber color={accentColor}>{totalAthletes}</StatNumber>
-                        <StatHelpText>Active team members</StatHelpText>
-                      </Stat>
-                    </CardBody>
-                  </Card>
-                  
-                  <Card bg={cardBg} borderColor={borderColor} borderWidth="1px">
-                    <CardBody>
-                      <Stat>
-                        <StatLabel color={textColor}>Pending Requests</StatLabel>
-                        <StatNumber color="orange.500">{pendingRequestsCount}</StatNumber>
-                        <StatHelpText>Awaiting athlete approval</StatHelpText>
-                      </Stat>
-                    </CardBody>
-                  </Card>
-                  
-                  <Card bg={cardBg} borderColor={borderColor} borderWidth="1px">
-                    <CardBody>
-                      <Stat>
-                        <StatLabel color={textColor}>Approved</StatLabel>
-                        <StatNumber color="green.500">{approvedRelationships}</StatNumber>
-                        <StatHelpText>Active relationships</StatHelpText>
-                      </Stat>
-                    </CardBody>
-                  </Card>
-                </SimpleGrid>
+                {/* Top Section: Invite Athletes Card (2/3) + Stats Stack (1/3) */}
+                <Flex direction={{ base: 'column', lg: 'row' }} gap={6}>
+                  {/* Main Action Card - 2/3 width */}
+                  <Box flex="2">
+                    <Card bg={cardBg} borderColor={borderColor} borderWidth="1px" h="100%">
+                      <CardHeader>
+                        <VStack align="start" spacing={1}>
+                          <Heading size="md">Invite Athletes</Heading>
+                          <Text fontSize="sm" color={textColor}>
+                            Add existing athletes or create new accounts to build your team
+                          </Text>
+                        </VStack>
+                      </CardHeader>
+                      
+                      <CardBody pt={0}>
+                        <Divider mb={4} />
+                        <VStack align="start" spacing={3}>
+                          <HStack>
+                            <Icon as={FaUsers} color="blue.500" />
+                            <Text fontSize="sm" color={textColor}>
+                              <strong>Browse & Invite:</strong> Search existing athlete accounts and send invitations
+                            </Text>
+                          </HStack>
+                          <HStack>
+                            <Icon as={FaPlus} color="green.500" />
+                            <Text fontSize="sm" color={textColor}>
+                              <strong>Create & Invite:</strong> Create new athlete accounts and automatically send invitations
+                            </Text>
+                          </HStack>
+                          <HStack>
+                            <Icon as={FaClock} color="orange.500" />
+                            <Text fontSize="sm" color={textColor}>
+                              <strong>Pending Approval:</strong> Athletes receive notifications and can approve/decline your requests
+                            </Text>
+                          </HStack>
+                          <HStack>
+                            <Icon as={FaCheckCircle} color="purple.500" />
+                            <Text fontSize="sm" color={textColor}>
+                              <strong>Automatic Linking:</strong> Once approved, athletes appear in your roster automatically
+                            </Text>
+                          </HStack>
+                          
+                          <Button
+                            leftIcon={<Icon as={FaUserPlus} />}
+                            colorScheme="blue"
+                            onClick={onAddAthleteOpen}
+                            size="lg"
+                            mt={4}
+                            alignSelf="start"
+                          >
+                            Invite Athletes
+                          </Button>
+                        </VStack>
+                      </CardBody>
+                    </Card>
+                  </Box>
 
-                {/* Main Action Card */}
+                  {/* Quick Stats Stack - 1/3 width */}
+                  <Box flex="1">
+                    <VStack spacing={4} h="100%">
+                      <Card bg={cardBg} borderColor={borderColor} borderWidth="1px" w="100%">
+                        <CardBody py={3} px={4}>
+                          <Flex align="center" gap={4}>
+                            <Box flex="1" textAlign="center">
+                              <Text fontSize="3xl" fontWeight="bold" color={accentColor}>
+                                {totalAthletes}
+                              </Text>
+                            </Box>
+                            <Box flex="2">
+                              <VStack align="start" spacing={1}>
+                                <Text fontWeight="medium" color={textColor}>Total Athletes</Text>
+                                <Text fontSize="sm" color="gray.500">Active team members</Text>
+                              </VStack>
+                            </Box>
+                          </Flex>
+                        </CardBody>
+                      </Card>
+                      
+                      <Card bg={cardBg} borderColor={borderColor} borderWidth="1px" w="100%">
+                        <CardBody py={3} px={4}>
+                          <Flex align="center" gap={4}>
+                            <Box flex="1" textAlign="center">
+                              <Text fontSize="3xl" fontWeight="bold" color="orange.500">
+                                {pendingRequestsCount}
+                              </Text>
+                            </Box>
+                            <Box flex="2">
+                              <VStack align="start" spacing={1}>
+                                <Text fontWeight="medium" color={textColor}>Pending Requests</Text>
+                                <Text fontSize="sm" color="gray.500">Awaiting athlete approval</Text>
+                              </VStack>
+                            </Box>
+                          </Flex>
+                        </CardBody>
+                      </Card>
+                      
+                      <Card bg={cardBg} borderColor={borderColor} borderWidth="1px" w="100%">
+                        <CardBody py={3} px={4}>
+                          <Flex align="center" gap={4}>
+                            <Box flex="1" textAlign="center">
+                              <Text fontSize="3xl" fontWeight="bold" color="green.500">
+                                {approvedRelationships}
+                              </Text>
+                            </Box>
+                            <Box flex="2">
+                              <VStack align="start" spacing={1}>
+                                <Text fontWeight="medium" color={textColor}>Approved</Text>
+                                <Text fontSize="sm" color="gray.500">Active relationships</Text>
+                              </VStack>
+                            </Box>
+                          </Flex>
+                        </CardBody>
+                      </Card>
+                    </VStack>
+                  </Box>
+                </Flex>
+
+                {/* Current Athletes Section */}
+                <Card bg={cardBg} borderColor={borderColor} borderWidth="1px">
+                  <CardHeader>
+                    <Heading size="md">Current Athletes</Heading>
+                    <Text fontSize="sm" color={textColor} mt={1}>
+                      All athletes currently on your roster (both direct invitations and team members)
+                    </Text>
+                  </CardHeader>
+                  <CardBody>
+                    {isLoading ? (
+                      <Flex justify="center" align="center" p={8}>
+                        <Spinner />
+                      </Flex>
+                    ) : isError ? (
+                      <Alert status="error" borderRadius="md">
+                        <AlertIcon />
+                        Error loading athletes: {error?.message || 'Please try again later'}
+                      </Alert>
+                    ) : athletes.length === 0 ? (
+                      <Box textAlign="center" p={4}>
+                        <Text color={textColor}>No athletes on your roster yet</Text>
+                      </Box>
+                    ) : (
+                      <Box overflowX="auto">
+                        <Table variant="simple">
+                                                     <Thead>
+                             <Tr>
+                               <Th>Athlete</Th>
+                               <Th>Email</Th>
+                               <Th>Status</Th>
+                             </Tr>
+                           </Thead>
+                          <Tbody>
+                            {athletes.map(athlete => (
+                              <Tr key={athlete.id}>
+                                <Td>
+                                  <HStack>
+                                    <Avatar 
+                                      size="sm" 
+                                      name={`${athlete.first_name} ${athlete.last_name}`} 
+                                      src={athlete.avatar_url}
+                                    />
+                                    <Text>{`${athlete.first_name} ${athlete.last_name}`}</Text>
+                                  </HStack>
+                                </Td>
+                                                                 <Td>{athlete.email || 'No email'}</Td>
+                                 <Td>
+                                   <Badge 
+                                     colorScheme={
+                                       athlete.approval_status === 'pending' 
+                                         ? 'yellow' 
+                                         : 'green'
+                                     }
+                                   >
+                                     {athlete.approval_status === 'pending' ? 'Pending' : 'Active'}
+                                   </Badge>
+                                 </Td>
+                              </Tr>
+                            ))}
+                          </Tbody>
+                        </Table>
+                      </Box>
+                    )}
+                  </CardBody>
+                </Card>
+
+                {/* Pending Invitations */}
                 <Card bg={cardBg} borderColor={borderColor} borderWidth="1px">
                   <CardHeader>
                     <HStack justify="space-between" align="center">
                       <VStack align="start" spacing={1}>
-                        <Heading size="md">Invite Athletes</Heading>
+                        <Heading size="md">Pending Invitations</Heading>
                         <Text fontSize="sm" color={textColor}>
-                          Add existing athletes or create new accounts to build your team
+                          Invitations awaiting athlete approval - send reminders or cancel requests
                         </Text>
                       </VStack>
-                      <Button
-                        leftIcon={<Icon as={FaUserPlus} />}
-                        colorScheme="blue"
-                        onClick={onAddAthleteOpen}
-                        size="lg"
-                      >
-                        Invite Athletes
-                      </Button>
+                      {pendingRequestsCount > 0 && (
+                        <Badge colorScheme="orange" fontSize="md" px={3} py={1}>
+                          {pendingRequestsCount} pending
+                        </Badge>
+                      )}
                     </HStack>
                   </CardHeader>
-                  
-                  <CardBody pt={0}>
-                    <Divider mb={4} />
-                    <VStack align="start" spacing={3}>
-                      <HStack>
-                        <Icon as={FaUsers} color="blue.500" />
-                        <Text fontSize="sm" color={textColor}>
-                          <strong>Browse & Invite:</strong> Search existing athlete accounts and send invitations
-                        </Text>
-                      </HStack>
-                      <HStack>
-                        <Icon as={FaPlus} color="green.500" />
-                        <Text fontSize="sm" color={textColor}>
-                          <strong>Create & Invite:</strong> Create new athlete accounts and automatically send invitations
-                        </Text>
-                      </HStack>
-                      <HStack>
-                        <Icon as={FaClock} color="orange.500" />
-                        <Text fontSize="sm" color={textColor}>
-                          <strong>Pending Approval:</strong> Athletes receive notifications and can approve/decline your requests
-                        </Text>
-                      </HStack>
-                      <HStack>
-                        <Icon as={FaCheckCircle} color="purple.500" />
-                        <Text fontSize="sm" color={textColor}>
-                          <strong>Automatic Linking:</strong> Once approved, athletes appear in your roster automatically
-                        </Text>
-                      </HStack>
-                    </VStack>
+                  <CardBody>
+                    <CoachRequestStatusTable showOnlyPending={true} />
                   </CardBody>
                 </Card>
 
-                {/* Request Status Table */}
-                <Card bg={cardBg} borderColor={borderColor} borderWidth="1px">
-                  <CardHeader>
-                    <Heading size="md">Invitation Status</Heading>
-                    <Text fontSize="sm" color={textColor} mt={1}>
-                      Track your sent invitations and their current status
-                    </Text>
-                  </CardHeader>
-                  <CardBody>
-                    <CoachRequestStatusTable />
-                  </CardBody>
-                </Card>
-
-                {/* How It Works */}
-                <Card bg={cardBg} borderColor={borderColor} borderWidth="1px">
-                  <CardHeader>
-                    <Heading size="md">How the Invitation System Works</Heading>
-                  </CardHeader>
-                  <CardBody>
-                    <VStack align="start" spacing={4}>
-                      <Box>
-                        <Badge colorScheme="blue" mb={2}>Step 1</Badge>
-                        <Text fontSize="sm" color={textColor}>
-                          <strong>Send Invitation:</strong> Click "Invite Athletes" to browse existing athletes or create new accounts. 
-                          When you select athletes, the system automatically creates pending coach-athlete relationships.
-                        </Text>
-                      </Box>
-                      
-                      <Box>
-                        <Badge colorScheme="orange" mb={2}>Step 2</Badge>
-                        <Text fontSize="sm" color={textColor}>
-                          <strong>Athlete Notification:</strong> Athletes receive notifications about your invitation. 
-                          They can view details about you and choose to approve or decline the request.
-                        </Text>
-                      </Box>
-                      
-                      <Box>
-                        <Badge colorScheme="green" mb={2}>Step 3</Badge>
-                        <Text fontSize="sm" color={textColor}>
-                          <strong>Automatic Integration:</strong> Once an athlete approves your request, they automatically 
-                          appear in your Athletes page, workout assignment lists, and all coaching tools.
-                        </Text>
-                      </Box>
-                      
-                      <Box>
-                        <Badge colorScheme="purple" mb={2}>Monitoring</Badge>
-                        <Text fontSize="sm" color={textColor}>
-                          <strong>Track Progress:</strong> Use the "Invitation Status" table above to monitor all your sent 
-                          requests. You can send reminders for pending requests or see which athletes have declined.
-                        </Text>
-                      </Box>
-                    </VStack>
-                  </CardBody>
-                </Card>
               </VStack>
             </TabPanel>
             
-            {/* Grid View Tab Panel */}
+            {/* Manage Athletes Tab Panel */}
             <TabPanel px={0}>
-              {/* Search and Filter */}
+              {/* Search, Filter, and View Toggle */}
               <Flex 
                 mb={6} 
                 direction={{ base: 'column', md: 'row' }} 
@@ -350,19 +470,45 @@ export function CoachAthletes() {
                   />
                 </InputGroup>
                 
-                <Menu>
-                  <MenuButton as={Button} rightIcon={<Icon as={FaFilter} />} variant="outline">
-                    Filter
-                  </MenuButton>
-                  <MenuList>
-                    <MenuItem>All Athletes</MenuItem>
-                    <MenuItem>High Completion Rate (&gt;80%)</MenuItem>
-                    <MenuItem>Medium Completion Rate (60-80%)</MenuItem>
-                    <MenuItem>Low Completion Rate (&lt;60%)</MenuItem>
-                    <MenuItem>Sprint Events</MenuItem>
-                    <MenuItem>Field Events</MenuItem>
-                  </MenuList>
-                </Menu>
+                <Flex gap={4} align="center">
+                  <Menu>
+                    <MenuButton as={Button} rightIcon={<Icon as={FaFilter} />} variant="outline">
+                      Filter
+                    </MenuButton>
+                    <MenuList>
+                      <MenuItem>All Athletes</MenuItem>
+                      <MenuItem>High Completion Rate (&gt;80%)</MenuItem>
+                      <MenuItem>Medium Completion Rate (60-80%)</MenuItem>
+                      <MenuItem>Low Completion Rate (&lt;60%)</MenuItem>
+                      <MenuItem>Sprint Events</MenuItem>
+                      <MenuItem>Field Events</MenuItem>
+                    </MenuList>
+                  </Menu>
+                  
+                  {/* View Toggle Buttons */}
+                  <HStack spacing={0}>
+                    <Button
+                      leftIcon={<Icon as={FaTh} />}
+                      size="sm"
+                      variant={viewType === 'grid' ? 'solid' : 'outline'}
+                      colorScheme={viewType === 'grid' ? 'blue' : 'gray'}
+                      onClick={() => setViewType('grid')}
+                      borderRightRadius={0}
+                    >
+                      Grid
+                    </Button>
+                    <Button
+                      leftIcon={<Icon as={FaList} />}
+                      size="sm"
+                      variant={viewType === 'table' ? 'solid' : 'outline'}
+                      colorScheme={viewType === 'table' ? 'blue' : 'gray'}
+                      onClick={() => setViewType('table')}
+                      borderLeftRadius={0}
+                    >
+                      Table
+                    </Button>
+                  </HStack>
+                </Flex>
               </Flex>
               
               {/* Loading and Error States */}
@@ -377,183 +523,155 @@ export function CoachAthletes() {
                 </Alert>
               ) : (
                 <>
-                  <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-                    {filteredAthletes.map(athlete => (
-                      <Card 
-                        key={athlete.id}
-                        cursor="pointer"
-                        onClick={() => openAthleteDetails(athlete)}
-                        _hover={{ transform: 'translateY(-2px)', shadow: 'lg' }}
-                        transition="all 0.2s"
-                        bg={cardBgSecondary}
-                        borderWidth="1px"
-                        borderColor={cardBorderColor}
-                      >
-                        <CardBody bg={cardBgSecondary} borderRadius="inherit">
-                          <HStack mb={4}>
-                            <Avatar 
-                              size="md" 
-                              name={`${athlete.first_name} ${athlete.last_name}`} 
-                              src={athlete.avatar_url} 
-                            />
-                            <Box>
-                              <Heading size="md" color={headingColor}>{`${athlete.first_name} ${athlete.last_name}`}</Heading>
-                              <Text fontSize="sm" color={subTextColor}>Age: {athlete.age}</Text>
-                            </Box>
-                          </HStack>
-                          
-                          <Stack spacing={2} mb={4}>
-                            <Flex align="center">
-                              <Icon as={FaPhone} color="green.500" mr={2} />
-                              <Text fontSize="sm" color={bodyTextColor}>{athlete.phone || 'No phone number'}</Text>
-                            </Flex>
-                            <Flex align="center">
-                              <Icon as={FaEnvelope} color="blue.500" mr={2} />
-                              <Text fontSize="sm" color={bodyTextColor}>{athlete.email || 'No email'}</Text>
-                            </Flex>
-                            <Flex align="center">
-                              <Icon as={FaRunning} color="purple.500" mr={2} />
-                              <Text fontSize="sm" color={bodyTextColor}>{(athlete.events || []).join(', ') || 'No events assigned'}</Text>
-                            </Flex>
-                          </Stack>
-                          
-                          <Flex justify="space-between" align="center">
-                            <Text fontSize="sm" fontWeight="medium" color={labelTextColor}>Workout Completion:</Text>
-                            <Badge colorScheme={getCompletionColor(athlete.completion_rate || 0)}>
-                              {athlete.completion_rate || 0}%
-                            </Badge>
-                          </Flex>
-                        </CardBody>
-                      </Card>
-                    ))}
-                  </SimpleGrid>
-                  
-                  {filteredAthletes.length === 0 && (
-                    <Box textAlign="center" py={10}>
-                      <Text>No athletes found matching your search criteria.</Text>
+                  {viewType === 'grid' ? (
+                    /* Grid View */
+                    <>
+                      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+                        {filteredAthletes.map(athlete => (
+                          <Card 
+                            key={athlete.id}
+                            cursor="pointer"
+                            onClick={() => openAthleteDetails(athlete)}
+                            _hover={{ transform: 'translateY(-2px)', shadow: 'lg' }}
+                            transition="all 0.2s"
+                            bg={cardBgSecondary}
+                            borderWidth="1px"
+                            borderColor={cardBorderColor}
+                          >
+                            <CardBody bg={cardBgSecondary} borderRadius="inherit">
+                              <HStack mb={4} justify="space-between">
+                                <HStack>
+                                  <Avatar 
+                                    size="md" 
+                                    name={`${athlete.first_name} ${athlete.last_name}`} 
+                                    src={athlete.avatar_url} 
+                                  />
+                                  <Box>
+                                    <Heading size="md" color={headingColor}>{`${athlete.first_name} ${athlete.last_name}`}</Heading>
+                                    <Text fontSize="sm" color={subTextColor}>Age: {athlete.age}</Text>
+                                  </Box>
+                                </HStack>
+                                <Menu>
+                                  <MenuButton
+                                    as={IconButton}
+                                    aria-label="Options"
+                                    icon={<FaEllipsisV />}
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                  <Portal>
+                                    <MenuList zIndex={1500}>
+                                      <MenuItem onClick={(e) => { e.stopPropagation(); openAthleteDetails(athlete); }}>View Details</MenuItem>
+                                      <MenuItem onClick={(e) => { e.stopPropagation(); openTeamManagement(athlete); }}>Team Assignment</MenuItem>
+                                      <MenuItem onClick={(e) => e.stopPropagation()}>View Performance</MenuItem>
+                                      <MenuItem color="red.500" onClick={(e) => e.stopPropagation()}>Remove Athlete</MenuItem>
+                                    </MenuList>
+                                  </Portal>
+                                </Menu>
+                              </HStack>
+                              
+                              <Stack spacing={2} mb={4}>
+                                <Flex align="center">
+                                  <Icon as={FaPhone} color="green.500" mr={2} />
+                                  <Text fontSize="sm" color={bodyTextColor}>{athlete.phone || 'No phone number'}</Text>
+                                </Flex>
+                                <Flex align="center">
+                                  <Icon as={FaEnvelope} color="blue.500" mr={2} />
+                                  <Text fontSize="sm" color={bodyTextColor}>{athlete.email || 'No email'}</Text>
+                                </Flex>
+                                <Flex align="center">
+                                  <Icon as={FaRunning} color="purple.500" mr={2} />
+                                  <Text fontSize="sm" color={bodyTextColor}>{(athlete.events || []).join(', ') || 'No events assigned'}</Text>
+                                </Flex>
+                              </Stack>
+                              
+                              <Flex justify="space-between" align="center">
+                                <Text fontSize="sm" fontWeight="medium" color={labelTextColor}>Workout Completion:</Text>
+                                <Badge colorScheme={getCompletionColor(athlete.completion_rate || 0)}>
+                                  {athlete.completion_rate || 0}%
+                                </Badge>
+                              </Flex>
+                            </CardBody>
+                          </Card>
+                        ))}
+                      </SimpleGrid>
+                      
+                      {filteredAthletes.length === 0 && (
+                        <Box textAlign="center" py={10}>
+                          <Text>No athletes found matching your search criteria.</Text>
+                        </Box>
+                      )}
+                    </>
+                  ) : (
+                    /* Table View */
+                    <Box overflowX="auto">
+                      <Table variant="simple">
+                        <Thead>
+                          <Tr>
+                            <Th>Athlete</Th>
+                            <Th>Events</Th>
+                            <Th>Phone</Th>
+                            <Th>Email</Th>
+                            <Th>Completion Rate</Th>
+                            <Th>Actions</Th>
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          {filteredAthletes.map(athlete => (
+                            <Tr key={athlete.id} _hover={{ bg: tableRowHoverBg }}>
+                              <Td>
+                                <HStack>
+                                  <Avatar 
+                                    size="sm" 
+                                    name={`${athlete.first_name} ${athlete.last_name}`} 
+                                    src={athlete.avatar_url}
+                                  />
+                                  <Box>
+                                    <Text fontWeight="medium">{`${athlete.first_name} ${athlete.last_name}`}</Text>
+                                    <Text fontSize="xs" color="gray.500">Age: {athlete.age}</Text>
+                                  </Box>
+                                </HStack>
+                              </Td>
+                              <Td>{(athlete.events || []).join(', ') || 'No events'}</Td>
+                              <Td>{athlete.phone || 'No phone'}</Td>
+                              <Td>{athlete.email || 'No email'}</Td>
+                              <Td>
+                                <Badge colorScheme={getCompletionColor(athlete.completion_rate || 0)}>
+                                  {athlete.completion_rate || 0}%
+                                </Badge>
+                              </Td>
+                              <Td>
+                                                                <Menu>
+                                  <MenuButton
+                                    as={IconButton}
+                                    aria-label="Options"
+                                    icon={<FaEllipsisV />}
+                                    variant="ghost"
+                                    size="sm"
+                                  />
+                                  <Portal>
+                                    <MenuList zIndex={1500}>
+                                      <MenuItem onClick={() => openAthleteDetails(athlete)}>View Details</MenuItem>
+                                      <MenuItem onClick={() => openTeamManagement(athlete)}>Team Assignment</MenuItem>
+                                      <MenuItem>View Performance</MenuItem>
+                                      <MenuItem color="red.500">Remove Athlete</MenuItem>
+                                    </MenuList>
+                                  </Portal>
+                                </Menu>
+                              </Td>
+                            </Tr>
+                          ))}
+                        </Tbody>
+                      </Table>
+                      
+                      {filteredAthletes.length === 0 && (
+                        <Box textAlign="center" py={10}>
+                          <Text>No athletes found matching your search criteria.</Text>
+                        </Box>
+                      )}
                     </Box>
                   )}
-                </>
-              )}
-            </TabPanel>
-            
-            {/* Table View Tab Panel */}
-            <TabPanel px={0}>
-              {/* Search and Filter */}
-              <Flex 
-                mb={6} 
-                direction={{ base: 'column', md: 'row' }} 
-                gap={4}
-                bg={cardBg}
-                p={4}
-                borderRadius="md"
-                shadow="base"
-                borderWidth="1px"
-                borderColor={borderColor}
-              >
-                <InputGroup maxW={{ base: '100%', md: '400px' }}>
-                  <InputLeftElement pointerEvents="none">
-                    <Icon as={FaSearch} color="gray.400" />
-                  </InputLeftElement>
-                  <Input 
-                    placeholder="Search by name, email, or event" 
-                    value={searchTerm}
-                    onChange={handleSearch}
-                  />
-                </InputGroup>
-                
-                <Menu>
-                  <MenuButton as={Button} rightIcon={<Icon as={FaFilter} />} variant="outline">
-                    Filter
-                  </MenuButton>
-                  <MenuList>
-                    <MenuItem>All Athletes</MenuItem>
-                    <MenuItem>High Completion Rate (&gt;80%)</MenuItem>
-                    <MenuItem>Medium Completion Rate (60-80%)</MenuItem>
-                    <MenuItem>Low Completion Rate (&lt;60%)</MenuItem>
-                    <MenuItem>Sprint Events</MenuItem>
-                    <MenuItem>Field Events</MenuItem>
-                  </MenuList>
-                </Menu>
-              </Flex>
-              
-              {/* Loading and Error States */}
-              {isLoading ? (
-                <Flex justify="center" align="center" minH="200px">
-                  <Spinner size="xl" color="blue.500" />
-                </Flex>
-              ) : isError ? (
-                <Alert status="error" borderRadius="md">
-                  <AlertIcon />
-                  Error loading athletes: {error?.message || 'Please try again later'}
-                </Alert>
-              ) : (
-                <>
-                  <Box overflowX="auto">
-                    <Table variant="simple">
-                      <Thead>
-                        <Tr>
-                          <Th>Athlete</Th>
-                          <Th>Events</Th>
-                          <Th>Phone</Th>
-                          <Th>Email</Th>
-                          <Th>Completion Rate</Th>
-                          <Th>Actions</Th>
-                        </Tr>
-                      </Thead>
-                      <Tbody>
-                        {filteredAthletes.map(athlete => (
-                          <Tr key={athlete.id} _hover={{ bg: tableRowHoverBg }}>
-                            <Td>
-                              <HStack>
-                                <Avatar 
-                                  size="sm" 
-                                  name={`${athlete.first_name} ${athlete.last_name}`} 
-                                  src={athlete.avatar_url}
-                                />
-                                <Box>
-                                  <Text fontWeight="medium">{`${athlete.first_name} ${athlete.last_name}`}</Text>
-                                  <Text fontSize="xs" color="gray.500">Age: {athlete.age}</Text>
-                                </Box>
-                              </HStack>
-                            </Td>
-                            <Td>{(athlete.events || []).join(', ') || 'No events'}</Td>
-                            <Td>{athlete.phone || 'No phone'}</Td>
-                            <Td>{athlete.email || 'No email'}</Td>
-                            <Td>
-                              <Badge colorScheme={getCompletionColor(athlete.completion_rate || 0)}>
-                                {athlete.completion_rate || 0}%
-                              </Badge>
-                            </Td>
-                            <Td>
-                              <Menu>
-                                <MenuButton
-                                  as={IconButton}
-                                  aria-label="Options"
-                                  icon={<FaEllipsisV />}
-                                  variant="ghost"
-                                  size="sm"
-                                />
-                                <MenuList>
-                                  <MenuItem onClick={() => openAthleteDetails(athlete)}>View Details</MenuItem>
-                                  <MenuItem>Edit Athlete</MenuItem>
-                                  <MenuItem>Assign Workout</MenuItem>
-                                  <MenuItem>View Performance</MenuItem>
-                                  <MenuItem color="red.500">Remove Athlete</MenuItem>
-                                </MenuList>
-                              </Menu>
-                            </Td>
-                          </Tr>
-                        ))}
-                      </Tbody>
-                    </Table>
-                    
-                    {filteredAthletes.length === 0 && (
-                      <Box textAlign="center" py={10}>
-                        <Text>No athletes found matching your search criteria.</Text>
-                      </Box>
-                    )}
-                  </Box>
                 </>
               )}
             </TabPanel>
@@ -611,7 +729,25 @@ export function CoachAthletes() {
                 
                 <Box>
                   <Heading size="sm" mb={2}>Team Information</Heading>
-                  <Text>{selectedAthlete.team_id || 'No team assigned'}</Text>
+                  {isLoadingTeams ? (
+                    <Flex align="center" gap={2}>
+                      <Spinner size="sm" />
+                      <Text fontSize="sm">Loading teams...</Text>
+                    </Flex>
+                  ) : selectedAthleteTeams.length === 0 ? (
+                    <Text>No teams assigned</Text>
+                  ) : (
+                    <VStack align="start" spacing={2}>
+                      {selectedAthleteTeams.map((team: any) => (
+                        <HStack key={team.id} justify="space-between" w="100%">
+                          <Text fontWeight="medium">{team.name}</Text>
+                          <Badge colorScheme="blue" size="sm">
+                            {team.team_type}
+                          </Badge>
+                        </HStack>
+                      ))}
+                    </VStack>
+                  )}
                 </Box>
                 
                 <Box>
@@ -627,16 +763,38 @@ export function CoachAthletes() {
             )}
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="blue" mr={3}>
-              Edit Profile
+            <Button 
+              colorScheme="purple" 
+              mr={3}
+              leftIcon={<Icon as={FaUsers} />}
+              onClick={() => {
+                onClose()
+                openTeamManagement(selectedAthlete)
+              }}
+            >
+              Team Assignment
             </Button>
-            <Button onClick={onClose}>Close</Button>
+            <Button onClick={() => {
+              onClose()
+              setSelectedAthleteTeams([]) // Clear teams when closing
+            }}>Close</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
 
       {/* Add Athlete Modal */}
       <AddAthleteModal isOpen={isAddAthleteOpen} onClose={onAddAthleteClose} />
+
+      {/* Athlete Team Management Drawer */}
+      <AthleteTeamManagementDrawer
+        isOpen={isTeamManagementOpen}
+        onClose={() => {
+          onTeamManagementClose()
+          setSelectedAthleteForTeamManagement(null)
+        }}
+        athlete={selectedAthleteForTeamManagement}
+        onTeamChange={handleTeamChange}
+      />
     </Box>
   )
 } 

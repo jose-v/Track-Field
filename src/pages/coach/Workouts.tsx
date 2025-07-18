@@ -117,7 +117,9 @@ export function CoachWorkouts() {
     isBatchCheckingUsage,
     isRemovingFromPlans
   } = useWorkouts(); 
-  const { data: coachAthletes, isLoading: athletesLoading } = useCoachAthletes();
+  const { data: coachAthletes, isLoading: athletesLoading } = useCoachAthletes({
+    includeStatuses: ['approved', 'pending']
+  });
   const { user } = useAuth();
   const [editingWorkout, setEditingWorkout] = useState<ApiWorkout | null>(null); // Use imported ApiWorkout
   const [isSaving, setIsSaving] = useState(false);

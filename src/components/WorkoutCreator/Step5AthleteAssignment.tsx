@@ -50,6 +50,7 @@ interface AthleteWithSelection {
   avatar_url?: string;
   events?: string[];
   completion_rate?: number;
+  approval_status?: 'pending' | 'approved' | 'declined';
   isSelected: boolean;
 }
 
@@ -79,8 +80,10 @@ const Step5AthleteAssignment: React.FC<Step5AthleteAssignmentProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredAthletes, setFilteredAthletes] = useState<AthleteWithSelection[]>([]);
 
-  // Load athletes
-  const { data: coachAthletes, isLoading: athletesLoading, error: athletesError } = useCoachAthletes();
+  // Load athletes (include both pending and approved for workout assignment)
+  const { data: coachAthletes, isLoading: athletesLoading, error: athletesError } = useCoachAthletes({
+    includeStatuses: ['approved', 'pending']
+  });
 
   // Process athletes with selection state
   const athletesWithSelection = useMemo((): AthleteWithSelection[] => {
@@ -94,6 +97,7 @@ const Step5AthleteAssignment: React.FC<Step5AthleteAssignmentProps> = ({
       avatar_url: athlete.avatar_url,
       events: athlete.events,
       completion_rate: athlete.completion_rate,
+      approval_status: athlete.approval_status,
       isSelected: selectedAthletes.includes(athlete.id)
     }));
   }, [coachAthletes, selectedAthletes]);
@@ -332,14 +336,27 @@ const Step5AthleteAssignment: React.FC<Step5AthleteAssignmentProps> = ({
                       />
                       
                       <VStack spacing={1} align="start" flex="1" minW="0">
-                        <Text 
-                          fontWeight="bold" 
-                          fontSize="md" 
-                          color={isSelected ? "blue.700" : textColor}
-                          noOfLines={1}
-                        >
-                          {athlete.first_name} {athlete.last_name}
-                        </Text>
+                        <HStack spacing={2} align="center">
+                          <Text 
+                            fontWeight="bold" 
+                            fontSize="md" 
+                            color={isSelected ? "blue.700" : textColor}
+                            noOfLines={1}
+                            flex="1"
+                          >
+                            {athlete.first_name} {athlete.last_name}
+                          </Text>
+                          {athlete.approval_status === 'pending' && (
+                            <Badge 
+                              size="sm" 
+                              colorScheme="yellow" 
+                              variant="solid"
+                              flexShrink={0}
+                            >
+                              Pending
+                            </Badge>
+                          )}
+                        </HStack>
                         
                         {athlete.email && (
                           <Text 
