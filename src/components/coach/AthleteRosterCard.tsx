@@ -37,7 +37,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCoachAthletes } from '../../hooks/useCoachAthletes';
-import AddAthleteModal from '../AddAthleteModal';
+import { InviteAthletesDrawer } from '../InviteAthletesDrawer';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface AthleteStatus {
@@ -524,10 +524,14 @@ const AthleteRosterCard: React.FC<AthleteRosterCardProps> = ({ onAthleteClick })
         )}
       </CardBody>
 
-      {/* Add Athlete Modal */}
-      <AddAthleteModal 
+      {/* Invite Athletes Drawer */}
+      <InviteAthletesDrawer 
         isOpen={isAddAthleteOpen} 
         onClose={onAddAthleteClose}
+        onAthleteInvited={() => {
+          // Refresh data after athlete invitation
+          refetch();
+        }}
       />
 
       {/* Delete Confirmation Dialog */}

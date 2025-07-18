@@ -35,7 +35,6 @@ import AthleteRosterCard from '../../components/coach/AthleteRosterCard';
 import { MeetFormDrawer, type TrackMeetFormData, type TrackMeetData } from '../../components/meets/MeetFormDrawer';
 import { useWorkouts } from '../../hooks/useWorkouts';
 import { CoachTeamsCard } from '../../components/CoachTeamsCard';
-import { CreateTeamModal } from '../../components/CreateTeamModal';
 import { UpcomingEventsCard } from '../../components/UpcomingEventsCard';
 
   

@@ -46,7 +46,7 @@ export function useCoachNavigation(): CoachNavConfig & { isCurrentPathActive: (p
       icon: <FaTachometerAlt />
     },
     {
-      name: 'Athletes',
+      name: 'Teams & Athletes',
       path: '/coach/athletes',
       icon: <LuUsers />
     },

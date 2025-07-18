@@ -56,14 +56,16 @@ import {
   StatNumber,
   StatHelpText,
 } from '@chakra-ui/react'
-import { FaSearch, FaUserPlus, FaEnvelope, FaPhone, FaCalendarAlt, FaTrophy, FaRunning, FaEllipsisV, FaFilter, FaPlus, FaUsers, FaClock, FaCheckCircle, FaTh, FaList } from 'react-icons/fa'
+import { FaSearch, FaUserPlus, FaEnvelope, FaPhone, FaCalendarAlt, FaTrophy, FaRunning, FaEllipsisV, FaFilter, FaPlus, FaUsers, FaClock, FaCheckCircle, FaTh, FaList, FaUserFriends } from 'react-icons/fa'
 import { useState, useEffect } from 'react'
 import { useCoachAthletes } from '../../hooks/useCoachAthletes'
 import { useAuth } from '../../contexts/AuthContext'
 import { useProfile } from '../../hooks/useProfile'
-import AddAthleteModal from '../../components/AddAthleteModal'
 import CoachRequestStatusTable from '../../components/CoachRequestStatusTable'
 import AthleteTeamManagementDrawer from '../../components/AthleteTeamManagementDrawer'
+import { CreateTeamDrawer } from '../../components/CreateTeamDrawer'
+import { InviteAthletesDrawer } from '../../components/InviteAthletesDrawer'
+import { CoachTeamsCard } from '../../components/CoachTeamsCard'
 import { MobileHeader } from '../../components'
 import { supabase } from '../../lib/supabase'
 
@@ -81,6 +83,7 @@ export function CoachAthletes() {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { isOpen: isAddAthleteOpen, onOpen: onAddAthleteOpen, onClose: onAddAthleteClose } = useDisclosure()
   const { isOpen: isTeamManagementOpen, onOpen: onTeamManagementOpen, onClose: onTeamManagementClose } = useDisclosure()
+  const { isOpen: isCreateTeamOpen, onOpen: onCreateTeamOpen, onClose: onCreateTeamClose } = useDisclosure()
   
   // Theme colors
   const bgColor = useColorModeValue('gray.50', 'gray.900')
@@ -210,18 +213,18 @@ export function CoachAthletes() {
     >
       {/* Mobile Header */}
       <MobileHeader
-        title="Athletes"
-        subtitle="Manage and view your team"
+        title="Teams & Athletes"
+        subtitle="Manage your teams and athletes"
         isLoading={profileLoading}
       />
 
       {/* Desktop Header */}
       <Box display={{ base: "none", lg: "block" }} px={{ base: 4, md: 6 }} pt={6}>
         <Heading size="lg" mb={2}>
-          Athletes
+          Teams & Athletes
         </Heading>
         <Text color={textColor}>
-          Manage your athletes and view your team roster
+          Manage your teams, athletes, and roster
         </Text>
       </Box>
 
@@ -230,6 +233,7 @@ export function CoachAthletes() {
           <TabList>
             <Tab>Overview</Tab>
             <Tab>Manage Athletes</Tab>
+            <Tab>Manage Teams</Tab>
           </TabList>
           
           <TabPanels>
@@ -244,9 +248,9 @@ export function CoachAthletes() {
                     <Card bg={cardBg} borderColor={borderColor} borderWidth="1px" h="100%">
                       <CardHeader>
                         <VStack align="start" spacing={1}>
-                          <Heading size="md">Invite Athletes</Heading>
+                          <Heading size="md">Team & Athlete Management</Heading>
                           <Text fontSize="sm" color={textColor}>
-                            Add existing athletes or create new accounts to build your team
+                            Create teams, invite athletes, and build your coaching network
                           </Text>
                         </VStack>
                       </CardHeader>
@@ -279,16 +283,25 @@ export function CoachAthletes() {
                             </Text>
                           </HStack>
                           
-                          <Button
-                            leftIcon={<Icon as={FaUserPlus} />}
-                            colorScheme="blue"
-                            onClick={onAddAthleteOpen}
-                            size="lg"
-                            mt={4}
-                            alignSelf="start"
-                          >
-                            Invite Athletes
-                          </Button>
+                          <HStack spacing={4} mt={4} alignSelf="start">
+                            <Button
+                              leftIcon={<Icon as={FaUserPlus} />}
+                              colorScheme="blue"
+                              onClick={onAddAthleteOpen}
+                              size="lg"
+                            >
+                              Invite Athletes
+                            </Button>
+                            <Button
+                              leftIcon={<Icon as={FaUserFriends} />}
+                              colorScheme="green"
+                              onClick={onCreateTeamOpen}
+                              size="lg"
+                              variant="outline"
+                            >
+                              Add New Team
+                            </Button>
+                          </HStack>
                         </VStack>
                       </CardBody>
                     </Card>
@@ -675,6 +688,70 @@ export function CoachAthletes() {
                 </>
               )}
             </TabPanel>
+            
+            {/* Manage Teams Tab Panel */}
+            <TabPanel px={0}>
+              <VStack spacing={6} align="stretch">
+                
+                {/* Page Header */}
+                <Box>
+                  <Heading size="lg" mb={2}>Team Management</Heading>
+                  <Text color={textColor}>
+                    Manage your teams, view members, and track team statistics
+                  </Text>
+                </Box>
+
+                {/* Create New Team Card */}
+                <Card bg={cardBg} borderColor={borderColor} borderWidth="1px">
+                  <CardHeader>
+                    <VStack align="start" spacing={1}>
+                      <Heading size="md">Create New Team</Heading>
+                      <Text fontSize="sm" color={textColor}>
+                        Start a new team and invite athletes to join
+                      </Text>
+                    </VStack>
+                  </CardHeader>
+                  
+                  <CardBody pt={0}>
+                    <Divider mb={4} />
+                    <VStack align="start" spacing={3}>
+                      <HStack>
+                        <Icon as={FaUserFriends} color="green.500" />
+                        <Text fontSize="sm" color={textColor}>
+                          <strong>Team Creation:</strong> Create coach teams for specific groups of athletes
+                        </Text>
+                      </HStack>
+                      <HStack>
+                        <Icon as={FaUsers} color="blue.500" />
+                        <Text fontSize="sm" color={textColor}>
+                          <strong>Invite System:</strong> Each team gets a unique invite code for easy joining
+                        </Text>
+                      </HStack>
+                      <HStack>
+                        <Icon as={FaTrophy} color="purple.500" />
+                        <Text fontSize="sm" color={textColor}>
+                          <strong>Team Management:</strong> Manage members, assign workouts, and track progress
+                        </Text>
+                      </HStack>
+                      
+                      <Button
+                        leftIcon={<Icon as={FaUserFriends} />}
+                        colorScheme="green"
+                        onClick={onCreateTeamOpen}
+                        size="lg"
+                        mt={2}
+                      >
+                        Create New Team
+                      </Button>
+                    </VStack>
+                  </CardBody>
+                </Card>
+
+                {/* Teams Overview Card */}
+                <CoachTeamsCard />
+                
+              </VStack>
+            </TabPanel>
           </TabPanels>
         </Tabs>
       </Container>
@@ -783,7 +860,15 @@ export function CoachAthletes() {
       </Modal>
 
       {/* Add Athlete Modal */}
-      <AddAthleteModal isOpen={isAddAthleteOpen} onClose={onAddAthleteClose} />
+      {/* Invite Athletes Drawer */}
+      <InviteAthletesDrawer 
+        isOpen={isAddAthleteOpen} 
+        onClose={onAddAthleteClose}
+        onAthleteInvited={() => {
+          // Refresh data after athlete invitation
+          refetch()
+        }}
+      />
 
       {/* Athlete Team Management Drawer */}
       <AthleteTeamManagementDrawer
@@ -794,6 +879,16 @@ export function CoachAthletes() {
         }}
         athlete={selectedAthleteForTeamManagement}
         onTeamChange={handleTeamChange}
+      />
+
+      {/* Create Team Drawer */}
+      <CreateTeamDrawer
+        isOpen={isCreateTeamOpen}
+        onClose={onCreateTeamClose}
+        onTeamCreated={() => {
+          // Refresh data after team creation if needed
+          refetch()
+        }}
       />
     </Box>
   )

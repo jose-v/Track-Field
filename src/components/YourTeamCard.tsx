@@ -31,7 +31,7 @@ import {
 import { FaUserPlus, FaTrash, FaExclamationTriangle } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { useCoachAthletes } from '../hooks/useCoachAthletes';
-import AddAthleteModal from './AddAthleteModal';
+import { InviteAthletesDrawer } from './InviteAthletesDrawer';
 import { supabase } from '../lib/supabase';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -286,8 +286,15 @@ const YourTeamCard = () => {
         </CardBody>
       </Card>
 
-      {/* Add Athlete Modal */}
-      <AddAthleteModal isOpen={isOpen} onClose={onClose} />
+      {/* Invite Athletes Drawer */}
+      <InviteAthletesDrawer 
+        isOpen={isOpen} 
+        onClose={onClose}
+        onAthleteInvited={() => {
+          // Refresh data after athlete invitation
+          refetch();
+        }}
+      />
       
       {/* Delete Confirmation Dialog */}
       <AlertDialog

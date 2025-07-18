@@ -49,12 +49,13 @@ import {
   FaUserTie,
   FaBullseye,
   FaUserMinus,
-  FaEdit
+  FaEdit,
+  FaCopy
 } from 'react-icons/fa';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { CreateTeamModal } from './CreateTeamModal';
+import { CreateTeamDrawer } from './CreateTeamDrawer';
 import { SendTeamInviteModal } from './SendTeamInviteModal';
 import { EditTeamModal } from './EditTeamModal';
 import { ensureCoachHasTeam } from '../services/autoCreateCoachTeam';
@@ -582,7 +583,19 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
                           <HStack spacing={4} fontSize="sm" color={textColor}>
                             <Text>{team.athlete_count} athletes</Text>
                             <Text>{team.coach_count} coaches</Text>
-                            <Text>Code: {team.invite_code}</Text>
+                            <HStack 
+                              spacing={1} 
+                              cursor="pointer" 
+                              onClick={() => copyInviteCode(team.invite_code, team.name)}
+                              _hover={{ bg: hoverBg, color: 'blue.500' }}
+                              px={2}
+                              py={1}
+                              borderRadius="md"
+                              transition="all 0.2s"
+                            >
+                              <Text>Code: {team.invite_code}</Text>
+                              <Icon as={FaCopy} boxSize={3} />
+                            </HStack>
                           </HStack>
                         </VStack>
                       </HStack>
@@ -751,8 +764,8 @@ export const CoachTeamsCard: React.FC<CoachTeamsCardProps> = ({ maxTeamsToShow =
         </CardBody>
       </Card>
 
-      {/* Create Team Modal */}
-      <CreateTeamModal
+      {/* Create Team Drawer */}
+      <CreateTeamDrawer
         isOpen={isCreateOpen}
         onClose={onCreateClose}
         onTeamCreated={() => {
