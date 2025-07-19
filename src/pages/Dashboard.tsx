@@ -890,15 +890,7 @@ export function Dashboard() {
           </Flex>
         </Box>
 
-        {/* NEW Mobile Athlete Dashboard - Card-based Layout */}
-        {USE_NEW_MOBILE_LAYOUT && (
-          <Box display={{ base: "block", lg: "none" }} w="100%">
-            <MobileAthleteDashboard 
-              onStartWorkout={() => navigate('/athlete/workouts')}
-              onDataUpdate={handleDataUpdate}
-            />
-          </Box>
-        )}
+
 
         {/* OLD Mobile Today's Workouts Card - Hidden via feature flag */}
         {!USE_NEW_MOBILE_LAYOUT && (
@@ -1141,6 +1133,16 @@ export function Dashboard() {
         </AlertDialog>
 
       </Box>
+      
+      {/* NEW Mobile Athlete Dashboard - Card-based Layout (outside padded container) */}
+      {USE_NEW_MOBILE_LAYOUT && (
+        <Box display={{ base: "block", lg: "none" }} w="100%">
+          <MobileAthleteDashboard 
+            onStartWorkout={() => navigate('/athlete/workouts')}
+            onDataUpdate={handleDataUpdate}
+          />
+        </Box>
+      )}
     </Box>
   )
 } 

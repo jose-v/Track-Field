@@ -28,7 +28,9 @@ import { useState, useEffect } from 'react';
 import { useProfile } from '../../hooks/useProfile';
 import { useProfileDisplay } from '../../hooks/useProfileDisplay';
 import { useQueryClient } from '@tanstack/react-query';
-import { WeatherCard, TrackMeetsCard, AlertsNotificationsCard, TodaysFocusCard, MobileTopNavBar } from '../../components';
+import { WeatherCard, TrackMeetsCard, AlertsNotificationsCard, TodaysFocusCard } from '../../components';
+import PageHeader from '../../components/PageHeader';
+import { usePageHeader } from '../../hooks/usePageHeader';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import AthleteRosterCard from '../../components/coach/AthleteRosterCard';
@@ -374,6 +376,13 @@ export function CoachDashboard() {
       : `Welcome back, Coach ${welcomeName}!`;
   };
 
+  // Use page header hook
+  usePageHeader({
+    title: getWelcomeMessage(),
+    subtitle: 'Your coaching command center',
+    icon: FaChartLine
+  });
+
   // Check for email verification success toast
   useEffect(() => {
     const shouldShowToast = localStorage.getItem('show-email-verified-toast')
@@ -397,11 +406,8 @@ export function CoachDashboard() {
     <Box py={0}>
       {/* Mobile Layout */}
       <Box display={{ base: "block", md: "none" }} position="relative">
-        {/* Mobile Top Navigation Bar with welcome message and avatar */}
-        <MobileTopNavBar welcomeMessage={getWelcomeMessage()} />
-        
-        {/* Weather Card - Full width matching card below, reduced top spacing */}
-        <Box mb={4} pt={16} mt={-12}>
+        {/* Weather Card - Full width matching card below */}
+        <Box mb={4}>
           <WeatherCard 
             city={profile?.city || "Greensboro"}
             state={profile?.state || "NC"}
@@ -415,7 +421,7 @@ export function CoachDashboard() {
         </Box>
 
         {/* Quick Actions - 3 buttons in one line */}
-        <Box px="10px" mb={8}>
+        <Box mb={8}>
           <HStack spacing={3} justify="space-between">
             <Button 
               as={RouterLink} 
@@ -452,14 +458,16 @@ export function CoachDashboard() {
 
       {/* Desktop Layout */}
       <Box display={{ base: "none", md: "block" }}>
+        {/* Desktop Header */}
+        <PageHeader
+          title={getWelcomeMessage()}
+          subtitle="Your coaching command center"
+          icon={FaChartLine}
+        />
+        
         {/* Header Section */}
         <Flex justify="space-between" align="start" mb={8}>
           <Box flex={1}>
-            <Heading mb={2}>Coach Dashboard</Heading>
-            <Text color={subtitleColor} mb={4}>
-              {getWelcomeMessage()}
-            </Text>
-            
             {/* Quick Actions integrated into header */}
             <HStack spacing={3} flexWrap="wrap">
               <Button 

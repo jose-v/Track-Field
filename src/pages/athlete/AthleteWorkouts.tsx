@@ -340,8 +340,8 @@ export function AthleteWorkouts() {
             <VStack spacing={6} align="stretch">
               <Flex justify="space-between" align="center">
                 <Box>
-                  <Heading size="lg" mb={2}>Today's Workout</Heading>
-                  <Text color="gray.600">Your assigned workout for today</Text>
+                  <Heading size="lg" mb={2} display={{ base: "none", md: "block" }}>Today's Workout</Heading>
+                  <Text color="gray.600" display={{ base: "none", md: "block" }}>Your assigned workout for today</Text>
                 </Box>
                 {/* Refresh Button for Today's Workout */}
                 {isDesktop && (
@@ -385,7 +385,7 @@ export function AthleteWorkouts() {
           const filteredSingleAssignments = (assignments || []).filter(a => a.assignment_type === 'single');
           return (
             <VStack spacing={6} align="stretch" w="100%">
-              <Heading size="md">Single Workouts</Heading>
+              <Heading size="md" display={{ base: "none", md: "block" }}>Single Workouts</Heading>
               {filteredSingleAssignments.length > 0 ? (
                 <Box overflowX={{ base: "hidden", md: "auto" }} pb={4}>
                   <Stack direction={{ base: "column", md: "row" }} spacing={{ base: 4, md: 6 }} align="start" minW={{ base: "100%", md: "fit-content" }}>
@@ -422,13 +422,13 @@ export function AthleteWorkouts() {
             <VStack spacing={6} align="stretch">
               <Flex justify="flex-start" align="center">
                 <Box>
-                  <HStack spacing={3} align="center">
+                  <HStack spacing={3} align="center" display={{ base: "none", md: "flex" }}>
                     <Heading size="lg">{sectionTitle}</Heading>
                     <Badge colorScheme="blue" variant="subtle" borderRadius="full">
                       {filteredDefaultAssignments.length}
                     </Badge>
                   </HStack>
-                  <Text color="gray.600" mt={1}>
+                  <Text color="gray.600" mt={1} display={{ base: "none", md: "block" }}>
                     Your assignments and training plans
                   </Text>
                 </Box>
@@ -560,20 +560,11 @@ export function AthleteWorkouts() {
       <Box
         ml={{ 
           base: 0, 
-          lg: mainSidebarWidth === 70 
-            ? `${mainSidebarWidth + 280 - 50}px`
-            : `${mainSidebarWidth + 280 - 180}px`
+          lg: "280px"
         }}
-        mr={{ 
-          base: 0, 
-          lg: mainSidebarWidth === 70 ? "30px" : "20px"
-        }}
-        pt={isHeaderVisible ? "-2px" : "-82px"}
         pb={{ base: 24, lg: 8 }}
         transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
         minH="100vh"
-        px={{ base: "16px", md: 0 }}
-        py={8}
       >
         {/* Desktop Header - Only show on desktop */}
         {isDesktop && (
@@ -586,8 +577,7 @@ export function AthleteWorkouts() {
 
         {/* Mobile Navigation - Only show on mobile */}
         {isMobile && (
-          <VStack spacing={4} align="stretch" mb={6}>
-            <Heading size="lg">Workouts</Heading>
+          <VStack spacing={4} align="stretch" mb={2}>
             
             {/* Mobile Section Navigation */}
             <Box>

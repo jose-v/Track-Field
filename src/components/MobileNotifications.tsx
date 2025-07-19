@@ -747,7 +747,7 @@ const MobileNotifications: React.FC = () => {
       <Box>
         
         {/* Notification Tabs */}
-        <Box bg={bgColor} borderBottom="1px solid" borderColor={borderColor} position="sticky" top="0" zIndex={100}>
+        <Box borderBottom="1px solid" borderColor={borderColor} position="sticky" top="0" zIndex={100}>
           <Flex>
             {/* Unread Tab */}
             <Box
@@ -821,7 +821,7 @@ const MobileNotifications: React.FC = () => {
 
       
       {filteredNotifications.length === 0 ? (
-        <Box p={8} textAlign="center" bg={bgColor}>
+        <Box p={8} textAlign="center">
           <Text color={emptyTextColor}>
             {activeTab === 'unread' ? 'No unread notifications' : 
              activeTab === 'read' ? 'No read notifications' : 
@@ -916,7 +916,6 @@ const MobileNotifications: React.FC = () => {
                   }
                   swipeRefs.current[notification.id].element = el;
                 }}
-                bg={bgColor}
                 mt="2px"
                 mb="2px"
                 mx={2}
@@ -1008,7 +1007,7 @@ const MobileNotifications: React.FC = () => {
       
       {/* Tab-specific footer */}
       {filteredNotifications.length > 0 && (
-        <Box p={4} textAlign="center" bg={bgColor}>
+        <Box p={4} textAlign="center">
           <Text color={emptyTextColor} fontSize="sm">
             {filteredNotifications.length} {activeTab} notification{filteredNotifications.length !== 1 ? 's' : ''}
           </Text>

@@ -19,6 +19,7 @@ import {
 } from '@chakra-ui/react';
 import { FaBell, FaCheckCircle, FaExclamationTriangle, FaInfoCircle } from 'react-icons/fa';
 import NotificationsTable from '../components/NotificationsTable';
+import MobileNotifications from '../components/MobileNotifications';
 import CoachRequestStatusTable from '../components/CoachRequestStatusTable';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../hooks/useProfile';
@@ -30,6 +31,7 @@ const NotificationsPage: React.FC = () => {
   const { profile, isLoading } = useProfile();
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const pageBgColor = useColorModeValue('gray.50', 'gray.900');
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   // Mobile/Desktop detection
@@ -72,7 +74,7 @@ const NotificationsPage: React.FC = () => {
     <Box 
       pt={0} 
       pb={10} 
-      bg={isMobile ? bgColor : useColorModeValue('gray.50', 'gray.900')} 
+      bg={pageBgColor} 
       minH="100vh"
       w="100%"
       maxW="100%"
@@ -88,15 +90,15 @@ const NotificationsPage: React.FC = () => {
       )}
 
       {isMobile ? (
-        // Mobile: Full width, no container or card wrapper
-        <Box w="100%" bg={bgColor}>
-          <NotificationsTable />
+        // Mobile: Use dedicated mobile notifications component
+        <Box w="100%">
+          <MobileNotifications />
           {/* Display coach request status table for coaches */}
           {isCoach && <CoachRequestStatusTable />}
         </Box>
       ) : (
         // Desktop: Keep existing container layout
-        <Container maxW="container.md" px={{ base: 4, md: 6 }} mt={{ base: "20px", lg: 8 }}>
+        <Container maxW="container.md" mt={{ base: "20px", lg: 8 }}>
           <VStack spacing={4} align="stretch" mt={{ base: "20px", lg: 0 }}>
             <Box p={6} borderWidth="1px" borderRadius="lg" bg={bgColor} borderColor={borderColor}>
               <NotificationsTable />

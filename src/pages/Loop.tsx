@@ -579,7 +579,7 @@ const Loop: React.FC = () => {
   };
   
   return (
-    <Box mx="10px">
+    <Box mx="0px">
       {/* Desktop Header */}
       <PageHeader
         title="Loop"

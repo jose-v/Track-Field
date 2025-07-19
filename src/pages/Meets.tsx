@@ -3673,7 +3673,7 @@ export const Meets: React.FC = () => {
       <Flex 
         direction="column" 
         align="center" 
-        p={6}
+        p={0}
         color="gray.100"
       >
         {/* Meets Tabs */}
@@ -3898,7 +3898,9 @@ export const Meets: React.FC = () => {
               >
                 <HStack spacing={2}>
                   <Tooltip label="Set your location for travel times" placement="top">
-                    <Icon as={FaMapMarkerAlt} color="green.400" size="sm" />
+                    <Box>
+                      <Icon as={FaMapMarkerAlt} color="green.400" size="sm" />
+                    </Box>
                   </Tooltip>
                   <CurrentLocationDisplay />
                 </HStack>

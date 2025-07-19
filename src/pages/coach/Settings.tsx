@@ -39,7 +39,8 @@ import {
   FaDumbbell,
   FaChartBar
 } from 'react-icons/fa';
-import { MobileHeader } from '../../components';
+import PageHeader from '../../components/PageHeader';
+import { usePageHeader } from '../../hooks/usePageHeader';
 import { useSettings } from '../../hooks/useSettings';
 import { useScrollDirection } from '../../hooks/useScrollDirection';
 import { SettingCard, SettingToggle, SettingSelect, SettingsSidebar } from '../../components/settings';
@@ -51,6 +52,13 @@ import {
 } from '../../types/settings';
 
 const CoachSettings = () => {
+  // Use page header hook
+  usePageHeader({
+    title: 'Settings',
+    subtitle: 'Manage your coaching preferences and privacy',
+    icon: FaCog
+  });
+
   const {
     settings,
     isLoading,

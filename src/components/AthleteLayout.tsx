@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { Box, Flex, useColorModeValue } from '@chakra-ui/react';
+import { useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { useAthleteNavigation } from './layout/AthleteNavigation';
 import SimplifiedNav from './SimplifiedNav';
@@ -14,6 +15,7 @@ interface AthleteLayoutProps {
 export function AthleteLayout({ children, yearNavBar }: AthleteLayoutProps) {
   // Get athlete navigation configuration
   const athleteNav = useAthleteNavigation();
+  const location = useLocation();
   const bgColor = useColorModeValue('gray.50', 'gray.900');
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     // Check localStorage for the saved sidebar state
@@ -42,6 +44,10 @@ export function AthleteLayout({ children, yearNavBar }: AthleteLayoutProps) {
 
   const navSentinelRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
+  
+  // Conditional top padding - reduced for mobile dashboard
+  const isDashboardRoute = location.pathname === '/athlete/dashboard';
+  const topPadding = yearNavBar ? "104px" : isDashboardRoute ? { base: "36px", md: "86px" } : "86px";
   
   return (
     <NavbarVisibilityProvider>
@@ -76,14 +82,15 @@ export function AthleteLayout({ children, yearNavBar }: AthleteLayoutProps) {
             onOpen={handleHamburgerClick}
             scrollContainerRef={mainContentRef}
           />
-          {/* Year nav bar (sticky, just below nav) */}
+          {/* Year nav bar (sticky, just below nav) - full width outside main content */}
           {yearNavBar}
           <NavSentinelProvider value={navSentinelRef}>
-            {/* Main content with padding to account for the top navigation and year nav bar */}
+            {/* Main content with consistent margins for all content - left, right, top, bottom */}
             <Box 
               as="main" 
-              pt={yearNavBar ? "104px" : "56px"}
-              px={{ base: 0, md: 6 }}
+              pt={topPadding}
+              pl={{ base: 4, md: 6 }}
+              pr={{ base: 4, md: 6 }}
               pb="8"
               w="100%"
               maxW="100%"

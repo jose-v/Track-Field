@@ -105,6 +105,9 @@ const AthleteSettings = () => {
   const pageBackgroundColor = useColorModeValue('gray.50', 'gray.900');
   const headerTextColor = useColorModeValue('gray.800', 'white');
   const headerSubtextColor = useColorModeValue('gray.600', 'gray.300');
+  const iconColor = useColorModeValue('blue.500', 'blue.300');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const mobileTabTextColor = useColorModeValue('gray.700', 'gray.200');
 
   // Settings sidebar configuration
   const settingsSections: SettingsSection[] = [
@@ -494,13 +497,13 @@ const AthleteSettings = () => {
 
     return (
       <VStack spacing={6} align="stretch" w="100%">
-        {/* Section Header */}
-        <VStack spacing={2} align="start" w="100%">
+        {/* Section Header - Hidden on mobile */}
+        <VStack spacing={2} align="start" w="100%" display={{ base: "none", lg: "block" }}>
           <HStack spacing={3} align="center">
             <Icon
               as={sectionInfo.icon}
               boxSize={6}
-              color={useColorModeValue('blue.500', 'blue.300')}
+              color={iconColor}
             />
             <Heading size="lg" color={headerTextColor}>
               {sectionInfo.title}
@@ -540,7 +543,7 @@ const AthleteSettings = () => {
     <Box minH="100vh" bg={pageBackgroundColor}>
       {/* Mobile Tab Bar */}
       {isMobile && (
-        <Box borderBottom="1px solid" borderColor={useColorModeValue('gray.200', 'gray.700')} w="100vw" position="relative" left="50%" right="50%" style={{ transform: 'translateX(-50%)' }}>
+        <Box borderBottom="1px solid" borderColor={borderColor} w="100vw" position="relative" left="50%" right="50%" style={{ transform: 'translateX(-50%)' }}>
           <HStack spacing={0}>
             {(
               settingsSections.flatMap(section => section.items).map((item) => {
@@ -560,7 +563,7 @@ const AthleteSettings = () => {
                   >
                     <Text
                       fontWeight={activeItem === item.id ? 'bold' : 'normal'}
-                      color={activeItem === item.id ? 'blue.500' : useColorModeValue('gray.700', 'gray.200')}
+                      color={activeItem === item.id ? 'blue.500' : mobileTabTextColor}
                       fontSize="sm"
                     >
                       {label}
@@ -584,21 +587,11 @@ const AthleteSettings = () => {
       <Box
         ml={{ 
           base: 0, 
-          md: `${mainSidebarWidth - 50}px`, 
-          lg: mainSidebarWidth === 70 
-            ? `${mainSidebarWidth + 280 - 50}px`  // When collapsed: less margin adjustment
-            : `${mainSidebarWidth + 280 - 180}px`  // When expanded: more margin adjustment
+          lg: "280px"
         }}
-        mr={{ 
-          base: 0, 
-          lg: mainSidebarWidth === 70 ? "30px" : "20px"  // Less right margin when sidebar is collapsed
-        }}
-        pt={isHeaderVisible ? "-2px" : "-82px"}
+        mt={{ base: "20px", lg: 0 }}
         transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
         minH="100vh"
-        px={0} // Remove padding since AthleteLayout already adds it
-        py={8}
-        mx={{ base: '15px', md: 0 }}
       >
         {renderContent()}
       </Box>

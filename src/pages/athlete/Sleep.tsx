@@ -232,7 +232,7 @@ export function Sleep() {
   };
 
   return (
-    <Box minH="100vh" bg={bgColor}>
+    <Box>
       {/* Desktop Header */}
       <PageHeader
         title="Sleep"
@@ -240,8 +240,7 @@ export function Sleep() {
         icon={FaBed}
       />
       
-      <Container maxW="6xl" py={8}>
-        <VStack spacing={8} align="stretch" mt={{ base: "20px", lg: 0 }}>
+      <VStack spacing={8} align="stretch">
 
           {/* Add Record Form */}
           <Box
@@ -386,7 +385,6 @@ export function Sleep() {
             </Table>
           </Box>
         </VStack>
-      </Container>
     </Box>
   );
 } 

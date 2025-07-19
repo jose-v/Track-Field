@@ -221,7 +221,7 @@ export default function JoinTeam() {
 
       if (isLoading) {
     return (
-      <Container maxW="4xl" py={8}>
+      <Container maxW="4xl" px={0}>
         <VStack spacing={6}>
           <Text>Loading...</Text>
         </VStack>
@@ -239,7 +239,7 @@ export default function JoinTeam() {
           icon={HiUserGroup}
         />
         
-        <Container maxW="4xl" px={{ base: 4, md: 6 }} mt={{ base: "20px", lg: 8 }}>
+        <Container maxW="4xl" px={0}>
           <VStack spacing={8} align="stretch">
 
             {/* Role-specific information */}

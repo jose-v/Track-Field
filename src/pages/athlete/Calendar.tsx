@@ -21,7 +21,6 @@ export function Calendar() {
   usePageHeader({
     title: 'Calendar',
     subtitle: 'View your training schedule and upcoming events',
-    icon: FaCalendarAlt
   });
   
   return (
@@ -34,7 +33,7 @@ export function Calendar() {
       <CalendarYearNavBar
         currentYear={currentYear}
         setCurrentYear={setCurrentYear}
-        topOffset={navbarVisible ? 0 : -56}
+        topOffset={navbarVisible ? 0 : -66}
       />
       <TrainingCalendar 
         isCoach={false} 

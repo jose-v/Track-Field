@@ -35,6 +35,7 @@ import { WorkoutsSidebar } from '../../components';
 import type { WorkoutsSection, WorkoutsItem } from '../../components';
 import { useScrollDirection } from '../../hooks/useScrollDirection';
 import { getWorkoutExerciseCount } from '../../utils/workoutUtils';
+import { usePageHeader } from '../../hooks/usePageHeader';
 
 // Type for monthly plan with assignment stats
 interface MonthlyPlanWithStats extends TrainingPlan {
@@ -147,6 +148,12 @@ const ViewToggle = ({ viewMode, setViewMode, toggleBorderColor }: {
 );
 
 export function CoachTrainingPlans() {
+  // Use page header hook for mobile nav (no icon)
+  usePageHeader({
+    title: 'Training Plans',
+    subtitle: 'Your workout library and training programs'
+  });
+
   const { user } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
@@ -2274,8 +2281,8 @@ export function CoachTrainingPlans() {
 
     return (
       <VStack spacing={6} align="stretch" w="100%">
-        {/* Section Header */}
-        <VStack spacing={2} align="start" w="100%">
+        {/* Section Header - Hidden on mobile */}
+        <VStack spacing={2} align="start" w="100%" display={{ base: "none", lg: "flex" }}>
           <HStack spacing={3} align="center" justify="space-between" w="100%">
             <HStack spacing={3} align="center">
               <Icon

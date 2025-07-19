@@ -164,7 +164,7 @@ const AthleteProfile = () => {
         icon={FaUserAlt}
       />
 
-      <Box maxW="lg" mx="auto" px={{ base: 4, md: 6 }} mt={{ base: "20px", lg: 8 }}>
+      <Box maxW="lg" mx="auto" mt={{ base: "20px", lg: 8 }}>
         {!editMode ? (
                   <ProfileCard
           avatarUrl={avatarUrl || undefined}

@@ -3,6 +3,7 @@ import { Box, Flex, useColorModeValue } from '@chakra-ui/react';
 import Sidebar from './Sidebar';
 import { useCoachNavigation } from './layout/CoachNavigation';
 import SimplifiedNav from './SimplifiedNav';
+import { NavSentinelProvider } from '../contexts/NavSentinelContext';
 import { NavbarVisibilityProvider } from './SimplifiedNav';
 
 export function CoachLayout({ children }: { children: React.ReactNode }) {
@@ -34,6 +35,7 @@ export function CoachLayout({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  const navSentinelRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
   
   return (
@@ -54,8 +56,10 @@ export function CoachLayout({ children }: { children: React.ReactNode }) {
           w="100%"
           maxW="100%"
           overflowX="hidden"
+          display="flex"
+          flexDirection="column"
         >
-          {/* Simplified top navigation */}
+          {/* Simplified top navigation (fixed) */}
           <SimplifiedNav 
             roleTitle={coachNav.roleTitle}
             roleBadge={coachNav.roleBadge}
@@ -67,21 +71,26 @@ export function CoachLayout({ children }: { children: React.ReactNode }) {
             onOpen={handleHamburgerClick}
             scrollContainerRef={mainContentRef}
           />
-          {/* Main content with padding to account for the top navigation */}
-          <Box 
-            as="main" 
-            pt="80px" 
-            px={{ base: 0, md: 6 }}
-            pb="8"
-            height="100%"
-            overflowY="auto"
-            w="100%"
-            maxW="100%"
-            overflowX="hidden"
-            ref={mainContentRef}
-          >
-            {children}
-          </Box>
+          <NavSentinelProvider value={navSentinelRef}>
+            {/* Main content with consistent margins for all content - left, right, top, bottom */}
+            <Box 
+              as="main" 
+              pt="86px"
+              pl={{ base: 4, md: 6 }}
+              pr={{ base: 4, md: 6 }}
+              pb="8"
+              w="100%"
+              maxW="100%"
+              overflowX="hidden"
+              overflowY="auto"
+              flex="1"
+              ref={mainContentRef}
+            >
+              {/* Sentinel for nav bar visibility - now inside scrollable content */}
+              <div ref={navSentinelRef} style={{ height: 1, width: '100%' }} />
+              {children}
+            </Box>
+          </NavSentinelProvider>
         </Box>
       </Flex>
     </NavbarVisibilityProvider>
