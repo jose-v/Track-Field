@@ -66,6 +66,7 @@ import AthleteTeamManagementDrawer from '../../components/AthleteTeamManagementD
 import { CreateTeamDrawer } from '../../components/CreateTeamDrawer'
 import { InviteAthletesDrawer } from '../../components/InviteAthletesDrawer'
 import { CoachTeamsCard } from '../../components/CoachTeamsCard'
+import { MobileCoachTeamCard } from '../../components/MobileCoachTeamCard'
 import PageHeader from '../../components/PageHeader'
 import { usePageHeader } from '../../hooks/usePageHeader'
 import { supabase } from '../../lib/supabase'
@@ -744,7 +745,14 @@ export function CoachAthletes() {
                 </Card>
 
                 {/* Teams Overview Card */}
-                <CoachTeamsCard />
+                {/* Mobile Teams Card */}
+                <Box display={{ base: "block", md: "none" }}>
+                  <MobileCoachTeamCard />
+                </Box>
+                {/* Desktop Teams Card */}
+                <Box display={{ base: "none", md: "block" }}>
+                  <CoachTeamsCard />
+                </Box>
                 
               </VStack>
             </TabPanel>

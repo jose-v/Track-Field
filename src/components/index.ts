@@ -41,6 +41,7 @@ export { MobileEventCard } from './MobileEventCard';
 export { MobileTodayCard } from './MobileTodayCard';
 export { default as MyTeamsCard } from './MyTeamsCard';
 export { CoachTeamsCard } from './CoachTeamsCard';
+export { MobileCoachTeamCard } from './MobileCoachTeamCard';
 export { JoinTeamModal } from './JoinTeamModal';
 export { CreateTeamModal } from './CreateTeamModal';
 export { PWARefreshButton } from './PWARefreshButton';

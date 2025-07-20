@@ -37,6 +37,7 @@ import AthleteRosterCard from '../../components/coach/AthleteRosterCard';
 import { MeetFormDrawer, type TrackMeetFormData, type TrackMeetData } from '../../components/meets/MeetFormDrawer';
 import { useWorkouts } from '../../hooks/useWorkouts';
 import { CoachTeamsCard } from '../../components/CoachTeamsCard';
+import { MobileCoachTeamCard } from '../../components/MobileCoachTeamCard';
 import { UpcomingEventsCard } from '../../components/UpcomingEventsCard';
 
   
@@ -576,7 +577,14 @@ export function CoachDashboard() {
       
       {/* Coach Teams Section - Now includes all athletes and teams */}
       <Box mb={8}>
-        <CoachTeamsCard />
+        {/* Mobile Teams Card */}
+        <Box display={{ base: "block", md: "none" }}>
+          <MobileCoachTeamCard />
+        </Box>
+        {/* Desktop Teams Card */}
+        <Box display={{ base: "none", md: "block" }}>
+          <CoachTeamsCard />
+        </Box>
       </Box>
       
       {/* Track Meets Calendar View */}
