@@ -8,6 +8,10 @@ import {
   ButtonGroup,
   Badge,
   IconButton,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
   Portal,
   useColorModeValue,
   Circle,
@@ -25,6 +29,10 @@ import {
 } from '@chakra-ui/react';
 import { 
   MoreVertical, 
+  Play, 
+  Edit, 
+  Trash2, 
+  UserPlus, 
   Calendar,
   Clock,
   Target,
@@ -661,14 +669,54 @@ export function UnifiedAssignmentCard({
               {assignment.assignment_type.toUpperCase()}
             </Button>
           </ButtonGroup>
-                      <IconButton
-                icon={<MoreVertical />}
-                variant="ghost"
-                aria-label="View Details"
-                size="sm"
-                color={useColorModeValue("gray.500", "gray.300")}
-                onClick={handleViewDetails}
-              />
+                      {isCoach ? (
+                <Menu>
+                  <MenuButton
+                    as={IconButton}
+                    icon={<MoreVertical />}
+                    variant="ghost"
+                    aria-label="Options"
+                    size="sm"
+                    color={useColorModeValue("gray.500", "gray.300")}
+                  />
+                  <Portal>
+                    <MenuList>
+                      <MenuItem 
+                        icon={<Play />} 
+                        onClick={handleViewDetails}
+                      >
+                        View Details
+                      </MenuItem>
+                      {onAssign && (
+                        <MenuItem 
+                          icon={<UserPlus />} 
+                          onClick={onAssign}
+                        >
+                          Assign Athletes
+                        </MenuItem>
+                      )}
+                      {onDelete && (
+                        <MenuItem 
+                          icon={<Trash2 />} 
+                          onClick={onDelete}
+                          color="red.500"
+                        >
+                          Delete Workout
+                        </MenuItem>
+                      )}
+                    </MenuList>
+                  </Portal>
+                </Menu>
+              ) : (
+                <IconButton
+                  icon={<MoreVertical />}
+                  variant="ghost"
+                  aria-label="View Details"
+                  size="sm"
+                  color={useColorModeValue("gray.500", "gray.300")}
+                  onClick={handleViewDetails}
+                />
+              )}
         </HStack>
 
         {/* Workout ID, Status and Date Information - Two Columns */}
@@ -942,13 +990,60 @@ export function CoachWorkoutCard({
           </ButtonGroup>
 
           {showActions && (
-            <IconButton
-              icon={<MoreVertical />}
-              variant="ghost"
-              size="sm"
-              aria-label="View Details"
-              onClick={handleViewDetails}
-            />
+            isCoach ? (
+              <Menu placement="bottom-end">
+                <MenuButton
+                  as={IconButton}
+                  icon={<MoreVertical />}
+                  variant="ghost"
+                  size="sm"
+                  aria-label="Workout actions"
+                />
+                <Portal>
+                  <MenuList zIndex={1000}>
+                    <MenuItem 
+                      icon={<Play />} 
+                      onClick={handleViewDetails}
+                    >
+                      View Details
+                    </MenuItem>
+                    {onAssign && (
+                      <MenuItem 
+                        icon={<UserPlus />} 
+                        onClick={onAssign}
+                      >
+                        Assign Athletes
+                      </MenuItem>
+                    )}
+                    {onEdit && (
+                      <MenuItem 
+                        icon={<Edit />} 
+                        onClick={onEdit}
+                      >
+                        Edit Workout
+                      </MenuItem>
+                    )}
+                    {onDelete && canDelete && (
+                      <MenuItem 
+                        icon={<Trash2 />} 
+                        onClick={onDelete}
+                        color="red.500"
+                      >
+                        Delete
+                      </MenuItem>
+                    )}
+                  </MenuList>
+                </Portal>
+              </Menu>
+            ) : (
+              <IconButton
+                icon={<MoreVertical />}
+                variant="ghost"
+                size="sm"
+                aria-label="View Details"
+                onClick={handleViewDetails}
+              />
+            )
           )}
         </HStack>
 
@@ -1150,18 +1245,83 @@ export function CoachWorkoutListItem({
           </HStack>
           
           {showActions && (
-            <IconButton
-              icon={<MoreVertical />}
-              variant="ghost"
-              size="sm"
-              aria-label="View Details"
-              onClick={(e) => { 
-                e.preventDefault(); 
-                e.stopPropagation(); 
-                handleViewDetails(); 
-              }}
-              flexShrink={0}
-            />
+            isCoach ? (
+              <Menu placement="bottom-end">
+                <MenuButton
+                  as={IconButton}
+                  icon={<MoreVertical />}
+                  variant="ghost"
+                  size="sm"
+                  aria-label="Workout actions"
+                  onClick={(e) => e.stopPropagation()}
+                  flexShrink={0}
+                />
+                <Portal>
+                  <MenuList zIndex={1000}>
+                    <MenuItem 
+                      icon={<Play />} 
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        e.stopPropagation(); 
+                        handleViewDetails(); 
+                      }}
+                    >
+                      View Details
+                    </MenuItem>
+                    {onAssign && (
+                      <MenuItem 
+                        icon={<UserPlus />} 
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          e.stopPropagation(); 
+                          onAssign(); 
+                        }}
+                      >
+                        Assign Athletes
+                      </MenuItem>
+                    )}
+                    {onEdit && (
+                      <MenuItem 
+                        icon={<Edit />} 
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          e.stopPropagation(); 
+                          onEdit(); 
+                        }}
+                      >
+                        Edit Workout
+                      </MenuItem>
+                    )}
+                    {onDelete && canDelete && (
+                      <MenuItem 
+                        icon={<Trash2 />} 
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          e.stopPropagation(); 
+                          onDelete(); 
+                        }}
+                        color="red.500"
+                      >
+                        Delete
+                      </MenuItem>
+                    )}
+                  </MenuList>
+                </Portal>
+              </Menu>
+            ) : (
+              <IconButton
+                icon={<MoreVertical />}
+                variant="ghost"
+                size="sm"
+                aria-label="View Details"
+                onClick={(e) => { 
+                  e.preventDefault(); 
+                  e.stopPropagation(); 
+                  handleViewDetails(); 
+                }}
+                flexShrink={0}
+              />
+            )
           )}
         </HStack>
 
