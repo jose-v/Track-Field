@@ -46,7 +46,18 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
   const cardShadow = useColorModeValue('none', 'lg');
   
   return (
-    <Card boxShadow={cardShadow} borderRadius="2xl" overflow="visible" p={0} position="relative" mb={12} minH="520px" bg={cardBg}>
+    <Card 
+      boxShadow={cardShadow} 
+      borderRadius="2xl" 
+      overflow="visible" 
+      p={0} 
+      position="relative" 
+      mb={12} 
+      minH="520px" 
+      bg={cardBg}
+      maxW={{ base: "100%", md: "800px" }}
+      mx="auto"
+    >
       {/* Banner */}
       <Box w="100%" h="120px" bg={bannerGradient} borderTopLeftRadius="2xl" borderTopRightRadius="2xl" position="relative">
         {/* Overlapping Avatar with camera icon */}

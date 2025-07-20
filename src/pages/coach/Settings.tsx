@@ -26,7 +26,8 @@ import {
   CheckboxGroup,
   Stack,
   useToast,
-  Icon
+  Icon,
+  useBreakpointValue
 } from '@chakra-ui/react';
 import {
   FaCog,
@@ -42,7 +43,6 @@ import {
 import PageHeader from '../../components/PageHeader';
 import { usePageHeader } from '../../hooks/usePageHeader';
 import { useSettings } from '../../hooks/useSettings';
-import { useScrollDirection } from '../../hooks/useScrollDirection';
 import { SettingCard, SettingToggle, SettingSelect, SettingsSidebar } from '../../components/settings';
 import type { SettingsSection } from '../../components/settings';
 import {
@@ -69,7 +69,7 @@ const CoachSettings = () => {
   } = useSettings();
   
   // Active section state
-  const [activeItem, setActiveItem] = useState('general');
+  const [activeItem, setActiveItem] = useState('account');
   
   // Form states
   const [generalForm, setGeneralForm] = useState<SettingsFormData>({
@@ -134,72 +134,59 @@ const CoachSettings = () => {
   const pageBackgroundColor = useColorModeValue('gray.50', 'gray.900');
   const headerTextColor = useColorModeValue('gray.800', 'white');
   const headerSubtextColor = useColorModeValue('gray.600', 'gray.300');
+  const iconColor = useColorModeValue('blue.500', 'blue.300');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const mobileTabTextColor = useColorModeValue('gray.700', 'gray.200');
 
-  // Settings sidebar configuration
+  const isMobile = useBreakpointValue({ base: true, lg: false });
+
+  // Settings sidebar configuration - New merged structure for mobile-friendly tabs
   const settingsSections: SettingsSection[] = [
     {
-      id: 'preferences',
-      title: 'Preferences',
+      id: 'account',
+      title: 'Account Settings',
       items: [
         {
-          id: 'general',
-          label: 'General',
+          id: 'account',
+          label: 'Account',
           icon: FaCog,
-          description: 'Theme, language, and basic settings'
-        },
-        {
-          id: 'notifications',
-          label: 'Notifications',
-          icon: FaBell,
-          description: 'Manage your notification preferences'
-        },
-        {
-          id: 'privacy',
-          label: 'Privacy',
-          icon: FaShieldAlt,
-          description: 'Control your data and visibility'
+          description: 'General, Privacy, Notifications'
         }
       ]
     },
     {
-      id: 'coaching',
-      title: 'Coaching',
+      id: 'team',
+      title: 'Team Management',
       items: [
         {
-          id: 'team-management',
-          label: 'Team Management',
+          id: 'team',
+          label: 'Team',
           icon: FaUsers,
-          description: 'Athlete and team settings'
-        },
-        {
-          id: 'workout-defaults',
-          label: 'Workout Defaults',
-          icon: FaDumbbell,
-          description: 'Default workout creation settings'
-        },
-        {
-          id: 'professional',
-          label: 'Professional',
-          icon: FaChartBar,
-          description: 'Professional profile and certifications'
+          description: 'Team settings'
         }
       ]
     },
     {
-      id: 'safety',
-      title: 'Safety & Support',
+      id: 'training',
+      title: 'Training & Workouts',
       items: [
         {
-          id: 'emergency',
-          label: 'Emergency Contacts',
-          icon: FaPhone,
-          description: 'Emergency contact information'
-        },
+          id: 'training',
+          label: 'Training',
+          icon: FaDumbbell,
+          description: 'Workout-related settings'
+        }
+      ]
+    },
+    {
+      id: 'profile',
+      title: 'Profile & Safety',
+      items: [
         {
-          id: 'medical',
-          label: 'Medical Information',
-          icon: FaUserMd,
-          description: 'Medical info and certifications'
+          id: 'profile',
+          label: 'Profile',
+          icon: FaChartBar,
+          description: 'Professional info, Medical, Emergency'
         }
       ]
     }
@@ -350,53 +337,29 @@ const CoachSettings = () => {
   const renderContent = () => {
     const getSectionInfo = () => {
       switch (activeItem) {
-        case 'general':
+        case 'account':
           return {
-            title: "Appearance & Language",
-            description: "Customize how the app looks and feels",
+            title: "Account Settings",
+            description: "General, Privacy, and Notifications",
             icon: FaCog
           };
-        case 'notifications':
+        case 'team':
           return {
-            title: "Notification Preferences", 
-            description: "Control when and how you receive notifications",
-            icon: FaBell
-          };
-        case 'privacy':
-          return {
-            title: "Privacy & Data Sharing",
-            description: "Control who can see your information and data", 
-            icon: FaShieldAlt
-          };
-        case 'team-management':
-          return {
-            title: "Team Management Settings",
-            description: "Configure how you manage your athletes and teams",
+            title: "Team Management",
+            description: "Team settings and athlete management",
             icon: FaUsers
           };
-        case 'workout-defaults':
+        case 'training':
           return {
-            title: "Workout Creation Defaults",
-            description: "Set default values for creating new workouts",
+            title: "Training & Workouts",
+            description: "Workout-related settings and defaults",
             icon: FaDumbbell
           };
-        case 'professional':
+        case 'profile':
           return {
-            title: "Professional Profile Settings", 
-            description: "Manage your professional coaching profile",
+            title: "Profile & Safety",
+            description: "Professional info, Medical, and Emergency contacts",
             icon: FaChartBar
-          };
-        case 'emergency':
-          return {
-            title: "Emergency Contacts",
-            description: "Manage your emergency contact information",
-            icon: FaPhone
-          };
-        case 'medical':
-          return {
-            title: "Medical Information",
-            description: "Manage your medical information for safety",
-            icon: FaUserMd
           };
         default:
           return null;
@@ -408,200 +371,202 @@ const CoachSettings = () => {
 
     const renderCardContent = () => {
       switch (activeItem) {
-        case 'general':
+        case 'account':
           return (
-            <SettingCard isLoading={isSaving}>
-              <VStack spacing={4} align="stretch">
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+            <VStack spacing={6} align="stretch">
+              {/* General Settings Section */}
+              <SettingCard isLoading={isSaving}>
+                <VStack spacing={4} align="stretch">
+                  <Heading size="md" color={headerTextColor}>General Settings</Heading>
+                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                    <SettingSelect
+                      label="Theme"
+                      description="Choose your preferred color scheme"
+                      value={generalForm.theme}
+                      onChange={(value) => setGeneralForm(prev => ({ ...prev, theme: value as any }))}
+                      options={themeOptions}
+                    />
+                    
+                    <SettingSelect
+                      label="Language"
+                      description="Select your preferred language"
+                      value={generalForm.language}
+                      onChange={(value) => setGeneralForm(prev => ({ ...prev, language: value }))}
+                      options={languageOptions}
+                    />
+                  </SimpleGrid>
+                  
+                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                    <SettingSelect
+                      label="Timezone"
+                      description="Your local timezone for scheduling"
+                      value={generalForm.timezone}
+                      onChange={(value) => setGeneralForm(prev => ({ ...prev, timezone: value }))}
+                      options={timezoneOptions}
+                    />
+                    
+                    <SettingSelect
+                      label="Units"
+                      description="Measurement units for distances and weights"
+                      value={generalForm.units}
+                      onChange={(value) => setGeneralForm(prev => ({ ...prev, units: value as any }))}
+                      options={unitsOptions}
+                    />
+                  </SimpleGrid>
+                  
+                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                    <SettingSelect
+                      label="Time Format"
+                      description="Choose your preferred time format"
+                      value={generalForm.timeFormat}
+                      onChange={(value) => setGeneralForm(prev => ({ ...prev, timeFormat: value as '12' | '24' }))}
+                      options={timeFormatOptions}
+                    />
+                  </SimpleGrid>
+                  
+                  <HStack justify="flex-end" pt={4}>
+                    <Button
+                      colorScheme="blue"
+                      onClick={handleGeneralSubmit}
+                      isLoading={isSaving}
+                      leftIcon={<FaSave />}
+                    >
+                      Save General
+                    </Button>
+                  </HStack>
+                </VStack>
+              </SettingCard>
+
+              {/* Privacy Settings Section */}
+              <SettingCard isLoading={isSaving}>
+                <VStack spacing={4} align="stretch">
+                  <Heading size="md" color={headerTextColor}>Privacy Settings</Heading>
                   <SettingSelect
-                    label="Theme"
-                    description="Choose your preferred color scheme"
-                    value={generalForm.theme}
-                    onChange={(value) => setGeneralForm(prev => ({ ...prev, theme: value as any }))}
-                    options={themeOptions}
+                    label="Profile Visibility"
+                    description="Who can view your coaching profile"
+                    value={privacyForm.profile_visibility}
+                    onChange={(value) => setPrivacyForm(prev => ({ ...prev, profile_visibility: value as any }))}
+                    options={visibilityOptions}
                   />
                   
                   <SettingSelect
-                    label="Language"
-                    description="Select your preferred language"
-                    value={generalForm.language}
-                    onChange={(value) => setGeneralForm(prev => ({ ...prev, language: value }))}
-                    options={languageOptions}
-                  />
-                </SimpleGrid>
-                
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                  <SettingSelect
-                    label="Timezone"
-                    description="Your local timezone for scheduling"
-                    value={generalForm.timezone}
-                    onChange={(value) => setGeneralForm(prev => ({ ...prev, timezone: value }))}
-                    options={timezoneOptions}
+                    label="Athlete Data Visibility"
+                    description="Who can view your athletes' performance data"
+                    value={privacyForm.performance_data_visibility}
+                    onChange={(value) => setPrivacyForm(prev => ({ ...prev, performance_data_visibility: value as any }))}
+                    options={performanceVisibilityOptions}
                   />
                   
-                  <SettingSelect
-                    label="Units"
-                    description="Measurement units for distances and weights"
-                    value={generalForm.units}
-                    onChange={(value) => setGeneralForm(prev => ({ ...prev, units: value as any }))}
-                    options={unitsOptions}
+                  <SettingToggle
+                    label="Allow Coach Contact"
+                    description="Allow other coaches to contact you"
+                    isChecked={privacyForm.allow_coach_contact}
+                    onChange={(checked) => setPrivacyForm(prev => ({ ...prev, allow_coach_contact: checked }))}
                   />
-                </SimpleGrid>
-                
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                  <SettingSelect
-                    label="Time Format"
-                    description="Choose your preferred time format"
-                    value={generalForm.timeFormat}
-                    onChange={(value) => setGeneralForm(prev => ({ ...prev, timeFormat: value as '12' | '24' }))}
-                    options={timeFormatOptions}
+                  
+                  <SettingToggle
+                    label="Allow Team Invites"
+                    description="Allow team managers to invite you to join teams"
+                    isChecked={privacyForm.allow_team_invites}
+                    onChange={(checked) => setPrivacyForm(prev => ({ ...prev, allow_team_invites: checked }))}
                   />
-                </SimpleGrid>
-                
-                <HStack justify="flex-end" pt={4}>
-                  <Button
-                    colorScheme="blue"
-                    onClick={handleGeneralSubmit}
-                    isLoading={isSaving}
-                    leftIcon={<FaSave />}
-                  >
-                    Save Changes
-                  </Button>
-                </HStack>
-              </VStack>
-            </SettingCard>
+                  
+                  <SettingToggle
+                    label="Share Workout Data"
+                    description="Allow sharing of workout templates with other coaches"
+                    isChecked={privacyForm.share_workout_data}
+                    onChange={(checked) => setPrivacyForm(prev => ({ ...prev, share_workout_data: checked }))}
+                  />
+                  
+                  <SettingToggle
+                    label="Share Performance Data"
+                    description="Allow sharing of athlete performance data for research"
+                    isChecked={privacyForm.share_performance_data}
+                    onChange={(checked) => setPrivacyForm(prev => ({ ...prev, share_performance_data: checked }))}
+                  />
+                  
+                  <HStack justify="flex-end" pt={4}>
+                    <Button
+                      colorScheme="blue"
+                      onClick={handlePrivacySubmit}
+                      isLoading={isSaving}
+                      leftIcon={<FaSave />}
+                    >
+                      Save Privacy
+                    </Button>
+                  </HStack>
+                </VStack>
+              </SettingCard>
+
+              {/* Notifications Settings Section */}
+              <SettingCard isLoading={isSaving}>
+                <VStack spacing={4} align="stretch">
+                  <Heading size="md" color={headerTextColor}>Notification Settings</Heading>
+                  <SettingToggle
+                    label="Workout Reminders"
+                    description="Receive reminders about upcoming workouts"
+                    isChecked={notificationForm.workout_reminders}
+                    onChange={(checked) => setNotificationForm(prev => ({ ...prev, workout_reminders: checked }))}
+                  />
+                  
+                  <SettingToggle
+                    label="Meet Updates"
+                    description="Receive notifications about track meets and events"
+                    isChecked={notificationForm.meet_updates}
+                    onChange={(checked) => setNotificationForm(prev => ({ ...prev, meet_updates: checked }))}
+                  />
+                  
+                  <SettingToggle
+                    label="Athlete Messages"
+                    description="Get notified when athletes send you messages"
+                    isChecked={notificationForm.coach_messages}
+                    onChange={(checked) => setNotificationForm(prev => ({ ...prev, coach_messages: checked }))}
+                  />
+                  
+                  <SettingToggle
+                    label="Team Updates"
+                    description="Receive notifications about team announcements"
+                    isChecked={notificationForm.team_updates}
+                    onChange={(checked) => setNotificationForm(prev => ({ ...prev, team_updates: checked }))}
+                  />
+                  
+                  <SettingToggle
+                    label="Performance Alerts"
+                    description="Get notified about athlete performance milestones"
+                    isChecked={notificationForm.performance_alerts}
+                    onChange={(checked) => setNotificationForm(prev => ({ ...prev, performance_alerts: checked }))}
+                  />
+                  
+                  <SettingToggle
+                    label="Email Notifications"
+                    description="Receive notifications via email"
+                    isChecked={notificationForm.email_notifications}
+                    onChange={(checked) => setNotificationForm(prev => ({ ...prev, email_notifications: checked }))}
+                  />
+                  
+                  <SettingToggle
+                    label="Push Notifications"
+                    description="Receive push notifications on your device"
+                    isChecked={notificationForm.push_notifications}
+                    onChange={(checked) => setNotificationForm(prev => ({ ...prev, push_notifications: checked }))}
+                  />
+                  
+                  <HStack justify="flex-end" pt={4}>
+                    <Button
+                      colorScheme="blue"
+                      onClick={handleNotificationSubmit}
+                      isLoading={isSaving}
+                      leftIcon={<FaSave />}
+                    >
+                      Save Notifications
+                    </Button>
+                  </HStack>
+                </VStack>
+              </SettingCard>
+            </VStack>
           );
 
-        case 'notifications':
-          return (
-            <SettingCard isLoading={isSaving}>
-              <VStack spacing={4} align="stretch">
-                <SettingToggle
-                  label="Workout Completion Alerts"
-                  description="Get notified when athletes complete workouts"
-                  isChecked={notificationForm.workout_reminders}
-                  onChange={(checked) => setNotificationForm(prev => ({ ...prev, workout_reminders: checked }))}
-                />
-                
-                <SettingToggle
-                  label="Meet Updates"
-                  description="Receive notifications about track meets and events"
-                  isChecked={notificationForm.meet_updates}
-                  onChange={(checked) => setNotificationForm(prev => ({ ...prev, meet_updates: checked }))}
-                />
-                
-                <SettingToggle
-                  label="Athlete Messages"
-                  description="Get notified when athletes send you messages"
-                  isChecked={notificationForm.coach_messages}
-                  onChange={(checked) => setNotificationForm(prev => ({ ...prev, coach_messages: checked }))}
-                />
-                
-                <SettingToggle
-                  label="Team Updates"
-                  description="Receive notifications about team announcements"
-                  isChecked={notificationForm.team_updates}
-                  onChange={(checked) => setNotificationForm(prev => ({ ...prev, team_updates: checked }))}
-                />
-                
-                <SettingToggle
-                  label="Performance Alerts"
-                  description="Get notified about athlete performance milestones"
-                  isChecked={notificationForm.performance_alerts}
-                  onChange={(checked) => setNotificationForm(prev => ({ ...prev, performance_alerts: checked }))}
-                />
-                
-                <SettingToggle
-                  label="Email Notifications"
-                  description="Receive notifications via email"
-                  isChecked={notificationForm.email_notifications}
-                  onChange={(checked) => setNotificationForm(prev => ({ ...prev, email_notifications: checked }))}
-                />
-                
-                <SettingToggle
-                  label="Push Notifications"
-                  description="Receive push notifications on your device"
-                  isChecked={notificationForm.push_notifications}
-                  onChange={(checked) => setNotificationForm(prev => ({ ...prev, push_notifications: checked }))}
-                />
-                
-                <HStack justify="flex-end" pt={4}>
-                  <Button
-                    colorScheme="blue"
-                    onClick={handleNotificationSubmit}
-                    isLoading={isSaving}
-                    leftIcon={<FaSave />}
-                  >
-                    Save Changes
-                  </Button>
-                </HStack>
-              </VStack>
-            </SettingCard>
-          );
-
-        case 'privacy':
-          return (
-            <SettingCard isLoading={isSaving}>
-              <VStack spacing={4} align="stretch">
-                <SettingSelect
-                  label="Profile Visibility"
-                  description="Who can view your coaching profile"
-                  value={privacyForm.profile_visibility}
-                  onChange={(value) => setPrivacyForm(prev => ({ ...prev, profile_visibility: value as any }))}
-                  options={visibilityOptions}
-                />
-                
-                <SettingSelect
-                  label="Athlete Data Visibility"
-                  description="Who can view your athletes' performance data"
-                  value={privacyForm.performance_data_visibility}
-                  onChange={(value) => setPrivacyForm(prev => ({ ...prev, performance_data_visibility: value as any }))}
-                  options={performanceVisibilityOptions}
-                />
-                
-                <SettingToggle
-                  label="Allow Coach Contact"
-                  description="Allow other coaches to contact you"
-                  isChecked={privacyForm.allow_coach_contact}
-                  onChange={(checked) => setPrivacyForm(prev => ({ ...prev, allow_coach_contact: checked }))}
-                />
-                
-                <SettingToggle
-                  label="Allow Team Invites"
-                  description="Allow team managers to invite you to join teams"
-                  isChecked={privacyForm.allow_team_invites}
-                  onChange={(checked) => setPrivacyForm(prev => ({ ...prev, allow_team_invites: checked }))}
-                />
-                
-                <SettingToggle
-                  label="Share Workout Data"
-                  description="Allow sharing of workout templates with other coaches"
-                  isChecked={privacyForm.share_workout_data}
-                  onChange={(checked) => setPrivacyForm(prev => ({ ...prev, share_workout_data: checked }))}
-                />
-                
-                <SettingToggle
-                  label="Share Performance Data"
-                  description="Allow sharing of athlete performance data for research"
-                  isChecked={privacyForm.share_performance_data}
-                  onChange={(checked) => setPrivacyForm(prev => ({ ...prev, share_performance_data: checked }))}
-                />
-                
-                <HStack justify="flex-end" pt={4}>
-                  <Button
-                    colorScheme="blue"
-                    onClick={handlePrivacySubmit}
-                    isLoading={isSaving}
-                    leftIcon={<FaSave />}
-                  >
-                    Save Changes
-                  </Button>
-                </HStack>
-              </VStack>
-            </SettingCard>
-          );
-
-        case 'team-management':
+        case 'team':
           return (
             <SettingCard isLoading={isSaving}>
               <VStack spacing={4} align="stretch">
@@ -656,14 +621,14 @@ const CoachSettings = () => {
                     isLoading={isSaving}
                     leftIcon={<FaSave />}
                   >
-                    Save Changes
+                    Save Team Settings
                   </Button>
                 </HStack>
               </VStack>
             </SettingCard>
           );
 
-        case 'workout-defaults':
+        case 'training':
           return (
             <SettingCard isLoading={isSaving}>
               <VStack spacing={4} align="stretch">
@@ -731,99 +696,101 @@ const CoachSettings = () => {
                     isLoading={isSaving}
                     leftIcon={<FaSave />}
                   >
-                    Save Changes
+                    Save Training Settings
                   </Button>
                 </HStack>
               </VStack>
             </SettingCard>
           );
 
-        case 'professional':
+        case 'profile':
           return (
-            <SettingCard isLoading={isSaving}>
-              <VStack spacing={4} align="stretch">
-                <SettingToggle
-                  label="Show Certifications"
-                  description="Display your coaching certifications on your profile"
-                  isChecked={professionalForm.show_certifications}
-                  onChange={(checked) => setProfessionalForm(prev => ({ ...prev, show_certifications: checked }))}
-                />
-                
-                <SettingToggle
-                  label="Public Profile"
-                  description="Make your coaching profile visible to the public"
-                  isChecked={professionalForm.public_profile}
-                  onChange={(checked) => setProfessionalForm(prev => ({ ...prev, public_profile: checked }))}
-                />
-                
-                <SettingToggle
-                  label="Accept New Athletes"
-                  description="Allow new athletes to request to join your team"
-                  isChecked={professionalForm.accept_new_athletes}
-                  onChange={(checked) => setProfessionalForm(prev => ({ ...prev, accept_new_athletes: checked }))}
-                />
-                
-                <SettingToggle
-                  label="Display Specializations"
-                  description="Show your coaching specializations on your profile"
-                  isChecked={professionalForm.specialization_display}
-                  onChange={(checked) => setProfessionalForm(prev => ({ ...prev, specialization_display: checked }))}
-                />
-                
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                  <SettingSelect
-                    label="Maximum Athletes"
-                    description="Maximum number of athletes you'll coach"
-                    value={professionalForm.max_athletes}
-                    onChange={(value) => setProfessionalForm(prev => ({ ...prev, max_athletes: value }))}
-                    options={maxAthleteOptions}
+            <VStack spacing={6} align="stretch">
+              {/* Professional Settings Section */}
+              <SettingCard isLoading={isSaving}>
+                <VStack spacing={4} align="stretch">
+                  <Heading size="md" color={headerTextColor}>Professional Profile</Heading>
+                  <SettingToggle
+                    label="Show Certifications"
+                    description="Display your coaching certifications on your profile"
+                    isChecked={professionalForm.show_certifications}
+                    onChange={(checked) => setProfessionalForm(prev => ({ ...prev, show_certifications: checked }))}
                   />
                   
-                  <SettingSelect
-                    label="Contact Preference"
-                    description="How athletes and parents can contact you"
-                    value={professionalForm.contact_preference}
-                    onChange={(value) => setProfessionalForm(prev => ({ ...prev, contact_preference: value }))}
-                    options={contactPreferenceOptions}
+                  <SettingToggle
+                    label="Public Profile"
+                    description="Make your coaching profile visible to the public"
+                    isChecked={professionalForm.public_profile}
+                    onChange={(checked) => setProfessionalForm(prev => ({ ...prev, public_profile: checked }))}
                   />
-                </SimpleGrid>
-                
-                <HStack justify="flex-end" pt={4}>
-                  <Button
-                    colorScheme="blue"
-                    onClick={handleProfessionalSubmit}
-                    isLoading={isSaving}
-                    leftIcon={<FaSave />}
-                  >
-                    Save Changes
-                  </Button>
-                </HStack>
-              </VStack>
-            </SettingCard>
-          );
+                  
+                  <SettingToggle
+                    label="Accept New Athletes"
+                    description="Allow new athletes to request to join your team"
+                    isChecked={professionalForm.accept_new_athletes}
+                    onChange={(checked) => setProfessionalForm(prev => ({ ...prev, accept_new_athletes: checked }))}
+                  />
+                  
+                  <SettingToggle
+                    label="Display Specializations"
+                    description="Show your coaching specializations on your profile"
+                    isChecked={professionalForm.specialization_display}
+                    onChange={(checked) => setProfessionalForm(prev => ({ ...prev, specialization_display: checked }))}
+                  />
+                  
+                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                    <SettingSelect
+                      label="Maximum Athletes"
+                      description="Maximum number of athletes you'll coach"
+                      value={professionalForm.max_athletes}
+                      onChange={(value) => setProfessionalForm(prev => ({ ...prev, max_athletes: value }))}
+                      options={maxAthleteOptions}
+                    />
+                    
+                    <SettingSelect
+                      label="Contact Preference"
+                      description="How athletes and parents can contact you"
+                      value={professionalForm.contact_preference}
+                      onChange={(value) => setProfessionalForm(prev => ({ ...prev, contact_preference: value }))}
+                      options={contactPreferenceOptions}
+                    />
+                  </SimpleGrid>
+                  
+                  <HStack justify="flex-end" pt={4}>
+                    <Button
+                      colorScheme="blue"
+                      onClick={handleProfessionalSubmit}
+                      isLoading={isSaving}
+                      leftIcon={<FaSave />}
+                    >
+                      Save Professional
+                    </Button>
+                  </HStack>
+                </VStack>
+              </SettingCard>
 
-        case 'emergency':
-          return (
-            <SettingCard>
-              <VStack spacing={4} align="stretch">
-                <Text color={headerSubtextColor}>
-                  Emergency contacts feature coming soon. This will allow you to add and manage emergency contacts for safety purposes during training sessions and meets.
-                </Text>
-                {/* TODO: REMOVE DUMMY DATA - Add emergency contacts management */}
-              </VStack>
-            </SettingCard>
-          );
+              {/* Emergency Contacts Section */}
+              <SettingCard>
+                <VStack spacing={4} align="stretch">
+                  <Heading size="md" color={headerTextColor}>Emergency Contacts</Heading>
+                  <Text color={headerSubtextColor}>
+                    Emergency contacts feature coming soon. This will allow you to add and manage emergency contacts for safety purposes during training sessions and meets.
+                  </Text>
+                  {/* TODO: REMOVE DUMMY DATA - Add emergency contacts management */}
+                </VStack>
+              </SettingCard>
 
-        case 'medical':
-          return (
-            <SettingCard>
-              <VStack spacing={4} align="stretch">
-                <Text color={headerSubtextColor}>
-                  Medical information feature coming soon. This will allow you to store important medical information and first aid certifications relevant to coaching.
-                </Text>
-                {/* TODO: REMOVE DUMMY DATA - Add medical information management */}
-              </VStack>
-            </SettingCard>
+              {/* Medical Information Section */}
+              <SettingCard>
+                <VStack spacing={4} align="stretch">
+                  <Heading size="md" color={headerTextColor}>Medical Information</Heading>
+                  <Text color={headerSubtextColor}>
+                    Medical information feature coming soon. This will allow you to store important medical information and first aid certifications relevant to coaching.
+                  </Text>
+                  {/* TODO: REMOVE DUMMY DATA - Add medical information management */}
+                </VStack>
+              </SettingCard>
+            </VStack>
           );
 
         default:
@@ -833,13 +800,13 @@ const CoachSettings = () => {
 
     return (
       <VStack spacing={6} align="stretch" w="100%">
-        {/* Section Header */}
-        <VStack spacing={2} align="start" w="100%">
+        {/* Section Header - Hidden on mobile */}
+        <VStack spacing={2} align="start" w="100%" display={{ base: "none", lg: "flex" }}>
           <HStack spacing={3} align="center">
             <Icon
               as={sectionInfo.icon}
               boxSize={6}
-              color={useColorModeValue('blue.500', 'blue.300')}
+              color={iconColor}
             />
             <Heading size="lg" color={headerTextColor}>
               {sectionInfo.title}
@@ -856,27 +823,7 @@ const CoachSettings = () => {
     );
   };
 
-  const [mainSidebarWidth, setMainSidebarWidth] = useState(() => {
-    // Check localStorage for the saved main sidebar state
-    const savedSidebarState = localStorage.getItem('sidebarCollapsed');
-    return savedSidebarState === 'true' ? 70 : 200;
-  });
 
-  const { isHeaderVisible } = useScrollDirection(15);
-
-  // Listen for main sidebar toggle events
-  useEffect(() => {
-    const handleSidebarToggle = (event: CustomEvent) => {
-      const newWidth = event.detail.width;
-      setMainSidebarWidth(newWidth);
-    };
-    
-    window.addEventListener('sidebarToggle', handleSidebarToggle as EventListener);
-    
-    return () => {
-      window.removeEventListener('sidebarToggle', handleSidebarToggle as EventListener);
-    };
-  }, []);
 
   if (isLoading) {
     return (
@@ -899,31 +846,53 @@ const CoachSettings = () => {
 
   return (
     <Box minH="100vh" bg={pageBackgroundColor}>
-      <SettingsSidebar
-        sections={settingsSections}
-        activeItem={activeItem}
-        onItemClick={setActiveItem}
-      />
-      
+      {/* Mobile Tab Bar */}
+      {isMobile && (
+        <Box borderBottom="1px solid" borderColor={borderColor} w="100vw" position="relative" left="50%" right="50%" style={{ transform: 'translateX(-50%)' }}>
+          <HStack spacing={0}>
+            {(
+              settingsSections.flatMap(section => section.items).map((item) => (
+                <Box
+                  key={item.id}
+                  flex="1"
+                  py={3}
+                  textAlign="center"
+                  borderBottom="3px solid"
+                  borderColor={activeItem === item.id ? 'blue.500' : 'transparent'}
+                  bg="transparent"
+                  cursor="pointer"
+                  onClick={() => setActiveItem(item.id)}
+                >
+                  <Text
+                    fontWeight={activeItem === item.id ? 'bold' : 'normal'}
+                    color={activeItem === item.id ? 'blue.500' : mobileTabTextColor}
+                    fontSize="sm"
+                  >
+                    {item.label}
+                  </Text>
+                </Box>
+              ))
+            )}
+          </HStack>
+        </Box>
+      )}
+      {/* Desktop Sidebar */}
+      {!isMobile && (
+        <SettingsSidebar
+          sections={settingsSections}
+          activeItem={activeItem}
+          onItemClick={setActiveItem}
+        />
+      )}
       {/* Main Content */}
       <Box
         ml={{ 
           base: 0, 
-          md: `${mainSidebarWidth - 50}px`, 
-          lg: mainSidebarWidth === 70 
-            ? `${mainSidebarWidth + 280 - 50}px`  // When collapsed: less margin adjustment
-            : `${mainSidebarWidth + 280 - 180}px`  // When expanded: more margin adjustment
+          lg: "280px"
         }}
-        mr={{ 
-          base: 0, 
-          lg: mainSidebarWidth === 70 ? "30px" : "20px"  // Less right margin when sidebar is collapsed
-        }}
-        pt={isHeaderVisible ? "-2px" : "-82px"}
+        mt={{ base: "20px", lg: 0 }}
         transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
         minH="100vh"
-        px={0} // Remove padding since CoachLayout already adds it
-        py={8}
-        mx={{ base: '5px', md: 0 }}
       >
         {renderContent()}
       </Box>

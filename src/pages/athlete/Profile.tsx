@@ -1,18 +1,24 @@
 import React, { useRef, useState } from 'react';
 import {
-  Box, Button, FormControl, FormLabel, Input, VStack, Avatar, Heading, HStack, Select, Spinner, useToast, Text, useColorModeValue
+  Box, Button, FormControl, FormLabel, Input, VStack, Avatar, Heading, HStack, Select, Spinner, useToast, Text, useColorModeValue, IconButton
 } from '@chakra-ui/react';
-import { FaUserAlt } from 'react-icons/fa';
+import { FaUserAlt, FaCamera } from 'react-icons/fa';
 import { useProfile } from '../../hooks/useProfile';
 import { useAvatar } from '../../hooks/useAvatar';
 import { useAvatarLoader } from '../../hooks/useAvatarLoader';
 import ProfileCard from '../../components/ProfileCard';
-import PageHeader from '../../components/PageHeader';
 import { usePageHeader } from '../../hooks/usePageHeader';
 
 const genderOptions = ['male', 'female', 'other'];
 
 const AthleteProfile = () => {
+  // Use the page header hook - MUST be first
+  usePageHeader({
+    title: 'My Profile',
+    subtitle: 'Personal Information',
+    icon: FaUserAlt
+  });
+
   const { profile, isLoading, isError, error, updateProfile, isUpdatingProfile } = useProfile();
   const { uploading, uploadAvatar } = useAvatar();
   const { avatarUrl, loading: avatarLoading, refresh: refreshAvatar } = useAvatarLoader(profile?.id);
@@ -22,7 +28,7 @@ const AthleteProfile = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
 
-  // Add color mode aware styles - MOVED TO TOP to fix hooks order
+  // Add color mode aware styles
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   const inputBg = useColorModeValue('white', 'gray.700');
@@ -30,13 +36,6 @@ const AthleteProfile = () => {
   const headerTextColor = useColorModeValue('gray.800', 'white');
   const pageBackgroundColor = useColorModeValue('gray.50', 'gray.900');
   const headerSubtextColor = useColorModeValue('gray.600', 'gray.300');
-
-  // Use the page header hook
-  usePageHeader({
-    title: 'My Profile',
-    subtitle: 'Personal Information',
-    icon: FaUserAlt
-  });
 
   React.useEffect(() => {
     if (profile) {
@@ -148,63 +147,67 @@ const AthleteProfile = () => {
   ];
 
   return (
-    <Box 
-      pt={0} 
-      pb={10} 
-      bg={pageBackgroundColor} 
-      minH="100vh"
-      w="100%"
-      maxW="100%"
-      overflowX="hidden"
-    >
-      {/* Desktop Header */}
-      <PageHeader
-        title="My Profile"
-        subtitle="Personal Information"
-        icon={FaUserAlt}
-      />
-
-      <Box maxW="lg" mx="auto" mt={{ base: "20px", lg: 8 }}>
+    <Box>
+      {/* Hidden file input - always available for camera icon */}
+      <input type="file" hidden ref={fileInputRef} accept="image/*" onChange={handleAvatarChange} />
+      
+      <Box>
         {!editMode ? (
-                  <ProfileCard
-          avatarUrl={avatarUrl || undefined}
-          bannerColor="#1976d2"
-          name={`${profile.first_name} ${profile.last_name}`}
-          role="Athlete"
-          stats={stats}
-          bio={profile.bio}
-          infoList={infoList}
-          onEdit={() => setEditMode(true)}
-          onAvatarEdit={handleAvatarClick}
-          onAction={() => {}}
-          editLabel="Edit Profile"
-          actionLabel="View Stats"
-        />
+          <ProfileCard
+            avatarUrl={avatarUrl || undefined}
+            bannerColor="#1976d2"
+            name={`${profile.first_name} ${profile.last_name}`}
+            role="Athlete"
+            stats={stats}
+            bio={profile.bio}
+            infoList={infoList}
+            onEdit={() => setEditMode(true)}
+            onAvatarEdit={handleAvatarClick}
+            editLabel="Edit Profile"
+          />
         ) : (
-          <Box p={6} borderWidth={1} borderRadius="lg" boxShadow="md" bg={cardBg} borderColor={borderColor}>
+          <Box 
+            p={6} 
+            borderWidth={1} 
+            borderRadius="lg" 
+            boxShadow="md" 
+            bg={cardBg} 
+            borderColor={borderColor}
+            maxW={{ base: "100%", md: "800px" }}
+            mx="auto"
+          >
             <Heading size="lg" mb={6}>Edit Athlete Profile</Heading>
             <form onSubmit={handleSubmit}>
               <VStack spacing={5} align="stretch">
                 <FormControl>
                   <FormLabel>Avatar</FormLabel>
-                  <HStack>
+                  <Box position="relative" display="inline-block">
                     <Avatar 
-                      size="xl" 
+                      size="2xl"
                       src={avatarPreview || avatarUrl || undefined} 
-                      name={`${form.first_name} ${form.last_name}`} 
-                      onClick={handleAvatarClick} 
-                      cursor="pointer" 
+                      name={`${form.first_name} ${form.last_name}`}
+                      border="6px solid"
+                      borderColor={useColorModeValue('white', 'gray.800')}
+                      bg="gray.100"
+                      boxShadow="lg"
                     />
-                    <input type="file" hidden ref={fileInputRef} accept="image/*" onChange={handleAvatarChange} />
-                    <Button 
-                      onClick={handleAvatarClick} 
-                      variant="outline"
+                    <IconButton
+                      aria-label="Change photo"
+                      icon={<FaCamera color="#1976d2" />}
+                      size="sm"
+                      position="absolute"
+                      bottom={2}
+                      right={2}
+                      borderRadius="full"
+                      colorScheme="blue"
+                      bg={useColorModeValue('white', 'gray.800')}
+                      boxShadow="md"
+                      border="2px solid #1976d2"
+                      onClick={handleAvatarClick}
                       isLoading={uploading}
-                      loadingText="Uploading..."
-                    >
-                      Change
-                    </Button>
-                  </HStack>
+                      zIndex={2}
+                    />
+                  </Box>
                 </FormControl>
                 <HStack spacing={4}>
                   <FormControl isRequired>

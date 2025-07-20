@@ -2,15 +2,22 @@ import React, { useRef, useState } from 'react';
 import {
   Box, Button, FormControl, FormLabel, Input, VStack, Avatar, Heading, HStack, Select, Spinner, useToast, Text, IconButton, useColorModeValue
 } from '@chakra-ui/react';
-import { FaCamera } from 'react-icons/fa';
+import { FaCamera, FaUser } from 'react-icons/fa';
 import { useProfile } from '../../hooks/useProfile';
 import { useAvatarLoader } from '../../hooks/useAvatarLoader';
 import { useAvatar } from '../../hooks/useAvatar';
+import { usePageHeader } from '../../hooks/usePageHeader';
 import ProfileCard from '../../components/ProfileCard';
 
 const genderOptions = ['male', 'female', 'other'];
 
 const CoachProfile = () => {
+  usePageHeader({
+    title: 'Profile',
+    subtitle: 'Manage your coaching profile and information',
+    icon: FaUser
+  });
+
   const { profile, isLoading, isError, error, updateProfile, isUpdatingProfile } = useProfile();
   const { avatarUrl, refresh: refreshAvatar } = useAvatarLoader(profile?.id);
   const { uploading, uploadAvatar } = useAvatar();
@@ -140,7 +147,10 @@ const CoachProfile = () => {
   ];
 
   return (
-    <Box maxW="lg" mx="auto" mt={8}>
+    <Box>
+      {/* Hidden file input - always available for camera icon */}
+      <input type="file" hidden ref={fileInputRef} accept="image/*" onChange={handleAvatarChange} />
+      
       {!editMode ? (
         <ProfileCard
           avatarUrl={avatarUrl || undefined}
@@ -155,29 +165,48 @@ const CoachProfile = () => {
           editLabel="Edit Profile"
         />
       ) : (
-        <Box p={6} borderWidth={1} borderRadius="lg" boxShadow="md" bg={cardBg} borderColor={borderColor}>
+        <Box 
+          p={6} 
+          borderWidth={1} 
+          borderRadius="lg" 
+          boxShadow="md" 
+          bg={cardBg} 
+          borderColor={borderColor}
+          maxW={{ base: "100%", md: "800px" }}
+          mx="auto"
+        >
           <Heading size="lg" mb={6}>Edit Coach Profile</Heading>
           <form onSubmit={handleSubmit}>
             <VStack spacing={5} align="stretch">
               <FormControl>
                 <FormLabel>Avatar</FormLabel>
-                <HStack>
+                <Box position="relative" display="inline-block">
                   <Avatar 
-                    size="xl" 
+                    size="2xl"
                     src={avatarPreview || avatarUrl || undefined} 
-                    name={`${form.first_name} ${form.last_name}`} 
+                    name={`${form.first_name} ${form.last_name}`}
+                    border="6px solid"
+                    borderColor={useColorModeValue('white', 'gray.800')}
+                    bg="gray.100"
+                    boxShadow="lg"
                   />
-                  <input type="file" hidden ref={fileInputRef} accept="image/*" onChange={handleAvatarChange} />
                   <IconButton
                     aria-label="Change photo"
-                    icon={<FaCamera />}
+                    icon={<FaCamera color="#1A73E8" />}
+                    size="sm"
+                    position="absolute"
+                    bottom={2}
+                    right={2}
+                    borderRadius="full"
+                    colorScheme="blue"
+                    bg={useColorModeValue('white', 'gray.800')}
+                    boxShadow="md"
+                    border="2px solid #1A73E8"
                     onClick={handleAvatarClick}
-                    variant="outline"
-                    size="md"
                     isLoading={uploading}
-                    isDisabled={uploading}
+                    zIndex={2}
                   />
-                </HStack>
+                </Box>
               </FormControl>
               <HStack spacing={4}>
                 <FormControl isRequired>
