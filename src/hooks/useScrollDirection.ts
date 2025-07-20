@@ -20,68 +20,104 @@ export const useScrollDirection = (
     let lastScrollY = 0;
     let ticking = false;
     let hideHeaderScrollY = 0; // Track when we started hiding the header
+    let isDestroyed = false;
 
     const getScrollY = () => {
+      if (isDestroyed) return 0;
+      
       if (scrollContainerRef && scrollContainerRef.current) {
-        return scrollContainerRef.current.scrollTop;
+        try {
+          return scrollContainerRef.current.scrollTop || 0;
+        } catch (error) {
+          return 0;
+        }
       }
-      const windowScrollY = window.pageYOffset || window.scrollY;
-      const documentScrollY = document.documentElement.scrollTop || document.body.scrollTop;
-      return Math.max(windowScrollY, documentScrollY);
+      try {
+        const windowScrollY = window.pageYOffset || window.scrollY;
+        const documentScrollY = document.documentElement.scrollTop || document.body.scrollTop;
+        return Math.max(windowScrollY, documentScrollY);
+      } catch (error) {
+        return 0;
+      }
     };
 
     const updateScrollDirection = () => {
-      let scrollY = getScrollY();
-      const direction = scrollY > lastScrollY ? 'down' : 'up';
-      const scrollDifference = Math.abs(scrollY - lastScrollY);
+      if (isDestroyed) return;
+      
+      try {
+        let scrollY = getScrollY();
+        const direction = scrollY > lastScrollY ? 'down' : 'up';
+        const scrollDifference = Math.abs(scrollY - lastScrollY);
 
-      if (scrollDifference < threshold) {
+        if (scrollDifference < threshold) {
+          ticking = false;
+          return;
+        }
+
+        let isHeaderVisible: boolean;
+        if (scrollY < 1) {
+          isHeaderVisible = true;
+          hideHeaderScrollY = 0;
+        } else if (direction === 'down') {
+          isHeaderVisible = false;
+          hideHeaderScrollY = scrollY;
+        } else if (direction === 'up') {
+          isHeaderVisible = true;
+        } else {
+          isHeaderVisible = scrollState.isHeaderVisible;
+        }
+
+        if (
+          scrollState.scrollDirection !== direction ||
+          scrollState.scrollY !== scrollY ||
+          scrollState.isHeaderVisible !== isHeaderVisible
+        ) {
+          setScrollState({
+            scrollDirection: direction,
+            scrollY,
+            isHeaderVisible,
+          });
+        }
+
+        lastScrollY = scrollY > 0 ? scrollY : 0;
         ticking = false;
-        return;
+      } catch (error) {
+        ticking = false;
       }
-
-      let isHeaderVisible: boolean;
-      if (scrollY < 1) {
-        isHeaderVisible = true;
-        hideHeaderScrollY = 0;
-      } else if (direction === 'down') {
-        isHeaderVisible = false;
-        hideHeaderScrollY = scrollY;
-      } else if (direction === 'up') {
-        isHeaderVisible = true;
-      } else {
-        isHeaderVisible = scrollState.isHeaderVisible;
-      }
-
-      if (
-        scrollState.scrollDirection !== direction ||
-        scrollState.scrollY !== scrollY ||
-        scrollState.isHeaderVisible !== isHeaderVisible
-      ) {
-        setScrollState({
-          scrollDirection: direction,
-          scrollY,
-          isHeaderVisible,
-        });
-      }
-
-      lastScrollY = scrollY > 0 ? scrollY : 0;
-      ticking = false;
     };
 
     const onScroll = () => {
-      if (!ticking) {
+      if (isDestroyed || ticking) return;
+      
+      try {
         requestAnimationFrame(updateScrollDirection);
         ticking = true;
+      } catch (error) {
+        ticking = false;
       }
     };
 
     const scrollTarget = scrollContainerRef && scrollContainerRef.current ? scrollContainerRef.current : window;
-    scrollTarget.addEventListener('scroll', onScroll, { passive: true });
+    
+    // Add null check before adding event listener
+    if (scrollTarget && typeof scrollTarget.addEventListener === 'function') {
+      try {
+        scrollTarget.addEventListener('scroll', onScroll, { passive: true });
 
-    return () => {
-      scrollTarget.removeEventListener('scroll', onScroll);
-    };
+        return () => {
+          isDestroyed = true;
+          try {
+            if (scrollTarget && typeof scrollTarget.removeEventListener === 'function') {
+              scrollTarget.removeEventListener('scroll', onScroll);
+            }
+          } catch (error) {
+            // Ignore cleanup errors
+          }
+        };
+      } catch (error) {
+        // Ignore setup errors
+      }
+    }
   }, [threshold, scrollContainerRef]);
 
   return scrollState;

@@ -103,10 +103,18 @@ const MobileNavItem = ({ icon, label, to, isActive, onClick, badge }: {
   // Handle touch events to prevent hover state persistence
   const handleTouchEnd = (e: React.TouchEvent) => {
     // Clear any hover states by briefly blurring the element
-    const target = e.currentTarget as HTMLElement;
-    setTimeout(() => {
-      target.blur();
-    }, 50);
+    try {
+      const target = e.currentTarget as HTMLElement;
+      setTimeout(() => {
+        try {
+          target.blur();
+        } catch (error) {
+          console.warn('Error blurring element:', error);
+        }
+      }, 50);
+    } catch (error) {
+      console.warn('Error handling touch end:', error);
+    }
   };
   
   return (
@@ -285,13 +293,58 @@ const Sidebar = ({ userType }: SidebarProps) => {
     onMobileDrawerClose();
     // Clear any lingering focus by briefly focusing body and then removing focus
     setTimeout(() => {
-      if (document.activeElement && document.activeElement !== document.body) {
-        (document.activeElement as HTMLElement).blur();
+      try {
+        if (document.activeElement && document.activeElement !== document.body) {
+          (document.activeElement as HTMLElement).blur();
+        }
+        document.body.focus();
+        document.body.blur();
+      } catch (error) {
+        console.warn('Error clearing focus:', error);
       }
-      document.body.focus();
-      document.body.blur();
     }, 100);
   };
+
+  // Clean up mobile drawer when it closes
+  useEffect(() => {
+    if (!isMobileDrawerOpen) {
+      // Ensure proper cleanup when drawer closes
+      setTimeout(() => {
+        try {
+          // Clear any remaining focus
+          if (document.activeElement && document.activeElement !== document.body) {
+            (document.activeElement as HTMLElement).blur();
+          }
+          document.body.focus();
+          document.body.blur();
+          
+          // Clear any scroll-related event listeners that might be causing issues
+          const scrollElements = document.querySelectorAll('[data-scroll-container]');
+          scrollElements.forEach(element => {
+            try {
+              element.removeEventListener('scroll', () => {});
+            } catch (error) {
+              // Ignore cleanup errors
+            }
+          });
+          
+          // Force cleanup of any lingering DOM references
+          const allElements = document.querySelectorAll('*');
+          allElements.forEach(element => {
+            try {
+              if (element.hasAttribute('data-chakra-focus-trap')) {
+                element.removeAttribute('data-chakra-focus-trap');
+              }
+            } catch (error) {
+              // Ignore cleanup errors
+            }
+          });
+        } catch (error) {
+          // Ignore cleanup errors
+        }
+      }, 150);
+    }
+  }, [isMobileDrawerOpen]);
   
   const location = useLocation();
   const { user, signOut } = useAuth();
@@ -615,16 +668,27 @@ const Sidebar = ({ userType }: SidebarProps) => {
         placement="left"
         onClose={handleMobileDrawerClose}
         size="full" // This makes it 100% width
-        trapFocus={true}
+        trapFocus={false}
         returnFocusOnClose={false}
-        blockScrollOnMount={true}
+        blockScrollOnMount={false}
         preserveScrollBarGap={false}
+        closeOnOverlayClick={true}
+        closeOnEsc={true}
+        autoFocus={false}
       >
         <DrawerOverlay bg="blackAlpha.600" />
         <DrawerContent
           maxW="67vw" // Gmail-style 2/3 screen width
           bg={drawerBg}
           boxShadow="2xl"
+          onFocus={(e) => {
+            // Prevent focus-related DOM manipulation errors
+            try {
+              e.stopPropagation();
+            } catch (error) {
+              console.warn('Focus event error:', error);
+            }
+          }}
         >
           {/* Custom close button in header */}
           <DrawerHeader borderBottomWidth="1px" borderColor={borderColor} pb={4}>
@@ -641,7 +705,18 @@ const Sidebar = ({ userType }: SidebarProps) => {
             </Flex>
           </DrawerHeader>
 
-          <DrawerBody px={0} py={0}>
+          <DrawerBody 
+            px={0} 
+            py={0}
+            onFocus={(e) => {
+              // Prevent focus-related DOM manipulation errors
+              try {
+                e.stopPropagation();
+              } catch (error) {
+                console.warn('DrawerBody focus error:', error);
+              }
+            }}
+          >
             <VStack spacing={0} align="stretch" height="100%">
               {/* User Profile Section */}
               <Box p={6} borderBottomWidth="1px" borderColor={borderColor}>
@@ -665,7 +740,35 @@ const Sidebar = ({ userType }: SidebarProps) => {
               </Box>
 
               {/* Main Navigation - Scrollable Content */}
-              <Box flex="1" overflowY="auto">
+              <Box 
+                flex="1" 
+                overflowY="auto"
+                data-scroll-container="true"
+                onScroll={(e) => {
+                  // Prevent any scroll-related DOM manipulation errors
+                  try {
+                    e.stopPropagation();
+                  } catch (error) {
+                    console.warn('Scroll event error:', error);
+                  }
+                }}
+                onFocus={(e) => {
+                  // Prevent focus-related DOM manipulation errors
+                  try {
+                    e.stopPropagation();
+                  } catch (error) {
+                    console.warn('Focus event error:', error);
+                  }
+                }}
+                onBlur={(e) => {
+                  // Prevent blur-related DOM manipulation errors
+                  try {
+                    e.stopPropagation();
+                  } catch (error) {
+                    console.warn('Blur event error:', error);
+                  }
+                }}
+              >
                 <VStack spacing={1} align="stretch" p={4}>
                   <Text 
                     fontSize="xs" 

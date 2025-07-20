@@ -347,31 +347,55 @@ const MobileNotifications: React.FC = () => {
   };
 
   const handlePullStart = (e: React.TouchEvent) => {
-    // Only allow pull-to-refresh when at the very top AND on the unread tab
-    if (window.scrollY === 0 && activeTab === 'unread') {
-      setStartY(e.touches[0].clientY);
+    try {
+      // Only allow pull-to-refresh when at the very top AND on the unread tab
+      let scrollY = 0;
+      try {
+        scrollY = window.scrollY || 0;
+      } catch (error) {
+        console.warn('Error accessing scrollY:', error);
+        return;
+      }
+      
+      if (scrollY === 0 && activeTab === 'unread') {
+        setStartY(e.touches[0].clientY);
+      }
+    } catch (error) {
+      console.warn('Error in handlePullStart:', error);
     }
   };
 
   const handlePullMove = (e: React.TouchEvent) => {
-    // Always prevent default behavior when at top to stop browser pull-to-refresh
-    if (window.scrollY === 0) {
-      const currentY = e.touches[0].clientY;
-      const distance = startY > 0 ? currentY - startY : 0;
-      
-      // Prevent browser pull-to-refresh for any downward movement at top
-      if (distance > 0) {
-        e.preventDefault();
-        e.stopPropagation();
+    try {
+      // Always prevent default behavior when at top to stop browser pull-to-refresh
+      let scrollY = 0;
+      try {
+        scrollY = window.scrollY || 0;
+      } catch (error) {
+        console.warn('Error accessing scrollY:', error);
+        return;
       }
       
-      // Only show our custom pull-to-refresh on unread tab
-      if (startY > 0 && activeTab === 'unread') {
-        // Only trigger if it's a significant, deliberate downward pull
-        if (distance > 20) { // Minimum 20px before any visual feedback
-          setPullDistance(Math.min(distance, 120)); // Increased max pull distance
+      if (scrollY === 0) {
+        const currentY = e.touches[0].clientY;
+        const distance = startY > 0 ? currentY - startY : 0;
+        
+        // Prevent browser pull-to-refresh for any downward movement at top
+        if (distance > 0) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        
+        // Only show our custom pull-to-refresh on unread tab
+        if (startY > 0 && activeTab === 'unread') {
+          // Only trigger if it's a significant, deliberate downward pull
+          if (distance > 20) { // Minimum 20px before any visual feedback
+            setPullDistance(Math.min(distance, 120)); // Increased max pull distance
+          }
         }
       }
+    } catch (error) {
+      console.warn('Error in handlePullMove:', error);
     }
   };
 
@@ -571,50 +595,62 @@ const MobileNotifications: React.FC = () => {
   };
 
   const handleTouchMove = (e: React.TouchEvent, notificationId: string) => {
-    const state = swipeStates[notificationId];
-    if (!state) return;
+    try {
+      const state = swipeStates[notificationId];
+      if (!state) return;
 
-    const touch = e.touches[0];
-    const deltaX = touch.clientX - state.startX;
-    const deltaY = touch.clientY - state.startY;
-    
-    // Only start horizontal swiping if the gesture is more horizontal than vertical
-    const isHorizontalGesture = Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10;
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - state.startX;
+      const deltaY = touch.clientY - state.startY;
+      
+      // Only start horizontal swiping if the gesture is more horizontal than vertical
+      const isHorizontalGesture = Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10;
 
-    if (isHorizontalGesture && !state.isDragging) {
-      // Start horizontal swiping mode
-      setSwipeStates(prev => ({
-        ...prev,
-        [notificationId]: {
-          ...state,
-          isDragging: true,
-          currentX: touch.clientX,
-          direction: deltaX > 0 ? 'right' : 'left'
+      if (isHorizontalGesture && !state.isDragging) {
+        // Start horizontal swiping mode
+        setSwipeStates(prev => ({
+          ...prev,
+          [notificationId]: {
+            ...state,
+            isDragging: true,
+            currentX: touch.clientX,
+            direction: deltaX > 0 ? 'right' : 'left'
+          }
+        }));
+      }
+      if (state.isDragging || (isHorizontalGesture && !state.isDragging)) {
+        // Block scroll only during active swipe
+        try {
+          document.body.style.overflow = 'hidden';
+          document.documentElement.style.overflow = 'hidden';
+          document.body.setAttribute('data-swipe-active', 'true');
+        } catch (error) {
+          console.warn('Error setting overflow styles:', error);
         }
-      }));
-    }
-    if (state.isDragging || (isHorizontalGesture && !state.isDragging)) {
-      // Block scroll only during active swipe
-      document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
-      document.body.setAttribute('data-swipe-active', 'true');
-      // Continue horizontal swiping - update visuals directly without React re-render
-      updateSwipeVisuals(notificationId, deltaX);
-      setSwipeStates(prev => ({
-        ...prev,
-        [notificationId]: {
-          ...prev[notificationId],
-          currentX: touch.clientX,
-          direction: deltaX > 0 ? 'right' : 'left'
+        // Continue horizontal swiping - update visuals directly without React re-render
+        updateSwipeVisuals(notificationId, deltaX);
+        setSwipeStates(prev => ({
+          ...prev,
+          [notificationId]: {
+            ...prev[notificationId],
+            currentX: touch.clientX,
+            direction: deltaX > 0 ? 'right' : 'left'
+          }
+        }));
+        e.preventDefault();
+        e.stopPropagation();
+      } else {
+        // Not horizontal, allow normal scroll, remove swipe-active
+        try {
+          document.body.removeAttribute('data-swipe-active');
+          document.body.style.overflow = '';
+          document.documentElement.style.overflow = '';
+        } catch (error) {
+          console.warn('Error resetting overflow styles:', error);
         }
-      }));
-      e.preventDefault();
-      e.stopPropagation();
-    } else {
-      // Not horizontal, allow normal scroll, remove swipe-active
-      document.body.removeAttribute('data-swipe-active');
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
+      }
+    } catch (error) {
+      console.warn('Error in handleTouchMove:', error);
     }
   };
 
@@ -711,7 +747,7 @@ const MobileNotifications: React.FC = () => {
       {pullDistance > 20 && activeTab === 'unread' && (
         <Box
           position="fixed"
-          top={`${Math.max(50, pullDistance - 80)}px`}
+          top={`${Math.max(60, pullDistance - 80)}px`}
           left="50%"
           transform="translateX(-50%)"
           zIndex={999}

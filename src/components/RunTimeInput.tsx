@@ -43,10 +43,23 @@ const ScrollColumn = ({
   const numbers = Array.from({ length: max - min + 1 }, (_, i) => i + min);
 
   const handleScroll = debounce(() => {
-    const el = listRef.current;
-    if (!el) return;
-    const index = Math.round(el.scrollTop / 40);
-    onChange(Math.min(max, Math.max(min, index)));
+    try {
+      const el = listRef.current;
+      if (!el) return;
+      
+      let scrollTop = 0;
+      try {
+        scrollTop = el.scrollTop || 0;
+      } catch (error) {
+        console.warn('Error accessing scrollTop:', error);
+        return;
+      }
+      
+      const index = Math.round(scrollTop / 40);
+      onChange(Math.min(max, Math.max(min, index)));
+    } catch (error) {
+      console.warn('Error in handleScroll:', error);
+    }
   }, 100);
 
   return (

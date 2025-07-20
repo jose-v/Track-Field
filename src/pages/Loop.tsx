@@ -391,22 +391,59 @@ const Loop: React.FC = () => {
 
   // Infinite scroll: pass activeFilter
   useEffect(() => {
+    let isDestroyed = false;
+    let scrollHandler: (() => void) | null = null;
+    
     const handleScroll = () => {
-      if (!hasMore || isLoading || isFetchingMore) return;
-      const scrollY = window.scrollY || window.pageYOffset;
-      const viewportHeight = window.innerHeight;
-      const fullHeight = document.documentElement.scrollHeight;
-      // If user is within 200px of the bottom, load more
-      if (scrollY + viewportHeight >= fullHeight - 200) {
-        setPage(prevPage => {
-          const nextPage = prevPage + 1;
-          fetchPosts(nextPage, true, activeFilter, fetchToken);
-          return nextPage;
-        });
+      if (isDestroyed) return;
+      
+      try {
+        if (!hasMore || isLoading || isFetchingMore) return;
+        
+        // Safe DOM access with error handling
+        let scrollY = 0;
+        let viewportHeight = 0;
+        let fullHeight = 0;
+        
+        try {
+          scrollY = window.scrollY || window.pageYOffset || 0;
+          viewportHeight = window.innerHeight || 0;
+          fullHeight = document.documentElement?.scrollHeight || document.body?.scrollHeight || 0;
+        } catch (error) {
+          return;
+        }
+        
+        // If user is within 200px of the bottom, load more
+        if (scrollY + viewportHeight >= fullHeight - 200) {
+          setPage(prevPage => {
+            const nextPage = prevPage + 1;
+            fetchPosts(nextPage, true, activeFilter, fetchToken);
+            return nextPage;
+          });
+        }
+      } catch (error) {
+        // Silently ignore scroll errors
       }
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    
+    scrollHandler = handleScroll;
+    
+    try {
+      window.addEventListener('scroll', scrollHandler, { passive: true });
+    } catch (error) {
+      // Ignore setup errors
+    }
+    
+    return () => {
+      isDestroyed = true;
+      if (scrollHandler) {
+        try {
+          window.removeEventListener('scroll', scrollHandler);
+        } catch (error) {
+          // Ignore cleanup errors
+        }
+      }
+    };
   }, [hasMore, isLoading, isFetchingMore, activeFilter, fetchToken]);
 
   // Render content based on active tab

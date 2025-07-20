@@ -110,6 +110,7 @@ import { EventsListSection } from '../components/meets/EventsListSection';
 import { MeetFilesList } from '../components/meets/MeetFilesList';
 import PageHeader from '../components/PageHeader';
 import { usePageHeader } from '../hooks/usePageHeader';
+import { MobileMeetOptionsDrawer } from '../components/MobileMeetOptionsDrawer';
 
 // Info Badge Component - Shows database stats
 const InfoBadge: React.FC<{ children: React.ReactNode; count?: number }> = ({ children, count }) => (
@@ -316,8 +317,8 @@ const MeetCard: React.FC<MeetCardProps> = ({
 }) => {
   const { user } = useAuth();
   const toast = useToast();
-  const [showToolbar, setShowToolbar] = useState(false);
-  const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
+  // Unified drawer state for both mobile and desktop
+  const { isOpen: isDrawerOpen, onOpen: onDrawerOpen, onClose: onDrawerClose } = useDisclosure();
 
   // PDF Generator hook
   const { generatePDF, shareViaMail, EmailModal } = useMeetPDFGenerator({
@@ -331,7 +332,16 @@ const MeetCard: React.FC<MeetCardProps> = ({
     ]
   });
 
-  // Handle hover with delay
+  // Desktop hover state
+  const [showToolbar, setShowToolbar] = useState(false);
+  const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
+  
+  // Unified click handler for mobile
+  const handleOptionsClick = () => {
+    onDrawerOpen();
+  };
+  
+  // Desktop hover handlers
   const handleMouseEnter = () => {
     if (hoverTimeout) {
       clearTimeout(hoverTimeout);
@@ -456,6 +466,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
 
 
       {/* Top Right: Coach-only toolbar */}
+      {/* Top Right: Coach-only toolbar */}
       {isCoach && (
         <Box 
           position="absolute" 
@@ -464,136 +475,166 @@ const MeetCard: React.FC<MeetCardProps> = ({
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
-          {/* Invisible extended hover area */}
-          {showToolbar && (
-            <Box
-              position="absolute"
-              top="-60px"
-              right="-10px"
-              width="120px"
-              height="80px"
-              zIndex={999}
-            />
-          )}
+          {/* Desktop Hover Toolbar */}
+          <Box display={{ base: "none", md: "block" }}>
+            {/* Invisible extended hover area */}
+            {showToolbar && (
+              <Box
+                position="absolute"
+                top="-60px"
+                right="-10px"
+                width="120px"
+                height="80px"
+                zIndex={999}
+              />
+            )}
 
-          {/* Hover Toolbar */}
-          {showToolbar && (
-            <Box
-              position="absolute"
-              bottom="100%"
-              right="0"
-              mb={3}
-              zIndex={1000}
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-            >
-              <HStack 
-                spacing={4}
-                bg="gray.600"
-                px={4}
-                py={3}
-                borderRadius="xl"
-                border="2px solid"
-                borderColor="gray.500"
-                shadow="xl"
+            {/* Hover Toolbar */}
+            {showToolbar && (
+              <Box
+                position="absolute"
+                bottom="100%"
+                right="0"
+                mb={3}
+                zIndex={1000}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
               >
-                {/* Add Events */}
-                <Tooltip label="Add events to meet" placement="top" bg="gray.700" color="white" p={2}>
-                  <IconButton
-                    icon={<FaPlus size={22} color="currentColor" />}
-                    variant="ghost"
-                    size="lg"
-                    color="white"
-                    _hover={{ color: "gray.300" }}
-                    aria-label="Add events"
-                    onClick={() => onAddEvents?.(meet)}
-                  />
-                </Tooltip>
+                <HStack 
+                  spacing={4}
+                  bg="gray.600"
+                  px={4}
+                  py={3}
+                  borderRadius="xl"
+                  border="2px solid"
+                  borderColor="gray.500"
+                  shadow="xl"
+                >
+                  {/* Add Events */}
+                  <Tooltip label="Add events to meet" placement="top" bg="gray.700" color="white" p={2}>
+                    <IconButton
+                      icon={<FaPlus size={22} color="currentColor" />}
+                      variant="ghost"
+                      size="lg"
+                      color="white"
+                      _hover={{ color: "gray.300" }}
+                      aria-label="Add events"
+                      onClick={() => onAddEvents?.(meet)}
+                    />
+                  </Tooltip>
 
-                {/* Manage Athletes */}
-                <Tooltip label="Manage athlete assignments" placement="top" bg="gray.700" color="white" p={2}>
-                  <IconButton
-                    icon={<FaUsers size={22} color="currentColor" />}
-                    variant="ghost"
-                    size="lg"
-                    color="white"
-                    _hover={{ color: "gray.300" }}
-                    aria-label="Manage athletes"
-                    onClick={() => onManageEvents?.(meet)}
-                  />
-                </Tooltip>
+                  {/* Manage Athletes */}
+                  <Tooltip label="Manage athlete assignments" placement="top" bg="gray.700" color="white" p={2}>
+                    <IconButton
+                      icon={<FaUsers size={22} color="currentColor" />}
+                      variant="ghost"
+                      size="lg"
+                      color="white"
+                      _hover={{ color: "gray.300" }}
+                      aria-label="Manage athletes"
+                      onClick={() => onAssignAthletes?.(meet)}
+                    />
+                  </Tooltip>
 
-                {/* Divider */}
-                <Box w="1px" h="6" bg="gray.400" />
+                  {/* Manage Events */}
+                  <Tooltip label="Manage events" placement="top" bg="gray.700" color="white" p={2}>
+                    <IconButton
+                      icon={<FaRunning size={22} color="currentColor" />}
+                      variant="ghost"
+                      size="lg"
+                      color="white"
+                      _hover={{ color: "gray.300" }}
+                      aria-label="Manage events"
+                      onClick={() => onManageEvents?.(meet)}
+                    />
+                  </Tooltip>
 
-                {/* Download PDF */}
-                <Tooltip label="Download meet information" placement="top" bg="gray.700" color="white" p={2}>
-                  <IconButton
-                    icon={<FaDownload size={22} color="currentColor" />}
-                    variant="ghost"
-                    size="lg"
-                    color="white"
-                    _hover={{ color: "gray.300" }}
-                    aria-label="Download meet info"
-                    onClick={generatePDF}
-                  />
-                </Tooltip>
+                  {/* Divider */}
+                  <Box w="1px" h="6" bg="gray.400" />
 
-                {/* Share via Email */}
-                <Tooltip label="Share via email" placement="top" bg="gray.700" color="white" p={2}>
-                  <IconButton
-                    icon={<FaShare size={22} color="currentColor" />}
-                    variant="ghost"
-                    size="lg"
-                    color="white"
-                    _hover={{ color: "gray.300" }}
-                    aria-label="Share meet info"
-                    onClick={shareViaMail}
-                  />
-                </Tooltip>
+                  {/* Download PDF */}
+                  <Tooltip label="Download meet information" placement="top" bg="gray.700" color="white" p={2}>
+                    <IconButton
+                      icon={<FaDownload size={22} color="currentColor" />}
+                      variant="ghost"
+                      size="lg"
+                      color="white"
+                      _hover={{ color: "gray.300" }}
+                      aria-label="Download meet info"
+                      onClick={generatePDF}
+                    />
+                  </Tooltip>
 
-                {/* Divider */}
-                <Box w="1px" h="6" bg="gray.400" />
+                  {/* Share via Email */}
+                  <Tooltip label="Share via email" placement="top" bg="gray.700" color="white" p={2}>
+                    <IconButton
+                      icon={<FaShare size={22} color="currentColor" />}
+                      variant="ghost"
+                      size="lg"
+                      color="white"
+                      _hover={{ color: "gray.300" }}
+                      aria-label="Share meet info"
+                      onClick={shareViaMail}
+                    />
+                  </Tooltip>
 
-                {/* Edit */}
-                <Tooltip label="Edit meet details" placement="top" bg="gray.700" color="white" p={2}>
-                  <IconButton
-                    icon={<FaEdit size={22} color="currentColor" />}
-                    variant="ghost"
-                    size="lg"
-                    color="white"
-                    _hover={{ color: "gray.300" }}
-                    aria-label="Edit meet"
-                    onClick={() => onEdit?.(meet)}
-                  />
-                </Tooltip>
+                  {/* Divider */}
+                  <Box w="1px" h="6" bg="gray.400" />
 
-                {/* Delete */}
-                <Tooltip label="Delete this meet" placement="top" bg="gray.700" color="white" p={2}>
-                  <IconButton
-                    icon={<FaTrash size={22} color="red.400" />}
-                    variant="ghost"
-                    size="lg"
-                    color="red.400"
-                    _hover={{ color: "red.300" }}
-                    aria-label="Delete meet"
-                    onClick={() => onDelete?.(meet)}
-                  />
-                </Tooltip>
-              </HStack>
-            </Box>
-          )}
+                  {/* Edit */}
+                  <Tooltip label="Edit meet details" placement="top" bg="gray.700" color="white" p={2}>
+                    <IconButton
+                      icon={<FaEdit size={22} color="currentColor" />}
+                      variant="ghost"
+                      size="lg"
+                      color="white"
+                      _hover={{ color: "gray.300" }}
+                      aria-label="Edit meet"
+                      onClick={() => onEdit?.(meet)}
+                    />
+                  </Tooltip>
 
-          {/* 3 Dots Button */}
-          <IconButton
-            icon={<FaEllipsisV size={18} />}
-            variant="ghost"
-            size="sm"
-            color="white"
-            bg="gray.700"
-            _hover={{ color: "white", bg: "gray.600" }}
-            aria-label="Options"
-          />
+                  {/* Delete */}
+                  <Tooltip label="Delete this meet" placement="top" bg="gray.700" color="white" p={2}>
+                    <IconButton
+                      icon={<FaTrash size={22} color="red.400" />}
+                      variant="ghost"
+                      size="lg"
+                      color="red.400"
+                      _hover={{ color: "red.300" }}
+                      aria-label="Delete meet"
+                      onClick={() => onDelete?.(meet)}
+                    />
+                  </Tooltip>
+                </HStack>
+              </Box>
+            )}
+
+            {/* Desktop 3 Dots Button */}
+            <IconButton
+              icon={<FaEllipsisV size={18} />}
+              variant="ghost"
+              size="sm"
+              color="white"
+              bg="gray.700"
+              _hover={{ color: "white", bg: "gray.600" }}
+              aria-label="Options"
+            />
+          </Box>
+          
+          {/* Mobile 3 Dots Button */}
+          <Box display={{ base: "block", md: "none" }}>
+            <IconButton
+              icon={<FaEllipsisV size={18} />}
+              variant="ghost"
+              size="sm"
+              color="white"
+              bg="gray.700"
+              _hover={{ color: "white", bg: "gray.600" }}
+              aria-label="Options"
+              onClick={handleOptionsClick}
+            />
+          </Box>
         </Box>
       )}
 
@@ -606,110 +647,127 @@ const MeetCard: React.FC<MeetCardProps> = ({
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
-          {/* Invisible extended hover area */}
-          {showToolbar && (
-            <Box
-              position="absolute"
-              top="-60px"
-              right="-10px"
-              width="120px"
-              height="80px"
-              zIndex={999}
-            />
-          )}
+          {/* Desktop Hover Toolbar */}
+          <Box display={{ base: "none", md: "block" }}>
+            {/* Invisible extended hover area */}
+            {showToolbar && (
+              <Box
+                position="absolute"
+                top="-60px"
+                right="-10px"
+                width="120px"
+                height="80px"
+                zIndex={999}
+              />
+            )}
 
-          {/* Hover Toolbar */}
-          {showToolbar && (
-            <Box
-              position="absolute"
-              bottom="100%"
-              right="0"
-              mb={3}
-              zIndex={1000}
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-            >
-              <HStack 
-                spacing={4}
-                bg="gray.600"
-                px={4}
-                py={3}
-                borderRadius="xl"
-                border="2px solid"
-                borderColor="gray.500"
-                shadow="xl"
+            {/* Hover Toolbar */}
+            {showToolbar && (
+              <Box
+                position="absolute"
+                bottom="100%"
+                right="0"
+                mb={3}
+                zIndex={1000}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
               >
-                {/* Manage Events */}
-                <Tooltip label="View events" placement="top" bg="gray.700" color="white" p={2}>
-                  <IconButton
-                    icon={<FaRunning size={22} color="currentColor" />}
-                    variant="ghost"
-                    size="lg"
-                    color="white"
-                    _hover={{ color: "gray.300" }}
-                    aria-label="View events"
-                    onClick={() => onManageEvents?.(meet)}
-                  />
-                </Tooltip>
+                <HStack 
+                  spacing={4}
+                  bg="gray.600"
+                  px={4}
+                  py={3}
+                  borderRadius="xl"
+                  border="2px solid"
+                  borderColor="gray.500"
+                  shadow="xl"
+                >
+                  {/* Manage Events */}
+                  <Tooltip label="View events" placement="top" bg="gray.700" color="white" p={2}>
+                    <IconButton
+                      icon={<FaRunning size={22} color="currentColor" />}
+                      variant="ghost"
+                      size="lg"
+                      color="white"
+                      _hover={{ color: "gray.300" }}
+                      aria-label="View events"
+                      onClick={() => onManageEvents?.(meet)}
+                    />
+                  </Tooltip>
 
-                {/* Divider */}
-                <Box w="1px" h="6" bg="gray.400" />
+                  {/* Divider */}
+                  <Box w="1px" h="6" bg="gray.400" />
 
-                {/* Download PDF */}
-                <Tooltip label="Download meet information" placement="top" bg="gray.700" color="white" p={2}>
-                  <IconButton
-                    icon={<FaDownload size={22} color="currentColor" />}
-                    variant="ghost"
-                    size="lg"
-                    color="white"
-                    _hover={{ color: "gray.300" }}
-                    aria-label="Download meet info"
-                    onClick={generatePDF}
-                  />
-                </Tooltip>
+                  {/* Download PDF */}
+                  <Tooltip label="Download meet information" placement="top" bg="gray.700" color="white" p={2}>
+                    <IconButton
+                      icon={<FaDownload size={22} color="currentColor" />}
+                      variant="ghost"
+                      size="lg"
+                      color="white"
+                      _hover={{ color: "gray.300" }}
+                      aria-label="Download meet info"
+                      onClick={generatePDF}
+                    />
+                  </Tooltip>
 
-                {/* Share via Email */}
-                <Tooltip label="Share via email" placement="top" bg="gray.700" color="white" p={2}>
-                  <IconButton
-                    icon={<FaShare size={22} color="currentColor" />}
-                    variant="ghost"
-                    size="lg"
-                    color="white"
-                    _hover={{ color: "gray.300" }}
-                    aria-label="Share meet info"
-                    onClick={shareViaMail}
-                  />
-                </Tooltip>
+                  {/* Share via Email */}
+                  <Tooltip label="Share via email" placement="top" bg="gray.700" color="white" p={2}>
+                    <IconButton
+                      icon={<FaShare size={22} color="currentColor" />}
+                      variant="ghost"
+                      size="lg"
+                      color="white"
+                      _hover={{ color: "gray.300" }}
+                      aria-label="Share meet info"
+                      onClick={shareViaMail}
+                    />
+                  </Tooltip>
 
-                {/* Divider */}
-                <Box w="1px" h="6" bg="gray.400" />
+                  {/* Divider */}
+                  <Box w="1px" h="6" bg="gray.400" />
 
-                {/* Edit */}
-                <Tooltip label="Edit meet details" placement="top" bg="gray.700" color="white" p={2}>
-                  <IconButton
-                    icon={<FaEdit size={22} color="currentColor" />}
-                    variant="ghost"
-                    size="lg"
-                    color="white"
-                    _hover={{ color: "gray.300" }}
-                    aria-label="Edit meet"
-                    onClick={() => onEdit?.(meet)}
-                  />
-                </Tooltip>
-              </HStack>
-            </Box>
-          )}
+                  {/* Edit */}
+                  <Tooltip label="Edit meet details" placement="top" bg="gray.700" color="white" p={2}>
+                    <IconButton
+                      icon={<FaEdit size={22} color="currentColor" />}
+                      variant="ghost"
+                      size="lg"
+                      color="white"
+                      _hover={{ color: "gray.300" }}
+                      aria-label="Edit meet"
+                      onClick={() => onEdit?.(meet)}
+                    />
+                  </Tooltip>
+                </HStack>
+              </Box>
+            )}
 
-          {/* 3 Dots Button */}
-          <IconButton
-            icon={<FaEllipsisV size={18} />}
-            variant="ghost"
-            size="sm"
-            color="white"
-            bg="gray.700"
-            _hover={{ color: "white", bg: "gray.600" }}
-            aria-label="Options"
-          />
+            {/* Desktop 3 Dots Button */}
+            <IconButton
+              icon={<FaEllipsisV size={18} />}
+              variant="ghost"
+              size="sm"
+              color="white"
+              bg="gray.700"
+              _hover={{ color: "white", bg: "gray.600" }}
+              aria-label="Options"
+            />
+          </Box>
+          
+          {/* Mobile 3 Dots Button */}
+          <Box display={{ base: "block", md: "none" }}>
+            <IconButton
+              icon={<FaEllipsisV size={18} />}
+              variant="ghost"
+              size="sm"
+              color="white"
+              bg="gray.700"
+              _hover={{ color: "white", bg: "gray.600" }}
+              aria-label="Options"
+              onClick={handleOptionsClick}
+            />
+          </Box>
         </Box>
       )}
 
@@ -2634,6 +2692,21 @@ const MeetCard: React.FC<MeetCardProps> = ({
 
       {/* Email Share Modal */}
       <EmailModal />
+      
+      {/* Unified Meet Options Drawer */}
+      <MobileMeetOptionsDrawer
+        isOpen={isDrawerOpen}
+        onClose={onDrawerClose}
+        meet={meet}
+        isCoach={isCoach}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onAssignAthletes={onAssignAthletes}
+        onManageEvents={onManageEvents}
+        onAddEvents={onAddEvents}
+        onDownloadPDF={generatePDF}
+        onShareViaEmail={shareViaMail}
+      />
     </Box>
   );
 };
@@ -3649,25 +3722,7 @@ export const Meets: React.FC = () => {
       </Box>
 
       {/* Mobile Header - Mobile Only */}
-      {userIsCoach && (
-        <Box py={2} display={{ base: "block", md: "none" }}>
-          <Container maxW="7xl">
-            <Flex justify="flex-end" align="center">
-              {/* Action Buttons */}
-              <HStack spacing={2}>
-                <Button
-                  leftIcon={<FaPlus />}
-                  colorScheme="blue"
-                  size="sm"
-                  onClick={handleCreateMeet}
-                >
-                  Create Meet
-                </Button>
-              </HStack>
-            </Flex>
-          </Container>
-        </Box>
-      )}
+      {/* Removed - Create Meet button now only appears next to location card */}
 
       {/* Main Content */}
       <Flex 
@@ -3896,13 +3951,30 @@ export const Meets: React.FC = () => {
                 onClick={onLocationSetupOpen}
                 _hover={{ bg: "gray.700" }}
               >
-                <HStack spacing={2}>
-                  <Tooltip label="Set your location for travel times" placement="top">
-                    <Box>
-                      <Icon as={FaMapMarkerAlt} color="green.400" size="sm" />
-                    </Box>
-                  </Tooltip>
-                  <CurrentLocationDisplay />
+                <HStack spacing={2} justify="space-between">
+                  <HStack spacing={2}>
+                    <Tooltip label="Set your location for travel times" placement="top">
+                      <Box>
+                        <Icon as={FaMapMarkerAlt} color="green.400" size="sm" />
+                      </Box>
+                    </Tooltip>
+                    <CurrentLocationDisplay />
+                  </HStack>
+                  
+                  {/* Mobile Create Meet Button - Only on mobile */}
+                  <Box display={{ base: "block", md: "none" }}>
+                    <Button 
+                      size="sm"
+                      leftIcon={<FaPlus />} 
+                      colorScheme="blue" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onFormOpen();
+                      }}
+                    >
+                      Create Meet
+                    </Button>
+                  </Box>
                 </HStack>
               </Box>
 

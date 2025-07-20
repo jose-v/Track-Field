@@ -45,6 +45,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { CreateTeamDrawer } from './CreateTeamDrawer';
 
 interface TeamMember {
   id: string;
@@ -79,7 +80,11 @@ interface MobileCoachTeamCardProps {
 export const MobileCoachTeamCard: React.FC<MobileCoachTeamCardProps> = ({ maxTeamsToShow = 10 }) => {
   const { user } = useAuth();
   const toast = useToast();
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  
+  // Separate state for team context menu and create team drawer
+  const { isOpen: isTeamMenuOpen, onOpen: onTeamMenuOpen, onClose: onTeamMenuClose } = useDisclosure();
+  const { isOpen: isCreateTeamOpen, onOpen: onCreateTeamOpen, onClose: onCreateTeamClose } = useDisclosure();
+  
   const [selectedTeam, setSelectedTeam] = useState<CoachTeam | null>(null);
   const isMobile = useBreakpointValue({ base: true, md: false });
 
@@ -220,7 +225,7 @@ export const MobileCoachTeamCard: React.FC<MobileCoachTeamCardProps> = ({ maxTea
 
   const handleTeamClick = (team: CoachTeam) => {
     setSelectedTeam(team);
-    onOpen();
+    onTeamMenuOpen();
   };
 
   const handleCopyCode = (inviteCode: string, teamName: string) => {
@@ -315,6 +320,7 @@ export const MobileCoachTeamCard: React.FC<MobileCoachTeamCardProps> = ({ maxTea
                 size="sm"
                 variant="ghost"
                 colorScheme="blue"
+                onClick={onCreateTeamOpen}
               />
             </HStack>
             
@@ -370,8 +376,8 @@ export const MobileCoachTeamCard: React.FC<MobileCoachTeamCardProps> = ({ maxTea
         </CardBody>
       </Card>
 
-      {/* Bottom Drawer */}
-      <Drawer isOpen={isOpen} placement="bottom" onClose={onClose} size="full">
+      {/* Team Context Menu Drawer */}
+      <Drawer isOpen={isTeamMenuOpen} placement="bottom" onClose={onTeamMenuClose} size="full">
         <DrawerOverlay />
         <DrawerContent bg={drawerBg} maxH="75vh" h="auto" borderTopRadius="xl">
           <DrawerCloseButton />
@@ -417,7 +423,7 @@ export const MobileCoachTeamCard: React.FC<MobileCoachTeamCardProps> = ({ maxTea
                 onClick={() => {
                   if (selectedTeam) {
                     handleEditTeam(selectedTeam);
-                    onClose();
+                    onTeamMenuClose();
                   }
                 }}
               >
@@ -437,7 +443,7 @@ export const MobileCoachTeamCard: React.FC<MobileCoachTeamCardProps> = ({ maxTea
                 onClick={() => {
                   if (selectedTeam) {
                     handleAddAthlete(selectedTeam);
-                    onClose();
+                    onTeamMenuClose();
                   }
                 }}
               >
@@ -477,7 +483,7 @@ export const MobileCoachTeamCard: React.FC<MobileCoachTeamCardProps> = ({ maxTea
                 onClick={() => {
                   if (selectedTeam) {
                     handleDeleteTeam(selectedTeam);
-                    onClose();
+                    onTeamMenuClose();
                   }
                 }}
               >
@@ -488,6 +494,16 @@ export const MobileCoachTeamCard: React.FC<MobileCoachTeamCardProps> = ({ maxTea
           </DrawerBody>
         </DrawerContent>
       </Drawer>
+
+      {/* Create Team Drawer */}
+      <CreateTeamDrawer
+        isOpen={isCreateTeamOpen}
+        onClose={onCreateTeamClose}
+        onTeamCreated={() => {
+          refetch();
+          onCreateTeamClose();
+        }}
+      />
     </>
   );
 }; 

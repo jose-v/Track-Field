@@ -644,7 +644,8 @@ export function CoachMeets() {
   // Render UI
   return (
     <Box py={8} bg={pageBackgroundColor} minH="100vh">
-      <Flex justify="space-between" align="center" mb={6}>
+      {/* Desktop Header */}
+      <Flex justify="space-between" align="center" mb={6} display={{ base: "none", md: "flex" }}>
         <Heading color={textColor}>Track Meets</Heading>
         <HStack spacing={2}>
           <HStack spacing={2}>
@@ -671,6 +672,38 @@ export function CoachMeets() {
           </Button>
         </HStack>
       </Flex>
+
+      {/* Mobile Header */}
+      <Box display={{ base: "block", md: "none" }} mb={6}>
+        <Heading color={textColor} mb={4}>Track Meets</Heading>
+        <HStack spacing={2}>
+          <Tooltip label="Set your location for travel times">
+            <IconButton
+              icon={<FaMapMarkerAlt />}
+              aria-label="Set location"
+              onClick={onLocationSetupOpen}
+              variant="ghost"
+              colorScheme="green"
+              size="md" 
+            />
+          </Tooltip>
+          <CurrentLocationDisplay />
+        </HStack>
+      </Box>
+
+      {/* Mobile Create Meet Button - Next to Location */}
+      <Box display={{ base: "block", md: "none" }} mb={4}>
+        <Flex justify="flex-end">
+          <Button 
+            leftIcon={<FaPlus />} 
+            colorScheme="blue" 
+            onClick={handleCreateMeet}
+            size="md"
+          >
+            Create Meet
+          </Button>
+        </Flex>
+      </Box>
       
       {loading ? (
         <Flex justify="center" my={8}>
