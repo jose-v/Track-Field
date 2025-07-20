@@ -397,7 +397,7 @@ const MobileNotifications: React.FC = () => {
         if (startY > 0 && activeTab === 'unread') {
           // Only trigger if it's a significant, deliberate downward pull
           if (distance > 20) { // Minimum 20px before any visual feedback
-            setPullDistance(Math.min(distance, 120)); // Increased max pull distance
+            setPullDistance(Math.min(distance, 300)); // Increased max pull distance
           }
         }
       }
@@ -800,7 +800,7 @@ const MobileNotifications: React.FC = () => {
       <Box
         transform={
           pullDistance > 20 
-            ? `translateY(${Math.min(pullDistance * 0.3, 60)}px)` 
+            ? `translateY(${Math.min(pullDistance * 0.8, 200)}px)` 
             : isBouncing 
               ? 'translateY(-10px)' 
               : 'translateY(0px)'
