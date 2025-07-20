@@ -27,6 +27,7 @@ const MobileNotifications: React.FC = () => {
   const [pullDistance, setPullDistance] = useState(0);
   const [startY, setStartY] = useState(0);
   const [activeTab, setActiveTab] = useState<'unread' | 'read' | 'archived'>('unread');
+  const [isBouncing, setIsBouncing] = useState(false);
   const [swipeStates, setSwipeStates] = useState<{[key: string]: { 
     isDragging: boolean; 
     startX: number; 
@@ -334,6 +335,7 @@ const MobileNotifications: React.FC = () => {
   const refreshNotifications = async () => {
     try {
       setIsRefreshing(true);
+      setIsBouncing(true);
       
       // Fetch all fresh data
       await fetchNotifications();
@@ -343,6 +345,11 @@ const MobileNotifications: React.FC = () => {
     } finally {
       setIsRefreshing(false);
       setPullDistance(0);
+      
+      // Trigger bounce animation
+      setTimeout(() => {
+        setIsBouncing(false);
+      }, 300);
     }
   };
 
@@ -405,6 +412,13 @@ const MobileNotifications: React.FC = () => {
       refreshNotifications();
     } else {
       setPullDistance(0);
+      // Small bounce back even when not refreshing
+      if (pullDistance > 20) {
+        setIsBouncing(true);
+        setTimeout(() => {
+          setIsBouncing(false);
+        }, 200);
+      }
     }
     setStartY(0);
   };
@@ -747,7 +761,7 @@ const MobileNotifications: React.FC = () => {
       {pullDistance > 20 && activeTab === 'unread' && (
         <Box
           position="fixed"
-          top={`${Math.max(60, pullDistance - 80)}px`}
+          top={`${Math.max(90, pullDistance - 50)}px`}
           left="50%"
           transform="translateX(-50%)"
           zIndex={999}
@@ -783,7 +797,22 @@ const MobileNotifications: React.FC = () => {
         </Box>
       )}
 
-      <Box>
+      <Box
+        transform={
+          pullDistance > 20 
+            ? `translateY(${Math.min(pullDistance * 0.3, 60)}px)` 
+            : isBouncing 
+              ? 'translateY(-10px)' 
+              : 'translateY(0px)'
+        }
+        transition={
+          pullDistance > 20 
+            ? 'transform 0.1s ease-out' 
+            : isBouncing 
+              ? 'transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)' 
+              : 'transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)'
+        }
+      >
         
         {/* Notification Tabs */}
         <Box borderBottom="1px solid" borderColor={borderColor} position="sticky" top="0" zIndex={100}>
