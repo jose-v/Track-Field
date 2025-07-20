@@ -373,7 +373,7 @@ export const MobileCoachTeamCard: React.FC<MobileCoachTeamCardProps> = ({ maxTea
       {/* Bottom Drawer */}
       <Drawer isOpen={isOpen} placement="bottom" onClose={onClose} size="full">
         <DrawerOverlay />
-        <DrawerContent bg={drawerBg} maxH="75vh" borderTopRadius="xl">
+        <DrawerContent bg={drawerBg} maxH="75vh" h="auto" borderTopRadius="xl">
           <DrawerCloseButton />
           <DrawerHeader borderBottomWidth="1px" borderColor={borderColor}>
             <VStack align="start" spacing={1}>
