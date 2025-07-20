@@ -305,7 +305,7 @@ export const MobileCoachTeamCard: React.FC<MobileCoachTeamCardProps> = ({ maxTea
   return (
     <>
       <Card bg={cardBg} borderColor={borderColor} borderWidth="1px" shadow={cardShadow}>
-        <CardBody>
+        <CardBody px={1}>
           <VStack spacing={4} align="stretch">
             <HStack justify="space-between">
               <Heading size="md" color={headingColor}>My Teams</Heading>
