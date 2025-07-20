@@ -1,56 +1,86 @@
 import React, { useState } from 'react';
 import {
-  Box, Card, CardBody, Heading, Text, Icon, Flex, HStack, VStack, 
-  Button, Badge, IconButton, useColorModeValue, Tooltip,
-  Menu, MenuButton, MenuList, MenuItem
+  Card,
+  CardBody,
+  VStack,
+  HStack,
+  Text,
+  Button,
+  IconButton,
+  Badge,
+  Box,
+  Flex,
+  Heading,
+  Icon,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  useColorModeValue,
+  useBreakpointValue,
+  useBreakpoint,
 } from '@chakra-ui/react';
-import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaEdit, FaTrash, FaPlayCircle, FaCalendarAlt, FaClock, FaMapMarkerAlt, FaUsers, FaTasks, FaUndo, FaLayerGroup, FaEllipsisV, FaEye, FaExchangeAlt } from 'react-icons/fa';
-import type { Workout, Exercise } from '../services/api';
-import { dateUtils } from '../utils/date';
-import { ProgressBar } from './ProgressBar';
-import { DetailedProgressDisplay } from './DetailedProgressDisplay';
+import { 
+  FaRunning, 
+  FaDumbbell, 
+  FaLeaf, 
+  FaPlayCircle, 
+  FaEdit, 
+  FaTrash, 
+  FaUsers, 
+  FaRedo, 
+  FaUndo, 
+  FaEllipsisV, 
+  FaEye, 
+  FaExchangeAlt,
+  FaLayerGroup,
+  FaCalendarDay,
+  FaClock,
+  FaMapMarkerAlt,
+} from 'react-icons/fa';
 import { Link as RouterLink } from 'react-router-dom';
-import { format } from 'date-fns';
-import { getExercisesFromWorkout, getBlocksFromWorkout } from '../utils/workoutUtils';
 import { WorkoutDetailsDrawer } from './WorkoutDetailsDrawer';
+import { MobileWorkoutDetails } from './MobileWorkoutDetails';
+import { DetailedProgressDisplay } from './DetailedProgressDisplay';
+import * as dateUtils from 'date-fns';
+import type { Workout } from '../services/api';
+import { getExercisesFromWorkout, getBlocksFromWorkout } from '../utils/workoutUtils';
 
-// Shared utility functions
 export function getTypeIcon(type: string | undefined) {
-  switch (type) {
-    case 'Strength': return <FaDumbbell />;
-    case 'Running': return <FaRunning />;
-    case 'Flexibility': return <FaLeaf />;
-    case 'Recovery': return <FaRedo />;
-    default: return <FaRunning />;
+  switch (type?.toLowerCase()) {
+    case 'strength':
+      return { type: FaDumbbell, color: 'orange.500' };
+    case 'cardio':
+      return { type: FaRunning, color: 'red.500' };
+    case 'flexibility':
+      return { type: FaLeaf, color: 'green.500' };
+    default:
+      return { type: FaRunning, color: 'blue.500' };
   }
 }
 
 export function getTypeColor(type: string | undefined) {
-  switch (type) {
-    case 'Strength': return 'blue';
-    case 'Running': return 'blue';
-    case 'Flexibility': return 'blue';
-    case 'Recovery': return 'blue';
+  switch (type?.toLowerCase()) {
+    case 'strength': return 'orange';
+    case 'cardio': return 'red';
+    case 'flexibility': return 'green';
     default: return 'blue';
   }
 }
 
 export function getTypeName(type: string | undefined) {
-  return type || 'Workout';
+  switch (type?.toLowerCase()) {
+    case 'strength': return 'Strength';
+    case 'cardio': return 'Cardio';
+    case 'flexibility': return 'Flexibility';
+    default: return 'Running';
+  }
 }
 
 export function formatDate(dateStr: string | undefined) {
   if (!dateStr) return 'No date set';
-  try {
-    // Use our date utilities to properly handle timezone issues
-    return dateUtils.format(dateUtils.parseLocalDate(dateStr), 'MMM d, yyyy');
-  } catch (e) {
-    console.error(`Error formatting date: ${dateStr}`, e);
-    return 'Error';
-  }
+  return dateUtils.format(new Date(dateStr), 'MMM d, yyyy');
 }
-
-// Helper functions moved to utils/workoutUtils.ts
 
 interface WorkoutCardProps {
   workout: Workout;
@@ -108,12 +138,19 @@ export function WorkoutCard({
   
   // Handle view details - use drawer or existing callback
   const handleViewDetails = () => {
-    if (onViewDetails) {
+    // Always open the drawer on mobile, regardless of onViewDetails prop
+    if (isMobile) {
+      setIsDetailsDrawerOpen(true);
+    } else if (onViewDetails) {
       onViewDetails();
     } else {
       setIsDetailsDrawerOpen(true);
     }
   };
+  
+  // Responsive design - use mobile drawer on mobile
+  const breakpoint = useBreakpoint();
+  const isMobile = breakpoint === 'base' || breakpoint === 'sm';
   
   // All useColorModeValue calls must be at the top level to follow Rules of Hooks
   const borderColor = useColorModeValue('gray.200', 'gray.700');
@@ -297,7 +334,6 @@ export function WorkoutCard({
             {/* Block Mode badge - Show for block-based workouts */}
             {(workout as any).is_block_based && (
               <HStack spacing={1} alignSelf="flex-start">
-                <Icon as={FaLayerGroup} boxSize={3} color="green.500" />
                 <Badge 
                   colorScheme="green" 
                   size="sm" 
@@ -311,287 +347,283 @@ export function WorkoutCard({
                 </Badge>
               </HStack>
             )}
-            
-            {/* Monthly Plan Usage - Show for coaches when workout is used in monthly plans */}
+
+            {/* Monthly Plan Usage Warning - Show for coaches */}
             {isCoach && monthlyPlanUsage?.isUsed && (
-              <Box
-                width="100%"
-                bg={monthlyPlanBg}
-                border="1px solid"
+              <Box 
+                width="100%" 
+                bg={monthlyPlanBg} 
+                p={3} 
+                borderRadius="md" 
+                border="1px solid" 
                 borderColor={monthlyPlanBorder}
-                borderRadius="md"
-                p={3}
               >
-                <Flex align="center" mb={1}>
-                  <Icon as={FaCalendarAlt} mr={2} color="orange.500" boxSize={4} />
-                  <Text fontSize="sm" fontWeight="medium" color={monthlyPlanText}>
-                    Used in {monthlyPlanUsage.monthlyPlans.length} Monthly Plan{monthlyPlanUsage.monthlyPlans.length !== 1 ? 's' : ''}
-                  </Text>
-                </Flex>
-                <VStack align="start" spacing={1} pl={6}>
-                  {monthlyPlanUsage.monthlyPlans.slice(0, 2).map((plan) => (
-                    <Text key={plan.id} fontSize="xs" color={monthlyPlanItemText} noOfLines={1}>
+                <Text fontSize="sm" color={monthlyPlanText} fontWeight="medium" mb={1}>
+                  ⚠️ Used in Monthly Plans
+                </Text>
+                <VStack align="start" spacing={1}>
+                  {monthlyPlanUsage.monthlyPlans.slice(0, 3).map((plan, index) => (
+                    <Text key={plan.id} fontSize="xs" color={monthlyPlanItemText}>
                       • {plan.name}
                     </Text>
                   ))}
-                  {monthlyPlanUsage.monthlyPlans.length > 2 && (
-                    <Text fontSize="xs" color={monthlyPlanItemText} fontStyle="italic">
-                      +{monthlyPlanUsage.monthlyPlans.length - 2} more...
+                  {monthlyPlanUsage.monthlyPlans.length > 3 && (
+                    <Text fontSize="xs" color={monthlyPlanItemText}>
+                      • +{monthlyPlanUsage.monthlyPlans.length - 3} more plans
                     </Text>
                   )}
                 </VStack>
               </Box>
             )}
-            
-            {/* Date and time - Hide for templates */}
-            {!isTemplate && (
-              <HStack spacing={4} fontSize="md" color={infoColor} width="100%">
-                <Tooltip label="Scheduled Date" placement="top">
-                  <Flex align="center">
-                    <Icon as={FaCalendarAlt} mr={2} color={typeColor} boxSize={4} />
-                    <Text>{formattedScheduleDate}</Text>
-                  </Flex>
-                </Tooltip>
-                {workout.time && (
-                  <Flex align="center">
-                    <Icon as={FaClock} mr={2} color={typeColor} boxSize={4} />
-                    <Text>{workout.time}</Text>
-                  </Flex>
+
+            {/* Workout details */}
+            <VStack align="start" spacing={2} width="100%">
+              {/* Date and duration */}
+              <HStack spacing={4} width="100%">
+                {workout.date && (
+                  <HStack spacing={1}>
+                    <Icon as={FaCalendarDay} color={infoColor} boxSize={3} />
+                    <Text fontSize="sm" color={infoColor}>
+                      {formattedScheduleDate}
+                    </Text>
+                  </HStack>
                 )}
-              </HStack>
-            )}
-            
-            {/* Duration and location info - Show duration for templates, hide time-specific info */}
-            {(workout.duration || (workout as any).location) && (
-              <HStack spacing={4} fontSize="md" color={infoColor} width="100%">
-                {workout.duration && (
-                  <Flex align="center">
-                    <Icon as={FaClock} mr={2} color={typeColor} boxSize={4} />
-                    <Text>{isTemplate ? `~${workout.duration}` : workout.duration}</Text>
-                  </Flex>
+                {(workout as any).estimated_duration && (
+                  <HStack spacing={1}>
+                    <Icon as={FaClock} color={infoColor} boxSize={3} />
+                    <Text fontSize="sm" color={infoColor}>
+                      {(workout as any).estimated_duration}
+                    </Text>
+                  </HStack>
                 )}
                 {(workout as any).location && (
-                  <Flex align="center">
-                    <Icon as={FaMapMarkerAlt} mr={2} color={typeColor} boxSize={4} />
-                    <Text>{(workout as any).location}</Text>
-                  </Flex>
+                  <HStack spacing={1}>
+                    <Icon as={FaMapMarkerAlt} color={infoColor} boxSize={3} />
+                    <Text fontSize="sm" color={infoColor} noOfLines={1}>
+                      {(workout as any).location}
+                    </Text>
+                  </HStack>
                 )}
               </HStack>
-            )}
-            
 
-            
-            {/* Exercise/Block count only for coaches - simplified display */}
-            {isCoach && (
-              <Flex align="center" width="100%">
-                {(workout as any).is_block_based && workoutBlocks.length > 0 ? (
-                  <>
-                    <Icon as={FaLayerGroup} mr={2} color={typeColor} boxSize={4} />
-                    <Text fontSize="md" color={infoColor}>
-                      {workoutBlocks.length} Block{workoutBlocks.length !== 1 ? 's' : ''}
-                    </Text>
-                  </>
-                ) : (
-                  <>
-                    <Icon as={FaTasks} mr={2} color={typeColor} boxSize={4} />
-                    <Text fontSize="md" color={infoColor}>
-                      {workout.template_type === 'monthly' && (workout as any)._planTotalExercises ? 
-                        (workout as any)._planTotalExercises : allExercises.length} Exercise{(workout.template_type === 'monthly' && (workout as any)._planTotalExercises ? 
-                        (workout as any)._planTotalExercises : allExercises.length) !== 1 ? 's' : ''}
-                    </Text>
-                  </>
-                )}
-              </Flex>
-            )}
-            
-            {/* Assigned to (for coach view) - Hide for templates */}
-            {!isTemplate && isCoach && (
-              <Flex align="center" width="100%">
-                <Icon as={FaUsers} mr={2} color={typeColor} boxSize={4} />
-                <Text fontSize="md" color={infoColor} noOfLines={1} title={assignedTo}>
-                  Assigned to: {assignedTo}
-                </Text>
-              </Flex>
-            )}
-            
-            {/* Template type for templates */}
-            {isTemplate && workout.template_type && (
-              <Flex align="center" width="100%">
-                <Icon as={FaLayerGroup} mr={2} color={typeColor} boxSize={4} />
-                <Text fontSize="md" color={infoColor}>
-                  Template Type: {workout.template_type === 'weekly' ? 'Weekly Plan' : 'Single Workout'}
-                </Text>
-              </Flex>
-            )}
-            
-            {/* Card description/notes - Hide auto-generated descriptions */}
-            {(() => {
-              const description = workout.notes || workout.description;
-              // Hide auto-generated descriptions that match the pattern "X workout with Y block(s) and Z exercise(s)"
-              const isAutoGenerated = description && /^\w+ workout with \d+ blocks? and \d+ exercises?$/.test(description);
-              
-              return description && !isAutoGenerated && (
-                <Box width="100%" bg={descriptionBg} p={3} borderRadius="md">
-                  <Text fontSize="sm" color={infoColor} noOfLines={3}>
-                    {description}
+              {/* Exercise count */}
+              {!isTemplate && (
+                <Flex align="center" width="100%">
+                  <Icon as={FaRunning} mr={2} color={typeColor} boxSize={4} />
+                  <Text fontSize="md" color={infoColor}>
+                    {workout.template_type === 'monthly' && (workout as any)._planTotalExercises ? 
+                      (workout as any)._planTotalExercises : allExercises.length} Exercise{(workout.template_type === 'monthly' && (workout as any)._planTotalExercises ? 
+                      (workout as any)._planTotalExercises : allExercises.length) !== 1 ? 's' : ''}
                   </Text>
-                </Box>
-              );
-            })()}
-          </VStack>
-          
-          {/* Bottom section with progress bar and action button - Hide progress for templates and coaches */}
-          <VStack width="100%" spacing={2}>
-            {/* Progress bar - Only show for non-templates and non-coaches */}
-            {!isTemplate && !isCoach && (
-              <Box width="100%">
-                <Flex justifyContent="space-between" alignItems="center" mb={2}>
-                  <Text fontSize="sm" color={infoColor} fontWeight="medium">
-                    Your Progress
-                  </Text>
-                  {showRefresh && onRefresh && (
-                    <IconButton
-                      icon={<FaRedo />}
-                      aria-label="Sync progress"
-                      size="xs"
-                      variant="outline"
-                      onClick={(e) => { 
-                        e.stopPropagation();
-                        onRefresh();
-                      }}
-                      title="Sync progress with database"
-                    />
-                  )}
                 </Flex>
+              )}
+              
+              {/* Assigned to (for coach view) - Hide for templates */}
+              {!isTemplate && isCoach && (
+                <Flex align="center" width="100%">
+                  <Icon as={FaUsers} mr={2} color={typeColor} boxSize={4} />
+                  <Text fontSize="md" color={infoColor} noOfLines={1} title={assignedTo}>
+                    Assigned to: {assignedTo}
+                  </Text>
+                </Flex>
+              )}
+              
+              {/* Template type for templates */}
+              {isTemplate && workout.template_type && (
+                <Flex align="center" width="100%">
+                  <Icon as={FaLayerGroup} mr={2} color={typeColor} boxSize={4} />
+                  <Text fontSize="md" color={infoColor}>
+                    Template Type: {workout.template_type === 'weekly' ? 'Weekly Plan' : 'Single Workout'}
+                  </Text>
+                </Flex>
+              )}
+              
+              {/* Card description/notes - Hide auto-generated descriptions */}
+              {(() => {
+                const description = workout.notes || workout.description;
+                // Hide auto-generated descriptions that match the pattern "X workout with Y block(s) and Z exercise(s)"
+                const isAutoGenerated = description && /^\w+ workout with \d+ blocks? and \d+ exercises?$/.test(description);
                 
-                <DetailedProgressDisplay
-                  exerciseProgress={{
-                    current: progress.completed,
-                    total: progress.total,
-                    currentExerciseName: progress.completed < progress.total ? 
-                      `${progress.completed + 1} of ${progress.total}` : 'Completed!'
-                  }}
-                  blockProgress={(workout as any).is_block_based && workoutBlocks.length > 0 ? {
-                    current: Math.floor(progress.completed / Math.max(1, Math.ceil(progress.total / workoutBlocks.length))),
-                    total: workoutBlocks.length,
-                    currentBlockName: `Block ${Math.floor(progress.completed / Math.max(1, Math.ceil(progress.total / workoutBlocks.length))) + 1}`
-                  } : undefined}
-                  setProgress={(() => {
-                    // Calculate total sets across all exercises
-                    const totalSets = allExercises.reduce((total, ex) => {
-                      return total + (ex.sets ? parseInt(String(ex.sets)) : 1);
-                    }, 0);
-                    
-                    // Estimate completed sets based on completed exercises
-                    let completedSets = 0;
-                    for (let i = 0; i < progress.completed && i < allExercises.length; i++) {
-                      const exercise = allExercises[i];
-                      completedSets += exercise.sets ? parseInt(String(exercise.sets)) : 1;
-                    }
-                    
-                    return totalSets > 0 ? {
-                      current: completedSets,
-                      total: totalSets
-                    } : undefined;
-                  })()}
-                  repProgress={(() => {
-                    // Calculate total reps across all exercises
-                    const totalReps = allExercises.reduce((total, ex) => {
-                      const sets = ex.sets ? parseInt(String(ex.sets)) : 1;
-                      const reps = ex.reps ? parseInt(String(ex.reps)) : 10;
-                      return total + (sets * reps);
-                    }, 0);
-                    
-                    // Estimate completed reps based on completed exercises
-                    let completedReps = 0;
-                    for (let i = 0; i < progress.completed && i < allExercises.length; i++) {
-                      const exercise = allExercises[i];
-                      const sets = exercise.sets ? parseInt(String(exercise.sets)) : 1;
-                      const reps = exercise.reps ? parseInt(String(exercise.reps)) : 10;
-                      completedReps += sets * reps;
-                    }
-                    
-                    return totalReps > 0 ? {
-                      current: completedReps,
-                      total: totalReps
-                    } : undefined;
-                  })()}
-                  layout="compact"
-                  showLabels={true}
-                  showPercentages={false}
-                />
-              </Box>
-            )}
+                return description && !isAutoGenerated && (
+                  <Box width="100%" bg={descriptionBg} p={3} borderRadius="md">
+                    <Text fontSize="sm" color={infoColor} noOfLines={3}>
+                      {description}
+                    </Text>
+                  </Box>
+                );
+              })()}
+            </VStack>
             
-            {/* Action button */}
-            {onStart && (
-              <VStack width="100%" spacing={2}>
-                {isTemplate ? (
-                  /* Template-specific buttons: Edit and Delete */
-                  <HStack width="100%" spacing={2}>
+            {/* Bottom section with progress bar and action button - Hide progress for templates and coaches */}
+            <VStack width="100%" spacing={2}>
+              {/* Progress bar - Only show for non-templates and non-coaches */}
+              {!isTemplate && !isCoach && (
+                <Box width="100%">
+                  <Flex justifyContent="space-between" alignItems="center" mb={2}>
+                    <Text fontSize="sm" color={infoColor} fontWeight="medium">
+                      Your Progress
+                    </Text>
+                    {showRefresh && onRefresh && (
+                      <IconButton
+                        icon={<FaRedo />}
+                        aria-label="Sync progress"
+                        size="xs"
+                        variant="outline"
+                        onClick={(e) => { 
+                          e.stopPropagation();
+                          onRefresh();
+                        }}
+                        title="Sync progress with database"
+                      />
+                    )}
+                  </Flex>
+                  
+                  <DetailedProgressDisplay
+                    exerciseProgress={{
+                      current: progress.completed,
+                      total: progress.total,
+                      currentExerciseName: progress.completed < progress.total ? 
+                        `${progress.completed + 1} of ${progress.total}` : 'Completed!'
+                    }}
+                    blockProgress={(workout as any).is_block_based && workoutBlocks.length > 0 ? {
+                      current: Math.floor(progress.completed / Math.max(1, Math.ceil(progress.total / workoutBlocks.length))),
+                      total: workoutBlocks.length,
+                      currentBlockName: `Block ${Math.floor(progress.completed / Math.max(1, Math.ceil(progress.total / workoutBlocks.length))) + 1}`
+                    } : undefined}
+                    setProgress={(() => {
+                      // Calculate total sets across all exercises
+                      const totalSets = allExercises.reduce((total, ex) => {
+                        return total + (ex.sets ? parseInt(String(ex.sets)) : 1);
+                      }, 0);
+                      
+                      // Estimate completed sets based on completed exercises
+                      let completedSets = 0;
+                      for (let i = 0; i < progress.completed && i < allExercises.length; i++) {
+                        const exercise = allExercises[i];
+                        completedSets += exercise.sets ? parseInt(String(exercise.sets)) : 1;
+                      }
+                      
+                      return totalSets > 0 ? {
+                        current: completedSets,
+                        total: totalSets
+                      } : undefined;
+                    })()}
+                    repProgress={(() => {
+                      // Calculate total reps across all exercises
+                      const totalReps = allExercises.reduce((total, ex) => {
+                        const sets = ex.sets ? parseInt(String(ex.sets)) : 1;
+                        const reps = ex.reps ? parseInt(String(ex.reps)) : 10;
+                        return total + (sets * reps);
+                      }, 0);
+                      
+                      // Estimate completed reps based on completed exercises
+                      let completedReps = 0;
+                      for (let i = 0; i < progress.completed && i < allExercises.length; i++) {
+                        const exercise = allExercises[i];
+                        const sets = exercise.sets ? parseInt(String(exercise.sets)) : 1;
+                        const reps = exercise.reps ? parseInt(String(exercise.reps)) : 10;
+                        completedReps += sets * reps;
+                      }
+                      
+                      return totalReps > 0 ? {
+                        current: completedReps,
+                        total: totalReps
+                      } : undefined;
+                    })()}
+                    layout="compact"
+                    showLabels={true}
+                    showPercentages={false}
+                  />
+                </Box>
+              )}
+              
+              {/* Action button */}
+              {onStart && (
+                <VStack width="100%" spacing={2}>
+                  {isTemplate ? (
+                    /* Template-specific buttons: Edit and Delete */
+                    <HStack width="100%" spacing={2}>
+                      <Button 
+                        width="50%" 
+                        variant="outline"
+                        colorScheme="blue"
+                        leftIcon={<FaEdit />} 
+                        onClick={onEdit}
+                        size="md"
+                      >
+                        Edit
+                      </Button>
+                      <Button 
+                        width="50%" 
+                        variant="outline"
+                        colorScheme="red"
+                        leftIcon={<FaTrash />} 
+                        onClick={onDelete}
+                        size="md"
+                      >
+                        Delete
+                      </Button>
+                    </HStack>
+                  ) : (
+                    /* Regular workout button */
                     <Button 
-                      width="50%" 
-                      variant="outline"
-                      colorScheme="blue"
-                      leftIcon={<FaEdit />} 
-                      onClick={onEdit}
+                      width="100%" 
+                      variant="primary"
+                      leftIcon={<FaPlayCircle />} 
+                      onClick={onStart}
                       size="md"
                     >
-                      Edit
+                      {!isCoach && progress.completed === progress.total && progress.total > 0 
+                        ? "Start Again" 
+                        : !isCoach && (progress.completed > 0 || progress.hasProgress) 
+                          ? "Continue Workout" 
+                          : "Start Workout"}
                     </Button>
+                  )}
+                  
+                  {/* Reset Progress Button - Hide for templates */}
+                  {!isTemplate && !isCoach && onReset && (progress.completed > 0 || workout.template_type === 'monthly') && (
                     <Button 
-                      width="50%" 
+                      width="100%" 
                       variant="outline"
-                      colorScheme="red"
-                      leftIcon={<FaTrash />} 
-                      onClick={onDelete}
-                      size="md"
+                      colorScheme="orange"
+                      leftIcon={<FaUndo />} 
+                      onClick={onReset}
+                      size="sm"
                     >
-                      Delete
+                      Reset Progress
                     </Button>
-                  </HStack>
-                ) : (
-                  /* Regular workout button */
-                  <Button 
-                    width="100%" 
-                    variant="primary"
-                    leftIcon={<FaPlayCircle />} 
-                    onClick={onStart}
-                    size="md"
-                  >
-                    {!isCoach && progress.completed === progress.total && progress.total > 0 
-                      ? "Start Again" 
-                      : !isCoach && (progress.completed > 0 || progress.hasProgress) 
-                        ? "Continue Workout" 
-                        : "Start Workout"}
-                  </Button>
-                )}
-                
-                {/* Reset Progress Button - Hide for templates */}
-                {!isTemplate && !isCoach && onReset && (progress.completed > 0 || workout.template_type === 'monthly') && (
-                  <Button 
-                    width="100%" 
-                    variant="outline"
-                    colorScheme="orange"
-                    leftIcon={<FaUndo />} 
-                    onClick={onReset}
-                    size="sm"
-                  >
-                    Reset Progress
-                  </Button>
-                )}
-              </VStack>
-            )}
+                  )}
+                </VStack>
+              )}
+            </VStack>
           </VStack>
         </VStack>
       </CardBody>
 
-      {/* Workout Details Drawer */}
-      <WorkoutDetailsDrawer
-        isOpen={isDetailsDrawerOpen}
-        onClose={() => setIsDetailsDrawerOpen(false)}
-        workout={workout}
-      />
+      {/* Responsive Workout Details Drawer */}
+      {isMobile ? (
+        <MobileWorkoutDetails
+          isOpen={isDetailsDrawerOpen}
+          onClose={() => setIsDetailsDrawerOpen(false)}
+          workout={workout}
+          userRole={isCoach ? "coach" : "athlete"}
+          progress={progress}
+          onStart={onStart}
+          onReset={onReset}
+          assignedTo={assignedTo}
+          onAssign={onAssign}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          assignment={null}
+        />
+      ) : (
+        <WorkoutDetailsDrawer
+          isOpen={isDetailsDrawerOpen}
+          onClose={() => setIsDetailsDrawerOpen(false)}
+          workout={workout}
+        />
+      )}
     </Card>
   );
 } 

@@ -5,22 +5,24 @@ import {
   HStack,
   Text,
   Button,
-  useColorModeValue,
-  Flex,
-  Badge,
   ButtonGroup,
+  IconButton,
   Menu,
   MenuButton,
   MenuList,
   MenuItem,
-  IconButton,
-  Portal
+  Badge,
+  Flex,
+  useColorModeValue,
+  Portal,
+  useBreakpointValue,
 } from '@chakra-ui/react';
-import { FaEllipsisV, FaEye, FaTrash, FaUsers } from 'react-icons/fa';
-
-import { WorkoutAssignment } from '../services/assignmentService';
-import { useUnifiedAssignmentActions } from '../hooks/useUnifiedAssignments';
+import { FaEllipsisV, FaEye, FaUsers, FaTrash, FaEdit } from 'react-icons/fa';
 import { WorkoutDetailsDrawer } from './WorkoutDetailsDrawer';
+import { MobileWorkoutDetails } from './MobileWorkoutDetails';
+import { useUnifiedAssignmentActions } from '../hooks/useUnifiedAssignments';
+import type { WorkoutAssignment } from '../services/assignmentService';
+import type { Workout } from '../services/api';
 
 interface UnifiedAssignmentCardProps {
   assignment: WorkoutAssignment;
@@ -31,6 +33,19 @@ interface UnifiedAssignmentCardProps {
   onAssign?: () => void;
   isCoach?: boolean;
   currentUserId?: string;
+}
+
+// New interface for coach workout cards
+interface CoachWorkoutCardProps {
+  workout: Workout;
+  assignedTo?: string;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onAssign?: () => void;
+  onViewDetails?: () => void;
+  isCoach?: boolean;
+  currentUserId?: string;
+  showActions?: boolean;
 }
 
 export function UnifiedAssignmentCard({ 
@@ -89,6 +104,9 @@ export function UnifiedAssignmentCard({
   const progressTextColor = useColorModeValue('gray.700', 'white');
   const separatorColor = useColorModeValue('gray.300', 'gray.500');
 
+  // Responsive design - use mobile drawer on mobile
+  const isMobile = useBreakpointValue({ base: true, lg: false });
+
   // Extract assignment details
   const getAssignmentDetails = () => {
     const { assignment_type, exercise_block, progress, meta } = assignment;
@@ -133,22 +151,23 @@ export function UnifiedAssignmentCard({
   };
 
   const details = getAssignmentDetails();
-  const progress_pct = assignment.progress?.completion_percentage || 0;
-  const isCompleted = assignment.status === 'completed';
-  const isInProgress = assignment.status === 'in_progress';
 
-  // Calculate detailed progress metrics
-  const getDetailedProgress = () => {
+  // Calculate detailed progress metrics and percentage
+  const calculateProgress = () => {
     const progress = assignment.progress;
     
     if (!progress) {
       return {
-        exercises: { current: 0, total: details.exercises },
-        sets: { current: 0, total: 0 },
-        reps: { current: 0, total: 0 }
+        metrics: {
+          exercises: { current: 0, total: details.exercises },
+          sets: { current: 0, total: 0 },
+          reps: { current: 0, total: 0 }
+        },
+        percentage: 0
       };
     }
 
+    let metrics;
     // For different assignment types, calculate progress differently
     switch (assignment.assignment_type) {
       case 'single':
@@ -163,9 +182,9 @@ export function UnifiedAssignmentCard({
         let completedSets = 0;
         let completedReps = 0;
         
-                 exercises.forEach((exercise: any, index: number) => {
-           const exerciseSets = parseInt(String(exercise.sets)) || 1;
-           const exerciseReps = parseInt(String(exercise.reps)) || 1;
+        exercises.forEach((exercise: any, index: number) => {
+          const exerciseSets = parseInt(String(exercise.sets)) || 1;
+          const exerciseReps = parseInt(String(exercise.reps)) || 1;
           const exerciseTotalReps = exerciseSets * exerciseReps;
           
           totalSets += exerciseSets;
@@ -182,36 +201,52 @@ export function UnifiedAssignmentCard({
           }
         });
         
-        return {
+        metrics = {
           exercises: { current: currentExerciseIndex, total: exercises.length },
           sets: { current: completedSets, total: totalSets },
           reps: { current: completedReps, total: totalReps }
         };
+        break;
         
       case 'weekly':
-        return {
+        metrics = {
           exercises: { current: progress.current_exercise_index || 0, total: progress.total_exercises || 0 },
           sets: { current: progress.current_set || 0, total: (progress.current_set || 0) + 3 }, // Estimate
           reps: { current: progress.current_rep || 0, total: (progress.current_rep || 0) + 15 } // Estimate
         };
+        break;
         
       case 'monthly':
-        return {
+        metrics = {
           exercises: { current: progress.current_exercise_index || 0, total: progress.total_exercises || 0 },
           sets: { current: progress.current_set || 0, total: (progress.current_set || 0) + 5 }, // Estimate
           reps: { current: progress.current_rep || 0, total: (progress.current_rep || 0) + 20 } // Estimate
         };
+        break;
         
       default:
-        return {
+        metrics = {
           exercises: { current: 0, total: details.exercises },
           sets: { current: 0, total: 0 },
           reps: { current: 0, total: 0 }
         };
     }
+
+    // Calculate percentage from metrics
+    const exerciseProgress = metrics.exercises.current / metrics.exercises.total;
+    const setsProgress = metrics.sets.total > 0 ? metrics.sets.current / metrics.sets.total : 0;
+    const repsProgress = metrics.reps.total > 0 ? metrics.reps.current / metrics.reps.total : 0;
+    
+    // Weight the progress: exercises (50%), sets (30%), reps (20%)
+    const overallProgress = (exerciseProgress * 0.5) + (setsProgress * 0.3) + (repsProgress * 0.2);
+    const percentage = Math.round(overallProgress * 100);
+
+    return { metrics, percentage };
   };
 
-  const progressMetrics = getDetailedProgress();
+  const { metrics: progressMetrics, percentage: progress_pct } = calculateProgress();
+  const isCompleted = assignment.status === 'completed';
+  const isInProgress = assignment.status === 'in_progress';
 
   // Format dates
   const formatDate = (dateString: string) => {
@@ -248,29 +283,34 @@ export function UnifiedAssignmentCard({
     const circumference = normalizedRadius * 2 * Math.PI;
     const strokeDasharray = `${circumference} ${circumference}`;
     const strokeDashoffset = circumference - (percentage / 100) * circumference;
+    const currentColor = percentage >= 100 ? '#10B981' : percentage >= 50 ? '#F59E0B' : '#EF4444';
 
     return (
-      <Box position="relative" display="inline-flex">
-        <svg height={radius * 2} width={radius * 2}>
+      <Box position="relative" display="inline-block">
+        <svg
+          height={radius * 2}
+          width={radius * 2}
+          style={{ transform: 'rotate(-90deg)' }}
+        >
           <circle
-            stroke={useColorModeValue("rgba(0, 0, 0, 0.1)", "rgba(255, 255, 255, 0.2)")}
+            stroke={useColorModeValue('#E5E7EB', '#374151')}
             fill="transparent"
             strokeWidth={strokeWidth}
+            strokeDasharray={strokeDasharray}
             r={normalizedRadius}
             cx={radius}
             cy={radius}
           />
           <circle
-            stroke="#68D391" // Green color for progress
+            stroke={currentColor}
             fill="transparent"
             strokeWidth={strokeWidth}
             strokeDasharray={strokeDasharray}
-            style={{ strokeDashoffset }}
+            strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
             r={normalizedRadius}
             cx={radius}
             cy={radius}
-            transform={`rotate(-90 ${radius} ${radius})`}
           />
         </svg>
         <Box
@@ -278,13 +318,9 @@ export function UnifiedAssignmentCard({
           top="50%"
           left="50%"
           transform="translate(-50%, -50%)"
+          textAlign="center"
         >
-          <Text
-            fontSize="xl"
-            fontWeight="bold"
-            color={progressTextColor}
-            textAlign="center"
-          >
+          <Text fontSize="lg" fontWeight="bold" color={currentColor}>
             {Math.round(percentage)}%
           </Text>
         </Box>
@@ -292,27 +328,36 @@ export function UnifiedAssignmentCard({
     );
   };
 
+  // Reset progress mutation
   const { resetProgress } = useUnifiedAssignmentActions();
 
   return (
     <Box
       bg={cardBg}
-      borderRadius="lg"
+      borderRadius="xl"
       p={6}
-      borderWidth="1px"
+      border="1px solid"
       borderColor={borderColor}
-      color={textColor}
-      maxW={{ base: "100%", md: "340px" }}
-      w="100%"
-      boxShadow={useColorModeValue("md", "lg")}
-      _hover={{ 
-        transform: 'translateY(-2px)', 
-        boxShadow: useColorModeValue("lg", "xl") 
-      }}
+      boxShadow="lg"
       transition="all 0.2s"
+      _hover={{ transform: 'translateY(-2px)', boxShadow: 'xl' }}
+      position="relative"
+      overflow="hidden"
     >
-      <VStack spacing={4} align="stretch">
-        {/* Header Section */}
+      {/* Background Pattern */}
+      <Box
+        position="absolute"
+        top="0"
+        right="0"
+        width="100px"
+        height="100px"
+        bg={useColorModeValue('gray.50', 'gray.700')}
+        borderRadius="0 0 0 100px"
+        opacity="0.5"
+      />
+
+      <VStack spacing={4} align="stretch" position="relative" zIndex={1}>
+        {/* Header with Assignment Type and Menu */}
         <HStack justify="space-between" align="center">
           <ButtonGroup size="sm" isAttached variant="outline">
             <Button 
@@ -481,12 +526,23 @@ export function UnifiedAssignmentCard({
         )}
       </VStack>
 
-      {/* Workout Details Drawer */}
-      <WorkoutDetailsDrawer
-        isOpen={isDetailsDrawerOpen}
-        onClose={() => setIsDetailsDrawerOpen(false)}
-        workout={convertAssignmentToWorkout()}
-      />
+      {/* Responsive Workout Details Drawer */}
+      {isMobile ? (
+        <MobileWorkoutDetails
+          isOpen={isDetailsDrawerOpen}
+          onClose={() => setIsDetailsDrawerOpen(false)}
+          assignment={assignment}
+          userRole="athlete"
+          onExecute={onExecute}
+          workout={null}
+        />
+      ) : (
+        <WorkoutDetailsDrawer
+          isOpen={isDetailsDrawerOpen}
+          onClose={() => setIsDetailsDrawerOpen(false)}
+          workout={convertAssignmentToWorkout()}
+        />
+      )}
     </Box>
   );
 }
@@ -511,5 +567,474 @@ export function CompactAssignmentCard({ assignment, onExecute }: { assignment: W
       showActions={true}
       compact={true}
     />
+  );
+}
+
+// Coach-specific workout card that shows workout information without execution buttons
+export function CoachWorkoutCard({ 
+  workout, 
+  assignedTo = 'Unassigned',
+  onEdit,
+  onDelete,
+  onAssign,
+  onViewDetails,
+  isCoach = true,
+  currentUserId,
+  showActions = true
+}: CoachWorkoutCardProps) {
+  
+  // State for workout details drawer
+  const [isDetailsDrawerOpen, setIsDetailsDrawerOpen] = useState(false);
+  
+  // Handle view details
+  const handleViewDetails = () => {
+    setIsDetailsDrawerOpen(true);
+  };
+  
+  // Check if current user can delete
+  const canDelete = currentUserId && (
+    workout.user_id === currentUserId || isCoach
+  );
+
+  // Theme colors - responsive light/dark mode
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const textColor = useColorModeValue('gray.800', 'white');
+  const secondaryTextColor = useColorModeValue('gray.500', 'gray.300');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const separatorColor = useColorModeValue('gray.300', 'gray.500');
+
+  // Responsive design - use mobile drawer on mobile
+  const isMobile = useBreakpointValue({ base: true, lg: false });
+
+  // Get workout details
+  const getWorkoutDetails = () => {
+    const exercises = workout.exercises || [];
+    const blocks = workout.blocks || [];
+    
+    return {
+      title: workout.name,
+      subtitle: workout.template_type === 'weekly' ? 'WEEKLY' : 
+                workout.template_type === 'monthly' ? 'MONTHLY' : 'SINGLE',
+      duration: workout.duration || '',
+      exercises: exercises.length,
+      blocks: blocks.length,
+      workoutType: workout.template_type?.toUpperCase() || 'SINGLE'
+    };
+  };
+
+  const details = getWorkoutDetails();
+
+  // Format dates
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'Not set';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      month: 'numeric', 
+      day: 'numeric', 
+      year: '2-digit' 
+    });
+  };
+
+  // Calculate athlete count from assignedTo
+  const athleteCount = assignedTo && assignedTo !== 'Unassigned' ? 
+    assignedTo.split(',').length : 0;
+
+  return (
+    <Box
+      bg={cardBg}
+      borderRadius="xl"
+      p={6}
+      border="1px solid"
+      borderColor={borderColor}
+      boxShadow="lg"
+      transition="all 0.2s"
+      _hover={{ transform: 'translateY(-2px)', boxShadow: 'xl' }}
+      position="relative"
+      overflow="hidden"
+    >
+      {/* Background Pattern */}
+      <Box
+        position="absolute"
+        top="0"
+        right="0"
+        width="100px"
+        height="100px"
+        bg={useColorModeValue('gray.50', 'gray.700')}
+        borderRadius="0 0 0 100px"
+        opacity="0.5"
+      />
+
+      <VStack spacing={4} align="stretch" position="relative" zIndex={1}>
+        {/* Header with Workout Type and Menu */}
+        <HStack justify="space-between" align="center">
+          <ButtonGroup size="sm" isAttached variant="outline">
+            <Button 
+              bg={useColorModeValue("gray.200", "gray.600")} 
+              color={useColorModeValue("gray.700", "white")} 
+              _hover={{ bg: useColorModeValue("gray.300", "gray.500") }}
+              border="1px solid"
+              borderColor={separatorColor}
+            >
+              {isCoach ? 'COACH' : 'ATHLETE'}
+            </Button>
+            <Button 
+              bg={useColorModeValue("blue.100", "blue.600")} 
+              color={useColorModeValue("blue.700", "white")} 
+              _hover={{ bg: useColorModeValue("blue.200", "blue.500") }}
+              border="1px solid"
+              borderColor={separatorColor}
+            >
+              {details.workoutType}
+            </Button>
+          </ButtonGroup>
+
+          {showActions && (
+            <Menu placement="bottom-end">
+              <MenuButton
+                as={IconButton}
+                icon={<FaEllipsisV />}
+                variant="ghost"
+                size="sm"
+                aria-label="Workout actions"
+              />
+              <Portal>
+                <MenuList zIndex={1000}>
+                  <MenuItem 
+                    icon={<FaEye />} 
+                    onClick={handleViewDetails}
+                  >
+                    View Details
+                  </MenuItem>
+                  {onAssign && (
+                    <MenuItem 
+                      icon={<FaUsers />} 
+                      onClick={onAssign}
+                    >
+                      Assign Athletes
+                    </MenuItem>
+                  )}
+                  {onEdit && (
+                    <MenuItem 
+                      icon={<FaEdit />} 
+                      onClick={onEdit}
+                    >
+                      Edit Workout
+                    </MenuItem>
+                  )}
+                  {onDelete && canDelete && (
+                    <MenuItem 
+                      icon={<FaTrash />} 
+                      onClick={onDelete}
+                      color="red.500"
+                    >
+                      Delete
+                    </MenuItem>
+                  )}
+                </MenuList>
+              </Portal>
+            </Menu>
+          )}
+        </HStack>
+
+        {/* Workout Title and Description */}
+        <VStack spacing={2} align="start">
+          <Text fontSize="xl" fontWeight="bold" color={textColor} noOfLines={2}>
+            {details.title}
+          </Text>
+          {workout.description && (
+            <Text fontSize="sm" color={secondaryTextColor} noOfLines={2}>
+              {workout.description}
+            </Text>
+          )}
+        </VStack>
+
+        {/* Workout Stats */}
+        <HStack justify="space-between" align="center" spacing={4}>
+          <VStack spacing={1} flex={1}>
+            <Text fontSize="xs" color={secondaryTextColor} fontWeight="bold">
+              EXERCISES
+            </Text>
+            <Text fontSize="lg" fontWeight="bold" color={textColor}>
+              {details.exercises}
+            </Text>
+          </VStack>
+          
+          <Box w="1px" h="40px" bg={useColorModeValue("rgba(0, 0, 0, 0.1)", "rgba(255, 255, 255, 0.2)")} />
+          
+          <VStack spacing={1} flex={1}>
+            <Text fontSize="xs" color={secondaryTextColor} fontWeight="bold">
+              BLOCKS
+            </Text>
+            <Text fontSize="lg" fontWeight="bold" color={textColor}>
+              {details.blocks}
+            </Text>
+          </VStack>
+          
+          <Box w="1px" h="40px" bg={useColorModeValue("rgba(0, 0, 0, 0.1)", "rgba(255, 255, 255, 0.2)")} />
+          
+          <VStack spacing={1} flex={1}>
+            <Text fontSize="xs" color={secondaryTextColor} fontWeight="bold">
+              ASSIGNED
+            </Text>
+            <Text fontSize="lg" fontWeight="bold" color={textColor}>
+              {athleteCount}
+            </Text>
+          </VStack>
+        </HStack>
+
+        {/* Assignment Info */}
+        {assignedTo && assignedTo !== 'Unassigned' && (
+          <Box>
+            <Text fontSize="xs" color={secondaryTextColor} fontWeight="bold" mb={1}>
+              ASSIGNED TO
+            </Text>
+            <Text fontSize="sm" color={textColor} noOfLines={1}>
+              {assignedTo}
+            </Text>
+          </Box>
+        )}
+
+        {/* Date Info */}
+        {workout.date && (
+          <Box>
+            <Text fontSize="xs" color={secondaryTextColor} fontWeight="bold" mb={1}>
+              DATE
+            </Text>
+            <Text fontSize="sm" color={textColor}>
+              {formatDate(workout.date)}
+            </Text>
+          </Box>
+        )}
+      </VStack>
+
+      {/* Responsive Workout Details Drawer */}
+      {isMobile ? (
+        <MobileWorkoutDetails
+          isOpen={isDetailsDrawerOpen}
+          onClose={() => setIsDetailsDrawerOpen(false)}
+          workout={workout}
+          userRole="coach"
+          assignedTo={assignedTo}
+          athleteCount={athleteCount}
+          onAssign={onAssign}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          assignment={null}
+        />
+      ) : (
+        <WorkoutDetailsDrawer
+          isOpen={isDetailsDrawerOpen}
+          onClose={() => setIsDetailsDrawerOpen(false)}
+          workout={workout}
+        />
+      )}
+    </Box>
+  );
+} 
+
+// Coach-specific workout list item for list view
+export function CoachWorkoutListItem({ 
+  workout, 
+  assignedTo = 'Unassigned',
+  onEdit,
+  onDelete,
+  onAssign,
+  onViewDetails,
+  isCoach = true,
+  currentUserId,
+  showActions = true
+}: CoachWorkoutCardProps) {
+  
+  // State for workout details drawer
+  const [isDetailsDrawerOpen, setIsDetailsDrawerOpen] = useState(false);
+  
+  // Handle view details
+  const handleViewDetails = () => {
+    setIsDetailsDrawerOpen(true);
+  };
+  
+  // Check if current user can delete
+  const canDelete = currentUserId && (
+    workout.user_id === currentUserId || isCoach
+  );
+
+  // Theme colors - responsive light/dark mode
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const textColor = useColorModeValue('gray.800', 'white');
+  const secondaryTextColor = useColorModeValue('gray.500', 'gray.300');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const hoverBg = useColorModeValue('gray.50', 'gray.700');
+
+  // Responsive design - use mobile drawer on mobile
+  const isMobile = useBreakpointValue({ base: true, lg: false });
+
+  // Get workout details
+  const getWorkoutDetails = () => {
+    const exercises = workout.exercises || [];
+    const blocks = workout.blocks || [];
+    
+    return {
+      title: workout.name,
+      subtitle: workout.template_type === 'weekly' ? 'WEEKLY' : 
+                workout.template_type === 'monthly' ? 'MONTHLY' : 'SINGLE',
+      duration: workout.duration || '',
+      exercises: exercises.length,
+      blocks: blocks.length,
+      workoutType: workout.template_type?.toUpperCase() || 'SINGLE'
+    };
+  };
+
+  const details = getWorkoutDetails();
+
+  // Format dates
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'Not set';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      month: 'numeric', 
+      day: 'numeric', 
+      year: '2-digit' 
+    });
+  };
+
+  // Calculate athlete count from assignedTo
+  const athleteCount = assignedTo && assignedTo !== 'Unassigned' ? 
+    assignedTo.split(',').length : 0;
+
+  return (
+    <Box
+      bg={cardBg}
+      borderRadius="md"
+      p={3}
+      border="1px solid"
+      borderColor={borderColor}
+      transition="all 0.2s"
+      _hover={{ bg: hoverBg }}
+      position="relative"
+      cursor="pointer"
+      onClick={handleViewDetails}
+    >
+      <VStack spacing={2} align="stretch">
+        {/* Row 1: Workout name and actions */}
+        <HStack justify="space-between" align="center">
+          <HStack spacing={3} align="center" flex="1" minW="0">
+            <Badge 
+              colorScheme="blue" 
+              fontSize="xs" 
+              px={2} 
+              py={1}
+              borderRadius="md"
+              flexShrink={0}
+            >
+              {details.workoutType}
+            </Badge>
+            <Text fontSize="md" fontWeight="semibold" color={textColor} noOfLines={1} flex="1">
+              {details.title}
+            </Text>
+          </HStack>
+          
+          {showActions && (
+            <Menu placement="bottom-end">
+              <MenuButton
+                as={IconButton}
+                icon={<FaEllipsisV />}
+                variant="ghost"
+                size="sm"
+                aria-label="Workout actions"
+                onClick={(e) => e.stopPropagation()}
+                flexShrink={0}
+              />
+              <Portal>
+                <MenuList zIndex={1000}>
+                  <MenuItem 
+                    icon={<FaEye />} 
+                    onClick={(e) => { 
+                      e.preventDefault(); 
+                      e.stopPropagation(); 
+                      handleViewDetails(); 
+                    }}
+                  >
+                    View Details
+                  </MenuItem>
+                  {onAssign && (
+                    <MenuItem 
+                      icon={<FaUsers />} 
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        e.stopPropagation(); 
+                        onAssign(); 
+                      }}
+                    >
+                      Assign Athletes
+                    </MenuItem>
+                  )}
+                  {onEdit && (
+                    <MenuItem 
+                      icon={<FaEdit />} 
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        e.stopPropagation(); 
+                        onEdit(); 
+                      }}
+                    >
+                      Edit Workout
+                    </MenuItem>
+                  )}
+                  {onDelete && canDelete && (
+                    <MenuItem 
+                      icon={<FaTrash />} 
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        e.stopPropagation(); 
+                        onDelete(); 
+                      }}
+                      color="red.500"
+                    >
+                      Delete
+                    </MenuItem>
+                  )}
+                </MenuList>
+              </Portal>
+            </Menu>
+          )}
+        </HStack>
+
+        {/* Row 2: Exercise and block info */}
+        <HStack spacing={4} fontSize="sm" color={secondaryTextColor} wrap="wrap">
+          <Text>{details.exercises} exercises</Text>
+          {details.blocks > 0 && <Text>{details.blocks} blocks</Text>}
+          {workout.date && <Text>{formatDate(workout.date)}</Text>}
+        </HStack>
+
+        {/* Row 3: Assignment info (if assigned) */}
+        {assignedTo && assignedTo !== 'Unassigned' && (
+          <Text fontSize="sm" color={secondaryTextColor} noOfLines={1}>
+            Assigned: {assignedTo}
+          </Text>
+        )}
+      </VStack>
+
+      {/* Responsive Workout Details Drawer */}
+      {isMobile ? (
+        <MobileWorkoutDetails
+          isOpen={isDetailsDrawerOpen}
+          onClose={() => setIsDetailsDrawerOpen(false)}
+          workout={workout}
+          userRole="coach"
+          assignedTo={assignedTo}
+          athleteCount={athleteCount}
+          onAssign={onAssign}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          assignment={null}
+        />
+      ) : (
+        <WorkoutDetailsDrawer
+          isOpen={isDetailsDrawerOpen}
+          onClose={() => setIsDetailsDrawerOpen(false)}
+          workout={workout}
+        />
+      )}
+    </Box>
   );
 } 

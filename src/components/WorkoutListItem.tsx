@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import {
   Box, HStack, VStack, Text, Icon, Flex, Button, Badge, IconButton, 
-  useColorModeValue, Tooltip, Menu, MenuButton, MenuList, MenuItem, Portal
+  useColorModeValue, Tooltip, Menu, MenuButton, MenuList, MenuItem, Portal,
+  useBreakpoint
 } from '@chakra-ui/react';
 import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaEdit, FaTrash, FaEye, FaUsers, FaTasks, FaLayerGroup, FaEllipsisV, FaExchangeAlt } from 'react-icons/fa';
 import type { Workout } from '../services/api';
@@ -11,6 +12,7 @@ import { dateUtils } from '../utils/date';
 import { format } from 'date-fns';
 import { Link as RouterLink } from 'react-router-dom';
 import { WorkoutDetailsDrawer } from './WorkoutDetailsDrawer';
+import { MobileWorkoutDetails } from './MobileWorkoutDetails';
 
 interface WorkoutListItemProps {
   workout: Workout;
@@ -45,9 +47,16 @@ export function WorkoutListItem({
   // State for workout details drawer
   const [isDetailsDrawerOpen, setIsDetailsDrawerOpen] = useState(false);
   
+  // Responsive design - use mobile drawer on mobile
+  const breakpoint = useBreakpoint();
+  const isMobile = breakpoint === 'base' || breakpoint === 'sm';
+  
   // Handle view details - use drawer or existing callback
   const handleViewDetails = () => {
-    if (onViewDetails) {
+    // Always open the drawer on mobile, regardless of onViewDetails prop
+    if (isMobile) {
+      setIsDetailsDrawerOpen(true);
+    } else if (onViewDetails) {
       onViewDetails();
     } else {
       setIsDetailsDrawerOpen(true);
@@ -281,12 +290,26 @@ export function WorkoutListItem({
         </Menu>
       </HStack>
 
-      {/* Workout Details Drawer */}
-      <WorkoutDetailsDrawer
-        isOpen={isDetailsDrawerOpen}
-        onClose={() => setIsDetailsDrawerOpen(false)}
-        workout={workout}
-      />
+      {/* Responsive Workout Details Drawer */}
+      {isMobile ? (
+        <MobileWorkoutDetails
+          isOpen={isDetailsDrawerOpen}
+          onClose={() => setIsDetailsDrawerOpen(false)}
+          workout={workout}
+          userRole={isCoach ? "coach" : "athlete"}
+          assignedTo={assignedTo}
+          onAssign={onAssign}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          assignment={null}
+        />
+      ) : (
+        <WorkoutDetailsDrawer
+          isOpen={isDetailsDrawerOpen}
+          onClose={() => setIsDetailsDrawerOpen(false)}
+          workout={workout}
+        />
+      )}
     </Box>
   );
 } 

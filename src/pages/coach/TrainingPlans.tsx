@@ -15,8 +15,7 @@ import { MonthlyPlanCreator } from '../../components/MonthlyPlanCreator';
 import { AssignmentModal } from '../../components/AssignmentModal';
 import { PlanDetailView } from '../../components/PlanDetailView';
 import { WorkoutDetailView } from '../../components/WorkoutDetailView';
-import { WorkoutCard } from '../../components/WorkoutCard';
-import { WorkoutListItem } from '../../components/WorkoutListItem';
+import { CoachWorkoutCard, CoachWorkoutListItem } from '../../components/UnifiedAssignmentCard';
 import { MonthlyPlanListItem } from '../../components/MonthlyPlanListItem';
 import { WorkoutDeletionWarningModal } from '../../components/WorkoutDeletionWarningModal';
 import { ConvertTemplateModal } from '../../components/modals/ConvertTemplateModal';
@@ -1257,7 +1256,7 @@ export function CoachTrainingPlans() {
               : getAthleteNames(workout);
 
             return (
-              <WorkoutCard
+              <CoachWorkoutCard
                 key={workout.id}
                 workout={workout}
                 isCoach={true}
@@ -1266,7 +1265,6 @@ export function CoachTrainingPlans() {
                 onDelete={() => handleDeleteWorkout(workout)}
                 onAssign={() => handleAssignWorkout(workout)}
                 onViewDetails={() => handleViewWorkout(workout)}
-                // monthlyPlanUsage disabled - checked just-in-time during deletion
               />
             );
           })}
@@ -1281,7 +1279,7 @@ export function CoachTrainingPlans() {
               : getAthleteNames(workout);
 
             return (
-              <WorkoutListItem
+              <CoachWorkoutListItem
                 key={workout.id}
                 workout={workout}
                 isCoach={true}
@@ -1290,7 +1288,6 @@ export function CoachTrainingPlans() {
                 onDelete={() => handleDeleteWorkout(workout)}
                 onAssign={() => handleAssignWorkout(workout)}
                 onViewDetails={() => handleViewWorkout(workout)}
-                // monthlyPlanUsage disabled - checked just-in-time during deletion
               />
             );
           })}
@@ -1422,34 +1419,30 @@ export function CoachTrainingPlans() {
         ) : viewMode === 'grid' ? (
           <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
             {filteredTemplates.map((template) => (
-              <WorkoutCard
+              <CoachWorkoutCard
                 key={template.id}
                 workout={template}
                 isCoach={true}
-                isTemplate={true}
+                assignedTo="Template"
                 onEdit={() => navigate(`/coach/workout-creator-new?edit=${template.id}`)}
                 onDelete={() => handleDeleteWorkout(template)}
                 onAssign={() => handleAssignWorkout(template)}
                 onViewDetails={() => handleViewWorkout(template)}
-                onConvertToWorkout={() => handleConvertTemplate(template)}
-                monthlyPlanUsage={monthlyPlanUsageData[template.id]}
               />
             ))}
           </SimpleGrid>
         ) : (
           <VStack spacing={3} align="stretch">
             {filteredTemplates.map((template) => (
-              <WorkoutListItem
+              <CoachWorkoutListItem
                 key={template.id}
                 workout={template}
                 isCoach={true}
-                isTemplate={true}
+                assignedTo="Template"
                 onEdit={() => navigate(`/coach/workout-creator-new?edit=${template.id}`)}
                 onDelete={() => handleDeleteWorkout(template)}
                 onAssign={() => handleAssignWorkout(template)}
                 onViewDetails={() => handleViewWorkout(template)}
-                onConvertToWorkout={() => handleConvertTemplate(template)}
-                monthlyPlanUsage={monthlyPlanUsageData[template.id]}
               />
             ))}
           </VStack>
@@ -1581,32 +1574,30 @@ export function CoachTrainingPlans() {
         ) : viewMode === 'grid' ? (
           <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
             {filteredDrafts.map((draft) => (
-              <WorkoutCard
+              <CoachWorkoutCard
                 key={draft.id}
                 workout={draft}
                 isCoach={true}
-                isTemplate={true}
+                assignedTo="Draft"
                 onEdit={() => navigate(`/coach/workout-creator-new?edit=${draft.id}`)}
                 onDelete={() => handleDeleteWorkout(draft)}
                 onAssign={() => handleAssignWorkout(draft)}
                 onViewDetails={() => handleViewWorkout(draft)}
-                monthlyPlanUsage={monthlyPlanUsageData[draft.id]}
               />
             ))}
           </SimpleGrid>
         ) : (
           <VStack spacing={3} align="stretch">
             {filteredDrafts.map((draft) => (
-              <WorkoutListItem
+              <CoachWorkoutListItem
                 key={draft.id}
                 workout={draft}
                 isCoach={true}
-                isTemplate={true}
+                assignedTo="Draft"
                 onEdit={() => navigate(`/coach/workout-creator-new?edit=${draft.id}`)}
                 onDelete={() => handleDeleteWorkout(draft)}
                 onAssign={() => handleAssignWorkout(draft)}
                 onViewDetails={() => handleViewWorkout(draft)}
-                monthlyPlanUsage={monthlyPlanUsageData[draft.id]}
               />
             ))}
           </VStack>
@@ -2186,7 +2177,7 @@ export function CoachTrainingPlans() {
                           : getAthleteNames(workout);
 
                         return (
-                          <WorkoutCard
+                          <CoachWorkoutCard
                             key={`workout-${workout.id}`}
                             workout={workout}
                             isCoach={true}
@@ -2195,7 +2186,6 @@ export function CoachTrainingPlans() {
                             onDelete={() => handleDeleteWorkout(workout)}
                             onAssign={() => handleAssignWorkout(workout)}
                             onViewDetails={() => handleViewWorkout(workout)}
-                            monthlyPlanUsage={monthlyPlanUsageData[workout.id]}
                           />
                         );
                       }
@@ -2252,7 +2242,7 @@ export function CoachTrainingPlans() {
                               : getAthleteNames(workout);
 
                             return (
-                              <WorkoutListItem
+                              <CoachWorkoutListItem
                                 key={`workout-${workout.id}`}
                                 workout={workout}
                                 isCoach={true}
@@ -2261,7 +2251,6 @@ export function CoachTrainingPlans() {
                                 onDelete={() => handleDeleteWorkout(workout)}
                                 onAssign={() => handleAssignWorkout(workout)}
                                 onViewDetails={() => handleViewWorkout(workout)}
-                                monthlyPlanUsage={monthlyPlanUsageData[workout.id]}
                               />
                             );
                           })}

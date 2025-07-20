@@ -39,6 +39,7 @@ export { MobileAthleteDashboard } from './MobileAthleteDashboard';
 export { MobileWellnessCard } from './MobileWellnessCard';
 export { MobileEventCard } from './MobileEventCard';
 export { MobileTodayCard } from './MobileTodayCard';
+export { MobileWorkoutDetails } from './MobileWorkoutDetails';
 export { default as MyTeamsCard } from './MyTeamsCard';
 export { CoachTeamsCard } from './CoachTeamsCard';
 export { MobileCoachTeamCard } from './MobileCoachTeamCard';

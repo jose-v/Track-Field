@@ -761,7 +761,7 @@ const MobileNotifications: React.FC = () => {
       {pullDistance > 20 && activeTab === 'unread' && (
         <Box
           position="fixed"
-          top={`${Math.max(90, pullDistance - 50)}px`}
+          top={`${Math.max(90, Math.min(pullDistance - 50, 136))}px`}
           left="50%"
           transform="translateX(-50%)"
           zIndex={999}
