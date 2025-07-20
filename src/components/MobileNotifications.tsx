@@ -711,36 +711,39 @@ const MobileNotifications: React.FC = () => {
       {pullDistance > 20 && activeTab === 'unread' && (
         <Box
           position="fixed"
-          top={`${Math.max(10, pullDistance - 80)}px`}
+          top={`${Math.max(50, pullDistance - 80)}px`}
           left="50%"
           transform="translateX(-50%)"
           zIndex={999}
-          bg="white"
+          bg="gray.700"
           borderRadius="full"
-          p={3}
+          px={6}
+          py={3}
           boxShadow="lg"
           transition="top 0.1s ease-out"
+          width="75%"
+          maxWidth="300px"
         >
-          <Box
-            w="24px"
-            h="24px"
-            borderRadius="full"
-            border="2px solid"
-            borderColor={pullDistance > 100 ? "blue.500" : "gray.300"}
-            borderTopColor="transparent"
-            animation={isRefreshing ? "spin 1s linear infinite" : "none"}
-            sx={{
-              "@keyframes spin": {
-                "0%": { transform: "rotate(0deg)" },
-                "100%": { transform: "rotate(360deg)" }
-              }
-            }}
-          />
-          {pullDistance > 80 && (
-            <Text fontSize="xs" color="gray.600" mt={1} textAlign="center">
+          <Flex align="center" justify="center" gap={3}>
+            <Box
+              w="20px"
+              h="20px"
+              borderRadius="full"
+              border="2px solid"
+              borderColor={pullDistance > 100 ? "blue.400" : "gray.400"}
+              borderTopColor="transparent"
+              animation={isRefreshing ? "spin 1s linear infinite" : "none"}
+              sx={{
+                "@keyframes spin": {
+                  "0%": { transform: "rotate(0deg)" },
+                  "100%": { transform: "rotate(360deg)" }
+                }
+              }}
+            />
+            <Text fontSize="sm" color="white" fontWeight="medium">
               {pullDistance > 100 ? "Release to refresh" : "Pull down"}
             </Text>
-          )}
+          </Flex>
         </Box>
       )}
 
