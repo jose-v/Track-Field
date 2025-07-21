@@ -237,14 +237,16 @@ export class AssignmentService {
         ...assignment.progress
       };
 
+      const assignmentToCreate = {
+        ...assignment,
+        assigned_by: assignedBy, // Use the corrected assigned_by value
+        progress: initialProgress
+      };
+
       // Create new assignment (no upsert needed since we checked for duplicates above)
       const { data, error } = await this.client
         .from('unified_workout_assignments')
-        .insert([{
-          ...assignment,
-          assigned_by: assignedBy, // Use the corrected assigned_by value
-          progress: initialProgress
-        }])
+        .insert([assignmentToCreate])
         .select()
         .single();
 

@@ -140,6 +140,141 @@ export const MobileTodayCard: React.FC<MobileTodayCardProps> = ({
   const availableAssignments = assignments?.filter(assignment => 
     assignment.status !== 'completed'
   ).slice(0, 3) || [];
+
+  // Create display workouts from real data
+  const getDisplayWorkouts = () => {
+    const displayWorkouts: Array<{ time: string; activity: string }> = [];
+    
+    // Helper function to format date and time for execution
+    const formatExecutionDateTime = (assignment: any, isToday: boolean = false) => {
+      try {
+        let executionDate: Date;
+        
+        if (isToday) {
+          // For today's workout, use today's date
+          executionDate = new Date();
+        } else {
+          // For scheduled workouts, use the start_date (when it's meant to be executed)
+          executionDate = new Date(assignment.start_date);
+        }
+        
+        const month = executionDate.getMonth() + 1;
+        const day = executionDate.getDate();
+        
+        // For time, check if there's a specific time in the assignment or use a default
+        let hours = 9; // Default to 9 AM
+        let minutes = 0; // Default to :00
+        
+        // Try to extract time from various sources
+        if (assignment.meta?.scheduled_time) {
+          const timeMatch = assignment.meta.scheduled_time.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+          if (timeMatch) {
+            hours = parseInt(timeMatch[1]);
+            minutes = parseInt(timeMatch[2]);
+            if (timeMatch[3].toUpperCase() === 'PM' && hours !== 12) hours += 12;
+            if (timeMatch[3].toUpperCase() === 'AM' && hours === 12) hours = 0;
+          }
+        } else if (assignment.exercise_block?.scheduled_time) {
+          const timeMatch = assignment.exercise_block.scheduled_time.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+          if (timeMatch) {
+            hours = parseInt(timeMatch[1]);
+            minutes = parseInt(timeMatch[2]);
+            if (timeMatch[3].toUpperCase() === 'PM' && hours !== 12) hours += 12;
+            if (timeMatch[3].toUpperCase() === 'AM' && hours === 12) hours = 0;
+          }
+        }
+        
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours % 12 || 12;
+        const displayMinutes = minutes.toString().padStart(2, '0');
+        
+        return `${month}/${day} - ${displayHours}:${displayMinutes}${ampm}`;
+      } catch (error) {
+        console.error('Error formatting execution date:', error);
+        return 'Invalid date';
+      }
+    };
+    
+    // Add today's assignment if available
+    if (todaysAssignment) {
+      const workoutName = todaysAssignment.exercise_block?.workout_name || 
+                         todaysAssignment.exercise_block?.plan_name || 
+                         'Assigned Workout';
+      
+      // Use today's date for today's workout execution
+      const dateTime = formatExecutionDateTime(todaysAssignment, true);
+      
+      displayWorkouts.push({
+        time: dateTime,
+        activity: workoutName
+      });
+    }
+    
+    // Add regular workout if available and no assignment
+    else if (todaysRegularWorkout) {
+      const workoutName = todaysRegularWorkout.name || 'Workout';
+      
+      // For regular workouts, use today's date if it's scheduled for today
+      const today = new Date();
+      const month = today.getMonth() + 1;
+      const day = today.getDate();
+      
+      // Extract time from workout time field if available
+      let timeDisplay = '9:00AM'; // Default
+      if (todaysRegularWorkout.time) {
+        timeDisplay = todaysRegularWorkout.time;
+      }
+      
+      const dateTime = `${month}/${day} - ${timeDisplay}`;
+      
+      displayWorkouts.push({
+        time: dateTime,
+        activity: workoutName
+      });
+    }
+    
+    // Add upcoming assignments (up to 2 more to avoid overcrowding)
+    const upcomingAssignments = assignments?.filter(assignment => {
+      if (assignment.status === 'completed') return false;
+      if (!assignment.start_date) return false;
+      
+      // Exclude the assignment we already added
+      if (todaysAssignment && assignment.id === todaysAssignment.id) return false;
+      
+      // Get upcoming assignments (within next 7 days)
+      const assignmentDate = assignment.start_date.split('T')[0];
+      const assignmentDateObj = new Date(assignmentDate);
+      const todayDateObj = new Date(todayStr);
+      const daysDiff = (assignmentDateObj.getTime() - todayDateObj.getTime()) / (1000 * 60 * 60 * 24);
+      
+      return daysDiff > 0 && daysDiff <= 7;
+    }).slice(0, 2) || [];
+    
+    upcomingAssignments.forEach(assignment => {
+      const workoutName = assignment.exercise_block?.workout_name || 
+                         assignment.exercise_block?.plan_name || 
+                         'Upcoming Workout';
+      
+      // Use the scheduled execution date for upcoming workouts
+      const dateTime = formatExecutionDateTime(assignment, false);
+      
+      displayWorkouts.push({
+        time: dateTime,
+        activity: workoutName
+      });
+    });
+    
+    // Fallback to default if no real data
+    if (displayWorkouts.length === 0) {
+      return [
+        { time: 'No workouts', activity: 'scheduled' }
+      ];
+    }
+    
+    return displayWorkouts;
+  };
+
+  const realWorkouts = getDisplayWorkouts();
   
   // Dark theme colors to match other cards
   const cardBg = 'gray.800';
@@ -334,16 +469,16 @@ export const MobileTodayCard: React.FC<MobileTodayCardProps> = ({
         {/* Main content area */}
         <Box h="calc(100% - 10px)" pt={1}>
           {/* Left side: Workout schedule */}
-          <VStack spacing={0} align="flex-start">
-            {workouts.map((workout, index) => (
-              <HStack key={index} spacing={3}>
-                <Text fontSize="md" color={timeColor} fontWeight="normal">
-                  {workout.time}
-                </Text>
-                <Text fontSize="md" color={textColor} fontWeight="normal">
+          <VStack spacing={1} align="flex-start">
+            {realWorkouts.map((workout, index) => (
+              <VStack key={index} spacing={0} align="flex-start">
+                <Text fontSize="md" color={textColor} fontWeight="medium" textTransform="uppercase">
                   {workout.activity}
                 </Text>
-              </HStack>
+                <Text fontSize="sm" color={timeColor} fontWeight="normal">
+                  {workout.time}
+                </Text>
+              </VStack>
             ))}
           </VStack>
         </Box>
@@ -445,8 +580,8 @@ export const MobileTodayCard: React.FC<MobileTodayCardProps> = ({
                   <Flex key={assignment.id} align="center" justify="space-between" bg={cardBg} borderRadius="md" px={4} py={3} boxShadow="sm">
                     <Flex align="center" minW={0} flex="1">
                       <Text fontWeight="medium" color={drawerText} isTruncated>
-                      {assignment.exercise_block?.workout_name || assignment.meta?.workout_name || 'Workout'}
-                    </Text>
+                        {assignment.exercise_block?.workout_name || assignment.meta?.workout_name || 'Workout'}
+                      </Text>
                       <IconButton
                         aria-label="Go to workout page"
                         icon={<FaExternalLinkAlt />}
@@ -461,19 +596,19 @@ export const MobileTodayCard: React.FC<MobileTodayCardProps> = ({
                         _hover={{ bg: buttonHoverBg }}
                       />
                     </Flex>
-                                      <IconButton
-                    aria-label="Start workout"
-                    icon={<FaPlay />}
-                    size="md"
-                    variant="ghost"
-                    color="green.500"
-                    borderRadius="full"
-                    ml={2}
-                    onClick={() => {
-                      setIsDrawerOpen(false);
-                      handleExecuteAssignment(assignment.id);
-                    }}
-                  />
+                    <IconButton
+                      aria-label="Start workout"
+                      icon={<FaPlay />}
+                      size="md"
+                      variant="ghost"
+                      color="green.500"
+                      borderRadius="full"
+                      ml={2}
+                      onClick={() => {
+                        setIsDrawerOpen(false);
+                        handleExecuteAssignment(assignment.id);
+                      }}
+                    />
                   </Flex>
                 ))
               ) : (

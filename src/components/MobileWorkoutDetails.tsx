@@ -26,6 +26,7 @@ import {
   StatLabel,
   StatNumber,
   StatHelpText,
+  Spinner,
 } from '@chakra-ui/react';
 import { supabase } from '../lib/supabase';
 import { 
@@ -94,153 +95,183 @@ function getTypeIcon(type: string | undefined) {
 
 // Convert assignment to workout format (like UnifiedAssignmentCard does)
 const convertAssignmentToWorkout = (assignment: any) => {
-  if (!assignment) return null;
-  
-  // Base workout structure
-  const workout = {
-    id: assignment.id,
-    name: assignment.exercise_block?.workout_name || assignment.exercise_block?.plan_name || 'Assignment Workout',
-    description: assignment.exercise_block?.description || '',
-    type: assignment.assignment_type,
-    date: assignment.start_date,
-    duration: assignment.exercise_block?.estimated_duration || '',
-    notes: assignment.exercise_block?.notes || '',
-    created_at: assignment.created_at,
-    exercises: assignment.exercise_block?.exercises || [],
-    blocks: assignment.exercise_block?.blocks || [],
-    is_block_based: assignment.exercise_block?.is_block_based || false,
-    template_type: assignment.assignment_type as 'single' | 'weekly' | 'monthly',
-    daily_workouts: assignment.exercise_block?.daily_workouts || undefined,
-  };
-  
-  // For weekly assignments, ensure blocks are properly structured for WorkoutDetailsDrawer
-  if (assignment.assignment_type === 'weekly') {
-    const dailyWorkouts = assignment.exercise_block?.daily_workouts || {};
-    
-    // Check if we have daily_workouts data
-    if (Object.keys(dailyWorkouts).length > 0) {
-      // Convert daily_workouts to blocks format for WorkoutDetailsDrawer
-      const dayBlocks: any = {};
-      
-      // Map daily workouts to blocks structure
-      Object.entries(dailyWorkouts).forEach(([dayName, dayData]: [string, any]) => {
-        if (dayData && Array.isArray(dayData)) {
-          // New blocks format - array of blocks
-          dayBlocks[dayName] = dayData;
-        } else if (dayData && dayData.exercises) {
-          // Legacy format - single day with exercises
-          dayBlocks[dayName] = [{
-            name: `${dayName.charAt(0).toUpperCase() + dayName.slice(1)} Workout`,
-            exercises: dayData.exercises,
-            is_rest_day: dayData.is_rest_day || false
-          }];
-        }
-      });
-      
-      // Set the blocks to the converted structure if we have valid data
-      if (Object.keys(dayBlocks).length > 0) {
-        workout.blocks = dayBlocks;
-      }
-    }
-    
-    // If we have blocks data already, use that
-    else if (assignment.exercise_block?.blocks) {
-      let blocks = assignment.exercise_block.blocks;
-      
-      // Parse blocks if it's a string
-      if (typeof blocks === 'string') {
-        try {
-          blocks = JSON.parse(blocks);
-        } catch (e) {
-          console.error('Error parsing assignment blocks:', e);
-        }
-      }
-      
-      workout.blocks = blocks;
-    }
+  if (!assignment || typeof assignment !== 'object') {
+    console.warn('Invalid assignment data provided to convertAssignmentToWorkout');
+    return null;
   }
   
-  return workout;
+  // Ensure required fields exist
+  if (!assignment.exercise_block || typeof assignment.exercise_block !== 'object') {
+    console.warn('Assignment missing exercise_block');
+    return null;
+  }
+  
+  try {
+    // Base workout structure with safe defaults
+    const workout = {
+      id: assignment.id || `temp-${Date.now()}`,
+      name: assignment.exercise_block?.workout_name || assignment.exercise_block?.plan_name || 'Assignment Workout',
+      description: assignment.exercise_block?.description || '',
+      type: assignment.assignment_type || 'single',
+      date: assignment.start_date || new Date().toISOString(),
+      duration: assignment.exercise_block?.estimated_duration || '',
+      notes: assignment.exercise_block?.notes || '',
+      created_at: assignment.created_at || new Date().toISOString(),
+      exercises: Array.isArray(assignment.exercise_block?.exercises) ? assignment.exercise_block.exercises : [],
+      blocks: assignment.exercise_block?.blocks || [],
+      is_block_based: assignment.exercise_block?.is_block_based || false,
+      template_type: (assignment.assignment_type as 'single' | 'weekly' | 'monthly') || 'single',
+      daily_workouts: assignment.exercise_block?.daily_workouts || undefined,
+    };
+    
+    // For weekly assignments, ensure blocks are properly structured for WorkoutDetailsDrawer
+    if (assignment.assignment_type === 'weekly' && assignment.exercise_block?.daily_workouts) {
+      try {
+        const dailyWorkouts = assignment.exercise_block.daily_workouts;
+        
+        // Check if we have daily_workouts data
+        if (typeof dailyWorkouts === 'object' && dailyWorkouts !== null && Object.keys(dailyWorkouts).length > 0) {
+          // Convert daily_workouts to blocks format for WorkoutDetailsDrawer
+          const dayBlocks: any = {};
+          
+          // Map daily workouts to blocks structure
+          Object.entries(dailyWorkouts).forEach(([dayName, dayData]: [string, any]) => {
+            if (dayData && Array.isArray(dayData)) {
+              // New blocks format - array of blocks
+              dayBlocks[dayName] = dayData;
+            } else if (dayData && typeof dayData === 'object' && dayData.exercises) {
+              // Legacy format - single day with exercises
+              dayBlocks[dayName] = [{
+                name: `${dayName.charAt(0).toUpperCase() + dayName.slice(1)} Workout`,
+                exercises: Array.isArray(dayData.exercises) ? dayData.exercises : [],
+                is_rest_day: dayData.is_rest_day || false
+              }];
+            }
+          });
+          
+          // Set the blocks to the converted structure if we have valid data
+          if (Object.keys(dayBlocks).length > 0) {
+            workout.blocks = dayBlocks;
+          }
+        }
+      } catch (weeklyError) {
+        console.error('Error processing weekly workout data:', weeklyError);
+        // Continue with basic workout structure
+      }
+      
+      // If we have blocks data already, use that
+      if (!workout.blocks && assignment.exercise_block?.blocks) {
+        try {
+          let blocks = assignment.exercise_block.blocks;
+          
+          // Parse blocks if it's a string
+          if (typeof blocks === 'string') {
+            blocks = JSON.parse(blocks);
+          }
+          
+          if (blocks && typeof blocks === 'object') {
+            workout.blocks = blocks;
+          }
+        } catch (parseError) {
+          console.error('Error parsing assignment blocks:', parseError);
+        }
+      }
+    }
+    
+    return workout;
+  } catch (error) {
+    console.error('Error in convertAssignmentToWorkout:', error);
+    return null;
+  }
 };
 
 // Get assignment details (like UnifiedAssignmentCard does)
 const getAssignmentDetails = (assignment: any) => {
-  if (!assignment) return null;
+  if (!assignment || typeof assignment !== 'object') {
+    console.warn('Invalid assignment data provided to getAssignmentDetails');
+    return null;
+  }
   
-  const { assignment_type, exercise_block, progress, meta } = assignment;
+  // Ensure required fields exist
+  if (!assignment.assignment_type || !assignment.exercise_block) {
+    console.warn('Assignment missing required fields for details');
+    return null;
+  }
   
-  switch (assignment_type) {
-    case 'single':
-      return {
-        title: exercise_block.workout_name || 'Single Workout',
-        subtitle: assignment_type.toUpperCase(),
-        duration: exercise_block.estimated_duration,
-        exercises: exercise_block.exercises?.length || 0,
-        workoutType: 'SINGLE'
-      };
-      
-    case 'weekly':
-      // For weekly plans, count total exercises across all days
-      const dailyWorkouts = exercise_block.daily_workouts || {};
-      let totalWeeklyExercises = 0;
-      
-      Object.values(dailyWorkouts).forEach((dayWorkout: any) => {
-        if (Array.isArray(dayWorkout)) {
-          // New blocks format: array of blocks, each with exercises
-          dayWorkout.forEach((block: any) => {
-            if (block.exercises && Array.isArray(block.exercises)) {
-              totalWeeklyExercises += block.exercises.length;
-            }
-          });
-        } else if (dayWorkout && dayWorkout.exercises && Array.isArray(dayWorkout.exercises)) {
-          // Legacy format: { exercises: [], is_rest_day: boolean }
-          totalWeeklyExercises += dayWorkout.exercises.length;
-        }
-      });
-      
-      // Fallback: try to extract from exercise_block.exercises if daily_workouts is empty
-      if (totalWeeklyExercises === 0 && exercise_block.exercises) {
-        const exercises = exercise_block.exercises;
-        if (Array.isArray(exercises) && exercises.length > 0) {
-          // Check if it's weekly plan structure (array of day objects)
-          if (typeof exercises[0] === 'object' && 'day' in exercises[0] && 'exercises' in exercises[0]) {
-            exercises.forEach((dayPlan: any) => {
-              if (dayPlan.exercises && Array.isArray(dayPlan.exercises) && !dayPlan.isRestDay) {
-                totalWeeklyExercises += dayPlan.exercises.length;
+  try {
+    const { assignment_type, exercise_block, progress, meta } = assignment;
+    
+    switch (assignment_type) {
+      case 'single':
+        return {
+          title: exercise_block?.workout_name || 'Single Workout',
+          subtitle: 'SINGLE',
+          duration: exercise_block?.estimated_duration || '',
+          exercises: Array.isArray(exercise_block?.exercises) ? exercise_block.exercises.length : 0,
+          workoutType: 'SINGLE'
+        };
+        
+      case 'weekly':
+        // For weekly plans, count total exercises across all days
+        let totalWeeklyExercises = 0;
+        
+        try {
+          const dailyWorkouts = exercise_block?.daily_workouts || {};
+          
+          if (typeof dailyWorkouts === 'object' && dailyWorkouts !== null) {
+            Object.values(dailyWorkouts).forEach((dayWorkout: any) => {
+              if (Array.isArray(dayWorkout)) {
+                // New blocks format: array of blocks, each with exercises
+                dayWorkout.forEach((block: any) => {
+                  if (block && Array.isArray(block.exercises)) {
+                    totalWeeklyExercises += block.exercises.length;
+                  }
+                });
+              } else if (dayWorkout && typeof dayWorkout === 'object' && Array.isArray(dayWorkout.exercises)) {
+                // Legacy format: { exercises: [], is_rest_day: boolean }
+                totalWeeklyExercises += dayWorkout.exercises.length;
               }
             });
-          } else {
-            // Regular exercise array - count all
-            totalWeeklyExercises = exercises.length;
           }
+        } catch (weeklyError) {
+          console.error('Error counting weekly exercises:', weeklyError);
+          totalWeeklyExercises = 0;
         }
-      }
-      
-      return {
-        title: exercise_block.workout_name || exercise_block.plan_name || 'Weekly Plan',
-        subtitle: 'WEEKLY',
-        duration: `${exercise_block.total_days || 7} days`,
-        exercises: totalWeeklyExercises,
-        workoutType: 'WEEKLY'
-      };
-      
-    case 'monthly':
-      return {
-        title: exercise_block.plan_name || 'Monthly Plan',
-        subtitle: 'MONTHLY',
-        duration: `${exercise_block.duration_weeks || 4} weeks`,
-        exercises: assignment.progress?.total_exercises || 0,
-        workoutType: 'MONTHLY'
-      };
-      
-    default:
-      return {
-        title: 'Unknown Assignment',
-        subtitle: 'UNKNOWN',
-        duration: '',
-        exercises: 0,
-        workoutType: 'UNKNOWN'
-      };
+        
+        return {
+          title: exercise_block?.workout_name || exercise_block?.plan_name || 'Weekly Plan',
+          subtitle: 'WEEKLY',
+          duration: `${exercise_block?.total_days || 7} days`,
+          exercises: totalWeeklyExercises,
+          workoutType: 'WEEKLY'
+        };
+        
+      case 'monthly':
+        const totalExercises = (progress && typeof progress === 'object' && typeof progress.total_exercises === 'number') 
+          ? progress.total_exercises 
+          : 0;
+          
+        return {
+          title: exercise_block?.plan_name || 'Monthly Plan',
+          subtitle: 'MONTHLY',
+          duration: `${exercise_block?.duration_weeks || 4} weeks`,
+          exercises: totalExercises,
+          workoutType: 'MONTHLY'
+        };
+        
+      default:
+        console.warn('Unknown assignment type:', assignment_type);
+        return {
+          title: 'Unknown Assignment',
+          subtitle: 'UNKNOWN',
+          duration: '',
+          exercises: 0,
+          workoutType: 'UNKNOWN'
+        };
+    }
+  } catch (error) {
+    console.error('Error in getAssignmentDetails:', error);
+    return null;
   }
 };
 
@@ -287,44 +318,54 @@ const getCorrectExerciseData = async (assignment: any): Promise<any[]> => {
     const originalWorkoutId = assignment.meta?.original_workout_id;
     if (originalWorkoutId) {
       try {
-        const { data: actualWorkout, error } = await supabase
+        // Add timeout to prevent hanging requests
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Request timeout')), 5000);
+        });
+        
+        const queryPromise = supabase
           .from('workouts')
           .select('exercises, blocks, is_block_based')
           .eq('id', originalWorkoutId)
           .single();
         
-        if (!error && actualWorkout) {
-          if (actualWorkout.is_block_based && actualWorkout.blocks) {
-            let blockExercises: any[] = [];
-            
-            if (Array.isArray(actualWorkout.blocks)) {
-              blockExercises = actualWorkout.blocks.flatMap((block: any) => block?.exercises || []);
-            } else if (typeof actualWorkout.blocks === 'string') {
-              try {
-                const parsedBlocks = JSON.parse(actualWorkout.blocks);
-                if (Array.isArray(parsedBlocks)) {
-                  blockExercises = parsedBlocks.flatMap((block: any) => block?.exercises || []);
-                }
-              } catch (parseError) {
-                console.error('Error parsing blocks:', parseError);
-              }
-            }
-            
-            if (blockExercises.length > 0) {
-              return blockExercises;
-            }
+        const result = await Promise.race([queryPromise, timeoutPromise]);
+        const { data: actualWorkout, error } = result as any;
+        
+        if (error) {
+          console.warn('Could not fetch original workout data, using assignment exercises:', error);
+          return exercises;
+        }
+        
+        if (actualWorkout) {
+          // Use original workout exercises if available and more detailed
+          if (actualWorkout.exercises && actualWorkout.exercises.length > 0) {
+            exercises = actualWorkout.exercises;
           }
           
-          if (actualWorkout.exercises && Array.isArray(actualWorkout.exercises) && actualWorkout.exercises.length > 0) {
-            return actualWorkout.exercises;
+          // Handle block-based workouts
+          if (actualWorkout.is_block_based && actualWorkout.blocks) {
+            try {
+              let blocks = actualWorkout.blocks;
+              if (typeof blocks === 'string') {
+                blocks = JSON.parse(blocks);
+              }
+              
+              if (Array.isArray(blocks)) {
+                exercises = blocks.flatMap((block: any) => block.exercises || []);
+              }
+            } catch (parseError) {
+              console.error('Error parsing workout blocks:', parseError);
+            }
           }
         }
-      } catch (dbError) {
-        console.error('Error fetching actual workout data in mobile details:', dbError);
+      } catch (fetchError) {
+        // Silently fall back to assignment exercises
+        console.warn('Failed to fetch original workout, using assignment exercises:', fetchError);
       }
     }
     
-    return Array.isArray(exercises) ? exercises : [];
+    return exercises;
   } catch (error) {
     console.error('Error in getCorrectExerciseData:', error);
     return [];
@@ -351,124 +392,210 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
   assignment,
   onExecute,
 }) => {
-  // Early return if not open
-  if (!isOpen) {
-    return null;
-  }
-
+  // Essential mounting and stability state - MUST be called before any early returns
+  const [isMounted, setIsMounted] = useState(false);
+  const [isStable, setIsStable] = useState(false);
+  
   // Determine if we're dealing with an assignment or a workout
   const isAssignment = !!assignment;
-  const displayWorkout = isAssignment ? convertAssignmentToWorkout(assignment) : workout;
-  const assignmentDetails = isAssignment ? getAssignmentDetails(assignment) : null;
+  
   // Get detailed progress metrics with proper data fetching
   const [detailedProgress, setDetailedProgress] = useState<any>(null);
-  
-     useEffect(() => {
-     let isMounted = true;
-     
-     if (!isAssignment || !assignment || !isOpen) {
-       if (isMounted) {
-         setDetailedProgress(null);
-       }
-       return;
-     }
-     
-     const loadProgress = async () => {
-       try {
-         // Get the correct exercise data first (this fetches original workout data)
-         const exercises = await getCorrectExerciseData(assignment);
-         
-         if (!isMounted) return; // Exit if component unmounted
-         
-         const progress = assignment.progress;
-         
-         if (!progress) {
-           if (isMounted) {
-             setDetailedProgress({
-               exercises: { current: 0, total: exercises.length },
-               sets: { current: 0, total: 0 },
-               reps: { current: 0, total: 0 }
-             });
-           }
-           return;
-         }
+  const [isLoadingProgress, setIsLoadingProgress] = useState(false);
 
-         // Calculate progress based on correct exercise data
-         if (assignment.assignment_type === 'single') {
-           const currentExerciseIndex = progress.current_exercise_index || 0;
-           const currentSet = progress.current_set || 1;
-           const currentRep = progress.current_rep || 1;
-           
-           let totalSets = 0;
-           let totalReps = 0;
-           let completedSets = 0;
-           let completedReps = 0;
-           
-           exercises.forEach((exercise: any, index: number) => {
-             const exerciseSets = parseInt(String(exercise.sets)) || 1;
-             const exerciseReps = parseInt(String(exercise.reps)) || 1;
-             const exerciseTotalReps = exerciseSets * exerciseReps;
-             
-             totalSets += exerciseSets;
-             totalReps += exerciseTotalReps;
-             
-             if (index < currentExerciseIndex) {
-               completedSets += exerciseSets;
-               completedReps += exerciseTotalReps;
-             } else if (index === currentExerciseIndex) {
-               completedSets += currentSet - 1;
-               const completedRepsInCurrentExercise = (currentSet - 1) * exerciseReps + (currentRep - 1);
-               completedReps += completedRepsInCurrentExercise;
-             }
-           });
-           
-           if (isMounted) {
-             setDetailedProgress({
-               exercises: { current: currentExerciseIndex, total: exercises.length },
-               sets: { current: completedSets, total: totalSets },
-               reps: { current: completedReps, total: totalReps }
-             });
-           }
-         } else {
-           // For weekly/monthly, use basic progress
-           if (isMounted) {
-             setDetailedProgress({
-               exercises: { current: progress.current_exercise_index || 0, total: progress.total_exercises || 0 },
-               sets: { current: progress.current_set || 0, total: (progress.current_set || 0) + 3 },
-               reps: { current: progress.current_rep || 0, total: (progress.current_rep || 0) + 15 }
-             });
-           }
-         }
-       } catch (error) {
-         console.error('Error loading progress:', error);
-         if (isMounted) {
-           setDetailedProgress(null);
-         }
-       }
-     };
-     
-     loadProgress();
-     
-     return () => {
-       isMounted = false;
-     };
-   }, [isAssignment, assignment, isOpen]);
+  // Mount and stability management
+  useEffect(() => {
+    setIsMounted(true);
+    
+    // Add delay to ensure React is fully stable before allowing operations
+    const stabilityTimeout = setTimeout(() => {
+      setIsStable(true);
+    }, 100);
+
+    return () => {
+      setIsMounted(false);
+      setIsStable(false);
+      clearTimeout(stabilityTimeout);
+    };
+  }, []);
+
+  // Handle data conversion safely
+  const [displayWorkout, setDisplayWorkout] = useState<any>(null);
+  const [assignmentDetails, setAssignmentDetails] = useState<any>(null);
+  const [conversionError, setConversionError] = useState<string>('');
+
+  useEffect(() => {
+    if (!isOpen || !isStable) {
+      setDisplayWorkout(null);
+      setAssignmentDetails(null);
+      setConversionError('');
+      return;
+    }
+
+    try {
+      const converted = isAssignment ? convertAssignmentToWorkout(assignment) : workout;
+      const details = isAssignment ? getAssignmentDetails(assignment) : null;
+      
+      setDisplayWorkout(converted);
+      setAssignmentDetails(details);
+      setConversionError('');
+    } catch (error) {
+      console.error('Error processing workout data:', error);
+      setConversionError('Error loading workout details');
+      setDisplayWorkout(null);
+      setAssignmentDetails(null);
+    }
+  }, [isOpen, isStable, isAssignment, assignment, workout]);
+
+  // Progress loading effect - must come after all other hooks
+  useEffect(() => {
+    let isMounted = true;
+    let controller = new AbortController();
+    
+    // Early return if not ready to load
+    if (!isOpen || !isAssignment || !assignment || !isStable) {
+      if (isMounted) {
+        setDetailedProgress(null);
+        setIsLoadingProgress(false);
+      }
+      return;
+    }
+
+    // Additional safety checks for assignment data integrity
+    if (!assignment.id || !assignment.assignment_type || !assignment.exercise_block) {
+      console.warn('Assignment data incomplete, skipping progress load:', assignment);
+      if (isMounted) {
+        setDetailedProgress(null);
+        setIsLoadingProgress(false);
+      }
+      return;
+    }
+    
+    const loadProgress = async () => {
+      try {
+        if (isMounted && !controller.signal.aborted) {
+          setIsLoadingProgress(true);
+        }
+
+        // Add a longer delay on first load to allow React to stabilize
+        const isFirstLoad = !detailedProgress;
+        const delay = isFirstLoad ? 150 : 10;
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        if (!isMounted || controller.signal.aborted) return;
+        
+        // Get the correct exercise data first (this fetches original workout data)
+        const exercises = await getCorrectExerciseData(assignment);
+        
+        if (!isMounted || controller.signal.aborted) return;
+        
+        const progress = assignment.progress;
+        
+        if (!progress) {
+          if (isMounted && !controller.signal.aborted) {
+            setDetailedProgress({
+              exercises: { current: 0, total: exercises.length },
+              sets: { current: 0, total: 0 },
+              reps: { current: 0, total: 0 }
+            });
+            setIsLoadingProgress(false);
+          }
+          return;
+        }
+
+        // Calculate progress based on correct exercise data
+        if (assignment.assignment_type === 'single') {
+          const currentExerciseIndex = progress.current_exercise_index || 0;
+          const currentSet = progress.current_set || 1;
+          const currentRep = progress.current_rep || 1;
+          
+          let totalSets = 0;
+          let totalReps = 0;
+          let completedSets = 0;
+          let completedReps = 0;
+          
+          exercises.forEach((exercise: any, index: number) => {
+            const exerciseSets = parseInt(String(exercise.sets)) || 1;
+            const exerciseReps = parseInt(String(exercise.reps)) || 1;
+            const exerciseTotalReps = exerciseSets * exerciseReps;
+            
+            totalSets += exerciseSets;
+            totalReps += exerciseTotalReps;
+            
+            if (index < currentExerciseIndex) {
+              completedSets += exerciseSets;
+              completedReps += exerciseTotalReps;
+            } else if (index === currentExerciseIndex) {
+              completedSets += currentSet - 1;
+              const completedRepsInCurrentExercise = (currentSet - 1) * exerciseReps + (currentRep - 1);
+              completedReps += completedRepsInCurrentExercise;
+            }
+          });
+          
+          if (isMounted && !controller.signal.aborted) {
+            setDetailedProgress({
+              exercises: { current: currentExerciseIndex, total: exercises.length },
+              sets: { current: completedSets, total: totalSets },
+              reps: { current: completedReps, total: totalReps }
+            });
+            setIsLoadingProgress(false);
+          }
+        } else {
+          // For weekly/monthly, use basic progress
+          if (isMounted && !controller.signal.aborted) {
+            setDetailedProgress({
+              exercises: { current: progress.current_exercise_index || 0, total: progress.total_exercises || 0 },
+              sets: { current: progress.current_set || 0, total: (progress.current_set || 0) + 3 },
+              reps: { current: progress.current_rep || 0, total: (progress.current_rep || 0) + 15 }
+            });
+            setIsLoadingProgress(false);
+          }
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.error('Error loading progress:', error);
+        }
+        if (isMounted && !controller.signal.aborted) {
+          setDetailedProgress(null);
+          setIsLoadingProgress(false);
+        }
+      }
+    };
+    
+    // Use longer timeout on first load to prevent race conditions
+    const isFirstLoad = !detailedProgress;
+    const timeoutDelay = isFirstLoad ? 200 : 50;
+    
+    const timeoutId = setTimeout(() => {
+      if (isMounted && !controller.signal.aborted) {
+        loadProgress();
+      }
+    }, timeoutDelay);
+    
+    return () => {
+      isMounted = false;
+      controller.abort();
+      clearTimeout(timeoutId);
+      if (isMounted) {
+        setIsLoadingProgress(false);
+      }
+    };
+  }, [isAssignment, assignment?.id, assignment?.assignment_type, isOpen, isStable]);
 
   // Calculate athlete count from assignedTo if not provided
-  const calculatedAthleteCount = athleteCount || (assignedTo && assignedTo !== 'Unassigned' ? 
-    assignedTo.split(',').length : 0);
+  const calculatedAthleteCount = athleteCount || (assignedTo ? assignedTo.length : 0);
 
   // Calculate overall progress percentage from detailed progress
   const calculateOverallProgress = () => {
     if (detailedProgress) {
       try {
         const exerciseProgress = detailedProgress.exercises.total > 0 ? detailedProgress.exercises.current / detailedProgress.exercises.total : 0;
-        const setsProgress = detailedProgress.sets.total > 0 ? detailedProgress.sets.current / detailedProgress.sets.total : 0;
-        const repsProgress = detailedProgress.reps.total > 0 ? detailedProgress.reps.current / detailedProgress.reps.total : 0;
-        
-        // Weight the progress: exercises (50%), sets (30%), reps (20%)
-        const overallProgress = (exerciseProgress * 0.5) + (setsProgress * 0.3) + (repsProgress * 0.2);
-        return Math.round(overallProgress * 100);
+      const setsProgress = detailedProgress.sets.total > 0 ? detailedProgress.sets.current / detailedProgress.sets.total : 0;
+      const repsProgress = detailedProgress.reps.total > 0 ? detailedProgress.reps.current / detailedProgress.reps.total : 0;
+      
+      // Weight the progress: exercises (50%), sets (30%), reps (20%)
+      const overallProgress = (exerciseProgress * 0.5) + (setsProgress * 0.3) + (repsProgress * 0.2);
+      return Math.round(overallProgress * 100);
       } catch (error) {
         console.error('Error calculating progress:', error);
         return progress?.percentage || 0;
@@ -487,7 +614,44 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
   const exerciseCardBg = useColorModeValue('gray.50', 'gray.700');
   const buttonHoverBg = useColorModeValue('gray.100', 'gray.700');
 
-  if (!displayWorkout) return null;
+  // Early returns must happen AFTER all hooks have been called
+  if (!isOpen || !isMounted || !isStable) {
+    return null;
+  }
+
+  // Handle conversion errors
+  if (conversionError) {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose} size="full">
+        <ModalOverlay bg="blackAlpha.600" />
+        <ModalContent bg="red.100" m={0}>
+          <ModalBody>
+            <VStack spacing={4} p={6}>
+              <Text color="red.600">{conversionError}</Text>
+              <Button onClick={onClose}>Close</Button>
+            </VStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    );
+  }
+
+  // Handle missing workout data
+  if (!displayWorkout) {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose} size="full">
+        <ModalOverlay bg="blackAlpha.600" />
+        <ModalContent bg="gray.100" m={0}>
+          <ModalBody>
+            <VStack spacing={4} p={6}>
+              <Text>No workout data available</Text>
+              <Button onClick={onClose}>Close</Button>
+            </VStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    );
+  }
 
   // Get workout data
   const allExercises = getExercisesFromWorkout(displayWorkout);
@@ -566,28 +730,35 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
                   <StatLabel color={sectionTitleColor}>Workout Type</StatLabel>
                   <StatNumber color={drawerText}>{assignmentDetails.workoutType}</StatNumber>
                   {assignmentDetails.duration && (
-                    <StatHelpText color={sectionTitleColor}>
+                  <StatHelpText color={sectionTitleColor}>
                       Duration: {assignmentDetails.duration}
-                    </StatHelpText>
+                  </StatHelpText>
                   )}
                 </Stat>
-                                  <Stat>
+                <Stat>
                     <StatLabel color={sectionTitleColor}>Total Exercises</StatLabel>
-                    <StatNumber color={drawerText}>{assignmentDetails.exercises}</StatNumber>
-                  </Stat>
+                  <StatNumber color={drawerText}>{assignmentDetails.exercises}</StatNumber>
+                </Stat>
               </SimpleGrid>
             </VStack>
           </Box>
         )}
 
         {/* Role-specific Stats Section */}
-        {userRole === 'athlete' && (progress || detailedProgress) && (
+        {userRole === 'athlete' && (progress || detailedProgress || isLoadingProgress) && (
           <Box bg={exerciseCardBg} p={4} borderRadius="lg">
             <VStack spacing={3} align="stretch">
               <Text fontSize="lg" fontWeight="bold" color={drawerText}>
                 Your Progress
               </Text>
-              {detailedProgress ? (
+              {isLoadingProgress ? (
+                <VStack spacing={3} align="center" py={4}>
+                  <Spinner size="md" color="blue.500" />
+                  <Text fontSize="sm" color={sectionTitleColor}>
+                    Calculating progress...
+                  </Text>
+                </VStack>
+              ) : detailedProgress ? (
                 <VStack spacing={4} align="stretch">
                   {/* Exercise Progress */}
                   <Box>
