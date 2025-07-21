@@ -1530,7 +1530,7 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
       <ModalOverlay bg="blackAlpha.600" />
       <ModalContent 
         position="fixed"
-        bottom="-5px"
+        bottom="-12px"
         left="0"
         right="0"
         top="auto"
