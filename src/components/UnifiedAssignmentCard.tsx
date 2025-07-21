@@ -130,6 +130,22 @@ export function UnifiedAssignmentCard({
   const getAssignmentDetails = () => {
     const { assignment_type, exercise_block, progress, meta } = assignment;
     
+    // Debug: Log the raw assignment data
+    console.log('🔍 RAW ASSIGNMENT DATA FOR WORKOUT:', assignment.id);
+    console.log('Assignment Type:', assignment_type);
+    console.log('Exercise Block:', exercise_block);
+    console.log('Full Assignment:', assignment);
+    
+    // Alert for weekly workouts to make sure we see it
+    if (assignment_type === 'weekly') {
+      console.log('🚨 WEEKLY WORKOUT DETECTED - W7676 type data:');
+      console.log('exercise_block.blocks:', exercise_block.blocks);
+      console.log('exercise_block.daily_workouts:', exercise_block.daily_workouts);
+      console.log('exercise_block.exercises:', exercise_block.exercises);
+      
+      // Force an alert for debugging - REMOVED
+    }
+    
     switch (assignment_type) {
       case 'single':
         return {
@@ -145,17 +161,85 @@ export function UnifiedAssignmentCard({
         const dailyWorkouts = exercise_block.daily_workouts || {};
         let totalWeeklyExercises = 0;
         
-        Object.values(dailyWorkouts).forEach((dayWorkout: any) => {
-          if (Array.isArray(dayWorkout)) {
-            // New blocks format
-            dayWorkout.forEach((block: any) => {
-              totalWeeklyExercises += (block.exercises || []).length;
-            });
-          } else if (dayWorkout && dayWorkout.exercises) {
-            // Legacy format
-            totalWeeklyExercises += dayWorkout.exercises.length;
-          }
+        // Debug logging
+        console.log('Weekly workout data structure:', {
+          dailyWorkouts,
+          exerciseBlock: exercise_block,
+          blocks: exercise_block.blocks
         });
+        
+        // Check if it's a block-based weekly workout (stored in blocks field)
+        if (exercise_block.blocks) {
+          let blocks = exercise_block.blocks;
+          
+          // Parse blocks if it's a string
+          if (typeof blocks === 'string') {
+            try {
+              blocks = JSON.parse(blocks);
+            } catch (e) {
+              console.error('Error parsing blocks:', e);
+            }
+          }
+          
+          // Check if blocks is organized by days (monday, tuesday, etc.)
+          if (blocks && typeof blocks === 'object' && !Array.isArray(blocks)) {
+            const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+            dayNames.forEach(dayName => {
+              const dayBlocks = blocks[dayName];
+              if (Array.isArray(dayBlocks)) {
+                dayBlocks.forEach((block: any) => {
+                  if (block.exercises && Array.isArray(block.exercises)) {
+                    totalWeeklyExercises += block.exercises.length;
+                  }
+                });
+              }
+            });
+          } else if (Array.isArray(blocks)) {
+            // Single day blocks
+            blocks.forEach((block: any) => {
+              if (block.exercises && Array.isArray(block.exercises)) {
+                totalWeeklyExercises += block.exercises.length;
+              }
+            });
+          }
+        }
+        
+        // If no exercises found in blocks, try daily_workouts
+        if (totalWeeklyExercises === 0) {
+          Object.values(dailyWorkouts).forEach((dayWorkout: any) => {
+            if (Array.isArray(dayWorkout)) {
+              // New blocks format: array of blocks, each with exercises
+              dayWorkout.forEach((block: any) => {
+                if (block.exercises && Array.isArray(block.exercises)) {
+                  totalWeeklyExercises += block.exercises.length;
+                }
+              });
+            } else if (dayWorkout && dayWorkout.exercises && Array.isArray(dayWorkout.exercises)) {
+              // Legacy format: { exercises: [], is_rest_day: boolean }
+              totalWeeklyExercises += dayWorkout.exercises.length;
+            }
+          });
+        }
+        
+        // Fallback: try to extract from exercise_block.exercises if everything else is empty
+        if (totalWeeklyExercises === 0 && exercise_block.exercises) {
+          const exercises = exercise_block.exercises;
+          if (Array.isArray(exercises) && exercises.length > 0) {
+            // Check if it's weekly plan structure (array of day objects)
+            if (typeof exercises[0] === 'object' && 'day' in exercises[0] && 'exercises' in exercises[0]) {
+              exercises.forEach((dayPlan: any) => {
+                if (dayPlan.exercises && Array.isArray(dayPlan.exercises) && !dayPlan.isRestDay) {
+                  totalWeeklyExercises += dayPlan.exercises.length;
+                }
+              });
+            } else {
+              // Regular exercise array - count all
+              totalWeeklyExercises = exercises.length;
+            }
+          }
+        }
+        
+        console.log('Total weekly exercises calculated:', totalWeeklyExercises);
         
         return {
           title: exercise_block.workout_name || exercise_block.plan_name || 'Weekly Plan',
@@ -912,13 +996,60 @@ export function CoachWorkoutCard({
     const exercises = workout.exercises || [];
     const blocks = workout.blocks || [];
     
+    // Debug logging for coach workout cards
+    console.log('🔧 COACH WORKOUT CARD - Workout Details Debug:', {
+      workoutId: workout.id,
+      workoutName: workout.name,
+      templateType: workout.template_type,
+      exercises: exercises,
+      blocks: blocks,
+      blocksType: typeof blocks,
+      blocksKeys: blocks && typeof blocks === 'object' ? Object.keys(blocks) : 'n/a'
+    });
+    
+    let totalExercises = 0;
+    
+    if (workout.template_type === 'weekly') {
+      // For weekly workouts, count exercises from blocks organized by days
+      if (blocks && typeof blocks === 'object' && !Array.isArray(blocks)) {
+        // Blocks organized by days (monday, tuesday, etc.)
+        const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        dayNames.forEach(dayName => {
+          const dayBlocks = (blocks as any)[dayName];
+          if (Array.isArray(dayBlocks)) {
+            dayBlocks.forEach((block: any) => {
+              if (block.exercises && Array.isArray(block.exercises)) {
+                totalExercises += block.exercises.length;
+              }
+            });
+          }
+        });
+        console.log('🔧 Weekly workout total exercises from blocks:', totalExercises);
+      } else if (Array.isArray(blocks)) {
+        // Single day blocks
+        (blocks as any[]).forEach((block: any) => {
+          if (block.exercises && Array.isArray(block.exercises)) {
+            totalExercises += block.exercises.length;
+          }
+        });
+        console.log('🔧 Single day blocks total exercises:', totalExercises);
+      } else {
+        // Fallback to exercises array
+        totalExercises = exercises.length;
+        console.log('🔧 Fallback to exercises array:', totalExercises);
+      }
+    } else {
+      // For single/monthly workouts
+      totalExercises = exercises.length;
+    }
+    
     return {
       title: workout.name,
       subtitle: workout.template_type === 'weekly' ? 'WEEKLY' : 
                 workout.template_type === 'monthly' ? 'MONTHLY' : 'SINGLE',
       duration: workout.duration || '',
-      exercises: exercises.length,
-      blocks: blocks.length,
+      exercises: totalExercises,
+      blocks: Array.isArray(blocks) ? blocks.length : (blocks && typeof blocks === 'object' ? Object.keys(blocks).length : 0),
       workoutType: workout.template_type?.toUpperCase() || 'SINGLE'
     };
   };
@@ -1184,13 +1315,60 @@ export function CoachWorkoutListItem({
     const exercises = workout.exercises || [];
     const blocks = workout.blocks || [];
     
+    // Debug logging for coach workout list items
+    console.log('🔧 COACH WORKOUT LIST - Workout Details Debug:', {
+      workoutId: workout.id,
+      workoutName: workout.name,
+      templateType: workout.template_type,
+      exercises: exercises,
+      blocks: blocks,
+      blocksType: typeof blocks,
+      blocksKeys: blocks && typeof blocks === 'object' ? Object.keys(blocks) : 'n/a'
+    });
+    
+    let totalExercises = 0;
+    
+    if (workout.template_type === 'weekly') {
+      // For weekly workouts, count exercises from blocks organized by days
+      if (blocks && typeof blocks === 'object' && !Array.isArray(blocks)) {
+        // Blocks organized by days (monday, tuesday, etc.)
+        const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        dayNames.forEach(dayName => {
+          const dayBlocks = (blocks as any)[dayName];
+          if (Array.isArray(dayBlocks)) {
+            dayBlocks.forEach((block: any) => {
+              if (block.exercises && Array.isArray(block.exercises)) {
+                totalExercises += block.exercises.length;
+              }
+            });
+          }
+        });
+        console.log('🔧 Weekly workout list total exercises from blocks:', totalExercises);
+      } else if (Array.isArray(blocks)) {
+        // Single day blocks
+        (blocks as any[]).forEach((block: any) => {
+          if (block.exercises && Array.isArray(block.exercises)) {
+            totalExercises += block.exercises.length;
+          }
+        });
+        console.log('🔧 Single day blocks total exercises:', totalExercises);
+      } else {
+        // Fallback to exercises array
+        totalExercises = exercises.length;
+        console.log('🔧 Fallback to exercises array:', totalExercises);
+      }
+    } else {
+      // For single/monthly workouts
+      totalExercises = exercises.length;
+    }
+    
     return {
       title: workout.name,
       subtitle: workout.template_type === 'weekly' ? 'WEEKLY' : 
                 workout.template_type === 'monthly' ? 'MONTHLY' : 'SINGLE',
       duration: workout.duration || '',
-      exercises: exercises.length,
-      blocks: blocks.length,
+      exercises: totalExercises,
+      blocks: Array.isArray(blocks) ? blocks.length : (blocks && typeof blocks === 'object' ? Object.keys(blocks).length : 0),
       workoutType: workout.template_type?.toUpperCase() || 'SINGLE'
     };
   };

@@ -131,11 +131,47 @@ const getAssignmentDetails = (assignment: any) => {
       };
       
     case 'weekly':
+      // For weekly plans, count total exercises across all days
+      const dailyWorkouts = exercise_block.daily_workouts || {};
+      let totalWeeklyExercises = 0;
+      
+      Object.values(dailyWorkouts).forEach((dayWorkout: any) => {
+        if (Array.isArray(dayWorkout)) {
+          // New blocks format: array of blocks, each with exercises
+          dayWorkout.forEach((block: any) => {
+            if (block.exercises && Array.isArray(block.exercises)) {
+              totalWeeklyExercises += block.exercises.length;
+            }
+          });
+        } else if (dayWorkout && dayWorkout.exercises && Array.isArray(dayWorkout.exercises)) {
+          // Legacy format: { exercises: [], is_rest_day: boolean }
+          totalWeeklyExercises += dayWorkout.exercises.length;
+        }
+      });
+      
+      // Fallback: try to extract from exercise_block.exercises if daily_workouts is empty
+      if (totalWeeklyExercises === 0 && exercise_block.exercises) {
+        const exercises = exercise_block.exercises;
+        if (Array.isArray(exercises) && exercises.length > 0) {
+          // Check if it's weekly plan structure (array of day objects)
+          if (typeof exercises[0] === 'object' && 'day' in exercises[0] && 'exercises' in exercises[0]) {
+            exercises.forEach((dayPlan: any) => {
+              if (dayPlan.exercises && Array.isArray(dayPlan.exercises) && !dayPlan.isRestDay) {
+                totalWeeklyExercises += dayPlan.exercises.length;
+              }
+            });
+          } else {
+            // Regular exercise array - count all
+            totalWeeklyExercises = exercises.length;
+          }
+        }
+      }
+      
       return {
         title: exercise_block.workout_name || exercise_block.plan_name || 'Weekly Plan',
         subtitle: 'WEEKLY',
         duration: `${exercise_block.total_days || 7} days`,
-        exercises: Object.keys(exercise_block.daily_workouts || {}).length,
+        exercises: totalWeeklyExercises,
         workoutType: 'WEEKLY'
       };
       
@@ -533,7 +569,229 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
       <Divider />
 
       {/* Exercises/Blocks Content */}
-      {workoutBlocks.length > 0 ? (
+      {isAssignment && assignment?.assignment_type === 'weekly' ? (
+        // Special handling for weekly workouts - break down by days
+        <VStack spacing={4} align="stretch">
+          <Text fontSize="lg" fontWeight="bold" color={drawerText}>
+            Weekly Training Plan
+          </Text>
+          <Accordion allowMultiple>
+            {(() => {
+              // Extract daily workouts from assignment
+              const dailyWorkouts = assignment.exercise_block?.daily_workouts || {};
+              const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+              const dayDisplayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+              
+              let weeklyData: any = {};
+              
+              // First, check if it's a block-based weekly workout (stored in blocks field)
+              if (assignment.exercise_block?.blocks) {
+                let blocks = assignment.exercise_block.blocks;
+                
+                // Parse blocks if it's a string
+                if (typeof blocks === 'string') {
+                  try {
+                    blocks = JSON.parse(blocks);
+                  } catch (e) {
+                    console.error('Error parsing blocks in details drawer:', e);
+                  }
+                }
+                
+                // Check if blocks is organized by days (monday, tuesday, etc.)
+                if (blocks && typeof blocks === 'object' && !Array.isArray(blocks)) {
+                  dayNames.forEach(dayName => {
+                    const dayBlocks = blocks[dayName];
+                    if (Array.isArray(dayBlocks)) {
+                      // Convert blocks to exercises format for display
+                      const dayExercises = dayBlocks.flatMap((block: any) => block.exercises || []);
+                      weeklyData[dayName] = {
+                        exercises: dayExercises,
+                        is_rest_day: dayExercises.length === 0,
+                        blocks: dayBlocks // Keep original blocks for reference
+                      };
+                    }
+                  });
+                }
+              }
+              
+              // If no block-based data found, try daily_workouts
+              if (Object.keys(weeklyData).length === 0) {
+                if (Object.keys(dailyWorkouts).length > 0) {
+                  weeklyData = dailyWorkouts;
+                } else if (assignment.exercise_block?.exercises) {
+                  // Try to extract from exercises array
+                  const exercises = assignment.exercise_block.exercises;
+                  if (Array.isArray(exercises) && exercises.length > 0 && 
+                      typeof exercises[0] === 'object' && 'day' in exercises[0]) {
+                    // Convert exercise array format to daily_workouts format
+                    exercises.forEach((dayPlan: any) => {
+                      if (dayPlan.day) {
+                        weeklyData[dayPlan.day.toLowerCase()] = {
+                          exercises: dayPlan.exercises || [],
+                          is_rest_day: dayPlan.isRestDay || false
+                        };
+                      }
+                    });
+                  } else {
+                    // Single workout repeated for all days
+                    dayNames.forEach(day => {
+                      weeklyData[day] = {
+                        exercises: exercises,
+                        is_rest_day: false
+                      };
+                    });
+                  }
+                }
+              }
+              
+              return dayNames.map((dayName, index) => {
+                const dayDisplayName = dayDisplayNames[index];
+                const dayWorkout = weeklyData[dayName];
+                
+                let dayExercises: any[] = [];
+                let isRestDay = false;
+                
+                if (dayWorkout) {
+                  if (Array.isArray(dayWorkout)) {
+                    // New blocks format
+                    dayExercises = dayWorkout.flatMap((block: any) => block.exercises || []);
+                  } else if (dayWorkout.exercises && Array.isArray(dayWorkout.exercises)) {
+                    // Legacy format
+                    dayExercises = dayWorkout.exercises;
+                    isRestDay = dayWorkout.is_rest_day || false;
+                  }
+                }
+                
+                return (
+                  <AccordionItem key={dayName} border="1px" borderColor={borderColor} borderRadius="md" mb={2}>
+                    <AccordionButton bg={exerciseCardBg} borderRadius="md">
+                      <Box flex="1" textAlign="left">
+                        <HStack justify="space-between" align="center">
+                          <Text fontWeight="medium" color={drawerText}>
+                            {dayDisplayName}
+                          </Text>
+                          {isRestDay ? (
+                            <Badge colorScheme="orange" fontSize="xs">
+                              Rest Day
+                            </Badge>
+                          ) : (
+                            <Badge colorScheme="blue" fontSize="xs">
+                              {dayExercises.length} exercises
+                            </Badge>
+                          )}
+                        </HStack>
+                      </Box>
+                      <AccordionIcon />
+                    </AccordionButton>
+                    <AccordionPanel pb={4}>
+                      {isRestDay ? (
+                        <Box p={3} bg={exerciseCardBg} borderRadius="md" textAlign="center">
+                          <Text color={sectionTitleColor} fontSize="sm">
+                            Rest day - Focus on recovery and preparation for tomorrow's training
+                          </Text>
+                        </Box>
+                      ) : dayWorkout.blocks && Array.isArray(dayWorkout.blocks) ? (
+                        // Show blocks structure for block-based workouts
+                        <VStack spacing={4} align="stretch">
+                          {dayWorkout.blocks.map((block: any, blockIndex: number) => (
+                            <Box key={blockIndex} p={3} bg={exerciseCardBg} borderRadius="md" border="1px" borderColor={borderColor}>
+                              <VStack spacing={3} align="stretch">
+                                <Text fontSize="md" fontWeight="bold" color={drawerText}>
+                                  {block.name || `Block ${blockIndex + 1}`}
+                                </Text>
+                                {block.exercises && Array.isArray(block.exercises) && block.exercises.length > 0 ? (
+                                  <VStack spacing={2} align="stretch">
+                                    {block.exercises.map((exercise: any, exerciseIndex: number) => (
+                                      <Box key={exerciseIndex} p={2} bg={useColorModeValue('gray.100', 'gray.600')} borderRadius="md">
+                                        <VStack spacing={1} align="stretch">
+                                          <HStack align="center" spacing={3}>
+                                            <Text fontWeight="medium" color={drawerText} fontSize="sm">
+                                              {exercise.name}
+                                            </Text>
+                                            {exercise.sets && exercise.reps && (
+                                              <Text fontSize="xs" color={sectionTitleColor}>
+                                                {exercise.sets} sets × {exercise.reps} reps
+                                              </Text>
+                                            )}
+                                          </HStack>
+                                          {exercise.rest && (
+                                            <Text fontSize="xs" color={sectionTitleColor}>
+                                              Rest: {exercise.rest}
+                                            </Text>
+                                          )}
+                                          {exercise.distance && (
+                                            <Text fontSize="xs" color={sectionTitleColor}>
+                                              Distance: {exercise.distance}
+                                            </Text>
+                                          )}
+                                          {exercise.notes && (
+                                            <Text fontSize="xs" color={drawerText}>
+                                              {exercise.notes}
+                                            </Text>
+                                          )}
+                                        </VStack>
+                                      </Box>
+                                    ))}
+                                  </VStack>
+                                ) : (
+                                  <Text fontSize="sm" color={sectionTitleColor} fontStyle="italic">
+                                    No exercises in this block
+                                  </Text>
+                                )}
+                              </VStack>
+                            </Box>
+                          ))}
+                        </VStack>
+                      ) : dayExercises.length > 0 ? (
+                        // Show flat exercise list for non-block workouts
+                        <VStack spacing={3} align="stretch">
+                          {dayExercises.map((exercise, exerciseIndex) => (
+                            <Box key={exerciseIndex} p={3} bg={exerciseCardBg} borderRadius="md">
+                              <VStack spacing={2} align="stretch">
+                                <HStack align="center" spacing={3}>
+                                  <Text fontWeight="medium" color={drawerText}>
+                                    {exercise.name}
+                                  </Text>
+                                  {exercise.sets && exercise.reps && (
+                                    <Text fontSize="sm" color={sectionTitleColor}>
+                                      {exercise.sets} sets × {exercise.reps} reps
+                                    </Text>
+                                  )}
+                                </HStack>
+                                {exercise.rest && (
+                                  <Text fontSize="sm" color={sectionTitleColor}>
+                                    Rest: {exercise.rest}
+                                  </Text>
+                                )}
+                                {exercise.distance && (
+                                  <Text fontSize="sm" color={sectionTitleColor}>
+                                    Distance: {exercise.distance}
+                                  </Text>
+                                )}
+                                {exercise.notes && (
+                                  <Text fontSize="sm" color={drawerText}>
+                                    {exercise.notes}
+                                  </Text>
+                                )}
+                              </VStack>
+                            </Box>
+                          ))}
+                        </VStack>
+                      ) : (
+                        <Box p={3} bg={exerciseCardBg} borderRadius="md" textAlign="center">
+                          <Text color={sectionTitleColor} fontSize="sm">
+                            No exercises scheduled for this day
+                          </Text>
+                        </Box>
+                      )}
+                    </AccordionPanel>
+                  </AccordionItem>
+                );
+              });
+            })()}
+          </Accordion>
+        </VStack>
+      ) : workoutBlocks.length > 0 ? (
         <VStack spacing={4} align="stretch">
           <Text fontSize="lg" fontWeight="bold" color={drawerText}>
             Workout Blocks ({workoutBlocks.length})
