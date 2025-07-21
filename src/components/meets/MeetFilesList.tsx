@@ -27,6 +27,7 @@ import {
   AlertTitle,
   AlertDescription,
   useBreakpointValue,
+  Portal,
 } from '@chakra-ui/react';
 import { 
   FaImage, 
@@ -289,7 +290,21 @@ const FileItem: React.FC<{
       spacing={2} 
       p={isCompact ? 1 : 2} 
       borderRadius="md"
-      cursor="default"
+      cursor="pointer"
+      _hover={{ 
+        bg: useColorModeValue('gray.100', 'gray.600'),
+        transform: 'translateY(-1px)',
+        transition: 'all 0.2s'
+      }}
+      onClick={handleViewFile}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleViewFile();
+        }
+      }}
     >
       <FileIcon fileType={file.file_type} size={isCompact ? 14 : 16} />
       <Text 
@@ -310,17 +325,37 @@ const FileItem: React.FC<{
           variant="ghost"
           onClick={(e) => e.stopPropagation()}
         />
-        <MenuList>
-          <MenuItem icon={<FaEye />} onClick={handleViewFile}>
-            View
-          </MenuItem>
-          <MenuItem icon={<FaDownload />} onClick={handleDownloadFile}>
-            Download
-          </MenuItem>
-          <MenuItem icon={<FaPrint />} onClick={handlePrintFile}>
-            Print
-          </MenuItem>
-        </MenuList>
+        <Portal>
+          <MenuList onClick={(e) => e.stopPropagation()}>
+            <MenuItem 
+              icon={<FaEye />} 
+              onClick={(e) => {
+                e.stopPropagation();
+                handleViewFile();
+              }}
+            >
+              View
+            </MenuItem>
+            <MenuItem 
+              icon={<FaDownload />} 
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDownloadFile();
+              }}
+            >
+              Download
+            </MenuItem>
+            <MenuItem 
+              icon={<FaPrint />} 
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePrintFile();
+              }}
+            >
+              Print
+            </MenuItem>
+          </MenuList>
+        </Portal>
       </Menu>
     </HStack>
   );

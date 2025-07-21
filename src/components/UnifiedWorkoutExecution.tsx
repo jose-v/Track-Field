@@ -33,6 +33,7 @@ import { useUnifiedAssignmentActions } from '../hooks/useUnifiedAssignments';
 import { supabase } from '../lib/supabase';
 import { WorkoutInfoDrawer } from './execution/WorkoutInfoDrawer';
 import { RunTimeInput } from './RunTimeInput';
+import haptics from '../utils/haptics';
 
 // Helper function to get video URL for exercise
 function getVideoUrl(exerciseName: string): string {
@@ -1087,6 +1088,7 @@ export function UnifiedWorkoutExecution({
           }
           return 0;
         }
+        haptics.countdown(); // Haptic feedback for each countdown tick
         return prev - 1;
       });
     }, 1000);
@@ -1119,6 +1121,7 @@ export function UnifiedWorkoutExecution({
       clearInterval(restCountdownRef);
     }
     
+    haptics.restStart(); // Haptic feedback when rest period starts
     setIsResting(true);
     setRestCountdown(duration);
     
@@ -1289,6 +1292,7 @@ export function UnifiedWorkoutExecution({
       });
     },
     onSuccess: () => {
+      haptics.workoutComplete(); // Haptic feedback for workout completion
       if (onComplete) onComplete();
     },
     onError: (error) => {
@@ -1320,6 +1324,7 @@ export function UnifiedWorkoutExecution({
         
         if (isActuallyCompleted) {
           // Complete workout - close modal immediately to prevent flash
+          haptics.workoutComplete(); // Haptic feedback for workout completion
           if (onComplete) onComplete();
           if (onExit) onExit();
           // Use mutation to handle completion properly
@@ -1356,8 +1361,9 @@ export function UnifiedWorkoutExecution({
       const isActuallyCompleted = currentSet >= currentExerciseSets && currentRep >= currentExerciseReps;
       
       if (isActuallyCompleted) {
-        // Complete workout - close modal immediately to prevent flash
-        if (onComplete) onComplete();
+                  // Complete workout - close modal immediately to prevent flash
+          haptics.workoutComplete(); // Haptic feedback for workout completion
+          if (onComplete) onComplete();
         if (onExit) onExit();
         // Use mutation to handle completion properly
         completeExecution.mutate();
@@ -1386,6 +1392,7 @@ export function UnifiedWorkoutExecution({
       // For running exercises: Use rep-by-rep navigation
       // Progress through reps first
       if (currentRep < totalReps) {
+        haptics.repComplete(); // Haptic feedback for completing a rep
         setCurrentRep(prev => prev + 1);
         // Reset run time for next rep
         setRunTime({ minutes: 0, seconds: 0, hundredths: 0 });
@@ -1395,6 +1402,7 @@ export function UnifiedWorkoutExecution({
       }
       // Then progress through sets
       else if (currentSet < totalSets) {
+        haptics.setComplete(); // Haptic feedback for completing a set
         setCurrentSet(prev => prev + 1);
         setCurrentRep(1);
         // Reset run time for next set
@@ -1419,6 +1427,7 @@ export function UnifiedWorkoutExecution({
       // For non-running exercises: Use set-based navigation (skip reps)
       // Progress through sets
       if (currentSet < totalSets) {
+        haptics.setComplete(); // Haptic feedback for completing a set
         setCurrentSet(prev => prev + 1);
         setCurrentRep(1); // Reset to 1 for the new set
         
@@ -1654,7 +1663,10 @@ export function UnifiedWorkoutExecution({
               aria-label="Back"
               icon={<Icon as={FaSignOutAlt} transform="rotate(180deg)" />}
               variant="ghost"
-              onClick={onExit}
+              onClick={() => {
+                haptics.modalClose(); // Haptic feedback for modal close
+                if (onExit) onExit();
+              }}
               position="absolute"
               left={0}
               zIndex={2}
@@ -1814,6 +1826,52 @@ export function UnifiedWorkoutExecution({
                     </Text>
                   )}
                   
+                  {/* Duration Display */}
+                  {currentExercise && (currentExercise.distance || currentExercise.timed_duration) && (
+                    <Text fontSize="xl" fontWeight="medium" color="white" opacity={0.9} textAlign="center">
+                      {(() => {
+                        // Handle timed_duration (in seconds)
+                        if (currentExercise.timed_duration && currentExercise.timed_duration > 0) {
+                          const minutes = Math.floor(currentExercise.timed_duration / 60);
+                          const seconds = currentExercise.timed_duration % 60;
+                          if (minutes > 0 && seconds > 0) {
+                            return `${minutes} Min ${seconds} Sec`;
+                          } else if (minutes > 0) {
+                            return `${minutes} Min`;
+                          } else {
+                            return `${seconds} Sec`;
+                          }
+                        }
+                        // Handle distance field (which might contain time like "5 Min" or "300s")
+                        else if (currentExercise.distance) {
+                          const distance = String(currentExercise.distance);
+                          // If it already contains "Min" or "Sec", return as is
+                          if (distance.toLowerCase().includes('min') || distance.toLowerCase().includes('sec')) {
+                            return distance;
+                          }
+                          // If it's just a number, assume it's seconds
+                          else if (!isNaN(Number(distance))) {
+                            const totalSeconds = Number(distance);
+                            const minutes = Math.floor(totalSeconds / 60);
+                            const seconds = totalSeconds % 60;
+                            if (minutes > 0 && seconds > 0) {
+                              return `${minutes} Min ${seconds} Sec`;
+                            } else if (minutes > 0) {
+                              return `${minutes} Min`;
+                            } else {
+                              return `${seconds} Sec`;
+                            }
+                          }
+                          // Otherwise return the distance as is
+                          else {
+                            return distance;
+                          }
+                        }
+                        return '';
+                      })()}
+                    </Text>
+                  )}
+                  
                   {/* Countdown Display */}
                   <Text fontSize="6xl" fontWeight="bold" color="red.400" textAlign="center">
                     {isRunningExercise() && countdown <= 3 ? 
@@ -1852,6 +1910,52 @@ export function UnifiedWorkoutExecution({
                     </Text>
                   )}
                   
+                  {/* Duration Display */}
+                  {currentExercise && (currentExercise.distance || currentExercise.timed_duration) && (
+                    <Text fontSize="xl" fontWeight="medium" color="white" opacity={0.9} textAlign="center">
+                      {(() => {
+                        // Handle timed_duration (in seconds)
+                        if (currentExercise.timed_duration && currentExercise.timed_duration > 0) {
+                          const minutes = Math.floor(currentExercise.timed_duration / 60);
+                          const seconds = currentExercise.timed_duration % 60;
+                          if (minutes > 0 && seconds > 0) {
+                            return `${minutes} Min ${seconds} Sec`;
+                          } else if (minutes > 0) {
+                            return `${minutes} Min`;
+                          } else {
+                            return `${seconds} Sec`;
+                          }
+                        }
+                        // Handle distance field (which might contain time like "5 Min" or "300s")
+                        else if (currentExercise.distance) {
+                          const distance = String(currentExercise.distance);
+                          // If it already contains "Min" or "Sec", return as is
+                          if (distance.toLowerCase().includes('min') || distance.toLowerCase().includes('sec')) {
+                            return distance;
+                          }
+                          // If it's just a number, assume it's seconds
+                          else if (!isNaN(Number(distance))) {
+                            const totalSeconds = Number(distance);
+                            const minutes = Math.floor(totalSeconds / 60);
+                            const seconds = totalSeconds % 60;
+                            if (minutes > 0 && seconds > 0) {
+                              return `${minutes} Min ${seconds} Sec`;
+                            } else if (minutes > 0) {
+                              return `${minutes} Min`;
+                            } else {
+                              return `${seconds} Sec`;
+                            }
+                          }
+                          // Otherwise return the distance as is
+                          else {
+                            return distance;
+                          }
+                        }
+                        return '';
+                      })()}
+                    </Text>
+                  )}
+                  
                   {/* Rep Count Display */}
                   {currentExercise && (
                     <Text fontSize="lg" color="white" opacity={0.8} textAlign="center">
@@ -1880,7 +1984,10 @@ export function UnifiedWorkoutExecution({
                     color="white"
                     fontSize="2xl"
                     fontWeight="bold"
-                    onClick={startCountdown}
+                    onClick={() => {
+                      haptics.startAction(); // Haptic feedback for starting workout
+                      startCountdown();
+                    }}
                     _hover={{ bg: "green.600" }}
                     _active={{ bg: "green.700" }}
                   >
@@ -1915,6 +2022,52 @@ export function UnifiedWorkoutExecution({
                       <Text fontSize="2xl" fontWeight="bold" color="white" textAlign="center">
                         {currentExercise.name}
                       </Text>
+                      
+                      {/* Duration Display for Next Exercise */}
+                      {(currentExercise.distance || currentExercise.timed_duration) && (
+                        <Text fontSize="xl" fontWeight="medium" color="white" opacity={0.9} textAlign="center">
+                          {(() => {
+                            // Handle timed_duration (in seconds)
+                            if (currentExercise.timed_duration && currentExercise.timed_duration > 0) {
+                              const minutes = Math.floor(currentExercise.timed_duration / 60);
+                              const seconds = currentExercise.timed_duration % 60;
+                              if (minutes > 0 && seconds > 0) {
+                                return `${minutes} Min ${seconds} Sec`;
+                              } else if (minutes > 0) {
+                                return `${minutes} Min`;
+                              } else {
+                                return `${seconds} Sec`;
+                              }
+                            }
+                            // Handle distance field (which might contain time like "5 Min" or "300s")
+                            else if (currentExercise.distance) {
+                              const distance = String(currentExercise.distance);
+                              // If it already contains "Min" or "Sec", return as is
+                              if (distance.toLowerCase().includes('min') || distance.toLowerCase().includes('sec')) {
+                                return distance;
+                              }
+                              // If it's just a number, assume it's seconds
+                              else if (!isNaN(Number(distance))) {
+                                const totalSeconds = Number(distance);
+                                const minutes = Math.floor(totalSeconds / 60);
+                                const seconds = totalSeconds % 60;
+                                if (minutes > 0 && seconds > 0) {
+                                  return `${minutes} Min ${seconds} Sec`;
+                                } else if (minutes > 0) {
+                                  return `${minutes} Min`;
+                                } else {
+                                  return `${seconds} Sec`;
+                                }
+                              }
+                              // Otherwise return the distance as is
+                              else {
+                                return distance;
+                              }
+                            }
+                            return '';
+                          })()}
+                        </Text>
+                      )}
                     </VStack>
                   )}
                   
@@ -1936,6 +2089,7 @@ export function UnifiedWorkoutExecution({
                       borderColor="orange.400"
                       _hover={{ bg: "orange.400", borderColor: "orange.500" }}
                       onClick={() => {
+                        haptics.buttonPress(); // Haptic feedback for button press
                         if (restCountdownRef) {
                           clearInterval(restCountdownRef);
                           setRestCountdownRef(null);
