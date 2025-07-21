@@ -357,10 +357,16 @@ export function AthleteWorkouts() {
               </Flex>
               
               {todaysWorkout ? (
-                <TodaysWorkoutCard
-                  assignment={todaysWorkout}
-                  onExecute={handleExecuteWorkout}
-                />
+                <Box 
+                  w={{ base: "100%", md: "auto" }}
+                  minW={{ base: "100%", md: "340px" }}
+                  maxW={{ base: "100%", md: "340px" }}
+                >
+                  <TodaysWorkoutCard
+                    assignment={todaysWorkout}
+                    onExecute={handleExecuteWorkout}
+                  />
+                </Box>
               ) : (
                 <Box 
                   bg={cardBg} 
@@ -387,19 +393,21 @@ export function AthleteWorkouts() {
             <VStack spacing={6} align="stretch" w="100%">
               <Heading size="md" display={{ base: "none", md: "block" }}>Single Workouts</Heading>
               {filteredSingleAssignments.length > 0 ? (
-                <Box overflowX={{ base: "hidden", md: "auto" }} pb={4}>
-                  <Stack direction={{ base: "column", md: "row" }} spacing={{ base: 4, md: 6 }} align="start" minW={{ base: "100%", md: "fit-content" }}>
-                    {filteredSingleAssignments.map((assignment) => (
-                      <Box key={assignment.id} w={{ base: "100%", md: "auto" }} minW={{ base: "100%", md: "340px" }}>
-                        <UnifiedAssignmentCard
-                          assignment={assignment}
-                          onExecute={handleExecuteWorkout}
-                          showActions={true}
-                          compact={false}
-                        />
-                      </Box>
-                    ))}
-                  </Stack>
+                <Box 
+                  display="grid"
+                  gridTemplateColumns="repeat(auto-fit, minmax(300px, 1fr))"
+                  gap={{ base: 4, md: 6 }}
+                  w="100%"
+                >
+                  {filteredSingleAssignments.map((assignment) => (
+                    <UnifiedAssignmentCard
+                      key={assignment.id}
+                      assignment={assignment}
+                      onExecute={handleExecuteWorkout}
+                      showActions={true}
+                      compact={false}
+                    />
+                  ))}
                 </Box>
               ) : (
                 <Box bg={cardBg} p={8} borderRadius="lg" border="1px" borderColor="gray.200" textAlign="center">
@@ -493,30 +501,20 @@ export function AthleteWorkouts() {
               
               {filteredDefaultAssignments.length > 0 ? (
                 <Box 
-                  overflowX={{ base: "hidden", md: "auto" }} 
-                  pb={4}
+                  display="grid"
+                  gridTemplateColumns="repeat(auto-fit, minmax(300px, 1fr))"
+                  gap={{ base: 4, md: 6 }}
+                  w="100%"
                 >
-                  <Stack 
-                    direction={{ base: "column", md: "row" }}
-                    spacing={{ base: 4, md: 6 }} 
-                    align="start" 
-                    minW={{ base: "100%", md: "fit-content" }}
-                  >
-                    {filteredDefaultAssignments.map((assignment) => (
-                      <Box 
-                        key={assignment.id}
-                        w={{ base: "100%", md: "auto" }}
-                        minW={{ base: "100%", md: "340px" }}
-                      >
-                        <UnifiedAssignmentCard
-                          assignment={assignment}
-                          onExecute={handleExecuteWorkout}
-                          showActions={true}
-                          compact={false}
-                        />
-                      </Box>
-                    ))}
-                  </Stack>
+                  {filteredDefaultAssignments.map((assignment) => (
+                    <UnifiedAssignmentCard
+                      key={assignment.id}
+                      assignment={assignment}
+                      onExecute={handleExecuteWorkout}
+                      showActions={true}
+                      compact={false}
+                    />
+                  ))}
                 </Box>
               ) : (
                 <Box 

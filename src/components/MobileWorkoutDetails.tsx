@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -27,6 +27,7 @@ import {
   StatNumber,
   StatHelpText,
 } from '@chakra-ui/react';
+import { supabase } from '../lib/supabase';
 import { 
   FaRunning, 
   FaDumbbell, 
@@ -95,6 +96,7 @@ function getTypeIcon(type: string | undefined) {
 const convertAssignmentToWorkout = (assignment: any) => {
   if (!assignment) return null;
   
+  // Base workout structure
   const workout = {
     id: assignment.id,
     name: assignment.exercise_block?.workout_name || assignment.exercise_block?.plan_name || 'Assignment Workout',
@@ -110,6 +112,53 @@ const convertAssignmentToWorkout = (assignment: any) => {
     template_type: assignment.assignment_type as 'single' | 'weekly' | 'monthly',
     daily_workouts: assignment.exercise_block?.daily_workouts || undefined,
   };
+  
+  // For weekly assignments, ensure blocks are properly structured for WorkoutDetailsDrawer
+  if (assignment.assignment_type === 'weekly') {
+    const dailyWorkouts = assignment.exercise_block?.daily_workouts || {};
+    
+    // Check if we have daily_workouts data
+    if (Object.keys(dailyWorkouts).length > 0) {
+      // Convert daily_workouts to blocks format for WorkoutDetailsDrawer
+      const dayBlocks: any = {};
+      
+      // Map daily workouts to blocks structure
+      Object.entries(dailyWorkouts).forEach(([dayName, dayData]: [string, any]) => {
+        if (dayData && Array.isArray(dayData)) {
+          // New blocks format - array of blocks
+          dayBlocks[dayName] = dayData;
+        } else if (dayData && dayData.exercises) {
+          // Legacy format - single day with exercises
+          dayBlocks[dayName] = [{
+            name: `${dayName.charAt(0).toUpperCase() + dayName.slice(1)} Workout`,
+            exercises: dayData.exercises,
+            is_rest_day: dayData.is_rest_day || false
+          }];
+        }
+      });
+      
+      // Set the blocks to the converted structure if we have valid data
+      if (Object.keys(dayBlocks).length > 0) {
+        workout.blocks = dayBlocks;
+      }
+    }
+    
+    // If we have blocks data already, use that
+    else if (assignment.exercise_block?.blocks) {
+      let blocks = assignment.exercise_block.blocks;
+      
+      // Parse blocks if it's a string
+      if (typeof blocks === 'string') {
+        try {
+          blocks = JSON.parse(blocks);
+        } catch (e) {
+          console.error('Error parsing assignment blocks:', e);
+        }
+      }
+      
+      workout.blocks = blocks;
+    }
+  }
   
   return workout;
 };
@@ -195,82 +244,94 @@ const getAssignmentDetails = (assignment: any) => {
   }
 };
 
-// Get detailed progress metrics (like UnifiedAssignmentCard does)
-const getDetailedProgress = (assignment: any) => {
-  if (!assignment) return null;
-  
-  const progress = assignment.progress;
-  const details = getAssignmentDetails(assignment);
-  
-  if (!progress || !details) {
-    return {
-      exercises: { current: 0, total: details?.exercises || 0 },
-      sets: { current: 0, total: 0 },
-      reps: { current: 0, total: 0 }
-    };
-  }
+// Get the correct exercise data - handle different assignment types (like UnifiedAssignmentCard does)
+const getCorrectExerciseData = async (assignment: any): Promise<any[]> => {
+  try {
+    if (!assignment || !assignment.assignment_type) {
+      return [];
+    }
 
-  // For different assignment types, calculate progress differently
-  switch (assignment.assignment_type) {
-    case 'single':
-      const exercises = assignment.exercise_block?.exercises || [];
-      const currentExerciseIndex = progress.current_exercise_index || 0;
-      const currentSet = progress.current_set || 1;
-      const currentRep = progress.current_rep || 1;
+    // Handle different assignment types
+    if (assignment.assignment_type === 'weekly') {
+      // For weekly workouts, get today's exercises
+      const dailyWorkouts = assignment.exercise_block?.daily_workouts || {};
+      const today = new Date();
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const currentDayName = dayNames[today.getDay()];
       
-      // Calculate total sets and reps
-      let totalSets = 0;
-      let totalReps = 0;
-      let completedSets = 0;
-      let completedReps = 0;
+      const todaysWorkout = dailyWorkouts[currentDayName];
+      let exerciseList: any[] = [];
       
-      exercises.forEach((exercise: any, index: number) => {
-        const exerciseSets = parseInt(String(exercise.sets)) || 1;
-        const exerciseReps = parseInt(String(exercise.reps)) || 1;
-        const exerciseTotalReps = exerciseSets * exerciseReps;
-        
-        totalSets += exerciseSets;
-        totalReps += exerciseTotalReps;
-        
-        if (index < currentExerciseIndex) {
-          // Completed exercises
-          completedSets += exerciseSets;
-          completedReps += exerciseTotalReps;
-        } else if (index === currentExerciseIndex) {
-          // Current exercise
-          completedSets += currentSet - 1;
-          completedReps += (currentSet - 1) * exerciseReps + (currentRep - 1);
+      if (todaysWorkout) {
+        if (Array.isArray(todaysWorkout)) {
+          // New blocks format
+          exerciseList = todaysWorkout.flatMap((block: any) => block?.exercises || []);
+        } else if (todaysWorkout.exercises) {
+          // Legacy format
+          exerciseList = todaysWorkout.exercises;
         }
-      });
+      }
       
-      return {
-        exercises: { current: currentExerciseIndex, total: exercises.length },
-        sets: { current: completedSets, total: totalSets },
-        reps: { current: completedReps, total: totalReps }
-      };
-      
-    case 'weekly':
-      return {
-        exercises: { current: progress.current_exercise_index || 0, total: progress.total_exercises || 0 },
-        sets: { current: progress.current_set || 0, total: (progress.current_set || 0) + 3 }, // Estimate
-        reps: { current: progress.current_rep || 0, total: (progress.current_rep || 0) + 15 } // Estimate
-      };
-      
-    case 'monthly':
-      return {
-        exercises: { current: progress.current_exercise_index || 0, total: progress.total_exercises || 0 },
-        sets: { current: progress.current_set || 0, total: (progress.current_set || 0) + 5 }, // Estimate
-        reps: { current: progress.current_rep || 0, total: (progress.current_rep || 0) + 20 } // Estimate
-      };
-      
-    default:
-      return {
-        exercises: { current: 0, total: details.exercises },
-        sets: { current: 0, total: 0 },
-        reps: { current: 0, total: 0 }
-      };
+      return exerciseList;
+    }
+    
+    if (assignment.assignment_type === 'monthly') {
+      // For monthly workouts, return empty array for now
+      return [];
+    }
+    
+    // For single workouts
+    let exercises = assignment.exercise_block?.exercises || [];
+    
+    // If we have an original workout ID, try to fetch the actual workout data
+    const originalWorkoutId = assignment.meta?.original_workout_id;
+    if (originalWorkoutId) {
+      try {
+        const { data: actualWorkout, error } = await supabase
+          .from('workouts')
+          .select('exercises, blocks, is_block_based')
+          .eq('id', originalWorkoutId)
+          .single();
+        
+        if (!error && actualWorkout) {
+          if (actualWorkout.is_block_based && actualWorkout.blocks) {
+            let blockExercises: any[] = [];
+            
+            if (Array.isArray(actualWorkout.blocks)) {
+              blockExercises = actualWorkout.blocks.flatMap((block: any) => block?.exercises || []);
+            } else if (typeof actualWorkout.blocks === 'string') {
+              try {
+                const parsedBlocks = JSON.parse(actualWorkout.blocks);
+                if (Array.isArray(parsedBlocks)) {
+                  blockExercises = parsedBlocks.flatMap((block: any) => block?.exercises || []);
+                }
+              } catch (parseError) {
+                console.error('Error parsing blocks:', parseError);
+              }
+            }
+            
+            if (blockExercises.length > 0) {
+              return blockExercises;
+            }
+          }
+          
+          if (actualWorkout.exercises && Array.isArray(actualWorkout.exercises) && actualWorkout.exercises.length > 0) {
+            return actualWorkout.exercises;
+          }
+        }
+      } catch (dbError) {
+        console.error('Error fetching actual workout data in mobile details:', dbError);
+      }
+    }
+    
+    return Array.isArray(exercises) ? exercises : [];
+  } catch (error) {
+    console.error('Error in getCorrectExerciseData:', error);
+    return [];
   }
 };
+
+
 
 export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
   isOpen,
@@ -299,7 +360,99 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
   const isAssignment = !!assignment;
   const displayWorkout = isAssignment ? convertAssignmentToWorkout(assignment) : workout;
   const assignmentDetails = isAssignment ? getAssignmentDetails(assignment) : null;
-  const detailedProgress = isAssignment ? getDetailedProgress(assignment) : null;
+  // Get detailed progress metrics with proper data fetching
+  const [detailedProgress, setDetailedProgress] = useState<any>(null);
+  
+     useEffect(() => {
+     let isMounted = true;
+     
+     if (!isAssignment || !assignment || !isOpen) {
+       if (isMounted) {
+         setDetailedProgress(null);
+       }
+       return;
+     }
+     
+     const loadProgress = async () => {
+       try {
+         // Get the correct exercise data first (this fetches original workout data)
+         const exercises = await getCorrectExerciseData(assignment);
+         
+         if (!isMounted) return; // Exit if component unmounted
+         
+         const progress = assignment.progress;
+         
+         if (!progress) {
+           if (isMounted) {
+             setDetailedProgress({
+               exercises: { current: 0, total: exercises.length },
+               sets: { current: 0, total: 0 },
+               reps: { current: 0, total: 0 }
+             });
+           }
+           return;
+         }
+
+         // Calculate progress based on correct exercise data
+         if (assignment.assignment_type === 'single') {
+           const currentExerciseIndex = progress.current_exercise_index || 0;
+           const currentSet = progress.current_set || 1;
+           const currentRep = progress.current_rep || 1;
+           
+           let totalSets = 0;
+           let totalReps = 0;
+           let completedSets = 0;
+           let completedReps = 0;
+           
+           exercises.forEach((exercise: any, index: number) => {
+             const exerciseSets = parseInt(String(exercise.sets)) || 1;
+             const exerciseReps = parseInt(String(exercise.reps)) || 1;
+             const exerciseTotalReps = exerciseSets * exerciseReps;
+             
+             totalSets += exerciseSets;
+             totalReps += exerciseTotalReps;
+             
+             if (index < currentExerciseIndex) {
+               completedSets += exerciseSets;
+               completedReps += exerciseTotalReps;
+             } else if (index === currentExerciseIndex) {
+               completedSets += currentSet - 1;
+               const completedRepsInCurrentExercise = (currentSet - 1) * exerciseReps + (currentRep - 1);
+               completedReps += completedRepsInCurrentExercise;
+             }
+           });
+           
+           if (isMounted) {
+             setDetailedProgress({
+               exercises: { current: currentExerciseIndex, total: exercises.length },
+               sets: { current: completedSets, total: totalSets },
+               reps: { current: completedReps, total: totalReps }
+             });
+           }
+         } else {
+           // For weekly/monthly, use basic progress
+           if (isMounted) {
+             setDetailedProgress({
+               exercises: { current: progress.current_exercise_index || 0, total: progress.total_exercises || 0 },
+               sets: { current: progress.current_set || 0, total: (progress.current_set || 0) + 3 },
+               reps: { current: progress.current_rep || 0, total: (progress.current_rep || 0) + 15 }
+             });
+           }
+         }
+       } catch (error) {
+         console.error('Error loading progress:', error);
+         if (isMounted) {
+           setDetailedProgress(null);
+         }
+       }
+     };
+     
+     loadProgress();
+     
+     return () => {
+       isMounted = false;
+     };
+   }, [isAssignment, assignment, isOpen]);
 
   // Calculate athlete count from assignedTo if not provided
   const calculatedAthleteCount = athleteCount || (assignedTo && assignedTo !== 'Unassigned' ? 
@@ -308,13 +461,18 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
   // Calculate overall progress percentage from detailed progress
   const calculateOverallProgress = () => {
     if (detailedProgress) {
-      const exerciseProgress = detailedProgress.exercises.current / detailedProgress.exercises.total;
-      const setsProgress = detailedProgress.sets.total > 0 ? detailedProgress.sets.current / detailedProgress.sets.total : 0;
-      const repsProgress = detailedProgress.reps.total > 0 ? detailedProgress.reps.current / detailedProgress.reps.total : 0;
-      
-      // Weight the progress: exercises (50%), sets (30%), reps (20%)
-      const overallProgress = (exerciseProgress * 0.5) + (setsProgress * 0.3) + (repsProgress * 0.2);
-      return Math.round(overallProgress * 100);
+      try {
+        const exerciseProgress = detailedProgress.exercises.total > 0 ? detailedProgress.exercises.current / detailedProgress.exercises.total : 0;
+        const setsProgress = detailedProgress.sets.total > 0 ? detailedProgress.sets.current / detailedProgress.sets.total : 0;
+        const repsProgress = detailedProgress.reps.total > 0 ? detailedProgress.reps.current / detailedProgress.reps.total : 0;
+        
+        // Weight the progress: exercises (50%), sets (30%), reps (20%)
+        const overallProgress = (exerciseProgress * 0.5) + (setsProgress * 0.3) + (repsProgress * 0.2);
+        return Math.round(overallProgress * 100);
+      } catch (error) {
+        console.error('Error calculating progress:', error);
+        return progress?.percentage || 0;
+      }
     }
     return progress?.percentage || 0;
   };
@@ -380,16 +538,11 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
             </Text>
             <HStack spacing={2}>
               <Badge colorScheme="blue" fontSize="sm">
-                {displayWorkout.type || 'Running'}
+                {isAssignment && assignmentDetails ? assignmentDetails.subtitle : displayWorkout.type || 'Running'}
               </Badge>
               {isBlockBased && (
                 <Badge colorScheme="green" fontSize="sm">
                   Block Mode
-                </Badge>
-              )}
-              {isAssignment && assignmentDetails && (
-                <Badge colorScheme="purple" fontSize="sm">
-                  {assignmentDetails.subtitle}
                 </Badge>
               )}
               {assignmentStatus && (
@@ -410,19 +563,18 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
               </Text>
               <SimpleGrid columns={2} spacing={4}>
                 <Stat>
-                  <StatLabel color={sectionTitleColor}>Type</StatLabel>
+                  <StatLabel color={sectionTitleColor}>Workout Type</StatLabel>
                   <StatNumber color={drawerText}>{assignmentDetails.workoutType}</StatNumber>
-                  <StatHelpText color={sectionTitleColor}>
-                    {assignmentDetails.duration}
-                  </StatHelpText>
+                  {assignmentDetails.duration && (
+                    <StatHelpText color={sectionTitleColor}>
+                      Duration: {assignmentDetails.duration}
+                    </StatHelpText>
+                  )}
                 </Stat>
-                <Stat>
-                  <StatLabel color={sectionTitleColor}>Exercises</StatLabel>
-                  <StatNumber color={drawerText}>{assignmentDetails.exercises}</StatNumber>
-                  <StatHelpText color={sectionTitleColor}>
-                    Total exercises
-                  </StatHelpText>
-                </Stat>
+                                  <Stat>
+                    <StatLabel color={sectionTitleColor}>Total Exercises</StatLabel>
+                    <StatNumber color={drawerText}>{assignmentDetails.exercises}</StatNumber>
+                  </Stat>
               </SimpleGrid>
             </VStack>
           </Box>
@@ -442,11 +594,11 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
                     <HStack justify="space-between" mb={2}>
                       <Text fontSize="sm" color={sectionTitleColor}>Exercises</Text>
                       <Text fontSize="sm" fontWeight="bold" color="blue.500">
-                        {detailedProgress.exercises.current}/{detailedProgress.exercises.total}
+                        {detailedProgress.exercises?.current || 0}/{detailedProgress.exercises?.total || 0}
                       </Text>
                     </HStack>
                     <Progress 
-                      value={(detailedProgress.exercises.current / detailedProgress.exercises.total) * 100} 
+                      value={detailedProgress.exercises?.total > 0 ? (detailedProgress.exercises.current / detailedProgress.exercises.total) * 100 : 0} 
                       colorScheme="blue" 
                       size="sm" 
                       borderRadius="full"
@@ -454,7 +606,7 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
                   </Box>
                   
                   {/* Sets Progress */}
-                  {detailedProgress.sets.total > 0 && (
+                  {detailedProgress.sets?.total > 0 && (
                     <Box>
                       <HStack justify="space-between" mb={2}>
                         <Text fontSize="sm" color={sectionTitleColor}>Sets</Text>
@@ -472,7 +624,7 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
                   )}
                   
                   {/* Reps Progress */}
-                  {detailedProgress.reps.total > 0 && (
+                  {detailedProgress.reps?.total > 0 && (
                     <Box>
                       <HStack justify="space-between" mb={2}>
                         <Text fontSize="sm" color={sectionTitleColor}>Reps</Text>
@@ -1065,11 +1217,6 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
                 <Text fontSize="sm" color={sectionTitleColor} textTransform="capitalize">
                   {userRole} View
                 </Text>
-                {isAssignment && assignmentDetails && (
-                  <Badge colorScheme="purple" fontSize="xs">
-                    {assignmentDetails.workoutType}
-                  </Badge>
-                )}
               </HStack>
             </VStack>
             <IconButton

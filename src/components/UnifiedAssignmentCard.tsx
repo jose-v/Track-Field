@@ -85,6 +85,7 @@ export function UnifiedAssignmentCard({
     percentage: number;
   } | null>(null);
   const [isLoadingProgress, setIsLoadingProgress] = useState(true);
+  const [isDetailsDrawerOpen, setIsDetailsDrawerOpen] = useState(false);
   
   const isMobile = useBreakpointValue({ base: true, md: false });
   const { isOpen: isMobileDetailsOpen, onOpen: onMobileDetailsOpen, onClose: onMobileDetailsClose } = useDisclosure();
@@ -93,8 +94,7 @@ export function UnifiedAssignmentCard({
     if (isMobile) {
       onMobileDetailsOpen();
     } else {
-      // Handle desktop view details
-      console.log('Desktop view details');
+      setIsDetailsDrawerOpen(true);
     }
   };
 
@@ -107,6 +107,7 @@ export function UnifiedAssignmentCard({
   const convertAssignmentToWorkout = () => {
     if (!assignment) return null;
     
+    // Base workout structure
     const workout = {
       id: assignment.id,
       name: assignment.exercise_block?.workout_name || assignment.exercise_block?.plan_name || 'Assignment Workout',
@@ -122,6 +123,54 @@ export function UnifiedAssignmentCard({
       template_type: assignment.assignment_type as 'single' | 'weekly' | 'monthly',
       daily_workouts: assignment.exercise_block?.daily_workouts || undefined,
     };
+    
+    // For weekly assignments, ensure blocks are properly structured for WorkoutDetailsDrawer
+    if (assignment.assignment_type === 'weekly') {
+      const dailyWorkouts = assignment.exercise_block?.daily_workouts || {};
+      
+      // Check if we have daily_workouts data
+      if (Object.keys(dailyWorkouts).length > 0) {
+        // Convert daily_workouts to blocks format for WorkoutDetailsDrawer
+        const dayBlocks: any = {};
+        
+        // Map daily workouts to blocks structure
+        Object.entries(dailyWorkouts).forEach(([dayName, dayData]: [string, any]) => {
+          if (dayData && Array.isArray(dayData)) {
+            // New blocks format - array of blocks
+            dayBlocks[dayName] = dayData;
+          } else if (dayData && dayData.exercises) {
+            // Legacy format - single day with exercises
+            dayBlocks[dayName] = [{
+              name: `${dayName.charAt(0).toUpperCase() + dayName.slice(1)} Workout`,
+              exercises: dayData.exercises,
+              is_rest_day: dayData.is_rest_day || false
+            }];
+          }
+        });
+        
+        // Set the blocks to the converted structure if we have valid data
+        if (Object.keys(dayBlocks).length > 0) {
+          workout.blocks = dayBlocks;
+          console.log('🔧 Weekly assignment converted blocks for details drawer:', dayBlocks);
+        }
+      }
+      
+      // If we have blocks data already, use that
+      else if (assignment.exercise_block?.blocks) {
+        let blocks = assignment.exercise_block.blocks;
+        
+        // Parse blocks if it's a string
+        if (typeof blocks === 'string') {
+          try {
+            blocks = JSON.parse(blocks);
+          } catch (e) {
+            console.error('Error parsing assignment blocks:', e);
+          }
+        }
+        
+        workout.blocks = blocks;
+      }
+    }
     
     return workout;
   };
@@ -413,16 +462,24 @@ export function UnifiedAssignmentCard({
         });
         
         // Calculate actual progress based on current position, not just status
-        let actualCompletedExerciseIndex = currentExerciseIndex;
-        let actualCompletedSets = completedSets;
-        let actualCompletedReps = completedReps;
+        // For exercises: if someone is on exercise index 2, they've completed 2 exercises (0 and 1)
+        // But if they haven't started yet (currentSet = 1, currentRep = 1), they haven't completed the current exercise
+        let actualCompletedExercises = currentExerciseIndex;
         
-        // Use actual progress values
+        // If we're at the beginning of the current exercise (set 1, rep 1), 
+        // then we haven't actually completed any work on the current exercise yet
+        if (currentSet === 1 && currentRep === 1 && currentExerciseIndex > 0) {
+          // We're at the start of a new exercise, so completed exercises = current index
+          actualCompletedExercises = currentExerciseIndex;
+        } else if (currentSet > 1 || currentRep > 1) {
+          // We've made progress in the current exercise, so count it as in progress
+          actualCompletedExercises = currentExerciseIndex;
+        }
         
         metrics = {
-          exercises: { current: actualCompletedExerciseIndex, total: exercises.length },
-          sets: { current: actualCompletedSets, total: totalSets },
-          reps: { current: actualCompletedReps, total: totalReps }
+          exercises: { current: actualCompletedExercises, total: exercises.length },
+          sets: { current: completedSets, total: totalSets },
+          reps: { current: completedReps, total: totalReps }
         };
         break;
         
@@ -731,9 +788,9 @@ export function UnifiedAssignmentCard({
           transform="translate(-50%, -50%)"
           textAlign="center"
         >
-          <Text 
+          <Text
             fontSize="lg" 
-            fontWeight="bold" 
+            fontWeight="bold"
             color={currentColor}
             style={{
               transition: 'color 0.3s ease-in-out',
@@ -955,23 +1012,22 @@ export function UnifiedAssignmentCard({
         )}
       </VStack>
 
-      {/* Responsive Workout Details Drawer */}
-      {isMobile ? (
-        <MobileWorkoutDetails
-          isOpen={isMobileDetailsOpen}
-          onClose={onMobileDetailsClose}
-          assignment={assignment}
-          userRole="athlete"
-          onExecute={onExecute}
-          workout={null}
-        />
-      ) : (
+      {/* Mobile Workout Details Drawer */}
+      <MobileWorkoutDetails
+        isOpen={isMobileDetailsOpen}
+        onClose={onMobileDetailsClose}
+        assignment={assignment}
+        userRole="athlete"
+        onExecute={onExecute}
+        workout={null}
+      />
+
+      {/* Desktop Workout Details Drawer */}
       <WorkoutDetailsDrawer
-          isOpen={isMobileDetailsOpen}
-          onClose={onMobileDetailsClose}
+        isOpen={isDetailsDrawerOpen}
+        onClose={() => setIsDetailsDrawerOpen(false)}
         workout={convertAssignmentToWorkout()}
       />
-      )}
     </Box>
   );
 }
