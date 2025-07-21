@@ -96,7 +96,7 @@ export const MobileProfileDrawer: React.FC<MobileProfileDrawerProps> = ({ isOpen
       <ModalOverlay bg="blackAlpha.600" />
       <ModalContent 
         position="fixed"
-        bottom="0"
+        bottom="-5px"
         left="0"
         right="0"
         top="auto"
@@ -112,9 +112,7 @@ export const MobileProfileDrawer: React.FC<MobileProfileDrawerProps> = ({ isOpen
         width="100vw"
         display="flex"
         flexDirection="column"
-        css={{
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)'
-        }}
+        paddingBottom="5px"
       >
         <ModalBody p={0} display="flex" flexDirection="column" overflowY="auto">
           {/* Header with Close Button */}
