@@ -85,10 +85,10 @@ export function UnifiedAssignmentCard({
     percentage: number;
   } | null>(null);
   const [isLoadingProgress, setIsLoadingProgress] = useState(true);
-
+  
   const isMobile = useBreakpointValue({ base: true, md: false });
   const { isOpen: isMobileDetailsOpen, onOpen: onMobileDetailsOpen, onClose: onMobileDetailsClose } = useDisclosure();
-
+  
   const handleViewDetails = () => {
     if (isMobile) {
       onMobileDetailsOpen();
@@ -365,9 +365,9 @@ export function UnifiedAssignmentCard({
     if (!progress) {
       return {
         metrics: {
-          exercises: { current: 0, total: details.exercises },
-          sets: { current: 0, total: 0 },
-          reps: { current: 0, total: 0 }
+        exercises: { current: 0, total: details.exercises },
+        sets: { current: 0, total: 0 },
+        reps: { current: 0, total: 0 }
         },
         percentage: 0
       };
@@ -389,10 +389,10 @@ export function UnifiedAssignmentCard({
         let completedSets = 0;
         let completedReps = 0;
         
-        exercises.forEach((exercise: any, index: number) => {
+                 exercises.forEach((exercise: any, index: number) => {
           // Use the actual exercise data from the workout
-          const exerciseSets = parseInt(String(exercise.sets)) || 1;
-          const exerciseReps = parseInt(String(exercise.reps)) || 1;
+           const exerciseSets = parseInt(String(exercise.sets)) || 1;
+           const exerciseReps = parseInt(String(exercise.reps)) || 1;
           const exerciseTotalReps = exerciseSets * exerciseReps;
           
           totalSets += exerciseSets;
@@ -649,15 +649,48 @@ export function UnifiedAssignmentCard({
                      assignment.exercise_block?.name ||
                      `Workout ${assignment.id.slice(-4).toUpperCase()}`;
 
-  // Circular progress component
+  // Animated circular progress component
   const CircularProgress = ({ percentage }: { percentage: number }) => {
+    const [animatedPercentage, setAnimatedPercentage] = useState(0);
     const radius = 78; // 20% bigger than 65
     const strokeWidth = 10; // Thicker stroke
     const normalizedRadius = radius - strokeWidth * 2;
     const circumference = normalizedRadius * 2 * Math.PI;
+    
+    // Animate the progress from 0 to target percentage
+    useEffect(() => {
+      const duration = 1500; // 1.5 seconds animation
+      const startTime = Date.now();
+      const startValue = 0;
+      const endValue = percentage;
+      
+      const animate = () => {
+        const now = Date.now();
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Easing function for smooth animation (ease-out)
+        const easeOut = 1 - Math.pow(1 - progress, 3);
+        const currentValue = startValue + (endValue - startValue) * easeOut;
+        
+        setAnimatedPercentage(currentValue);
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        }
+      };
+      
+      // Start animation with a small delay for better visual effect
+      const timeoutId = setTimeout(() => {
+        requestAnimationFrame(animate);
+      }, 300);
+      
+      return () => clearTimeout(timeoutId);
+    }, [percentage]);
+    
     const strokeDasharray = `${circumference} ${circumference}`;
-    const strokeDashoffset = circumference - (percentage / 100) * circumference;
-    const currentColor = percentage >= 100 ? '#10B981' : percentage >= 50 ? '#F59E0B' : '#EF4444';
+    const strokeDashoffset = circumference - (animatedPercentage / 100) * circumference;
+    const currentColor = animatedPercentage >= 100 ? '#10B981' : animatedPercentage >= 50 ? '#F59E0B' : '#EF4444';
 
     return (
       <Box position="relative" display="inline-block">
@@ -666,15 +699,16 @@ export function UnifiedAssignmentCard({
           width={radius * 2}
           style={{ transform: 'rotate(-90deg)' }}
         >
+          {/* Background circle */}
           <circle
             stroke={useColorModeValue('#E5E7EB', '#374151')}
             fill="transparent"
             strokeWidth={strokeWidth}
-            strokeDasharray={strokeDasharray}
             r={normalizedRadius}
             cx={radius}
             cy={radius}
           />
+          {/* Progress circle */}
           <circle
             stroke={currentColor}
             fill="transparent"
@@ -685,6 +719,9 @@ export function UnifiedAssignmentCard({
             r={normalizedRadius}
             cx={radius}
             cy={radius}
+            style={{
+              transition: 'stroke 0.3s ease-in-out',
+            }}
           />
         </svg>
         <Box
@@ -694,8 +731,15 @@ export function UnifiedAssignmentCard({
           transform="translate(-50%, -50%)"
           textAlign="center"
         >
-          <Text fontSize="lg" fontWeight="bold" color={currentColor}>
-            {Math.round(percentage)}%
+          <Text 
+            fontSize="lg" 
+            fontWeight="bold" 
+            color={currentColor}
+            style={{
+              transition: 'color 0.3s ease-in-out',
+            }}
+          >
+            {Math.round(animatedPercentage)}%
           </Text>
         </Box>
       </Box>
@@ -754,43 +798,43 @@ export function UnifiedAssignmentCard({
             </Button>
           </ButtonGroup>
                       {isCoach ? (
-                <Menu>
-                  <MenuButton
-                    as={IconButton}
+                      <Menu>
+              <MenuButton
+                as={IconButton}
                     icon={<MoreVertical />}
-                    variant="ghost"
-                    aria-label="Options"
-                    size="sm"
+                variant="ghost"
+                aria-label="Options"
+                size="sm"
                     color={useColorModeValue("gray.500", "gray.300")}
-                  />
-                  <Portal>
-                    <MenuList>
-                      <MenuItem 
+              />
+              <Portal>
+                <MenuList>
+                  <MenuItem 
                         icon={<Play />} 
-                        onClick={handleViewDetails}
-                      >
-                        View Details
-                      </MenuItem>
-                      {onAssign && (
-                        <MenuItem 
+                    onClick={handleViewDetails}
+                  >
+                    View Details
+                  </MenuItem>
+                  {onAssign && (
+                    <MenuItem 
                           icon={<UserPlus />} 
-                          onClick={onAssign}
-                        >
-                          Assign Athletes
-                        </MenuItem>
-                      )}
+                      onClick={onAssign}
+                    >
+                      Assign Athletes
+                    </MenuItem>
+                  )}
                       {onDelete && (
-                        <MenuItem 
+                    <MenuItem 
                           icon={<Trash2 />} 
-                          onClick={onDelete}
-                          color="red.500"
-                        >
-                          Delete Workout
-                        </MenuItem>
-                      )}
-                    </MenuList>
-                  </Portal>
-                </Menu>
+                      onClick={onDelete}
+                      color="red.500"
+                    >
+                      Delete Workout
+                    </MenuItem>
+                  )}
+                </MenuList>
+              </Portal>
+            </Menu>
               ) : (
                 <IconButton
                   icon={<MoreVertical />}
@@ -922,11 +966,11 @@ export function UnifiedAssignmentCard({
           workout={null}
         />
       ) : (
-        <WorkoutDetailsDrawer
+      <WorkoutDetailsDrawer
           isOpen={isMobileDetailsOpen}
           onClose={onMobileDetailsClose}
-          workout={convertAssignmentToWorkout()}
-        />
+        workout={convertAssignmentToWorkout()}
+      />
       )}
     </Box>
   );

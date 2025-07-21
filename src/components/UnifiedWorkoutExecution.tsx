@@ -301,10 +301,10 @@ const FixedTimer = ({
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return {
-      min1: Math.floor(mins / 10),
-      min2: mins % 10,
-      sec1: Math.floor(secs / 10),
-      sec2: secs % 10
+      min1: Math.floor(mins / 10).toString(),
+      min2: (mins % 10).toString(),
+      sec1: Math.floor(secs / 10).toString(),
+      sec2: (secs % 10).toString()
     };
   };
 
@@ -313,27 +313,27 @@ const FixedTimer = ({
   return (
     <HStack spacing={0} justify="center" align="center">
       <Box w="45px" textAlign="center">
-        <Text fontSize="6xl" fontWeight="bold" color={color} fontFamily="mono">
+        <Text fontSize="6xl" fontWeight="bold" color={color} className="digital-timer">
           {min1}
         </Text>
       </Box>
       <Box w="45px" textAlign="center">
-        <Text fontSize="6xl" fontWeight="bold" color={color} fontFamily="mono">
+        <Text fontSize="6xl" fontWeight="bold" color={color} className="digital-timer">
           {min2}
         </Text>
       </Box>
       <Box w="30px" textAlign="center">
-        <Text fontSize="6xl" fontWeight="bold" color={color} fontFamily="mono">
+        <Text fontSize="6xl" fontWeight="bold" color={color} className="digital-timer">
           :
         </Text>
       </Box>
       <Box w="45px" textAlign="center">
-        <Text fontSize="6xl" fontWeight="bold" color={color} fontFamily="mono">
+        <Text fontSize="6xl" fontWeight="bold" color={color} className="digital-timer">
           {sec1}
         </Text>
       </Box>
       <Box w="45px" textAlign="center">
-        <Text fontSize="6xl" fontWeight="bold" color={color} fontFamily="mono">
+        <Text fontSize="6xl" fontWeight="bold" color={color} className="digital-timer">
           {sec2}
         </Text>
       </Box>
@@ -387,8 +387,8 @@ export function UnifiedWorkoutExecution({
     console.log('UnifiedWorkoutExecution: Loading exercises for assignment:', assignment.id, assignment.assignment_type);
 
     const loadExercises = async () => {
-      try {
-        if (assignment.assignment_type === 'single') {
+    try {
+      if (assignment.assignment_type === 'single') {
           // Get the correct exercise data - try to fetch from original workout if available
           const originalWorkoutId = assignment.meta?.original_workout_id;
           let exerciseList = assignment.exercise_block?.exercises || [];
@@ -439,17 +439,17 @@ export function UnifiedWorkoutExecution({
             }
           }
           
-          console.log('Single assignment exercises:', exerciseList);
-          
-          if (exerciseList.length === 0) {
-            setExerciseLoadError('This workout has no exercises assigned.');
-          } else {
-            setExercises(exerciseList.map(exercise => ({
-              ...exercise,
-              sets: parsePositiveInt(exercise.sets, 1),
-              reps: parsePositiveInt(exercise.reps, 1)
-            })));
-            setTotalExercises(exerciseList.length);
+        console.log('Single assignment exercises:', exerciseList);
+        
+        if (exerciseList.length === 0) {
+          setExerciseLoadError('This workout has no exercises assigned.');
+        } else {
+          setExercises(exerciseList.map(exercise => ({
+            ...exercise,
+            sets: parsePositiveInt(exercise.sets, 1),
+            reps: parsePositiveInt(exercise.reps, 1)
+          })));
+          setTotalExercises(exerciseList.length);
             
             // Calculate total blocks from actual workout data
             if (originalWorkoutId) {
@@ -492,203 +492,150 @@ export function UnifiedWorkoutExecution({
               // Fallback to 1 block if no original workout ID
               setTotalBlocks(1);
             }
-          }
-        } else if (assignment.assignment_type === 'weekly') {
-          // Weekly plan - extract today's exercises with comprehensive error handling
-          const dailyWorkouts = assignment.exercise_block?.daily_workouts || {};
-          const legacyExercises = assignment.exercise_block?.exercises || [];
-          
-          console.log('Weekly assignment daily_workouts:', dailyWorkouts);
-          console.log('Weekly assignment legacy exercises:', legacyExercises);
-          console.log('Full exercise_block:', assignment.exercise_block);
-          
-          // Check if we have any weekly plan data at all
-          const hasDailyWorkouts = Object.keys(dailyWorkouts).length > 0;
-          const hasLegacyExercises = Array.isArray(legacyExercises) && legacyExercises.length > 0;
-          
-          if (!hasDailyWorkouts && !hasLegacyExercises) {
-            setExerciseLoadError('This weekly plan has no workouts configured.');
-            setIsLoadingExercises(false);
-            return;
-          }
-          
-          const today = new Date();
-          const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-          const currentDayName = dayNames[today.getDay()];
-          console.log('Current day:', currentDayName);
-          
-          let todaysWorkout: any = null;
-          let selectedDay = currentDayName;
-          let workoutSource = '';
-          
-          // Try to find today's workout in the new format first
-          if (hasDailyWorkouts) {
-            todaysWorkout = dailyWorkouts[currentDayName];
-            workoutSource = 'daily_workouts';
-            console.log('Found in daily_workouts - Today\'s workout:', todaysWorkout);
-          }
-          
-          // If not found, try the legacy format
-          if (!todaysWorkout && hasLegacyExercises) {
-            console.log('Trying legacy format...');
-            // Check if it's a weekly plan structure with day objects
-            if (legacyExercises.length > 0 && typeof legacyExercises[0] === 'object' && 'day' in legacyExercises[0]) {
-              console.log('Found legacy weekly plan structure');
-              const todaysPlan = legacyExercises.find((dayPlan: any) => dayPlan.day === currentDayName);
-              if (todaysPlan) {
-                todaysWorkout = todaysPlan;
-                workoutSource = 'legacy';
+        }
+      } else if (assignment.assignment_type === 'weekly') {
+        // Weekly plan - extract today's exercises with comprehensive error handling
+        const dailyWorkouts = assignment.exercise_block?.daily_workouts || {};
+        const legacyExercises = assignment.exercise_block?.exercises || [];
+        
+        console.log('Weekly assignment daily_workouts:', dailyWorkouts);
+        console.log('Weekly assignment legacy exercises:', legacyExercises);
+        console.log('Full exercise_block:', assignment.exercise_block);
+        
+        // Check if we have any weekly plan data at all
+        const hasDailyWorkouts = Object.keys(dailyWorkouts).length > 0;
+        const hasLegacyExercises = Array.isArray(legacyExercises) && legacyExercises.length > 0;
+        
+        if (!hasDailyWorkouts && !hasLegacyExercises) {
+          setExerciseLoadError('This weekly plan has no workouts configured.');
+          setIsLoadingExercises(false);
+          return;
+        }
+        
+        const today = new Date();
+        const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const currentDayName = dayNames[today.getDay()];
+        console.log('Current day:', currentDayName);
+        
+        let todaysWorkout: any = null;
+        let selectedDay = currentDayName;
+        let workoutSource = '';
+        
+        // Try to find today's workout in the new format first
+        if (hasDailyWorkouts) {
+          todaysWorkout = dailyWorkouts[currentDayName];
+          workoutSource = 'daily_workouts';
+          console.log('Found in daily_workouts - Today\'s workout:', todaysWorkout);
+        }
+        
+        // If not found, try the legacy format
+        if (!todaysWorkout && hasLegacyExercises) {
+          console.log('Trying legacy format...');
+          // Check if it's a weekly plan structure with day objects
+          if (legacyExercises.length > 0 && typeof legacyExercises[0] === 'object' && 'day' in legacyExercises[0]) {
+            console.log('Found legacy weekly plan structure');
+            const todaysPlan = legacyExercises.find((dayPlan: any) => dayPlan.day === currentDayName);
+            if (todaysPlan) {
+              todaysWorkout = todaysPlan;
+              workoutSource = 'legacy';
                 console.log('Found in legacy format - Today\'s workout:', todaysPlan);
-              }
             }
           }
+        }
+        
+        // Check if today's workout is empty (including empty arrays)
+        const isTodaysWorkoutEmpty = !todaysWorkout || 
+          (Array.isArray(todaysWorkout) && todaysWorkout.length === 0) ||
+          (todaysWorkout.exercises && Array.isArray(todaysWorkout.exercises) && todaysWorkout.exercises.length === 0);
+        
+        console.log('Is today\'s workout empty?', isTodaysWorkoutEmpty);
+        
+        // If today's workout is empty, treat it as a rest day
+        if (isTodaysWorkoutEmpty) {
+          console.log('Today appears to be a rest day (empty workout)');
+          setIsRestDay(true);
+          setRestDayInfo({ 
+            day: currentDayName,
+            message: `Today is a rest day in your weekly plan. Take time to recover and prepare for tomorrow's training.`
+          });
+          setIsLoadingExercises(false);
+          return;
+        }
+        
+        // If no workout data at all, then search for available days as fallback
+        if (!todaysWorkout) {
+          console.log('No workout data for today, searching for first available day...');
+          let availableDays: string[] = [];
           
-          // Check if today's workout is empty (including empty arrays)
-          const isTodaysWorkoutEmpty = !todaysWorkout || 
-            (Array.isArray(todaysWorkout) && todaysWorkout.length === 0) ||
-            (todaysWorkout.exercises && Array.isArray(todaysWorkout.exercises) && todaysWorkout.exercises.length === 0);
-          
-          console.log('Is today\'s workout empty?', isTodaysWorkoutEmpty);
-          
-          // If today's workout is empty, treat it as a rest day
-          if (isTodaysWorkoutEmpty) {
-            console.log('Today appears to be a rest day (empty workout)');
-            setIsRestDay(true);
-            setRestDayInfo({ 
-              day: currentDayName,
-              message: `Today is a rest day in your weekly plan. Take time to recover and prepare for tomorrow's training.`
+          if (hasDailyWorkouts) {
+            availableDays = Object.keys(dailyWorkouts).filter(dayKey => {
+              const dayWorkout = dailyWorkouts[dayKey];
+              if (!dayWorkout) return false;
+              
+              if (Array.isArray(dayWorkout)) {
+                // Check if array has content and at least one block has exercises
+                return dayWorkout.length > 0 && dayWorkout.some((block: any) => block.exercises && block.exercises.length > 0);
+              } else {
+                return dayWorkout.exercises && dayWorkout.exercises.length > 0 && !dayWorkout.is_rest_day;
+              }
             });
+          } else if (hasLegacyExercises) {
+            availableDays = legacyExercises
+              .filter((dayPlan: any) => dayPlan.exercises && dayPlan.exercises.length > 0 && !dayPlan.isRestDay)
+              .map((dayPlan: any) => dayPlan.day);
+          }
+          
+          console.log('Available days:', availableDays);
+          
+          if (availableDays.length > 0) {
+            selectedDay = availableDays[0];
+            if (hasDailyWorkouts) {
+              todaysWorkout = dailyWorkouts[selectedDay];
+              workoutSource = 'daily_workouts';
+            } else {
+              todaysWorkout = legacyExercises.find((dayPlan: any) => dayPlan.day === selectedDay);
+              workoutSource = 'legacy';
+            }
+            console.log('Switched to available day:', selectedDay);
+            console.log('New workout data:', todaysWorkout);
+          } else {
+            // Check if all days are rest days
+            let hasRestDays = false;
+            if (hasDailyWorkouts) {
+              hasRestDays = Object.values(dailyWorkouts).some((workout: any) => 
+                workout && (workout.is_rest_day || (Array.isArray(workout) && workout.length === 0))
+              );
+            } else if (hasLegacyExercises) {
+              hasRestDays = legacyExercises.some((dayPlan: any) => dayPlan.isRestDay);
+            }
+            
+            if (hasRestDays) {
+              // If all days are rest days, show rest day UI with special message
+              setIsRestDay(true);
+              setRestDayInfo({ 
+                day: 'week',
+                message: `This week appears to be a rest week. All days are scheduled for recovery. Enjoy your well-deserved break!`
+              });
+            } else {
+              setExerciseLoadError('This weekly plan has no exercises configured for any day.');
+            }
             setIsLoadingExercises(false);
             return;
           }
-          
-          // If no workout data at all, then search for available days as fallback
-          if (!todaysWorkout) {
-            console.log('No workout data for today, searching for first available day...');
-            let availableDays: string[] = [];
-            
-            if (hasDailyWorkouts) {
-              availableDays = Object.keys(dailyWorkouts).filter(dayKey => {
-                const dayWorkout = dailyWorkouts[dayKey];
-                if (!dayWorkout) return false;
-                
-                if (Array.isArray(dayWorkout)) {
-                  // Check if array has content and at least one block has exercises
-                  return dayWorkout.length > 0 && dayWorkout.some((block: any) => block.exercises && block.exercises.length > 0);
-                } else {
-                  return dayWorkout.exercises && dayWorkout.exercises.length > 0 && !dayWorkout.is_rest_day;
-                }
-              });
-            } else if (hasLegacyExercises) {
-              availableDays = legacyExercises
-                .filter((dayPlan: any) => dayPlan.exercises && dayPlan.exercises.length > 0 && !dayPlan.isRestDay)
-                .map((dayPlan: any) => dayPlan.day);
-            }
-            
-            console.log('Available days:', availableDays);
-            
-            if (availableDays.length > 0) {
-              selectedDay = availableDays[0];
-              if (hasDailyWorkouts) {
-                todaysWorkout = dailyWorkouts[selectedDay];
-                workoutSource = 'daily_workouts';
-              } else {
-                todaysWorkout = legacyExercises.find((dayPlan: any) => dayPlan.day === selectedDay);
-                workoutSource = 'legacy';
-              }
-              console.log('Switched to available day:', selectedDay);
-              console.log('New workout data:', todaysWorkout);
-            } else {
-              // Check if all days are rest days
-              let hasRestDays = false;
-              if (hasDailyWorkouts) {
-                hasRestDays = Object.values(dailyWorkouts).some((workout: any) => 
-                  workout && (workout.is_rest_day || (Array.isArray(workout) && workout.length === 0))
-                );
-              } else if (hasLegacyExercises) {
-                hasRestDays = legacyExercises.some((dayPlan: any) => dayPlan.isRestDay);
-              }
-              
-              if (hasRestDays) {
-                // If all days are rest days, show rest day UI with special message
-                setIsRestDay(true);
-                setRestDayInfo({ 
-                  day: 'week',
-                  message: `This week appears to be a rest week. All days are scheduled for recovery. Enjoy your well-deserved break!`
-                });
-              } else {
-                setExerciseLoadError('This weekly plan has no exercises configured for any day.');
-              }
-              setIsLoadingExercises(false);
-              return;
-            }
-          }
-          
-          console.log('Final workout source:', workoutSource);
-          console.log('Final selected day:', selectedDay);
-          console.log('Final workout data:', todaysWorkout);
-          
-          let exerciseList: any[] = [];
-          
-          if (todaysWorkout) {
-            try {
-              if (workoutSource === 'legacy') {
-                // Legacy format: { day: 'monday', exercises: [...], isRestDay: false }
-                console.log('Processing legacy format');
-                if (todaysWorkout.isRestDay) {
-                  setIsRestDay(true);
-                  setRestDayInfo({ 
-                    day: selectedDay,
-                    message: `Today is a rest day in your weekly plan. Take time to recover and prepare for tomorrow's training.`
-                  });
-                  setIsLoadingExercises(false);
-                  return;
-                } else if (todaysWorkout.exercises && Array.isArray(todaysWorkout.exercises)) {
-                  console.log('Legacy exercises:', todaysWorkout.exercises);
-                  exerciseList = todaysWorkout.exercises.map((exercise: any) => ({
-                    ...exercise,
-                    sets: parsePositiveInt(exercise.sets, 1),
-                    reps: parsePositiveInt(exercise.reps, 1),
-                    rest_seconds: exercise.rest || exercise.rest_seconds || 60
-                  }));
-                } else {
-                  console.log('Legacy workout found but no exercises');
-                  setExerciseLoadError(`The workout for ${selectedDay} has no exercises configured.`);
-                  setIsLoadingExercises(false);
-                  return;
-                }
-              } else if (Array.isArray(todaysWorkout)) {
-                // New blocks format from daily_workouts
-                console.log('Processing new blocks format');
-                console.log('Total blocks:', todaysWorkout.length);
-                
-                if (todaysWorkout.length === 0) {
-                  console.log('Empty blocks array found');
-                  setExerciseLoadError(`The workout for ${selectedDay} has no exercise blocks configured.`);
-                  setIsLoadingExercises(false);
-                  return;
-                }
-                
-                exerciseList = todaysWorkout.flatMap((block: any, blockIndex: number) => {
-                  const exercises = block.exercises || [];
-                  console.log(`Block ${blockIndex + 1} exercises:`, exercises);
-                  return exercises.map((exercise: any) => ({
-                    ...exercise,
-                    sets: parsePositiveInt(exercise.sets, 1),
-                    reps: parsePositiveInt(exercise.reps, 1),
-                    rest_seconds: exercise.rest || exercise.rest_seconds || block.restBetweenExercises || 60
-                  }));
-                });
-              } else if (todaysWorkout.exercises && Array.isArray(todaysWorkout.exercises)) {
-                // Old object format from daily_workouts
-                console.log('Processing old daily_workouts format, exercises:', todaysWorkout.exercises);
-                exerciseList = todaysWorkout.exercises.map((exercise: any) => ({
-                  ...exercise,
-                  sets: parsePositiveInt(exercise.sets, 1),
-                  reps: parsePositiveInt(exercise.reps, 1),
-                  rest_seconds: exercise.rest || exercise.rest_seconds || 60
-                }));
-              } else if (todaysWorkout.is_rest_day) {
+        }
+        
+        console.log('Final workout source:', workoutSource);
+        console.log('Final selected day:', selectedDay);
+        console.log('Final workout data:', todaysWorkout);
+        
+        let exerciseList: any[] = [];
+        
+        if (todaysWorkout) {
+          try {
+            if (workoutSource === 'legacy') {
+              // Legacy format: { day: 'monday', exercises: [...], isRestDay: false }
+              console.log('Processing legacy format');
+              if (todaysWorkout.isRestDay) {
                 setIsRestDay(true);
                 setRestDayInfo({ 
                   day: selectedDay,
@@ -696,28 +643,81 @@ export function UnifiedWorkoutExecution({
                 });
                 setIsLoadingExercises(false);
                 return;
+              } else if (todaysWorkout.exercises && Array.isArray(todaysWorkout.exercises)) {
+                console.log('Legacy exercises:', todaysWorkout.exercises);
+                exerciseList = todaysWorkout.exercises.map((exercise: any) => ({
+                  ...exercise,
+                  sets: parsePositiveInt(exercise.sets, 1),
+                  reps: parsePositiveInt(exercise.reps, 1),
+                  rest_seconds: exercise.rest || exercise.rest_seconds || 60
+                }));
               } else {
-                console.log('Workout found but no exercises, workout data:', todaysWorkout);
+                console.log('Legacy workout found but no exercises');
                 setExerciseLoadError(`The workout for ${selectedDay} has no exercises configured.`);
                 setIsLoadingExercises(false);
                 return;
               }
-            } catch (error) {
-              console.error('Error processing weekly workout:', error);
-              console.error('Workout data that caused error:', todaysWorkout);
-              setExerciseLoadError('Error processing the weekly workout data.');
+            } else if (Array.isArray(todaysWorkout)) {
+              // New blocks format from daily_workouts
+              console.log('Processing new blocks format');
+              console.log('Total blocks:', todaysWorkout.length);
+              
+              if (todaysWorkout.length === 0) {
+                console.log('Empty blocks array found');
+                setExerciseLoadError(`The workout for ${selectedDay} has no exercise blocks configured.`);
+                setIsLoadingExercises(false);
+                return;
+              }
+              
+              exerciseList = todaysWorkout.flatMap((block: any, blockIndex: number) => {
+                const exercises = block.exercises || [];
+                console.log(`Block ${blockIndex + 1} exercises:`, exercises);
+                return exercises.map((exercise: any) => ({
+                  ...exercise,
+                  sets: parsePositiveInt(exercise.sets, 1),
+                  reps: parsePositiveInt(exercise.reps, 1),
+                  rest_seconds: exercise.rest || exercise.rest_seconds || block.restBetweenExercises || 60
+                }));
+              });
+              } else if (todaysWorkout.exercises && Array.isArray(todaysWorkout.exercises)) {
+              // Old object format from daily_workouts
+              console.log('Processing old daily_workouts format, exercises:', todaysWorkout.exercises);
+              exerciseList = todaysWorkout.exercises.map((exercise: any) => ({
+                ...exercise,
+                sets: parsePositiveInt(exercise.sets, 1),
+                reps: parsePositiveInt(exercise.reps, 1),
+                rest_seconds: exercise.rest || exercise.rest_seconds || 60
+              }));
+            } else if (todaysWorkout.is_rest_day) {
+              setIsRestDay(true);
+              setRestDayInfo({ 
+                day: selectedDay,
+                message: `Today is a rest day in your weekly plan. Take time to recover and prepare for tomorrow's training.`
+              });
+              setIsLoadingExercises(false);
+              return;
+            } else {
+              console.log('Workout found but no exercises, workout data:', todaysWorkout);
+              setExerciseLoadError(`The workout for ${selectedDay} has no exercises configured.`);
               setIsLoadingExercises(false);
               return;
             }
+          } catch (error) {
+            console.error('Error processing weekly workout:', error);
+            console.error('Workout data that caused error:', todaysWorkout);
+            setExerciseLoadError('Error processing the weekly workout data.');
+            setIsLoadingExercises(false);
+            return;
           }
-          
-          console.log('Final exercise list:', exerciseList);
-          
-          if (exerciseList.length === 0) {
-            setExerciseLoadError(`No exercises found for ${selectedDay} in this weekly plan.`);
-          } else {
-            setExercises(exerciseList);
-            setTotalExercises(exerciseList.length);
+        }
+        
+        console.log('Final exercise list:', exerciseList);
+        
+        if (exerciseList.length === 0) {
+          setExerciseLoadError(`No exercises found for ${selectedDay} in this weekly plan.`);
+        } else {
+          setExercises(exerciseList);
+          setTotalExercises(exerciseList.length);
             
             // Calculate total blocks for weekly workouts
             if (workoutSource === 'daily_workouts' && todaysWorkout && Array.isArray(todaysWorkout)) {
@@ -726,20 +726,20 @@ export function UnifiedWorkoutExecution({
               // For legacy format or other cases, treat as 1 block
               setTotalBlocks(1);
             }
-          }
-        } else if (assignment.assignment_type === 'monthly') {
-          // Monthly plans should show weekly structure, not daily exercises
-          setExerciseLoadError('Monthly plans should be executed week by week, not as individual workouts.');
-        } else {
-          setExerciseLoadError(`Unsupported assignment type: ${assignment.assignment_type}`);
         }
-      } catch (error) {
-        console.error('Error loading exercises:', error);
-        setExerciseLoadError('An unexpected error occurred while loading the workout.');
+      } else if (assignment.assignment_type === 'monthly') {
+        // Monthly plans should show weekly structure, not daily exercises
+        setExerciseLoadError('Monthly plans should be executed week by week, not as individual workouts.');
+      } else {
+        setExerciseLoadError(`Unsupported assignment type: ${assignment.assignment_type}`);
       }
+    } catch (error) {
+      console.error('Error loading exercises:', error);
+      setExerciseLoadError('An unexpected error occurred while loading the workout.');
+    }
 
-      // Always finish loading
-      setIsLoadingExercises(false);
+    // Always finish loading
+    setIsLoadingExercises(false);
     };
 
     loadExercises();
@@ -1323,12 +1323,12 @@ export function UnifiedWorkoutExecution({
         const isActuallyCompleted = currentSet >= currentExerciseSets && currentRep >= currentExerciseReps;
         
         if (isActuallyCompleted) {
-          // Complete workout - close modal immediately to prevent flash
+        // Complete workout - close modal immediately to prevent flash
           haptics.workoutComplete(); // Haptic feedback for workout completion
-          if (onComplete) onComplete();
-          if (onExit) onExit();
-          // Use mutation to handle completion properly
-          completeExecution.mutate();
+        if (onComplete) onComplete();
+        if (onExit) onExit();
+        // Use mutation to handle completion properly
+        completeExecution.mutate();
         } else {
           // Continue to next rep/set if not finished
           if (currentRep < currentExerciseReps) {
@@ -1361,12 +1361,12 @@ export function UnifiedWorkoutExecution({
       const isActuallyCompleted = currentSet >= currentExerciseSets && currentRep >= currentExerciseReps;
       
       if (isActuallyCompleted) {
-                  // Complete workout - close modal immediately to prevent flash
+      // Complete workout - close modal immediately to prevent flash
           haptics.workoutComplete(); // Haptic feedback for workout completion
-          if (onComplete) onComplete();
-        if (onExit) onExit();
-        // Use mutation to handle completion properly
-        completeExecution.mutate();
+      if (onComplete) onComplete();
+      if (onExit) onExit();
+      // Use mutation to handle completion properly
+      completeExecution.mutate();
       } else {
         // Continue to next rep/set if not finished
         if (currentRep < currentExerciseReps) {
@@ -1484,8 +1484,8 @@ export function UnifiedWorkoutExecution({
       const isWorkoutActuallyCompleted = currentSet >= currentExerciseSets && currentRep >= currentExerciseReps;
       
       if (isWorkoutActuallyCompleted) {
-        // Show RPE screen before completing workout
-        setShowRPEScreen(true);
+      // Show RPE screen before completing workout
+      setShowRPEScreen(true);
       } else {
         // Continue to next rep/set if not finished
         if (currentRep < currentExerciseReps) {
@@ -1873,7 +1873,7 @@ export function UnifiedWorkoutExecution({
                   )}
                   
                   {/* Countdown Display */}
-                  <Text fontSize="6xl" fontWeight="bold" color="red.400" textAlign="center">
+                  <Text fontSize="6xl" fontWeight="bold" color="red.400" textAlign="center" className="countdown-timer">
                     {isRunningExercise() && countdown <= 3 ? 
                       (countdown === 3 ? "Ready" : countdown === 2 ? "Set" : countdown === 1 ? "Go!" : countdown) :
                       countdown
@@ -2076,7 +2076,7 @@ export function UnifiedWorkoutExecution({
                     <Text fontSize="xl" color="orange.400" fontWeight="bold" textTransform="uppercase">
                       Rest Time
                     </Text>
-                    <Text fontSize="6xl" fontWeight="bold" color="orange.400" textAlign="center" fontFamily="mono">
+                    <Text fontSize="6xl" fontWeight="bold" color="orange.400" textAlign="center" className="rest-timer">
                       {`${Math.floor(restCountdown / 60).toString().padStart(2, '0')}:${(restCountdown % 60).toString().padStart(2, '0')}`}
                     </Text>
                     
@@ -2263,11 +2263,16 @@ export function UnifiedWorkoutExecution({
                         isRest={false}
                       />
                     ) : (
-                      <FixedTimer 
-                        seconds={elapsedTime} 
-                        color={currentColor} 
-                        isRest={false}
-                      />
+                      <VStack spacing={2}>
+                        <Text fontSize="xs" color={currentColor} textTransform="uppercase" opacity={0.8}>
+                          {isActive ? 'TIMER RUNNING' : 'TIMER READY'}
+                        </Text>
+                        <FixedTimer 
+                          seconds={elapsedTime} 
+                          color={currentColor} 
+                          isRest={false}
+                        />
+                      </VStack>
                     )}
                     
                     <IconButton

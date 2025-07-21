@@ -1,0 +1,80 @@
+/* Dolly Dots Digital Display Font */
+@font-face {
+  font-family: 'DollyDots';
+  src: url('/fonts/dollydots.ttf?v=1') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+/* CF Dots 521 Digital Display Font (backup) */
+@font-face {
+  font-family: 'CFDots';
+  src: url('/fonts/CFDots-Regular.ttf?v=1') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+/* Alternative font declaration for compatibility */
+@font-face {
+  font-family: 'CF Dots 521';
+  src: url('/fonts/CFDots-Regular.ttf?v=1') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+/* Font loading test - you can check this in dev tools */
+.font-test-dolly-dots {
+  font-family: 'DollyDots', monospace;
+  position: fixed;
+  top: -100px;
+  left: -100px;
+  font-size: 12px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.font-test-dolly-dots::after {
+  content: '0123456789:';
+}
+
+/* Digital Timer Font Stack - includes fallbacks */
+.digital-timer {
+  font-family: 'DollyDots', 'CFDots', 'Monaco', 'Menlo', 'Consolas', 'Lucida Console', 'Liberation Mono', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  text-rendering: optimizeLegibility;
+  font-weight: normal;
+}
+
+/* LCD-style timer effects */
+.lcd-timer {
+  font-family: 'DollyDots', 'CFDots', 'Monaco', 'Menlo', 'Consolas', 'Lucida Console', 'Liberation Mono', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.1em;
+  /*text-shadow: 0 0 5px currentColor;*/
+  /*filter: contrast(1.2);*/
+  font-weight: normal;
+}
+
+/* Countdown timer style */
+.countdown-timer {
+  font-family: 'DollyDots', 'CFDots', 'Monaco', 'Menlo', 'Consolas', 'Lucida Console', 'Liberation Mono', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: normal;
+  letter-spacing: 0.08em;
+  /*text-shadow: 0 0 8px currentColor;*/
+  text-rendering: optimizeLegibility;
+}
+
+/* Rest timer style */
+.rest-timer {
+  font-family: 'DollyDots', 'CFDots', 'Monaco', 'Menlo', 'Consolas', 'Lucida Console', 'Liberation Mono', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.12em;
+  /*text-shadow: 0 0 6px currentColor;*/
+  font-weight: normal;
+  text-rendering: optimizeLegibility;
+} 
