@@ -1547,6 +1547,9 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
         width="100vw"
         display="flex"
         flexDirection="column"
+        css={{
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+        }}
       >
         <ModalBody 
           p={0} 

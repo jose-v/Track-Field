@@ -546,6 +546,9 @@ export const MobileTodayCard: React.FC<MobileTodayCardProps> = ({
           width="100vw"
           display="flex"
           flexDirection="column"
+          css={{
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+          }}
         >
           <ModalBody p={0} h="100%" display="flex" flexDirection="column">
             {/* Header */}

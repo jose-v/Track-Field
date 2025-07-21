@@ -680,12 +680,185 @@ export function UnifiedAssignmentCard({
           };
         }
       } else if (assignment.assignment_type === 'monthly') {
-        // For monthly workouts, show overall progress
-        metrics = {
-          exercises: { current: progress.current_exercise_index || 0, total: progress.total_exercises || 0 },
-          sets: { current: progress.current_set || 0, total: (progress.current_set || 0) + 5 },
-          reps: { current: progress.current_rep || 0, total: (progress.current_rep || 0) + 20 }
-        };
+        // For monthly plans, extract today's exercises directly from weekly structure
+        // Don't use getCorrectExerciseData() - it returns empty array for monthly plans
+        
+        const weeklyStructure = assignment.exercise_block?.weekly_structure || [];
+        
+
+        
+        let todaysExercises: any[] = [];
+        
+        if (weeklyStructure.length > 0) {
+          // Calculate current week based on assignment start date
+          const startDate = new Date(assignment.start_date);
+          const today = new Date();
+          const daysDiff = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+          const currentWeek = Math.floor(daysDiff / 7) + 1;
+          
+          // Find current week in structure
+          const currentWeekInfo = weeklyStructure.find((week: any) => week.week_number === currentWeek);
+          
+          
+          
+          if (currentWeekInfo && !currentWeekInfo.is_rest_week && currentWeekInfo.workout_id) {
+            // Fetch the weekly workout for this week
+            try {
+              const { data: weeklyWorkout, error } = await supabase
+                .from('workouts')
+                .select('*')
+                .eq('id', currentWeekInfo.workout_id)
+                .single();
+              
+              if (error) {
+                console.error('Error fetching weekly workout:', error);
+                             } else if (weeklyWorkout) {
+
+                 
+                 // Extract today's exercises from the weekly workout
+                 const dailyWorkouts = weeklyWorkout.daily_workouts || {};
+                 const today = new Date();
+                 const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                 const currentDayName = dayNames[today.getDay()];
+                 
+                 const todaysWorkout = dailyWorkouts[currentDayName];
+                 
+                 // Check if this weekly workout has daily_workouts structure
+                 if (Object.keys(dailyWorkouts).length > 0) {
+                   // Has daily workout structure - extract today's exercises
+                   const todaysWorkout = dailyWorkouts[currentDayName];
+                   
+                   console.log('🏃‍♂️ Extracting from daily_workouts structure:', {
+                     current_day: currentDayName,
+                     todays_workout: todaysWorkout,
+                     daily_workouts_keys: Object.keys(dailyWorkouts)
+                   });
+                   
+                   if (todaysWorkout) {
+                     if (Array.isArray(todaysWorkout)) {
+                       // New blocks format - each item in array is a block
+                       console.log('📦 Processing blocks format:', todaysWorkout);
+                       todaysExercises = todaysWorkout.flatMap((block: any) => {
+                         console.log('🔍 Block data:', block);
+                         return block?.exercises || [];
+                       });
+                     } else if (todaysWorkout.exercises) {
+                       // Legacy format
+                       console.log('📝 Processing legacy format:', todaysWorkout.exercises);
+                       todaysExercises = todaysWorkout.exercises;
+                     }
+                   }
+                 } else {
+                   // No daily_workouts structure - extract directly from blocks or exercises
+
+                   
+                   if (weeklyWorkout.blocks) {
+                     // Extract from blocks structure
+                     let blocks = weeklyWorkout.blocks;
+                     if (typeof blocks === 'string') {
+                       try {
+                         blocks = JSON.parse(blocks);
+                       } catch (e) {
+                         console.error('Error parsing blocks JSON:', e);
+                         blocks = [];
+                       }
+                     }
+                     
+
+                     
+                     if (Array.isArray(blocks)) {
+                                                // Blocks is an array - use existing logic
+                         todaysExercises = blocks.flatMap((block: any) => {
+                           return block?.exercises || [];
+                         });
+                     } else if (blocks && typeof blocks === 'object') {
+                                                // Blocks is an object with day keys - extract today's exercises directly
+                         const dayKey = currentDayName + 's'; // monday -> mondays
+                         const todaysDayExercises = blocks[dayKey] || blocks[currentDayName];
+                       
+                       if (Array.isArray(todaysDayExercises)) {
+                                                    // Extract exercises from today's day blocks
+                           todaysExercises = todaysDayExercises.flatMap((dayBlock: any) => {
+                             if (dayBlock?.exercises) {
+                               return dayBlock.exercises;
+                             } else if (dayBlock && dayBlock.name) {
+                               // Direct exercise object
+                               return [dayBlock];
+                             }
+                             return [];
+                           });
+                                                } else if (!todaysDayExercises) {
+                           // Fallback: use first available day
+                           const firstAvailableDay = Object.keys(blocks).find(key => Array.isArray(blocks[key]));
+                           if (firstAvailableDay) {
+                             const firstDayExercises = blocks[firstAvailableDay];
+                             todaysExercises = firstDayExercises.flatMap((dayBlock: any) => {
+                               return dayBlock?.exercises || (dayBlock && dayBlock.name ? [dayBlock] : []);
+                             });
+                           }
+                         }
+                     }
+                                        } else if (weeklyWorkout.exercises) {
+                       // Extract directly from exercises
+                       todaysExercises = weeklyWorkout.exercises;
+                     }
+                 }
+               }
+            } catch (fetchError) {
+              console.error('Error fetching weekly workout for monthly plan:', fetchError);
+            }
+          }
+        }
+        
+        
+        
+        if (todaysExercises.length > 0) {
+          // Calculate today's workout metrics
+          let totalSets = 0;
+          let totalReps = 0;
+          let completedSets = 0;
+          let completedReps = 0;
+          
+          todaysExercises.forEach((exercise: any, index: number) => {
+            const exerciseSets = parseInt(String(exercise.sets)) || 1;
+            const exerciseReps = parseInt(String(exercise.reps)) || 1;
+            const exerciseTotalReps = exerciseSets * exerciseReps;
+            
+
+            
+            totalSets += exerciseSets;
+            totalReps += exerciseTotalReps;
+            
+            if (index < currentExerciseIndex) {
+              // Completed exercises
+              completedSets += exerciseSets;
+              completedReps += exerciseTotalReps;
+            } else if (index === currentExerciseIndex) {
+              // Current exercise - calculate based on actual progress
+              completedSets += Math.max(0, currentSet - 1);
+              
+              // For reps: count completed reps in previous sets + current set
+              const completedRepsInPreviousSets = Math.max(0, currentSet - 1) * exerciseReps;
+              const completedRepsInCurrentSet = Math.max(0, currentRep - 1);
+              completedReps += completedRepsInPreviousSets + completedRepsInCurrentSet;
+            }
+          });
+          
+
+          
+          metrics = {
+            exercises: { current: currentExerciseIndex, total: todaysExercises.length },
+            sets: { current: completedSets, total: totalSets },
+            reps: { current: completedReps, total: totalReps }
+          };
+        } else {
+          // Rest day or no workout today
+          metrics = {
+            exercises: { current: 0, total: 0 },
+            sets: { current: 0, total: 0 },
+            reps: { current: 0, total: 0 }
+          };
+        }
       } else {
         // Fallback for unknown types
         metrics = {
@@ -695,9 +868,69 @@ export function UnifiedAssignmentCard({
         };
       }
 
+      // Calculate daily workout progress for single and weekly assignment types
+      // Focus on: "How much of TODAY'S workout is complete?"
+      // Note: Monthly plans are handled above with early return
+      let calculatedPercentage = 0;
+      
+      console.log('🔍 DETAILED DEBUG for', assignment.id.slice(-4), ':', {
+        assignment_type: assignment.assignment_type,
+        status: assignment.status,
+        progress_from_db: {
+          current_exercise_index: progress.current_exercise_index,
+          current_set: progress.current_set,
+          current_rep: progress.current_rep,
+          completion_percentage: progress.completion_percentage
+        },
+        calculated_metrics: metrics,
+        raw_assignment_progress: assignment.progress
+      });
+      
+      // For ALL workout types, use the same daily progress calculation
+      if (metrics.exercises.total > 0 && metrics.reps.total > 0) {
+        // Use reps as the most granular indicator of daily progress
+        const calculation = (metrics.reps.current / metrics.reps.total) * 100;
+        calculatedPercentage = Math.round(calculation);
+        
+        console.log('📅 REPS-BASED calculation for', assignment.id.slice(-4), ':', {
+          type: assignment.assignment_type,
+          reps_current: metrics.reps.current,
+          reps_total: metrics.reps.total,
+          raw_calculation: calculation,
+          rounded_percentage: calculatedPercentage,
+          exercises_for_context: `${metrics.exercises.current}/${metrics.exercises.total}`
+        });
+      } else if (metrics.exercises.total > 0) {
+        // Fallback to exercise-based calculation if no reps data
+        const calculation = (metrics.exercises.current / metrics.exercises.total) * 100;
+        calculatedPercentage = Math.round(calculation);
+        
+        console.log('📅 EXERCISE-BASED calculation for', assignment.id.slice(-4), ':', {
+          type: assignment.assignment_type,
+          exercises_current: metrics.exercises.current,
+          exercises_total: metrics.exercises.total,
+          raw_calculation: calculation,
+          rounded_percentage: calculatedPercentage
+        });
+      } else {
+        // No exercise data available - show 0% (monthly plans handled above with early return)
+        calculatedPercentage = 0;
+        
+        console.log('❌ FALLBACK calculation for', assignment.id.slice(-4), ':', {
+          type: assignment.assignment_type,
+          fallback_percentage: calculatedPercentage,
+          reason: 'No exercise or reps data available'
+        });
+      }
+      
+      // Use the calculated percentage based on actual progress
+      const finalPercentage = calculatedPercentage;
+
+      console.log('🎯 Setting progress data with percentage:', finalPercentage);
+      
       setProgressData({
         metrics,
-        percentage: progress.completion_percentage || 0
+        percentage: finalPercentage
       });
       setIsLoadingProgress(false);
     };
@@ -714,8 +947,10 @@ export function UnifiedAssignmentCard({
     percentage: 0
   };
   
-  // Use the stored completion percentage from the database
-  const finalProgressPct = assignment.progress?.completion_percentage || 0;
+  console.log('📱 Card will display percentage:', progress_pct, 'from progressData');
+  
+  // Use the calculated percentage from progressData instead of just the stored value
+  const finalProgressPct = progress_pct;
   
   // Check if assignment is actually completed based on progress AND status
   const isCompleted = assignment.status === 'completed' && finalProgressPct >= 100;

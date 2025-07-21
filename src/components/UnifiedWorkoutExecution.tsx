@@ -728,8 +728,163 @@ export function UnifiedWorkoutExecution({
             }
         }
       } else if (assignment.assignment_type === 'monthly') {
-        // Monthly plans should show weekly structure, not daily exercises
-        setExerciseLoadError('Monthly plans should be executed week by week, not as individual workouts.');
+        // Monthly plans - extract today's workout from the weekly structure
+        console.log('Monthly assignment - extracting today\'s workout');
+        
+        const weeklyStructure = assignment.exercise_block?.weekly_structure || [];
+        const meta = assignment.meta || {};
+        
+        if (weeklyStructure.length === 0) {
+          setExerciseLoadError('This monthly plan has no weeks configured.');
+          setIsLoadingExercises(false);
+          return;
+        }
+        
+        // Calculate current week based on assignment start date
+        const startDate = new Date(assignment.start_date);
+        const today = new Date();
+        const daysDiff = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        const currentWeek = Math.floor(daysDiff / 7) + 1;
+        
+        console.log('Monthly plan calculation:', { 
+          startDate: assignment.start_date, 
+          daysDiff, 
+          currentWeek, 
+          totalWeeks: weeklyStructure.length 
+        });
+        
+        // Find current week in structure
+        const currentWeekInfo = weeklyStructure.find((week: any) => week.week_number === currentWeek);
+        
+        if (!currentWeekInfo) {
+          // If we're past the plan duration
+          if (currentWeek > weeklyStructure.length) {
+            setExerciseLoadError('This monthly plan has been completed. All weeks have been finished.');
+          } else {
+            setExerciseLoadError('Current week not found in monthly plan structure.');
+          }
+          setIsLoadingExercises(false);
+          return;
+        }
+        
+        // Check if current week is a rest week
+        if (currentWeekInfo.is_rest_week) {
+          setIsRestDay(true);
+          setRestDayInfo({ 
+            day: `Week ${currentWeek}`,
+            message: `This is a rest week (Week ${currentWeek}). Take time to recover and prepare for the next training phase.`
+          });
+          setIsLoadingExercises(false);
+          return;
+        }
+        
+        // Get the workout ID for current week
+        const workoutId = currentWeekInfo.workout_id;
+        if (!workoutId) {
+          setExerciseLoadError(`Week ${currentWeek} has no workout assigned.`);
+          setIsLoadingExercises(false);
+          return;
+        }
+        
+        // Fetch the weekly workout to extract today's exercises
+        try {
+          console.log('Fetching weekly workout:', workoutId);
+          const { data: weeklyWorkout, error: workoutError } = await supabase
+            .from('workouts')
+            .select('id, name, exercises, is_block_based, blocks, description, duration')
+            .eq('id', workoutId)
+            .single();
+          
+          if (workoutError || !weeklyWorkout) {
+            console.error('Error fetching weekly workout:', workoutError);
+            setExerciseLoadError(`Could not load workout for Week ${currentWeek}.`);
+            setIsLoadingExercises(false);
+            return;
+          }
+          
+          // Extract today's exercises from the weekly workout
+          const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+          const currentDayName = dayNames[today.getDay()];
+          let todaysExercises: any[] = [];
+          
+          console.log('Weekly workout data:', { 
+            is_block_based: weeklyWorkout.is_block_based,
+            hasBlocks: !!weeklyWorkout.blocks,
+            exercisesLength: weeklyWorkout.exercises?.length,
+            currentDay: currentDayName
+          });
+          
+          // Handle block-based weekly workouts
+          if (weeklyWorkout.is_block_based && weeklyWorkout.blocks) {
+            let blocks = weeklyWorkout.blocks;
+            
+            // Parse blocks if it's a string
+            if (typeof blocks === 'string') {
+              try {
+                blocks = JSON.parse(blocks);
+              } catch (e) {
+                console.error('Error parsing weekly workout blocks:', e);
+                setExerciseLoadError('Invalid workout structure in monthly plan.');
+                setIsLoadingExercises(false);
+                return;
+              }
+            }
+            
+            // Extract today's blocks
+            if (blocks && typeof blocks === 'object' && !Array.isArray(blocks)) {
+              // Daily blocks structure (monday, tuesday, etc.)
+              const todaysBlocks = blocks[currentDayName];
+              if (todaysBlocks && Array.isArray(todaysBlocks)) {
+                todaysExercises = todaysBlocks.flatMap((block: any) => block.exercises || []);
+              }
+            } else if (Array.isArray(blocks)) {
+              // Single day blocks
+              todaysExercises = blocks.flatMap((block: any) => block.exercises || []);
+            }
+          }
+          // Handle legacy exercise format
+          else if (weeklyWorkout.exercises && Array.isArray(weeklyWorkout.exercises)) {
+            // Check if it's a weekly structure with day objects
+            if (weeklyWorkout.exercises.length > 0 && 
+                typeof weeklyWorkout.exercises[0] === 'object' && 
+                'day' in weeklyWorkout.exercises[0]) {
+              
+              // Find today's exercises
+              const todaysPlan = weeklyWorkout.exercises.find((dayPlan: any) => 
+                dayPlan.day?.toLowerCase() === currentDayName
+              );
+              
+              if (todaysPlan && !todaysPlan.isRestDay) {
+                todaysExercises = todaysPlan.exercises || [];
+              }
+            } else {
+              // Single day workout - use all exercises
+              todaysExercises = weeklyWorkout.exercises;
+            }
+          }
+          
+          console.log('Extracted today\'s exercises:', { 
+            count: todaysExercises.length,
+            exercises: todaysExercises 
+          });
+          
+          // Check if today is a rest day
+          if (todaysExercises.length === 0) {
+            setIsRestDay(true);
+            setRestDayInfo({ 
+              day: currentDayName,
+              message: `Today is a rest day in Week ${currentWeek}. Use this time for recovery.`
+            });
+          } else {
+            setExercises(todaysExercises);
+            setTotalExercises(todaysExercises.length);
+            setTotalBlocks(1); // Monthly plans typically show as a single block for the day
+          }
+          
+        } catch (error) {
+          console.error('Error processing monthly plan workout:', error);
+          setExerciseLoadError('Failed to load today\'s workout from monthly plan.');
+        }
       } else {
         setExerciseLoadError(`Unsupported assignment type: ${assignment.assignment_type}`);
       }

@@ -238,6 +238,9 @@ export const MobileEventCard: React.FC<MobileEventCardProps> = ({ onEventClick }
           width="100vw"
           display="flex"
           flexDirection="column"
+          css={{
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+          }}
         >
           <ModalBody p={0} display="flex" flexDirection="column" overflowY="auto">
             {/* Header */}
