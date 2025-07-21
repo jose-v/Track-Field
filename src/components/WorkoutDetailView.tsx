@@ -412,6 +412,11 @@ export function WorkoutDetailView({
             <VStack align="start" spacing={1}>
               <HStack spacing={3}>
                 <Heading size="lg" color={titleColor}>{workout.name}</Heading>
+                {workout.is_template && (
+                  <Badge colorScheme="purple" fontSize="sm">
+                    TEMPLATE
+                  </Badge>
+                )}
                 {workout.is_block_based && (
                   <Badge colorScheme="green" fontSize="sm">
                     BLOCK MODE

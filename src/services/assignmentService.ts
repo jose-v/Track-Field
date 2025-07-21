@@ -448,6 +448,428 @@ export class AssignmentService {
   }
 
   /**
+   * Duplicate an existing assignment
+   * Creates a new assignment based on an existing one with fresh progress tracking
+   */
+  async duplicateAssignment(
+    originalAssignmentId: string,
+    targetAthleteId?: string,
+    newStartDate?: string,
+    newAssignedBy?: string,
+    customName?: string
+  ): Promise<WorkoutAssignment> {
+    try {
+      // Get the original assignment
+      const { data: originalAssignment, error: fetchError } = await this.client
+        .from('unified_workout_assignments')
+        .select('*')
+        .eq('id', originalAssignmentId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching original assignment:', fetchError);
+        throw fetchError;
+      }
+
+      if (!originalAssignment) {
+        throw new Error(`Assignment ${originalAssignmentId} not found`);
+      }
+
+      // Calculate total exercises for progress tracking
+      const totalExercises = this.calculateTotalExercises(
+        originalAssignment.exercise_block, 
+        originalAssignment.assignment_type
+      );
+
+      // Create a copy of the exercise block with optional custom name
+      const updatedExerciseBlock = {
+        ...originalAssignment.exercise_block,
+        ...(customName && { workout_name: customName })
+      };
+
+      // Create the new assignment data
+      const newAssignmentData = {
+        athlete_id: targetAthleteId || originalAssignment.athlete_id,
+        assignment_type: originalAssignment.assignment_type,
+        exercise_block: updatedExerciseBlock,
+        progress: {
+          current_exercise_index: 0,
+          current_set: 1,
+          current_rep: 1,
+          completed_exercises: [],
+          total_exercises: totalExercises,
+          completion_percentage: 0,
+          total_time_seconds: 0,
+          exercise_times: {},
+        } as AssignmentProgress,
+        start_date: newStartDate || originalAssignment.start_date,
+        end_date: originalAssignment.end_date,
+        assigned_at: new Date().toISOString(),
+        assigned_by: newAssignedBy || originalAssignment.assigned_by,
+        status: 'assigned' as const,
+        meta: {
+          ...originalAssignment.meta,
+          duplicated_from: originalAssignmentId,
+          duplicated_at: new Date().toISOString(),
+          ...(customName && { custom_name: customName })
+        }
+      };
+
+      // Use the existing createAssignment method which handles duplicate checking
+      const newAssignment = await this.createAssignment(newAssignmentData);
+      
+      return newAssignment;
+    } catch (error) {
+      console.error('AssignmentService.duplicateAssignment error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Duplicate a workout from the workouts table as a new assignment
+   * Creates a new assignment based on an existing workout
+   */
+  async duplicateWorkoutAsAssignment(
+    workoutId: string,
+    targetAthleteId: string,
+    assignedBy?: string,
+    startDate?: string,
+    customName?: string
+  ): Promise<WorkoutAssignment> {
+    try {
+      // Get the original workout
+      const { data: workout, error: workoutError } = await this.client
+        .from('workouts')
+        .select('*')
+        .eq('id', workoutId)
+        .single();
+
+      if (workoutError) {
+        console.error('Error fetching workout:', workoutError);
+        throw workoutError;
+      }
+
+      if (!workout) {
+        throw new Error(`Workout ${workoutId} not found`);
+      }
+
+      // Determine assignment type based on workout template_type
+      const assignmentType: 'single' | 'weekly' | 'monthly' = workout.template_type === 'weekly' ? 'weekly' : 
+                           workout.template_type === 'monthly' ? 'monthly' : 'single';
+
+      // Convert workout to exercise block format
+      let exerciseBlock: any;
+
+      if (assignmentType === 'weekly') {
+        // For weekly workouts, use blocks as daily_workouts
+        let dailyWorkouts: any = {};
+        
+        if (workout.blocks) {
+          // Parse blocks if it's a string
+          let blocks: any = workout.blocks;
+          if (typeof blocks === 'string') {
+            try {
+              blocks = JSON.parse(blocks);
+            } catch (e) {
+              console.error('Failed to parse workout blocks:', e);
+              blocks = {};
+            }
+          }
+          
+          if (typeof blocks === 'object' && blocks !== null) {
+            dailyWorkouts = blocks;
+          }
+        }
+
+        exerciseBlock = {
+          workout_name: customName || workout.name,
+          description: workout.description || workout.notes || '',
+          estimated_duration: workout.duration,
+          location: workout.location,
+          workout_type: workout.type || 'strength',
+          daily_workouts: dailyWorkouts
+        };
+      } else {
+        // For single workouts, use exercises directly
+        exerciseBlock = {
+          workout_name: customName || workout.name,
+          description: workout.description || workout.notes || '',
+          estimated_duration: workout.duration,
+          location: workout.location,
+          workout_type: workout.type || 'strength',
+          exercises: workout.exercises || []
+        };
+      }
+
+      // Calculate end date based on type
+      const start = startDate || workout.date || new Date().toISOString().split('T')[0];
+      let endDate = start;
+      
+      if (assignmentType === 'weekly') {
+        endDate = new Date(new Date(start).getTime() + (7 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
+      } else if (assignmentType === 'monthly') {
+        endDate = new Date(new Date(start).getTime() + (30 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
+      }
+
+      // Calculate total exercises
+      const totalExercises = this.calculateTotalExercises(exerciseBlock, assignmentType);
+
+      // Create the assignment
+      const newAssignmentData = {
+        athlete_id: targetAthleteId,
+        assignment_type: assignmentType,
+        exercise_block: exerciseBlock,
+        progress: {
+          current_exercise_index: 0,
+          current_set: 1,
+          current_rep: 1,
+          completed_exercises: [],
+          total_exercises: totalExercises,
+          completion_percentage: 0,
+          total_time_seconds: 0,
+          exercise_times: {},
+        } as AssignmentProgress,
+        start_date: start,
+        end_date: endDate,
+        assigned_at: new Date().toISOString(),
+        assigned_by: assignedBy,
+        status: 'assigned' as const,
+        meta: {
+          original_workout_id: workoutId,
+          workout_type: assignmentType,
+          estimated_duration: workout.duration,
+          location: workout.location,
+          duplicated_from_workout: true,
+          duplicated_at: new Date().toISOString(),
+          ...(customName && { custom_name: customName })
+        }
+      };
+
+      const newAssignment = await this.createAssignment(newAssignmentData);
+      
+      return newAssignment;
+    } catch (error) {
+      console.error('AssignmentService.duplicateWorkoutAsAssignment error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Duplicate an assignment or workout as a new unassigned workout
+   * Creates a new workout record in the workouts table
+   */
+  async duplicateAsWorkout(
+    originalAssignmentId: string,
+    customName?: string
+  ): Promise<any> {
+    try {
+      // Get the original assignment
+      const { data: assignment, error: assignmentError } = await this.client
+        .from('unified_workout_assignments')
+        .select('*')
+        .eq('id', originalAssignmentId)
+        .single();
+
+      if (assignmentError) {
+        console.error('Error fetching assignment:', assignmentError);
+        throw assignmentError;
+      }
+
+      if (!assignment) {
+        throw new Error(`Assignment ${originalAssignmentId} not found`);
+      }
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      // Convert assignment to workout format
+      const exerciseBlock = assignment.exercise_block;
+      
+      // Check if the original was based on a template
+      let originalWorkout = null;
+      let isOriginalTemplate = false;
+      
+      if (assignment.meta?.original_workout_id) {
+        try {
+          const { data: original } = await this.client
+            .from('workouts')
+            .select('is_template')
+            .eq('id', assignment.meta.original_workout_id)
+            .single();
+          
+          if (original) {
+            isOriginalTemplate = !!original.is_template;
+          }
+        } catch (error) {
+          console.warn('Could not fetch original workout template status:', error);
+        }
+      }
+
+      let workoutData: any = {
+        name: customName || `${exerciseBlock.workout_name || 'Workout'} - Copy`,
+        description: exerciseBlock.description || '',
+        user_id: user.id,
+        created_by: user.id,
+        type: exerciseBlock.workout_type || 'strength',
+        is_template: isOriginalTemplate, // Preserve template status from original
+        is_draft: false,
+        // No date/time for templates or unassigned workouts
+        date: null,
+        time: null,
+        duration: exerciseBlock.estimated_duration || null,
+        location: exerciseBlock.location || null
+      };
+
+      // Handle different assignment types
+      if (assignment.assignment_type === 'single') {
+        workoutData.template_type = 'single';
+        
+        // Ensure we have exercises data - try multiple sources
+        let exercises = exerciseBlock.exercises || [];
+        
+        // If no exercises in the main field, try to extract from other sources
+        if (!exercises || exercises.length === 0) {
+          // Try to get from blocks if it's block-based
+          if (exerciseBlock.is_block_based && exerciseBlock.blocks) {
+            if (Array.isArray(exerciseBlock.blocks)) {
+              exercises = exerciseBlock.blocks.flatMap((block: any) => block.exercises || []);
+            }
+          }
+          
+          // If still no exercises, try the original workout if available
+          const originalWorkoutId = assignment.meta?.original_workout_id;
+          if (originalWorkoutId && exercises.length === 0) {
+            try {
+              const { data: originalWorkout } = await this.client
+                .from('workouts')
+                .select('exercises, blocks, is_block_based')
+                .eq('id', originalWorkoutId)
+                .single();
+                
+              if (originalWorkout) {
+                if (originalWorkout.exercises && originalWorkout.exercises.length > 0) {
+                  exercises = originalWorkout.exercises;
+                } else if (originalWorkout.is_block_based && originalWorkout.blocks) {
+                  // Extract exercises from blocks
+                  if (Array.isArray(originalWorkout.blocks)) {
+                    exercises = originalWorkout.blocks.flatMap((block: any) => block.exercises || []);
+                  }
+                  workoutData.blocks = originalWorkout.blocks;
+                  workoutData.is_block_based = true;
+                  workoutData.block_version = 1;
+                }
+              }
+            } catch (error) {
+              console.warn('Could not fetch original workout for exercise data:', error);
+            }
+          }
+        }
+        
+        workoutData.exercises = exercises;
+        
+        // Handle block-based workouts
+        if (exerciseBlock.is_block_based && exerciseBlock.blocks) {
+          workoutData.blocks = exerciseBlock.blocks;
+          workoutData.is_block_based = true;
+          workoutData.block_version = 1;
+          // For block-based workouts, exercises can be empty as they're in blocks
+          if (workoutData.blocks && Array.isArray(workoutData.blocks) && workoutData.blocks.length > 0) {
+            workoutData.exercises = [];
+          }
+        }
+      } else if (assignment.assignment_type === 'weekly') {
+        workoutData.template_type = 'weekly';
+        // Store daily workouts in exercises field (as the system expects)
+        workoutData.exercises = exerciseBlock.daily_workouts || [];
+      } else if (assignment.assignment_type === 'monthly') {
+        workoutData.template_type = 'monthly';
+        workoutData.exercises = exerciseBlock.monthly_plan || [];
+      }
+
+      console.log('Creating duplicated workout with data:', {
+        name: workoutData.name,
+        type: workoutData.type,
+        template_type: workoutData.template_type,
+        exerciseCount: workoutData.exercises?.length || 0,
+        hasBlocks: !!workoutData.blocks,
+        is_block_based: workoutData.is_block_based
+      });
+
+      // Create the workout using the api service
+      const { api } = await import('./api');
+      const createdWorkout = await api.workouts.create(workoutData);
+
+      console.log('Successfully created duplicated workout:', {
+        id: createdWorkout.id,
+        name: createdWorkout.name,
+        exerciseCount: createdWorkout.exercises?.length || 0,
+        hasBlocks: !!createdWorkout.blocks
+      });
+
+      return createdWorkout;
+    } catch (error) {
+      console.error('AssignmentService.duplicateAsWorkout error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Duplicate a workout from the workouts table as a new unassigned workout
+   */
+  async duplicateWorkoutAsNewWorkout(
+    workoutId: string,
+    customName?: string
+  ): Promise<any> {
+    try {
+      // Get the original workout
+      const { data: workout, error: workoutError } = await this.client
+        .from('workouts')
+        .select('*')
+        .eq('id', workoutId)
+        .single();
+
+      if (workoutError) {
+        console.error('Error fetching workout:', workoutError);
+        throw workoutError;
+      }
+
+      if (!workout) {
+        throw new Error(`Workout ${workoutId} not found`);
+      }
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      // Create new workout data - preserve template status from original
+      const newWorkoutData = {
+        ...workout,
+        id: undefined, // Remove ID so a new one is generated
+        name: customName || `${workout.name} - Copy`,
+        user_id: user.id,
+        created_by: user.id,
+        created_at: undefined, // Will be set by database
+        updated_at: undefined, // Will be set by database
+        is_template: !!workout.is_template, // Preserve template status from original
+        is_draft: false,
+        // No date/time for templates or unassigned workouts
+        date: null,
+        time: null
+      };
+
+      // Create the workout using the api service
+      const { api } = await import('./api');
+      const createdWorkout = await api.workouts.create(newWorkoutData);
+
+      return createdWorkout;
+    } catch (error) {
+      console.error('AssignmentService.duplicateWorkoutAsNewWorkout error:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Helper: Calculate total exercises based on assignment type and exercise block
    */
   private calculateTotalExercises(exerciseBlock: any, assignmentType: string): number {

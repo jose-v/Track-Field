@@ -25,7 +25,12 @@ import {
   ModalFooter,
   ModalCloseButton,
   useBreakpointValue,
-  useBreakpoint
+  useBreakpoint,
+  useToast,
+  Drawer,
+  DrawerBody,
+  DrawerOverlay,
+  DrawerContent
 } from '@chakra-ui/react';
 import { 
   MoreVertical, 
@@ -38,14 +43,21 @@ import {
   Target,
   CheckCircle,
   AlertCircle,
-  Users
+  Users,
+  Copy,
+  X
 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { MobileWorkoutDetails } from './MobileWorkoutDetails';
 import { WorkoutDetailsDrawer } from './WorkoutDetailsDrawer';
+import { PlanDetailView } from './PlanDetailView';
+import DuplicateWorkoutModal from './DuplicateWorkoutModal';
 import { useUnifiedAssignmentActions } from '../hooks/useUnifiedAssignments';
 import type { WorkoutAssignment } from '../services/assignmentService';
 import type { Workout } from '../services/api';
+import type { TrainingPlan } from '../services/dbSchema';
 import { supabase } from '../lib/supabase';
+import { AssignmentService } from '../services/assignmentService';
 
 interface UnifiedAssignmentCardProps {
   assignment: WorkoutAssignment;
@@ -59,7 +71,8 @@ interface UnifiedAssignmentCardProps {
 }
 
 interface CoachWorkoutCardProps {
-  workout: Workout;
+  workout?: Workout;
+  monthlyPlan?: TrainingPlan;
   assignedTo?: string;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -68,6 +81,14 @@ interface CoachWorkoutCardProps {
   isCoach?: boolean;
   currentUserId?: string;
   showActions?: boolean;
+  // Monthly plan specific props
+  completionStats?: {
+    totalAssigned: number;
+    completed: number;
+    inProgress: number;
+    percentage: number;
+  };
+  statsLoading?: boolean;
 }
 
 export function UnifiedAssignmentCard({ 
@@ -80,19 +101,45 @@ export function UnifiedAssignmentCard({
   isCoach = false,
   currentUserId
 }: UnifiedAssignmentCardProps) {
+  // State for progress tracking
   const [progressData, setProgressData] = useState<{
     metrics: any;
     percentage: number;
   } | null>(null);
   const [isLoadingProgress, setIsLoadingProgress] = useState(true);
-  const [isDetailsDrawerOpen, setIsDetailsDrawerOpen] = useState(false);
   
-  const isMobile = useBreakpointValue({ base: true, md: false });
-  const { isOpen: isMobileDetailsOpen, onOpen: onMobileDetailsOpen, onClose: onMobileDetailsClose } = useDisclosure();
+  // State for mobile/desktop workout details
+  const [isMobileDetailsOpen, setIsMobileDetailsOpen] = useState(false);
+  const [isDetailsDrawerOpen, setIsDetailsDrawerOpen] = useState(false);
+
+  // State for duplicate modal
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+
+  // Responsive design
+  const isMobile = useBreakpointValue({ base: true, lg: false });
+  
+  // Toast for notifications
+  const toast = useToast();
+  
+  // Query client for data invalidation
+  const queryClient = useQueryClient();
+
+  // Handle duplicate assignment
+  const handleDuplicateAssignment = () => {
+    setIsDuplicateModalOpen(true);
+  };
+
+  // Handle duplicate success
+  const handleDuplicateSuccess = async () => {
+    // Invalidate relevant queries to refresh data
+    await queryClient.invalidateQueries({ queryKey: ['workouts'] });
+    await queryClient.invalidateQueries({ queryKey: ['workoutCompletionStats'] });
+    await queryClient.invalidateQueries({ queryKey: ['athleteWorkouts'] });
+  };
   
   const handleViewDetails = () => {
     if (isMobile) {
-      onMobileDetailsOpen();
+      setIsMobileDetailsOpen(true);
     } else {
       setIsDetailsDrawerOpen(true);
     }
@@ -889,6 +936,12 @@ export function UnifiedAssignmentCard({
                       Delete Workout
                     </MenuItem>
                   )}
+                  <MenuItem 
+                        icon={<Copy />} 
+                    onClick={handleDuplicateAssignment}
+                  >
+                    Duplicate Workout
+                  </MenuItem>
                 </MenuList>
               </Portal>
             </Menu>
@@ -1013,20 +1066,29 @@ export function UnifiedAssignmentCard({
       </VStack>
 
       {/* Mobile Workout Details Drawer */}
-      <MobileWorkoutDetails
-        isOpen={isMobileDetailsOpen}
-        onClose={onMobileDetailsClose}
-        assignment={assignment}
-        userRole="athlete"
-        onExecute={onExecute}
-        workout={null}
-      />
+        <MobileWorkoutDetails
+          isOpen={isMobileDetailsOpen}
+        onClose={() => setIsMobileDetailsOpen(false)}
+          assignment={assignment}
+          userRole="athlete"
+          onExecute={onExecute}
+          workout={null}
+        />
 
       {/* Desktop Workout Details Drawer */}
       <WorkoutDetailsDrawer
         isOpen={isDetailsDrawerOpen}
         onClose={() => setIsDetailsDrawerOpen(false)}
         workout={convertAssignmentToWorkout()}
+      />
+
+      {/* Duplicate Workout Modal */}
+      <DuplicateWorkoutModal
+        isOpen={isDuplicateModalOpen}
+        onClose={() => setIsDuplicateModalOpen(false)}
+        assignment={assignment}
+        onSuccess={handleDuplicateSuccess}
+        currentUserId={currentUserId}
       />
     </Box>
   );
@@ -1058,6 +1120,7 @@ export function CompactAssignmentCard({ assignment, onExecute }: { assignment: W
 // Coach-specific workout card that shows workout information without execution buttons
 export function CoachWorkoutCard({ 
   workout, 
+  monthlyPlan,
   assignedTo = 'Unassigned',
   onEdit,
   onDelete,
@@ -1065,21 +1128,67 @@ export function CoachWorkoutCard({
   onViewDetails,
   isCoach = true,
   currentUserId,
-  showActions = true
+  showActions = true,
+  completionStats,
+  statsLoading = false
 }: CoachWorkoutCardProps) {
   
   // State for workout details drawer
   const [isDetailsDrawerOpen, setIsDetailsDrawerOpen] = useState(false);
   
-  // Handle view details
-  const handleViewDetails = () => {
-    setIsDetailsDrawerOpen(true);
+  // State for monthly plan details drawer
+  const [selectedPlanForView, setSelectedPlanForView] = useState<TrainingPlan | null>(null);
+  const [showPlanDetailView, setShowPlanDetailView] = useState(false);
+  
+  // State for duplicate modal
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+  
+  // Toast for notifications
+  const toast = useToast();
+  
+  // Query client for data invalidation
+  const queryClient = useQueryClient();
+
+  // Handle duplicate workout
+  const handleDuplicateWorkout = () => {
+    setIsDuplicateModalOpen(true);
+  };
+
+  // Handle duplicate success
+  const handleDuplicateSuccess = async () => {
+    // Invalidate relevant queries to refresh data
+    await queryClient.invalidateQueries({ queryKey: ['workouts'] });
+    await queryClient.invalidateQueries({ queryKey: ['workoutCompletionStats'] });
+    await queryClient.invalidateQueries({ queryKey: ['athleteWorkouts'] });
   };
   
-  // Check if current user can delete
-  const canDelete = currentUserId && (
-    workout.user_id === currentUserId || isCoach
-  );
+  // Handle view details
+  const handleViewDetails = () => {
+    if (isMonthlyPlan && monthlyPlan) {
+      setSelectedPlanForView(monthlyPlan);
+      setShowPlanDetailView(true);
+    } else {
+    setIsDetailsDrawerOpen(true);
+    }
+  };
+
+  // Handle monthly plan assign
+  const handleAssignPlan = (plan: TrainingPlan) => {
+    setShowPlanDetailView(false);
+    if (onAssign) {
+      onAssign();
+    }
+  };
+
+  // Handle monthly plan edit
+  const handleEditPlan = (plan: TrainingPlan) => {
+    setShowPlanDetailView(false);
+    if (onEdit) {
+      onEdit();
+    }
+  };
+  
+
 
   // Theme colors - responsive light/dark mode
   const cardBg = useColorModeValue('white', 'gray.800');
@@ -1090,6 +1199,36 @@ export function CoachWorkoutCard({
 
   // Responsive design - use mobile drawer on mobile
   const isMobile = useBreakpointValue({ base: true, lg: false });
+
+  // Determine if this is a monthly plan or workout
+  const isMonthlyPlan = !!monthlyPlan;
+  const dataItem = isMonthlyPlan ? monthlyPlan : workout;
+
+  // Helper functions for monthly plans
+  const getMonthName = (month: number): string => {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[month - 1] || 'Unknown';
+  };
+
+  const getActiveWeekCount = (weeks: any[]): number => {
+    if (!Array.isArray(weeks)) return 0;
+    return weeks.filter(week => !week.is_rest_week).length;
+  };
+
+  const getRestWeekCount = (weeks: any[]): number => {
+    if (!Array.isArray(weeks)) return 0;
+    return weeks.filter(week => week.is_rest_week).length;
+  };
+
+  // Check if current user can delete
+  const canDelete = currentUserId && (
+    isMonthlyPlan 
+      ? monthlyPlan.coach_id === currentUserId || isCoach
+      : workout?.user_id === currentUserId || isCoach
+  );
 
   // Get workout details
   const getWorkoutDetails = () => {
@@ -1109,6 +1248,8 @@ export function CoachWorkoutCard({
     
     let totalExercises = 0;
     
+    // First, try to get exercises from blocks if the workout is block-based
+    if (blocks && (Array.isArray(blocks) || (typeof blocks === 'object' && Object.keys(blocks).length > 0))) {
     if (workout.template_type === 'weekly') {
       // For weekly workouts, count exercises from blocks organized by days
       if (blocks && typeof blocks === 'object' && !Array.isArray(blocks)) {
@@ -1133,14 +1274,32 @@ export function CoachWorkoutCard({
           }
         });
         console.log('🔧 Single day blocks total exercises:', totalExercises);
+        }
       } else {
-        // Fallback to exercises array
+        // For single/monthly block-based workouts, count exercises from blocks
+        if (Array.isArray(blocks)) {
+          (blocks as any[]).forEach((block: any) => {
+            if (block.exercises && Array.isArray(block.exercises)) {
+              totalExercises += block.exercises.length;
+            }
+          });
+          console.log('🔧 Single/Monthly block-based workout total exercises:', totalExercises);
+        } else if (typeof blocks === 'object') {
+          // Handle object-based blocks for single workouts
+          Object.values(blocks).forEach((block: any) => {
+            if (block && block.exercises && Array.isArray(block.exercises)) {
+              totalExercises += block.exercises.length;
+            }
+          });
+          console.log('🔧 Single/Monthly object-based blocks total exercises:', totalExercises);
+        }
+      }
+    }
+    
+    // If no exercises found in blocks, fallback to exercises array
+    if (totalExercises === 0) {
         totalExercises = exercises.length;
         console.log('🔧 Fallback to exercises array:', totalExercises);
-      }
-    } else {
-      // For single/monthly workouts
-      totalExercises = exercises.length;
     }
     
     return {
@@ -1154,8 +1313,6 @@ export function CoachWorkoutCard({
     };
   };
 
-  const details = getWorkoutDetails();
-
   // Format dates
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Not set';
@@ -1168,8 +1325,207 @@ export function CoachWorkoutCard({
   };
 
   // Calculate athlete count from assignedTo
-  const athleteCount = assignedTo && assignedTo !== 'Unassigned' ? 
+  const athleteCount = assignedTo && 
+    assignedTo !== 'Unassigned' && 
+    assignedTo !== 'Not assigned' && 
+    assignedTo !== 'Loading assignments...' &&
+    !assignedTo.includes('Loading') ? 
     assignedTo.split(',').length : 0;
+
+  // Render monthly plan or workout
+  if (isMonthlyPlan && monthlyPlan) {
+    // Monthly Plan Rendering
+    const startDate = new Date(monthlyPlan.start_date);
+    const monthName = getMonthName(startDate.getMonth() + 1);
+    const year = startDate.getFullYear();
+    const activeWeeks = getActiveWeekCount(monthlyPlan.weeks);
+    const totalWeeks = monthlyPlan.weeks.length;
+
+    return (
+      <>
+        <Box
+          bg={cardBg}
+          borderRadius="xl"
+          p={6}
+          border="1px solid"
+          borderColor={borderColor}
+          boxShadow="lg"
+          transition="all 0.2s"
+          _hover={{ transform: 'translateY(-2px)', boxShadow: 'xl' }}
+          position="relative"
+          overflow="hidden"
+        >
+        {/* Background Pattern */}
+        <Box
+          position="absolute"
+          top="0"
+          right="0"
+          width="100px"
+          height="100px"
+          bg={useColorModeValue('purple.50', 'purple.700')}
+          borderRadius="0 0 0 100px"
+          opacity="0.5"
+        />
+
+        <VStack spacing={4} align="stretch" position="relative" zIndex={1}>
+          {/* Header with Monthly Plan Type and Menu */}
+          <HStack justify="space-between" align="center">
+            <ButtonGroup size="sm" isAttached variant="outline">
+              <Button 
+                bg={useColorModeValue("gray.200", "gray.600")} 
+                color={useColorModeValue("gray.700", "white")} 
+                _hover={{ bg: useColorModeValue("gray.300", "gray.500") }}
+                border="1px solid"
+                borderColor={separatorColor}
+              >
+                {isCoach ? 'COACH' : 'ATHLETE'}
+              </Button>
+              <Button 
+                bg={useColorModeValue("purple.100", "purple.600")} 
+                color={useColorModeValue("purple.700", "white")} 
+                _hover={{ bg: useColorModeValue("purple.200", "purple.500") }}
+                border="1px solid"
+                borderColor={separatorColor}
+              >
+                MONTHLY PLAN
+              </Button>
+            </ButtonGroup>
+
+            {showActions && isCoach && (
+              <Menu placement="bottom-end">
+                <MenuButton
+                  as={IconButton}
+                  icon={<MoreVertical />}
+                  variant="ghost"
+                  size="sm"
+                  aria-label="Monthly plan actions"
+                />
+                <Portal>
+                  <MenuList zIndex={1000}>
+                    <MenuItem 
+                      icon={<Play />} 
+                      onClick={handleViewDetails}
+                    >
+                      View Details
+                    </MenuItem>
+                    {onAssign && (
+                      <MenuItem 
+                        icon={<UserPlus />} 
+                        onClick={onAssign}
+                      >
+                        Assign Athletes
+                      </MenuItem>
+                    )}
+                    {onEdit && (
+                      <MenuItem 
+                        icon={<Edit />} 
+                        onClick={onEdit}
+                      >
+                        Edit Plan
+                      </MenuItem>
+                    )}
+                    {onDelete && canDelete && (
+                      <MenuItem 
+                        icon={<Trash2 />} 
+                        onClick={onDelete}
+                        color="red.500"
+                      >
+                        Delete
+                      </MenuItem>
+                    )}
+                  </MenuList>
+                </Portal>
+              </Menu>
+            )}
+          </HStack>
+
+          {/* Monthly Plan Title and Description */}
+          <VStack spacing={2} align="start">
+            <Text fontSize="xl" fontWeight="bold" color={textColor} noOfLines={2}>
+              {monthlyPlan.name}
+            </Text>
+            {monthlyPlan.description && (
+              <Text fontSize="sm" color={secondaryTextColor} noOfLines={2}>
+                {monthlyPlan.description}
+              </Text>
+            )}
+          </VStack>
+
+          {/* Monthly Plan Stats */}
+          <HStack justify="space-between" align="center" spacing={4}>
+            <VStack spacing={1} flex={1}>
+              <Text fontSize="xs" color={secondaryTextColor} fontWeight="bold">
+                WEEKS
+              </Text>
+              <Text fontSize="lg" fontWeight="bold" color={textColor}>
+                {totalWeeks}
+              </Text>
+            </VStack>
+            
+            <Box w="1px" h="40px" bg={useColorModeValue("rgba(0, 0, 0, 0.1)", "rgba(255, 255, 255, 0.2)")} />
+            
+            <VStack spacing={1} flex={1}>
+              <Text fontSize="xs" color={secondaryTextColor} fontWeight="bold">
+                ASSIGNED
+              </Text>
+              <Text fontSize="lg" fontWeight="bold" color={textColor}>
+                {statsLoading ? '...' : completionStats?.totalAssigned || 0}
+              </Text>
+            </VStack>
+            
+            <Box w="1px" h="40px" bg={useColorModeValue("rgba(0, 0, 0, 0.1)", "rgba(255, 255, 255, 0.2)")} />
+            
+            <VStack spacing={1} flex={1}>
+              <Text fontSize="xs" color={secondaryTextColor} fontWeight="bold">
+                PROGRESS
+              </Text>
+              <Text fontSize="lg" fontWeight="bold" color={textColor}>
+                {statsLoading ? '...' : `${Math.round(completionStats?.percentage || 0)}%`}
+              </Text>
+            </VStack>
+          </HStack>
+
+          {/* Monthly Plan Period */}
+          <Box>
+            <Text fontSize="xs" color={secondaryTextColor} fontWeight="bold" mb={1}>
+              PERIOD
+            </Text>
+            <Text fontSize="sm" color={textColor}>
+              {monthName} {year}
+            </Text>
+          </Box>
+        </VStack>
+      </Box>
+
+      {/* Monthly Plan Detail View Drawer */}
+      <Drawer
+        isOpen={showPlanDetailView}
+        placement="right"
+        onClose={() => setShowPlanDetailView(false)}
+        size="xl"
+      >
+        <DrawerOverlay />
+        <DrawerContent>
+          <DrawerBody p={0}>
+            {selectedPlanForView && (
+              <PlanDetailView
+                monthlyPlan={selectedPlanForView}
+                onBack={() => setShowPlanDetailView(false)}
+                onAssign={() => handleAssignPlan(selectedPlanForView)}
+                onEdit={() => handleEditPlan(selectedPlanForView)}
+              />
+            )}
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
+      </>
+    );
+  }
+
+  // Original Workout Rendering
+  if (!workout) return null;
+
+  const details = getWorkoutDetails();
 
   return (
     <Box
@@ -1238,7 +1594,7 @@ export function CoachWorkoutCard({
                     >
                       View Details
                     </MenuItem>
-                    {onAssign && (
+                    {onAssign && !workout.is_template && (
                       <MenuItem 
                         icon={<UserPlus />} 
                         onClick={onAssign}
@@ -1246,6 +1602,16 @@ export function CoachWorkoutCard({
                         Assign Athletes
                       </MenuItem>
                     )}
+                    <MenuItem 
+                      icon={<Copy />} 
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        e.stopPropagation(); 
+                        handleDuplicateWorkout(); 
+                      }}
+                    >
+                      {workout.is_template ? 'Duplicate Template' : 'Duplicate Workout'}
+                    </MenuItem>
                     {onEdit && (
                       <MenuItem 
                         icon={<Edit />} 
@@ -1370,6 +1736,37 @@ export function CoachWorkoutCard({
           workout={workout}
         />
       )}
+
+      {/* Monthly Plan Detail View Drawer */}
+      <Drawer
+        isOpen={showPlanDetailView}
+        placement="right"
+        onClose={() => setShowPlanDetailView(false)}
+        size="xl"
+      >
+        <DrawerOverlay />
+        <DrawerContent>
+          <DrawerBody p={0}>
+            {selectedPlanForView && (
+              <PlanDetailView
+                monthlyPlan={selectedPlanForView}
+                onBack={() => setShowPlanDetailView(false)}
+                onAssign={() => handleAssignPlan(selectedPlanForView)}
+                onEdit={() => handleEditPlan(selectedPlanForView)}
+              />
+            )}
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Duplicate Workout Modal */}
+      <DuplicateWorkoutModal
+        isOpen={isDuplicateModalOpen}
+        onClose={() => setIsDuplicateModalOpen(false)}
+        workout={workout}
+        onSuccess={handleDuplicateSuccess}
+        currentUserId={currentUserId}
+      />
     </Box>
   );
 } 
@@ -1377,6 +1774,7 @@ export function CoachWorkoutCard({
 // Coach-specific workout list item for list view
 export function CoachWorkoutListItem({ 
   workout, 
+  monthlyPlan,
   assignedTo = 'Unassigned',
   onEdit,
   onDelete,
@@ -1384,21 +1782,70 @@ export function CoachWorkoutListItem({
   onViewDetails,
   isCoach = true,
   currentUserId,
-  showActions = true
+  showActions = true,
+  completionStats,
+  statsLoading = false
 }: CoachWorkoutCardProps) {
   
   // State for workout details drawer
   const [isDetailsDrawerOpen, setIsDetailsDrawerOpen] = useState(false);
+
+  // State for monthly plan details drawer
+  const [selectedPlanForViewList, setSelectedPlanForViewList] = useState<TrainingPlan | null>(null);
+  const [showPlanDetailDrawerList, setShowPlanDetailDrawerList] = useState(false);
+
+
+  // State for duplicate modal
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+
+  // Toast for notifications
+  const toast = useToast();
+  
+  // Query client for data invalidation
+  const queryClient = useQueryClient();
+
+  // Handle duplicate workout
+  const handleDuplicateWorkout = () => {
+    setIsDuplicateModalOpen(true);
+  };
+
+  // Handle duplicate success
+  const handleDuplicateSuccess = async () => {
+    // Invalidate relevant queries to refresh data
+    await queryClient.invalidateQueries({ queryKey: ['workouts'] });
+    await queryClient.invalidateQueries({ queryKey: ['workoutCompletionStats'] });
+    await queryClient.invalidateQueries({ queryKey: ['athleteWorkouts'] });
+  };
   
   // Handle view details
   const handleViewDetails = () => {
+    const isMonthlyPlan = !!monthlyPlan;
+    
+    if (isMonthlyPlan && monthlyPlan) {
+      setSelectedPlanForViewList(monthlyPlan);
+      setShowPlanDetailDrawerList(true);
+    } else {
     setIsDetailsDrawerOpen(true);
+    }
+  };
+
+  // Handle monthly plan assign
+  const handleAssignPlanList = (plan: TrainingPlan) => {
+    setShowPlanDetailDrawerList(false);
+    if (onAssign) {
+      onAssign();
+    }
+  };
+
+  // Handle monthly plan edit
+  const handleEditPlanList = (plan: TrainingPlan) => {
+    setShowPlanDetailDrawerList(false);
+    if (onEdit) {
+      onEdit();
+    }
   };
   
-  // Check if current user can delete
-  const canDelete = currentUserId && (
-    workout.user_id === currentUserId || isCoach
-  );
+
 
   // Theme colors - responsive light/dark mode
   const cardBg = useColorModeValue('white', 'gray.800');
@@ -1409,6 +1856,36 @@ export function CoachWorkoutListItem({
 
   // Responsive design - use mobile drawer on mobile
   const isMobile = useBreakpointValue({ base: true, lg: false });
+
+  // Determine if this is a monthly plan or workout
+  const isMonthlyPlan = !!monthlyPlan;
+  const dataItem = isMonthlyPlan ? monthlyPlan : workout;
+
+  // Helper functions for monthly plans
+  const getMonthName = (month: number): string => {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[month - 1] || 'Unknown';
+  };
+
+  const getActiveWeekCount = (weeks: any[]): number => {
+    if (!Array.isArray(weeks)) return 0;
+    return weeks.filter(week => !week.is_rest_week).length;
+  };
+
+  const getRestWeekCount = (weeks: any[]): number => {
+    if (!Array.isArray(weeks)) return 0;
+    return weeks.filter(week => week.is_rest_week).length;
+  };
+
+  // Check if current user can delete
+  const canDelete = currentUserId && (
+    isMonthlyPlan 
+      ? monthlyPlan.coach_id === currentUserId || isCoach
+      : workout?.user_id === currentUserId || isCoach
+  );
 
   // Get workout details
   const getWorkoutDetails = () => {
@@ -1452,14 +1929,31 @@ export function CoachWorkoutListItem({
           }
         });
         console.log('🔧 Single day blocks total exercises:', totalExercises);
-      } else {
-        // Fallback to exercises array
-        totalExercises = exercises.length;
-        console.log('🔧 Fallback to exercises array:', totalExercises);
       }
     } else {
-      // For single/monthly workouts
+      // For single/monthly block-based workouts, count exercises from blocks
+      if (Array.isArray(blocks)) {
+        (blocks as any[]).forEach((block: any) => {
+          if (block.exercises && Array.isArray(block.exercises)) {
+            totalExercises += block.exercises.length;
+          }
+        });
+        console.log('🔧 LIST - Single/Monthly block-based workout total exercises:', totalExercises);
+      } else if (typeof blocks === 'object') {
+        // Handle object-based blocks for single workouts
+        Object.values(blocks).forEach((block: any) => {
+          if (block && block.exercises && Array.isArray(block.exercises)) {
+            totalExercises += block.exercises.length;
+          }
+        });
+        console.log('🔧 LIST - Single/Monthly object-based blocks total exercises:', totalExercises);
+      }
+    }
+    
+    // If no exercises found in blocks, fallback to exercises array
+    if (totalExercises === 0) {
       totalExercises = exercises.length;
+      console.log('🔧 LIST - Fallback to exercises array:', totalExercises);
     }
     
     return {
@@ -1473,8 +1967,6 @@ export function CoachWorkoutListItem({
     };
   };
 
-  const details = getWorkoutDetails();
-
   // Format dates
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Not set';
@@ -1486,8 +1978,159 @@ export function CoachWorkoutListItem({
     });
   };
 
+  // Render monthly plan or workout
+  if (isMonthlyPlan && monthlyPlan) {
+    // Monthly Plan List Item Rendering
+    const startDate = new Date(monthlyPlan.start_date);
+    const monthName = getMonthName(startDate.getMonth() + 1);
+    const year = startDate.getFullYear();
+    const totalWeeks = monthlyPlan.weeks.length;
+
+    return (
+      <>
+        <Box
+          bg={cardBg}
+          borderRadius="md"
+          p={3}
+          border="1px solid"
+          borderColor={borderColor}
+          transition="all 0.2s"
+          _hover={{ bg: hoverBg }}
+          position="relative"
+          cursor="pointer"
+          onClick={handleViewDetails}
+        >
+        <VStack spacing={2} align="stretch">
+          {/* Row 1: Title and actions */}
+          <HStack justify="space-between" align="start">
+            <VStack spacing={1} align="start" flex={1}>
+              <Text fontSize="lg" fontWeight="bold" color={textColor} noOfLines={1}>
+                {monthlyPlan.name}
+              </Text>
+              <HStack spacing={2}>
+                <Badge colorScheme="purple" size="sm">MONTHLY PLAN</Badge>
+              </HStack>
+            </VStack>
+
+
+            {showActions && isCoach && (
+              <Menu placement="bottom-end">
+                <MenuButton
+                  as={IconButton}
+                  icon={<MoreVertical />}
+                  variant="ghost"
+                  size="sm"
+                  aria-label="Monthly plan actions"
+                  onClick={(e) => e.stopPropagation()}
+                  flexShrink={0}
+                />
+                <Portal>
+                  <MenuList zIndex={1000}>
+                    <MenuItem 
+                      icon={<Play />} 
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        e.stopPropagation(); 
+                        handleViewDetails(); 
+                      }}
+                    >
+                      View Details
+                    </MenuItem>
+                    {onAssign && (
+                      <MenuItem 
+                        icon={<UserPlus />} 
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          e.stopPropagation(); 
+                          onAssign(); 
+                        }}
+                      >
+                        Assign Athletes
+                      </MenuItem>
+                    )}
+                    {onEdit && (
+                      <MenuItem 
+                        icon={<Edit />} 
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          e.stopPropagation(); 
+                          onEdit(); 
+                        }}
+                      >
+                        Edit Plan
+                      </MenuItem>
+                    )}
+                    {onDelete && canDelete && (
+                      <MenuItem 
+                        icon={<Trash2 />} 
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          e.stopPropagation(); 
+                          onDelete(); 
+                        }}
+                        color="red.500"
+                      >
+                        Delete
+                      </MenuItem>
+                    )}
+                  </MenuList>
+                </Portal>
+              </Menu>
+            )}
+          </HStack>
+
+          {/* Row 2: Plan info */}
+          <HStack spacing={4} fontSize="sm" color={secondaryTextColor} wrap="wrap">
+            <Text>{totalWeeks} weeks</Text>
+            <Text>{monthName} {year}</Text>
+            <Text>{statsLoading ? '...' : completionStats?.totalAssigned || 0} assigned</Text>
+          </HStack>
+
+          {/* Row 3: Description (if exists) */}
+          {monthlyPlan.description && (
+            <Text fontSize="sm" color={secondaryTextColor} noOfLines={2}>
+              {monthlyPlan.description}
+            </Text>
+          )}
+        </VStack>
+      </Box>
+
+      {/* Monthly Plan Detail View Drawer */}
+      <Drawer
+        isOpen={showPlanDetailDrawerList}
+        placement="right"
+        onClose={() => setShowPlanDetailDrawerList(false)}
+        size="xl"
+      >
+        <DrawerOverlay />
+        <DrawerContent>
+          <DrawerBody p={0}>
+            {selectedPlanForViewList && (
+              <PlanDetailView
+                monthlyPlan={selectedPlanForViewList}
+                onBack={() => setShowPlanDetailDrawerList(false)}
+                onAssign={() => handleAssignPlanList(selectedPlanForViewList)}
+                onEdit={() => handleEditPlanList(selectedPlanForViewList)}
+              />
+            )}
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
+      </>
+    );
+  }
+
+  // Original Workout List Item Rendering
+  if (!workout) return null;
+
+  const details = getWorkoutDetails();
+
   // Calculate athlete count from assignedTo
-  const athleteCount = assignedTo && assignedTo !== 'Unassigned' ? 
+  const athleteCount = assignedTo && 
+    assignedTo !== 'Unassigned' && 
+    assignedTo !== 'Not assigned' && 
+    assignedTo !== 'Loading assignments...' &&
+    !assignedTo.includes('Loading') ? 
     assignedTo.split(',').length : 0;
 
   return (
@@ -1546,7 +2189,7 @@ export function CoachWorkoutListItem({
                     >
                       View Details
                     </MenuItem>
-                    {onAssign && (
+                    {onAssign && !workout.is_template && (
                       <MenuItem 
                         icon={<UserPlus />} 
                         onClick={(e) => { 
@@ -1558,6 +2201,16 @@ export function CoachWorkoutListItem({
                         Assign Athletes
                       </MenuItem>
                     )}
+                    <MenuItem 
+                      icon={<Copy />} 
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        e.stopPropagation(); 
+                        handleDuplicateWorkout(); 
+                      }}
+                    >
+                      {workout.is_template ? 'Duplicate Template' : 'Duplicate Workout'}
+                    </MenuItem>
                     {onEdit && (
                       <MenuItem 
                         icon={<Edit />} 
@@ -1639,6 +2292,17 @@ export function CoachWorkoutListItem({
           workout={workout}
         />
       )}
+
+
+
+      {/* Duplicate Workout Modal */}
+      <DuplicateWorkoutModal
+        isOpen={isDuplicateModalOpen}
+        onClose={() => setIsDuplicateModalOpen(false)}
+        workout={workout}
+        onSuccess={handleDuplicateSuccess}
+        currentUserId={currentUserId}
+      />
     </Box>
   );
 } 

@@ -753,6 +753,7 @@ export function CoachWorkouts() {
                 workout={workout}
                 isCoach={true}
                 assignedTo={athleteNames}
+                currentUserId={user?.id}
                 onEdit={() => navigate(`/coach/workout-creator-new?edit=${workout.id}`)}
                 onDelete={() => handleDeleteWorkout(workout)}
                 onAssign={() => handleAssignWorkout(workout)}

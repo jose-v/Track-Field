@@ -255,6 +255,7 @@ export function useWorkouts() {
     },
     updateWorkout: updateWorkout.mutate,
     deleteWorkout: deleteWorkout.mutate,
+    deleteWorkoutAsync: deleteWorkout.mutateAsync,
     checkMonthlyPlanUsage: checkMonthlyPlanUsage.mutateAsync,
     batchCheckMonthlyPlanUsage: batchCheckMonthlyPlanUsage.mutateAsync,
     removeFromMonthlyPlans: removeFromMonthlyPlans.mutateAsync,

@@ -418,11 +418,11 @@ export function PlanDetailView({
   };
 
   return (
-    <Box minH="100vh" bg={bgColor} p={6}>
-      <VStack spacing={6} align="stretch" maxW="7xl" mx="auto">
+    <Box minH="100vh" bg={bgColor} p={4}>
+      <VStack spacing={6} align="stretch" w="full">
         {/* Header */}
-        <Flex justify="space-between" align="center" flexWrap="wrap" gap={4}>
-          <HStack spacing={4}>
+        <Flex justify="space-between" align="center" flexWrap="wrap" gap={2}>
+          <HStack spacing={2}>
             <Button
               leftIcon={<FaArrowLeft />}
               variant="ghost"
@@ -475,46 +475,75 @@ export function PlanDetailView({
           </HStack>
         </Flex>
 
-        {/* Overview Statistics */}
-        <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
-          <Card bg={cardBg} borderColor={borderColor} borderWidth="1px">
-            <CardBody p={4} textAlign="center">
-              <Text fontSize="2xl" fontWeight="bold" color="teal.500">
+        {/* Compact Overview Statistics & Assigned Athletes */}
+        <HStack spacing={6} justify="space-between" align="stretch" wrap="wrap">
+          {/* Compact Stats */}
+          <HStack spacing={4} flex={1}>
+            <VStack spacing={0} align="center" minW="80px">
+              <Text fontSize="xl" fontWeight="bold" color="teal.500">
                 {totalWeeks}
               </Text>
-              <Text fontSize="sm" color={infoColor}>Total Weeks</Text>
-            </CardBody>
-          </Card>
-          <Card bg={cardBg} borderColor={borderColor} borderWidth="1px">
-            <CardBody p={4} textAlign="center">
-              <Text fontSize="2xl" fontWeight="bold" color="blue.500">
+              <Text fontSize="xs" color={infoColor}>Total Weeks</Text>
+            </VStack>
+            <Divider orientation="vertical" h="40px" />
+            <VStack spacing={0} align="center" minW="80px">
+              <Text fontSize="xl" fontWeight="bold" color="blue.500">
                 {trainingWeeks}
               </Text>
-              <Text fontSize="sm" color={infoColor}>Training Weeks</Text>
-            </CardBody>
-          </Card>
-          <Card bg={cardBg} borderColor={borderColor} borderWidth="1px">
-            <CardBody p={4} textAlign="center">
-              <Text fontSize="2xl" fontWeight="bold" color="green.500">
+              <Text fontSize="xs" color={infoColor}>Training</Text>
+            </VStack>
+            <Divider orientation="vertical" h="40px" />
+            <VStack spacing={0} align="center" minW="80px">
+              <Text fontSize="xl" fontWeight="bold" color="green.500">
                 {assignedAthletes.length}
               </Text>
-              <Text fontSize="sm" color={infoColor}>Assigned Athletes</Text>
-            </CardBody>
-          </Card>
-          <Card bg={cardBg} borderColor={borderColor} borderWidth="1px">
-            <CardBody p={4} textAlign="center">
-              <Text fontSize="2xl" fontWeight="bold" color="orange.500">
+              <Text fontSize="xs" color={infoColor}>Athletes</Text>
+            </VStack>
+            <Divider orientation="vertical" h="40px" />
+            <VStack spacing={0} align="center" minW="80px">
+              <Text fontSize="xl" fontWeight="bold" color="orange.500">
                 {completionPercentage.toFixed(0)}%
               </Text>
-              <Text fontSize="sm" color={infoColor}>Completion Rate</Text>
-            </CardBody>
-          </Card>
-        </SimpleGrid>
+              <Text fontSize="xs" color={infoColor}>Complete</Text>
+            </VStack>
+          </HStack>
 
-        {/* Main Content Grid */}
-        <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
-          {/* Weekly Timeline */}
-          <VStack spacing={4} align="stretch">
+          {/* Compact Assigned Athletes Section */}
+          <VStack spacing={2} align="end" minW="200px">
+            <HStack spacing={2}>
+              <Icon as={FaUsers} color="green.500" boxSize={4} />
+              <Text fontSize="sm" fontWeight="bold" color={titleColor}>
+                Assigned Athletes
+              </Text>
+              <Badge colorScheme="green" size="sm">
+                {assignedAthletes.length}
+              </Badge>
+            </HStack>
+            {assignedAthletes.length === 0 ? (
+              <Text fontSize="xs" color={infoColor} textAlign="center">
+                No athletes assigned yet
+              </Text>
+            ) : (
+              <Text fontSize="xs" color={infoColor}>
+                {assignedAthletes.slice(0, 3).map(a => `${a.first_name} ${a.last_name}`).join(', ')}
+                {assignedAthletes.length > 3 && ` +${assignedAthletes.length - 3} more`}
+              </Text>
+            )}
+            {onAssign && (
+              <Button
+                leftIcon={<FaPlus />}
+                colorScheme="teal"
+                size="xs"
+                onClick={handleAssignClick}
+              >
+                {assignedAthletes.length === 0 ? 'Assign Athletes' : 'Manage'}
+              </Button>
+            )}
+          </VStack>
+        </HStack>
+
+        {/* Weekly Timeline - Full Width */}
+        <VStack spacing={4} align="stretch" w="full">
             <HStack justify="space-between" align="center">
               <Heading size="md" color={titleColor}>
                 Weekly Timeline
@@ -525,13 +554,13 @@ export function PlanDetailView({
             </HStack>
 
             {workoutsLoading ? (
-              <VStack spacing={3}>
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} w="full">
                 {[...Array(4)].map((_, i) => (
-                  <Skeleton key={i} height="120px" borderRadius="md" />
+                  <Skeleton key={i} height="400px" borderRadius="md" w="full" />
                 ))}
-              </VStack>
+              </SimpleGrid>
             ) : (
-              <VStack spacing={3} align="stretch">
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3} w="full">
                 {weeksWithWorkouts
                   .sort((a, b) => a.week_number - b.week_number)
                   .map((week) => (
@@ -540,23 +569,24 @@ export function PlanDetailView({
                       bg={cardBg} 
                       borderColor={borderColor} 
                       borderWidth="1px"
-                      borderLeftWidth="4px"
-                      borderLeftColor={week.is_rest_week ? 'orange.400' : 'teal.400'}
+                      borderRadius="xl"
+                      h="100%"
+                      w="full"
                     >
-                      <CardBody p={4}>
-                        <VStack spacing={3} align="stretch">
+                      <CardBody p={1}>
+                        <VStack spacing={2} align="stretch">
                           <HStack justify="space-between" align="center">
-                            <HStack spacing={3}>
+                            <HStack spacing={1}>
                               <Icon 
                                 as={week.is_rest_week ? FaBed : FaDumbbell} 
-                                color={week.is_rest_week ? 'orange.400' : 'teal.400'}
+                                color={week.is_rest_week ? 'orange.400' : infoColor}
                                 boxSize={5}
                               />
                               <Text fontWeight="semibold" color={titleColor}>
                                 Week {week.week_number}
                               </Text>
                               <Badge 
-                                colorScheme={week.is_rest_week ? 'orange' : 'teal'}
+                                colorScheme={week.is_rest_week ? 'orange' : 'gray'}
                                 fontSize="xs"
                               >
                                 {week.is_rest_week ? 'Rest Week' : 'Training Week'}
@@ -632,45 +662,72 @@ export function PlanDetailView({
 
                               {/* Daily Breakdown - What Athletes Actually See */}
                               {week.dailyBreakdown && Array.isArray(week.dailyBreakdown) && week.dailyBreakdown.length > 0 && (
-                                <Box>
+                                <Box w="full">
                                   <Box fontSize="sm" fontWeight="semibold" color={titleColor} mb={2}>
                                     Daily Schedule (Athlete View):
                                   </Box>
-                                  <VStack spacing={2} align="stretch">
+                                  <VStack spacing={2} align="stretch" w="full">
                                     {week.dailyBreakdown.map((day, dayIndex) => (
                                       <Box 
                                         key={dayIndex}
                                         bg={dayBlockBg}
                                         borderRadius="md"
-                                        p={3}
-                                        borderLeftWidth="3px"
-                                        borderLeftColor="teal.400"
+                                        p={6}
+                                        borderWidth="1px"
+                                        borderColor={borderColor}
+                                        w="full"
                                       >
-                                        <HStack justify="space-between" mb={2}>
-                                          <Box fontSize="sm" fontWeight="medium" color={titleColor}>
+                                        <HStack justify="space-between" mb={3}>
+                                          <Box fontSize="md" fontWeight="bold" color={titleColor}>
                                             {day.day}
                                           </Box>
-                                          <Badge colorScheme="teal" size="sm">
+                                          <Badge colorScheme="gray" size="md" px={3} py={1}>
                                             {day.totalExercises} exercises
                                           </Badge>
                                         </HStack>
                                         
-                                        {/* Exercise Blocks */}
-                                        <VStack spacing={1} align="stretch">
+                                        {/* Exercise Blocks - Expanded */}
+                                        <VStack spacing={4} align="stretch" w="full">
                                           {day.blocks.map((block: any, blockIndex: number) => (
-                                            <Box key={blockIndex}>
-                                              <HStack spacing={2}>
-                                                <Box as="span" fontSize="xs" color="teal.500" fontWeight="medium">
-                                                  {block.name || `Block ${blockIndex + 1}`}
-                                                </Box>
-                                                <Box as="span" fontSize="xs" color={infoColor}>
-                                                  ({block.exercises?.length || 0} exercises)
-                                                </Box>
-                                              </HStack>
+                                                                                         <Box 
+                                               key={blockIndex}
+                                               bg={useColorModeValue('gray.50', 'gray.600')}
+                                               p={4}
+                                               borderRadius="md"
+                                               borderWidth="1px"
+                                               borderColor={borderColor}
+                                               w="full"
+                                             >
+                                               <HStack spacing={3} mb={2}>
+                                                 <Box as="span" fontSize="sm" color={titleColor} fontWeight="bold">
+                                                   {block.name || `Block ${blockIndex + 1}`}
+                                                 </Box>
+                                                 <Badge colorScheme="gray" size="sm" variant="outline">
+                                                   {block.exercises?.length || 0} exercises
+                                                 </Badge>
+                                               </HStack>
                                               {block.exercises && block.exercises.length > 0 && (
-                                                <Box pl={2} fontSize="xs" color={infoColor} as="div">
-                                                  {block.exercises.map((ex: any) => ex.name).join(', ')}
-                                                </Box>
+                                                <VStack spacing={1} align="start" pl={0}>
+                                                  {block.exercises.map((ex: any, exIndex: number) => (
+                                                    <HStack key={exIndex} spacing={2}>
+                                                                                                             <Box 
+                                                         w="4px" 
+                                                         h="4px" 
+                                                         bg={infoColor} 
+                                                         borderRadius="full" 
+                                                         mt={1}
+                                                       />
+                                                      <Text fontSize="sm" color={titleColor} fontWeight="medium">
+                                                        {ex.name}
+                                                      </Text>
+                                                      {ex.sets && (
+                                                        <Text fontSize="xs" color={infoColor}>
+                                                          ({ex.sets} sets)
+                                                        </Text>
+                                                      )}
+                                                    </HStack>
+                                                  ))}
+                                                </VStack>
                                               )}
                                             </Box>
                                           ))}
@@ -704,148 +761,11 @@ export function PlanDetailView({
                       </CardBody>
                     </Card>
                   ))}
-              </VStack>
+              </SimpleGrid>
             )}
           </VStack>
 
-          {/* Assigned Athletes */}
-          <VStack spacing={4} align="stretch">
-            <HStack justify="space-between" align="center">
-              <Heading size="md" color={titleColor}>
-                Assigned Athletes
-              </Heading>
-              <Badge colorScheme="green" px={3} py={1}>
-                {assignedAthletes.length} athletes
-              </Badge>
-            </HStack>
 
-            {loading ? (
-              <VStack spacing={3}>
-                {[...Array(3)].map((_, i) => (
-                  <Skeleton key={i} height="80px" borderRadius="md" />
-                ))}
-              </VStack>
-            ) : assignedAthletes.length === 0 ? (
-              <Card bg={cardBg} borderColor={borderColor} borderWidth="1px">
-                <CardBody p={8} textAlign="center">
-                  <Icon as={FaUsers} boxSize={12} color="gray.300" mb={4} />
-                  <Text color={infoColor} mb={4}>
-                    No athletes assigned to this plan yet
-                  </Text>
-                  {onAssign && (
-                    <Button
-                      leftIcon={<FaPlus />}
-                      colorScheme="teal"
-                      size="sm"
-                      onClick={handleAssignClick}
-                    >
-                      Assign Athletes
-                    </Button>
-                  )}
-                </CardBody>
-              </Card>
-            ) : (
-              <VStack spacing={3} align="stretch">
-                {/* Progress Summary */}
-                <Card bg={progressCardBg} borderColor="blue.200">
-                  <CardBody p={4}>
-                    <VStack spacing={3}>
-                      <HStack justify="space-between" w="100%">
-                        <Text fontSize="sm" fontWeight="medium" color={titleColor}>
-                          Overall Progress
-                        </Text>
-                        <Text fontSize="sm" fontWeight="bold" color="blue.500">
-                          {completionPercentage.toFixed(1)}%
-                        </Text>
-                      </HStack>
-                      <Progress 
-                        value={completionPercentage} 
-                        colorScheme="blue" 
-                        size="md" 
-                        w="100%" 
-                        borderRadius="full"
-                      />
-                      <HStack justify="space-between" w="100%" fontSize="xs">
-                        <Text color={infoColor}>
-                          {completedAssignments} completed
-                        </Text>
-                        <Text color={infoColor}>
-                          {inProgressAssignments} in progress
-                        </Text>
-                      </HStack>
-                    </VStack>
-                  </CardBody>
-                </Card>
-
-                {/* Athletes List */}
-                {assignedAthletes.map((athlete) => (
-                  <Card 
-                    key={athlete.id}
-                    bg={cardBg} 
-                    borderColor={borderColor} 
-                    borderWidth="1px"
-                  >
-                    <CardBody p={4}>
-                      <Flex align="center" justify="space-between">
-                        <HStack spacing={3}>
-                          <Avatar
-                            size="md"
-                            name={`${athlete.first_name} ${athlete.last_name}`}
-                            src={athlete.avatar_url}
-                          />
-                          <VStack align="start" spacing={0}>
-                            <Text fontWeight="medium" color={titleColor}>
-                              {athlete.first_name} {athlete.last_name}
-                            </Text>
-                            <Text fontSize="sm" color={infoColor}>
-                              {athlete.email}
-                            </Text>
-                            <Text fontSize="xs" color={infoColor}>
-                              Assigned {new Date(athlete.assignment.assigned_at).toLocaleDateString()}
-                            </Text>
-                          </VStack>
-                        </HStack>
-                        
-                        <VStack spacing={1} align="end">
-                          <Badge 
-                            colorScheme={
-                              athlete.assignment.status === 'completed' ? 'green' :
-                              athlete.assignment.status === 'in_progress' ? 'blue' : 'gray'
-                            }
-                            fontSize="xs"
-                            px={2}
-                            py={1}
-                          >
-                            <Icon 
-                              as={
-                                athlete.assignment.status === 'completed' ? FaCheck :
-                                athlete.assignment.status === 'in_progress' ? FaClock : FaEye
-                              } 
-                              mr={1} 
-                            />
-                            {athlete.assignment.status.replace('_', ' ')}
-                          </Badge>
-                          
-                          {/* Remove athlete button */}
-                          <Tooltip label="Remove athlete from plan" placement="top">
-                            <IconButton
-                              icon={<FaTimes />}
-                              colorScheme="red"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveAthlete(athlete)}
-                              aria-label="Remove athlete"
-                            />
-                          </Tooltip>
-                        </VStack>
-                      </Flex>
-                    </CardBody>
-                  </Card>
-                ))}
-              </VStack>
-            )}
-          </VStack>
-        </SimpleGrid>
       </VStack>
       
       {/* Remove Athlete Confirmation Dialog */}

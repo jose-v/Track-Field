@@ -118,8 +118,8 @@ const WORKFLOW_STEPS = [
   }
 ];
 
-// Dynamic workflow steps based on template type and user role
-const getWorkflowSteps = (templateType: 'single' | 'weekly' | 'monthly', userRole?: string) => {
+// Dynamic workflow steps based on template type, user role, and template mode
+const getWorkflowSteps = (templateType: 'single' | 'weekly' | 'monthly', userRole?: string, isTemplateMode?: boolean) => {
   if (templateType === 'monthly') {
     const steps = [
       { 
@@ -158,8 +158,8 @@ const getWorkflowSteps = (templateType: 'single' | 'weekly' | 'monthly', userRol
   // For single and weekly workouts
   const steps = [...WORKFLOW_STEPS];
   
-  // Remove athlete assignment step for athletes
-  if (userRole === 'athlete') {
+  // Remove athlete assignment step for athletes OR when creating templates
+  if (userRole === 'athlete' || isTemplateMode) {
     return steps.filter(step => step.id !== 5); // Remove step 5 (Assign Athletes)
   }
   
@@ -383,7 +383,7 @@ const NewWorkoutCreator: React.FC = () => {
 
   // Navigation handlers
   const handleNext = () => {
-    const currentWorkflowSteps = getWorkflowSteps(selectedTemplateType, profile?.role);
+    const currentWorkflowSteps = getWorkflowSteps(selectedTemplateType, profile?.role, isTemplateMode);
     const stepErrors = getStepErrors(currentStep);
     
     if (validateStep(currentStep)) {
@@ -1423,7 +1423,7 @@ const NewWorkoutCreator: React.FC = () => {
         <VStack spacing={0} align="stretch">
           {/* Progress Bar - Full Width at Top */}
           <Progress 
-            value={(currentStep / getWorkflowSteps(selectedTemplateType, profile?.role).length) * 100} 
+            value={(currentStep / getWorkflowSteps(selectedTemplateType, profile?.role, isTemplateMode).length) * 100} 
             colorScheme="blue" 
             size="sm"
             bg={useColorModeValue('gray.100', 'gray.700')}
@@ -1444,7 +1444,7 @@ const NewWorkoutCreator: React.FC = () => {
                 
                 {/* Step Navigation - Centered */}
                 <HStack spacing={6} justify="center" flex="1">
-                  {getWorkflowSteps(selectedTemplateType, profile?.role).map((step, index) => {
+                  {getWorkflowSteps(selectedTemplateType, profile?.role, isTemplateMode).map((step, index) => {
                     const stepErrors = getStepErrors(step.id);
                     const hasErrors = stepErrors.length > 0 && step.id < currentStep;
                     const stepColor = hasErrors
@@ -1485,7 +1485,7 @@ const NewWorkoutCreator: React.FC = () => {
                             />
                           </Tooltip>
                         )}
-                        {index < getWorkflowSteps(selectedTemplateType, profile?.role).length - 1 && (
+                        {index < getWorkflowSteps(selectedTemplateType, profile?.role, isTemplateMode).length - 1 && (
                           <Box color={stepColor}>
                             <ArrowRight size={14} />
                           </Box>
@@ -1588,15 +1588,15 @@ const NewWorkoutCreator: React.FC = () => {
             )}
             
             <Button
-              rightIcon={currentStep === getWorkflowSteps(selectedTemplateType, profile?.role).length ? <Save size={16} /> : <ArrowRight size={16} />}
+              rightIcon={currentStep === getWorkflowSteps(selectedTemplateType, profile?.role, isTemplateMode).length ? <Save size={16} /> : <ArrowRight size={16} />}
               colorScheme="blue"
-              onClick={currentStep === getWorkflowSteps(selectedTemplateType, profile?.role).length ? () => handleSave('save') : handleNext}
+              onClick={currentStep === getWorkflowSteps(selectedTemplateType, profile?.role, isTemplateMode).length ? () => handleSave('save') : handleNext}
               isDisabled={!validateStep(currentStep)}
-              isLoading={currentStep === getWorkflowSteps(selectedTemplateType, profile?.role).length ? isSaving : false}
+              isLoading={currentStep === getWorkflowSteps(selectedTemplateType, profile?.role, isTemplateMode).length ? isSaving : false}
               size="lg"
               w="140px"
             >
-              {currentStep === getWorkflowSteps(selectedTemplateType, profile?.role).length ? 'Save' : 'Continue'}
+              {currentStep === getWorkflowSteps(selectedTemplateType, profile?.role, isTemplateMode).length ? 'Save' : 'Continue'}
             </Button>
           </HStack>
         </Flex>

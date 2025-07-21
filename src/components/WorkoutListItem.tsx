@@ -2,17 +2,20 @@ import React, { useState } from 'react';
 import {
   Box, HStack, VStack, Text, Icon, Flex, Button, Badge, IconButton, 
   useColorModeValue, Tooltip, Menu, MenuButton, MenuList, MenuItem, Portal,
-  useBreakpoint
+  useBreakpoint, useToast
 } from '@chakra-ui/react';
-import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaEdit, FaTrash, FaEye, FaUsers, FaTasks, FaLayerGroup, FaEllipsisV, FaExchangeAlt } from 'react-icons/fa';
+import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaEdit, FaTrash, FaEye, FaUsers, FaTasks, FaLayerGroup, FaEllipsisV, FaExchangeAlt, FaCopy } from 'react-icons/fa';
 import type { Workout } from '../services/api';
 import { getTypeIcon, getTypeColor, getTypeName } from './WorkoutCard';
 import { getExercisesFromWorkout, getBlocksFromWorkout } from '../utils/workoutUtils';
 import { dateUtils } from '../utils/date';
 import { format } from 'date-fns';
 import { Link as RouterLink } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { WorkoutDetailsDrawer } from './WorkoutDetailsDrawer';
 import { MobileWorkoutDetails } from './MobileWorkoutDetails';
+import DuplicateWorkoutModal from './DuplicateWorkoutModal';
+import { AssignmentService } from '../services/assignmentService';
 
 interface WorkoutListItemProps {
   workout: Workout;
@@ -50,6 +53,28 @@ export function WorkoutListItem({
   // Responsive design - use mobile drawer on mobile
   const breakpoint = useBreakpoint();
   const isMobile = breakpoint === 'base' || breakpoint === 'sm';
+  
+  // State for duplicate modal
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+  
+  // Toast for notifications
+  const toast = useToast();
+  
+  // Query client for data invalidation
+  const queryClient = useQueryClient();
+
+  // Handle duplicate workout
+  const handleDuplicateWorkout = () => {
+    setIsDuplicateModalOpen(true);
+  };
+
+  // Handle duplicate success
+  const handleDuplicateSuccess = async () => {
+    // Invalidate relevant queries to refresh data
+    await queryClient.invalidateQueries({ queryKey: ['workouts'] });
+    await queryClient.invalidateQueries({ queryKey: ['workoutCompletionStats'] });
+    await queryClient.invalidateQueries({ queryKey: ['athleteWorkouts'] });
+  };
   
   // Handle view details - use drawer or existing callback
   const handleViewDetails = () => {
@@ -245,6 +270,18 @@ export function WorkoutListItem({
                 Convert to Workout
               </MenuItem>
             )}
+            {isCoach && (
+              <MenuItem 
+                icon={<FaCopy />} 
+                onClick={(e) => { 
+                  e.preventDefault(); 
+                  e.stopPropagation(); 
+                  handleDuplicateWorkout(); 
+                }}
+              >
+                {isTemplate ? 'Duplicate Template' : 'Duplicate Workout'}
+              </MenuItem>
+            )}
             {onAssign && !isTemplate && !(workout as any).is_template && (
               <MenuItem 
                 icon={<FaUsers />} 
@@ -310,6 +347,15 @@ export function WorkoutListItem({
           workout={workout}
         />
       )}
+
+      {/* Duplicate Workout Modal */}
+      <DuplicateWorkoutModal
+        isOpen={isDuplicateModalOpen}
+        onClose={() => setIsDuplicateModalOpen(false)}
+        workout={workout}
+        currentUserId={currentUserId}
+        onSuccess={handleDuplicateSuccess}
+      />
     </Box>
   );
 } 

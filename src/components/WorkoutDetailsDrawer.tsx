@@ -26,16 +26,25 @@ import {
   AccordionButton,
   AccordionPanel,
   AccordionIcon,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  useToast,
 } from '@chakra-ui/react';
-import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaClock, FaMapMarkerAlt, FaCalendarAlt, FaSignOutAlt } from 'react-icons/fa';
+import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaClock, FaMapMarkerAlt, FaCalendarAlt, FaSignOutAlt, FaEllipsisV, FaCopy } from 'react-icons/fa';
 import { format } from 'date-fns';
 import type { Workout } from '../services/api';
 import { getExercisesFromWorkout, getBlocksFromWorkout } from '../utils/workoutUtils';
+import { AssignmentService } from '../services/assignmentService';
 
 interface WorkoutDetailsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   workout: Workout | null;
+  // Optional props for actions
+  userRole?: 'athlete' | 'coach';
+  currentUserId?: string;
 }
 
 // Helper function to get workout type icon
@@ -49,10 +58,12 @@ function getTypeIcon(type: string | undefined) {
   }
 }
 
-export const WorkoutDetailsDrawer: React.FC<WorkoutDetailsDrawerProps> = ({
-  isOpen,
-  onClose,
-  workout
+export const WorkoutDetailsDrawer: React.FC<WorkoutDetailsDrawerProps> = ({ 
+  isOpen, 
+  onClose, 
+  workout,
+  userRole = 'athlete',
+  currentUserId 
 }) => {
   // Responsive: bottom drawer on mobile, right drawer on desktop
   const isMobile = useBreakpointValue({ base: true, md: false });
@@ -63,6 +74,42 @@ export const WorkoutDetailsDrawer: React.FC<WorkoutDetailsDrawerProps> = ({
   const drawerText = useColorModeValue('gray.700', 'gray.200');
   const sectionTitleColor = useColorModeValue('gray.500', 'gray.400');
   const exerciseCardBg = useColorModeValue('gray.50', 'gray.700');
+
+  // Toast for notifications
+  const toast = useToast();
+
+  // Handle duplicate workout
+  const handleDuplicateWorkout = async () => {
+    try {
+      if (!workout) {
+        throw new Error('Missing workout information');
+      }
+
+      const assignmentService = new AssignmentService();
+      
+      // Create unassigned workout instead of assignment
+      const newWorkoutName = `${workout.name} - Copy`;
+      await assignmentService.duplicateWorkoutAsNewWorkout(workout.id, newWorkoutName);
+      
+      toast({
+        title: "Workout duplicated",
+        description: `"${newWorkoutName}" has been created as an unassigned workout`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      
+    } catch (error) {
+      console.error("Error duplicating workout:", error);
+      toast({
+        title: "Failed to duplicate workout",
+        description: error instanceof Error ? error.message : "An error occurred while duplicating the workout.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
 
   if (!workout) return null;
 
@@ -103,6 +150,11 @@ export const WorkoutDetailsDrawer: React.FC<WorkoutDetailsDrawerProps> = ({
               <Badge colorScheme="blue" fontSize="sm">
                 {workout.type || 'Running'}
               </Badge>
+              {workout.is_template && (
+                <Badge colorScheme="purple" fontSize="sm">
+                  Template
+                </Badge>
+              )}
               {isBlockBased && (
                 <Badge colorScheme="green" fontSize="sm">
                   Block Mode
@@ -416,17 +468,41 @@ export const WorkoutDetailsDrawer: React.FC<WorkoutDetailsDrawerProps> = ({
               <Text fontSize="xl" fontWeight="bold" color={drawerText}>
                 Workout Details
               </Text>
-              <IconButton
-                aria-label="Close workout details"
-                icon={<Icon as={FaSignOutAlt} transform="rotate(180deg)" />}
-                size="lg"
-                variant="ghost"
-                borderRadius="full"
-                onClick={onClose}
-                color={drawerText}
-                _hover={{ bg: useColorModeValue('gray.100', 'gray.700') }}
-                fontSize="18px"
-              />
+              <HStack spacing={2}>
+                {userRole === 'coach' && currentUserId && (
+                  <Menu>
+                    <MenuButton
+                      as={IconButton}
+                      aria-label="Workout actions"
+                      icon={<Icon as={FaEllipsisV} />}
+                      size="md"
+                      variant="ghost"
+                      borderRadius="full"
+                      color={drawerText}
+                      _hover={{ bg: useColorModeValue('gray.100', 'gray.700') }}
+                    />
+                    <MenuList>
+                      <MenuItem 
+                        icon={<FaCopy />} 
+                        onClick={handleDuplicateWorkout}
+                      >
+                        {workout?.is_template ? 'Duplicate Template' : 'Duplicate Workout'}
+                      </MenuItem>
+                    </MenuList>
+                  </Menu>
+                )}
+                <IconButton
+                  aria-label="Close workout details"
+                  icon={<Icon as={FaSignOutAlt} transform="rotate(180deg)" />}
+                  size="lg"
+                  variant="ghost"
+                  borderRadius="full"
+                  onClick={onClose}
+                  color={drawerText}
+                  _hover={{ bg: useColorModeValue('gray.100', 'gray.700') }}
+                  fontSize="18px"
+                />
+              </HStack>
             </Flex>
             
             {/* Content */}
@@ -450,9 +526,32 @@ export const WorkoutDetailsDrawer: React.FC<WorkoutDetailsDrawerProps> = ({
           _hover={{ bg: useColorModeValue('gray.100', 'gray.700') }}
         />
         <DrawerHeader borderBottomWidth="1px" borderColor={borderColor}>
-          <Text fontSize="xl" fontWeight="bold" color={drawerText}>
-            Workout Details
-          </Text>
+          <HStack justify="space-between" align="center" w="full" pr={12}>
+            <Text fontSize="xl" fontWeight="bold" color={drawerText}>
+              Workout Details
+            </Text>
+            {userRole === 'coach' && currentUserId && (
+              <Menu>
+                <MenuButton
+                  as={IconButton}
+                  aria-label="Workout actions"
+                  icon={<Icon as={FaEllipsisV} />}
+                  size="sm"
+                  variant="ghost"
+                  color={drawerText}
+                  _hover={{ bg: useColorModeValue('gray.100', 'gray.700') }}
+                />
+                <MenuList>
+                  <MenuItem 
+                    icon={<FaCopy />} 
+                    onClick={handleDuplicateWorkout}
+                  >
+                    {workout?.is_template ? 'Duplicate Template' : 'Duplicate Workout'}
+                  </MenuItem>
+                </MenuList>
+              </Menu>
+            )}
+          </HStack>
         </DrawerHeader>
         <DrawerBody p={0} overflowY="auto">
           <WorkoutContent />

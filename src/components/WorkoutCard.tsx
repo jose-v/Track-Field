@@ -19,6 +19,7 @@ import {
   useColorModeValue,
   useBreakpointValue,
   useBreakpoint,
+  useToast,
 } from '@chakra-ui/react';
 import { 
   FaRunning, 
@@ -37,14 +38,18 @@ import {
   FaCalendarDay,
   FaClock,
   FaMapMarkerAlt,
+  FaCopy,
 } from 'react-icons/fa';
 import { Link as RouterLink } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { WorkoutDetailsDrawer } from './WorkoutDetailsDrawer';
 import { MobileWorkoutDetails } from './MobileWorkoutDetails';
+import DuplicateWorkoutModal from './DuplicateWorkoutModal';
 import { DetailedProgressDisplay } from './DetailedProgressDisplay';
 import * as dateUtils from 'date-fns';
 import type { Workout } from '../services/api';
 import { getExercisesFromWorkout, getBlocksFromWorkout } from '../utils/workoutUtils';
+import { AssignmentService } from '../services/assignmentService';
 
 export function getTypeIcon(type: string | undefined) {
   switch (type?.toLowerCase()) {
@@ -135,6 +140,28 @@ export function WorkoutCard({
 }: WorkoutCardProps) {
   // State for workout details drawer
   const [isDetailsDrawerOpen, setIsDetailsDrawerOpen] = useState(false);
+  
+  // State for duplicate modal
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+  
+  // Toast for notifications
+  const toast = useToast();
+  
+  // Query client for data invalidation
+  const queryClient = useQueryClient();
+
+  // Handle duplicate workout
+  const handleDuplicateWorkout = () => {
+    setIsDuplicateModalOpen(true);
+  };
+
+  // Handle duplicate success
+  const handleDuplicateSuccess = async () => {
+    // Invalidate relevant queries to refresh data
+    await queryClient.invalidateQueries({ queryKey: ['workouts'] });
+    await queryClient.invalidateQueries({ queryKey: ['workoutCompletionStats'] });
+    await queryClient.invalidateQueries({ queryKey: ['athleteWorkouts'] });
+  };
   
   // Handle view details - use drawer or existing callback
   const handleViewDetails = () => {
@@ -276,6 +303,11 @@ export function WorkoutCard({
             {isTemplate && onConvertToWorkout && (
               <MenuItem icon={<FaExchangeAlt />} onClick={onConvertToWorkout}>
                 Convert to Workout
+              </MenuItem>
+            )}
+            {isCoach && (
+              <MenuItem icon={<FaCopy />} onClick={handleDuplicateWorkout}>
+                {isTemplate ? 'Duplicate Template' : 'Duplicate Workout'}
               </MenuItem>
             )}
             {onAssign && !isTemplate && !(workout as any).is_template && (
@@ -624,6 +656,15 @@ export function WorkoutCard({
           workout={workout}
         />
       )}
+
+      {/* Duplicate Workout Modal */}
+      <DuplicateWorkoutModal
+        isOpen={isDuplicateModalOpen}
+        onClose={() => setIsDuplicateModalOpen(false)}
+        workout={workout}
+        currentUserId={currentUserId}
+        onSuccess={handleDuplicateSuccess}
+      />
     </Card>
   );
 } 

@@ -243,15 +243,25 @@ const Step4Schedule: React.FC<Step4ScheduleProps> = ({
           <VStack spacing={4} align="stretch">
             <FormControl>
               <FormLabel>Date & Time</FormLabel>
-              <Box w="100%" overflow="hidden">
-                <DateTimePicker
-                  selectedDates={date ? [date] : []}
-                  selectedStartTime={time}
-                  isMultiSelect={false}
-                  onDateSelect={(dates) => onDateChange(dates[0] || '')}
-                  onTimeSelect={(startTime) => onTimeChange(startTime)}
-                />
-              </Box>
+              {isTemplate ? (
+                <Alert status="info" borderRadius="md">
+                  <AlertIcon />
+                  <Box>
+                    <Text fontWeight="semibold">Creating Template</Text>
+                    <Text fontSize="sm">Templates don't require specific dates or times</Text>
+                  </Box>
+                </Alert>
+              ) : (
+                <Box w="100%" overflow="hidden">
+                  <DateTimePicker
+                    selectedDates={date ? [date] : []}
+                    selectedStartTime={time}
+                    isMultiSelect={false}
+                    onDateSelect={(dates) => onDateChange(dates[0] || '')}
+                    onTimeSelect={(startTime) => onTimeChange(startTime)}
+                  />
+                </Box>
+              )}
             </FormControl>
             
             <FormControl>
@@ -329,15 +339,25 @@ const Step4Schedule: React.FC<Step4ScheduleProps> = ({
           <VStack spacing={4} align="stretch">
             <FormControl>
               <FormLabel>Start Date & Time</FormLabel>
-              <Box w="100%" overflow="hidden">
-                <DateTimePicker
-                  selectedDates={date ? [date] : []}
-                  selectedStartTime={time}
-                  isMultiSelect={false}
-                  onDateSelect={(dates) => onDateChange(dates[0] || '')}
-                  onTimeSelect={(startTime) => onTimeChange(startTime)}
-                />
-              </Box>
+              {isTemplate ? (
+                <Alert status="info" borderRadius="md">
+                  <AlertIcon />
+                  <Box>
+                    <Text fontWeight="semibold">Creating Template</Text>
+                    <Text fontSize="sm">Templates don't require specific dates or times</Text>
+                  </Box>
+                </Alert>
+              ) : (
+                <Box w="100%" overflow="hidden">
+                  <DateTimePicker
+                    selectedDates={date ? [date] : []}
+                    selectedStartTime={time}
+                    isMultiSelect={false}
+                    onDateSelect={(dates) => onDateChange(dates[0] || '')}
+                    onTimeSelect={(startTime) => onTimeChange(startTime)}
+                  />
+                </Box>
+              )}
             </FormControl>
             
             <FormControl>

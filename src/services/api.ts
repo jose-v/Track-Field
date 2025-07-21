@@ -334,23 +334,11 @@ export const api = {
             }
           }
 
-          // Clean up unified assignment system (REQUIRED after migration completion) - FIXED: Handle both single AND weekly assignments
+          // Clean up unified assignment system - Templates shouldn't have assignments, but regular workouts might
           const { error: unifiedAssignmentError } = await supabase
             .from('unified_workout_assignments')
             .delete()
-            .eq('workout_id', id);
-            
-          // ALSO clean up the new unified assignments table
-          const { error: newUnifiedError } = await supabase
-            .from('unified_workout_assignments')
-            .delete()
             .eq('meta->>original_workout_id', id);
-
-          if (newUnifiedError) {
-            console.error('Failed to clean up new unified assignments:', newUnifiedError);
-          } else {
-            console.log(`✅ Cleaned up new unified assignments for deleted workout ${id}`);
-          }
 
           if (unifiedAssignmentError) {
             console.error('Failed to clean up unified workout assignments:', unifiedAssignmentError);
@@ -394,54 +382,66 @@ export const api = {
       return data || [];
     },
 
-    // Check if workout is used in any monthly plans - OPTIMIZED
+    // Check if workout is used in any monthly plans - FIXED FOR ACTUAL DB STRUCTURE
     async checkMonthlyPlanUsage(workoutId: string): Promise<{
       isUsed: boolean;
       monthlyPlans: { id: string; name: string }[];
     }> {
       try {
-        // Increased timeout and optimized query
+        // Reduced timeout but more robust query
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Monthly plan usage check timeout')), 8000); // Increased to 8 seconds
+          setTimeout(() => reject(new Error('Monthly plan usage check timeout')), 5000);
         });
 
         const queryPromise = (async () => {
-          // Use PostgreSQL's array operators for server-side checking - MUCH faster
+          // Query for ALL possible columns that might contain workout references
           const { data, error } = await supabase
             .from('training_plans')
-            .select('id, name')
+            .select('id, name, weeks, weeks_structure, weekly_workout_ids')
             .is('deleted_at', null)
-            .or(`weeks_structure.cs.{${workoutId}},weekly_workout_ids.cs.{${workoutId}}`)
-            .limit(50); // Reasonable limit
+            .limit(100);
 
           if (error) {
-            console.warn('SQL array operator failed, falling back:', error.message);
-            
-            // Fallback to basic query without array operators
-            const { data: fallbackData, error: fallbackError } = await supabase
-              .from('training_plans')
-              .select('id, name, weekly_workout_ids, weeks_structure')
-              .is('deleted_at', null)
-              .limit(20);
-
-            if (fallbackError) throw fallbackError;
-            
-            // Client-side check only on fallback
-            const usedInPlans: { id: string; name: string }[] = [];
-            (fallbackData || []).forEach(plan => {
-              const inWeeksStructure = plan.weeks_structure && Array.isArray(plan.weeks_structure) && plan.weeks_structure.includes(workoutId);
-              const inWeeklyIds = plan.weekly_workout_ids && Array.isArray(plan.weekly_workout_ids) && plan.weekly_workout_ids.includes(workoutId);
-              
-              if (inWeeksStructure || inWeeklyIds) {
-                usedInPlans.push({ id: plan.id, name: plan.name });
-              }
-            });
-            
-            return usedInPlans;
+            console.warn('Training plans query failed:', error.message);
+            throw error;
           }
+
+          // Client-side check for workout usage in the weeks structure
+          const usedInPlans: { id: string; name: string }[] = [];
           
-          // Server-side filtering worked - return results directly
-          return (data || []).map(plan => ({ id: plan.id, name: plan.name }));
+          (data || []).forEach(plan => {
+            let isUsed = false;
+            
+            // Check 'weeks' column (array of objects or strings)
+            if (plan.weeks && Array.isArray(plan.weeks)) {
+              isUsed = plan.weeks.some((week: any) => {
+                // Handle both object format and direct ID format
+                if (typeof week === 'object' && week.workout_id === workoutId) {
+                  return true;
+                }
+                if (typeof week === 'string' && week === workoutId) {
+                  return true;
+                }
+                return false;
+              });
+            }
+            
+            // Check 'weeks_structure' column (array of strings)
+            if (!isUsed && plan.weeks_structure && Array.isArray(plan.weeks_structure)) {
+              isUsed = plan.weeks_structure.includes(workoutId);
+            }
+            
+            // Check 'weekly_workout_ids' column (array of strings)
+            if (!isUsed && plan.weekly_workout_ids && Array.isArray(plan.weekly_workout_ids)) {
+              isUsed = plan.weekly_workout_ids.includes(workoutId);
+            }
+            
+            if (isUsed) {
+              usedInPlans.push({ id: plan.id, name: plan.name });
+            }
+          });
+          
+          return usedInPlans;
         })();
 
         const usedInPlans = await Promise.race([queryPromise, timeoutPromise]) as any[];
@@ -487,12 +487,13 @@ export const api = {
         });
 
         const queryPromise = (async () => {
-          // Simple query without complex array operations
+          // Query the actual 'weeks' column structure
           const { data, error } = await supabase
             .from('training_plans')
-            .select('id, name, weekly_workout_ids, weeks_structure')
+            .select('id, name, weeks')
             .is('deleted_at', null)
-            .limit(20); // Much smaller limit
+            .not('weeks', 'is', null)
+            .limit(50);
 
           if (error) throw error;
           return data || [];
@@ -507,17 +508,17 @@ export const api = {
           // Check which workouts are used in this plan
           const usedWorkouts = new Set<string>();
           
-          if (plan.weeks_structure && Array.isArray(plan.weeks_structure)) {
-            plan.weeks_structure.forEach((workoutId: string) => {
-              if (workoutIds.includes(workoutId)) {
-                usedWorkouts.add(workoutId);
+          if (plan.weeks && Array.isArray(plan.weeks)) {
+            plan.weeks.forEach((week: any) => {
+              // Handle both object format and direct ID format
+              let workoutId = null;
+              if (typeof week === 'object' && week.workout_id) {
+                workoutId = week.workout_id;
+              } else if (typeof week === 'string') {
+                workoutId = week;
               }
-            });
-          }
-          
-          if (plan.weekly_workout_ids && Array.isArray(plan.weekly_workout_ids)) {
-            plan.weekly_workout_ids.forEach((workoutId: string) => {
-              if (workoutIds.includes(workoutId)) {
+              
+              if (workoutId && workoutIds.includes(workoutId)) {
                 usedWorkouts.add(workoutId);
               }
             });
@@ -617,23 +618,11 @@ export const api = {
           }
         }
 
-        // Clean up unified assignment system (REQUIRED after migration completion) - FIXED: Handle both single AND weekly assignments
+        // Clean up unified assignment system - Only clean up actual assignments, not template references
         const { error: unifiedAssignmentError } = await supabase
           .from('unified_workout_assignments')
           .delete()
-          .eq('workout_id', id);
-          
-        // ALSO clean up the new unified assignments table
-        const { error: newUnifiedError } = await supabase
-          .from('unified_workout_assignments')
-          .delete()
           .eq('meta->>original_workout_id', id);
-
-        if (newUnifiedError) {
-          console.error('Failed to clean up new unified assignments during permanent delete:', newUnifiedError);
-        } else {
-          console.log(`✅ Cleaned up new unified assignments for permanent delete of workout ${id}`);
-        }
 
         if (unifiedAssignmentError) {
           console.error('Failed to clean up unified workout assignments:', unifiedAssignmentError);
@@ -967,6 +956,7 @@ export const api = {
         .select('*')
         .eq('user_id', coachId)
         .eq('is_template', true)
+        .is('deleted_at', null) // 🔧 FIX: Exclude soft-deleted templates
         .order('created_at', { ascending: false });
 
       if (templateType) {

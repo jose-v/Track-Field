@@ -27,6 +27,11 @@ import {
   StatNumber,
   StatHelpText,
   Spinner,
+  useToast,
+  Input,
+  FormControl,
+  FormLabel,
+  Collapse,
 } from '@chakra-ui/react';
 import { supabase } from '../lib/supabase';
 import { 
@@ -48,10 +53,13 @@ import {
   FaCheckCircle,
   FaExclamationTriangle,
   FaEllipsisV,
+  FaCopy,
 } from 'react-icons/fa';
 import { format } from 'date-fns';
 import type { Workout } from '../services/api';
 import { getExercisesFromWorkout, getBlocksFromWorkout } from '../utils/workoutUtils';
+import { AssignmentService } from '../services/assignmentService';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface MobileWorkoutDetailsProps {
   isOpen: boolean;
@@ -108,21 +116,21 @@ const convertAssignmentToWorkout = (assignment: any) => {
   
   try {
     // Base workout structure with safe defaults
-    const workout = {
+  const workout = {
       id: assignment.id || `temp-${Date.now()}`,
-      name: assignment.exercise_block?.workout_name || assignment.exercise_block?.plan_name || 'Assignment Workout',
-      description: assignment.exercise_block?.description || '',
+    name: assignment.exercise_block?.workout_name || assignment.exercise_block?.plan_name || 'Assignment Workout',
+    description: assignment.exercise_block?.description || '',
       type: assignment.assignment_type || 'single',
       date: assignment.start_date || new Date().toISOString(),
-      duration: assignment.exercise_block?.estimated_duration || '',
-      notes: assignment.exercise_block?.notes || '',
+    duration: assignment.exercise_block?.estimated_duration || '',
+    notes: assignment.exercise_block?.notes || '',
       created_at: assignment.created_at || new Date().toISOString(),
       exercises: Array.isArray(assignment.exercise_block?.exercises) ? assignment.exercise_block.exercises : [],
-      blocks: assignment.exercise_block?.blocks || [],
-      is_block_based: assignment.exercise_block?.is_block_based || false,
+    blocks: assignment.exercise_block?.blocks || [],
+    is_block_based: assignment.exercise_block?.is_block_based || false,
       template_type: (assignment.assignment_type as 'single' | 'weekly' | 'monthly') || 'single',
-      daily_workouts: assignment.exercise_block?.daily_workouts || undefined,
-    };
+    daily_workouts: assignment.exercise_block?.daily_workouts || undefined,
+  };
     
     // For weekly assignments, ensure blocks are properly structured for WorkoutDetailsDrawer
     if (assignment.assignment_type === 'weekly' && assignment.exercise_block?.daily_workouts) {
@@ -177,8 +185,8 @@ const convertAssignmentToWorkout = (assignment: any) => {
         }
       }
     }
-    
-    return workout;
+  
+  return workout;
   } catch (error) {
     console.error('Error in convertAssignmentToWorkout:', error);
     return null;
@@ -199,75 +207,75 @@ const getAssignmentDetails = (assignment: any) => {
   }
   
   try {
-    const { assignment_type, exercise_block, progress, meta } = assignment;
-    
-    switch (assignment_type) {
-      case 'single':
-        return {
+  const { assignment_type, exercise_block, progress, meta } = assignment;
+  
+  switch (assignment_type) {
+    case 'single':
+      return {
           title: exercise_block?.workout_name || 'Single Workout',
           subtitle: 'SINGLE',
           duration: exercise_block?.estimated_duration || '',
           exercises: Array.isArray(exercise_block?.exercises) ? exercise_block.exercises.length : 0,
-          workoutType: 'SINGLE'
-        };
-        
-      case 'weekly':
-        // For weekly plans, count total exercises across all days
-        let totalWeeklyExercises = 0;
-        
+        workoutType: 'SINGLE'
+      };
+      
+    case 'weekly':
+      // For weekly plans, count total exercises across all days
+      let totalWeeklyExercises = 0;
+      
         try {
           const dailyWorkouts = exercise_block?.daily_workouts || {};
           
           if (typeof dailyWorkouts === 'object' && dailyWorkouts !== null) {
-            Object.values(dailyWorkouts).forEach((dayWorkout: any) => {
-              if (Array.isArray(dayWorkout)) {
-                // New blocks format: array of blocks, each with exercises
-                dayWorkout.forEach((block: any) => {
+      Object.values(dailyWorkouts).forEach((dayWorkout: any) => {
+        if (Array.isArray(dayWorkout)) {
+          // New blocks format: array of blocks, each with exercises
+          dayWorkout.forEach((block: any) => {
                   if (block && Array.isArray(block.exercises)) {
-                    totalWeeklyExercises += block.exercises.length;
-                  }
-                });
+              totalWeeklyExercises += block.exercises.length;
+            }
+          });
               } else if (dayWorkout && typeof dayWorkout === 'object' && Array.isArray(dayWorkout.exercises)) {
-                // Legacy format: { exercises: [], is_rest_day: boolean }
-                totalWeeklyExercises += dayWorkout.exercises.length;
-              }
-            });
+          // Legacy format: { exercises: [], is_rest_day: boolean }
+          totalWeeklyExercises += dayWorkout.exercises.length;
+        }
+      });
           }
         } catch (weeklyError) {
           console.error('Error counting weekly exercises:', weeklyError);
           totalWeeklyExercises = 0;
-        }
-        
-        return {
+      }
+      
+      return {
           title: exercise_block?.workout_name || exercise_block?.plan_name || 'Weekly Plan',
-          subtitle: 'WEEKLY',
+        subtitle: 'WEEKLY',
           duration: `${exercise_block?.total_days || 7} days`,
-          exercises: totalWeeklyExercises,
-          workoutType: 'WEEKLY'
-        };
-        
-      case 'monthly':
+        exercises: totalWeeklyExercises,
+        workoutType: 'WEEKLY'
+      };
+      
+    case 'monthly':
         const totalExercises = (progress && typeof progress === 'object' && typeof progress.total_exercises === 'number') 
           ? progress.total_exercises 
           : 0;
           
-        return {
+      return {
           title: exercise_block?.plan_name || 'Monthly Plan',
-          subtitle: 'MONTHLY',
+        subtitle: 'MONTHLY',
           duration: `${exercise_block?.duration_weeks || 4} weeks`,
           exercises: totalExercises,
-          workoutType: 'MONTHLY'
-        };
-        
-      default:
+        workoutType: 'MONTHLY'
+      };
+      
+    default:
         console.warn('Unknown assignment type:', assignment_type);
-        return {
-          title: 'Unknown Assignment',
-          subtitle: 'UNKNOWN',
-          duration: '',
-          exercises: 0,
-          workoutType: 'UNKNOWN'
-        };
+      return {
+        title: 'Unknown Assignment',
+        subtitle: 'UNKNOWN',
+        duration: '',
+        exercises: 0,
+        workoutType: 'UNKNOWN'
+      };
     }
   } catch (error) {
     console.error('Error in getAssignmentDetails:', error);
@@ -403,6 +411,124 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
   const [detailedProgress, setDetailedProgress] = useState<any>(null);
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
 
+  // Toast for notifications
+  const toast = useToast();
+  
+  // Query client for data invalidation
+  const queryClient = useQueryClient();
+
+  // Handle duplicate workout/assignment
+  const handleDuplicateWorkout = async () => {
+    try {
+      const assignmentService = new AssignmentService();
+      
+      if (isAssignment && assignment) {
+        // Duplicate the existing assignment
+        const newStartDate = new Date().toISOString().split('T')[0];
+        await assignmentService.duplicateAssignment(
+          assignment.id,
+          assignment.athlete_id, // Keep same athlete
+          newStartDate
+        );
+        
+        toast({
+          title: "Assignment duplicated",
+          description: "The workout assignment has been duplicated with today's date.",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+      } else if (workout) {
+        // Duplicate the workout as a new assignment (would need athlete selection)
+        // For now, we'll show a message that this feature needs athlete selection
+        toast({
+          title: "Feature coming soon",
+          description: "Workout duplication with athlete selection will be available soon.",
+          status: "info",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+      
+    } catch (error) {
+      console.error("Error duplicating workout:", error);
+      toast({
+        title: "Failed to duplicate workout",
+        description: error instanceof Error ? error.message : "An error occurred while duplicating the workout.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  // Mobile duplicate section state
+  const [showDuplicateSection, setShowDuplicateSection] = useState(false);
+  const [duplicateName, setDuplicateName] = useState('');
+  const [isDuplicating, setIsDuplicating] = useState(false);
+
+  // Handle mobile duplicate
+  const handleMobileDuplicate = async () => {
+    if (!duplicateName.trim()) {
+      toast({
+        title: 'Name Required',
+        description: 'Please enter a name for the duplicated workout',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    setIsDuplicating(true);
+    
+    try {
+      const assignmentService = new AssignmentService();
+      
+      // Create unassigned workout instead of assignment
+      await assignmentService.duplicateAsWorkout(assignment.id, duplicateName.trim());
+      
+      toast({
+        title: 'Workout Duplicated',
+        description: `"${duplicateName.trim()}" has been created as an unassigned workout`,
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      // Invalidate relevant queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ['workouts'] });
+      await queryClient.invalidateQueries({ queryKey: ['workoutCompletionStats'] });
+      await queryClient.invalidateQueries({ queryKey: ['athleteWorkouts'] });
+
+      // Reset form
+      setShowDuplicateSection(false);
+      setDuplicateName('');
+      
+    } catch (error) {
+      console.error('Error duplicating workout:', error);
+      toast({
+        title: 'Duplication Failed',
+        description: 'There was an error duplicating the workout. Please try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsDuplicating(false);
+    }
+  };
+
+  // Initialize duplicate name when section opens
+  useEffect(() => {
+    if (showDuplicateSection) {
+      const originalName = isAssignment 
+        ? assignment?.exercise_block?.workout_name || 'Unnamed Assignment'
+        : workout?.name || 'Unnamed Workout';
+      setDuplicateName(`${originalName} (Copy)`);
+    }
+  }, [showDuplicateSection, isAssignment, assignment, workout]);
+
   // Mount and stability management
   useEffect(() => {
     setIsMounted(true);
@@ -488,15 +614,15 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
         const exercises = await getCorrectExerciseData(assignment);
         
         if (!isMounted || controller.signal.aborted) return;
-        
-        const progress = assignment.progress;
+  
+  const progress = assignment.progress;
         
         if (!progress) {
           if (isMounted && !controller.signal.aborted) {
             setDetailedProgress({
               exercises: { current: 0, total: exercises.length },
-              sets: { current: 0, total: 0 },
-              reps: { current: 0, total: 0 }
+      sets: { current: 0, total: 0 },
+      reps: { current: 0, total: 0 }
             });
             setIsLoadingProgress(false);
           }
@@ -505,38 +631,38 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
 
         // Calculate progress based on correct exercise data
         if (assignment.assignment_type === 'single') {
-          const currentExerciseIndex = progress.current_exercise_index || 0;
-          const currentSet = progress.current_set || 1;
-          const currentRep = progress.current_rep || 1;
-          
-          let totalSets = 0;
-          let totalReps = 0;
-          let completedSets = 0;
-          let completedReps = 0;
-          
-          exercises.forEach((exercise: any, index: number) => {
-            const exerciseSets = parseInt(String(exercise.sets)) || 1;
-            const exerciseReps = parseInt(String(exercise.reps)) || 1;
-            const exerciseTotalReps = exerciseSets * exerciseReps;
-            
-            totalSets += exerciseSets;
-            totalReps += exerciseTotalReps;
-            
-            if (index < currentExerciseIndex) {
-              completedSets += exerciseSets;
-              completedReps += exerciseTotalReps;
-            } else if (index === currentExerciseIndex) {
-              completedSets += currentSet - 1;
+      const currentExerciseIndex = progress.current_exercise_index || 0;
+      const currentSet = progress.current_set || 1;
+      const currentRep = progress.current_rep || 1;
+      
+      let totalSets = 0;
+      let totalReps = 0;
+      let completedSets = 0;
+      let completedReps = 0;
+      
+      exercises.forEach((exercise: any, index: number) => {
+        const exerciseSets = parseInt(String(exercise.sets)) || 1;
+        const exerciseReps = parseInt(String(exercise.reps)) || 1;
+        const exerciseTotalReps = exerciseSets * exerciseReps;
+        
+        totalSets += exerciseSets;
+        totalReps += exerciseTotalReps;
+        
+        if (index < currentExerciseIndex) {
+          completedSets += exerciseSets;
+          completedReps += exerciseTotalReps;
+        } else if (index === currentExerciseIndex) {
+          completedSets += currentSet - 1;
               const completedRepsInCurrentExercise = (currentSet - 1) * exerciseReps + (currentRep - 1);
               completedReps += completedRepsInCurrentExercise;
-            }
-          });
-          
+        }
+      });
+      
           if (isMounted && !controller.signal.aborted) {
             setDetailedProgress({
-              exercises: { current: currentExerciseIndex, total: exercises.length },
-              sets: { current: completedSets, total: totalSets },
-              reps: { current: completedReps, total: totalReps }
+        exercises: { current: currentExerciseIndex, total: exercises.length },
+        sets: { current: completedSets, total: totalSets },
+        reps: { current: completedReps, total: totalReps }
             });
             setIsLoadingProgress(false);
           }
@@ -544,7 +670,7 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
           // For weekly/monthly, use basic progress
           if (isMounted && !controller.signal.aborted) {
             setDetailedProgress({
-              exercises: { current: progress.current_exercise_index || 0, total: progress.total_exercises || 0 },
+        exercises: { current: progress.current_exercise_index || 0, total: progress.total_exercises || 0 },
               sets: { current: progress.current_set || 0, total: (progress.current_set || 0) + 3 },
               reps: { current: progress.current_rep || 0, total: (progress.current_rep || 0) + 15 }
             });
@@ -704,6 +830,11 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
               <Badge colorScheme="blue" fontSize="sm">
                 {isAssignment && assignmentDetails ? assignmentDetails.subtitle : displayWorkout.type || 'Running'}
               </Badge>
+              {displayWorkout.is_template && (
+                <Badge colorScheme="purple" fontSize="sm">
+                  Template
+                </Badge>
+              )}
               {isBlockBased && (
                 <Badge colorScheme="green" fontSize="sm">
                   Block Mode
@@ -1301,6 +1432,15 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
                 Assign
               </Button>
             )}
+            <Button 
+              size="md" 
+              colorScheme="purple" 
+              leftIcon={<FaCopy />}
+              onClick={() => setShowDuplicateSection(!showDuplicateSection)}
+              w="full"
+            >
+              Duplicate
+            </Button>
             {onDelete && (
               <Button 
                 size="md" 
@@ -1314,6 +1454,55 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
               </Button>
             )}
           </SimpleGrid>
+          
+          {/* Slide-down duplicate section */}
+          <Collapse in={showDuplicateSection} animateOpacity>
+            <Box bg={exerciseCardBg} p={4} borderRadius="lg" border="1px solid" borderColor={useColorModeValue('gray.200', 'gray.600')}>
+              <VStack spacing={3} align="stretch">
+                <Text fontSize="sm" fontWeight="semibold" color={drawerText}>
+                  {workout?.is_template ? 'Duplicate Template' : 'Duplicate Workout'}
+                </Text>
+                <FormControl>
+                  <FormLabel fontSize="xs" color={sectionTitleColor}>
+                    New Workout Name
+                  </FormLabel>
+                  <Input
+                    value={duplicateName}
+                    onChange={(e) => setDuplicateName(e.target.value)}
+                    placeholder="Enter name for duplicated workout"
+                    size="sm"
+                    bg={useColorModeValue('white', 'gray.700')}
+                    borderColor={useColorModeValue('gray.300', 'gray.600')}
+                  />
+                </FormControl>
+                <HStack spacing={2}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setShowDuplicateSection(false);
+                      setDuplicateName('');
+                    }}
+                    flex={1}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    colorScheme="purple"
+                    onClick={handleMobileDuplicate}
+                    isLoading={isDuplicating}
+                    loadingText="Duplicating..."
+                    leftIcon={<FaCopy />}
+                    flex={1}
+                  >
+                    Duplicate
+                  </Button>
+                </HStack>
+              </VStack>
+            </Box>
+          </Collapse>
+          
           {onViewProgress && (
             <Button 
               size="md" 
