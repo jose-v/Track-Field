@@ -569,7 +569,7 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
       <Divider />
 
       {/* Exercises/Blocks Content */}
-      {isAssignment && assignment?.assignment_type === 'weekly' ? (
+      {(isAssignment && assignment?.assignment_type === 'weekly') || (displayWorkout?.template_type === 'weekly' && displayWorkout.blocks && typeof displayWorkout.blocks === 'object' && !Array.isArray(displayWorkout.blocks)) ? (
         // Special handling for weekly workouts - break down by days
         <VStack spacing={4} align="stretch">
           <Text fontSize="lg" fontWeight="bold" color={drawerText}>
@@ -577,23 +577,86 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
           </Text>
           <Accordion allowMultiple>
             {(() => {
-              // Extract daily workouts from assignment
-              const dailyWorkouts = assignment.exercise_block?.daily_workouts || {};
               const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
               const dayDisplayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
               
               let weeklyData: any = {};
               
-              // First, check if it's a block-based weekly workout (stored in blocks field)
-              if (assignment.exercise_block?.blocks) {
-                let blocks = assignment.exercise_block.blocks;
+              // Handle assignment-based weekly workouts
+              if (isAssignment && assignment) {
+                // Extract daily workouts from assignment
+                const dailyWorkouts = assignment.exercise_block?.daily_workouts || {};
+                
+                // First, check if it's a block-based weekly workout (stored in blocks field)
+                if (assignment.exercise_block?.blocks) {
+                  let blocks = assignment.exercise_block.blocks;
+                  
+                  // Parse blocks if it's a string
+                  if (typeof blocks === 'string') {
+                    try {
+                      blocks = JSON.parse(blocks);
+                    } catch (e) {
+                      console.error('Error parsing blocks in details drawer:', e);
+                    }
+                  }
+                  
+                  // Check if blocks is organized by days (monday, tuesday, etc.)
+                  if (blocks && typeof blocks === 'object' && !Array.isArray(blocks)) {
+                    dayNames.forEach(dayName => {
+                      const dayBlocks = blocks[dayName];
+                      if (Array.isArray(dayBlocks)) {
+                        // Convert blocks to exercises format for display
+                        const dayExercises = dayBlocks.flatMap((block: any) => block.exercises || []);
+                        weeklyData[dayName] = {
+                          exercises: dayExercises,
+                          is_rest_day: dayExercises.length === 0,
+                          blocks: dayBlocks // Keep original blocks for reference
+                        };
+                      }
+                    });
+                  }
+                }
+                
+                // If no block-based data found, try daily_workouts
+                if (Object.keys(weeklyData).length === 0) {
+                  if (Object.keys(dailyWorkouts).length > 0) {
+                    weeklyData = dailyWorkouts;
+                  } else if (assignment.exercise_block?.exercises) {
+                    // Try to extract from exercises array
+                    const exercises = assignment.exercise_block.exercises;
+                    if (Array.isArray(exercises) && exercises.length > 0 && 
+                        typeof exercises[0] === 'object' && 'day' in exercises[0]) {
+                      // Convert exercise array format to daily_workouts format
+                      exercises.forEach((dayPlan: any) => {
+                        if (dayPlan.day) {
+                          weeklyData[dayPlan.day.toLowerCase()] = {
+                            exercises: dayPlan.exercises || [],
+                            is_rest_day: dayPlan.isRestDay || false
+                          };
+                        }
+                      });
+                    } else {
+                      // Single workout repeated for all days
+                      dayNames.forEach(day => {
+                        weeklyData[day] = {
+                          exercises: exercises,
+                          is_rest_day: false
+                        };
+                      });
+                    }
+                  }
+                }
+              } 
+              // Handle workout-based weekly workouts (for coaches)
+              else if (displayWorkout?.template_type === 'weekly' && displayWorkout.blocks) {
+                let blocks = displayWorkout.blocks;
                 
                 // Parse blocks if it's a string
                 if (typeof blocks === 'string') {
                   try {
                     blocks = JSON.parse(blocks);
                   } catch (e) {
-                    console.error('Error parsing blocks in details drawer:', e);
+                    console.error('Error parsing workout blocks in mobile details:', e);
                   }
                 }
                 
@@ -611,36 +674,6 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
                       };
                     }
                   });
-                }
-              }
-              
-              // If no block-based data found, try daily_workouts
-              if (Object.keys(weeklyData).length === 0) {
-                if (Object.keys(dailyWorkouts).length > 0) {
-                  weeklyData = dailyWorkouts;
-                } else if (assignment.exercise_block?.exercises) {
-                  // Try to extract from exercises array
-                  const exercises = assignment.exercise_block.exercises;
-                  if (Array.isArray(exercises) && exercises.length > 0 && 
-                      typeof exercises[0] === 'object' && 'day' in exercises[0]) {
-                    // Convert exercise array format to daily_workouts format
-                    exercises.forEach((dayPlan: any) => {
-                      if (dayPlan.day) {
-                        weeklyData[dayPlan.day.toLowerCase()] = {
-                          exercises: dayPlan.exercises || [],
-                          is_rest_day: dayPlan.isRestDay || false
-                        };
-                      }
-                    });
-                  } else {
-                    // Single workout repeated for all days
-                    dayNames.forEach(day => {
-                      weeklyData[day] = {
-                        exercises: exercises,
-                        is_rest_day: false
-                      };
-                    });
-                  }
                 }
               }
               

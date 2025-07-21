@@ -151,7 +151,114 @@ export const WorkoutDetailsDrawer: React.FC<WorkoutDetailsDrawerProps> = ({
       <Divider />
 
       {/* Exercises/Blocks Content */}
-      {workoutBlocks.length > 0 ? (
+      {workout?.template_type === 'weekly' && workout.blocks && typeof workout.blocks === 'object' && !Array.isArray(workout.blocks) ? (
+        // Special handling for weekly workouts - break down by days
+        <VStack spacing={4} align="stretch">
+          <Text fontSize="lg" fontWeight="bold" color={drawerText}>
+            Weekly Training Plan
+          </Text>
+          <Accordion allowMultiple>
+            {(() => {
+              const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+              const dayDisplayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+              
+              return dayNames.map((dayName, index) => {
+                const dayDisplayName = dayDisplayNames[index];
+                const dayBlocks = (workout.blocks as any)[dayName];
+                
+                if (!Array.isArray(dayBlocks)) return null;
+                
+                const dayExercises = dayBlocks.flatMap((block: any) => block.exercises || []);
+                const isRestDay = dayExercises.length === 0;
+                
+                return (
+                  <AccordionItem key={dayName} border="1px" borderColor={borderColor} borderRadius="md" mb={2}>
+                    <AccordionButton bg={exerciseCardBg} borderRadius="md">
+                      <Box flex="1" textAlign="left">
+                        <HStack justify="space-between" align="center">
+                          <Text fontWeight="medium" color={drawerText}>
+                            {dayDisplayName}
+                          </Text>
+                          {isRestDay ? (
+                            <Badge colorScheme="orange" fontSize="xs">
+                              Rest Day
+                            </Badge>
+                          ) : (
+                            <Badge colorScheme="blue" fontSize="xs">
+                              {dayBlocks.length} blocks, {dayExercises.length} exercises
+                            </Badge>
+                          )}
+                        </HStack>
+                      </Box>
+                      <AccordionIcon />
+                    </AccordionButton>
+                    <AccordionPanel pb={4}>
+                      {isRestDay ? (
+                        <Box p={3} bg={exerciseCardBg} borderRadius="md" textAlign="center">
+                          <Text color={sectionTitleColor} fontSize="sm">
+                            Rest day - Focus on recovery and preparation for tomorrow's training
+                          </Text>
+                        </Box>
+                      ) : (
+                        <VStack spacing={4} align="stretch">
+                          {dayBlocks.map((block: any, blockIndex: number) => (
+                            <Box key={blockIndex} p={3} bg={exerciseCardBg} borderRadius="md" border="1px" borderColor={borderColor}>
+                              <VStack spacing={3} align="stretch">
+                                <Text fontSize="md" fontWeight="bold" color={drawerText}>
+                                  {block.name || `Block ${blockIndex + 1}`}
+                                </Text>
+                                {block.exercises && Array.isArray(block.exercises) && block.exercises.length > 0 ? (
+                                  <VStack spacing={2} align="stretch">
+                                    {block.exercises.map((exercise: any, exerciseIndex: number) => (
+                                      <Box key={exerciseIndex} p={2} bg={useColorModeValue('gray.100', 'gray.600')} borderRadius="md">
+                                        <VStack spacing={1} align="stretch">
+                                          <HStack align="center" spacing={3}>
+                                            <Text fontWeight="medium" color={drawerText} fontSize="sm">
+                                              {exercise.name}
+                                            </Text>
+                                            {exercise.sets && exercise.reps && (
+                                              <Text fontSize="xs" color={sectionTitleColor}>
+                                                {exercise.sets} sets × {exercise.reps} reps
+                                              </Text>
+                                            )}
+                                          </HStack>
+                                          {exercise.rest && (
+                                            <Text fontSize="xs" color={sectionTitleColor}>
+                                              Rest: {exercise.rest}
+                                            </Text>
+                                          )}
+                                          {exercise.distance && (
+                                            <Text fontSize="xs" color={sectionTitleColor}>
+                                              Distance: {exercise.distance}
+                                            </Text>
+                                          )}
+                                          {exercise.notes && (
+                                            <Text fontSize="xs" color={drawerText}>
+                                              {exercise.notes}
+                                            </Text>
+                                          )}
+                                        </VStack>
+                                      </Box>
+                                    ))}
+                                  </VStack>
+                                ) : (
+                                  <Text fontSize="sm" color={sectionTitleColor} fontStyle="italic">
+                                    No exercises in this block
+                                  </Text>
+                                )}
+                              </VStack>
+                            </Box>
+                          ))}
+                        </VStack>
+                      )}
+                    </AccordionPanel>
+                  </AccordionItem>
+                );
+              }).filter(Boolean);
+            })()}
+          </Accordion>
+        </VStack>
+      ) : workoutBlocks.length > 0 ? (
         <VStack spacing={4} align="stretch">
           <Text fontSize="lg" fontWeight="bold" color={drawerText}>
             Workout Blocks ({workoutBlocks.length})
