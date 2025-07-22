@@ -782,7 +782,14 @@ const Sidebar = ({ userType }: SidebarProps) => {
                     Main Menu
                   </Text>
                   
-                  {navItems.map((item) => {
+                  {navItems
+                    .filter(item => 
+                      // Exclude items that are already in Quick Actions or Settings sections
+                      !item.label.includes('Notifications') && 
+                      !item.label.includes('Profile') && 
+                      !item.label.includes('Settings')
+                    )
+                    .map((item) => {
                     const isHome = item.to === '/';
                     // More robust active state logic
                     let isActive = false;
@@ -920,6 +927,14 @@ const Sidebar = ({ userType }: SidebarProps) => {
                     >
                       <Text fontSize="md" ml={1}>Share App</Text>
                     </Button>
+                    
+                    <MobileNavItem
+                      icon={FaCog}
+                      label="Settings"
+                      to={userType === 'athlete' ? '/athlete/settings' : userType === 'team_manager' ? '/team-manager/settings' : '/coach/settings'}
+                      isActive={location.pathname.includes('/settings')}
+                      onClick={handleMobileDrawerClose}
+                    />
                   </VStack>
                 </Box>
               </Box>

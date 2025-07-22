@@ -45,13 +45,7 @@ interface Coach {
 }
 
 export default function JoinTeam() {
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const { profile, isLoading } = useProfile();
-  const userRole = profile?.role;
-  const { user } = useAuth();
-  const toast = useToast();
-  const [sendingRequest, setSendingRequest] = useState<string | null>(null);
-  
+  // Color mode values must be called first to maintain hooks order
   const bgColor = useColorModeValue('gray.50', 'gray.900');
   const cardBg = useColorModeValue('white', 'gray.800');
   const cardBorder = useColorModeValue('gray.200', 'gray.600');
@@ -59,6 +53,23 @@ export default function JoinTeam() {
   const textColor = useColorModeValue('gray.600', 'gray.300');
   const iconBg = useColorModeValue('blue.50', 'blue.900');
   const iconColor = useColorModeValue('blue.500', 'blue.300');
+  
+  // Additional color values used in JSX
+  const greenBg = useColorModeValue('green.50', 'green.900');
+  const greenIcon = useColorModeValue('green.500', 'green.300');
+  const greenText = useColorModeValue('green.600', 'green.300');
+  const grayBg = useColorModeValue('gray.50', 'gray.700');
+  const blueBg = useColorModeValue('blue.50', 'blue.900');
+  const blueIcon = useColorModeValue('blue.500', 'blue.300');
+  const purpleBg = useColorModeValue('purple.50', 'purple.900');
+  const purpleIcon = useColorModeValue('purple.500', 'purple.300');
+  
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { profile, isLoading } = useProfile();
+  const userRole = profile?.role;
+  const { user } = useAuth();
+  const toast = useToast();
+  const [sendingRequest, setSendingRequest] = useState<string | null>(null);
 
   // Use the page header hook
   usePageHeader({
@@ -69,7 +80,7 @@ export default function JoinTeam() {
 
   // Fetch available coaches
   const { data: coaches, isLoading: coachesLoading, refetch: refetchCoaches } = useQuery<Coach[]>({
-    queryKey: ['available-coaches', user?.id],
+    queryKey: ['available-coaches', user?.id, userRole],
     queryFn: async () => {
       if (!user?.id || userRole !== 'athlete') return [];
 
@@ -109,6 +120,10 @@ export default function JoinTeam() {
           const coachTeams = teamCounts?.filter(tc => tc.user_id === coach.id) || [];
           const coachTeamIds = coachTeams.map(ct => ct.team_id);
           const coachAthletes = athleteCounts?.filter(ac => coachTeamIds.includes(ac.team_id)) || [];
+          
+          // Count UNIQUE athletes, not total rows (an athlete in multiple teams should only count once)
+          const uniqueAthleteIds = new Set(coachAthletes.map(ac => ac.user_id));
+          const uniqueAthleteCount = uniqueAthleteIds.size;
 
           return {
             id: coach.id,
@@ -117,7 +132,7 @@ export default function JoinTeam() {
             avatar_url: coach.avatar_url,
             email: coach.email,
             team_count: coachTeams.length,
-            athlete_count: coachAthletes.length,
+            athlete_count: uniqueAthleteCount, // Use unique count instead of length
             is_member: false,
             member_team_name: undefined
           };
@@ -167,7 +182,8 @@ export default function JoinTeam() {
         throw error;
       }
     },
-    enabled: !!user?.id && userRole === 'athlete',
+    enabled: !!user?.id && !!userRole && userRole === 'athlete',
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const handleSendCoachRequest = async (coach: Coach) => {
@@ -301,12 +317,12 @@ export default function JoinTeam() {
                         w={16}
                         h={16}
                         borderRadius="full"
-                        bg={useColorModeValue('green.50', 'green.900')}
+                        bg={greenBg}
                         display="flex"
                         alignItems="center"
                         justifyContent="center"
                       >
-                        <Icon as={FiSearch} boxSize={8} color={useColorModeValue('green.500', 'green.300')} />
+                        <Icon as={FiSearch} boxSize={8} color={greenIcon} />
                       </Box>
                       
                       <VStack spacing={2}>
@@ -318,7 +334,7 @@ export default function JoinTeam() {
                         </Text>
                       </VStack>
 
-                      <Text fontSize="sm" color={useColorModeValue('green.600', 'green.300')} fontWeight="medium">
+                      <Text fontSize="sm" color={greenText} fontWeight="medium">
                         {coaches?.length || 0} coaches available
                       </Text>
                     </VStack>
@@ -394,7 +410,7 @@ export default function JoinTeam() {
                             borderRadius="md"
                             borderWidth="1px"
                             borderColor={cardBorder}
-                            bg={useColorModeValue('gray.50', 'gray.700')}
+                            bg={grayBg}
                           >
                             <Flex
                               direction={{ base: 'column', md: 'row' }}
@@ -494,12 +510,12 @@ export default function JoinTeam() {
                         w={12}
                         h={12}
                         borderRadius="full"
-                        bg={useColorModeValue('green.50', 'green.900')}
+                        bg={greenBg}
                         display="flex"
                         alignItems="center"
                         justifyContent="center"
                       >
-                        <Icon as={FiSearch} boxSize={6} color={useColorModeValue('green.500', 'green.300')} />
+                        <Icon as={FiSearch} boxSize={6} color={greenIcon} />
                       </Box>
                       <Badge colorScheme="green" fontSize="xs">Step 1</Badge>
                       <Text fontWeight="semibold" color={headingColor}>Get Invite Code</Text>
@@ -513,12 +529,12 @@ export default function JoinTeam() {
                         w={12}
                         h={12}
                         borderRadius="full"
-                        bg={useColorModeValue('blue.50', 'blue.900')}
+                        bg={blueBg}
                         display="flex"
                         alignItems="center"
                         justifyContent="center"
                       >
-                        <Icon as={FiUserPlus} boxSize={6} color={useColorModeValue('blue.500', 'blue.300')} />
+                        <Icon as={FiUserPlus} boxSize={6} color={blueIcon} />
                       </Box>
                       <Badge colorScheme="blue" fontSize="xs">Step 2</Badge>
                       <Text fontWeight="semibold" color={headingColor}>Enter Code</Text>
@@ -532,12 +548,12 @@ export default function JoinTeam() {
                         w={12}
                         h={12}
                         borderRadius="full"
-                        bg={useColorModeValue('purple.50', 'purple.900')}
+                        bg={purpleBg}
                         display="flex"
                         alignItems="center"
                         justifyContent="center"
                       >
-                        <Icon as={FiUsers} boxSize={6} color={useColorModeValue('purple.500', 'purple.300')} />
+                        <Icon as={FiUsers} boxSize={6} color={purpleIcon} />
                       </Box>
                       <Badge colorScheme="purple" fontSize="xs">Step 3</Badge>
                       <Text fontWeight="semibold" color={headingColor}>Join Team</Text>
