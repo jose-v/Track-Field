@@ -114,9 +114,17 @@ export function UnifiedAssignmentCard({
 
   // State for duplicate modal
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+  
+  // State for workout with loaded exercises (for details drawer)
+  const [workoutWithExercises, setWorkoutWithExercises] = useState<any>(null);
 
   // Responsive design
   const isMobile = useBreakpointValue({ base: true, lg: false });
+  
+  // Initialize workout state
+  useEffect(() => {
+    setWorkoutWithExercises(convertAssignmentToWorkout());
+  }, [assignment]);
   
   // Toast for notifications
   const toast = useToast();
@@ -217,6 +225,14 @@ export function UnifiedAssignmentCard({
         
         workout.blocks = blocks;
       }
+    }
+    
+    // For monthly assignments, convert today's workout to exercises format for WorkoutDetailsDrawer
+    else if (assignment.assignment_type === 'monthly') {
+      // This will be populated by getCorrectExerciseData when the component loads
+      // We'll update the workout structure with today's exercises async
+      workout.exercises = []; // Start with empty, will be populated
+      workout.description = `Monthly training plan - Today's workout from Week ${Math.floor(((new Date().getTime() - new Date(assignment.start_date).getTime()) / (1000 * 60 * 60 * 24)) / 7) + 1}`;
     }
     
     return workout;
@@ -394,9 +410,110 @@ export function UnifiedAssignmentCard({
     }
     
     if (assignment.assignment_type === 'monthly') {
-      // For monthly workouts, return empty array for now (monthly plans are complex)
-      // Monthly plans should show overall progress, not daily exercise details
-      return [];
+      // For monthly plans, extract today's exercises directly from weekly structure
+      const weeklyStructure = assignment.exercise_block?.weekly_structure || [];
+      
+      let todaysExercises: any[] = [];
+      
+      if (weeklyStructure.length > 0) {
+        // Calculate current week based on assignment start date
+        const startDate = new Date(assignment.start_date);
+        const today = new Date();
+        const daysDiff = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        const currentWeek = Math.floor(daysDiff / 7) + 1;
+        
+        // Find current week in structure
+        const currentWeekInfo = weeklyStructure.find((week: any) => week.week_number === currentWeek);
+        
+        if (currentWeekInfo && !currentWeekInfo.is_rest_week && currentWeekInfo.workout_id) {
+          // Fetch the weekly workout for this week
+          try {
+            const { data: weeklyWorkout, error } = await supabase
+              .from('workouts')
+              .select('*')
+              .eq('id', currentWeekInfo.workout_id)
+              .single();
+            
+            if (!error && weeklyWorkout) {
+              // Check if this weekly workout has daily_workouts structure
+              const dailyWorkouts = weeklyWorkout.daily_workouts || {};
+              
+              if (Object.keys(dailyWorkouts).length > 0) {
+                // Has daily workout structure - extract today's exercises
+                const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                const currentDayName = dayNames[today.getDay()];
+                const todaysWorkout = dailyWorkouts[currentDayName];
+                
+                if (todaysWorkout) {
+                  if (Array.isArray(todaysWorkout)) {
+                    // New blocks format
+                    todaysExercises = todaysWorkout.flatMap((block: any) => block?.exercises || []);
+                  } else if (todaysWorkout.exercises) {
+                    // Legacy format
+                    todaysExercises = todaysWorkout.exercises;
+                  }
+                }
+              } else {
+                // No daily_workouts structure - extract directly from blocks or exercises
+                if (weeklyWorkout.blocks) {
+                  // Extract from blocks structure
+                  let blocks = weeklyWorkout.blocks;
+                  if (typeof blocks === 'string') {
+                    try {
+                      blocks = JSON.parse(blocks);
+                    } catch (e) {
+                      console.error('Error parsing blocks JSON:', e);
+                      blocks = [];
+                    }
+                  }
+                  
+                  if (Array.isArray(blocks)) {
+                    // Blocks is an array - use existing logic
+                    todaysExercises = blocks.flatMap((block: any) => {
+                      return block?.exercises || [];
+                    });
+                  } else if (blocks && typeof blocks === 'object') {
+                    // Blocks is an object with day keys - extract today's exercises directly
+                    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                    const currentDayName = dayNames[today.getDay()];
+                    const dayKey = currentDayName + 's'; // monday -> mondays
+                    const todaysDayExercises = blocks[dayKey] || blocks[currentDayName];
+                    
+                    if (Array.isArray(todaysDayExercises)) {
+                      // Extract exercises from today's day blocks
+                      todaysExercises = todaysDayExercises.flatMap((dayBlock: any) => {
+                        if (dayBlock?.exercises) {
+                          return dayBlock.exercises;
+                        } else if (dayBlock && dayBlock.name) {
+                          // Direct exercise object
+                          return [dayBlock];
+                        }
+                        return [];
+                      });
+                    } else if (!todaysDayExercises) {
+                      // Fallback: use first available day
+                      const firstAvailableDay = Object.keys(blocks).find(key => Array.isArray(blocks[key]));
+                      if (firstAvailableDay) {
+                        const firstDayExercises = blocks[firstAvailableDay];
+                        todaysExercises = firstDayExercises.flatMap((dayBlock: any) => {
+                          return dayBlock?.exercises || (dayBlock && dayBlock.name ? [dayBlock] : []);
+                        });
+                      }
+                    }
+                  }
+                } else if (weeklyWorkout.exercises) {
+                  // Extract directly from exercises
+                  todaysExercises = weeklyWorkout.exercises;
+                }
+              }
+            }
+          } catch (fetchError) {
+            console.error('Error fetching weekly workout for monthly plan:', fetchError);
+          }
+        }
+      }
+      
+      return todaysExercises;
     }
     
     // For single workouts
@@ -851,6 +968,14 @@ export function UnifiedAssignmentCard({
             sets: { current: completedSets, total: totalSets },
             reps: { current: completedReps, total: totalReps }
           };
+          
+          // Update workout state with loaded exercises for details drawer
+          if (todaysExercises.length > 0) {
+            setWorkoutWithExercises(prev => ({
+              ...prev,
+              exercises: todaysExercises
+            }));
+          }
         } else {
           // Rest day or no workout today
           metrics = {
@@ -1314,7 +1439,7 @@ export function UnifiedAssignmentCard({
       <WorkoutDetailsDrawer
         isOpen={isDetailsDrawerOpen}
         onClose={() => setIsDetailsDrawerOpen(false)}
-        workout={convertAssignmentToWorkout()}
+        workout={workoutWithExercises || convertAssignmentToWorkout()}
       />
 
       {/* Duplicate Workout Modal */}
