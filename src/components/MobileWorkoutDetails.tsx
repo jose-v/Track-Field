@@ -881,8 +881,54 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
     );
   }
 
-  // Get workout data
-  const allExercises = getExercisesFromWorkout(displayWorkout);
+  // State for dynamically loaded exercises (for monthly plans)
+  const [dynamicExercises, setDynamicExercises] = useState<any[]>([]);
+  const [isLoadingExercises, setIsLoadingExercises] = useState(false);
+
+  // Load exercises for monthly plans
+  useEffect(() => {
+    let isMounted = true;
+    
+    if (!isOpen || !assignment || assignment.assignment_type !== 'monthly') {
+      if (isMounted) {
+        setDynamicExercises([]);
+        setIsLoadingExercises(false);
+      }
+      return;
+    }
+
+    const loadMonthlyExercises = async () => {
+      try {
+        if (isMounted) {
+          setIsLoadingExercises(true);
+        }
+
+        const exercises = await getCorrectExerciseData(assignment);
+
+        if (isMounted) {
+          setDynamicExercises(exercises);
+          setIsLoadingExercises(false);
+        }
+      } catch (error) {
+        console.error('Error loading monthly exercises for mobile drawer:', error);
+        if (isMounted) {
+          setDynamicExercises([]);
+          setIsLoadingExercises(false);
+        }
+      }
+    };
+
+    loadMonthlyExercises();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, assignment]);
+
+  // Get workout data - use dynamic exercises for monthly plans
+  const allExercises = isAssignment && assignment?.assignment_type === 'monthly' 
+    ? dynamicExercises 
+    : getExercisesFromWorkout(displayWorkout);
   const workoutBlocks = getBlocksFromWorkout(displayWorkout);
   const isBlockBased = (displayWorkout as any).is_block_based;
 
@@ -1438,10 +1484,18 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
       ) : (
         <VStack spacing={4} align="stretch">
           <Text fontSize="lg" fontWeight="bold" color={drawerText}>
-            Exercises ({allExercises.length})
+            Exercises ({isLoadingExercises ? '...' : allExercises.length})
           </Text>
           <VStack spacing={3} align="stretch">
-            {allExercises.map((exercise, index) => (
+            {isLoadingExercises ? (
+              <Box p={4} bg={exerciseCardBg} borderRadius="md" textAlign="center">
+                <Spinner size="sm" />
+                <Text fontSize="sm" color={drawerText} mt={2}>
+                  Loading exercises...
+                </Text>
+              </Box>
+            ) : (
+              allExercises.map((exercise, index) => (
               <Box key={index} p={4} bg={exerciseCardBg} borderRadius="md">
                 <VStack spacing={2} align="stretch">
                   <HStack align="center" spacing={3}>
@@ -1471,7 +1525,8 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
                   )}
                 </VStack>
               </Box>
-            ))}
+              ))
+            )}
           </VStack>
         </VStack>
       )}
