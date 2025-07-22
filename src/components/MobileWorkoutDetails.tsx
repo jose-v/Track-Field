@@ -679,21 +679,195 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
             }
           });
           
+          // Check if workout is actually completed (like UnifiedAssignmentCard does)
+          const isWorkoutCompleted = assignment.status === 'completed' && progress.completion_percentage >= 100;
+          
           if (isMounted && !controller.signal.aborted) {
             setDetailedProgress({
-              exercises: { current: currentExerciseIndex, total: exercises.length },
-              sets: { current: completedSets, total: totalSets },
-              reps: { current: completedReps, total: totalReps }
+              exercises: { 
+                current: isWorkoutCompleted ? exercises.length : currentExerciseIndex, 
+                total: exercises.length 
+              },
+              sets: { 
+                current: isWorkoutCompleted ? totalSets : completedSets,
+                total: totalSets 
+              },
+              reps: { 
+                current: isWorkoutCompleted ? totalReps : completedReps,
+                total: totalReps 
+              }
             });
             setIsLoadingProgress(false);
           }
+        } else if (assignment.assignment_type === 'weekly') {
+          // For weekly workouts, get today's exercise data
+          const todaysExercises = await getCorrectExerciseData(assignment);
+          
+          const currentExerciseIndex = progress.current_exercise_index || 0;
+          const currentSet = progress.current_set || 1;
+          const currentRep = progress.current_rep || 1;
+          
+          if (todaysExercises.length > 0) {
+            // Calculate today's workout metrics
+            let totalSets = 0;
+            let totalReps = 0;
+            let completedSets = 0;
+            let completedReps = 0;
+            
+            todaysExercises.forEach((exercise: any, index: number) => {
+              const exerciseSets = parseInt(String(exercise.sets)) || 1;
+              const exerciseReps = parseInt(String(exercise.reps)) || 1;
+              const exerciseTotalReps = exerciseSets * exerciseReps;
+              
+              totalSets += exerciseSets;
+              totalReps += exerciseTotalReps;
+              
+              if (index < currentExerciseIndex) {
+                // Completed exercises
+                completedSets += exerciseSets;
+                completedReps += exerciseTotalReps;
+              } else if (index === currentExerciseIndex) {
+                // Current exercise - calculate based on actual progress
+                completedSets += Math.max(0, currentSet - 1);
+                
+                // For reps: count completed reps in previous sets + current set
+                const completedRepsInPreviousSets = Math.max(0, currentSet - 1) * exerciseReps;
+                const completedRepsInCurrentSet = Math.max(0, currentRep - 1);
+                completedReps += completedRepsInPreviousSets + completedRepsInCurrentSet;
+              }
+            });
+            
+            if (isMounted && !controller.signal.aborted) {
+              setDetailedProgress({
+                exercises: { current: currentExerciseIndex, total: todaysExercises.length },
+                sets: { current: completedSets, total: totalSets },
+                reps: { current: completedReps, total: totalReps }
+              });
+              setIsLoadingProgress(false);
+            }
+          } else {
+            // Rest day or no workout today
+            if (isMounted && !controller.signal.aborted) {
+              setDetailedProgress({
+                exercises: { current: 0, total: 0 },
+                sets: { current: 0, total: 0 },
+                reps: { current: 0, total: 0 }
+              });
+              setIsLoadingProgress(false);
+            }
+          }
+        } else if (assignment.assignment_type === 'monthly') {
+          // For monthly plans, extract today's exercises directly from weekly structure
+          const weeklyStructure = assignment.exercise_block?.weekly_structure || [];
+          
+          const currentExerciseIndex = progress.current_exercise_index || 0;
+          const currentSet = progress.current_set || 1;
+          const currentRep = progress.current_rep || 1;
+          
+          let todaysExercises: any[] = [];
+          
+          if (weeklyStructure.length > 0) {
+            // Calculate current week based on assignment start date
+            const startDate = new Date(assignment.start_date);
+            const today = new Date();
+            const daysDiff = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+            const currentWeek = Math.floor(daysDiff / 7) + 1;
+            
+            // Find current week in structure
+            const currentWeekInfo = weeklyStructure.find((week: any) => week.week_number === currentWeek);
+            
+            if (currentWeekInfo && !currentWeekInfo.is_rest_week && currentWeekInfo.workout_id) {
+              // Fetch the weekly workout for this week
+              try {
+                const { data: weeklyWorkout, error } = await supabase
+                  .from('workouts')
+                  .select('*')
+                  .eq('id', currentWeekInfo.workout_id)
+                  .single();
+                
+                if (!error && weeklyWorkout) {
+                  // Check if this weekly workout has daily_workouts structure
+                  const dailyWorkouts = weeklyWorkout.daily_workouts || {};
+                  
+                  if (Object.keys(dailyWorkouts).length > 0) {
+                    // Has daily workout structure - extract today's exercises
+                    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                    const currentDayName = dayNames[today.getDay()];
+                    const todaysWorkout = dailyWorkouts[currentDayName];
+                    
+                    if (todaysWorkout) {
+                      if (Array.isArray(todaysWorkout)) {
+                        // New blocks format
+                        todaysExercises = todaysWorkout.flatMap((block: any) => block?.exercises || []);
+                      } else if (todaysWorkout.exercises) {
+                        // Legacy format
+                        todaysExercises = todaysWorkout.exercises;
+                      }
+                    }
+                  }
+                }
+              } catch (fetchError) {
+                console.error('Error fetching weekly workout for monthly plan:', fetchError);
+              }
+            }
+          }
+          
+          if (todaysExercises.length > 0) {
+            // Calculate today's workout metrics
+            let totalSets = 0;
+            let totalReps = 0;
+            let completedSets = 0;
+            let completedReps = 0;
+            
+            todaysExercises.forEach((exercise: any, index: number) => {
+              const exerciseSets = parseInt(String(exercise.sets)) || 1;
+              const exerciseReps = parseInt(String(exercise.reps)) || 1;
+              const exerciseTotalReps = exerciseSets * exerciseReps;
+              
+              totalSets += exerciseSets;
+              totalReps += exerciseTotalReps;
+              
+              if (index < currentExerciseIndex) {
+                // Completed exercises
+                completedSets += exerciseSets;
+                completedReps += exerciseTotalReps;
+              } else if (index === currentExerciseIndex) {
+                // Current exercise - calculate based on actual progress
+                completedSets += Math.max(0, currentSet - 1);
+                
+                // For reps: count completed reps in previous sets + current set
+                const completedRepsInPreviousSets = Math.max(0, currentSet - 1) * exerciseReps;
+                const completedRepsInCurrentSet = Math.max(0, currentRep - 1);
+                completedReps += completedRepsInPreviousSets + completedRepsInCurrentSet;
+              }
+            });
+            
+            if (isMounted && !controller.signal.aborted) {
+              setDetailedProgress({
+                exercises: { current: currentExerciseIndex, total: todaysExercises.length },
+                sets: { current: completedSets, total: totalSets },
+                reps: { current: completedReps, total: totalReps }
+              });
+              setIsLoadingProgress(false);
+            }
+          } else {
+            // Rest day or no workout today
+            if (isMounted && !controller.signal.aborted) {
+              setDetailedProgress({
+                exercises: { current: 0, total: 0 },
+                sets: { current: 0, total: 0 },
+                reps: { current: 0, total: 0 }
+              });
+              setIsLoadingProgress(false);
+            }
+          }
         } else {
-          // For weekly/monthly, use basic progress
+          // Fallback for unknown types
           if (isMounted && !controller.signal.aborted) {
             setDetailedProgress({
-              exercises: { current: progress.current_exercise_index || 0, total: progress.total_exercises || 0 },
-              sets: { current: progress.current_set || 0, total: (progress.current_set || 0) + 3 },
-              reps: { current: progress.current_rep || 0, total: (progress.current_rep || 0) + 15 }
+              exercises: { current: 0, total: 0 },
+              sets: { current: 0, total: 0 },
+              reps: { current: 0, total: 0 }
             });
             setIsLoadingProgress(false);
           }
