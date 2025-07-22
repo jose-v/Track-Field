@@ -502,22 +502,272 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
   assignment,
   onExecute,
 }) => {
-  // Essential mounting and stability state - MUST be called before any early returns
+  // ALL HOOKS MUST BE CALLED FIRST - BEFORE ANY CONDITIONALS OR EARLY RETURNS
+  // Essential mounting and stability state
   const [isMounted, setIsMounted] = useState(false);
   const [isStable, setIsStable] = useState(false);
   
-  // Determine if we're dealing with an assignment or a workout
-  const isAssignment = !!assignment;
-  
-  // Get detailed progress metrics with proper data fetching
+  // Progress state
   const [detailedProgress, setDetailedProgress] = useState<any>(null);
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
+
+  // Duplicate workflow state  
+  const [showDuplicateSection, setShowDuplicateSection] = useState(false);
+  const [duplicateName, setDuplicateName] = useState('');
+  const [isDuplicating, setIsDuplicating] = useState(false);
+
+  // Data conversion state
+  const [displayWorkout, setDisplayWorkout] = useState<any>(null);
+  const [assignmentDetails, setAssignmentDetails] = useState<any>(null);
+  const [conversionError, setConversionError] = useState<string>('');
+
+  // Dynamic exercises state (for monthly plans)
+  const [dynamicExercises, setDynamicExercises] = useState<any[]>([]);
+  const [isLoadingExercises, setIsLoadingExercises] = useState(false);
 
   // Toast for notifications
   const toast = useToast();
   
   // Query client for data invalidation
   const queryClient = useQueryClient();
+
+  // Theme colors
+  const drawerBg = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const drawerText = useColorModeValue('gray.700', 'gray.200');
+  const sectionTitleColor = useColorModeValue('gray.500', 'gray.400');
+  const exerciseCardBg = useColorModeValue('gray.50', 'gray.700');
+  const buttonHoverBg = useColorModeValue('gray.100', 'gray.700');
+
+  // ALL HOOKS DECLARED - NOW WE CAN DO CONDITIONAL LOGIC
+  
+  // Determine if we're dealing with an assignment or a workout
+  const isAssignment = !!assignment;
+
+  // Mount and stability management
+  useEffect(() => {
+    setIsMounted(true);
+    
+    // Add delay to ensure React is fully stable before allowing operations
+    const stabilityTimeout = setTimeout(() => {
+      setIsStable(true);
+    }, 100);
+
+    return () => {
+      setIsMounted(false);
+      setIsStable(false);
+      clearTimeout(stabilityTimeout);
+    };
+  }, []);
+
+  // Handle data conversion safely
+  useEffect(() => {
+    if (!isOpen || !isStable) {
+      setDisplayWorkout(null);
+      setAssignmentDetails(null);
+      setConversionError('');
+      return;
+    }
+
+    try {
+      const converted = isAssignment ? convertAssignmentToWorkout(assignment) : workout;
+      const details = isAssignment ? getAssignmentDetails(assignment) : null;
+      
+      setDisplayWorkout(converted);
+      setAssignmentDetails(details);
+      setConversionError('');
+    } catch (error) {
+      console.error('Error processing workout data:', error);
+      setConversionError('Error loading workout details');
+      setDisplayWorkout(null);
+      setAssignmentDetails(null);
+    }
+  }, [isOpen, isStable, isAssignment, assignment, workout]);
+
+  // Initialize duplicate name when section opens
+  useEffect(() => {
+    if (showDuplicateSection) {
+      const originalName = isAssignment 
+        ? assignment?.exercise_block?.workout_name || 'Unnamed Assignment'
+        : workout?.name || 'Unnamed Workout';
+      setDuplicateName(`${originalName} (Copy)`);
+    }
+  }, [showDuplicateSection, isAssignment, assignment, workout]);
+
+  // Progress loading effect - simplified and moved here
+  useEffect(() => {
+    let isMounted = true;
+    let controller = new AbortController();
+    
+    // Early return if not ready to load
+    if (!isOpen || !isAssignment || !assignment || !isStable) {
+      if (isMounted) {
+        setDetailedProgress(null);
+        setIsLoadingProgress(false);
+      }
+      return;
+    }
+
+    // Additional safety checks for assignment data integrity
+    if (!assignment.id || !assignment.assignment_type || !assignment.exercise_block) {
+      console.warn('Assignment data incomplete, skipping progress load:', assignment);
+      if (isMounted) {
+        setDetailedProgress(null);
+        setIsLoadingProgress(false);
+      }
+      return;
+    }
+    
+    const loadProgress = async () => {
+      try {
+        if (isMounted && !controller.signal.aborted) {
+          setIsLoadingProgress(true);
+        }
+
+        // Add a longer delay on first load to allow React to stabilize
+        const isFirstLoad = !detailedProgress;
+        const delay = isFirstLoad ? 150 : 10;
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        if (!isMounted || controller.signal.aborted) return;
+        
+        // Get the correct exercise data first (this fetches original workout data)
+        const exercises = await getCorrectExerciseData(assignment);
+        
+        if (!isMounted || controller.signal.aborted) return;
+  
+        const progress = assignment.progress;
+        
+        if (!progress) {
+          if (isMounted && !controller.signal.aborted) {
+            setDetailedProgress({
+              exercises: { current: 0, total: exercises.length },
+              sets: { current: 0, total: 0 },
+              reps: { current: 0, total: 0 }
+            });
+            setIsLoadingProgress(false);
+          }
+          return;
+        }
+
+        // Calculate progress based on correct exercise data
+        if (assignment.assignment_type === 'single') {
+          const currentExerciseIndex = progress.current_exercise_index || 0;
+          const currentSet = progress.current_set || 1;
+          const currentRep = progress.current_rep || 1;
+          
+          let totalSets = 0;
+          let totalReps = 0;
+          let completedSets = 0;
+          let completedReps = 0;
+          
+          exercises.forEach((exercise: any, index: number) => {
+            const exerciseSets = parseInt(String(exercise.sets)) || 1;
+            const exerciseReps = parseInt(String(exercise.reps)) || 1;
+            const exerciseTotalReps = exerciseSets * exerciseReps;
+            
+            totalSets += exerciseSets;
+            totalReps += exerciseTotalReps;
+            
+            if (index < currentExerciseIndex) {
+              completedSets += exerciseSets;
+              completedReps += exerciseTotalReps;
+            } else if (index === currentExerciseIndex) {
+              completedSets += currentSet - 1;
+              const completedRepsInCurrentExercise = (currentSet - 1) * exerciseReps + (currentRep - 1);
+              completedReps += completedRepsInCurrentExercise;
+            }
+          });
+          
+          if (isMounted && !controller.signal.aborted) {
+            setDetailedProgress({
+              exercises: { current: currentExerciseIndex, total: exercises.length },
+              sets: { current: completedSets, total: totalSets },
+              reps: { current: completedReps, total: totalReps }
+            });
+            setIsLoadingProgress(false);
+          }
+        } else {
+          // For weekly/monthly, use basic progress
+          if (isMounted && !controller.signal.aborted) {
+            setDetailedProgress({
+              exercises: { current: progress.current_exercise_index || 0, total: progress.total_exercises || 0 },
+              sets: { current: progress.current_set || 0, total: (progress.current_set || 0) + 3 },
+              reps: { current: progress.current_rep || 0, total: (progress.current_rep || 0) + 15 }
+            });
+            setIsLoadingProgress(false);
+          }
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.error('Error loading progress:', error);
+        }
+        if (isMounted && !controller.signal.aborted) {
+          setDetailedProgress(null);
+          setIsLoadingProgress(false);
+        }
+      }
+    };
+    
+    // Use longer timeout on first load to prevent race conditions
+    const isFirstLoad = !detailedProgress;
+    const timeoutDelay = isFirstLoad ? 200 : 50;
+    
+    const timeoutId = setTimeout(() => {
+      if (isMounted && !controller.signal.aborted) {
+        loadProgress();
+      }
+    }, timeoutDelay);
+    
+    return () => {
+      isMounted = false;
+      controller.abort();
+      clearTimeout(timeoutId);
+      if (isMounted) {
+        setIsLoadingProgress(false);
+      }
+    };
+  }, [isAssignment, assignment?.id, assignment?.assignment_type, isOpen, isStable]);
+
+  // Load exercises for monthly plans
+  useEffect(() => {
+    let isMounted = true;
+    
+    if (!isOpen || !assignment || assignment.assignment_type !== 'monthly') {
+      if (isMounted) {
+        setDynamicExercises([]);
+        setIsLoadingExercises(false);
+      }
+      return;
+    }
+
+    const loadMonthlyExercises = async () => {
+      try {
+        if (isMounted) {
+          setIsLoadingExercises(true);
+        }
+
+        const exercises = await getCorrectExerciseData(assignment);
+
+        if (isMounted) {
+          setDynamicExercises(exercises);
+          setIsLoadingExercises(false);
+        }
+      } catch (error) {
+        console.error('Error loading monthly exercises for mobile drawer:', error);
+        if (isMounted) {
+          setDynamicExercises([]);
+          setIsLoadingExercises(false);
+        }
+      }
+    };
+
+    loadMonthlyExercises();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, assignment]);
 
   // Handle duplicate workout/assignment
   const handleDuplicateWorkout = async () => {
@@ -563,11 +813,6 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
       });
     }
   };
-
-  // Mobile duplicate section state
-  const [showDuplicateSection, setShowDuplicateSection] = useState(false);
-  const [duplicateName, setDuplicateName] = useState('');
-  const [isDuplicating, setIsDuplicating] = useState(false);
 
   // Handle mobile duplicate
   const handleMobileDuplicate = async () => {
@@ -621,195 +866,6 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
     }
   };
 
-  // Initialize duplicate name when section opens
-  useEffect(() => {
-    if (showDuplicateSection) {
-      const originalName = isAssignment 
-        ? assignment?.exercise_block?.workout_name || 'Unnamed Assignment'
-        : workout?.name || 'Unnamed Workout';
-      setDuplicateName(`${originalName} (Copy)`);
-    }
-  }, [showDuplicateSection, isAssignment, assignment, workout]);
-
-  // Mount and stability management
-  useEffect(() => {
-    setIsMounted(true);
-    
-    // Add delay to ensure React is fully stable before allowing operations
-    const stabilityTimeout = setTimeout(() => {
-      setIsStable(true);
-    }, 100);
-
-    return () => {
-      setIsMounted(false);
-      setIsStable(false);
-      clearTimeout(stabilityTimeout);
-    };
-  }, []);
-
-  // Handle data conversion safely
-  const [displayWorkout, setDisplayWorkout] = useState<any>(null);
-  const [assignmentDetails, setAssignmentDetails] = useState<any>(null);
-  const [conversionError, setConversionError] = useState<string>('');
-
-  useEffect(() => {
-    if (!isOpen || !isStable) {
-      setDisplayWorkout(null);
-      setAssignmentDetails(null);
-      setConversionError('');
-      return;
-    }
-
-    try {
-      const converted = isAssignment ? convertAssignmentToWorkout(assignment) : workout;
-      const details = isAssignment ? getAssignmentDetails(assignment) : null;
-      
-      setDisplayWorkout(converted);
-      setAssignmentDetails(details);
-      setConversionError('');
-    } catch (error) {
-      console.error('Error processing workout data:', error);
-      setConversionError('Error loading workout details');
-      setDisplayWorkout(null);
-      setAssignmentDetails(null);
-    }
-  }, [isOpen, isStable, isAssignment, assignment, workout]);
-
-  // Progress loading effect - must come after all other hooks
-  useEffect(() => {
-    let isMounted = true;
-    let controller = new AbortController();
-    
-    // Early return if not ready to load
-    if (!isOpen || !isAssignment || !assignment || !isStable) {
-      if (isMounted) {
-        setDetailedProgress(null);
-        setIsLoadingProgress(false);
-      }
-      return;
-    }
-
-    // Additional safety checks for assignment data integrity
-    if (!assignment.id || !assignment.assignment_type || !assignment.exercise_block) {
-      console.warn('Assignment data incomplete, skipping progress load:', assignment);
-      if (isMounted) {
-        setDetailedProgress(null);
-        setIsLoadingProgress(false);
-      }
-      return;
-    }
-    
-    const loadProgress = async () => {
-      try {
-        if (isMounted && !controller.signal.aborted) {
-          setIsLoadingProgress(true);
-        }
-
-        // Add a longer delay on first load to allow React to stabilize
-        const isFirstLoad = !detailedProgress;
-        const delay = isFirstLoad ? 150 : 10;
-        await new Promise(resolve => setTimeout(resolve, delay));
-        
-        if (!isMounted || controller.signal.aborted) return;
-        
-        // Get the correct exercise data first (this fetches original workout data)
-        const exercises = await getCorrectExerciseData(assignment);
-        
-        if (!isMounted || controller.signal.aborted) return;
-  
-  const progress = assignment.progress;
-        
-        if (!progress) {
-          if (isMounted && !controller.signal.aborted) {
-            setDetailedProgress({
-              exercises: { current: 0, total: exercises.length },
-      sets: { current: 0, total: 0 },
-      reps: { current: 0, total: 0 }
-            });
-            setIsLoadingProgress(false);
-          }
-          return;
-        }
-
-        // Calculate progress based on correct exercise data
-        if (assignment.assignment_type === 'single') {
-      const currentExerciseIndex = progress.current_exercise_index || 0;
-      const currentSet = progress.current_set || 1;
-      const currentRep = progress.current_rep || 1;
-      
-      let totalSets = 0;
-      let totalReps = 0;
-      let completedSets = 0;
-      let completedReps = 0;
-      
-      exercises.forEach((exercise: any, index: number) => {
-        const exerciseSets = parseInt(String(exercise.sets)) || 1;
-        const exerciseReps = parseInt(String(exercise.reps)) || 1;
-        const exerciseTotalReps = exerciseSets * exerciseReps;
-        
-        totalSets += exerciseSets;
-        totalReps += exerciseTotalReps;
-        
-        if (index < currentExerciseIndex) {
-          completedSets += exerciseSets;
-          completedReps += exerciseTotalReps;
-        } else if (index === currentExerciseIndex) {
-          completedSets += currentSet - 1;
-              const completedRepsInCurrentExercise = (currentSet - 1) * exerciseReps + (currentRep - 1);
-              completedReps += completedRepsInCurrentExercise;
-        }
-      });
-      
-          if (isMounted && !controller.signal.aborted) {
-            setDetailedProgress({
-        exercises: { current: currentExerciseIndex, total: exercises.length },
-        sets: { current: completedSets, total: totalSets },
-        reps: { current: completedReps, total: totalReps }
-            });
-            setIsLoadingProgress(false);
-          }
-        } else {
-          // For weekly/monthly, use basic progress
-          if (isMounted && !controller.signal.aborted) {
-            setDetailedProgress({
-        exercises: { current: progress.current_exercise_index || 0, total: progress.total_exercises || 0 },
-              sets: { current: progress.current_set || 0, total: (progress.current_set || 0) + 3 },
-              reps: { current: progress.current_rep || 0, total: (progress.current_rep || 0) + 15 }
-            });
-            setIsLoadingProgress(false);
-          }
-        }
-      } catch (error) {
-        if (!controller.signal.aborted) {
-          console.error('Error loading progress:', error);
-        }
-        if (isMounted && !controller.signal.aborted) {
-          setDetailedProgress(null);
-          setIsLoadingProgress(false);
-        }
-      }
-    };
-    
-    // Use longer timeout on first load to prevent race conditions
-    const isFirstLoad = !detailedProgress;
-    const timeoutDelay = isFirstLoad ? 200 : 50;
-    
-    const timeoutId = setTimeout(() => {
-      if (isMounted && !controller.signal.aborted) {
-        loadProgress();
-      }
-    }, timeoutDelay);
-    
-    return () => {
-      isMounted = false;
-      controller.abort();
-      clearTimeout(timeoutId);
-      if (isMounted) {
-        setIsLoadingProgress(false);
-      }
-    };
-  }, [isAssignment, assignment?.id, assignment?.assignment_type, isOpen, isStable]);
-
   // Calculate athlete count from assignedTo if not provided
   const calculatedAthleteCount = athleteCount || (assignedTo ? assignedTo.length : 0);
 
@@ -833,14 +889,6 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
   };
 
   const overallProgressPercentage = calculateOverallProgress();
-
-  // Theme colors
-  const drawerBg = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.700');
-  const drawerText = useColorModeValue('gray.700', 'gray.200');
-  const sectionTitleColor = useColorModeValue('gray.500', 'gray.400');
-  const exerciseCardBg = useColorModeValue('gray.50', 'gray.700');
-  const buttonHoverBg = useColorModeValue('gray.100', 'gray.700');
 
   // Early returns must happen AFTER all hooks have been called
   if (!isOpen || !isMounted || !isStable) {
@@ -880,50 +928,6 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
       </Modal>
     );
   }
-
-  // State for dynamically loaded exercises (for monthly plans)
-  const [dynamicExercises, setDynamicExercises] = useState<any[]>([]);
-  const [isLoadingExercises, setIsLoadingExercises] = useState(false);
-
-  // Load exercises for monthly plans
-  useEffect(() => {
-    let isMounted = true;
-    
-    if (!isOpen || !assignment || assignment.assignment_type !== 'monthly') {
-      if (isMounted) {
-        setDynamicExercises([]);
-        setIsLoadingExercises(false);
-      }
-      return;
-    }
-
-    const loadMonthlyExercises = async () => {
-      try {
-        if (isMounted) {
-          setIsLoadingExercises(true);
-        }
-
-        const exercises = await getCorrectExerciseData(assignment);
-
-        if (isMounted) {
-          setDynamicExercises(exercises);
-          setIsLoadingExercises(false);
-        }
-      } catch (error) {
-        console.error('Error loading monthly exercises for mobile drawer:', error);
-        if (isMounted) {
-          setDynamicExercises([]);
-          setIsLoadingExercises(false);
-        }
-      }
-    };
-
-    loadMonthlyExercises();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [isOpen, assignment]);
 
   // Get workout data - use dynamic exercises for monthly plans
   const allExercises = isAssignment && assignment?.assignment_type === 'monthly' 
