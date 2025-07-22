@@ -232,17 +232,23 @@ export function AthleteWorkouts() {
     
     let filteredAssignments = assignments;
     
+    // IMPORTANT: Exclude today's workout from all other sections to prevent duplicates
+    // If an assignment is already shown in "Today's Workout" section, don't show it elsewhere
+    if (todaysWorkout) {
+      filteredAssignments = assignments.filter(a => a.id !== todaysWorkout.id);
+    }
+    
     // First filter by sidebar item
     switch (activeItem) {
       case 'weekly-plans':
-        filteredAssignments = assignments.filter(a => a.assignment_type === 'weekly');
+        filteredAssignments = filteredAssignments.filter(a => a.assignment_type === 'weekly');
         break;
       case 'monthly-plans':
-        filteredAssignments = assignments.filter(a => a.assignment_type === 'monthly');
+        filteredAssignments = filteredAssignments.filter(a => a.assignment_type === 'monthly');
         break;
       case 'all-assignments':
       default:
-        filteredAssignments = assignments;
+        // Keep all remaining assignments (already excluded today's workout above)
         break;
     }
     
@@ -395,9 +401,10 @@ export function AthleteWorkouts() {
               {filteredSingleAssignments.length > 0 ? (
                 <Box 
                   display="grid"
-                  gridTemplateColumns="repeat(auto-fit, minmax(300px, 1fr))"
+                  gridTemplateColumns="repeat(auto-fill, minmax(300px, 400px))"
                   gap={{ base: 4, md: 6 }}
                   w="100%"
+                  justifyContent="start"
                 >
                   {filteredSingleAssignments.map((assignment) => (
                     <UnifiedAssignmentCard
@@ -416,6 +423,42 @@ export function AthleteWorkouts() {
                   </Text>
                   <Text color="gray.400" fontSize="sm">
                     Your single workout assignments will appear here when available
+                  </Text>
+                </Box>
+              )}
+            </VStack>
+          );
+
+        case 'monthly-plans':
+          const filteredMonthlyAssignments = (assignments || []).filter(a => a.assignment_type === 'monthly');
+          return (
+            <VStack spacing={6} align="stretch" w="100%">
+              <Heading size="md" display={{ base: "none", md: "block" }}>Monthly Plans</Heading>
+              {filteredMonthlyAssignments.length > 0 ? (
+                <Box 
+                  display="grid"
+                  gridTemplateColumns="repeat(auto-fill, minmax(300px, 400px))"
+                  gap={{ base: 4, md: 6 }}
+                  w="100%"
+                  justifyContent="start"
+                >
+                  {filteredMonthlyAssignments.map((assignment) => (
+                    <UnifiedAssignmentCard
+                      key={assignment.id}
+                      assignment={assignment}
+                      onExecute={handleExecuteWorkout}
+                      showActions={true}
+                      compact={false}
+                    />
+                  ))}
+                </Box>
+              ) : (
+                <Box bg={cardBg} p={8} borderRadius="lg" border="1px" borderColor="gray.200" textAlign="center">
+                  <Text color="gray.500" fontSize="lg" mb={2}>
+                    No monthly plans found
+                  </Text>
+                  <Text color="gray.400" fontSize="sm">
+                    Your monthly training plans will appear here when available
                   </Text>
                 </Box>
               )}
@@ -502,9 +545,10 @@ export function AthleteWorkouts() {
               {filteredDefaultAssignments.length > 0 ? (
                 <Box 
                   display="grid"
-                  gridTemplateColumns="repeat(auto-fit, minmax(300px, 1fr))"
+                  gridTemplateColumns="repeat(auto-fill, minmax(300px, 400px))"
                   gap={{ base: 4, md: 6 }}
                   w="100%"
+                  justifyContent="start"
                 >
                   {filteredDefaultAssignments.map((assignment) => (
                     <UnifiedAssignmentCard

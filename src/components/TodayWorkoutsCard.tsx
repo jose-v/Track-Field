@@ -111,9 +111,15 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
     return assignmentDate === todayStr;
   }) || [];
   
-  // For upcoming assignments, also include recent assignments if they're selected as today's workout
+  // IMPORTANT: Exclude today's workout from all other sections to prevent duplicates
   const upcomingAssignments = assignments?.filter(assignment => {
     if (!assignment.start_date) return false;
+    
+    // Exclude the assignment that's already selected as today's workout
+    if (todaysWorkout && assignment.id === todaysWorkout.id) {
+      return false;
+    }
+    
     // Handle both date formats: YYYY-MM-DD and YYYY-MM-DDTHH:MM:SS
     const assignmentDate = assignment.start_date.split('T')[0];
     
@@ -125,10 +131,11 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
     return false;
   }) || [];
 
-  // If we have a selected workout that's not in today's assignments, add it to today's list
-  const displayTodayAssignments = todaysWorkout && !todayAssignments.find(a => a.id === todaysWorkout.id) 
-    ? [...todayAssignments, todaysWorkout] 
-    : todayAssignments;
+  // For additional assignments, also exclude today's workout to prevent duplicates
+  const displayTodayAssignments = todayAssignments.filter(assignment => {
+    // Exclude the assignment that's already selected as today's workout
+    return !(todaysWorkout && assignment.id === todaysWorkout.id);
+  });
 
 
 
@@ -260,94 +267,62 @@ const TodayWorkoutsCard: React.FC<TodayWorkoutsCardProps> = ({
           </Box>
         )}
 
-        {/* Header */}
-        <HStack justify="space-between" align="center">
-          <HStack spacing={3}>
-            <Icon as={FaRunning} boxSize={6} color="green.500" />
-            <VStack align="start" spacing={0}>
-              <Text fontSize="xl" fontWeight="bold" color={textColor}>
-                {todaysWorkout ? "Additional Assignments" : "Today's Assignments"}
-              </Text>
-              <Text fontSize="sm" color={subtitleColor}>
-                {totalWorkouts > 0 
-                  ? `${completedToday} of ${totalWorkouts} completed`
-                  : 'No assignments scheduled'
-                }
-              </Text>
-            </VStack>
-          </HStack>
-          <VStack spacing={1} align="end">
-            <Badge 
-              colorScheme="green" 
-              variant="solid" 
-              fontSize="xs"
-              px={2}
-              py={1}
-            >
-              {totalWorkouts} Total
-            </Badge>
-            {totalWorkouts > 0 && (
-              <Badge 
-                colorScheme={completedToday === totalWorkouts ? "green" : "orange"} 
-                variant="outline" 
-                fontSize="xs"
-                px={2}
-                py={1}
-              >
-                {completedToday}/{totalWorkouts} Done
-              </Badge>
-            )}
-          </VStack>
-        </HStack>
+        {/* Header - Only show this section if we have additional assignments */}
+        {displayTodayAssignments.length > 0 && (
+          <>
+            <HStack justify="space-between" align="center">
+              <HStack spacing={3}>
+                <Icon as={FaRunning} boxSize={6} color="green.500" />
+                <VStack align="start" spacing={0}>
+                  <Text fontSize="xl" fontWeight="bold" color={textColor}>
+                    Additional Assignments
+                  </Text>
+                  <Text fontSize="sm" color={subtitleColor}>
+                    {displayTodayAssignments.length} more assignment{displayTodayAssignments.length !== 1 ? 's' : ''} for today
+                  </Text>
+                                  </VStack>
+                </HStack>
+                <VStack spacing={1} align="end">
+                  <Badge 
+                    colorScheme="green" 
+                    variant="solid" 
+                    fontSize="xs"
+                    px={2}
+                    py={1}
+                  >
+                    {displayTodayAssignments.length} Total
+                  </Badge>
+                </VStack>
+              </HStack>
 
-        {/* Today's Assignments */}
-        {displayTodayAssignments.length > 0 ? (
-          <Box 
-            overflowX={{ base: "hidden", md: "auto" }} 
-            pb={4}
-          >
-            <Stack 
-              direction={{ base: "column", md: "row" }}
-              spacing={{ base: 4, md: 4 }} 
-              align="start" 
-              minW={{ base: "100%", md: "fit-content" }}
+            {/* Today's Assignments */}
+            <Box 
+              overflowX={{ base: "hidden", md: "auto" }} 
+              pb={4}
             >
-              {displayTodayAssignments.map((assignment) => (
-                <Box 
-                  key={assignment.id}
-                  w={{ base: "100%", md: "auto" }}
-                  minW={{ base: "100%", md: "340px" }}
-                >
-                  <UnifiedAssignmentCard
-                    assignment={assignment}
-                    onExecute={handleExecuteWorkout}
-                    showActions={true}
-                    compact={false}
-                  />
-                </Box>
-              ))}
-            </Stack>
-          </Box>
-        ) : (
-          <Box
-            bg={emptyStateBg}
-            p={6}
-            borderRadius="lg"
-            textAlign="center"
-          >
-            <VStack spacing={3}>
-              <Icon as={FaCalendarAlt} boxSize={8} color={subtitleColor} />
-              <Text fontSize="lg" fontWeight="medium" color={textColor}>
-                No assignments scheduled for today
-              </Text>
-              <Text fontSize="sm" color={subtitleColor}>
-                {upcomingAssignments.length > 0 
-                  ? 'Check your upcoming assignments below'
-                  : 'New assignments will appear here when available'
-                }
-              </Text>
-            </VStack>
-          </Box>
+              <Stack 
+                direction={{ base: "column", md: "row" }}
+                spacing={{ base: 4, md: 4 }} 
+                align="start" 
+                minW={{ base: "100%", md: "fit-content" }}
+              >
+                {displayTodayAssignments.map((assignment) => (
+                  <Box 
+                    key={assignment.id}
+                    w={{ base: "100%", md: "auto" }}
+                    minW={{ base: "100%", md: "340px" }}
+                  >
+                    <UnifiedAssignmentCard
+                      assignment={assignment}
+                      onExecute={handleExecuteWorkout}
+                      showActions={true}
+                      compact={false}
+                    />
+                  </Box>
+                ))}
+              </Stack>
+            </Box>
+          </>
         )}
 
         {/* Upcoming Assignments */}
