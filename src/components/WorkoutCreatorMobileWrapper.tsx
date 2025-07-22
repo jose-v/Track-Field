@@ -1,5 +1,5 @@
 import React from 'react';
-import { useBreakpointValue, useMediaQuery } from '@chakra-ui/react';
+import { useMediaQuery, Box } from '@chakra-ui/react';
 import { MobileWorkoutCreatorRestriction } from './MobileWorkoutCreatorRestriction';
 
 interface WorkoutCreatorMobileWrapperProps {
@@ -9,17 +9,37 @@ interface WorkoutCreatorMobileWrapperProps {
 export const WorkoutCreatorMobileWrapper: React.FC<WorkoutCreatorMobileWrapperProps> = ({ 
   children 
 }) => {
-  // Multiple mobile detection methods for reliability
-  const isMobileBreakpoint = useBreakpointValue({ base: true, lg: false });
+  const [isClient, setIsClient] = React.useState(false);
   const [isMobileMediaQuery] = useMediaQuery("(max-width: 991px)");
   
-  // Use either method to detect mobile
-  const isMobile = isMobileBreakpoint || isMobileMediaQuery;
+  // Ensure we're on the client side before showing any content
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
+  
+  // Don't render anything until client-side hydration is complete
+  if (!isClient) {
+    return (
+      <Box 
+        position="fixed"
+        top="0"
+        left="0"
+        right="0"
+        bottom="0"
+        bg="gray.900"
+        display="flex" 
+        alignItems="center"
+        justifyContent="center"
+      />
+    );
+  }
+  
+  // Use media query only after client-side hydration
+  const isMobile = isMobileMediaQuery;
   
   // Debug logging in development
   if (process.env.NODE_ENV === 'development') {
     console.log('Mobile Detection:', {
-      isMobileBreakpoint,
       isMobileMediaQuery,
       isMobile,
       screenWidth: typeof window !== 'undefined' ? window.innerWidth : 'unknown'

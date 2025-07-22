@@ -50,12 +50,19 @@ interface AthleteAssignment {
 }
 
 // Create a skeleton workout card component for loading states
-const WorkoutSkeletonCard = () => {
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const cardBorder = useColorModeValue('gray.200', 'gray.700');
-  const headerBg = useColorModeValue('blue.400', 'blue.600');
-  const avatarBg = useColorModeValue('whiteAlpha.300', 'whiteAlpha.100');
-  const barBg = useColorModeValue('whiteAlpha.300', 'whiteAlpha.100');
+const WorkoutSkeletonCard = ({ 
+  cardBg, 
+  cardBorder, 
+  headerBg, 
+  avatarBg, 
+  barBg 
+}: {
+  cardBg: string;
+  cardBorder: string;
+  headerBg: string;
+  avatarBg: string;
+  barBg: string;
+}) => {
   return (
     <Card 
       borderRadius="xl" 
@@ -145,6 +152,26 @@ const ViewToggle = ({ viewMode, setViewMode, toggleBorderColor }: {
 );
 
 export function CoachTrainingPlans() {
+  // ALL color mode values MUST be called first to maintain hooks order
+  const pageBackgroundColor = useColorModeValue('gray.50', 'gray.900');
+  const toggleBorderColor = useColorModeValue('gray.200', 'gray.600');
+  const bgColor = useColorModeValue('gray.50', 'gray.900');
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const headerTextColor = useColorModeValue('gray.800', 'white');
+  const headerSubtextColor = useColorModeValue('gray.600', 'gray.300');
+  const iconColor = useColorModeValue('#4A5568', '#A0AEC0');
+  const selectBg = useColorModeValue('white', 'gray.700');
+  const selectBorderColor = useColorModeValue('gray.300', 'gray.600');
+  const listViewTextColor = useColorModeValue('gray.800', 'gray.100');
+  const blueIconColor = useColorModeValue('blue.500', 'blue.300');
+  // Colors for skeleton components
+  const skeletonCardBg = useColorModeValue('white', 'gray.800');
+  const skeletonCardBorder = useColorModeValue('gray.200', 'gray.700');
+  const skeletonHeaderBg = useColorModeValue('blue.400', 'blue.600');
+  const skeletonAvatarBg = useColorModeValue('whiteAlpha.300', 'whiteAlpha.100');
+  const skeletonBarBg = useColorModeValue('whiteAlpha.300', 'whiteAlpha.100');
+  
   // Use page header hook for mobile nav (no icon)
   usePageHeader({
     title: 'Training Plans',
@@ -276,26 +303,12 @@ export function CoachTrainingPlans() {
   });
   const { isHeaderVisible } = useScrollDirection(15);
 
-  // Theme colors for the page
-  const pageBackgroundColor = useColorModeValue('gray.50', 'gray.900');
-  const toggleBorderColor = useColorModeValue('gray.200', 'gray.600');
-
   // State for custom exercises
   const [customExercises, setCustomExercises] = useState<Exercise[]>([]);
   const [exercisesLoading, setExercisesLoading] = useState(false);
 
   // State for user teams
   const [userTeams, setUserTeams] = useState<Array<{ id: string; name: string }>>([]);
-
-  // Move all useColorModeValue calls to the top level
-  const bgColor = useColorModeValue('gray.50', 'gray.900');
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.700');
-  const headerTextColor = useColorModeValue('gray.800', 'white');
-  const headerSubtextColor = useColorModeValue('gray.600', 'gray.300');
-  const iconColor = useColorModeValue('#4A5568', '#A0AEC0');
-  const selectBg = useColorModeValue('white', 'gray.700');
-  const selectBorderColor = useColorModeValue('gray.300', 'gray.600');
 
   // State for plan editing
   const [showEditModal, setShowEditModal] = useState(false);
@@ -1210,7 +1223,14 @@ export function CoachTrainingPlans() {
         return (
           <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
             {[...Array(6)].map((_, index) => (
-              <WorkoutSkeletonCard key={index} />
+              <WorkoutSkeletonCard 
+                key={index} 
+                cardBg={skeletonCardBg}
+                cardBorder={skeletonCardBorder}
+                headerBg={skeletonHeaderBg}
+                avatarBg={skeletonAvatarBg}
+                barBg={skeletonBarBg}
+              />
             ))}
           </SimpleGrid>
         );
@@ -2239,7 +2259,7 @@ export function CoachTrainingPlans() {
                     {/* Monthly Plans (if any) - use list format */}
                     {filteredData.data.some((item: any) => 'weeks' in item) && (
                       <>
-                        <Text fontSize="lg" fontWeight="bold" color={useColorModeValue('gray.800', 'gray.100')}>
+                        <Text fontSize="lg" fontWeight="bold" color={listViewTextColor}>
                           Monthly Plans
                         </Text>
                         <VStack spacing={3} align="stretch">
@@ -2273,7 +2293,7 @@ export function CoachTrainingPlans() {
                     {filteredData.data.some((item: any) => !('weeks' in item)) && (
                       <>
                         {filteredData.data.some((item: any) => 'weeks' in item) && (
-                          <Text fontSize="lg" fontWeight="bold" color={useColorModeValue('gray.800', 'gray.100')}>
+                          <Text fontSize="lg" fontWeight="bold" color={listViewTextColor}>
                             Workouts
                           </Text>
                         )}
@@ -2321,7 +2341,7 @@ export function CoachTrainingPlans() {
               <Icon
                 as={sectionInfo.icon}
                 boxSize={6}
-                color={useColorModeValue('blue.500', 'blue.300')}
+                color={blueIconColor}
               />
               <Heading size="lg" color={headerTextColor}>
                 {sectionInfo.title}

@@ -172,6 +172,21 @@ const NewWorkoutCreator: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
+
+  // CSS for spinner animation
+  React.useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
   
   // Parse URL params
   const searchParams = new URLSearchParams(location.search);
@@ -258,7 +273,7 @@ const NewWorkoutCreator: React.FC = () => {
   // Loading states
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoadingWorkout, setIsLoadingWorkout] = useState(false);
+  const [isLoadingWorkout, setIsLoadingWorkout] = useState(isEditing); // Start as true if editing
 
   // Initialize workout name based on template
   useEffect(() => {
@@ -270,12 +285,7 @@ const NewWorkoutCreator: React.FC = () => {
     }
   }, [selectedTemplateType, selectedTemplate, workoutName]);
 
-  // Jump to step 2 when editing a workout (after it's loaded)
-  useEffect(() => {
-    if (isEditing && !isLoadingWorkout && currentStep === 1) {
-      setCurrentStep(2);
-    }
-  }, [isEditing, isLoadingWorkout, currentStep]);
+  // Note: Step jumping for editing is now handled directly in loadWorkoutForEditing()
 
   // Step validation
   const validateStep = useCallback((step: number): boolean => {
@@ -717,10 +727,18 @@ const NewWorkoutCreator: React.FC = () => {
         const planData = {
           name: workoutName,
           description: `Monthly training plan with ${monthlyPlanWeeks.filter(w => !w.is_rest_week).length} training weeks`,
+          date: date, // Include the exact date selected by user
           month: date ? new Date(date).getMonth() + 1 : new Date().getMonth() + 1,
           year: date ? new Date(date).getFullYear() : new Date().getFullYear(),
           weeks: monthlyPlanWeeks
         };
+        
+        console.log('Saving monthly plan with data:', { 
+          date, 
+          planData, 
+          isEditing, 
+          editWorkoutId 
+        });
         
         if (isEditing && editWorkoutId) {
           // Update existing monthly plan
@@ -932,12 +950,12 @@ const NewWorkoutCreator: React.FC = () => {
     }
   }, [selectedTemplateType, toast]);
 
-  // Load weekly workouts when template type changes to monthly
+  // Load weekly workouts when template type changes to monthly (but not when editing)
   useEffect(() => {
-    if (selectedTemplateType === 'monthly') {
+    if (selectedTemplateType === 'monthly' && !isEditing) {
       loadWeeklyWorkouts();
     }
-  }, [selectedTemplateType, loadWeeklyWorkouts]);
+  }, [selectedTemplateType, loadWeeklyWorkouts, isEditing]);
 
   // Load workout data if editing
   useEffect(() => {
@@ -993,6 +1011,50 @@ const NewWorkoutCreator: React.FC = () => {
             }));
             setMonthlyPlanWeeks(weeks);
           }
+
+          // Load monthly plan athlete assignments
+          try {
+            console.log('Loading monthly plan assignments for plan ID:', monthlyPlan.id);
+            const { data: assignments, error: assignmentError } = await supabase
+              .from('training_plan_assignments')
+              .select(`
+                athlete_id,
+                profiles!training_plan_assignments_athlete_id_fkey(
+                  id,
+                  first_name,
+                  last_name,
+                  email
+                )
+              `)
+              .eq('training_plan_id', monthlyPlan.id);
+
+            if (assignmentError) {
+              console.error('Error loading monthly plan assignments:', assignmentError);
+            } else if (assignments && assignments.length > 0) {
+              const athleteIds: string[] = [];
+              const athleteMap: Record<string, any> = {};
+
+              assignments.forEach((assignment: any) => {
+                if (assignment.athlete_id && assignment.profiles) {
+                  athleteIds.push(assignment.athlete_id);
+                  const profile = assignment.profiles;
+                  athleteMap[assignment.athlete_id] = {
+                    id: assignment.athlete_id,
+                    name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
+                    email: profile.email,
+                    event: 'N/A',
+                    avatar: ''
+                  };
+                }
+              });
+
+              console.log('Loaded monthly plan assignments:', { athleteIds, athleteMap });
+              setSelectedAthletes(athleteMap);
+              setSelectedAthleteIds(athleteIds);
+            }
+          } catch (error) {
+            console.error('Error loading monthly plan athlete assignments:', error);
+          }
         }
       } else if (error) {
         throw error;
@@ -1002,6 +1064,7 @@ const NewWorkoutCreator: React.FC = () => {
         // Populate form with workout data
         setWorkoutName(workout.name || '');
         setSelectedTemplateType(workout.template_type as 'single' | 'weekly' | 'monthly' || 'single');
+        console.log('Loading monthly plan with date:', workout.date, 'Template type:', workout.template_type);
         setDate(workout.date || '');
         setTime(workout.time || '');
         setDuration(workout.duration || '');
@@ -1010,6 +1073,22 @@ const NewWorkoutCreator: React.FC = () => {
         
         // Set a default template for editing mode - this ensures step 1 validation passes
         setSelectedTemplate('scratch'); // Indicate this is an existing workout being edited
+
+        // For monthly plans, load weekly workouts immediately
+        if (workout.template_type === 'monthly') {
+          console.log('Loading weekly workouts for monthly plan editing...');
+          try {
+            const allWorkouts = await api.workouts.getAll();
+            const weeklyWorkouts = allWorkouts.filter(w => 
+              w.template_type === 'weekly' && 
+              (w.is_template || w.name.toLowerCase().includes('weekly'))
+            );
+            console.log('Weekly workouts loaded for editing:', weeklyWorkouts.length);
+            setAvailableWeeklyWorkouts(weeklyWorkouts);
+          } catch (error) {
+            console.error('Error loading weekly workouts during edit:', error);
+          }
+        }
         
         // Handle block-based workout data
         if (workout.is_block_based && workout.blocks) {
@@ -1033,9 +1112,11 @@ const NewWorkoutCreator: React.FC = () => {
           }
         }
         
-        // Load athlete assignments if not a template
-        if (!workout.is_template) {
+        // Load athlete assignments if not a template and not a monthly plan
+        // (Monthly plans handle assignments separately above)
+        if (!workout.is_template && workout.template_type !== 'monthly') {
           try {
+            console.log('Loading regular workout assignments for workout ID:', workoutId);
             const { data: assignments, error: assignmentError } = await supabase
               .from('unified_workout_assignments')
               .select('athlete_id')
@@ -1061,6 +1142,7 @@ const NewWorkoutCreator: React.FC = () => {
               });
             }
             
+            console.log('Loaded regular workout assignments:', { athleteIds, athleteMap });
             setSelectedAthletes(athleteMap);
             setSelectedAthleteIds(athleteIds);
           } catch (error) {
@@ -1084,6 +1166,11 @@ const NewWorkoutCreator: React.FC = () => {
         duration: 5000,
       });
     } finally {
+
+      // Set the correct step for editing mode before removing loading state
+      if (isEditing) {
+        setCurrentStep(2); // Skip step 1 (template selection) when editing
+      }
       setIsLoadingWorkout(false);
     }
   };
@@ -1244,7 +1331,10 @@ const NewWorkoutCreator: React.FC = () => {
                           selectedDates={date ? [date] : []}
                           selectedStartTime={time}
                           isMultiSelect={false}
-                          onDateSelect={(dates) => setDate(dates[0] || '')}
+                          onDateSelect={(dates) => {
+                            console.log('Monthly plan date selected:', dates);
+                            setDate(dates[0] || '');
+                          }}
                           onTimeSelect={(startTime) => setTime(startTime)}
                         />
                       </Box>
@@ -1258,24 +1348,6 @@ const NewWorkoutCreator: React.FC = () => {
                           Templates don't require specific dates. Athletes can schedule them when assigned.
                         </Text>
                       </Alert>
-                    )}
-                  </VStack>
-                </CardBody>
-              </Card>
-              
-              {/* Monthly Plan Summary */}
-              <Card bg={summaryBg} borderColor={summaryBorder}>
-                <CardBody>
-                  <VStack align="start" spacing={2}>
-                    <Text fontWeight="bold" color={textColor}>Monthly Plan Summary</Text>
-                    <Text fontSize="sm" color={subtitleColor}>
-                      4-week training plan with {monthlyPlanWeeks.filter(w => !w.is_rest_week).length} training weeks
-                    </Text>
-                    <Text fontSize="sm" color={subtitleColor}>
-                      Weekly schedule configured in Step 2
-                    </Text>
-                    {isTemplateMode && (
-                      <Badge colorScheme="green">Will be saved as template</Badge>
                     )}
                   </VStack>
                 </CardBody>
@@ -1515,7 +1587,27 @@ const NewWorkoutCreator: React.FC = () => {
       >
         <Card bg="transparent" borderColor={borderColor} minH="600px" maxW="7xl" mx="auto">
           <CardBody p={8}>
-            {renderCurrentStep()}
+            {isLoadingWorkout ? (
+              <VStack spacing={6} justify="center" minH="400px">
+                <Box
+                  w="50px"
+                  h="50px"
+                  border="4px solid"
+                  borderColor="gray.200"
+                  borderTopColor="blue.500"
+                  borderRadius="full"
+                  animation="spin 1s linear infinite"
+                />
+                <Text fontSize="lg" color={textColor} fontWeight="medium">
+                  Loading workout for editing...
+                </Text>
+                <Text fontSize="sm" color={subtitleColor}>
+                  Please wait while we prepare your workout data
+                </Text>
+              </VStack>
+            ) : (
+              renderCurrentStep()
+            )}
           </CardBody>
         </Card>
       </Box>

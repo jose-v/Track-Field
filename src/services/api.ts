@@ -373,13 +373,16 @@ export const api = {
       
       const { data, error } = await supabase
         .from('workouts')
-        .select('id, name, description, type, date, time, duration, location, created_at, deleted_at, deleted_by, user_id, created_by')
+        .select('id, name, description, type, date, time, duration, location, created_at, deleted_at, deleted_by, user_id, created_by, is_template, template_type, exercises, blocks, is_block_based, block_version')
         .eq('user_id', userId)
         .not('deleted_at', 'is', null)
         .order('deleted_at', { ascending: false });
         
       if (error) throw error;
-      return data || [];
+      return (data || []).map(workout => ({
+        ...workout,
+        notes: workout.description || ''
+      }));
     },
 
     // Check if workout is used in any monthly plans - FIXED FOR ACTUAL DB STRUCTURE
@@ -2928,6 +2931,38 @@ export const api = {
         
         // Remove the original weeks field as it's not a database column
         delete processedUpdateData.weeks;
+      }
+
+      // Handle date field conversion to start_date/end_date for monthly plans
+      console.log('Monthly plan update data:', { date: updateData.date, month: updateData.month, year: updateData.year });
+      
+      if (updateData.date) {
+        // Prioritize direct date field if provided
+        const dateObj = new Date(updateData.date);
+        const endOfMonth = new Date(dateObj.getFullYear(), dateObj.getMonth() + 1, 0);
+        
+        processedUpdateData.start_date = updateData.date; // Use the exact date provided
+        processedUpdateData.end_date = endOfMonth.toISOString().split('T')[0];
+        
+        console.log('Updated monthly plan dates from date field:', { start_date: processedUpdateData.start_date, end_date: processedUpdateData.end_date });
+        
+        // Remove date field as it's not a database column for monthly plans
+        delete processedUpdateData.date;
+        delete processedUpdateData.month;
+        delete processedUpdateData.year;
+      } else if (updateData.month && updateData.year) {
+        // Fallback to month/year conversion
+        const startDate = new Date(updateData.year, updateData.month - 1, 1);
+        const endDate = new Date(updateData.year, updateData.month, 0); // Last day of the month
+        
+        processedUpdateData.start_date = startDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+        processedUpdateData.end_date = endDate.toISOString().split('T')[0];
+        
+        console.log('Updated monthly plan dates from month/year fields:', { start_date: processedUpdateData.start_date, end_date: processedUpdateData.end_date });
+        
+        // Remove month/year fields as they're not database columns
+        delete processedUpdateData.month;
+        delete processedUpdateData.year;
       }
 
       const { data, error } = await supabase

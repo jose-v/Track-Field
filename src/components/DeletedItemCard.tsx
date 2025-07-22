@@ -71,12 +71,12 @@ export const DeletedItemCard: React.FC<DeletedItemCardProps> = ({
   const [isDeleting, setIsDeleting] = React.useState(false);
   const cancelRef = React.useRef<HTMLButtonElement>(null);
 
-  // Theme colors - matching athlete DeletedWorkoutCard exactly
+  // Theme colors - keep red border but remove red background
   const borderColor = useColorModeValue('red.200', 'red.700');
-  const cardBg = useColorModeValue('red.50', 'red.900');
-  const headerBg = useColorModeValue('red.100', 'red.800');
-  const titleColor = useColorModeValue('red.800', 'red.100');
-  const textColor = useColorModeValue('red.600', 'red.200');
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const headerBg = useColorModeValue('gray.50', 'gray.700');
+  const titleColor = useColorModeValue('gray.800', 'gray.100');
+  const textColor = useColorModeValue('gray.600', 'gray.300');
   const iconColor = useColorModeValue('red.500', 'red.300');
 
   const handleRestore = async () => {
@@ -107,6 +107,80 @@ export const DeletedItemCard: React.FC<DeletedItemCardProps> = ({
     ? format(new Date(item.created_at), 'MMM d, yyyy')
     : 'Unknown';
 
+  // Calculate exercise count properly based on workout type
+  const calculateExerciseCount = (workout: Workout): number => {
+    const blocks = workout.blocks;
+    const exercises = workout.exercises || [];
+    const templateType = (workout as any).template_type;
+    
+
+    
+    // Parse blocks if they're stored as JSON string
+    let parsedBlocks = blocks;
+    if (blocks && typeof (blocks as any) === 'string') {
+      try {
+        parsedBlocks = JSON.parse(blocks as any);
+      } catch (e) {
+        console.error('Failed to parse blocks JSON:', e);
+        parsedBlocks = null;
+      }
+    }
+    
+    // For block-based workouts, count exercises from blocks
+    if (parsedBlocks) {
+      let totalExercises = 0;
+      
+      if (templateType === 'weekly') {
+        // For weekly workouts, blocks can be organized by days
+        if (typeof parsedBlocks === 'object' && !Array.isArray(parsedBlocks)) {
+          // Blocks organized by days (monday, tuesday, etc.)
+          const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+          dayNames.forEach(dayName => {
+            const dayBlocks = (parsedBlocks as any)[dayName];
+            if (Array.isArray(dayBlocks)) {
+              dayBlocks.forEach((block: any) => {
+                if (block.exercises && Array.isArray(block.exercises)) {
+                  totalExercises += block.exercises.length;
+                }
+              });
+            }
+          });
+        } else if (Array.isArray(parsedBlocks)) {
+          // Single day blocks for weekly workout
+          parsedBlocks.forEach((block: any) => {
+            if (block.exercises && Array.isArray(block.exercises)) {
+              totalExercises += block.exercises.length;
+            }
+          });
+        }
+      } else {
+        // For single workouts with blocks
+        if (Array.isArray(parsedBlocks)) {
+          parsedBlocks.forEach((block: any) => {
+            if (block.exercises && Array.isArray(block.exercises)) {
+              totalExercises += block.exercises.length;
+            }
+          });
+        } else if (typeof parsedBlocks === 'object') {
+          // Handle object-based blocks for single workouts
+          Object.values(parsedBlocks).forEach((block: any) => {
+            if (block && block.exercises && Array.isArray(block.exercises)) {
+              totalExercises += block.exercises.length;
+            }
+          });
+        }
+      }
+      
+      // If we found exercises in blocks, return that count
+      if (totalExercises > 0) {
+        return totalExercises;
+      }
+    }
+    
+    // Fallback to exercises array count
+    return Array.isArray(exercises) ? exercises.length : 0;
+  };
+
   // Get item-specific info
   const getItemInfo = () => {
     if (type === 'workout') {
@@ -115,7 +189,7 @@ export const DeletedItemCard: React.FC<DeletedItemCardProps> = ({
         icon: getTypeIcon(workout.type),
         title: workout.name,
         subtitle: workout.type || 'Workout',
-        exerciseCount: Array.isArray(workout.exercises) ? workout.exercises.length : 0,
+        exerciseCount: calculateExerciseCount(workout),
         duration: workout.duration,
         templateType: (workout as any).template_type,
         isBlockBased: (workout as any).is_block_based
@@ -244,8 +318,8 @@ export const DeletedItemCard: React.FC<DeletedItemCardProps> = ({
               </HStack>
             </VStack>
 
-            {/* Action Buttons - matching athlete style exactly */}
-            <HStack spacing={2} pt={2}>
+            {/* Action Buttons - stacked vertically */}
+            <VStack spacing={2} pt={2} w="100%">
               <Button
                 size="sm"
                 leftIcon={<FaUndo />}
@@ -254,7 +328,7 @@ export const DeletedItemCard: React.FC<DeletedItemCardProps> = ({
                 onClick={handleRestore}
                 isLoading={isRestoring}
                 loadingText="Restoring..."
-                flex={1}
+                w="100%"
               >
                 Restore
               </Button>
@@ -266,11 +340,11 @@ export const DeletedItemCard: React.FC<DeletedItemCardProps> = ({
                 onClick={onOpen}
                 isLoading={isDeleting}
                 loadingText="Deleting..."
-                flex={1}
+                w="100%"
               >
                 Delete Forever
               </Button>
-            </HStack>
+            </VStack>
           </VStack>
         </CardBody>
       </Card>

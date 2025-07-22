@@ -69,20 +69,20 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
   children,
   onNotificationRead
 }) => {
-  const { user } = useAuth();
-  const [notifications, setNotifications] = useState<NotificationData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [userProfiles, setUserProfiles] = useState<{ [key: string]: any }>({});
-  const [activeFilter, setActiveFilter] = useState<FilterType>('unread');
-  const toast = useToast();
-
-  // Color mode values
+  // Color mode values MUST be called first to maintain hooks order
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   const textColor = useColorModeValue('gray.800', 'gray.200');
   const subtitleColor = useColorModeValue('gray.600', 'gray.400');
   const hoverBg = useColorModeValue('gray.50', 'gray.700');
   const sectionHeaderColor = useColorModeValue('gray.500', 'gray.400');
+
+  const { user } = useAuth();
+  const [notifications, setNotifications] = useState<NotificationData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [userProfiles, setUserProfiles] = useState<{ [key: string]: any }>({});
+  const [activeFilter, setActiveFilter] = useState<FilterType>('unread');
+  const toast = useToast();
 
   useEffect(() => {
     if (isOpen && user?.id) {
