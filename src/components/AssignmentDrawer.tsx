@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Modal, ModalOverlay, ModalContent, ModalBody,
   Drawer, DrawerOverlay, DrawerContent, DrawerHeader, DrawerBody, DrawerCloseButton,
   VStack, HStack, Button, Text, useToast, useColorModeValue, Box, Badge,
-  Input, InputGroup, InputLeftElement, Checkbox, Avatar, Spinner, SimpleGrid,
+  Input, InputGroup, InputLeftElement, Checkbox, Avatar, Spinner,
   Card, CardBody, Icon, Flex, useBreakpointValue
 } from '@chakra-ui/react';
 import { FaSearch, FaUsers, FaCalendarAlt, FaDumbbell } from 'react-icons/fa';
@@ -395,51 +394,31 @@ export function AssignmentDrawer({
             Assign to {selectedAthletes.size} Athlete{selectedAthletes.size !== 1 ? 's' : ''}
           </Button>
         </HStack>
-        
-        {selectedAthletes.size > 0 && (
-          <Text fontSize="sm" color="gray.500" textAlign="center">
-            This will create assignments for the selected athletes
-          </Text>
-        )}
       </VStack>
     </>
   );
 
-  // Mobile: Bottom drawer using Modal
+  // Mobile: Bottom drawer using Drawer
   if (isMobile) {
     return (
-      <Modal 
-        isOpen={isOpen} 
-        onClose={onClose}
-        motionPreset="slideInBottom"
-        closeOnOverlayClick={true}
-      >
-        <ModalOverlay bg="blackAlpha.600" />
-        <ModalContent 
-          position="fixed"
-          bottom="-12px"
-          left="0"
-          right="0"
-          top="auto"
-          height="auto"
-          maxHeight="75vh"
-          minHeight="300px"
-          borderRadius="16px 16px 0 0"
-          bg={drawerBg}
-          border={`1px solid ${borderColor}`}
-          boxShadow="2xl"
-          margin="0"
-          maxWidth="100vw"
-          width="100vw"
-          display="flex"
-          flexDirection="column"
-          paddingBottom="5px"
-        >
-          <ModalBody p={6} h="100%" display="flex" flexDirection="column" overflowY="auto">
+      <Drawer isOpen={isOpen} placement="bottom" onClose={onClose} size="full">
+        <DrawerOverlay bg="blackAlpha.600" />
+        <DrawerContent bg={drawerBg} maxH="75vh" h="auto" borderTopRadius="xl">
+          <DrawerCloseButton 
+            size="lg" 
+            color={drawerText}
+            _hover={{ bg: useColorModeValue('gray.100', 'gray.700') }}
+          />
+          <DrawerHeader borderBottomWidth="1px" borderColor={borderColor} pr={12}>
+            <Text fontSize="xl" fontWeight="bold" color={drawerText}>
+              Assign {isWorkoutAssignment ? 'Workout' : 'Training Plan'}
+            </Text>
+          </DrawerHeader>
+          <DrawerBody p={6} overflowY="auto" display="flex" flexDirection="column">
             <AssignmentContent />
-          </ModalBody>
-        </ModalContent>
-      </Modal>
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
     );
   }
 
