@@ -15,7 +15,7 @@ import {
   FaTrash, FaSync, FaEllipsisV, FaChevronDown, FaChevronUp
 } from 'react-icons/fa';
 import { api } from '../services/api';
-import { AssignmentModal } from './AssignmentModal';
+import { AssignmentDrawer } from './AssignmentDrawer';
 import type { TrainingPlan, TrainingPlanAssignment } from '../services/dbSchema';
 import type { Workout } from '../services/api';
 
@@ -870,8 +870,8 @@ export function PlanDetailView({
         </ModalContent>
       </Modal>
 
-      {/* Plan Assignment Modal */}
-      <AssignmentModal
+      {/* Plan Assignment Drawer */}
+      <AssignmentDrawer
         isOpen={isAssignModalOpen}
         onClose={onAssignModalClose}
         onSuccess={handleAssignmentSuccess}

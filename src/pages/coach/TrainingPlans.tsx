@@ -11,7 +11,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../services/api';
 import { MonthlyPlanCreator } from '../../components/MonthlyPlanCreator';
-import { AssignmentModal } from '../../components/AssignmentModal';
+import { AssignmentDrawer } from '../../components/AssignmentDrawer';
 import { PlanDetailView } from '../../components/PlanDetailView';
 import { WorkoutDetailView } from '../../components/WorkoutDetailView';
 import { CoachWorkoutCard, CoachWorkoutListItem } from '../../components/UnifiedAssignmentCard';
@@ -2487,9 +2487,9 @@ export function CoachTrainingPlans() {
         editingPlan={selectedPlanForEdit}
       />
 
-      {/* Plan Assignment Modal */}
+      {/* Plan Assignment Drawer */}
       {selectedPlanForAssignment && (
-        <AssignmentModal
+        <AssignmentDrawer
           isOpen={isAssignmentOpen}
           onClose={onAssignmentClose}
           onSuccess={handleAssignmentSuccess}
@@ -2530,9 +2530,9 @@ export function CoachTrainingPlans() {
         isRemoving={isRemovingFromPlans}
       />
 
-      {/* Workout Assignment Modal */}
+      {/* Workout Assignment Drawer */}
       {workoutToAssign && (
-        <AssignmentModal
+        <AssignmentDrawer
           isOpen={isWorkoutAssignmentOpen}
           onClose={onWorkoutAssignmentClose}
           onSuccess={handleWorkoutAssignmentSuccess}

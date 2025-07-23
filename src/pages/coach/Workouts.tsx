@@ -13,7 +13,7 @@ import { api } from '../../services/api'; // Import the API instance
 import { WorkoutCard } from '../../components/WorkoutCard'; // Import our shared card component
 import { WorkoutDeletionWarningModal } from '../../components/WorkoutDeletionWarningModal';
 import { WorkoutDetailView } from '../../components/WorkoutDetailView';
-import { AssignmentModal } from '../../components/AssignmentModal';
+import { AssignmentDrawer } from '../../components/AssignmentDrawer';
 import { supabase } from '../../lib/supabase'; // Import supabase client
 import { RepeatIcon, AddIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
@@ -776,9 +776,9 @@ export function CoachWorkouts() {
         isRemoving={isRemovingFromPlans}
       />
 
-      {/* Assignment Modal */}
+      {/* Assignment Drawer */}
       {workoutToAssign && (
-        <AssignmentModal
+        <AssignmentDrawer
           isOpen={isAssignmentOpen}
           onClose={onAssignmentClose}
           onSuccess={handleAssignmentSuccess}
