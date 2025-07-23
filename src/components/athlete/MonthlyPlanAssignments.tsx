@@ -62,6 +62,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import type { TrainingPlanAssignment } from '../../services/dbSchema';
 import { WorkoutCard } from '../WorkoutCard';
+import { formatDateDisplay } from '../../utils/dateUtils';
 // import { WorkoutExecutionRouter } from '../WorkoutExecutionRouter';
 import { startTodaysWorkoutExecution } from '../../utils/monthlyPlanWorkoutHelper';
 import { useWorkoutStore } from '../../lib/workoutStore';
@@ -1099,11 +1100,11 @@ export function MonthlyPlanAssignments({ onViewPlan }: MonthlyPlanAssignmentsPro
                         <Divider />
                         <VStack spacing={1} align="start">
                           <Text fontSize="sm" color={textSecondary}>
-                            📅 Assigned: {new Date(selectedAssignment.assigned_at || '').toLocaleDateString()}
+                            📅 Assigned: {formatDateDisplay(selectedAssignment.assigned_at || '')}
                           </Text>
                           {selectedAssignment.start_date && (
                             <Text fontSize="sm" color={textSecondary}>
-                              🚀 Started: {new Date(selectedAssignment.start_date).toLocaleDateString()}
+                              🚀 Started: {formatDateDisplay(selectedAssignment.start_date)}
                             </Text>
                           )}
                         </VStack>

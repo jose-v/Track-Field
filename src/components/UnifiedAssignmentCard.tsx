@@ -58,6 +58,7 @@ import type { Workout } from '../services/api';
 import type { TrainingPlan } from '../services/dbSchema';
 import { supabase } from '../lib/supabase';
 import { AssignmentService } from '../services/assignmentService';
+import { formatDateDisplay } from '../utils/dateUtils';
 
 interface UnifiedAssignmentCardProps {
   assignment: WorkoutAssignment;
@@ -1081,15 +1082,9 @@ export function UnifiedAssignmentCard({
   const isCompleted = assignment.status === 'completed' && finalProgressPct >= 100;
   const isInProgress = assignment.status === 'in_progress' || (assignment.status === 'completed' && finalProgressPct < 100);
 
-  // Format dates
+  // Format dates - using timezone-safe utility to prevent day offset issues
   const formatDate = (dateString: string) => {
-    if (!dateString) return 'Not set';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'numeric', 
-      day: 'numeric', 
-      year: '2-digit' 
-    });
+    return formatDateDisplay(dateString);
   };
 
   // Status formatting
@@ -1673,15 +1668,9 @@ export function CoachWorkoutCard({
     };
   };
 
-  // Format dates
+  // Format dates - using timezone-safe utility to prevent day offset issues
   const formatDate = (dateString: string) => {
-    if (!dateString) return 'Not set';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'numeric', 
-      day: 'numeric', 
-      year: '2-digit' 
-    });
+    return formatDateDisplay(dateString);
   };
 
   // Calculate athlete count from assignedTo
@@ -2327,15 +2316,9 @@ export function CoachWorkoutListItem({
     };
   };
 
-  // Format dates
+  // Format dates - using timezone-safe utility to prevent day offset issues
   const formatDate = (dateString: string) => {
-    if (!dateString) return 'Not set';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'numeric', 
-      day: 'numeric', 
-      year: '2-digit' 
-    });
+    return formatDateDisplay(dateString);
   };
 
   // Render monthly plan or workout

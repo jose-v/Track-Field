@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Box, Flex, Avatar, Text, useToast, useColorModeValue, Button } from '@chakra-ui/react';
-import { FaTrash, FaEnvelopeOpen, FaArchive } from 'react-icons/fa';
+import { FaTrash, FaEnvelopeOpen, FaArchive, FaChevronDown, FaChevronRight } from 'react-icons/fa';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDistanceToNow, format, isToday, isYesterday } from 'date-fns';
@@ -35,6 +35,7 @@ const MobileNotifications: React.FC = () => {
     currentX: number; 
     direction: 'left' | 'right' | null 
   }}>({});
+  const [expandedNotificationId, setExpandedNotificationId] = useState<string | null>(null);
   const swipeRefs = useRef<{[key: string]: {
     element: HTMLElement | null;
     deleteBackground: HTMLElement | null;
@@ -240,6 +241,11 @@ const MobileNotifications: React.FC = () => {
       }
     });
   }, [notifications]);
+
+  // Collapse expanded notification when switching tabs
+  useEffect(() => {
+    setExpandedNotificationId(null);
+  }, [activeTab]);
 
   // Filter notifications based on active tab
   const filteredNotifications = notifications.filter(notification => {
@@ -723,6 +729,15 @@ const MobileNotifications: React.FC = () => {
       } else {
         resetSwipeVisuals(notificationId);
       }
+    } else {
+      // Not a swipe, check if it's a tap to expand/collapse
+      const deltaX = Math.abs(state.currentX - state.startX);
+      const deltaY = Math.abs(state.startY ? (e.changedTouches[0].clientY - state.startY) : 0);
+      
+      // Consider it a tap if movement was minimal
+      if (deltaX < 10 && deltaY < 10) {
+        handleNotificationTap(notificationId);
+      }
     }
 
     // Reset drag state
@@ -731,6 +746,13 @@ const MobileNotifications: React.FC = () => {
       delete newStates[notificationId];
       return newStates;
     });
+  };
+
+  const handleNotificationTap = (notificationId: string) => {
+    // Toggle expansion: if this notification is expanded, collapse it; otherwise expand it
+    setExpandedNotificationId(prev => 
+      prev === notificationId ? null : notificationId
+    );
   };
 
 
@@ -1003,9 +1025,12 @@ const MobileNotifications: React.FC = () => {
                 }}
               >
                 <Flex
-                  align="center"
+                  align="flex-start"
                   p={4}
                   minH="80px"
+                  cursor="pointer"
+                  bg={useColorModeValue('gray.50', 'gray.900')}
+                  borderRadius="lg"
                 >
                   {/* Avatar */}
                   <Avatar
@@ -1014,6 +1039,7 @@ const MobileNotifications: React.FC = () => {
                     name={displayName}
                     mr={3}
                     flexShrink={0}
+                    mt={1}
                   />
 
                   {/* Content */}
@@ -1022,17 +1048,25 @@ const MobileNotifications: React.FC = () => {
                       fontWeight={notification.is_read ? 'normal' : 'bold'}
                       fontSize="md"
                       color={notification.is_read ? readTextColor : unreadTextColor}
-                      noOfLines={1}
+                      noOfLines={expandedNotificationId === notification.id ? undefined : 1}
                       mb={1}
+                      transition="all 0.3s ease"
                     >
                       {notification.title}
                     </Text>
-                    <Text fontSize="sm" color={subtitleColor} noOfLines={1}>
+                    <Text 
+                      fontSize="sm" 
+                      color={subtitleColor} 
+                      noOfLines={expandedNotificationId === notification.id ? undefined : 1}
+                      lineHeight="1.4"
+                      transition="all 0.3s ease"
+                      overflow="hidden"
+                    >
                       {notification.message}
                     </Text>
                   </Box>
 
-                  {/* Time/Date and Read indicator */}
+                  {/* Time/Date, Read indicator, and Expand chevron */}
                   <Box 
                     display="flex" 
                     flexDirection="column" 
@@ -1048,15 +1082,27 @@ const MobileNotifications: React.FC = () => {
                       {formatTimeAgo(notification.created_at)}
                     </Text>
                     
-                    {/* Read indicator */}
-                    {!notification.is_read && (
+                    <Flex alignItems="center" gap={1}>
+                      {/* Read indicator */}
+                      {!notification.is_read && (
+                        <Box
+                          w="8px"
+                          h="8px"
+                          bg="blue.500"
+                          borderRadius="full"
+                        />
+                      )}
+                      
+                      {/* Expand/Collapse chevron */}
                       <Box
-                        w="8px"
-                        h="8px"
-                        bg="blue.500"
-                        borderRadius="full"
-                      />
-                    )}
+                        color={subtitleColor}
+                        fontSize="xs"
+                        transition="transform 0.2s ease"
+                        transform={expandedNotificationId === notification.id ? 'rotate(0deg)' : 'rotate(0deg)'}
+                      >
+                        {expandedNotificationId === notification.id ? <FaChevronDown /> : <FaChevronRight />}
+                      </Box>
+                    </Flex>
                   </Box>
                 </Flex>
               </Box>
