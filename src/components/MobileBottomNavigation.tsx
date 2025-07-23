@@ -45,7 +45,8 @@ export const MobileBottomNavigation: React.FC<MobileBottomNavigationProps> = ({
         pointerEvents="none"
       >
         {/* Left Side - Plus, 3-dot menu, AI Assistant */}
-        <HStack spacing={3} pointerEvents="auto">
+        {/* TODO glass buttons */}
+        <HStack spacing={3} pointerEvents="auto" display="none">
           {/* Create/Plus Button */}
           <Box position="relative">
             <Box

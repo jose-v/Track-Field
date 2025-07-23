@@ -52,6 +52,7 @@ const MobileNotifications: React.FC = () => {
   const readTextColor = useColorModeValue('gray.600', 'gray.400');
   const loadingBg = useColorModeValue('gray.50', 'gray.700');
   const emptyTextColor = useColorModeValue('gray.500', 'gray.400');
+  const notificationBg = useColorModeValue('gray.50', 'gray.900');
 
   useEffect(() => {
     if (user?.id) {
@@ -1029,7 +1030,7 @@ const MobileNotifications: React.FC = () => {
                   p={4}
                   minH="80px"
                   cursor="pointer"
-                  bg={useColorModeValue('gray.50', 'gray.900')}
+                  bg={notificationBg}
                   borderRadius="lg"
                 >
                   {/* Avatar */}

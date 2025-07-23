@@ -45,7 +45,8 @@ import {
   AlertCircle,
   Users,
   Copy,
-  X
+  X,
+  List
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { MobileWorkoutDetails } from './MobileWorkoutDetails';
@@ -1269,7 +1270,7 @@ export function UnifiedAssignmentCard({
               <Portal>
                 <MenuList>
                   <MenuItem 
-                        icon={<Play />} 
+                        icon={<List />} 
                     onClick={handleViewDetails}
                   >
                     View Details
@@ -1752,7 +1753,7 @@ export function CoachWorkoutCard({
                 <Portal>
                   <MenuList zIndex={1000}>
                     <MenuItem 
-                      icon={<Play />} 
+                      icon={<List />} 
                       onClick={handleViewDetails}
                     >
                       View Details
@@ -1938,7 +1939,7 @@ export function CoachWorkoutCard({
                 <Portal>
                   <MenuList zIndex={1000}>
                     <MenuItem 
-                      icon={<Play />} 
+                      icon={<List />} 
                       onClick={handleViewDetails}
                     >
                       View Details
@@ -2370,7 +2371,7 @@ export function CoachWorkoutListItem({
                 <Portal>
                   <MenuList zIndex={1000}>
                     <MenuItem 
-                      icon={<Play />} 
+                      icon={<List />} 
                       onClick={(e) => { 
                         e.preventDefault(); 
                         e.stopPropagation(); 
@@ -2523,7 +2524,7 @@ export function CoachWorkoutListItem({
                 <Portal>
                   <MenuList zIndex={1000}>
                     <MenuItem 
-                      icon={<Play />} 
+                      icon={<List />} 
                       onClick={(e) => { 
                         e.preventDefault(); 
                         e.stopPropagation(); 

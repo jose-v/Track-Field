@@ -125,11 +125,13 @@ const WorkoutSkeletonCard = ({
   );
 };
 
-// View Toggle Component
-const ViewToggle = ({ viewMode, setViewMode, toggleBorderColor }: { 
+// View Toggle Component with Refresh Icon
+const ViewToggle = ({ viewMode, setViewMode, toggleBorderColor, onRefresh, isLoading }: { 
   viewMode: 'grid' | 'list', 
   setViewMode: (mode: 'grid' | 'list') => void,
-  toggleBorderColor: string 
+  toggleBorderColor: string,
+  onRefresh?: () => void,
+  isLoading?: boolean
 }) => (
   <HStack spacing={1} border="1px" borderColor={toggleBorderColor} borderRadius="lg" p={1}>
     <IconButton
@@ -148,6 +150,17 @@ const ViewToggle = ({ viewMode, setViewMode, toggleBorderColor }: {
       colorScheme={viewMode === 'list' ? 'blue' : 'gray'}
       size="sm"
     />
+    {onRefresh && (
+      <IconButton
+        aria-label="Refresh"
+        icon={<FaRedo />}
+        onClick={onRefresh}
+        variant="ghost"
+        colorScheme="gray"
+        size="sm"
+        isLoading={isLoading}
+      />
+    )}
   </HStack>
 );
 
@@ -1910,8 +1923,8 @@ export function CoachTrainingPlans() {
             <VStack spacing={6} align="stretch">
               {/* Stats and Actions */}
               <VStack spacing={4} align="stretch">
-                {/* Stats Badges Row */}
-                <Flex justify="flex-start" align="center" wrap="wrap" gap={2}>
+                {/* Stats Badges Row - Hidden on mobile */}
+                <Flex justify="flex-start" align="center" wrap="wrap" gap={2} display={{ base: "none", lg: "flex" }}>
                   <Badge colorScheme="blue" fontSize="sm" px={3} py={1}>
                     {filteredData.data.length} {activeItem.charAt(0).toUpperCase() + activeItem.slice(1)} Workouts
                   </Badge>
@@ -1922,21 +1935,24 @@ export function CoachTrainingPlans() {
                   )}
                 </Flex>
                 
-                {/* Refresh Button and View Toggle */}
-                <Flex justify="space-between" align="center" wrap="wrap" gap={3}>
+                {/* View Toggle - Only show on mobile, desktop has refresh button */}
+                <Flex justify={{ base: "flex-end", lg: "space-between" }} align="center" wrap="wrap" gap={3}>
                   <Button
                     leftIcon={<FaRedo />}
                     variant="outline"
                     size="sm"
                     onClick={handleWorkoutsRefresh}
                     isLoading={assignmentsLoading}
+                    display={{ base: "none", lg: "flex" }}
                   >
                     Refresh
                   </Button>
                   <ViewToggle 
                     viewMode={viewMode} 
                     setViewMode={setViewMode} 
-                    toggleBorderColor={toggleBorderColor} 
+                    toggleBorderColor={toggleBorderColor}
+                    onRefresh={handleWorkoutsRefresh}
+                    isLoading={assignmentsLoading}
                   />
                 </Flex>
               </VStack>
@@ -1971,42 +1987,44 @@ export function CoachTrainingPlans() {
           return (
             <VStack spacing={6} align="stretch">
               {/* Athlete Filter */}
-              <Flex justify="space-between" align="center" wrap="wrap" gap={3}>
-                <HStack spacing={3} wrap="wrap">
-                  <HStack spacing={2} align="center">
-                    <FaUserFriends style={{ color: iconColor }} />
-                    <Select
-                      value={selectedAthlete}
-                      onChange={(e) => setSelectedAthlete(e.target.value)}
-                      size="sm"
-                      width={{ base: "180px", md: "200px" }}
-                      bg={selectBg}
-                      borderColor={selectBorderColor}
-                    >
-                      <option value="all">All Athletes</option>
-                      {athletes?.map((athlete) => (
-                        <option key={athlete.id} value={athlete.id}>
-                          {athlete.first_name} {athlete.last_name}
-                        </option>
-                      ))}
-                    </Select>
-                  </HStack>
-                  
-                  <Button
-                    leftIcon={<FaRedo />}
-                    variant="outline"
+              <Flex justify="space-between" align="center" gap={3}>
+                <HStack spacing={2} align="center" flex="1">
+                  <FaUserFriends style={{ color: iconColor }} />
+                  <Select
+                    value={selectedAthlete}
+                    onChange={(e) => setSelectedAthlete(e.target.value)}
                     size="sm"
-                    onClick={handleWorkoutsRefresh}
-                    isLoading={assignmentsLoading}
+                    flex="1"
+                    bg={selectBg}
+                    borderColor={selectBorderColor}
                   >
-                    Refresh
-                  </Button>
+                    <option value="all">All Athletes</option>
+                    {athletes?.map((athlete) => (
+                      <option key={athlete.id} value={athlete.id}>
+                        {athlete.first_name} {athlete.last_name}
+                      </option>
+                    ))}
+                  </Select>
                 </HStack>
+                
+                {/* Desktop Refresh Button */}
+                <Button
+                  leftIcon={<FaRedo />}
+                  variant="outline"
+                  size="sm"
+                  onClick={handleWorkoutsRefresh}
+                  isLoading={assignmentsLoading}
+                  display={{ base: "none", lg: "flex" }}
+                >
+                  Refresh
+                </Button>
                 
                 <ViewToggle 
                   viewMode={viewMode} 
                   setViewMode={setViewMode} 
-                  toggleBorderColor={toggleBorderColor} 
+                  toggleBorderColor={toggleBorderColor}
+                  onRefresh={handleWorkoutsRefresh}
+                  isLoading={assignmentsLoading}
                 />
               </Flex>
               {renderWorkouts()}
@@ -2017,8 +2035,8 @@ export function CoachTrainingPlans() {
             <VStack spacing={6} align="stretch">
               {/* Stats and Actions */}
               <VStack spacing={4} align="stretch">
-                {/* Stats Badges Row */}
-                <Flex justify="flex-start" align="center" wrap="wrap" gap={2}>
+                {/* Stats Badges Row - Hidden on mobile */}
+                <Flex justify="flex-start" align="center" wrap="wrap" gap={2} display={{ base: "none", lg: "flex" }}>
                   <Badge colorScheme="blue" fontSize="sm" px={3} py={1}>
                     {workoutFilter === 'monthly' ? monthlyPlans.length : workouts?.filter(w => !w.is_draft).length || 0} {workoutFilter === 'monthly' ? 'Plans' : 'Workouts'} Created
                   </Badge>
@@ -2045,14 +2063,15 @@ export function CoachTrainingPlans() {
                 </Flex>
                 
                 {/* Filter Controls Row */}
-                <Flex justify="flex-start" align="center" wrap="wrap" gap={3}>
-                  {/* Workout Type Filter Buttons */}
-                  <HStack spacing={2}>
+                <VStack spacing={3} align="stretch">
+                  {/* Workout Type Filter Buttons - Full width on mobile */}
+                  <HStack spacing={2} w="100%">
                     <Button
                       size="sm"
                       variant={workoutFilter === 'all' ? 'solid' : 'outline'}
                       colorScheme={workoutFilter === 'all' ? 'blue' : 'gray'}
                       onClick={() => setWorkoutFilter('all')}
+                      flex="1"
                     >
                       All
                     </Button>
@@ -2061,6 +2080,7 @@ export function CoachTrainingPlans() {
                       variant={workoutFilter === 'single' ? 'solid' : 'outline'}
                       colorScheme={workoutFilter === 'single' ? 'blue' : 'gray'}
                       onClick={() => setWorkoutFilter('single')}
+                      flex="1"
                     >
                       Single
                     </Button>
@@ -2069,6 +2089,7 @@ export function CoachTrainingPlans() {
                       variant={workoutFilter === 'weekly' ? 'solid' : 'outline'}
                       colorScheme={workoutFilter === 'weekly' ? 'blue' : 'gray'}
                       onClick={() => setWorkoutFilter('weekly')}
+                      flex="1"
                     >
                       Weekly
                     </Button>
@@ -2077,48 +2098,56 @@ export function CoachTrainingPlans() {
                       variant={workoutFilter === 'monthly' ? 'solid' : 'outline'}
                       colorScheme={workoutFilter === 'monthly' ? 'green' : 'gray'}
                       onClick={() => setWorkoutFilter('monthly')}
+                      flex="1"
                     >
                       Monthly
                     </Button>
                   </HStack>
 
-                  {/* Athlete Filter Dropdown */}
-                  <HStack spacing={2} align="center">
-                    <FaUserFriends style={{ color: iconColor }} />
-                    <Select
-                      value={selectedAthlete}
-                      onChange={(e) => setSelectedAthlete(e.target.value)}
+                  {/* Bottom Row - Athlete Filter and View Toggle */}
+                  <Flex justify="space-between" align="center" gap={3}>
+                    {/* Athlete Filter Dropdown - Expanded */}
+                    <HStack spacing={2} align="center" flex="1">
+                      <FaUserFriends style={{ color: iconColor }} />
+                      <Select
+                        value={selectedAthlete}
+                        onChange={(e) => setSelectedAthlete(e.target.value)}
+                        size="sm"
+                        flex="1"
+                        bg={selectBg}
+                        borderColor={selectBorderColor}
+                      >
+                        <option value="all">All Athletes</option>
+                        {athletes?.map((athlete) => (
+                          <option key={athlete.id} value={athlete.id}>
+                            {athlete.first_name} {athlete.last_name}
+                          </option>
+                        ))}
+                      </Select>
+                    </HStack>
+                    
+                    {/* Desktop Refresh Button */}
+                    <Button
+                      leftIcon={<FaRedo />}
+                      variant="outline"
                       size="sm"
-                      width={{ base: "180px", md: "200px" }}
-                      bg={selectBg}
-                      borderColor={selectBorderColor}
+                      onClick={workoutFilter === 'monthly' ? handleRefresh : handleWorkoutsRefresh}
+                      isLoading={workoutFilter === 'monthly' ? refreshing : assignmentsLoading}
+                      display={{ base: "none", lg: "flex" }}
                     >
-                      <option value="all">All Athletes</option>
-                      {athletes?.map((athlete) => (
-                        <option key={athlete.id} value={athlete.id}>
-                          {athlete.first_name} {athlete.last_name}
-                        </option>
-                      ))}
-                    </Select>
-                  </HStack>
-                  
-                  <Button
-                    leftIcon={<FaRedo />}
-                    variant="outline"
-                    size="sm"
-                    onClick={workoutFilter === 'monthly' ? handleRefresh : handleWorkoutsRefresh}
-                    isLoading={workoutFilter === 'monthly' ? refreshing : assignmentsLoading}
-                  >
-                    Refresh
-                  </Button>
-                  
-                  {/* View Toggle */}
-                  <ViewToggle 
-                    viewMode={viewMode} 
-                    setViewMode={setViewMode} 
-                    toggleBorderColor={toggleBorderColor} 
-                  />
-                </Flex>
+                      Refresh
+                    </Button>
+                    
+                    {/* View Toggle with Refresh Icon */}
+                    <ViewToggle 
+                      viewMode={viewMode} 
+                      setViewMode={setViewMode} 
+                      toggleBorderColor={toggleBorderColor}
+                      onRefresh={workoutFilter === 'monthly' ? handleRefresh : handleWorkoutsRefresh}
+                      isLoading={workoutFilter === 'monthly' ? refreshing : assignmentsLoading}
+                    />
+                  </Flex>
+                </VStack>
               </VStack>
 
               {/* Content Grid - Dynamic based on filter */}
@@ -2433,11 +2462,11 @@ export function CoachTrainingPlans() {
           base: 0, 
           lg: mainSidebarWidth === 70 ? "30px" : "20px"  // Less right margin when sidebar is collapsed
         }}
-        pt={isHeaderVisible ? "-2px" : "-82px"}
+        pt={{ base: 0, lg: isHeaderVisible ? "-2px" : "-82px" }}
+        pb={{ base: 8, lg: 8 }}
         transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
         minH="100vh"
         px={0} // Remove padding since CoachLayout already adds it
-        py={8}
       >
         {/* Content */}
         {renderContent()}

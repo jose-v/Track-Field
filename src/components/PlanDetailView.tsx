@@ -421,16 +421,15 @@ export function PlanDetailView({
     <Box minH="100vh" bg={bgColor} p={4}>
       <VStack spacing={6} align="stretch" w="full">
         {/* Header */}
-        <Flex justify="space-between" align="center" flexWrap="wrap" gap={2}>
+        <Flex justify="space-between" align="center" flexWrap="wrap" gap="20px">
           <HStack spacing={2}>
-            <Button
-              leftIcon={<FaArrowLeft />}
+            <IconButton
+              icon={<FaArrowLeft />}
               variant="ghost"
               onClick={onBack}
               size="md"
-            >
-              Back to Plans
-            </Button>
+              aria-label="Back"
+            />
             <Divider orientation="vertical" h="40px" />
             <VStack align="start" spacing={1}>
               <HStack spacing={3}>
@@ -450,7 +449,7 @@ export function PlanDetailView({
             </VStack>
           </HStack>
 
-          <HStack spacing={3}>
+          <HStack spacing={3} w="full" flex="1">
             {onEdit && (
               <Button
                 leftIcon={<FaEdit />}
@@ -458,6 +457,7 @@ export function PlanDetailView({
                 colorScheme="teal"
                 onClick={onEdit}
                 size="md"
+                flex="1"
               >
                 Edit Plan
               </Button>
@@ -468,77 +468,42 @@ export function PlanDetailView({
                 colorScheme="teal"
                 onClick={handleAssignClick}
                 size="md"
+                flex="1"
               >
-                Assign Athletes
+                Athletes
               </Button>
             )}
           </HStack>
         </Flex>
 
-        {/* Compact Overview Statistics & Assigned Athletes */}
-        <HStack spacing={6} justify="space-between" align="stretch" wrap="wrap">
-          {/* Compact Stats */}
-          <HStack spacing={4} flex={1}>
-            <VStack spacing={0} align="center" minW="80px">
-              <Text fontSize="xl" fontWeight="bold" color="teal.500">
-                {totalWeeks}
-              </Text>
-              <Text fontSize="xs" color={infoColor}>Total Weeks</Text>
-            </VStack>
-            <Divider orientation="vertical" h="40px" />
-            <VStack spacing={0} align="center" minW="80px">
-              <Text fontSize="xl" fontWeight="bold" color="blue.500">
-                {trainingWeeks}
-              </Text>
-              <Text fontSize="xs" color={infoColor}>Training</Text>
-            </VStack>
-            <Divider orientation="vertical" h="40px" />
-            <VStack spacing={0} align="center" minW="80px">
-              <Text fontSize="xl" fontWeight="bold" color="green.500">
-                {assignedAthletes.length}
-              </Text>
-              <Text fontSize="xs" color={infoColor}>Athletes</Text>
-            </VStack>
-            <Divider orientation="vertical" h="40px" />
-            <VStack spacing={0} align="center" minW="80px">
-              <Text fontSize="xl" fontWeight="bold" color="orange.500">
-                {completionPercentage.toFixed(0)}%
-              </Text>
-              <Text fontSize="xs" color={infoColor}>Complete</Text>
-            </VStack>
-          </HStack>
-
-          {/* Compact Assigned Athletes Section */}
-          <VStack spacing={2} align="end" minW="200px">
-            <HStack spacing={2}>
-              <Icon as={FaUsers} color="green.500" boxSize={4} />
-              <Text fontSize="sm" fontWeight="bold" color={titleColor}>
-                Assigned Athletes
-              </Text>
-              <Badge colorScheme="green" size="sm">
-                {assignedAthletes.length}
-              </Badge>
-            </HStack>
-            {assignedAthletes.length === 0 ? (
-              <Text fontSize="xs" color={infoColor} textAlign="center">
-                No athletes assigned yet
-              </Text>
-            ) : (
-              <Text fontSize="xs" color={infoColor}>
-                {assignedAthletes.slice(0, 3).map(a => `${a.first_name} ${a.last_name}`).join(', ')}
-                {assignedAthletes.length > 3 && ` +${assignedAthletes.length - 3} more`}
-              </Text>
-            )}
-            {onAssign && (
-              <Button
-                leftIcon={<FaPlus />}
-                colorScheme="teal"
-                size="xs"
-                onClick={handleAssignClick}
-              >
-                {assignedAthletes.length === 0 ? 'Assign Athletes' : 'Manage'}
-              </Button>
-            )}
+        {/* Overview Statistics - Full Width */}
+        <HStack spacing={4} justify="space-between" align="center" w="full">
+          <VStack spacing={0} align="center" flex="1">
+            <Text fontSize="xl" fontWeight="bold" color="teal.500">
+              {totalWeeks}
+            </Text>
+            <Text fontSize="xs" color={infoColor}>Total Weeks</Text>
+          </VStack>
+          <Divider orientation="vertical" h="40px" />
+          <VStack spacing={0} align="center" flex="1">
+            <Text fontSize="xl" fontWeight="bold" color="blue.500">
+              {trainingWeeks}
+            </Text>
+            <Text fontSize="xs" color={infoColor}>Training</Text>
+          </VStack>
+          <Divider orientation="vertical" h="40px" />
+          <VStack spacing={0} align="center" flex="1">
+            <Text fontSize="xl" fontWeight="bold" color="green.500">
+              {assignedAthletes.length}
+            </Text>
+            <Text fontSize="xs" color={infoColor}>Athletes</Text>
+          </VStack>
+          <Divider orientation="vertical" h="40px" />
+          <VStack spacing={0} align="center" flex="1">
+            <Text fontSize="xl" fontWeight="bold" color="orange.500">
+              {completionPercentage.toFixed(0)}%
+            </Text>
+            <Text fontSize="xs" color={infoColor}>Complete</Text>
           </VStack>
         </HStack>
 
