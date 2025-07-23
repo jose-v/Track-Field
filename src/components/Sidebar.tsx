@@ -51,7 +51,8 @@ import {
   FaSignOutAlt,
   FaTachometerAlt,
   FaClipboardList,
-  FaUserPlus
+  FaUserPlus,
+  FaUser
 } from 'react-icons/fa';
 import { BsCalendarCheck, BsChatDots } from 'react-icons/bs';
 import { MdLoop, MdRestaurantMenu, MdOutlineBedtime, MdOutlineReport, MdOutlineForum } from 'react-icons/md';
@@ -567,8 +568,9 @@ const Sidebar = ({ userType }: SidebarProps) => {
         '/coach/calendar': FaCalendarAlt,
         '/coach/meets': BsCalendarCheck,
         '/coach/stats': FaChartBar,
-        '/coach/notifications': FaBell,
         '/coach/settings': FaCog,
+        '/coach/profile': FaUser,
+        '/coach/notifications': FaBell,
       };
 
       // Use the coach navigation configuration from the hook

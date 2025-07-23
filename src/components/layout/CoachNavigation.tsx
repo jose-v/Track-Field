@@ -1,7 +1,7 @@
 import { useLocation } from 'react-router-dom';
 import { NavLink } from './BaseLayout';
 import { LuUsers, LuCalendarClock, LuClipboardList, LuBell } from 'react-icons/lu';
-import { FaUserPlus, FaCog, FaWrench } from 'react-icons/fa';
+import { FaUserPlus, FaCog, FaWrench, FaUser } from 'react-icons/fa';
 import { IoFitnessOutline } from 'react-icons/io5';
 import { FaTachometerAlt, FaCalendarAlt } from 'react-icons/fa';
 import { ReactNode } from 'react';
@@ -81,14 +81,19 @@ export function useCoachNavigation(): CoachNavConfig & { isCurrentPathActive: (p
       icon: <LuClipboardList />
     },
     {
-      name: 'Notifications',
-      path: '/coach/notifications',
-      icon: <LuBell />
-    },
-    {
       name: 'Settings',
       path: '/coach/settings',
       icon: <FaCog />
+    },
+    {
+      name: 'Profile',
+      path: '/coach/profile',
+      icon: <FaUser />
+    },
+    {
+      name: 'Notifications',
+      path: '/coach/notifications',
+      icon: <LuBell />
     }
   ];
   
