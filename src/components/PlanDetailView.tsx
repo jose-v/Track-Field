@@ -6,12 +6,13 @@ import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton,
   useDisclosure, Spinner, IconButton, useToast, 
   AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, 
-  AlertDialogBody, AlertDialogFooter, Select, Menu, MenuButton, MenuList, MenuItem
+  AlertDialogBody, AlertDialogFooter, Select, Menu, MenuButton, MenuList, MenuItem,
+  useBreakpointValue, Collapse
 } from '@chakra-ui/react';
 import { 
   FaCalendarAlt, FaUsers, FaEdit, FaPlus, FaDumbbell, FaBed, 
   FaChartLine, FaClock, FaCheck, FaTimes, FaEye, FaArrowLeft,
-  FaTrash, FaSync, FaEllipsisV
+  FaTrash, FaSync, FaEllipsisV, FaChevronDown, FaChevronUp
 } from 'react-icons/fa';
 import { api } from '../services/api';
 import { AssignmentModal } from './AssignmentModal';
@@ -88,6 +89,16 @@ export function PlanDetailView({
   const [weekToEdit, setWeekToEdit] = useState<WeekWithWorkout | null>(null);
   const [removing, setRemoving] = useState(false);
   const [updating, setUpdating] = useState(false);
+  
+  // Mobile accordion state - only one week can be expanded at a time
+  const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
+  const isMobile = useBreakpointValue({ base: true, md: false });
+  
+  // Handle week accordion toggle for mobile
+  const handleWeekToggle = (weekNumber: number) => {
+    if (!isMobile) return; // Only works on mobile
+    setExpandedWeek(expandedWeek === weekNumber ? null : weekNumber);
+  };
   
   // Modals
   const { isOpen: isRemoveOpen, onOpen: onRemoveOpen, onClose: onRemoveClose } = useDisclosure();
@@ -535,12 +546,20 @@ export function PlanDetailView({
                       borderColor={borderColor} 
                       borderWidth="1px"
                       borderRadius="xl"
-                      h="100%"
+                      h={isMobile ? "auto" : "100%"}
                       w="full"
                     >
                       <CardBody p={1}>
                         <VStack spacing={2} align="stretch">
-                          <HStack justify="space-between" align="center">
+                          {/* Week Header - Clickable on mobile for accordion */}
+                          <HStack 
+                            justify="space-between" 
+                            align="center"
+                            cursor={isMobile ? "pointer" : "default"}
+                            onClick={() => isMobile && handleWeekToggle(week.week_number)}
+                            borderRadius="md"
+                            p={2}
+                          >
                             <HStack spacing={1}>
                               <Icon 
                                 as={week.is_rest_week ? FaBed : FaDumbbell} 
@@ -558,170 +577,186 @@ export function PlanDetailView({
                               </Badge>
                             </HStack>
                             
-                            {/* Week Management Menu */}
-                            <Menu>
-                              <MenuButton
-                                as={IconButton}
-                                icon={<FaEllipsisV />}
-                                variant="ghost"
-                                size="sm"
-                                isLoading={updating}
-                              />
-                              <MenuList>
-                                {!week.is_rest_week && (
-                                  <MenuItem
-                                    icon={<FaEdit />}
-                                    onClick={() => handleEditWeek(week)}
-                                  >
-                                    Replace Workout
-                                  </MenuItem>
-                                )}
-                                {!week.is_rest_week && (
-                                  <MenuItem
-                                    icon={<FaBed />}
-                                    onClick={() => handleRemoveWeek(week)}
-                                  >
-                                    Set as Rest Week
-                                  </MenuItem>
-                                )}
-                                {week.is_rest_week && (
-                                  <MenuItem
-                                    icon={<FaDumbbell />}
-                                    onClick={() => handleEditWeek(week)}
-                                  >
-                                    Add Training Week
-                                  </MenuItem>
-                                )}
-                              </MenuList>
-                            </Menu>
+                            <HStack spacing={1}>
+                              {/* Week Management Menu */}
+                              <Menu>
+                                <MenuButton
+                                  as={IconButton}
+                                  icon={<FaEllipsisV />}
+                                  variant="ghost"
+                                  size="sm"
+                                  isLoading={updating}
+                                  onClick={(e) => e.stopPropagation()}
+                                  color="white"
+                                />
+                                <MenuList>
+                                  {!week.is_rest_week && (
+                                    <MenuItem
+                                      icon={<FaEdit />}
+                                      onClick={() => handleEditWeek(week)}
+                                    >
+                                      Replace Workout
+                                    </MenuItem>
+                                  )}
+                                  {!week.is_rest_week && (
+                                    <MenuItem
+                                      icon={<FaBed />}
+                                      onClick={() => handleRemoveWeek(week)}
+                                    >
+                                      Set as Rest Week
+                                    </MenuItem>
+                                  )}
+                                  {week.is_rest_week && (
+                                    <MenuItem
+                                      icon={<FaDumbbell />}
+                                      onClick={() => handleEditWeek(week)}
+                                    >
+                                      Add Training Week
+                                    </MenuItem>
+                                  )}
+                                </MenuList>
+                              </Menu>
+                              
+                              {/* Mobile accordion chevron */}
+                              {isMobile && (
+                                <Icon 
+                                  as={expandedWeek === week.week_number ? FaChevronUp : FaChevronDown}
+                                  color={infoColor}
+                                  boxSize={4}
+                                />
+                              )}
+                            </HStack>
                           </HStack>
 
-                          {week.is_rest_week ? (
-                            <Text fontSize="sm" color={infoColor} fontStyle="italic">
-                              Recovery and rest week - no scheduled workouts
-                            </Text>
-                          ) : week.workout ? (
-                            <VStack align="start" spacing={3}>
-                              <VStack align="start" spacing={2}>
-                                <Text fontWeight="medium" color={titleColor}>
-                                  {week.workout.name}
-                                </Text>
-                                <Text fontSize="sm" color={infoColor}>
-                                  {week.workout.description || 'Weekly Training Plan'}
-                                </Text>
-                                <HStack spacing={4}>
-                                  <HStack spacing={1}>
-                                    <Icon as={FaClock} color={infoColor} boxSize={3} />
-                                    <Text fontSize="sm" color={infoColor}>
-                                      {week.workout.duration || 'Variable'} min
-                                    </Text>
+                          {/* Week Content - Collapsible on mobile */}
+                          <Collapse in={!isMobile || expandedWeek === week.week_number} animateOpacity>
+                            {week.is_rest_week ? (
+                              <Text fontSize="sm" color={infoColor} fontStyle="italic" px={2}>
+                                Recovery and rest week - no scheduled workouts
+                              </Text>
+                            ) : week.workout ? (
+                              <VStack align="start" spacing={3} px={2}>
+                                <VStack align="start" spacing={2}>
+                                  <Text fontWeight="medium" color={titleColor}>
+                                    {week.workout.name}
+                                  </Text>
+                                  <Text fontSize="sm" color={infoColor}>
+                                    {week.workout.description || 'Weekly Training Plan'}
+                                  </Text>
+                                  <HStack spacing={4}>
+                                    <HStack spacing={1}>
+                                      <Icon as={FaClock} color={infoColor} boxSize={3} />
+                                      <Text fontSize="sm" color={infoColor}>
+                                        {week.workout.duration || 'Variable'} min
+                                      </Text>
+                                    </HStack>
+                                    <HStack spacing={1}>
+                                      <Icon as={FaDumbbell} color={infoColor} boxSize={3} />
+                                      <Text fontSize="sm" color={infoColor}>
+                                        {week.dailyBreakdown && Array.isArray(week.dailyBreakdown) ? week.dailyBreakdown.reduce((total, day) => total + day.totalExercises, 0) : 0} total exercises
+                                      </Text>
+                                    </HStack>
                                   </HStack>
-                                  <HStack spacing={1}>
-                                    <Icon as={FaDumbbell} color={infoColor} boxSize={3} />
-                                    <Text fontSize="sm" color={infoColor}>
-                                      {week.dailyBreakdown && Array.isArray(week.dailyBreakdown) ? week.dailyBreakdown.reduce((total, day) => total + day.totalExercises, 0) : 0} total exercises
-                                    </Text>
-                                  </HStack>
-                                </HStack>
-                              </VStack>
+                                </VStack>
 
-                              {/* Daily Breakdown - What Athletes Actually See */}
-                              {week.dailyBreakdown && Array.isArray(week.dailyBreakdown) && week.dailyBreakdown.length > 0 && (
-                                <Box w="full">
-                                  <Box fontSize="sm" fontWeight="semibold" color={titleColor} mb={2}>
-                                    Daily Schedule (Athlete View):
-                                  </Box>
-                                  <VStack spacing={2} align="stretch" w="full">
-                                    {week.dailyBreakdown.map((day, dayIndex) => (
-                                      <Box 
-                                        key={dayIndex}
-                                        bg={dayBlockBg}
-                                        borderRadius="md"
-                                        p={6}
-                                        borderWidth="1px"
-                                        borderColor={borderColor}
-                                        w="full"
-                                      >
-                                        <HStack justify="space-between" mb={3}>
-                                          <Box fontSize="md" fontWeight="bold" color={titleColor}>
-                                            {day.day}
-                                          </Box>
-                                          <Badge colorScheme="gray" size="md" px={3} py={1}>
-                                            {day.totalExercises} exercises
-                                          </Badge>
-                                        </HStack>
-                                        
-                                        {/* Exercise Blocks - Expanded */}
-                                        <VStack spacing={4} align="stretch" w="full">
-                                          {day.blocks.map((block: any, blockIndex: number) => (
-                                                                                         <Box 
-                                               key={blockIndex}
-                                               bg={useColorModeValue('gray.50', 'gray.600')}
-                                               p={4}
-                                               borderRadius="md"
-                                               borderWidth="1px"
-                                               borderColor={borderColor}
-                                               w="full"
-                                             >
-                                               <HStack spacing={3} mb={2}>
-                                                 <Box as="span" fontSize="sm" color={titleColor} fontWeight="bold">
-                                                   {block.name || `Block ${blockIndex + 1}`}
-                                                 </Box>
-                                                 <Badge colorScheme="gray" size="sm" variant="outline">
-                                                   {block.exercises?.length || 0} exercises
-                                                 </Badge>
-                                               </HStack>
-                                              {block.exercises && block.exercises.length > 0 && (
-                                                <VStack spacing={1} align="start" pl={0}>
-                                                  {block.exercises.map((ex: any, exIndex: number) => (
-                                                    <HStack key={exIndex} spacing={2}>
-                                                                                                             <Box 
-                                                         w="4px" 
-                                                         h="4px" 
-                                                         bg={infoColor} 
-                                                         borderRadius="full" 
-                                                         mt={1}
-                                                       />
-                                                      <Text fontSize="sm" color={titleColor} fontWeight="medium">
-                                                        {ex.name}
-                                                      </Text>
-                                                      {ex.sets && (
-                                                        <Text fontSize="xs" color={infoColor}>
-                                                          ({ex.sets} sets)
-                                                        </Text>
-                                                      )}
-                                                    </HStack>
-                                                  ))}
-                                                </VStack>
-                                              )}
+                                {/* Daily Breakdown - What Athletes Actually See */}
+                                {week.dailyBreakdown && Array.isArray(week.dailyBreakdown) && week.dailyBreakdown.length > 0 && (
+                                  <Box w="full">
+                                    <Box fontSize="sm" fontWeight="semibold" color={titleColor} mb={2}>
+                                      Daily Schedule (Athlete View):
+                                    </Box>
+                                    <VStack spacing={2} align="stretch" w="full">
+                                      {week.dailyBreakdown.map((day, dayIndex) => (
+                                        <Box 
+                                          key={dayIndex}
+                                          bg={dayBlockBg}
+                                          borderRadius="md"
+                                          p={6}
+                                          borderWidth="1px"
+                                          borderColor={borderColor}
+                                          w="full"
+                                        >
+                                          <HStack justify="space-between" mb={3}>
+                                            <Box fontSize="md" fontWeight="bold" color={titleColor}>
+                                              {day.day}
                                             </Box>
-                                          ))}
-                                        </VStack>
-                                      </Box>
-                                    ))}
-                                  </VStack>
-                                </Box>
-                              )}
-
-                              {/* Show if no daily breakdown available */}
-                              {(!week.dailyBreakdown || !Array.isArray(week.dailyBreakdown) || week.dailyBreakdown.length === 0) && week.workout && (
-                                <Alert status="info" size="sm">
-                                  <AlertIcon />
-                                  <Box fontSize="sm">
-                                    {week.workout.is_block_based 
-                                      ? "Unable to parse daily schedule from this workout structure."
-                                      : "This is a legacy workout template. Daily breakdown not available."
-                                    }
+                                            <Badge colorScheme="gray" size="md" px={3} py={1}>
+                                              {day.totalExercises} exercises
+                                            </Badge>
+                                          </HStack>
+                                          
+                                          {/* Exercise Blocks - Expanded */}
+                                          <VStack spacing={4} align="stretch" w="full">
+                                            {day.blocks.map((block: any, blockIndex: number) => (
+                                              <Box 
+                                                 key={blockIndex}
+                                                 bg={useColorModeValue('gray.50', 'gray.600')}
+                                                 p={4}
+                                                 borderRadius="md"
+                                                 borderWidth="1px"
+                                                 borderColor={borderColor}
+                                                 w="full"
+                                               >
+                                                 <HStack spacing={3} mb={2}>
+                                                   <Box as="span" fontSize="sm" color={titleColor} fontWeight="bold">
+                                                     {block.name || `Block ${blockIndex + 1}`}
+                                                   </Box>
+                                                   <Badge colorScheme="gray" size="sm" variant="outline">
+                                                     {block.exercises?.length || 0} exercises
+                                                   </Badge>
+                                                 </HStack>
+                                                {block.exercises && block.exercises.length > 0 && (
+                                                  <VStack spacing={1} align="start" pl={0}>
+                                                    {block.exercises.map((ex: any, exIndex: number) => (
+                                                      <HStack key={exIndex} spacing={2}>
+                                                        <Box 
+                                                           w="4px" 
+                                                           h="4px" 
+                                                           bg={infoColor} 
+                                                           borderRadius="full" 
+                                                           mt={1}
+                                                         />
+                                                        <Text fontSize="sm" color={titleColor} fontWeight="medium">
+                                                          {ex.name}
+                                                        </Text>
+                                                        {ex.sets && (
+                                                          <Text fontSize="xs" color={infoColor}>
+                                                            ({ex.sets} sets)
+                                                          </Text>
+                                                        )}
+                                                      </HStack>
+                                                    ))}
+                                                  </VStack>
+                                                )}
+                                              </Box>
+                                            ))}
+                                          </VStack>
+                                        </Box>
+                                      ))}
+                                    </VStack>
                                   </Box>
-                                </Alert>
-                              )}
-                            </VStack>
-                          ) : (
-                            <Alert status="warning" size="sm">
-                              <AlertIcon />
-                              <Text fontSize="sm">Workout template not found</Text>
-                            </Alert>
-                          )}
+                                )}
+
+                                {/* Show if no daily breakdown available */}
+                                {(!week.dailyBreakdown || !Array.isArray(week.dailyBreakdown) || week.dailyBreakdown.length === 0) && week.workout && (
+                                  <Alert status="info" size="sm">
+                                    <AlertIcon />
+                                    <Box fontSize="sm">
+                                      {week.workout.is_block_based 
+                                        ? "Unable to parse daily schedule from this workout structure."
+                                        : "This is a legacy workout template. Daily breakdown not available."
+                                      }
+                                    </Box>
+                                  </Alert>
+                                )}
+                              </VStack>
+                            ) : (
+                              <Alert status="warning" size="sm" mx={2}>
+                                <AlertIcon />
+                                <Text fontSize="sm">Workout template not found</Text>
+                              </Alert>
+                            )}
+                          </Collapse>
                         </VStack>
                       </CardBody>
                     </Card>
