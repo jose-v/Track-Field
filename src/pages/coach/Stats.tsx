@@ -45,6 +45,7 @@ import {
 } from '@chakra-ui/react';
 import {
   FaChartLine,
+  FaChartBar,
   FaBed,
   FaHeartbeat,
   FaDumbbell,
@@ -70,6 +71,8 @@ import { useCoachAthletes } from '../../hooks/useCoachAthletes';
 import { api } from '../../services/api';
 import { supabase } from '../../lib/supabase';
 import { useQuery } from '@tanstack/react-query';
+import { usePageHeader } from '../../hooks/usePageHeader';
+import PageHeader from '../../components/PageHeader';
 
 // Individual Athlete Data Interface
 interface AthleteAnalytics {
@@ -95,9 +98,16 @@ export function CoachStats() {
   // State
   const [selectedAthleteId, setSelectedAthleteId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [dateRange, setDateRange] = useState('week');
+  const [dateRange, setDateRange] = useState('month');
   const [sleepViewMode, setSleepViewMode] = useState<'week' | 'month'>('week');
   const [wellnessViewMode, setWellnessViewMode] = useState<'week' | 'month'>('week');
+
+  // Use page header hook for mobile nav
+  usePageHeader({
+    title: 'Athlete Analytics',
+    subtitle: 'Performance and wellness insights',
+    icon: FaChartBar
+  });
 
   // Fetch coach's athletes
   const { data: athletes = [], isLoading: athletesLoading } = useCoachAthletes({
@@ -583,8 +593,14 @@ export function CoachStats() {
   return (
     <Box bg={pageBg} minH="100vh">
       <VStack spacing={6} align="stretch">
-        {/* Header */}
-        <Heading size="lg" color={textPrimary}>Athlete Analytics</Heading>
+        {/* Desktop Header */}
+        <Box display={{ base: "none", md: "block" }}>
+          <PageHeader
+            title="Athlete Analytics"
+            subtitle="Performance and wellness insights"
+            icon={FaChartBar}
+          />
+        </Box>
 
         {/* Athlete Selector */}
         <Card bg={cardBg} borderColor={borderColor}>
@@ -651,21 +667,27 @@ export function CoachStats() {
             {/* Athlete Profile Header */}
             <Card bg={cardBg} borderColor={borderColor}>
               <CardBody>
-                <Flex align="center" gap={6}>
-                  <Avatar
-                    size="xl"
-                    src={selectedAthlete.avatar_url}
-                    name={`${selectedAthlete.first_name} ${selectedAthlete.last_name}`}
-                  />
-                  <VStack align="start" spacing={1}>
-                    <Heading size="lg" color={textPrimary}>
-                      {selectedAthlete.first_name} {selectedAthlete.last_name}
-                    </Heading>
-                    <HStack spacing={4}>
-                      <Text color="gray.500">Age: {selectedAthlete.age || 'N/A'}</Text>
-                      <Text color="gray.500">Gender: {selectedAthlete.gender || 'N/A'}</Text>
-                    </HStack>
-                    <HStack spacing={2} mt={2}>
+                {/* Mobile Layout */}
+                <Box display={{ base: "block", md: "none" }}>
+                  <VStack align="start" spacing={4}>
+                    <Flex align="center" gap={4} width="100%">
+                      <Avatar
+                        size="xl"
+                        src={selectedAthlete.avatar_url}
+                        name={`${selectedAthlete.first_name} ${selectedAthlete.last_name}`}
+                      />
+                      <VStack align="start" spacing={1} flex={1}>
+                        <Heading size="lg" color={textPrimary}>
+                          {selectedAthlete.first_name} {selectedAthlete.last_name}
+                        </Heading>
+                        <HStack spacing={4}>
+                          <Text color="gray.500">Age: {selectedAthlete.age || 'N/A'}</Text>
+                          <Text color="gray.500">Gender: {selectedAthlete.gender || 'N/A'}</Text>
+                        </HStack>
+                      </VStack>
+                    </Flex>
+                    {/* Events under avatar, left aligned */}
+                    <HStack spacing={2} flexWrap="wrap" align="start">
                       {selectedAthlete.events?.map((event, idx) => (
                         <Badge key={idx} colorScheme="blue">
                           {event}
@@ -673,7 +695,34 @@ export function CoachStats() {
                       ))}
                     </HStack>
                   </VStack>
-                </Flex>
+                </Box>
+
+                {/* Desktop Layout */}
+                <Box display={{ base: "none", md: "block" }}>
+                  <Flex align="center" gap={6}>
+                    <Avatar
+                      size="xl"
+                      src={selectedAthlete.avatar_url}
+                      name={`${selectedAthlete.first_name} ${selectedAthlete.last_name}`}
+                    />
+                    <VStack align="start" spacing={1}>
+                      <Heading size="lg" color={textPrimary}>
+                        {selectedAthlete.first_name} {selectedAthlete.last_name}
+                      </Heading>
+                      <HStack spacing={4}>
+                        <Text color="gray.500">Age: {selectedAthlete.age || 'N/A'}</Text>
+                        <Text color="gray.500">Gender: {selectedAthlete.gender || 'N/A'}</Text>
+                      </HStack>
+                      <HStack spacing={2} mt={2}>
+                        {selectedAthlete.events?.map((event, idx) => (
+                          <Badge key={idx} colorScheme="blue">
+                            {event}
+                          </Badge>
+                        ))}
+                      </HStack>
+                    </VStack>
+                  </Flex>
+                </Box>
               </CardBody>
             </Card>
 
@@ -685,49 +734,97 @@ export function CoachStats() {
               </SimpleGrid>
             ) : analytics ? (
               <>
-                {/* Status Overview Cards */}
-                <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
-                  <Card bg={cardBg} borderColor={borderColor}>
-                    <CardBody p={2} textAlign="center" display="flex" flexDirection="column" justifyContent="space-between" minH="120px">
-                      <Box flex="1" display="flex" alignItems="center" justifyContent="center">
-                        <Icon 
-                          as={getStatusIcon(analytics.sleep.status)} 
-                          color={`${getStatusColor(analytics.sleep.status)}.500`} 
-                          boxSize={8}
-                        />
-                      </Box>
-                      <Text fontSize="sm" fontWeight="bold" color={textPrimary}>Sleep Quality</Text>
-                    </CardBody>
-                  </Card>
+                            {/* Status Overview Cards */}
+            <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
+              <Card bg={cardBg} borderColor={borderColor} position="relative">
+                <Badge 
+                  position="absolute" 
+                  top={2} 
+                  left={2} 
+                  colorScheme="blue" 
+                  fontSize="xs" 
+                  borderRadius="full"
+                  px={2}
+                  py={1}
+                >
+                  30 Days
+                </Badge>
+                <CardBody p={2} textAlign="center" display="flex" flexDirection="column" justifyContent="space-between" minH="120px">
+                  <Box flex="1" display="flex" alignItems="center" justifyContent="center">
+                    <Icon 
+                      as={getStatusIcon(analytics.sleep.status)} 
+                      color={`${getStatusColor(analytics.sleep.status)}.500`} 
+                      boxSize={8}
+                    />
+                  </Box>
+                  <Text fontSize="sm" fontWeight="bold" color={textPrimary}>Sleep Quality</Text>
+                </CardBody>
+              </Card>
 
-                  <Card bg={cardBg} borderColor={borderColor}>
-                    <CardBody p={2} textAlign="center" display="flex" flexDirection="column" justifyContent="space-between" minH="120px">
-                      <Box flex="1" display="flex" alignItems="center" justifyContent="center">
-                        <Icon 
-                          as={getStatusIcon(analytics.wellness.status)} 
-                          color={`${getStatusColor(analytics.wellness.status)}.500`} 
-                          boxSize={8}
-                        />
-                      </Box>
-                      <Text fontSize="sm" fontWeight="bold" color={textPrimary}>Wellness</Text>
-                    </CardBody>
-                  </Card>
+                                <Card bg={cardBg} borderColor={borderColor} position="relative">
+                <Badge 
+                  position="absolute" 
+                  top={2} 
+                  left={2} 
+                  colorScheme="blue" 
+                  fontSize="xs" 
+                  borderRadius="full"
+                  px={2}
+                  py={1}
+                >
+                  30 Days
+                </Badge>
+                <CardBody p={2} textAlign="center" display="flex" flexDirection="column" justifyContent="space-between" minH="120px">
+                  <Box flex="1" display="flex" alignItems="center" justifyContent="center">
+                    <Icon 
+                      as={getStatusIcon(analytics.wellness.status)} 
+                      color={`${getStatusColor(analytics.wellness.status)}.500`} 
+                      boxSize={8}
+                    />
+                  </Box>
+                  <Text fontSize="sm" fontWeight="bold" color={textPrimary}>Wellness</Text>
+                </CardBody>
+              </Card>
 
-                  <Card bg={cardBg} borderColor={borderColor}>
-                    <CardBody p={2} textAlign="center" display="flex" flexDirection="column" justifyContent="space-between" minH="120px">
-                      <Box flex="1" display="flex" alignItems="center" justifyContent="center">
-                        <Icon 
-                          as={getStatusIcon(analytics.performance.status)} 
-                          color={`${getStatusColor(analytics.performance.status)}.500`} 
-                          boxSize={8}
-                        />
-                      </Box>
-                      <Text fontSize="sm" fontWeight="bold" color={textPrimary}>Performance</Text>
-                    </CardBody>
-                  </Card>
+              <Card bg={cardBg} borderColor={borderColor} position="relative">
+                <Badge 
+                  position="absolute" 
+                  top={2} 
+                  left={2} 
+                  colorScheme="blue" 
+                  fontSize="xs" 
+                  borderRadius="full"
+                  px={2}
+                  py={1}
+                >
+                  30 Days
+                </Badge>
+                <CardBody p={2} textAlign="center" display="flex" flexDirection="column" justifyContent="space-between" minH="120px">
+                  <Box flex="1" display="flex" alignItems="center" justifyContent="center">
+                    <Icon 
+                      as={getStatusIcon(analytics.performance.status)} 
+                      color={`${getStatusColor(analytics.performance.status)}.500`} 
+                      boxSize={8}
+                    />
+                  </Box>
+                  <Text fontSize="sm" fontWeight="bold" color={textPrimary}>Performance</Text>
+                </CardBody>
+              </Card>
 
-                  <Card bg={cardBg} borderColor={borderColor}>
-                    <CardBody p={2} textAlign="center" display="flex" flexDirection="column" justifyContent="space-between" minH="120px">
+              <Card bg={cardBg} borderColor={borderColor} position="relative">
+                <Badge 
+                  position="absolute" 
+                  top={2} 
+                  left={2} 
+                  colorScheme="blue" 
+                  fontSize="xs" 
+                  borderRadius="full"
+                  px={2}
+                  py={1}
+                >
+                  30 Days
+                </Badge>
+                <CardBody p={2} textAlign="center" display="flex" flexDirection="column" justifyContent="space-between" minH="120px">
                       <Box flex="1" display="flex" alignItems="center" justifyContent="center">
                         <Box position="relative" display="inline-block">
                           {/* Half-circle progress chart */}
@@ -779,7 +876,6 @@ export function CoachStats() {
                     <CardHeader>
                       <HStack justify="space-between">
                         <HStack>
-                          <Icon as={FaBed} color="blue.500" />
                           <Heading size="md">Sleep Analytics</Heading>
                         </HStack>
                         <ButtonGroup isAttached size="sm">
@@ -992,7 +1088,6 @@ export function CoachStats() {
                     <CardHeader>
                       <HStack justify="space-between">
                         <HStack>
-                          <Icon as={FaHeartbeat} color="red.500" />
                           <Heading size="md">Wellness Analytics</Heading>
                         </HStack>
                         <ButtonGroup isAttached size="sm">
@@ -1228,7 +1323,6 @@ export function CoachStats() {
                   <Card bg={cardBg} borderColor={borderColor}>
                     <CardHeader>
                       <HStack>
-                        <Icon as={FaDumbbell} color="purple.500" />
                         <Heading size="md">Training Log</Heading>
                         <Badge colorScheme="purple" ml={2}>Non-Running</Badge>
                       </HStack>
@@ -1407,7 +1501,6 @@ export function CoachStats() {
                   <Card bg={cardBg} borderColor={borderColor}>
                     <CardHeader>
                       <HStack>
-                        <Icon as={FaClock} color="orange.500" />
                         <Heading size="md">Run Times</Heading>
                       </HStack>
                     </CardHeader>

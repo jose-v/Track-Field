@@ -45,6 +45,7 @@ import {
 } from '@chakra-ui/react';
 import {
   FaChartLine,
+  FaChartBar,
   FaBed,
   FaHeartbeat,
   FaDumbbell,
@@ -68,6 +69,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { useQuery } from '@tanstack/react-query';
+import { usePageHeader } from '../../hooks/usePageHeader';
 
 // Main Component
 export function AthleteStats() {
@@ -80,6 +82,13 @@ export function AthleteStats() {
   // State for view modes
   const [sleepViewMode, setSleepViewMode] = useState<'week' | 'month'>('week');
   const [wellnessViewMode, setWellnessViewMode] = useState<'week' | 'month'>('week');
+
+  // Use page header hook for mobile nav
+  usePageHeader({
+    title: 'My Analytics',
+    subtitle: 'Your performance, sleep, and wellness data',
+    icon: FaChartBar
+  });
 
   // Fixed date range to last month
   const dateRange = 'month';
@@ -509,15 +518,29 @@ export function AthleteStats() {
   return (
     <Box bg={pageBg} minH="100vh">
       <VStack spacing={6} align="stretch">
-        {/* Header */}
-        <Heading size="lg" color={textPrimary}>My Analytics</Heading>
-        <Text color="gray.500">Your performance, sleep, and wellness data from the last 30 days.</Text>
+        {/* Header - Hide on mobile since it's in nav bar */}
+        <Box display={{ base: "none", md: "block" }}>
+          <Heading size="lg" color={textPrimary}>My Analytics</Heading>
+          <Text color="gray.500">Your performance, sleep, and wellness data from the last 30 days.</Text>
+        </Box>
 
         {analytics ? (
           <>
             {/* Status Overview Cards */}
             <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
-              <Card bg={cardBg} borderColor={borderColor}>
+              <Card bg={cardBg} borderColor={borderColor} position="relative">
+                <Badge 
+                  position="absolute" 
+                  top={2} 
+                  left={2} 
+                  colorScheme="blue" 
+                  fontSize="xs" 
+                  borderRadius="full"
+                  px={2}
+                  py={1}
+                >
+                  30 Days
+                </Badge>
                 <CardBody p={2} textAlign="center" display="flex" flexDirection="column" justifyContent="space-between" minH="120px">
                   <Box flex="1" display="flex" alignItems="center" justifyContent="center">
                     <Icon 
@@ -530,7 +553,19 @@ export function AthleteStats() {
                 </CardBody>
               </Card>
 
-              <Card bg={cardBg} borderColor={borderColor}>
+              <Card bg={cardBg} borderColor={borderColor} position="relative">
+                <Badge 
+                  position="absolute" 
+                  top={2} 
+                  left={2} 
+                  colorScheme="blue" 
+                  fontSize="xs" 
+                  borderRadius="full"
+                  px={2}
+                  py={1}
+                >
+                  30 Days
+                </Badge>
                 <CardBody p={2} textAlign="center" display="flex" flexDirection="column" justifyContent="space-between" minH="120px">
                   <Box flex="1" display="flex" alignItems="center" justifyContent="center">
                     <Icon 
@@ -543,7 +578,19 @@ export function AthleteStats() {
                 </CardBody>
               </Card>
 
-              <Card bg={cardBg} borderColor={borderColor}>
+              <Card bg={cardBg} borderColor={borderColor} position="relative">
+                <Badge 
+                  position="absolute" 
+                  top={2} 
+                  left={2} 
+                  colorScheme="blue" 
+                  fontSize="xs" 
+                  borderRadius="full"
+                  px={2}
+                  py={1}
+                >
+                  30 Days
+                </Badge>
                 <CardBody p={2} textAlign="center" display="flex" flexDirection="column" justifyContent="space-between" minH="120px">
                   <Box flex="1" display="flex" alignItems="center" justifyContent="center">
                     <Icon 
@@ -556,7 +603,19 @@ export function AthleteStats() {
                 </CardBody>
               </Card>
 
-              <Card bg={cardBg} borderColor={borderColor}>
+              <Card bg={cardBg} borderColor={borderColor} position="relative">
+                <Badge 
+                  position="absolute" 
+                  top={2} 
+                  left={2} 
+                  colorScheme="blue" 
+                  fontSize="xs" 
+                  borderRadius="full"
+                  px={2}
+                  py={1}
+                >
+                  30 Days
+                </Badge>
                 <CardBody p={2} textAlign="center" display="flex" flexDirection="column" justifyContent="space-between" minH="120px">
                   <Box flex="1" display="flex" alignItems="center" justifyContent="center">
                     <Box position="relative" display="inline-block">
@@ -609,7 +668,6 @@ export function AthleteStats() {
                 <CardHeader>
                   <HStack justify="space-between">
                     <HStack>
-                      <Icon as={FaBed} color="blue.500" />
                       <Heading size="md">Sleep Analytics</Heading>
                     </HStack>
                     <ButtonGroup isAttached size="sm">
@@ -822,7 +880,6 @@ export function AthleteStats() {
                 <CardHeader>
                   <HStack justify="space-between">
                     <HStack>
-                      <Icon as={FaHeartbeat} color="red.500" />
                       <Heading size="md">Wellness Analytics</Heading>
                     </HStack>
                     <ButtonGroup isAttached size="sm">
@@ -1052,7 +1109,6 @@ export function AthleteStats() {
               <Card bg={cardBg} borderColor={borderColor}>
                 <CardHeader>
                   <HStack>
-                    <Icon as={FaDumbbell} color="purple.500" />
                     <Heading size="md">Training Log</Heading>
                     <Badge colorScheme="purple" ml={2}>Non-Running</Badge>
                   </HStack>
@@ -1229,7 +1285,6 @@ export function AthleteStats() {
               <Card bg={cardBg} borderColor={borderColor}>
                 <CardHeader>
                   <HStack>
-                    <Icon as={FaClock} color="orange.500" />
                     <Heading size="md">Run Times</Heading>
                   </HStack>
                 </CardHeader>
