@@ -542,7 +542,7 @@ export function CoachStats() {
 
   if (athletesLoading) {
     return (
-      <Box py={8} px={{ base: 2, md: 8 }} bg={pageBg} minH="100vh">
+      <Box bg={pageBg} minH="100vh">
         <VStack spacing={6} align="stretch">
           <Flex justify="space-between" align="center">
             <Heading size="lg" color={textPrimary}>Athlete Analytics</Heading>
@@ -561,7 +561,7 @@ export function CoachStats() {
 
   if (athletes.length === 0) {
     return (
-      <Box py={8} px={{ base: 2, md: 8 }} bg={pageBg} minH="100vh">
+      <Box bg={pageBg} minH="100vh">
         <VStack spacing={6} align="stretch">
           <Heading size="lg" color={textPrimary}>Athlete Analytics</Heading>
           <Card bg={cardBg}>
@@ -581,7 +581,7 @@ export function CoachStats() {
   }
 
   return (
-    <Box py={8} px={{ base: 2, md: 8 }} bg={pageBg} minH="100vh">
+    <Box bg={pageBg} minH="100vh">
       <VStack spacing={6} align="stretch">
         {/* Header */}
         <Heading size="lg" color={textPrimary}>Athlete Analytics</Heading>
@@ -773,9 +773,9 @@ export function CoachStats() {
                 </SimpleGrid>
 
                 {/* Detailed Analytics Grid */}
-                <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
+                <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
                   {/* Sleep Analytics */}
-                  <Card bg={cardBg} borderColor={borderColor} h="530px" display="flex" flexDirection="column">
+                  <Card bg={cardBg} borderColor={borderColor} h="550px" display="flex" flexDirection="column">
                     <CardHeader>
                       <HStack justify="space-between">
                         <HStack>
@@ -798,7 +798,7 @@ export function CoachStats() {
                         </ButtonGroup>
                       </HStack>
                     </CardHeader>
-                    <CardBody flex="1">
+                    <CardBody flex="1" px={{ base: 0, md: 2 }}>
                       <VStack spacing={4} align="stretch">
                         <SimpleGrid columns={3} spacing={4}>
                           <Stat textAlign="center">
@@ -818,7 +818,7 @@ export function CoachStats() {
                         {/* Visual Sleep Chart */}
                         <Box>
                           <Text fontWeight="bold" mb={3}>Sleep Duration (Last {sleepViewMode === 'week' ? '7 Days' : '30 Days'})</Text>
-                          <Box bg={useColorModeValue('gray.50', 'gray.700')} borderRadius="lg" p={4} position="relative">
+                          <Box bg={useColorModeValue('gray.50', 'gray.700')} borderRadius="lg" px={1} py={10} position="relative">
                             {/* Hours labels on the right */}
                             <Box position="absolute" right={2} top={4} bottom={4}>
                               <VStack justify="space-between" h="full" spacing={0}>
@@ -856,18 +856,18 @@ export function CoachStats() {
                             </Text>
 
                             {/* Color legend */}
-                            <HStack spacing={4} mb={6} fontSize="xs" justify="center">
+                            <HStack spacing={8} mb={6} justify="center">
                               <HStack spacing={1}>
                                 <Box w="3" h="3" bg="#10B981" borderRadius="sm" />
-                                <Text color={useColorModeValue('gray.600', 'gray.300')}>7+ hours</Text>
+                                <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>7+ hours</Text>
                               </HStack>
                               <HStack spacing={1}>
                                 <Box w="3" h="3" bg="#F59E0B" borderRadius="sm" />
-                                <Text color={useColorModeValue('gray.600', 'gray.300')}>6-7 hours</Text>
+                                <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>6-7 hours</Text>
                               </HStack>
                               <HStack spacing={1}>
                                 <Box w="3" h="3" bg="#EF4444" borderRadius="sm" />
-                                <Text color={useColorModeValue('gray.600', 'gray.300')}>Under 6 hours</Text>
+                                <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>Under 6 hours</Text>
                               </HStack>
                             </HStack>
 
@@ -988,7 +988,7 @@ export function CoachStats() {
                   </Card>
 
                   {/* Wellness Analytics */}
-                  <Card bg={cardBg} borderColor={borderColor} h="530px" display="flex" flexDirection="column">
+                  <Card bg={cardBg} borderColor={borderColor} h="550px" display="flex" flexDirection="column">
                     <CardHeader>
                       <HStack justify="space-between">
                         <HStack>
@@ -1011,7 +1011,7 @@ export function CoachStats() {
                         </ButtonGroup>
                       </HStack>
                     </CardHeader>
-                    <CardBody flex="1">
+                    <CardBody flex="1" px={{ base: 2, md: 6 }}>
                       <VStack spacing={4} align="stretch">
                         <SimpleGrid columns={3} spacing={4}>
                           <Stat textAlign="center">
@@ -1031,25 +1031,25 @@ export function CoachStats() {
                         {/* Visual Wellness Chart */}
                         <Box>
                           <Text fontWeight="bold" mb={3}>Wellness Trends (Last {wellnessViewMode === 'week' ? '7 Days' : '30 Days'})</Text>
-                          <Box bg={useColorModeValue('gray.50', 'gray.700')} borderRadius="lg" p={4}>
+                          <Box bg={useColorModeValue('gray.50', 'gray.700')} borderRadius="lg" px={1} py={10}>
                             {/* Legend */}
                             {wellnessViewMode === 'week' ? (
-                              <HStack spacing={4} mb={4} fontSize="xs" justify="center">
+                              <HStack spacing={6} mb={4} fontSize="xs" justify="center">
                                 <HStack spacing={1}>
                                   <Box w="3" h="3" bg="#10B981" borderRadius="sm" />
-                                  <Text color={useColorModeValue('gray.600', 'gray.300')}>Motivation</Text>
+                                  <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>Motivation</Text>
                                 </HStack>
                                 <HStack spacing={1}>
                                   <Box w="3" h="3" bg="#3B82F6" borderRadius="sm" />
-                                  <Text color={useColorModeValue('gray.600', 'gray.300')}>Overall</Text>
+                                  <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>Overall</Text>
                                 </HStack>
                                 <HStack spacing={1}>
                                   <Box w="3" h="3" bg="#F59E0B" borderRadius="sm" />
-                                  <Text color={useColorModeValue('gray.600', 'gray.300')}>Stress</Text>
+                                  <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>Stress</Text>
                                 </HStack>
                                 <HStack spacing={1}>
                                   <Box w="3" h="3" bg="#EF4444" borderRadius="sm" />
-                                  <Text color={useColorModeValue('gray.600', 'gray.300')}>Fatigue</Text>
+                                  <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>Fatigue</Text>
                                 </HStack>
                               </HStack>
                             ) : (
@@ -1291,7 +1291,8 @@ export function CoachStats() {
                               {nonRunningExercises.length > 0 ? (
                                 <Box>
                                   <Text fontWeight="bold" mb={3}>Recent Training Sessions</Text>
-                                  <Table size="sm">
+                                  <Box overflowX="auto" maxW="100vw">
+                                    <Table size="sm" minW="600px">
                                     <Thead>
                                       <Tr>
                                         <Th>Date</Th>
@@ -1382,7 +1383,8 @@ export function CoachStats() {
                                         );
                                       })}
                                     </Tbody>
-                                  </Table>
+                                    </Table>
+                                  </Box>
                                 </Box>
                               ) : (
                                 <VStack spacing={2} py={6}>
@@ -1435,7 +1437,8 @@ export function CoachStats() {
                         <Box>
                           <Text fontWeight="bold" mb={3}>Recent Run Times</Text>
                           {analytics.runTimes.recentRuns.length > 0 ? (
-                            <Table size="sm">
+                            <Box overflowX="auto" maxW="100vw">
+                              <Table size="sm" minW="500px">
                               <Thead>
                                 <Tr>
                                   <Th>Date</Th>
@@ -1483,7 +1486,8 @@ export function CoachStats() {
                                   </Tr>
                                 ))}
                               </Tbody>
-                            </Table>
+                              </Table>
+                            </Box>
                           ) : (
                             <VStack spacing={2} py={6}>
                               <Text color="gray.500" textAlign="center">
