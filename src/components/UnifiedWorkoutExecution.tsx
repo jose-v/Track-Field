@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -11,26 +11,52 @@ import {
   HStack,
   Box,
   Text,
-  IconButton,
   Button,
-  SimpleGrid,
-  Spinner,
-  useColorModeValue,
   Progress,
+  Circle,
+  Icon,
+  useColorModeValue,
+  SimpleGrid,
+  IconButton,
+  useDisclosure,
+  Spinner,
+  Center,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
   Badge,
   Flex,
-  Circle,
-  useDisclosure,
-  Image,
-  Icon
+  Divider,
+  Grid,
+  GridItem,
 } from '@chakra-ui/react';
 import { ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
-import { FaPlay, FaPause, FaSquare, FaStepBackward, FaStepForward, FaCheckCircle, FaInfoCircle, FaRedo, FaVideo, FaForward, FaSignOutAlt } from 'react-icons/fa';
+import { 
+  FaPlay, 
+  FaPause, 
+  FaStop, 
+  FaChevronLeft, 
+  FaChevronRight, 
+  FaCheckCircle, 
+  FaInfoCircle, 
+  FaVideo, 
+  FaRedo,
+  FaClock,
+  FaDumbbell,
+  FaRunning,
+  FaArrowRight,
+  FaCheck,
+  FaSignOutAlt,
+  FaForward
+} from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/api';
-import { useUnifiedAssignmentActions } from '../hooks/useUnifiedAssignments';
+import { validateTime } from '../utils/exerciseUtils';
 import { supabase } from '../lib/supabase';
+import { saveTrainingLoadEntry } from '../services/analytics/injuryRiskService';
+import { useUnifiedAssignmentActions } from '../hooks/useUnifiedAssignments';
 import { WorkoutInfoDrawer } from './execution/WorkoutInfoDrawer';
 import { RunTimeInput } from './RunTimeInput';
 import haptics from '../utils/haptics';
@@ -1462,8 +1488,51 @@ export function UnifiedWorkoutExecution({
     
     setIsLoggingRPE(true);
     try {
-      // Save RPE to database - you can implement this based on your backend
-      // await api.saveRPE(assignment.id, currentExerciseIndex, selectedRPE);
+      // Calculate workout duration in minutes
+      const durationMinutes = Math.max(1, Math.round(elapsedTime / 60));
+      
+      // Get workout ID for saving - handle different assignment types with proper fallback
+      let actualWorkoutId: string | undefined;
+      
+      // Try to get workout ID from meta first (most reliable)
+      if (assignment.meta?.original_workout_id) {
+        actualWorkoutId = assignment.meta.original_workout_id;
+      }
+      // Fallback: try to extract from exercise_block
+      else if (assignment.assignment_type === 'single') {
+        const exerciseBlock = assignment.exercise_block as any;
+        if (exerciseBlock && typeof exerciseBlock === 'object') {
+          actualWorkoutId = exerciseBlock.id || exerciseBlock.workout_id;
+        }
+      }
+      // Final fallback: use assignment ID to ensure results are always saved
+      if (!actualWorkoutId) {
+        actualWorkoutId = assignment.id;
+        console.log(`Using assignment ID as workout ID fallback for RPE: ${actualWorkoutId}`);
+      }
+      
+      // Verify the workout exists in the database
+      const { data: workoutData, error: workoutError } = await supabase
+        .from('workouts')
+        .select('id, name')
+        .eq('id', actualWorkoutId)
+        .single();
+      
+      if (workoutError || !workoutData) {
+        console.warn(`Workout not found in workouts table: ${actualWorkoutId}, saving RPE with assignment ID`);
+        // Continue with assignment ID as fallback
+      }
+      
+      // Save RPE to training_load_entries table
+      await saveTrainingLoadEntry(
+        user.id,
+        actualWorkoutId,
+        selectedRPE,
+        durationMinutes,
+        'general'
+      );
+      
+      console.log(`✅ Saved RPE: ${selectedRPE}/10 for workout ${actualWorkoutId}, duration: ${durationMinutes} minutes`);
       
       setShowRPEScreen(false);
       setSelectedRPE(null);
@@ -1496,13 +1565,19 @@ export function UnifiedWorkoutExecution({
       }
     } catch (error) {
       console.error('Error saving RPE:', error);
+      // Still complete the workout even if RPE saving fails
+      setShowRPEScreen(false);
+      setSelectedRPE(null);
+      if (onComplete) onComplete();
+      if (onExit) onExit();
     } finally {
       setIsLoggingRPE(false);
     }
-  }, [selectedRPE, user?.id, assignment.id, currentExerciseIndex, totalExercises, completeExecution, onComplete, onExit]);
+  }, [selectedRPE, user?.id, assignment, elapsedTime, currentExerciseIndex, totalExercises, currentSet, currentExerciseSets, currentRep, currentExerciseReps, completeExecution, onComplete, onExit]);
 
   // Skip RPE
   const handleSkipRPE = useCallback(() => {
+    console.log('RPE skipped by user');
     setShowRPEScreen(false);
     setSelectedRPE(null);
     
@@ -1532,16 +1607,81 @@ export function UnifiedWorkoutExecution({
         }
       }
     }
-  }, [currentExerciseIndex, totalExercises, completeExecution, onComplete, onExit]);
+  }, [currentExerciseIndex, totalExercises, currentSet, currentExerciseSets, currentRep, currentExerciseReps, completeExecution, onComplete, onExit]);
+
+  // Save exercise result to database
+  const saveExerciseResult = useCallback(async () => {
+    if (!user?.id || !currentExercise) return;
+    
+    try {
+      // Get workout ID for saving - handle different assignment types with proper fallback
+      let actualWorkoutId: string | undefined;
+      
+      // Try to get workout ID from meta first (most reliable)
+      if (assignment.meta?.original_workout_id) {
+        actualWorkoutId = assignment.meta.original_workout_id;
+      }
+      // Fallback: try to extract from exercise_block
+      else if (assignment.assignment_type === 'single') {
+        const exerciseBlock = assignment.exercise_block as any;
+        if (exerciseBlock && typeof exerciseBlock === 'object') {
+          actualWorkoutId = exerciseBlock.id || exerciseBlock.workout_id;
+        }
+      }
+      // Final fallback: use assignment ID to ensure results are always saved
+      if (!actualWorkoutId) {
+        actualWorkoutId = assignment.id;
+        console.log(`Using assignment ID as workout ID fallback: ${actualWorkoutId}`);
+      }
+      
+      const isRunning = isRunningExercise();
+      
+      if (isRunning) {
+        // Save run time for running exercises
+        const timeValidation = validateTime(runTime.minutes, runTime.seconds, runTime.hundredths);
+        if (timeValidation.isValid && (runTime.minutes > 0 || runTime.seconds > 0 || runTime.hundredths > 0)) {
+          await api.exerciseResults.save({
+            athleteId: user.id,
+            workoutId: actualWorkoutId,
+            exerciseIndex: currentExerciseIndex,
+            exerciseName: currentExercise.name,
+            timeMinutes: runTime.minutes,
+            timeSeconds: runTime.seconds,
+            timeHundredths: runTime.hundredths,
+            notes: `Set ${currentSet}, Rep ${currentRep} - Duration: ${Math.floor(elapsedTime / 60)}:${(elapsedTime % 60).toString().padStart(2, '0')}`
+          });
+          console.log(`✅ Saved run time: ${currentExercise.name} - ${runTime.minutes}:${runTime.seconds}.${runTime.hundredths}`);
+        }
+      } else {
+        // Save set completion for non-running exercises
+        await api.exerciseResults.save({
+          athleteId: user.id,
+          workoutId: actualWorkoutId,
+          exerciseIndex: currentExerciseIndex,
+          exerciseName: currentExercise.name,
+          repsCompleted: currentRep,
+          setsCompleted: currentSet,
+          weightUsed: currentExercise.weight ? parseFloat(String(currentExercise.weight)) : undefined,
+          notes: `Set ${currentSet}, Rep ${currentRep} - Duration: ${Math.floor(elapsedTime / 60)}:${(elapsedTime % 60).toString().padStart(2, '0')}`
+        });
+        console.log(`✅ Saved set completion: ${currentExercise.name} - Set ${currentSet}, Rep ${currentRep}`);
+      }
+    } catch (error) {
+      console.error('Error saving exercise result:', error);
+    }
+  }, [user?.id, currentExercise, assignment, currentExerciseIndex, runTime, currentSet, currentRep, elapsedTime, isRunningExercise]);
 
   // Navigation handlers
-  const handleNext = () => {
+  const handleNext = async () => {
     const totalSets = currentExerciseSets;
     const totalReps = currentExerciseReps;
     const isRunning = isRunningExercise();
     
     // Stop any active timers first
     setIsActive(false);
+    
+    // Save exercise result before progressing
+    await saveExerciseResult();
     
     if (isRunning) {
       // For running exercises: Use rep-by-rep navigation

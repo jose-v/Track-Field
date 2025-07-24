@@ -1103,11 +1103,52 @@ export function UnifiedAssignmentCard({
     }
   };
 
-  // Get the actual workout name from assignment data
-  const workoutName = assignment.exercise_block?.workout_name || 
-                     assignment.exercise_block?.plan_name || 
-                     assignment.exercise_block?.name ||
-                     `Workout ${assignment.id.slice(-4).toUpperCase()}`;
+  // Get the actual workout name from assignment data with comprehensive fallback logic
+  const getWorkoutName = () => {
+    // First, try to get the workout name from exercise_block
+    const exerciseBlockName = assignment.exercise_block?.workout_name || 
+                             assignment.exercise_block?.plan_name || 
+                             assignment.exercise_block?.name;
+    
+    if (exerciseBlockName) {
+      return exerciseBlockName;
+    }
+    
+    // Check meta for original workout name or workout information
+    if (assignment.meta?.workout_name) {
+      return assignment.meta.workout_name;
+    }
+    
+    if (assignment.meta?.original_workout_name) {
+      return assignment.meta.original_workout_name;
+    }
+    
+    // Try to extract workout name from meta.original_workout_id if it looks like a known format
+    if (assignment.meta?.original_workout_id) {
+      const originalId = assignment.meta.original_workout_id;
+      // Check if it's in the S#### format (like S8787)
+      if (typeof originalId === 'string' && originalId.match(/^S\d+$/)) {
+        return originalId;
+      }
+    }
+    
+    // Fallback to assignment ID in uppercase format
+    return `Workout ${assignment.id.slice(-4).toUpperCase()}`;
+  };
+  
+  const workoutName = getWorkoutName();
+  
+  // Debug logging for workout name extraction
+  console.log(`🏃 UnifiedAssignmentCard workout name extraction:`, {
+    assignmentId: assignment.id,
+    extractedName: workoutName,
+    exerciseBlockName: assignment.exercise_block?.workout_name,
+    exerciseBlockPlanName: assignment.exercise_block?.plan_name,
+    exerciseBlockGenericName: assignment.exercise_block?.name,
+    metaWorkoutName: assignment.meta?.workout_name,
+    metaOriginalWorkoutName: assignment.meta?.original_workout_name,
+    metaOriginalWorkoutId: assignment.meta?.original_workout_id
+  });
 
   // Animated circular progress component
   const CircularProgress = ({ percentage }: { percentage: number }) => {

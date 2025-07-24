@@ -20,6 +20,7 @@ import {
   StatHelpText,
   Progress,
   Button,
+  ButtonGroup,
   Select,
   Skeleton,
   SkeletonText,
@@ -95,6 +96,8 @@ export function CoachStats() {
   const [selectedAthleteId, setSelectedAthleteId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState('week');
+  const [sleepViewMode, setSleepViewMode] = useState<'week' | 'month'>('week');
+  const [wellnessViewMode, setWellnessViewMode] = useState<'week' | 'month'>('week');
 
   // Fetch coach's athletes
   const { data: athletes = [], isLoading: athletesLoading } = useCoachAthletes({
@@ -175,18 +178,25 @@ export function CoachStats() {
         console.log('Fetched workout names directly from workouts table:', workoutIdToName);
       }
       
+      // Get training load entries (RPE data) for this athlete and date range
+      const { data: trainingLoadData } = await supabase
+        .from('training_load_entries')
+        .select('*')
+        .eq('athlete_id', selectedAthleteId)
+        .gte('date', startDate.split('T')[0])
+        .order('date', { ascending: false });
+
+      console.log('Training load data for athlete:', selectedAthleteId, trainingLoadData);
+
+      // Create a map of workout_id to RPE for quick lookup
+      const workoutRPEMap = new Map();
+      trainingLoadData?.forEach((entry: any) => {
+        workoutRPEMap.set(entry.workout_id, entry.rpe);
+      });
+
       // Transform exercise results to the format expected by the analytics
-      // Filter to only include running exercises
-      const filteredExerciseResults = exerciseResultsData?.filter((result: any) => {
-        const exerciseName = result.exercise_name?.toLowerCase() || '';
-        const isRunningExercise = exerciseName.includes('run') ||
-                                 exerciseName.includes('sprint') ||
-                                 exerciseName.includes('dash') ||
-                                 exerciseName.includes('meter') ||
-                                 exerciseName.includes('mile') ||
-                                 exerciseName.includes('jog');
-        return isRunningExercise;
-      }) || [];
+      // Include ALL exercises (both running and non-running)
+      const filteredExerciseResults = exerciseResultsData || [];
       
       const transformedPerformanceData = filteredExerciseResults?.map((result: any) => {
         const workoutName = workoutIdToName[result.workout_id] || `Workout ${result.workout_id.slice(0, 8)}`;
@@ -202,7 +212,7 @@ export function CoachStats() {
           time_hundredths: result.time_hundredths,
           created_at: result.completed_at,
           workout: { id: result.workout_id, name: workoutName },
-          rpe_rating: result.rpe_rating,
+          rpe_rating: workoutRPEMap.get(result.workout_id) || null, // Get RPE from training_load_entries
           has_time_data: !!(result.time_minutes || result.time_seconds || result.time_hundredths),
           sets_completed: result.sets_completed,
           reps_completed: result.reps_completed,
@@ -258,95 +268,48 @@ export function CoachStats() {
 
     // Prepare sleep chart data
     const chartData = (() => {
-      if (dateRange !== 'week') {
-        // For month/quarter, show last 7 days
-        const days = 7;
-        const dates = [];
-        for (let i = days - 1; i >= 0; i--) {
-          const date = new Date();
-          date.setDate(date.getDate() - i);
-          dates.push(date);
-        }
-        
-        return dates.map(date => {
-          const dateStr = date.toISOString().split('T')[0];
-          const record = sleepRecords.find(r => r.sleep_date === dateStr);
-          
-          if (!record) {
-            return {
-              day: date.toLocaleDateString('en-US', { weekday: 'short' }),
-              hasData: false,
-              sleepStart: 0,
-              sleepEnd: 0,
-              duration: 0
-            };
-          }
-
-          // Convert time strings to hour values for chart positioning
-          const [startHours, startMinutes] = record.start_time.split(':').map(Number);
-          const [endHours, endMinutes] = record.end_time.split(':').map(Number);
-          
-          let sleepStart = startHours + startMinutes / 60;
-          let sleepEnd = endHours + endMinutes / 60;
-          
-          // Handle overnight sleep (bedtime after midnight)
-          if (sleepStart > 12) sleepStart -= 24; // Convert to negative hours for evening
-          if (sleepEnd < sleepStart) sleepEnd += 24; // Handle crossing midnight
-          
-          return {
-            day: date.toLocaleDateString('en-US', { weekday: 'short' }),
-            hasData: true,
-            sleepStart,
-            sleepEnd,
-            duration: sleepEnd - sleepStart,
-            record
-          };
-        });
-      } else {
-        // For week view, show last 7 days
-        const days = 7;
-        const dates = [];
-        for (let i = days - 1; i >= 0; i--) {
-          const date = new Date();
-          date.setDate(date.getDate() - i);
-          dates.push(date);
-        }
-        
-        return dates.map(date => {
-          const dateStr = date.toISOString().split('T')[0];
-          const record = sleepRecords.find(r => r.sleep_date === dateStr);
-          
-          if (!record) {
-            return {
-              day: date.toLocaleDateString('en-US', { weekday: 'short' }),
-              hasData: false,
-              sleepStart: 0,
-              sleepEnd: 0,
-              duration: 0
-            };
-          }
-
-          // Convert time strings to hour values for chart positioning
-          const [startHours, startMinutes] = record.start_time.split(':').map(Number);
-          const [endHours, endMinutes] = record.end_time.split(':').map(Number);
-          
-          let sleepStart = startHours + startMinutes / 60;
-          let sleepEnd = endHours + endMinutes / 60;
-          
-          // Handle overnight sleep (bedtime after midnight)
-          if (sleepStart > 12) sleepStart -= 24; // Convert to negative hours for evening
-          if (sleepEnd < sleepStart) sleepEnd += 24; // Handle crossing midnight
-          
-          return {
-            day: date.toLocaleDateString('en-US', { weekday: 'short' }),
-            hasData: true,
-            sleepStart,
-            sleepEnd,
-            duration: sleepEnd - sleepStart,
-            record
-          };
-        });
+      const days = sleepViewMode === 'week' ? 7 : 30;
+      const dates = [];
+      for (let i = days - 1; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        dates.push(date);
       }
+      
+      return dates.map(date => {
+        const dateStr = date.toISOString().split('T')[0];
+        const record = sleepRecords.find(r => r.sleep_date === dateStr);
+        
+        if (!record) {
+          return {
+            day: sleepViewMode === 'week' ? date.toLocaleDateString('en-US', { weekday: 'short' }) : date.getDate().toString(),
+            hasData: false,
+            sleepStart: 0,
+            sleepEnd: 0,
+            duration: 0
+          };
+        }
+
+        // Convert time strings to hour values for chart positioning
+        const [startHours, startMinutes] = record.start_time.split(':').map(Number);
+        const [endHours, endMinutes] = record.end_time.split(':').map(Number);
+        
+        let sleepStart = startHours + startMinutes / 60;
+        let sleepEnd = endHours + endMinutes / 60;
+        
+        // Handle overnight sleep (bedtime after midnight)
+        if (sleepStart > 12) sleepStart -= 24; // Convert to negative hours for evening
+        if (sleepEnd < sleepStart) sleepEnd += 24; // Handle crossing midnight
+        
+        return {
+          day: sleepViewMode === 'week' ? date.toLocaleDateString('en-US', { weekday: 'short' }) : date.getDate().toString(),
+          hasData: true,
+          sleepStart,
+          sleepEnd,
+          duration: sleepEnd - sleepStart,
+          record
+        };
+      });
     })();
 
     // Wellness analytics
@@ -364,7 +327,7 @@ export function CoachStats() {
 
     // Prepare wellness chart data
     const wellnessChartData = (() => {
-      const days = 7;
+      const days = wellnessViewMode === 'week' ? 7 : 30;
       const dates = [];
       for (let i = days - 1; i >= 0; i--) {
         const date = new Date();
@@ -378,7 +341,7 @@ export function CoachStats() {
         
         if (!record) {
           return {
-            day: date.toLocaleDateString('en-US', { weekday: 'short' }),
+            day: wellnessViewMode === 'week' ? date.toLocaleDateString('en-US', { weekday: 'short' }) : date.getDate().toString(),
             hasData: false,
             fatigue: 0,
             stress: 0,
@@ -389,7 +352,7 @@ export function CoachStats() {
         }
 
         return {
-          day: date.toLocaleDateString('en-US', { weekday: 'short' }),
+          day: wellnessViewMode === 'week' ? date.toLocaleDateString('en-US', { weekday: 'short' }) : date.getDate().toString(),
           hasData: true,
           fatigue: record.fatigue_level || 0,
           stress: record.stress_level || 0,
@@ -404,15 +367,29 @@ export function CoachStats() {
     // Performance analytics
     const performanceRecords = athleteData.performance;
     const sessionsCompleted = performanceRecords.length;
-    const runningExercises = performanceRecords.filter(p => 
-      p.time_minutes !== null || p.time_seconds !== null || p.time_hundredths !== null
-    );
+    const runningExercises = performanceRecords.filter(p => {
+      const exerciseName = p.exercise_name?.toLowerCase() || '';
+      const isRunningExercise = exerciseName.includes('run') ||
+                               exerciseName.includes('sprint') ||
+                               exerciseName.includes('dash') ||
+                               exerciseName.includes('meter') ||
+                               exerciseName.includes('mile') ||
+                               exerciseName.includes('jog');
+      return isRunningExercise && (p.time_minutes !== null || p.time_seconds !== null || p.time_hundredths !== null);
+    });
 
     // Run times analytics (all running exercises, with or without logged times)
     const runTimesData = (() => {
-      // Get ALL running exercises (with or without logged time data)
+      // Get ONLY running exercises (with or without logged time data)
       const runResults = performanceRecords.filter(p => {
-        return p.exercise_name; // Show all running exercises
+        const exerciseName = p.exercise_name?.toLowerCase() || '';
+        const isRunningExercise = exerciseName.includes('run') ||
+                                 exerciseName.includes('sprint') ||
+                                 exerciseName.includes('dash') ||
+                                 exerciseName.includes('meter') ||
+                                 exerciseName.includes('mile') ||
+                                 exerciseName.includes('jog');
+        return isRunningExercise;
       });
 
               // Separate exercises with and without time data
@@ -531,7 +508,7 @@ export function CoachStats() {
       },
       runTimes: runTimesData
     };
-  }, [athleteData, dateRange]);
+  }, [athleteData, dateRange, sleepViewMode, wellnessViewMode]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -753,32 +730,36 @@ export function CoachStats() {
                     <CardBody p={2} textAlign="center" display="flex" flexDirection="column" justifyContent="space-between" minH="120px">
                       <Box flex="1" display="flex" alignItems="center" justifyContent="center">
                         <Box position="relative" display="inline-block">
-                          <Box 
-                            position="relative" 
-                            overflow="hidden" 
-                            height="50px" 
-                            width="100px"
-                          >
-                            <CircularProgress 
-                              value={analytics.training.adherence * 2} 
-                              color={getStatusColor(analytics.training.status) + '.500'}
-                              size="100px"
-                              thickness="12px"
-                              trackColor="gray.200"
-                              sx={{
-                                transform: 'rotate(-90deg)',
-                                '> svg > circle:last-child': {
-                                  strokeDasharray: `${(analytics.training.adherence / 100) * Math.PI * 88}, ${Math.PI * 88}`
-                                }
+                          {/* Half-circle progress chart */}
+                          <svg width="100" height="60" viewBox="0 0 100 60">
+                            {/* Background semicircle */}
+                            <path
+                              d="M 10 50 A 40 40 0 0 1 90 50"
+                              fill="none"
+                              stroke={useColorModeValue('#E5E7EB', '#374151')}
+                              strokeWidth="12"
+                              strokeLinecap="round"
+                            />
+                            {/* Progress semicircle */}
+                            <path
+                              d="M 10 50 A 40 40 0 0 1 90 50"
+                              fill="none"
+                              stroke={getStatusColor(analytics.training.status) === 'green' ? '#10B981' : 
+                                     getStatusColor(analytics.training.status) === 'yellow' ? '#F59E0B' : '#EF4444'}
+                              strokeWidth="12"
+                              strokeLinecap="round"
+                              strokeDasharray={`${(analytics.training.adherence / 100) * 125.66} 125.66`}
+                              style={{
+                                transition: 'stroke-dasharray 0.5s ease-in-out'
                               }}
                             />
-                          </Box>
+                          </svg>
                           <Text 
                             position="absolute" 
-                            bottom="-8px" 
+                            bottom="0px" 
                             left="50%" 
                             transform="translateX(-50%)"
-                            fontSize="sm" 
+                            fontSize="lg" 
                             fontWeight="bold"
                             color={textPrimary}
                           >
@@ -794,14 +775,30 @@ export function CoachStats() {
                 {/* Detailed Analytics Grid */}
                 <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
                   {/* Sleep Analytics */}
-                  <Card bg={cardBg} borderColor={borderColor}>
+                  <Card bg={cardBg} borderColor={borderColor} h="530px" display="flex" flexDirection="column">
                     <CardHeader>
-                      <HStack>
-                        <Icon as={FaBed} color="blue.500" />
-                        <Heading size="md">Sleep Analytics</Heading>
+                      <HStack justify="space-between">
+                        <HStack>
+                          <Icon as={FaBed} color="blue.500" />
+                          <Heading size="md">Sleep Analytics</Heading>
+                        </HStack>
+                        <ButtonGroup isAttached size="sm">
+                          <Button 
+                            colorScheme={sleepViewMode === 'week' ? 'blue' : 'gray'}
+                            onClick={() => setSleepViewMode('week')}
+                          >
+                            Week
+                          </Button>
+                          <Button 
+                            colorScheme={sleepViewMode === 'month' ? 'blue' : 'gray'}
+                            onClick={() => setSleepViewMode('month')}
+                          >
+                            Month
+                          </Button>
+                        </ButtonGroup>
                       </HStack>
                     </CardHeader>
-                    <CardBody>
+                    <CardBody flex="1">
                       <VStack spacing={4} align="stretch">
                         <SimpleGrid columns={3} spacing={4}>
                           <Stat textAlign="center">
@@ -820,65 +817,170 @@ export function CoachStats() {
 
                         {/* Visual Sleep Chart */}
                         <Box>
-                          <Text fontWeight="bold" mb={3}>Sleep Pattern (Last 7 Days)</Text>
+                          <Text fontWeight="bold" mb={3}>Sleep Duration (Last {sleepViewMode === 'week' ? '7 Days' : '30 Days'})</Text>
                           <Box bg={useColorModeValue('gray.50', 'gray.700')} borderRadius="lg" p={4} position="relative">
-                            {/* Time labels on the right */}
+                            {/* Hours labels on the right */}
                             <Box position="absolute" right={2} top={4} bottom={4}>
                               <VStack justify="space-between" h="full" spacing={0}>
-                                <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')}>2am</Text>
-                                <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')}>4am</Text>
-                                <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')}>6am</Text>
-                                <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')}>8am</Text>
-                                <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')}>10am</Text>
+                                <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')}>10h</Text>
+                                <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')}>8h</Text>
+                                <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')}>6h</Text>
+                                <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')}>4h</Text>
+                                <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')}>2h</Text>
                               </VStack>
                             </Box>
 
-                            {/* Chart area */}
-                            <HStack spacing={2} align="end" justify="space-between" h="120px" pr={8}>
-                              {analytics.sleep.chartData.map((day, index) => (
-                                <VStack key={index} spacing={1} align="center" flex={1}>
-                                  {/* Sleep bar */}
-                                  <Box 
-                                    position="relative" 
-                                    h="80px" 
-                                    w="12px" 
-                                    bg="gray.200" 
-                                    borderRadius="full"
-                                    overflow="hidden"
-                                  >
-                                    {day.hasData && (
-                                      <>
-                                        {/* Sleep duration bar */}
-                                        <Box
-                                          position="absolute"
-                                          bottom={`${Math.max(0, (day.sleepStart + 12) / 16 * 100)}%`}
-                                          h={`${Math.min(80, Math.max(10, (day.duration / 12) * 80))}%`}
-                                          w="full"
-                                          bg="#6366F1"
-                                          borderRadius="full"
-                                        />
-                                        {/* Bedtime indicator (small circle) */}
-                                        <Box
-                                          position="absolute"
-                                          bottom={`${(day.sleepStart + 12) / 16 * 100}%`}
-                                          left="50%"
-                                          transform="translateX(-50%)"
-                                          w="6px"
-                                          h="6px"
-                                          bg="#6366F1"
-                                          borderRadius="full"
-                                          border="2px solid white"
-                                        />
-                                      </>
-                                    )}
-                                  </Box>
-                                  {/* Day label */}
-                                  <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')} fontWeight="medium">
-                                    {day.day}
-                                  </Text>
-                                </VStack>
-                              ))}
+                            {/* Goal line at 7 hours */}
+                            <Box
+                              position="absolute"
+                              top={`${30}%`}
+                              left={4}
+                              right={8}
+                              h="1px"
+                              bg={useColorModeValue('green.400', 'green.500')}
+                              opacity={0.6}
+                            />
+                            <Text
+                              position="absolute"
+                              top={`${27}%`}
+                              left={4}
+                              fontSize="xs"
+                              color={useColorModeValue('green.600', 'green.400')}
+                              bg={useColorModeValue('white', 'gray.800')}
+                              px={2}
+                              borderRadius="md"
+                              border="1px solid"
+                              borderColor={useColorModeValue('green.200', 'green.700')}
+                            >
+                              Goal: 7h
+                            </Text>
+
+                            {/* Color legend */}
+                            <HStack spacing={4} mb={6} fontSize="xs" justify="center">
+                              <HStack spacing={1}>
+                                <Box w="3" h="3" bg="#10B981" borderRadius="sm" />
+                                <Text color={useColorModeValue('gray.600', 'gray.300')}>7+ hours</Text>
+                              </HStack>
+                              <HStack spacing={1}>
+                                <Box w="3" h="3" bg="#F59E0B" borderRadius="sm" />
+                                <Text color={useColorModeValue('gray.600', 'gray.300')}>6-7 hours</Text>
+                              </HStack>
+                              <HStack spacing={1}>
+                                <Box w="3" h="3" bg="#EF4444" borderRadius="sm" />
+                                <Text color={useColorModeValue('gray.600', 'gray.300')}>Under 6 hours</Text>
+                              </HStack>
                             </HStack>
+
+                            {/* Chart area */}
+                            {sleepViewMode === 'week' ? (
+                              /* Weekly Bar Chart */
+                              <HStack spacing={2} align="end" justify="space-between" h="190px" pr={8}>
+                                {analytics.sleep.chartData.map((day, index) => (
+                                  <VStack key={index} spacing={2} align="center" flex={1}>
+                                    {/* Duration text above bar */}
+                                    <Box h="16px" display="flex" alignItems="center">
+                                      {day.hasData && (
+                                        <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.400')} fontWeight="medium">
+                                          {day.duration.toFixed(1)}h
+                                        </Text>
+                                      )}
+                                    </Box>
+                                    {/* Sleep duration bar */}
+                                    <Box 
+                                      position="relative" 
+                                      h="130px" 
+                                      w="16px"
+                                      bg="gray.200" 
+                                      borderRadius="sm"
+                                      overflow="hidden"
+                                    >
+                                      {day.hasData && (
+                                        <Box
+                                          position="absolute"
+                                          bottom="0%"
+                                          h={`${Math.min(100, Math.max(5, (day.duration / 10) * 100))}%`}
+                                          w="full"
+                                          bg={day.duration >= 7 ? "#10B981" : day.duration >= 6 ? "#F59E0B" : "#EF4444"}
+                                          borderRadius="sm"
+                                        />
+                                      )}
+                                    </Box>
+                                    {/* Day label */}
+                                    <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')} fontWeight="medium">
+                                      {day.day}
+                                    </Text>
+                                  </VStack>
+                                ))}
+                              </HStack>
+                            ) : (
+                              /* Monthly Wave Chart */
+                              <Box h="190px" position="relative">
+                                {/* SVG Wave Chart */}
+                                <svg width="100%" height="160" viewBox="0 0 400 160" preserveAspectRatio="none">
+                                  {/* Grid lines */}
+                                  {[0, 25, 50, 75, 100].map((percentage) => (
+                                    <line
+                                      key={percentage}
+                                      x1="0"
+                                      y1={160 - (percentage * 1.6)}
+                                      x2="400"
+                                      y2={160 - (percentage * 1.6)}
+                                      stroke={useColorModeValue('#F3F4F6', '#374151')}
+                                      strokeWidth="1"
+                                      opacity={0.3}
+                                    />
+                                  ))}
+                                  
+                                  {/* Wave path */}
+                                  <path
+                                    d={(() => {
+                                      const points = analytics.sleep.chartData.map((day, index) => {
+                                        const x = (index / (analytics.sleep.chartData.length - 1)) * 400;
+                                        const y = day.hasData ? 
+                                          160 - Math.min(160, Math.max(8, (day.duration / 10) * 160)) : 
+                                          160 - 80; // Default middle position for no data
+                                        return `${x},${y}`;
+                                      });
+                                      return `M ${points.join(' L ')}`;
+                                    })()}
+                                    fill="none"
+                                    stroke="#6366F1"
+                                    strokeWidth="3"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                  
+                                  {/* Data points */}
+                                  {analytics.sleep.chartData.map((day, index) => {
+                                    if (!day.hasData) return null;
+                                    const x = (index / (analytics.sleep.chartData.length - 1)) * 400;
+                                    const y = 160 - Math.min(160, Math.max(8, (day.duration / 10) * 160));
+                                    const color = day.duration >= 7 ? "#10B981" : day.duration >= 6 ? "#F59E0B" : "#EF4444";
+                                    
+                                    return (
+                                      <circle
+                                        key={index}
+                                        cx={x}
+                                        cy={y}
+                                        r="4"
+                                        fill={color}
+                                        stroke="white"
+                                        strokeWidth="2"
+                                      />
+                                    );
+                                  })}
+                                </svg>
+                                
+                                {/* X-axis labels */}
+                                <HStack justify="space-between" mt={2} px={2}>
+                                  {analytics.sleep.chartData.filter((_, index) => index % 5 === 0).map((day, index) => (
+                                    <Text key={index} fontSize="xs" color={useColorModeValue('gray.500', 'gray.400')}>
+                                      {day.day}
+                                    </Text>
+                                  ))}
+                                </HStack>
+                              </Box>
+                            )}
                           </Box>
                         </Box>
                       </VStack>
@@ -886,14 +988,30 @@ export function CoachStats() {
                   </Card>
 
                   {/* Wellness Analytics */}
-                  <Card bg={cardBg} borderColor={borderColor}>
+                  <Card bg={cardBg} borderColor={borderColor} h="530px" display="flex" flexDirection="column">
                     <CardHeader>
-                      <HStack>
-                        <Icon as={FaHeartbeat} color="red.500" />
-                        <Heading size="md">Wellness Analytics</Heading>
+                      <HStack justify="space-between">
+                        <HStack>
+                          <Icon as={FaHeartbeat} color="red.500" />
+                          <Heading size="md">Wellness Analytics</Heading>
+                        </HStack>
+                        <ButtonGroup isAttached size="sm">
+                          <Button 
+                            colorScheme={wellnessViewMode === 'week' ? 'blue' : 'gray'}
+                            onClick={() => setWellnessViewMode('week')}
+                          >
+                            Week
+                          </Button>
+                          <Button 
+                            colorScheme={wellnessViewMode === 'month' ? 'blue' : 'gray'}
+                            onClick={() => setWellnessViewMode('month')}
+                          >
+                            Month
+                          </Button>
+                        </ButtonGroup>
                       </HStack>
                     </CardHeader>
-                    <CardBody>
+                    <CardBody flex="1">
                       <VStack spacing={4} align="stretch">
                         <SimpleGrid columns={3} spacing={4}>
                           <Stat textAlign="center">
@@ -912,83 +1030,187 @@ export function CoachStats() {
 
                         {/* Visual Wellness Chart */}
                         <Box>
-                          <Text fontWeight="bold" mb={3}>Wellness Trends (Last 7 Days)</Text>
+                          <Text fontWeight="bold" mb={3}>Wellness Trends (Last {wellnessViewMode === 'week' ? '7 Days' : '30 Days'})</Text>
                           <Box bg={useColorModeValue('gray.50', 'gray.700')} borderRadius="lg" p={4}>
                             {/* Legend */}
-                            <HStack spacing={4} mb={4} fontSize="xs" justify="center">
-                              <HStack spacing={1}>
-                                <Box w="3" h="3" bg="#10B981" borderRadius="sm" />
-                                <Text color={useColorModeValue('gray.600', 'gray.300')}>Motivation</Text>
+                            {wellnessViewMode === 'week' ? (
+                              <HStack spacing={4} mb={4} fontSize="xs" justify="center">
+                                <HStack spacing={1}>
+                                  <Box w="3" h="3" bg="#10B981" borderRadius="sm" />
+                                  <Text color={useColorModeValue('gray.600', 'gray.300')}>Motivation</Text>
+                                </HStack>
+                                <HStack spacing={1}>
+                                  <Box w="3" h="3" bg="#3B82F6" borderRadius="sm" />
+                                  <Text color={useColorModeValue('gray.600', 'gray.300')}>Overall</Text>
+                                </HStack>
+                                <HStack spacing={1}>
+                                  <Box w="3" h="3" bg="#F59E0B" borderRadius="sm" />
+                                  <Text color={useColorModeValue('gray.600', 'gray.300')}>Stress</Text>
+                                </HStack>
+                                <HStack spacing={1}>
+                                  <Box w="3" h="3" bg="#EF4444" borderRadius="sm" />
+                                  <Text color={useColorModeValue('gray.600', 'gray.300')}>Fatigue</Text>
+                                </HStack>
                               </HStack>
-                              <HStack spacing={1}>
-                                <Box w="3" h="3" bg="#3B82F6" borderRadius="sm" />
-                                <Text color={useColorModeValue('gray.600', 'gray.300')}>Overall</Text>
+                            ) : (
+                              <HStack spacing={6} mb={4} fontSize="xs" justify="center">
+                                <HStack spacing={1}>
+                                  <Box w="3" h="2" bg="#10B981" borderRadius="sm" />
+                                  <Text color={useColorModeValue('gray.600', 'gray.300')}>Motivation</Text>
+                                </HStack>
+                                <HStack spacing={1}>
+                                  <Box w="3" h="2" bg="#3B82F6" borderRadius="sm" />
+                                  <Text color={useColorModeValue('gray.600', 'gray.300')}>Overall Feeling</Text>
+                                </HStack>
+                                <HStack spacing={1}>
+                                  <Box w="3" h="1" bg="#F59E0B" borderRadius="sm" style={{borderStyle: 'dashed', borderWidth: '1px'}} />
+                                  <Text color={useColorModeValue('gray.600', 'gray.300')}>Low Stress (Good)</Text>
+                                </HStack>
                               </HStack>
-                              <HStack spacing={1}>
-                                <Box w="3" h="3" bg="#F59E0B" borderRadius="sm" />
-                                <Text color={useColorModeValue('gray.600', 'gray.300')}>Stress</Text>
-                              </HStack>
-                              <HStack spacing={1}>
-                                <Box w="3" h="3" bg="#EF4444" borderRadius="sm" />
-                                <Text color={useColorModeValue('gray.600', 'gray.300')}>Fatigue</Text>
-                              </HStack>
-                            </HStack>
+                            )}
 
                             {/* Chart area */}
-                            <HStack spacing={2} align="end" justify="space-between" h="120px">
-                              {analytics.wellness.chartData.map((day, index) => (
-                                <VStack key={index} spacing={1} align="center" flex={1}>
-                                  {/* Stacked wellness bars */}
-                                  <Box 
-                                    position="relative" 
-                                    h="80px" 
-                                    w="20px" 
-                                    bg="gray.200" 
-                                    borderRadius="sm"
-                                    overflow="hidden"
-                                  >
-                                    {day.hasData && (
-                                      <VStack spacing={0} h="full" justify="end">
-                                        {/* Fatigue (bottom) - inverted scale (higher is worse) */}
-                                        <Box
-                                          w="full"
-                                          h={`${(day.fatigue / 10) * 20}%`}
-                                          bg="#EF4444"
-                                        />
-                                        {/* Stress */}
-                                        <Box
-                                          w="full"
-                                          h={`${(day.stress / 10) * 20}%`}
-                                          bg="#F59E0B"
-                                        />
-                                        {/* Overall feeling */}
-                                        <Box
-                                          w="full"
-                                          h={`${(day.overall / 10) * 30}%`}
-                                          bg="#3B82F6"
-                                        />
-                                        {/* Motivation (top) */}
-                                        <Box
-                                          w="full"
-                                          h={`${(day.motivation / 10) * 30}%`}
-                                          bg="#10B981"
-                                        />
-                                      </VStack>
-                                    )}
-                                  </Box>
-                                  {/* Day label */}
-                                  <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')} fontWeight="medium">
-                                    {day.day}
-                                  </Text>
-                                </VStack>
-                              ))}
-                            </HStack>
+                            {wellnessViewMode === 'week' ? (
+                              /* Weekly Stacked Bar Chart */
+                              <HStack spacing={2} align="end" justify="space-between" h="190px">
+                                {analytics.wellness.chartData.map((day, index) => (
+                                  <VStack key={index} spacing={1} align="center" flex={1}>
+                                    {/* Stacked wellness bars */}
+                                    <Box 
+                                      position="relative" 
+                                      h="150px" 
+                                      w="20px"
+                                      bg="gray.200" 
+                                      borderRadius="sm"
+                                      overflow="hidden"
+                                    >
+                                      {day.hasData && (
+                                        <VStack spacing={0} h="full" justify="end">
+                                          {/* Fatigue (bottom) - inverted scale (higher is worse) */}
+                                          <Box
+                                            w="full"
+                                            h={`${(day.fatigue / 10) * 20}%`}
+                                            bg="#EF4444"
+                                          />
+                                          {/* Stress */}
+                                          <Box
+                                            w="full"
+                                            h={`${(day.stress / 10) * 20}%`}
+                                            bg="#F59E0B"
+                                          />
+                                          {/* Overall feeling */}
+                                          <Box
+                                            w="full"
+                                            h={`${(day.overall / 10) * 30}%`}
+                                            bg="#3B82F6"
+                                          />
+                                          {/* Motivation (top) */}
+                                          <Box
+                                            w="full"
+                                            h={`${(day.motivation / 10) * 30}%`}
+                                            bg="#10B981"
+                                          />
+                                        </VStack>
+                                      )}
+                                    </Box>
+                                    {/* Day label */}
+                                    <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')} fontWeight="medium">
+                                      {day.day}
+                                    </Text>
+                                  </VStack>
+                                ))}
+                              </HStack>
+                            ) : (
+                              /* Monthly Multi-Wave Chart */
+                              <Box h="190px" position="relative">
+                                <svg width="100%" height="160" viewBox="0 0 400 160" preserveAspectRatio="none">
+                                  {/* Grid lines */}
+                                  {[0, 25, 50, 75, 100].map((percentage) => (
+                                    <line
+                                      key={percentage}
+                                      x1="0"
+                                      y1={160 - (percentage * 1.6)}
+                                      x2="400"
+                                      y2={160 - (percentage * 1.6)}
+                                      stroke={useColorModeValue('#F3F4F6', '#374151')}
+                                      strokeWidth="1"
+                                      opacity={0.3}
+                                    />
+                                  ))}
+                                  
+                                  {/* Motivation wave (top priority) */}
+                                  <path
+                                    d={(() => {
+                                      const points = analytics.wellness.chartData.map((day, index) => {
+                                        const x = (index / (analytics.wellness.chartData.length - 1)) * 400;
+                                        const y = day.hasData ? 
+                                          160 - Math.min(160, Math.max(8, (day.motivation / 10) * 160)) : 
+                                          160 - 80;
+                                        return `${x},${y}`;
+                                      });
+                                      return `M ${points.join(' L ')}`;
+                                    })()}
+                                    fill="none"
+                                    stroke="#10B981"
+                                    strokeWidth="3"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                  
+                                  {/* Overall feeling wave */}
+                                  <path
+                                    d={(() => {
+                                      const points = analytics.wellness.chartData.map((day, index) => {
+                                        const x = (index / (analytics.wellness.chartData.length - 1)) * 400;
+                                        const y = day.hasData ? 
+                                          160 - Math.min(160, Math.max(8, (day.overall / 10) * 160)) : 
+                                          160 - 80;
+                                        return `${x},${y}`;
+                                      });
+                                      return `M ${points.join(' L ')}`;
+                                    })()}
+                                    fill="none"
+                                    stroke="#3B82F6"
+                                    strokeWidth="2.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    opacity={0.9}
+                                  />
+                                  
+                                  {/* Stress wave (inverted - lower is better) */}
+                                  <path
+                                    d={(() => {
+                                      const points = analytics.wellness.chartData.map((day, index) => {
+                                        const x = (index / (analytics.wellness.chartData.length - 1)) * 400;
+                                        const y = day.hasData ? 
+                                          160 - Math.min(160, Math.max(8, ((10 - day.stress) / 10) * 160)) : 
+                                          160 - 80;
+                                        return `${x},${y}`;
+                                      });
+                                      return `M ${points.join(' L ')}`;
+                                    })()}
+                                    fill="none"
+                                    stroke="#F59E0B"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    opacity={0.8}
+                                    strokeDasharray="4 2"
+                                  />
+                                </svg>
+                                
+                                {/* X-axis labels */}
+                                <HStack justify="space-between" mt={2} px={2}>
+                                  {analytics.wellness.chartData.filter((_, index) => index % 5 === 0).map((day, index) => (
+                                    <Text key={index} fontSize="xs" color={useColorModeValue('gray.500', 'gray.400')}>
+                                      {day.day}
+                                    </Text>
+                                  ))}
+                                </HStack>
+                              </Box>
+                            )}
 
-                            {/* Scale indicator */}
-                            <Flex justify="space-between" mt={2} fontSize="xs" color={useColorModeValue('gray.500', 'gray.400')}>
-                              <Text>Poor</Text>
-                              <Text>Excellent</Text>
-                            </Flex>
+
                           </Box>
                         </Box>
                       </VStack>
@@ -1006,64 +1228,175 @@ export function CoachStats() {
                   <Card bg={cardBg} borderColor={borderColor}>
                     <CardHeader>
                       <HStack>
-                        <Icon as={FaRunning} color="green.500" />
+                        <Icon as={FaDumbbell} color="purple.500" />
                         <Heading size="md">Training Log</Heading>
+                        <Badge colorScheme="purple" ml={2}>Non-Running</Badge>
                       </HStack>
                     </CardHeader>
                     <CardBody>
                       <VStack spacing={4} align="stretch">
-                        <SimpleGrid columns={3} spacing={4}>
-                          <Stat textAlign="center">
-                            <StatLabel fontSize="xs">Sessions</StatLabel>
-                            <StatNumber fontSize="lg">{analytics.performance.sessionsCompleted}</StatNumber>
-                          </Stat>
-                          <Stat textAlign="center">
-                            <StatLabel fontSize="xs">Run Times</StatLabel>
-                            <StatNumber fontSize="lg">{analytics.performance.runningTimes}</StatNumber>
-                          </Stat>
-                          <Stat textAlign="center">
-                            <StatLabel fontSize="xs">Last Activity</StatLabel>
-                            <StatNumber fontSize="sm">{analytics.performance.lastActivity}</StatNumber>
-                          </Stat>
-                        </SimpleGrid>
+                        {(() => {
+                          // Filter out running exercises to focus on strength, plyometric, drills, flexibility
+                          const nonRunningExercises = analytics.performance.records.filter(record => {
+                            const exerciseName = record.exercise_name?.toLowerCase() || '';
+                            const isRunning = exerciseName.includes('run') || 
+                                            exerciseName.includes('sprint') || 
+                                            exerciseName.includes('jog') ||
+                                            exerciseName.includes('dash') ||
+                                            exerciseName.includes('meter') ||
+                                            exerciseName.includes('mile') ||
+                                            exerciseName.includes('400m') ||
+                                            exerciseName.includes('800m') ||
+                                            exerciseName.includes('1500m') ||
+                                            exerciseName.includes('5k') ||
+                                            exerciseName.includes('10k');
+                            return !isRunning;
+                          });
 
-                        {analytics.performance.records.length > 0 && (
-                          <Box>
-                            <Text fontWeight="bold" mb={3}>Recent Training Sessions</Text>
-                            <Table size="sm">
-                              <Thead>
-                                <Tr>
-                                  <Th>Date</Th>
-                                  <Th>Exercise</Th>
-                                  <Th>Time</Th>
-                                  <Th>RPE</Th>
-                                </Tr>
-                              </Thead>
-                              <Tbody>
-                                {analytics.performance.records.slice(0, 5).map((record) => {
-                                  const time = record.time_minutes || record.time_seconds || record.time_hundredths ? 
-                                    `${record.time_minutes || 0}:${(record.time_seconds || 0).toString().padStart(2, '0')}.${(record.time_hundredths || 0).toString().padStart(2, '0')}` 
-                                    : 'N/A';
-                                  
-                                  return (
-                                    <Tr key={record.id}>
-                                      <Td>{new Date(record.created_at).toLocaleDateString()}</Td>
-                                      <Td fontSize="xs">{record.exercise_name}</Td>
-                                      <Td>{time}</Td>
-                                      <Td>
-                                        {record.rpe_rating ? (
-                                          <Badge colorScheme={record.rpe_rating <= 6 ? 'green' : record.rpe_rating <= 8 ? 'yellow' : 'red'}>
-                                            {record.rpe_rating}/10
-                                          </Badge>
-                                        ) : 'N/A'}
-                                      </Td>
-                                    </Tr>
-                                  );
-                                })}
-                              </Tbody>
-                            </Table>
-                          </Box>
-                        )}
+
+
+                          const strengthExercises = nonRunningExercises.filter(r => {
+                            const name = r.exercise_name?.toLowerCase() || '';
+                            return name.includes('squat') || name.includes('press') || name.includes('lift') || 
+                                   name.includes('curl') || name.includes('row') || r.weight_used;
+                          });
+
+                          const plyometricExercises = nonRunningExercises.filter(r => {
+                            const name = r.exercise_name?.toLowerCase() || '';
+                            return name.includes('jump') || name.includes('hop') || name.includes('bound') || 
+                                   name.includes('plyometric');
+                          });
+
+                          return (
+                            <>
+                              <SimpleGrid columns={4} spacing={4}>
+                                <Stat textAlign="center">
+                                  <StatLabel fontSize="xs">Total Sessions</StatLabel>
+                                  <StatNumber fontSize="lg">{nonRunningExercises.length}</StatNumber>
+                                </Stat>
+                                <Stat textAlign="center">
+                                  <StatLabel fontSize="xs">Strength</StatLabel>
+                                  <StatNumber fontSize="lg">{strengthExercises.length}</StatNumber>
+                                </Stat>
+                                <Stat textAlign="center">
+                                  <StatLabel fontSize="xs">Plyometric</StatLabel>
+                                  <StatNumber fontSize="lg">{plyometricExercises.length}</StatNumber>
+                                </Stat>
+                                <Stat textAlign="center">
+                                  <StatLabel fontSize="xs">Last Activity</StatLabel>
+                                  <StatNumber fontSize="sm">{analytics.performance.lastActivity}</StatNumber>
+                                </Stat>
+                              </SimpleGrid>
+
+                              {nonRunningExercises.length > 0 ? (
+                                <Box>
+                                  <Text fontWeight="bold" mb={3}>Recent Training Sessions</Text>
+                                  <Table size="sm">
+                                    <Thead>
+                                      <Tr>
+                                        <Th>Date</Th>
+                                        <Th>Exercise</Th>
+                                        <Th>Category</Th>
+                                        <Th>Sets x Reps</Th>
+                                        <Th>Weight</Th>
+                                        <Th>RPE</Th>
+                                        <Th>Notes</Th>
+                                      </Tr>
+                                    </Thead>
+                                    <Tbody>
+                                      {nonRunningExercises.slice(0, 10).map((record) => {
+                                        // Determine category based on exercise name and characteristics
+                                        const exerciseName = record.exercise_name?.toLowerCase() || '';
+                                        let category = 'General';
+                                        
+                                        if (record.weight_used || exerciseName.includes('squat') || exerciseName.includes('press') || 
+                                            exerciseName.includes('lift') || exerciseName.includes('curl') || exerciseName.includes('row')) {
+                                          category = 'Strength';
+                                        } else if (exerciseName.includes('jump') || exerciseName.includes('hop') || 
+                                                  exerciseName.includes('bound') || exerciseName.includes('plyometric')) {
+                                          category = 'Plyometric';
+                                        } else if (exerciseName.includes('stretch') || exerciseName.includes('flexibility') || 
+                                                  exerciseName.includes('mobility')) {
+                                          category = 'Flexibility';
+                                        } else if (exerciseName.includes('drill') || exerciseName.includes('ladder') || 
+                                                  exerciseName.includes('cone')) {
+                                          category = 'Drills';
+                                        }
+
+                                        // Get category color
+                                        const getCategoryColor = (cat: string) => {
+                                          switch (cat) {
+                                            case 'Strength': return 'purple';
+                                            case 'Plyometric': return 'orange';
+                                            case 'Flexibility': return 'green';
+                                            case 'Drills': return 'blue';
+                                            default: return 'gray';
+                                          }
+                                        };
+                                        
+                                        return (
+                                          <Tr key={record.id}>
+                                            <Td>{new Date(record.created_at).toLocaleDateString()}</Td>
+                                            <Td fontSize="sm" fontWeight="medium" maxW="150px" isTruncated>
+                                              {record.exercise_name}
+                                            </Td>
+                                            <Td>
+                                              <Badge colorScheme={getCategoryColor(category)} size="sm">
+                                                {category}
+                                              </Badge>
+                                            </Td>
+                                            <Td fontSize="sm">
+                                              {record.sets_completed && record.reps_completed ? 
+                                                `${record.sets_completed} x ${record.reps_completed}` : 
+                                                'N/A'
+                                              }
+                                            </Td>
+                                            <Td fontSize="sm">
+                                              {record.weight_used ? 
+                                                `${record.weight_used} lbs` : 
+                                                <Text color="gray.400">-</Text>
+                                              }
+                                            </Td>
+                                            <Td>
+                                              {record.rpe_rating ? (
+                                                <Badge colorScheme={record.rpe_rating <= 6 ? 'green' : record.rpe_rating <= 8 ? 'yellow' : 'red'}>
+                                                  {record.rpe_rating}
+                                                </Badge>
+                                              ) : <Text color="gray.400" fontSize="xs">N/A</Text>}
+                                            </Td>
+                                            <Td fontSize="sm" maxW="120px" isTruncated>
+                                              {record.notes ? (
+                                                <HStack spacing={1} fontSize="sm">
+                                                  <Text color="gray.600">
+                                                    {record.notes
+                                                      .replace(/Set (\d+), Rep (\d+)/g, 'S$1,R$2')
+                                                      .replace(/ - Duration:/g, '')}
+                                                  </Text>
+                                                  <Icon as={FaClock} color="white" w={3} h={3} />
+                                                </HStack>
+                                              ) : (
+                                                <Text color="gray.400">-</Text>
+                                              )}
+                                            </Td>
+                                          </Tr>
+                                        );
+                                      })}
+                                    </Tbody>
+                                  </Table>
+                                </Box>
+                              ) : (
+                                <VStack spacing={2} py={6}>
+                                  <Text color="gray.500" textAlign="center">
+                                    No non-running exercises found.
+                                  </Text>
+                                  <Text color="gray.400" fontSize="xs" textAlign="center">
+                                    Complete workouts with strength, plyometric, or drill exercises to see them here.
+                                  </Text>
+                                </VStack>
+                              )}
+                            </>
+                          );
+                        })()}
                       </VStack>
                     </CardBody>
                   </Card>
