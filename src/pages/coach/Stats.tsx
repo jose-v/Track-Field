@@ -818,7 +818,7 @@ export function CoachStats() {
                         {/* Visual Sleep Chart */}
                         <Box>
                           <Text fontWeight="bold" mb={3}>Sleep Duration (Last {sleepViewMode === 'week' ? '7 Days' : '30 Days'})</Text>
-                          <Box bg={useColorModeValue('gray.50', 'gray.700')} borderRadius="lg" px={1} py={10} position="relative">
+                          <Box bg={{ base: 'transparent', md: useColorModeValue('gray.50', 'transparent') }} borderRadius="lg" px={1} py={10} position="relative">
                             {/* Hours labels on the right */}
                             <Box position="absolute" right={2} top={4} bottom={4}>
                               <VStack justify="space-between" h="full" spacing={0}>
@@ -1031,7 +1031,7 @@ export function CoachStats() {
                         {/* Visual Wellness Chart */}
                         <Box>
                           <Text fontWeight="bold" mb={3}>Wellness Trends (Last {wellnessViewMode === 'week' ? '7 Days' : '30 Days'})</Text>
-                          <Box bg={useColorModeValue('gray.50', 'gray.700')} borderRadius="lg" px={1} py={10}>
+                          <Box bg={{ base: 'transparent', md: useColorModeValue('gray.50', 'transparent') }} borderRadius="lg" px={1} py={10}>
                             {/* Legend */}
                             {wellnessViewMode === 'week' ? (
                               <HStack spacing={6} mb={4} fontSize="xs" justify="center">

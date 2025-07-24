@@ -55,6 +55,7 @@ import { Workouts } from '../pages/Workouts';
 import { Team } from '../pages/Team';
 import { Profile } from '../pages/Profile';
 import { AthleteWorkouts } from '../pages/athlete/AthleteWorkouts';
+import { AthleteStats } from '../pages/athlete/Stats';
 import { Nutrition } from '../pages/athlete/Nutrition';
 import { Sleep } from '../pages/athlete/Sleep';
 import { Calendar as AthleteCalendar } from '../pages/athlete/Calendar';
@@ -177,7 +178,7 @@ export default function AppRoutes() {
         <Route path="/athlete/workouts" element={<RoleProtectedRoute allowedRoles={['athlete']}><AthleteWorkouts /></RoleProtectedRoute>} />
         
         <Route path="/athlete/calendar" element={<RoleProtectedRoute allowedRoles={['athlete']}><AthleteCalendar /></RoleProtectedRoute>} />
-        <Route path="/athlete/stats" element={<RoleProtectedRoute allowedRoles={['athlete']}><NotFound /></RoleProtectedRoute>} />
+        <Route path="/athlete/stats" element={<RoleProtectedRoute allowedRoles={['athlete']}><AthleteStats /></RoleProtectedRoute>} />
         <Route path="/athlete/nutrition" element={<RoleProtectedRoute allowedRoles={['athlete']}><Nutrition /></RoleProtectedRoute>} />
         <Route path="/athlete/sleep" element={<RoleProtectedRoute allowedRoles={['athlete']}><Sleep /></RoleProtectedRoute>} />
         <Route path="/athlete/notifications" element={<RoleProtectedRoute allowedRoles={['athlete']}><NotificationsPage /></RoleProtectedRoute>} />

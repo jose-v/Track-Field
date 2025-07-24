@@ -511,6 +511,7 @@ const Sidebar = ({ userType }: SidebarProps) => {
         '/athlete/workout-creator-new': FaWrench,
         '/join-team': FaUserPlus,
         '/athlete/meets': BsCalendarCheck,
+        '/athlete/stats': FaChartBar,
         '/athlete/calendar': BiCalendar,
         '/athlete/nutrition': BiDish,
         '/athlete/sleep': BiMoon,
