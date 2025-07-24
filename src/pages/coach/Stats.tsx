@@ -203,7 +203,7 @@ export function CoachStats() {
       trainingLoadData?.forEach((entry: any) => {
         workoutRPEMap.set(entry.workout_id, entry.rpe);
       });
-
+      
       // Transform exercise results to the format expected by the analytics
       // Include ALL exercises (both running and non-running)
       const filteredExerciseResults = exerciseResultsData || [];
@@ -279,47 +279,47 @@ export function CoachStats() {
     // Prepare sleep chart data
     const chartData = (() => {
       const days = sleepViewMode === 'week' ? 7 : 30;
-      const dates = [];
-      for (let i = days - 1; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        dates.push(date);
-      }
-      
-      return dates.map(date => {
-        const dateStr = date.toISOString().split('T')[0];
-        const record = sleepRecords.find(r => r.sleep_date === dateStr);
-        
-        if (!record) {
-          return {
-            day: sleepViewMode === 'week' ? date.toLocaleDateString('en-US', { weekday: 'short' }) : date.getDate().toString(),
-            hasData: false,
-            sleepStart: 0,
-            sleepEnd: 0,
-            duration: 0
-          };
+        const dates = [];
+        for (let i = days - 1; i >= 0; i--) {
+          const date = new Date();
+          date.setDate(date.getDate() - i);
+          dates.push(date);
         }
+        
+        return dates.map(date => {
+          const dateStr = date.toISOString().split('T')[0];
+          const record = sleepRecords.find(r => r.sleep_date === dateStr);
+          
+          if (!record) {
+            return {
+            day: sleepViewMode === 'week' ? date.toLocaleDateString('en-US', { weekday: 'short' }) : date.getDate().toString(),
+              hasData: false,
+              sleepStart: 0,
+              sleepEnd: 0,
+              duration: 0
+            };
+          }
 
-        // Convert time strings to hour values for chart positioning
-        const [startHours, startMinutes] = record.start_time.split(':').map(Number);
-        const [endHours, endMinutes] = record.end_time.split(':').map(Number);
-        
-        let sleepStart = startHours + startMinutes / 60;
-        let sleepEnd = endHours + endMinutes / 60;
-        
-        // Handle overnight sleep (bedtime after midnight)
-        if (sleepStart > 12) sleepStart -= 24; // Convert to negative hours for evening
-        if (sleepEnd < sleepStart) sleepEnd += 24; // Handle crossing midnight
-        
-        return {
+          // Convert time strings to hour values for chart positioning
+          const [startHours, startMinutes] = record.start_time.split(':').map(Number);
+          const [endHours, endMinutes] = record.end_time.split(':').map(Number);
+          
+          let sleepStart = startHours + startMinutes / 60;
+          let sleepEnd = endHours + endMinutes / 60;
+          
+          // Handle overnight sleep (bedtime after midnight)
+          if (sleepStart > 12) sleepStart -= 24; // Convert to negative hours for evening
+          if (sleepEnd < sleepStart) sleepEnd += 24; // Handle crossing midnight
+          
+          return {
           day: sleepViewMode === 'week' ? date.toLocaleDateString('en-US', { weekday: 'short' }) : date.getDate().toString(),
-          hasData: true,
-          sleepStart,
-          sleepEnd,
-          duration: sleepEnd - sleepStart,
-          record
-        };
-      });
+            hasData: true,
+            sleepStart,
+            sleepEnd,
+            duration: sleepEnd - sleepStart,
+            record
+          };
+        });
     })();
 
     // Wellness analytics
@@ -699,29 +699,29 @@ export function CoachStats() {
 
                 {/* Desktop Layout */}
                 <Box display={{ base: "none", md: "block" }}>
-                  <Flex align="center" gap={6}>
-                    <Avatar
-                      size="xl"
-                      src={selectedAthlete.avatar_url}
-                      name={`${selectedAthlete.first_name} ${selectedAthlete.last_name}`}
-                    />
-                    <VStack align="start" spacing={1}>
-                      <Heading size="lg" color={textPrimary}>
-                        {selectedAthlete.first_name} {selectedAthlete.last_name}
-                      </Heading>
-                      <HStack spacing={4}>
-                        <Text color="gray.500">Age: {selectedAthlete.age || 'N/A'}</Text>
-                        <Text color="gray.500">Gender: {selectedAthlete.gender || 'N/A'}</Text>
-                      </HStack>
-                      <HStack spacing={2} mt={2}>
-                        {selectedAthlete.events?.map((event, idx) => (
-                          <Badge key={idx} colorScheme="blue">
-                            {event}
-                          </Badge>
-                        ))}
-                      </HStack>
-                    </VStack>
-                  </Flex>
+                <Flex align="center" gap={6}>
+                  <Avatar
+                    size="xl"
+                    src={selectedAthlete.avatar_url}
+                    name={`${selectedAthlete.first_name} ${selectedAthlete.last_name}`}
+                  />
+                  <VStack align="start" spacing={1}>
+                    <Heading size="lg" color={textPrimary}>
+                      {selectedAthlete.first_name} {selectedAthlete.last_name}
+                    </Heading>
+                    <HStack spacing={4}>
+                      <Text color="gray.500">Age: {selectedAthlete.age || 'N/A'}</Text>
+                      <Text color="gray.500">Gender: {selectedAthlete.gender || 'N/A'}</Text>
+                    </HStack>
+                    <HStack spacing={2} mt={2}>
+                      {selectedAthlete.events?.map((event, idx) => (
+                        <Badge key={idx} colorScheme="blue">
+                          {event}
+                        </Badge>
+                      ))}
+                    </HStack>
+                  </VStack>
+                </Flex>
                 </Box>
               </CardBody>
             </Card>
@@ -734,8 +734,8 @@ export function CoachStats() {
               </SimpleGrid>
             ) : analytics ? (
               <>
-                            {/* Status Overview Cards */}
-            <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
+                {/* Status Overview Cards */}
+                <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
               <Card bg={cardBg} borderColor={borderColor} position="relative">
                 <Badge 
                   position="absolute" 
@@ -749,17 +749,17 @@ export function CoachStats() {
                 >
                   30 Days
                 </Badge>
-                <CardBody p={2} textAlign="center" display="flex" flexDirection="column" justifyContent="space-between" minH="120px">
-                  <Box flex="1" display="flex" alignItems="center" justifyContent="center">
-                    <Icon 
-                      as={getStatusIcon(analytics.sleep.status)} 
-                      color={`${getStatusColor(analytics.sleep.status)}.500`} 
-                      boxSize={8}
-                    />
-                  </Box>
-                  <Text fontSize="sm" fontWeight="bold" color={textPrimary}>Sleep Quality</Text>
-                </CardBody>
-              </Card>
+                    <CardBody p={2} textAlign="center" display="flex" flexDirection="column" justifyContent="space-between" minH="120px">
+                      <Box flex="1" display="flex" alignItems="center" justifyContent="center">
+                        <Icon 
+                          as={getStatusIcon(analytics.sleep.status)} 
+                          color={`${getStatusColor(analytics.sleep.status)}.500`} 
+                          boxSize={8}
+                        />
+                      </Box>
+                      <Text fontSize="sm" fontWeight="bold" color={textPrimary}>Sleep Quality</Text>
+                    </CardBody>
+                  </Card>
 
                                 <Card bg={cardBg} borderColor={borderColor} position="relative">
                 <Badge 
@@ -774,17 +774,17 @@ export function CoachStats() {
                 >
                   30 Days
                 </Badge>
-                <CardBody p={2} textAlign="center" display="flex" flexDirection="column" justifyContent="space-between" minH="120px">
-                  <Box flex="1" display="flex" alignItems="center" justifyContent="center">
-                    <Icon 
-                      as={getStatusIcon(analytics.wellness.status)} 
-                      color={`${getStatusColor(analytics.wellness.status)}.500`} 
-                      boxSize={8}
-                    />
-                  </Box>
-                  <Text fontSize="sm" fontWeight="bold" color={textPrimary}>Wellness</Text>
-                </CardBody>
-              </Card>
+                    <CardBody p={2} textAlign="center" display="flex" flexDirection="column" justifyContent="space-between" minH="120px">
+                      <Box flex="1" display="flex" alignItems="center" justifyContent="center">
+                        <Icon 
+                          as={getStatusIcon(analytics.wellness.status)} 
+                          color={`${getStatusColor(analytics.wellness.status)}.500`} 
+                          boxSize={8}
+                        />
+                      </Box>
+                      <Text fontSize="sm" fontWeight="bold" color={textPrimary}>Wellness</Text>
+                    </CardBody>
+                  </Card>
 
               <Card bg={cardBg} borderColor={borderColor} position="relative">
                 <Badge 
@@ -799,17 +799,17 @@ export function CoachStats() {
                 >
                   30 Days
                 </Badge>
-                <CardBody p={2} textAlign="center" display="flex" flexDirection="column" justifyContent="space-between" minH="120px">
-                  <Box flex="1" display="flex" alignItems="center" justifyContent="center">
-                    <Icon 
-                      as={getStatusIcon(analytics.performance.status)} 
-                      color={`${getStatusColor(analytics.performance.status)}.500`} 
-                      boxSize={8}
-                    />
-                  </Box>
-                  <Text fontSize="sm" fontWeight="bold" color={textPrimary}>Performance</Text>
-                </CardBody>
-              </Card>
+                    <CardBody p={2} textAlign="center" display="flex" flexDirection="column" justifyContent="space-between" minH="120px">
+                      <Box flex="1" display="flex" alignItems="center" justifyContent="center">
+                        <Icon 
+                          as={getStatusIcon(analytics.performance.status)} 
+                          color={`${getStatusColor(analytics.performance.status)}.500`} 
+                          boxSize={8}
+                        />
+                      </Box>
+                      <Text fontSize="sm" fontWeight="bold" color={textPrimary}>Performance</Text>
+                    </CardBody>
+                  </Card>
 
               <Card bg={cardBg} borderColor={borderColor} position="relative">
                 <Badge 
@@ -824,7 +824,7 @@ export function CoachStats() {
                 >
                   30 Days
                 </Badge>
-                <CardBody p={2} textAlign="center" display="flex" flexDirection="column" justifyContent="space-between" minH="120px">
+                    <CardBody p={2} textAlign="center" display="flex" flexDirection="column" justifyContent="space-between" minH="120px">
                       <Box flex="1" display="flex" alignItems="center" justifyContent="center">
                         <Box position="relative" display="inline-block">
                           {/* Half-circle progress chart */}
@@ -875,8 +875,8 @@ export function CoachStats() {
                   <Card bg={cardBg} borderColor={borderColor} h="550px" display="flex" flexDirection="column">
                     <CardHeader>
                       <HStack justify="space-between">
-                        <HStack>
-                          <Heading size="md">Sleep Analytics</Heading>
+                      <HStack>
+                        <Heading size="md">Sleep Analytics</Heading>
                         </HStack>
                         <ButtonGroup isAttached size="sm">
                           <Button 
@@ -971,7 +971,7 @@ export function CoachStats() {
                             {sleepViewMode === 'week' ? (
                               /* Weekly Bar Chart */
                               <HStack spacing={2} align="end" justify="space-between" h="190px" pr={8}>
-                                {analytics.sleep.chartData.map((day, index) => (
+                              {analytics.sleep.chartData.map((day, index) => (
                                   <VStack key={index} spacing={2} align="center" flex={1}>
                                     {/* Duration text above bar */}
                                     <Box h="16px" display="flex" alignItems="center">
@@ -982,15 +982,15 @@ export function CoachStats() {
                                       )}
                                     </Box>
                                     {/* Sleep duration bar */}
-                                    <Box 
-                                      position="relative" 
+                                  <Box 
+                                    position="relative" 
                                       h="130px" 
                                       w="16px"
-                                      bg="gray.200" 
+                                    bg="gray.200" 
                                       borderRadius="sm"
-                                      overflow="hidden"
-                                    >
-                                      {day.hasData && (
+                                    overflow="hidden"
+                                  >
+                                    {day.hasData && (
                                         <Box
                                           position="absolute"
                                           bottom="0%"
@@ -999,20 +999,20 @@ export function CoachStats() {
                                           bg={day.duration >= 7 ? "#10B981" : day.duration >= 6 ? "#F59E0B" : "#EF4444"}
                                           borderRadius="sm"
                                         />
-                                      )}
-                                    </Box>
-                                    {/* Day label */}
-                                    <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')} fontWeight="medium">
-                                      {day.day}
-                                    </Text>
-                                  </VStack>
+                                    )}
+                                  </Box>
+                                  {/* Day label */}
+                                  <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')} fontWeight="medium">
+                                    {day.day}
+                                  </Text>
+                                </VStack>
                                 ))}
                               </HStack>
                             ) : (
                               /* Monthly Wave Chart */
-                              <Box h="190px" position="relative">
+                              <Box h="190px" position="relative" pt={2}>
                                 {/* SVG Wave Chart */}
-                                <svg width="100%" height="160" viewBox="0 0 400 160" preserveAspectRatio="none">
+                                <svg width="100%" height="160" viewBox="0 0 400 160" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
                                   {/* Grid lines */}
                                   {[0, 25, 50, 75, 100].map((percentage) => (
                                     <line
@@ -1073,8 +1073,8 @@ export function CoachStats() {
                                     <Text key={index} fontSize="xs" color={useColorModeValue('gray.500', 'gray.400')}>
                                       {day.day}
                                     </Text>
-                                  ))}
-                                </HStack>
+                              ))}
+                            </HStack>
                               </Box>
                             )}
                           </Box>
@@ -1087,8 +1087,8 @@ export function CoachStats() {
                   <Card bg={cardBg} borderColor={borderColor} h="550px" display="flex" flexDirection="column">
                     <CardHeader>
                       <HStack justify="space-between">
-                        <HStack>
-                          <Heading size="md">Wellness Analytics</Heading>
+                      <HStack>
+                        <Heading size="md">Wellness Analytics</Heading>
                         </HStack>
                         <ButtonGroup isAttached size="sm">
                           <Button 
@@ -1130,23 +1130,23 @@ export function CoachStats() {
                             {/* Legend */}
                             {wellnessViewMode === 'week' ? (
                               <HStack spacing={6} mb={4} fontSize="xs" justify="center">
-                                <HStack spacing={1}>
-                                  <Box w="3" h="3" bg="#10B981" borderRadius="sm" />
+                              <HStack spacing={1}>
+                                <Box w="3" h="3" bg="#10B981" borderRadius="sm" />
                                   <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>Motivation</Text>
-                                </HStack>
-                                <HStack spacing={1}>
-                                  <Box w="3" h="3" bg="#3B82F6" borderRadius="sm" />
-                                  <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>Overall</Text>
-                                </HStack>
-                                <HStack spacing={1}>
-                                  <Box w="3" h="3" bg="#F59E0B" borderRadius="sm" />
-                                  <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>Stress</Text>
-                                </HStack>
-                                <HStack spacing={1}>
-                                  <Box w="3" h="3" bg="#EF4444" borderRadius="sm" />
-                                  <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>Fatigue</Text>
-                                </HStack>
                               </HStack>
+                              <HStack spacing={1}>
+                                <Box w="3" h="3" bg="#3B82F6" borderRadius="sm" />
+                                  <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>Overall</Text>
+                              </HStack>
+                              <HStack spacing={1}>
+                                <Box w="3" h="3" bg="#F59E0B" borderRadius="sm" />
+                                  <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>Stress</Text>
+                              </HStack>
+                              <HStack spacing={1}>
+                                <Box w="3" h="3" bg="#EF4444" borderRadius="sm" />
+                                  <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>Fatigue</Text>
+                              </HStack>
+                            </HStack>
                             ) : (
                               <HStack spacing={6} mb={4} fontSize="xs" justify="center">
                                 <HStack spacing={1}>
@@ -1168,57 +1168,57 @@ export function CoachStats() {
                             {wellnessViewMode === 'week' ? (
                               /* Weekly Stacked Bar Chart */
                               <HStack spacing={2} align="end" justify="space-between" h="190px">
-                                {analytics.wellness.chartData.map((day, index) => (
-                                  <VStack key={index} spacing={1} align="center" flex={1}>
-                                    {/* Stacked wellness bars */}
-                                    <Box 
-                                      position="relative" 
+                              {analytics.wellness.chartData.map((day, index) => (
+                                <VStack key={index} spacing={1} align="center" flex={1}>
+                                  {/* Stacked wellness bars */}
+                                  <Box 
+                                    position="relative" 
                                       h="150px" 
-                                      w="20px"
-                                      bg="gray.200" 
-                                      borderRadius="sm"
-                                      overflow="hidden"
-                                    >
-                                      {day.hasData && (
-                                        <VStack spacing={0} h="full" justify="end">
-                                          {/* Fatigue (bottom) - inverted scale (higher is worse) */}
-                                          <Box
-                                            w="full"
-                                            h={`${(day.fatigue / 10) * 20}%`}
-                                            bg="#EF4444"
-                                          />
-                                          {/* Stress */}
-                                          <Box
-                                            w="full"
-                                            h={`${(day.stress / 10) * 20}%`}
-                                            bg="#F59E0B"
-                                          />
-                                          {/* Overall feeling */}
-                                          <Box
-                                            w="full"
-                                            h={`${(day.overall / 10) * 30}%`}
-                                            bg="#3B82F6"
-                                          />
-                                          {/* Motivation (top) */}
-                                          <Box
-                                            w="full"
-                                            h={`${(day.motivation / 10) * 30}%`}
-                                            bg="#10B981"
-                                          />
-                                        </VStack>
-                                      )}
-                                    </Box>
-                                    {/* Day label */}
-                                    <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')} fontWeight="medium">
-                                      {day.day}
-                                    </Text>
-                                  </VStack>
-                                ))}
-                              </HStack>
+                                    w="20px" 
+                                    bg="gray.200" 
+                                    borderRadius="sm"
+                                    overflow="hidden"
+                                  >
+                                    {day.hasData && (
+                                      <VStack spacing={0} h="full" justify="end">
+                                        {/* Fatigue (bottom) - inverted scale (higher is worse) */}
+                                        <Box
+                                          w="full"
+                                          h={`${(day.fatigue / 10) * 20}%`}
+                                          bg="#EF4444"
+                                        />
+                                        {/* Stress */}
+                                        <Box
+                                          w="full"
+                                          h={`${(day.stress / 10) * 20}%`}
+                                          bg="#F59E0B"
+                                        />
+                                        {/* Overall feeling */}
+                                        <Box
+                                          w="full"
+                                          h={`${(day.overall / 10) * 30}%`}
+                                          bg="#3B82F6"
+                                        />
+                                        {/* Motivation (top) */}
+                                        <Box
+                                          w="full"
+                                          h={`${(day.motivation / 10) * 30}%`}
+                                          bg="#10B981"
+                                        />
+                                      </VStack>
+                                    )}
+                                  </Box>
+                                  {/* Day label */}
+                                  <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')} fontWeight="medium">
+                                    {day.day}
+                                  </Text>
+                                </VStack>
+                              ))}
+                            </HStack>
                             ) : (
                               /* Monthly Multi-Wave Chart */
-                              <Box h="190px" position="relative">
-                                <svg width="100%" height="160" viewBox="0 0 400 160" preserveAspectRatio="none">
+                              <Box h="190px" position="relative" pt={2}>
+                                <svg width="100%" height="160" viewBox="0 0 400 160" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
                                   {/* Grid lines */}
                                   {[0, 25, 50, 75, 100].map((percentage) => (
                                     <line
@@ -1364,41 +1364,41 @@ export function CoachStats() {
                           return (
                             <>
                               <SimpleGrid columns={4} spacing={4}>
-                                <Stat textAlign="center">
+                          <Stat textAlign="center">
                                   <StatLabel fontSize="xs">Total Sessions</StatLabel>
                                   <StatNumber fontSize="lg">{nonRunningExercises.length}</StatNumber>
-                                </Stat>
-                                <Stat textAlign="center">
+                          </Stat>
+                          <Stat textAlign="center">
                                   <StatLabel fontSize="xs">Strength</StatLabel>
                                   <StatNumber fontSize="lg">{strengthExercises.length}</StatNumber>
                                 </Stat>
                                 <Stat textAlign="center">
                                   <StatLabel fontSize="xs">Plyometric</StatLabel>
                                   <StatNumber fontSize="lg">{plyometricExercises.length}</StatNumber>
-                                </Stat>
-                                <Stat textAlign="center">
-                                  <StatLabel fontSize="xs">Last Activity</StatLabel>
-                                  <StatNumber fontSize="sm">{analytics.performance.lastActivity}</StatNumber>
-                                </Stat>
-                              </SimpleGrid>
+                          </Stat>
+                          <Stat textAlign="center">
+                            <StatLabel fontSize="xs">Last Activity</StatLabel>
+                            <StatNumber fontSize="sm">{analytics.performance.lastActivity}</StatNumber>
+                          </Stat>
+                        </SimpleGrid>
 
                               {nonRunningExercises.length > 0 ? (
-                                <Box>
-                                  <Text fontWeight="bold" mb={3}>Recent Training Sessions</Text>
+                          <Box>
+                            <Text fontWeight="bold" mb={3}>Recent Training Sessions</Text>
                                   <Box overflowX="auto" maxW="100vw">
                                     <Table size="sm" minW="600px">
-                                    <Thead>
-                                      <Tr>
-                                        <Th>Date</Th>
-                                        <Th>Exercise</Th>
+                              <Thead>
+                                <Tr>
+                                  <Th>Date</Th>
+                                  <Th>Exercise</Th>
                                         <Th>Category</Th>
                                         <Th>Sets x Reps</Th>
                                         <Th>Weight</Th>
-                                        <Th>RPE</Th>
+                                  <Th>RPE</Th>
                                         <Th>Notes</Th>
-                                      </Tr>
-                                    </Thead>
-                                    <Tbody>
+                                </Tr>
+                              </Thead>
+                              <Tbody>
                                       {nonRunningExercises.slice(0, 10).map((record) => {
                                         // Determine category based on exercise name and characteristics
                                         const exerciseName = record.exercise_name?.toLowerCase() || '';
@@ -1428,10 +1428,10 @@ export function CoachStats() {
                                             default: return 'gray';
                                           }
                                         };
-                                        
-                                        return (
-                                          <Tr key={record.id}>
-                                            <Td>{new Date(record.created_at).toLocaleDateString()}</Td>
+                                  
+                                  return (
+                                    <Tr key={record.id}>
+                                      <Td>{new Date(record.created_at).toLocaleDateString()}</Td>
                                             <Td fontSize="sm" fontWeight="medium" maxW="150px" isTruncated>
                                               {record.exercise_name}
                                             </Td>
@@ -1452,11 +1452,11 @@ export function CoachStats() {
                                                 <Text color="gray.400">-</Text>
                                               }
                                             </Td>
-                                            <Td>
-                                              {record.rpe_rating ? (
-                                                <Badge colorScheme={record.rpe_rating <= 6 ? 'green' : record.rpe_rating <= 8 ? 'yellow' : 'red'}>
+                                      <Td>
+                                        {record.rpe_rating ? (
+                                          <Badge colorScheme={record.rpe_rating <= 6 ? 'green' : record.rpe_rating <= 8 ? 'yellow' : 'red'}>
                                                   {record.rpe_rating}
-                                                </Badge>
+                                          </Badge>
                                               ) : <Text color="gray.400" fontSize="xs">N/A</Text>}
                                             </Td>
                                             <Td fontSize="sm" maxW="120px" isTruncated>
@@ -1472,13 +1472,13 @@ export function CoachStats() {
                                               ) : (
                                                 <Text color="gray.400">-</Text>
                                               )}
-                                            </Td>
-                                          </Tr>
-                                        );
-                                      })}
-                                    </Tbody>
-                                    </Table>
-                                  </Box>
+                                      </Td>
+                                    </Tr>
+                                  );
+                                })}
+                              </Tbody>
+                            </Table>
+                          </Box>
                                 </Box>
                               ) : (
                                 <VStack spacing={2} py={6}>
@@ -1579,7 +1579,7 @@ export function CoachStats() {
                                   </Tr>
                                 ))}
                               </Tbody>
-                              </Table>
+                            </Table>
                             </Box>
                           ) : (
                             <VStack spacing={2} py={6}>

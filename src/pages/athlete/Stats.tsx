@@ -744,7 +744,7 @@ export function AthleteStats() {
                         </Text>
 
                         {/* Color legend */}
-                        <HStack spacing={8} mb={6} justify="center">
+                        <HStack spacing={8} mb={6} justify="">
                           <HStack spacing={1}>
                             <Box w="3" h="3" bg="#10B981" borderRadius="sm" />
                             <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>7+ hours</Text>
@@ -802,9 +802,9 @@ export function AthleteStats() {
                           </HStack>
                         ) : (
                           /* Monthly Wave Chart */
-                          <Box h="190px" position="relative">
+                          <Box h="190px" position="relative" pt={2}>
                             {/* SVG Wave Chart */}
-                            <svg width="100%" height="160" viewBox="0 0 400 160" preserveAspectRatio="none">
+                            <svg width="100%" height="160" viewBox="0 0 400 160" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
                               {/* Grid lines */}
                               {[0, 25, 50, 75, 100].map((percentage) => (
                                 <line
@@ -1009,8 +1009,8 @@ export function AthleteStats() {
                           </HStack>
                         ) : (
                           /* Monthly Multi-Wave Chart */
-                          <Box h="190px" position="relative">
-                            <svg width="100%" height="160" viewBox="0 0 400 160" preserveAspectRatio="none">
+                          <Box h="190px" position="relative" pt={2}>
+                            <svg width="100%" height="160" viewBox="0 0 400 160" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
                               {/* Grid lines */}
                               {[0, 25, 50, 75, 100].map((percentage) => (
                                 <line
