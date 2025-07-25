@@ -15,11 +15,7 @@ import {
   InputGroup,
   InputLeftElement,
   Icon,
-  Tabs,
-  TabList,
-  Tab,
-  TabPanels,
-  TabPanel,
+
   Flex,
   Badge,
   Avatar,
@@ -57,7 +53,9 @@ import {
   StatHelpText,
 } from '@chakra-ui/react'
 import { FaSearch, FaUserPlus, FaEnvelope, FaPhone, FaCalendarAlt, FaTrophy, FaRunning, FaEllipsisV, FaFilter, FaPlus, FaUsers, FaClock, FaCheckCircle, FaTh, FaList, FaUserFriends } from 'react-icons/fa'
+import { useBreakpointValue } from '@chakra-ui/react'
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useCoachAthletes } from '../../hooks/useCoachAthletes'
 import { useAuth } from '../../contexts/AuthContext'
 import { useProfile } from '../../hooks/useProfile'
@@ -67,6 +65,7 @@ import { CreateTeamDrawer } from '../../components/CreateTeamDrawer'
 import { InviteAthletesDrawer } from '../../components/InviteAthletesDrawer'
 import { CoachTeamsCard } from '../../components/CoachTeamsCard'
 import { MobileCoachTeamCard } from '../../components/MobileCoachTeamCard'
+import { MobileAthleteDetailsDrawer } from '../../components/MobileAthleteDetailsDrawer'
 import PageHeader from '../../components/PageHeader'
 import { usePageHeader } from '../../hooks/usePageHeader'
 import { supabase } from '../../lib/supabase'
@@ -82,6 +81,7 @@ export function CoachAthletes() {
   const { user } = useAuth()
   const { profile, isLoading: profileLoading } = useProfile()
   const { data: athletes = [], isLoading, isError, error, refetch } = useCoachAthletes({ includeStatuses: ['approved', 'pending'] })
+  const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedAthlete, setSelectedAthlete] = useState<any>(null)
   const [selectedAthleteTeams, setSelectedAthleteTeams] = useState<any[]>([])
@@ -89,10 +89,15 @@ export function CoachAthletes() {
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0)
   const [isLoadingTeams, setIsLoadingTeams] = useState(false)
   const [viewType, setViewType] = useState<'grid' | 'table'>('grid')
+  const [activeTab, setActiveTab] = useState<'overview' | 'athletes' | 'teams'>('overview')
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { isOpen: isAddAthleteOpen, onOpen: onAddAthleteOpen, onClose: onAddAthleteClose } = useDisclosure()
   const { isOpen: isTeamManagementOpen, onOpen: onTeamManagementOpen, onClose: onTeamManagementClose } = useDisclosure()
   const { isOpen: isCreateTeamOpen, onOpen: onCreateTeamOpen, onClose: onCreateTeamClose } = useDisclosure()
+  const { isOpen: isMobileDrawerOpen, onOpen: onMobileDrawerOpen, onClose: onMobileDrawerClose } = useDisclosure()
+  
+  // Detect if we're on mobile
+  const isMobile = useBreakpointValue({ base: true, lg: false })
   
   // Theme colors
   const bgColor = useColorModeValue('gray.50', 'gray.900')
@@ -109,6 +114,7 @@ export function CoachAthletes() {
   const subTextColor = useColorModeValue('gray.500', 'gray.400')
   const bodyTextColor = useColorModeValue('gray.700', 'gray.300')
   const labelTextColor = useColorModeValue('gray.700', 'gray.200')
+  const mobileTabTextColor = useColorModeValue('gray.700', 'gray.200')
   
   const filteredAthletes = !searchTerm
     ? athletes
@@ -178,7 +184,14 @@ export function CoachAthletes() {
   const openAthleteDetails = (athlete: any) => {
     setSelectedAthlete(athlete)
     setSelectedAthleteTeams([]) // Clear previous teams
-    onOpen()
+    
+    // Use mobile drawer on mobile, modal on desktop
+    if (isMobile) {
+      onMobileDrawerOpen()
+    } else {
+      onOpen()
+    }
+    
     fetchAthleteTeams(athlete.id) // Fetch teams for this athlete
   }
   
@@ -186,6 +199,20 @@ export function CoachAthletes() {
   const openTeamManagement = (athlete: any) => {
     setSelectedAthleteForTeamManagement(athlete)
     onTeamManagementOpen()
+  }
+
+  // Function to handle team management from mobile drawer
+  const handleTeamManagementFromDrawer = () => {
+    if (selectedAthlete) {
+      setSelectedAthleteForTeamManagement(selectedAthlete)
+      onTeamManagementOpen()
+    }
+  }
+
+  // Function to view athlete performance/stats
+  const viewAthletePerformance = (athlete: any) => {
+    // Navigate to coach stats page with athlete ID as a URL parameter
+    navigate(`/coach/stats?athlete=${athlete.id}`)
   }
   
   // Function to handle team changes and refresh data
@@ -218,18 +245,125 @@ export function CoachAthletes() {
         subtitle="Manage your teams, athletes, and roster"
         icon={FaUsers}
       />
-        <Tabs variant="enclosed" colorScheme="blue">
-          <TabList>
-            <Tab>Overview</Tab>
-            <Tab>Manage Athletes</Tab>
-            <Tab>Manage Teams</Tab>
-          </TabList>
-          
-          <TabPanels>
-            {/* Overview Tab Panel */}
-            <TabPanel px={0}>
+        {/* Custom Mobile-Style Tab Bar */}
+        <Box borderBottom="1px solid" borderColor={borderColor} mb={6}>
+          <HStack spacing={0}>
+            <Box
+              flex="1"
+              py={3}
+              textAlign="center"
+              borderBottom="3px solid"
+              borderColor={activeTab === 'overview' ? 'blue.500' : 'transparent'}
+              bg="transparent"
+              cursor="pointer"
+              onClick={() => setActiveTab('overview')}
+            >
+              <Text
+                fontWeight={activeTab === 'overview' ? 'bold' : 'normal'}
+                color={activeTab === 'overview' ? 'blue.500' : mobileTabTextColor}
+                fontSize="sm"
+              >
+                Overview
+              </Text>
+            </Box>
+            <Box
+              flex="1"
+              py={3}
+              textAlign="center"
+              borderBottom="3px solid"
+              borderColor={activeTab === 'athletes' ? 'blue.500' : 'transparent'}
+              bg="transparent"
+              cursor="pointer"
+              onClick={() => setActiveTab('athletes')}
+            >
+              <Text
+                fontWeight={activeTab === 'athletes' ? 'bold' : 'normal'}
+                color={activeTab === 'athletes' ? 'blue.500' : mobileTabTextColor}
+                fontSize="sm"
+              >
+                Manage Athletes
+              </Text>
+            </Box>
+            <Box
+              flex="1"
+              py={3}
+              textAlign="center"
+              borderBottom="3px solid"
+              borderColor={activeTab === 'teams' ? 'blue.500' : 'transparent'}
+              bg="transparent"
+              cursor="pointer"
+              onClick={() => setActiveTab('teams')}
+            >
+              <Text
+                fontWeight={activeTab === 'teams' ? 'bold' : 'normal'}
+                color={activeTab === 'teams' ? 'blue.500' : mobileTabTextColor}
+                fontSize="sm"
+              >
+                Manage Teams
+              </Text>
+            </Box>
+          </HStack>
+        </Box>
+
+        {/* Tab Content */}
+        {activeTab === 'overview' && (
+          <Box>
               <VStack spacing={6} align="stretch">
                 
+                {/* Mobile Unified Stats Card */}
+                <Box display={{ base: "block", lg: "none" }}>
+                  <Card bg={cardBg} borderColor={borderColor} borderWidth="1px">
+                    <CardBody p={0}>
+                      <Flex>
+                        {/* Total Athletes */}
+                        <Box flex="1" py={4} px={3} textAlign="center">
+                          <Text fontSize="2xl" fontWeight="bold" color={accentColor} mb={1}>
+                            {totalAthletes}
+                          </Text>
+                          <Text fontSize="xs" fontWeight="medium" color={textColor} mb={0.5}>
+                            TOTAL ATHLETES
+                          </Text>
+                          <Text fontSize="xs" color="gray.500">
+                            Active team member
+                          </Text>
+                        </Box>
+                        
+                        {/* Divider */}
+                        <Box w="1px" bg={borderColor} />
+                        
+                        {/* Pending Requests */}
+                        <Box flex="1" py={4} px={3} textAlign="center">
+                          <Text fontSize="2xl" fontWeight="bold" color="orange.500" mb={1}>
+                            {pendingRequestsCount}
+                          </Text>
+                          <Text fontSize="xs" fontWeight="medium" color={textColor} mb={0.5}>
+                            PENDING REQUESTS
+                          </Text>
+                          <Text fontSize="xs" color="gray.500">
+                            Awaiting approval
+                          </Text>
+                        </Box>
+                        
+                        {/* Divider */}
+                        <Box w="1px" bg={borderColor} />
+                        
+                        {/* Approved */}
+                        <Box flex="1" py={4} px={3} textAlign="center">
+                          <Text fontSize="2xl" fontWeight="bold" color="green.500" mb={1}>
+                            {approvedRelationships}
+                          </Text>
+                          <Text fontSize="xs" fontWeight="medium" color={textColor} mb={0.5}>
+                            APPROVED
+                          </Text>
+                          <Text fontSize="xs" color="gray.500">
+                            Active Relationships
+                          </Text>
+                        </Box>
+                      </Flex>
+                    </CardBody>
+                  </Card>
+                </Box>
+
                 {/* Top Section: Invite Athletes Card (2/3) + Stats Stack (1/3) */}
                 <Flex direction={{ base: 'column', lg: 'row' }} gap={6}>
                   {/* Main Action Card - 2/3 width */}
@@ -248,25 +382,25 @@ export function CoachAthletes() {
                     <Divider mb={4} />
                     <VStack align="start" spacing={3}>
                       <HStack>
-                        <Icon as={FaUsers} color="blue.500" />
+                        <Icon as={FaUsers} color="white" />
                         <Text fontSize="sm" color={textColor}>
                           <strong>Browse & Invite:</strong> Search existing athlete accounts and send invitations
                         </Text>
                       </HStack>
                       <HStack>
-                        <Icon as={FaPlus} color="green.500" />
+                        <Icon as={FaPlus} color="white" />
                         <Text fontSize="sm" color={textColor}>
                           <strong>Create & Invite:</strong> Create new athlete accounts and automatically send invitations
                         </Text>
                       </HStack>
                       <HStack>
-                        <Icon as={FaClock} color="orange.500" />
+                        <Icon as={FaClock} color="white" />
                         <Text fontSize="sm" color={textColor}>
                           <strong>Pending Approval:</strong> Athletes receive notifications and can approve/decline your requests
                         </Text>
                       </HStack>
                       <HStack>
-                        <Icon as={FaCheckCircle} color="purple.500" />
+                        <Icon as={FaCheckCircle} color="white" />
                         <Text fontSize="sm" color={textColor}>
                           <strong>Automatic Linking:</strong> Once approved, athletes appear in your roster automatically
                         </Text>
@@ -304,8 +438,8 @@ export function CoachAthletes() {
                     </Card>
                   </Box>
 
-                  {/* Quick Stats Stack - 1/3 width */}
-                  <Box flex="1">
+                  {/* Quick Stats Stack - 1/3 width - Desktop Only */}
+                  <Box flex="1" display={{ base: "none", lg: "block" }}>
                     <VStack spacing={4} h="100%">
                       <Card bg={cardBg} borderColor={borderColor} borderWidth="1px" w="100%">
                         <CardBody py={3} px={4}>
@@ -453,10 +587,12 @@ export function CoachAthletes() {
                 </Card>
 
               </VStack>
-            </TabPanel>
+          </Box>
+        )}
             
-            {/* Manage Athletes Tab Panel */}
-            <TabPanel px={0}>
+        {/* Manage Athletes Tab Panel */}
+        {activeTab === 'athletes' && (
+          <Box>
               {/* Search, Filter, and View Toggle */}
               <Flex 
                 mb={6} 
@@ -574,7 +710,7 @@ export function CoachAthletes() {
                                     <MenuList zIndex={1500}>
                                       <MenuItem onClick={(e) => { e.stopPropagation(); openAthleteDetails(athlete); }}>View Details</MenuItem>
                                       <MenuItem onClick={(e) => { e.stopPropagation(); openTeamManagement(athlete); }}>Team Assignment</MenuItem>
-                                      <MenuItem onClick={(e) => e.stopPropagation()}>View Performance</MenuItem>
+                                      <MenuItem onClick={(e) => { e.stopPropagation(); viewAthletePerformance(athlete); }}>View Performance</MenuItem>
                                       <MenuItem color="red.500" onClick={(e) => e.stopPropagation()}>Remove Athlete</MenuItem>
                                     </MenuList>
                                   </Portal>
@@ -583,15 +719,15 @@ export function CoachAthletes() {
                           
                           <Stack spacing={2} mb={4}>
                             <Flex align="center">
-                              <Icon as={FaPhone} color="green.500" mr={2} />
+                              <Icon as={FaPhone} color="white" mr={2} />
                               <Text fontSize="sm" color={bodyTextColor}>{athlete.phone || 'No phone number'}</Text>
                             </Flex>
                             <Flex align="center">
-                              <Icon as={FaEnvelope} color="blue.500" mr={2} />
+                              <Icon as={FaEnvelope} color="white" mr={2} />
                               <Text fontSize="sm" color={bodyTextColor}>{athlete.email || 'No email'}</Text>
                             </Flex>
                             <Flex align="center">
-                              <Icon as={FaRunning} color="purple.500" mr={2} />
+                              <Icon as={FaRunning} color="white" mr={2} />
                               <Text fontSize="sm" color={bodyTextColor}>{(athlete.events || []).join(', ') || 'No events assigned'}</Text>
                             </Flex>
                           </Stack>
@@ -664,7 +800,7 @@ export function CoachAthletes() {
                                     <MenuList zIndex={1500}>
                                   <MenuItem onClick={() => openAthleteDetails(athlete)}>View Details</MenuItem>
                                       <MenuItem onClick={() => openTeamManagement(athlete)}>Team Assignment</MenuItem>
-                                  <MenuItem>View Performance</MenuItem>
+                                  <MenuItem onClick={() => viewAthletePerformance(athlete)}>View Performance</MenuItem>
                                   <MenuItem color="red.500">Remove Athlete</MenuItem>
                                 </MenuList>
                                   </Portal>
@@ -684,10 +820,12 @@ export function CoachAthletes() {
                   )}
                 </>
               )}
-            </TabPanel>
+          </Box>
+        )}
             
-            {/* Manage Teams Tab Panel */}
-            <TabPanel px={0}>
+        {/* Manage Teams Tab Panel */}
+        {activeTab === 'teams' && (
+          <Box>
               <VStack spacing={6} align="stretch">
                 
                 {/* Page Header */}
@@ -755,9 +893,8 @@ export function CoachAthletes() {
                 </Box>
                 
               </VStack>
-            </TabPanel>
-          </TabPanels>
-        </Tabs>
+          </Box>
+        )}
       
       {/* Athlete Details Modal */}
       <Modal isOpen={isOpen} onClose={onClose} size="xl">
@@ -892,6 +1029,16 @@ export function CoachAthletes() {
           // Refresh data after team creation if needed
           refetch()
         }}
+      />
+
+      {/* Mobile Athlete Details Drawer */}
+      <MobileAthleteDetailsDrawer
+        isOpen={isMobileDrawerOpen}
+        onClose={onMobileDrawerClose}
+        athlete={selectedAthlete}
+        athleteTeams={selectedAthleteTeams}
+        isLoadingTeams={isLoadingTeams}
+        onTeamManagement={handleTeamManagementFromDrawer}
       />
     </Box>
   )

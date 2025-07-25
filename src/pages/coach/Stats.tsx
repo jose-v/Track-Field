@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Box,
   Heading,
@@ -90,6 +91,7 @@ interface AthleteAnalytics {
 // Main Component
 export function CoachStats() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const pageBg = useColorModeValue('gray.50', 'gray.900');
   const cardBg = useColorModeValue('white', 'gray.800');
   const textPrimary = useColorModeValue('gray.800', 'white');
@@ -114,12 +116,19 @@ export function CoachStats() {
     includeStatuses: ['approved']
   });
 
-  // Auto-select first athlete when athletes load
+  // Auto-select athlete from URL parameter or first athlete when athletes load
   useEffect(() => {
-    if (athletes.length > 0 && !selectedAthleteId) {
-      setSelectedAthleteId(athletes[0].id);
+    if (athletes.length > 0) {
+      const athleteFromUrl = searchParams.get('athlete');
+      if (athleteFromUrl && athletes.some(a => a.id === athleteFromUrl)) {
+        // If athlete ID from URL is valid, select it
+        setSelectedAthleteId(athleteFromUrl);
+      } else if (!selectedAthleteId) {
+        // Otherwise, select first athlete
+        setSelectedAthleteId(athletes[0].id);
+      }
     }
-  }, [athletes, selectedAthleteId]);
+  }, [athletes, selectedAthleteId, searchParams]);
 
   // Helper function to get date range text
   const getDateRangeText = () => {
