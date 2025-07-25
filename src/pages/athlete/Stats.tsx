@@ -1223,7 +1223,7 @@ export function AthleteStats() {
                     <Badge colorScheme="purple" ml={2}>Non-Running</Badge>
                   </HStack>
                 </CardHeader>
-                <CardBody>
+                <CardBody px={{ base: 0, md: 6 }} py={{ base: 4, md: 6 }}>
                   <VStack spacing={4} align="stretch">
                     {(() => {
                       // Filter out running exercises to focus on strength, plyometric, drills, flexibility
@@ -1257,28 +1257,18 @@ export function AthleteStats() {
 
                       return (
                         <>
-                          <SimpleGrid columns={4} spacing={4}>
-                            <Stat textAlign="center">
-                              <StatLabel fontSize="xs">Total Sessions</StatLabel>
-                              <StatNumber fontSize="lg">{nonRunningExercises.length}</StatNumber>
-                            </Stat>
-                            <Stat textAlign="center">
-                              <StatLabel fontSize="xs">Strength</StatLabel>
-                              <StatNumber fontSize="lg">{strengthExercises.length}</StatNumber>
-                            </Stat>
-                            <Stat textAlign="center">
-                              <StatLabel fontSize="xs">Plyometric</StatLabel>
-                              <StatNumber fontSize="lg">{plyometricExercises.length}</StatNumber>
-                            </Stat>
-                            <Stat textAlign="center">
-                              <StatLabel fontSize="xs">Last Activity</StatLabel>
-                              <StatNumber fontSize="sm">{analytics.performance.lastActivity}</StatNumber>
-                            </Stat>
-                          </SimpleGrid>
+                          <Box px={{ base: 4, md: 0 }}>
+                            <Flex justify="flex-end">
+                              <Stat textAlign="right" maxW="200px">
+                                <StatLabel fontSize="xs">Last Activity</StatLabel>
+                                <StatNumber fontSize="sm">{analytics.performance.lastActivity}</StatNumber>
+                              </Stat>
+                            </Flex>
+                          </Box>
 
                           {nonRunningExercises.length > 0 ? (
                             <Box>
-                              <Text fontWeight="bold" mb={3}>Recent Training Sessions</Text>
+                              <Text fontWeight="bold" mb={3} px={{ base: 4, md: 0 }}>Recent Training Sessions</Text>
                               <Box overflowX="auto" maxW="100vw">
                                 <Table size="sm" minW="600px">
                                 <Thead>
@@ -1324,36 +1314,36 @@ export function AthleteStats() {
                                     };
                                     
                                     return (
-                                      <Tr key={record.id}>
-                                        <Td position="sticky" left={0} bg={cardBg} zIndex={1} borderRight="1px solid" borderRightColor={borderColor} fontSize="sm" fontWeight="medium">{formatDate(record.created_at)}</Td>
-                                        <Td position="sticky" left="80px" bg={cardBg} zIndex={1} borderRight="1px solid" borderRightColor={borderColor} fontSize="sm" fontWeight="medium" maxW="150px" isTruncated>
+                                      <Tr key={record.id} h="48px">
+                                        <Td position="sticky" left={0} bg={cardBg} zIndex={1} borderRight="1px solid" borderRightColor={borderColor} fontSize="sm" fontWeight="medium" h="48px">{formatDate(record.created_at)}</Td>
+                                        <Td position="sticky" left="80px" bg={cardBg} zIndex={1} borderRight="1px solid" borderRightColor={borderColor} fontSize="sm" fontWeight="medium" maxW="150px" isTruncated h="48px">
                                           {record.exercise_name}
                                         </Td>
-                                        <Td fontSize="sm" fontWeight="medium">
+                                        <Td fontSize="sm" fontWeight="medium" h="48px">
                                           <Badge colorScheme={getCategoryColor(category)} size="sm">
                                             {category}
                                           </Badge>
                                         </Td>
-                                        <Td fontSize="sm" fontWeight="medium">
+                                        <Td fontSize="sm" fontWeight="medium" h="48px">
                                           {record.sets_completed && record.reps_completed ? 
                                             `${record.sets_completed} x ${record.reps_completed}` : 
                                             'N/A'
                                           }
                                         </Td>
-                                        <Td fontSize="sm" fontWeight="medium">
+                                        <Td fontSize="sm" fontWeight="medium" h="48px">
                                           {record.weight_used ? 
                                             `${record.weight_used} lbs` : 
                                             <Text color="gray.400">-</Text>
                                           }
                                         </Td>
-                                        <Td fontSize="sm" fontWeight="medium">
+                                        <Td fontSize="sm" fontWeight="medium" h="48px">
                                           {record.rpe_rating ? (
                                             <Badge colorScheme={record.rpe_rating <= 6 ? 'green' : record.rpe_rating <= 8 ? 'yellow' : 'red'}>
                                               {record.rpe_rating}
                                             </Badge>
                                           ) : <Text color="gray.400" fontSize="sm" fontWeight="medium">N/A</Text>}
                                         </Td>
-                                        <Td fontSize="sm" fontWeight="medium" maxW="120px" isTruncated>
+                                        <Td fontSize="sm" fontWeight="medium" maxW="120px" isTruncated h="48px">
                                           {record.notes ? (
                                             <HStack spacing={1}>
                                               <Text color="gray.600" fontSize="sm" fontWeight="medium">
@@ -1375,14 +1365,16 @@ export function AthleteStats() {
                               </Box>
                             </Box>
                           ) : (
-                            <VStack spacing={2} py={6}>
-                              <Text color="gray.500" textAlign="center">
-                                No non-running exercises found.
-                              </Text>
-                              <Text color="gray.400" fontSize="xs" textAlign="center">
-                                Complete workouts with strength, plyometric, or drill exercises to see them here.
-                              </Text>
-                            </VStack>
+                            <Box px={{ base: 4, md: 0 }}>
+                              <VStack spacing={2} py={6}>
+                                <Text color="gray.500" textAlign="center">
+                                  No non-running exercises found.
+                                </Text>
+                                <Text color="gray.400" fontSize="xs" textAlign="center">
+                                  Complete workouts with strength, plyometric, or drill exercises to see them here.
+                                </Text>
+                              </VStack>
+                            </Box>
                           )}
                         </>
                       );
@@ -1398,31 +1390,87 @@ export function AthleteStats() {
                     <Heading size="md">Run Times</Heading>
                   </HStack>
                 </CardHeader>
-                <CardBody>
-                  <VStack spacing={4} align="stretch">
-                    <SimpleGrid columns={3} spacing={4}>
-                      <Stat textAlign="center">
-                        <StatLabel fontSize="xs">Total Runs</StatLabel>
-                        <StatNumber fontSize="lg">{analytics.runTimes.totalRunTimes}</StatNumber>
-                      </Stat>
-                      <Stat textAlign="center">
-                        <StatLabel fontSize="xs">Run Types</StatLabel>
-                        <StatNumber fontSize="lg">{analytics.runTimes.exerciseStats.length}</StatNumber>
-                      </Stat>
-                      <Stat textAlign="center">
-                        <StatLabel fontSize="xs">Recent</StatLabel>
-                        <StatNumber fontSize="sm">
-                          {analytics.runTimes.recentRuns.length > 0 ? (
-                            analytics.runTimes.recentRuns[0].has_time_data ? 
-                              `${analytics.runTimes.recentRuns[0].time_minutes || 0}:${(analytics.runTimes.recentRuns[0].time_seconds || 0).toString().padStart(2, '0')}.${(analytics.runTimes.recentRuns[0].time_hundredths || 0).toString().padStart(2, '0')}` :
-                              'Not logged'
-                          ) : 'N/A'}
-                        </StatNumber>
-                      </Stat>
-                    </SimpleGrid>
+                <CardBody px={{ base: 0, md: 6 }} py={{ base: 4, md: 6 }}>
+                  <VStack spacing={8} align="stretch">
+                    <Box px={{ base: 0, md: 0 }}>
+                      <VStack spacing={6} align="flex-end">
+                        <Text fontSize="sm" pr="12px" color={useColorModeValue('gray.600', 'gray.400')} fontWeight="medium">
+                          Best Training Times
+                        </Text>
+                        <HStack spacing={2} divider={<Box w="1px" h="40px" bg={useColorModeValue('gray.200', 'gray.600')} />}>
+                          {(() => {
+                            // Find best times for different events
+                            const runsWithTime = analytics.runTimes.recentRuns.filter(run => run.has_time_data);
+                            const eventBestTimes = {};
+                            
+                            // Group runs by event and find best time for each
+                            runsWithTime.forEach(run => {
+                              const exerciseName = run.exercise_name.toLowerCase();
+                              let eventKey = null;
+                              
+                              if (exerciseName.includes('100m') || exerciseName.includes('100 m')) {
+                                eventKey = '100m';
+                              } else if (exerciseName.includes('200m') || exerciseName.includes('200 m')) {
+                                eventKey = '200m';
+                              } else if (exerciseName.includes('400m') || exerciseName.includes('400 m')) {
+                                eventKey = '400m';
+                              } else if (exerciseName.includes('800m') || exerciseName.includes('800 m')) {
+                                eventKey = '800m';
+                              } else if (exerciseName.includes('1500m') || exerciseName.includes('1500 m')) {
+                                eventKey = '1500m';
+                              } else if (exerciseName.includes('5000m') || exerciseName.includes('5000 m') || exerciseName.includes('5k')) {
+                                eventKey = '5000m';
+                              }
+                              
+                              if (eventKey) {
+                                const totalMs = ((run.time_minutes || 0) * 60 + (run.time_seconds || 0)) * 1000 + (run.time_hundredths || 0) * 10;
+                                if (!eventBestTimes[eventKey] || totalMs < eventBestTimes[eventKey].totalMs) {
+                                  eventBestTimes[eventKey] = {
+                                    totalMs,
+                                    minutes: run.time_minutes || 0,
+                                    seconds: run.time_seconds || 0,
+                                    hundredths: run.time_hundredths || 0
+                                  };
+                                }
+                              }
+                            });
+                            
+                            // Get top 3 events or all available events
+                            const availableEvents = Object.keys(eventBestTimes).slice(0, 3);
+                            
+                            if (availableEvents.length === 0) {
+                              return (
+                                <VStack spacing={1} px={4}>
+                                  <Text fontSize="xs" color={useColorModeValue('gray.500', 'gray.400')}>No Events</Text>
+                                  <Text fontSize="sm" fontWeight="medium">N/A</Text>
+                                </VStack>
+                              );
+                            }
+                            
+                            return availableEvents.map((event, index) => {
+                              const bestTime = eventBestTimes[event];
+                              const timeString = bestTime.minutes > 0 
+                                ? `${bestTime.minutes}:${bestTime.seconds.toString().padStart(2, '0')}.${bestTime.hundredths.toString().padStart(2, '0')}`
+                                : `${bestTime.seconds}.${bestTime.hundredths.toString().padStart(2, '0')}`;
+                              
+                              return (
+                                <VStack key={event} spacing={1} px={4} minW="60px">
+                                  <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.400')} textAlign="center">
+                                    {event}
+                                  </Text>
+                                  <Text fontSize="sm" fontWeight="medium" textAlign="center">
+                                    {timeString}
+                                  </Text>
+                                </VStack>
+                              );
+                            });
+                          })()}
+                        </HStack>
+                      </VStack>
+                    </Box>
 
                     <Box>
-                      <Text fontWeight="bold" mb={3}>Recent Run Times</Text>
+                      <Text fontWeight="bold" mb={3} px={{ base: 4, md: 0 }}>Recent Run Times</Text>
                       {analytics.runTimes.recentRuns.length > 0 ? (
                         <Box overflowX="auto" maxW="100vw">
                           <Table size="sm" minW="500px">
@@ -1437,17 +1485,17 @@ export function AthleteStats() {
                           </Thead>
                           <Tbody>
                             {analytics.runTimes.recentRuns.slice(0, 10).map((run) => (
-                              <Tr key={run.id}>
-                                <Td position="sticky" left={0} bg={cardBg} zIndex={1} borderRight="1px solid" borderRightColor={borderColor} fontSize="sm" fontWeight="medium">
+                              <Tr key={run.id} h="48px">
+                                <Td position="sticky" left={0} bg={cardBg} zIndex={1} borderRight="1px solid" borderRightColor={borderColor} fontSize="sm" fontWeight="medium" h="48px">
                                   {formatDate(run.created_at)}
                                 </Td>
-                                <Td position="sticky" left="80px" bg={cardBg} zIndex={1} borderRight="1px solid" borderRightColor={borderColor} fontSize="sm" fontWeight="medium">
+                                <Td position="sticky" left="80px" bg={cardBg} zIndex={1} borderRight="1px solid" borderRightColor={borderColor} fontSize="sm" fontWeight="medium" h="48px">
                                   {run.exercise_name}
                                 </Td>
-                                <Td fontSize="sm" fontWeight="medium" color="blue.500" maxW="150px" isTruncated>
+                                <Td fontSize="sm" fontWeight="medium" color="blue.500" maxW="150px" isTruncated h="48px">
                                   {run.workout?.name || (run.workout_id ? `ID: ${run.workout_id.slice(0, 8)}` : 'Unknown')}
                                 </Td>
-                                <Td fontSize="sm" fontWeight="medium">
+                                <Td fontSize="sm" fontWeight="medium" h="48px">
                                   {run.has_time_data ? (
                                     <Text color="green.500" fontSize="sm" fontWeight="medium">
                                       {`${run.time_minutes || 0}:${(run.time_seconds || 0).toString().padStart(2, '0')}.${(run.time_hundredths || 0).toString().padStart(2, '0')}`}
@@ -1458,7 +1506,7 @@ export function AthleteStats() {
                                     </Text>
                                   )}
                                 </Td>
-                                <Td fontSize="sm" fontWeight="medium">
+                                <Td fontSize="sm" fontWeight="medium" h="48px">
                                   {run.rpe_rating ? (
                                     <Badge 
                                       size="sm" 
@@ -1475,16 +1523,18 @@ export function AthleteStats() {
                           </Tbody>
                           </Table>
                         </Box>
-                      ) : (
-                        <VStack spacing={2} py={6}>
-                          <Text color="gray.500" textAlign="center">
-                            No running exercises found.
-                          </Text>
-                          <Text color="gray.400" fontSize="xs" textAlign="center">
-                            Complete workouts with running exercises to see them here.
-                          </Text>
-                        </VStack>
-                      )}
+                                              ) : (
+                          <Box px={{ base: 4, md: 0 }}>
+                            <VStack spacing={2} py={6}>
+                              <Text color="gray.500" textAlign="center">
+                                No running exercises found.
+                              </Text>
+                              <Text color="gray.400" fontSize="xs" textAlign="center">
+                                Complete workouts with running exercises to see them here.
+                              </Text>
+                            </VStack>
+                          </Box>
+                        )}
                     </Box>
                   </VStack>
                 </CardBody>
