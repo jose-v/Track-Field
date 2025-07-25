@@ -729,7 +729,7 @@ export function AthleteStats() {
                     </ButtonGroup>
                   </HStack>
                 </CardHeader>
-                <CardBody flex="1" px={{ base: 2, md: 6 }}>
+                <CardBody flex="1" px={{ base: 1, md: 6 }}>
                   <VStack spacing={4} align="stretch">
                     <SimpleGrid columns={3} spacing={4}>
                       <Stat textAlign="center">
@@ -768,7 +768,7 @@ export function AthleteStats() {
                             {analytics.sleep.chartData.map((day, index) => (
                               <VStack key={index} spacing={2} align="center" flex={1}>
                                 {/* Duration text above bar */}
-                                <Box h="16px" display="flex" alignItems="center">
+                                <Box h="56px" display="flex" alignItems="center">
                                   {day.hasData && (
                                     <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.400')} fontWeight="medium">
                                       {day.duration.toFixed(1)}h
@@ -965,18 +965,18 @@ export function AthleteStats() {
                         )}
 
                         {/* Color legend - moved to bottom */}
-                        <HStack spacing={8} mt="20px" justify="flex-start">
+                        <HStack spacing={6} mt="20px" justify="flex-start">
                           <HStack spacing={1}>
                             <Box w="3" h="3" bg="#10B981" borderRadius="sm" />
-                            <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>7+ hours</Text>
+                            <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>7+ Hrs</Text>
                           </HStack>
                           <HStack spacing={1}>
                             <Box w="3" h="3" bg="#F59E0B" borderRadius="sm" />
-                            <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>6-7 hours</Text>
+                            <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>6-7 Hrs</Text>
                           </HStack>
                           <HStack spacing={1}>
                             <Box w="3" h="3" bg="#EF4444" borderRadius="sm" />
-                            <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>Under 6 hours</Text>
+                            <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>Under 6 Hrs</Text>
                           </HStack>
                         </HStack>
                       </Box>
@@ -1008,7 +1008,7 @@ export function AthleteStats() {
                     </ButtonGroup>
                   </HStack>
                 </CardHeader>
-                <CardBody flex="1" px={{ base: 2, md: 6 }}>
+                <CardBody flex="1" px={{ base: 1, md: 6 }}>
                   <VStack spacing={4} align="stretch">
                     <SimpleGrid columns={3} spacing={4}>
                       <Stat textAlign="center">
@@ -1027,7 +1027,7 @@ export function AthleteStats() {
 
                     {/* Visual Wellness Chart - same complex chart as coach stats */}
                     <Box>
-                      <Text fontWeight="bold" mb={3}>Wellness Trends (Last {wellnessViewMode === 'week' ? '7 Days' : '30 Days'})</Text>
+                      <Text fontWeight="bold" mb={0}>Wellness Trends (Last {wellnessViewMode === 'week' ? '7 Days' : '30 Days'})</Text>
                       <Box bg={{ base: 'transparent', md: useColorModeValue('gray.50', 'transparent') }} borderRadius="lg" px={1} py={10}>
                         {/* Chart area - same complex chart as coach stats */}
                         {wellnessViewMode === 'week' ? (
@@ -1279,7 +1279,7 @@ export function AthleteStats() {
                                     <Th>Sets x Reps</Th>
                                     <Th>Weight</Th>
                                     <Th>RPE</Th>
-                                    <Th>Notes</Th>
+                                    <Th>Elapsed</Th>
                                   </Tr>
                                 </Thead>
                                 <Tbody>
@@ -1394,7 +1394,7 @@ export function AthleteStats() {
                   <VStack spacing={8} align="stretch">
                     <Box px={{ base: 0, md: 0 }}>
                       <VStack spacing={6} align="flex-end">
-                        <Text fontSize="sm" pr="12px" color={useColorModeValue('gray.600', 'gray.400')} fontWeight="medium">
+                        <Text fontSize="sm" pr="12px" color={useColorModeValue('gray.600', 'yellow.500')} fontWeight="medium">
                           Best Training Times
                         </Text>
                         <HStack spacing={2} divider={<Box w="1px" h="40px" bg={useColorModeValue('gray.200', 'gray.600')} />}>

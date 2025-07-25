@@ -31,6 +31,7 @@ interface AthleteWithAssignment {
   email?: string;
   avatar_url?: string;
   isAlreadyAssigned?: boolean;
+  isMarkedForUnassignment?: boolean;
 }
 
 export function AssignmentDrawer({
@@ -64,6 +65,7 @@ export function AssignmentDrawer({
   const [searchTerm, setSearchTerm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [existingAssignments, setExistingAssignments] = useState<Set<string>>(new Set());
+  const [athletesToUnassign, setAthletesToUnassign] = useState<Set<string>>(new Set());
 
   // Fetch athletes using the hook
   const { data: athletes = [], isLoading: athletesLoading } = useCoachAthletes();
@@ -72,14 +74,15 @@ export function AssignmentDrawer({
   const processedAthletes: AthleteWithAssignment[] = useMemo(() => {
     return athletes.map(athlete => ({
       ...athlete,
-      isAlreadyAssigned: existingAssignments.has(athlete.id)
+      isAlreadyAssigned: existingAssignments.has(athlete.id),
+      isMarkedForUnassignment: athletesToUnassign.has(athlete.id)
     })).filter(athlete => {
       if (!searchTerm) return true;
       const fullName = `${athlete.first_name} ${athlete.last_name}`.toLowerCase();
       return fullName.includes(searchTerm.toLowerCase()) || 
              athlete.email?.toLowerCase().includes(searchTerm.toLowerCase());
     });
-  }, [athletes, existingAssignments, searchTerm]);
+  }, [athletes, existingAssignments, athletesToUnassign, searchTerm]);
 
   // Load existing assignments when drawer opens
   useEffect(() => {
@@ -92,30 +95,68 @@ export function AssignmentDrawer({
     if (!assignmentItem || !user?.id) return;
 
     try {
-      const { data, error } = await supabase
-        .from('training_plan_assignments')
-        .select('athlete_id')
-        .eq('coach_id', user.id)
-        .eq(isWorkoutAssignment ? 'workout_id' : 'monthly_plan_id', assignmentItem.id)
-        .eq('assignment_type', isWorkoutAssignment ? 'single' : 'monthly');
+      let assignedAthleteIds: Set<string>;
 
-      if (error) throw error;
+      if (isWorkoutAssignment) {
+        // For workout assignments, check the unified_workout_assignments table
+        // Determine assignment type based on workout template_type
+        const assignmentType = (workout as any)?.template_type === 'weekly' ? 'weekly' : 
+                               (workout as any)?.template_type === 'monthly' ? 'monthly' : 'single';
+        
+        // Look for assignments with the same workout name and meta.original_workout_id
+        const { data, error } = await supabase
+          .from('unified_workout_assignments')
+          .select('athlete_id')
+          .eq('assigned_by', user.id)
+          .eq('assignment_type', assignmentType)
+          .contains('meta', { original_workout_id: assignmentItem.id });
 
-      const assignedAthleteIds = new Set(data?.map(assignment => assignment.athlete_id) || []);
+        if (error) throw error;
+        assignedAthleteIds = new Set(data?.map(assignment => assignment.athlete_id) || []);
+      } else {
+        // For training plan assignments, check the training_plan_assignments table
+        const { data, error } = await supabase
+          .from('training_plan_assignments')
+          .select('athlete_id')
+          .eq('assigned_by', user.id)
+          .eq('training_plan_id', assignmentItem.id);
+
+        if (error) throw error;
+        assignedAthleteIds = new Set(data?.map(assignment => assignment.athlete_id) || []);
+      }
+
       setExistingAssignments(assignedAthleteIds);
     } catch (error) {
       console.error('Error loading existing assignments:', error);
+      // Don't throw error - just log and continue with empty assignments
+      setExistingAssignments(new Set());
     }
   };
 
   const handleAthleteToggle = (athleteId: string) => {
-    const newSelected = new Set(selectedAthletes);
-    if (newSelected.has(athleteId)) {
-      newSelected.delete(athleteId);
+    const isCurrentlyAssigned = existingAssignments.has(athleteId);
+    const isMarkedForUnassignment = athletesToUnassign.has(athleteId);
+    const isSelected = selectedAthletes.has(athleteId);
+
+    if (isCurrentlyAssigned) {
+      // This athlete is already assigned - toggle unassignment
+      const newUnassignSet = new Set(athletesToUnassign);
+      if (isMarkedForUnassignment) {
+        newUnassignSet.delete(athleteId);
+      } else {
+        newUnassignSet.add(athleteId);
+      }
+      setAthletesToUnassign(newUnassignSet);
     } else {
-      newSelected.add(athleteId);
+      // This athlete is not assigned - toggle selection for assignment
+      const newSelected = new Set(selectedAthletes);
+      if (isSelected) {
+        newSelected.delete(athleteId);
+      } else {
+        newSelected.add(athleteId);
+      }
+      setSelectedAthletes(newSelected);
     }
-    setSelectedAthletes(newSelected);
   };
 
   const handleSelectAll = () => {
@@ -128,10 +169,10 @@ export function AssignmentDrawer({
   };
 
   const handleSubmit = async () => {
-    if (selectedAthletes.size === 0 || !assignmentItem || !user?.id) {
+    if (selectedAthletes.size === 0 && athletesToUnassign.size === 0 || !assignmentItem || !user?.id) {
       toast({
         title: 'No athletes selected',
-        description: 'Please select at least one athlete to assign.',
+        description: 'Please select at least one athlete to assign or unassign.',
         status: 'warning',
         duration: 3000,
         isClosable: true,
@@ -142,21 +183,88 @@ export function AssignmentDrawer({
     setIsSubmitting(true);
     
     try {
-      const athleteIds = Array.from(selectedAthletes);
+      const athleteIdsToAssign = Array.from(selectedAthletes);
+      const athleteIdsToUnassign = Array.from(athletesToUnassign);
       
       if (isWorkoutAssignment) {
         // Create assignments using AssignmentService
         const assignmentService = new AssignmentService();
-        for (const athleteId of athleteIds) {
-          await assignmentService.createAssignment({
-            athlete_id: athleteId,
-            assignment_type: 'single',
-            exercise_block: {
+        
+        // Determine assignment type based on workout template_type
+        const assignmentType = (workout as any)?.template_type === 'weekly' ? 'weekly' : 
+                               (workout as any)?.template_type === 'monthly' ? 'monthly' : 'single';
+        
+        for (const athleteId of athleteIdsToAssign) {
+          let exerciseBlock: any;
+          let endDate: string;
+          let metaWorkoutType: string;
+
+          if (assignmentType === 'weekly') {
+            // Weekly workout - convert blocks to daily_workouts format
+            let dailyWorkouts: any = {};
+            
+            if ((workout as any)?.blocks) {
+              // Parse blocks if it's a string
+              let blocks: any = (workout as any).blocks;
+              if (typeof blocks === 'string') {
+                try {
+                  blocks = JSON.parse(blocks);
+                } catch (e) {
+                  console.error('Failed to parse workout blocks:', e);
+                  blocks = {};
+                }
+              }
+              
+              // Use the blocks structure as-is for daily_workouts
+              if (typeof blocks === 'object' && blocks !== null) {
+                dailyWorkouts = blocks;
+              }
+            }
+            
+            exerciseBlock = {
+              workout_name: workout!.name,
+              description: workout!.description || '',
+              estimated_duration: workout!.duration,
+              daily_workouts: dailyWorkouts
+            };
+            
+            // Weekly assignments span 7 days
+            const startDate = new Date();
+            const endDateObj = new Date(startDate);
+            endDateObj.setDate(startDate.getDate() + 6);
+            endDate = endDateObj.toISOString().split('T')[0];
+            metaWorkoutType = 'weekly';
+          } else if (assignmentType === 'monthly') {
+            // Monthly workout - similar structure but longer duration
+            exerciseBlock = {
               workout_name: workout!.name,
               description: workout!.description || '',
               estimated_duration: workout!.duration,
               exercises: workout!.exercises || []
-            },
+            };
+            
+            // Monthly assignments span 30 days
+            const startDate = new Date();
+            const endDateObj = new Date(startDate);
+            endDateObj.setDate(startDate.getDate() + 29);
+            endDate = endDateObj.toISOString().split('T')[0];
+            metaWorkoutType = 'monthly';
+          } else {
+            // Single workout
+            exerciseBlock = {
+              workout_name: workout!.name,
+              description: workout!.description || '',
+              estimated_duration: workout!.duration,
+              exercises: workout!.exercises || []
+            };
+            endDate = getTodayLocalDate();
+            metaWorkoutType = 'single';
+          }
+
+          await assignmentService.createAssignment({
+            athlete_id: athleteId,
+            assignment_type: assignmentType,
+            exercise_block: exerciseBlock,
             progress: {
               current_exercise_index: 0,
               current_set: 1,
@@ -166,29 +274,52 @@ export function AssignmentDrawer({
               completion_percentage: 0
             },
             start_date: getTodayLocalDate(),
-            end_date: getTodayLocalDate(),
+            end_date: endDate,
             assigned_at: new Date().toISOString(),
             assigned_by: user.id,
             status: 'assigned',
             meta: {
               original_workout_id: workout!.id,
-              workout_type: 'single'
+              workout_type: metaWorkoutType
             }
           });
         }
+
+        for (const athleteId of athleteIdsToUnassign) {
+          await supabase
+            .from('unified_workout_assignments')
+            .delete()
+            .eq('athlete_id', athleteId)
+            .eq('assigned_by', user.id)
+            .eq('assignment_type', assignmentType)
+            .contains('meta', { original_workout_id: assignmentItem.id });
+        }
+        
+        // Determine display text for assignment type
+        const assignmentTypeText = assignmentType === 'weekly' ? 'Weekly workout' : 
+                                   assignmentType === 'monthly' ? 'Monthly workout' : 'Workout';
+        
         toast({
-          title: 'Workout assigned successfully',
-          description: `Assigned "${workout!.name}" to ${athleteIds.length} athlete(s).`,
+          title: `${assignmentTypeText} assigned/unassigned successfully`,
+          description: `Assigned "${workout!.name}" to ${athleteIdsToAssign.length} athlete(s) and unassigned from ${athleteIdsToUnassign.length} athlete(s).`,
           status: 'success',
           duration: 4000,
           isClosable: true,
         });
       } else {
         // Use API for monthly plans
-        await api.monthlyPlanAssignments.assign(monthlyPlan!.id, athleteIds, monthlyPlan!.start_date);
+        if (athleteIdsToAssign.length > 0) {
+          await api.monthlyPlanAssignments.assign(monthlyPlan!.id, athleteIdsToAssign, monthlyPlan!.start_date);
+        }
+        
+        // Remove assignments for unassigned athletes
+        for (const athleteId of athleteIdsToUnassign) {
+          await api.trainingPlanAssignments.removeByPlanAndAthlete(monthlyPlan!.id, athleteId);
+        }
+        
         toast({
-          title: 'Training plan assigned successfully',
-          description: `Assigned "${monthlyPlan!.name}" to ${athleteIds.length} athlete(s).`,
+          title: 'Training plan assigned/unassigned successfully',
+          description: `Assigned "${monthlyPlan!.name}" to ${athleteIdsToAssign.length} athlete(s) and unassigned from ${athleteIdsToUnassign.length} athlete(s).`,
           status: 'success',
           duration: 4000,
           isClosable: true,
@@ -201,6 +332,7 @@ export function AssignmentDrawer({
 
       // Reset state and close
       setSelectedAthletes(new Set());
+      setAthletesToUnassign(new Set());
       setSearchTerm('');
       onSuccess?.();
       onClose();
@@ -209,7 +341,7 @@ export function AssignmentDrawer({
       console.error('Assignment error:', error);
       toast({
         title: 'Assignment failed',
-        description: error.message || 'There was an error assigning the workout/plan.',
+        description: error.message || 'There was an error assigning/unassigning the workout/plan.',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -221,6 +353,7 @@ export function AssignmentDrawer({
 
   const resetState = () => {
     setSelectedAthletes(new Set());
+    setAthletesToUnassign(new Set());
     setSearchTerm('');
     setExistingAssignments(new Set());
   };
@@ -286,13 +419,25 @@ export function AssignmentDrawer({
           
           <HStack spacing={3}>
             <Badge colorScheme="blue" px={2} py={1}>
-              {selectedAthletes.size} selected
+              {selectedAthletes.size} to assign
             </Badge>
+            {athletesToUnassign.size > 0 && (
+              <Badge colorScheme="red" px={2} py={1}>
+                {athletesToUnassign.size} to unassign
+              </Badge>
+            )}
             <Badge colorScheme="gray" px={2} py={1}>
               {processedAthletes.length} total
             </Badge>
           </HStack>
         </HStack>
+
+        {/* Instructions */}
+        <Box bg={useColorModeValue('blue.50', 'blue.900')} p={3} borderRadius="md">
+          <Text fontSize="sm" color={useColorModeValue('blue.700', 'blue.200')}>
+            💡 Click unassigned athletes to assign them. Click assigned athletes to unassign them.
+          </Text>
+        </Box>
       </VStack>
 
       {/* Athletes List */}
@@ -311,62 +456,72 @@ export function AssignmentDrawer({
           </VStack>
         ) : (
           <VStack spacing={2}>
-            {processedAthletes.map((athlete) => (
-                              <Card
+            {processedAthletes.map((athlete) => {
+              const isMarkedForUnassignment = (athlete as any).isMarkedForUnassignment;
+              return (
+                <Card
                   key={athlete.id}
                   bg={athlete.isAlreadyAssigned ? cardBg : inputBg}
-                  cursor={athlete.isAlreadyAssigned ? 'not-allowed' : 'pointer'}
-                  onClick={() => !athlete.isAlreadyAssigned && handleAthleteToggle(athlete.id)}
-                  _hover={!athlete.isAlreadyAssigned ? { bg: cardHoverBg } : {}}
-                  opacity={athlete.isAlreadyAssigned ? 0.6 : 1}
+                  cursor="pointer"
+                  onClick={() => handleAthleteToggle(athlete.id)}
+                  _hover={{ bg: cardHoverBg }}
+                  opacity={isMarkedForUnassignment ? 0.7 : 1}
                   borderWidth="2px"
                   borderColor={
-                    athlete.isAlreadyAssigned 
-                      ? "orange.300"
-                      : selectedAthletes.has(athlete.id) 
-                        ? "blue.500" 
-                        : "transparent"
+                    isMarkedForUnassignment
+                      ? "red.500"
+                      : athlete.isAlreadyAssigned 
+                        ? "orange.300"
+                        : selectedAthletes.has(athlete.id) 
+                          ? "blue.500" 
+                          : "transparent"
                   }
                   w="full"
                 >
-                <CardBody px={3} py={0.5}>
-                  <HStack spacing={3} align="center">
-                    <Checkbox
-                      isChecked={selectedAthletes.has(athlete.id)}
-                      isDisabled={athlete.isAlreadyAssigned}
-                      pointerEvents="none"
-                    />
-                    
-                    <Avatar
-                      size="sm"
-                      src={athlete.avatar_url}
-                      name={`${athlete.first_name} ${athlete.last_name}`}
-                    />
-                    
-                    <VStack spacing={0} align="start" flex="1" minW={0}>
-                      <Text 
-                        fontWeight="medium" 
-                        color={drawerText}
-                        noOfLines={1}
-                      >
-                        {athlete.first_name} {athlete.last_name}
-                      </Text>
-                      {athlete.email && (
-                        <Text fontSize="xs" color="gray.500" noOfLines={1}>
-                          {athlete.email}
+                  <CardBody px={3} py={0.5}>
+                    <HStack spacing={3} align="center">
+                      <Checkbox
+                        isChecked={selectedAthletes.has(athlete.id) || isMarkedForUnassignment}
+                        isDisabled={false}
+                        pointerEvents="none"
+                      />
+                      
+                      <Avatar
+                        size="sm"
+                        src={athlete.avatar_url}
+                        name={`${athlete.first_name} ${athlete.last_name}`}
+                      />
+                      
+                      <VStack spacing={0} align="start" flex="1" minW={0}>
+                        <Text 
+                          fontWeight="medium" 
+                          color={drawerText}
+                          noOfLines={1}
+                        >
+                          {athlete.first_name} {athlete.last_name}
                         </Text>
-                      )}
-                    </VStack>
+                        {athlete.email && (
+                          <Text fontSize="xs" color="gray.500" noOfLines={1}>
+                            {athlete.email}
+                          </Text>
+                        )}
+                      </VStack>
 
-                    {athlete.isAlreadyAssigned && (
-                      <Badge colorScheme="orange" size="sm">
-                        Assigned
-                      </Badge>
-                    )}
-                  </HStack>
-                </CardBody>
-              </Card>
-            ))}
+                      {athlete.isAlreadyAssigned && !isMarkedForUnassignment && (
+                        <Badge colorScheme="orange" size="sm">
+                          Assigned
+                        </Badge>
+                      )}
+                      {isMarkedForUnassignment && (
+                        <Badge colorScheme="red" size="sm">
+                          Unassign
+                        </Badge>
+                      )}
+                    </HStack>
+                  </CardBody>
+                </Card>
+              );
+            })}
                       </VStack>
         )}
       </Box>
@@ -386,12 +541,25 @@ export function AssignmentDrawer({
             colorScheme="blue"
             onClick={handleSubmit}
             isLoading={isSubmitting}
-            loadingText="Assigning..."
+            loadingText="Processing..."
             size="lg"
             flex="2"
-            isDisabled={selectedAthletes.size === 0}
+            isDisabled={selectedAthletes.size === 0 && athletesToUnassign.size === 0}
           >
-            Assign to {selectedAthletes.size} Athlete{selectedAthletes.size !== 1 ? 's' : ''}
+            {(() => {
+              const assignCount = selectedAthletes.size;
+              const unassignCount = athletesToUnassign.size;
+              
+              if (assignCount > 0 && unassignCount > 0) {
+                return `Assign ${assignCount} & Unassign ${unassignCount}`;
+              } else if (assignCount > 0) {
+                return `Assign to ${assignCount} Athlete${assignCount !== 1 ? 's' : ''}`;
+              } else if (unassignCount > 0) {
+                return `Unassign ${unassignCount} Athlete${unassignCount !== 1 ? 's' : ''}`;
+              } else {
+                return 'No Changes';
+              }
+            })()}
           </Button>
         </HStack>
       </VStack>

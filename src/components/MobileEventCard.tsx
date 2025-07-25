@@ -20,9 +20,27 @@ import { FaTimes, FaCalendarAlt, FaShare, FaMapMarkerAlt, FaExternalLinkAlt, FaC
 import { BsThreeDots } from 'react-icons/bs';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 interface MobileEventCardProps {
   onEventClick?: () => void;
+}
+
+interface AthleteEvent {
+  id: string;
+  meet_id: string;
+  meet_name: string;
+  meet_date: string;
+  location: string;
+  event_name: string;
+  description: string;
+  registration_deadline: string;
+  entry_deadline_date: string;
+  venue_name: string;
+  venue_type: string;
+  event_day: number | null;
+  event_type: string;
+  start_time: string;
 }
 
 interface UpcomingEvent {
@@ -31,7 +49,7 @@ interface UpcomingEvent {
   title: string;
   location?: string;
   entryDeadline?: string;
-  events?: string[];
+  events?: AthleteEvent[];
   venue?: string;
   address?: string;
 }
@@ -39,6 +57,7 @@ interface UpcomingEvent {
 export const MobileEventCard: React.FC<MobileEventCardProps> = ({ onEventClick }) => {
   const [upcomingEvent, setUpcomingEvent] = useState<UpcomingEvent | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -55,19 +74,113 @@ export const MobileEventCard: React.FC<MobileEventCardProps> = ({ onEventClick }
   const buttonHoverBg = useColorModeValue('gray.100', 'gray.700');
 
   useEffect(() => {
-    // For now, using mock data. In production, this would fetch from your meets/events API
-    const mockEvent: UpcomingEvent = {
-      id: '1',
-      date: 'Jul, 28 2025',
-      title: '2025 AAU Junior Olympics',
-      location: 'Eugene, OR',
-      entryDeadline: 'Jul, 15 2025',
-      events: ['100m Dash', '200m Dash', 'Long Jump'],
-      venue: 'Hayward Field',
-      address: '1580 E 15th Ave, Eugene, OR 97403'
+    const fetchAthleteEvents = async () => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        
+        // Fetch athlete events from database using the same pattern as MobileCalendar
+        const { data: eventAssignments, error } = await supabase
+          .from('athlete_meet_events')
+          .select(`
+            meet_event_id,
+            meet_events (
+              id,
+              meet_id,
+              event_name,
+              event_day,
+              event_type,
+              start_time,
+              track_meets (
+                id,
+                name,
+                meet_date,
+                city,
+                state,
+                description,
+                registration_deadline,
+                entry_deadline_date,
+                venue_name,
+                venue_type
+              )
+            )
+          `)
+          .eq('athlete_id', user.id);
+
+        if (error) {
+          console.error('Error fetching athlete events:', error);
+          setUpcomingEvent(null);
+          return;
+        }
+
+        if (eventAssignments && eventAssignments.length > 0) {
+          // Map the database results to athlete events
+          const athleteEvents: AthleteEvent[] = eventAssignments.map(item => {
+            const meetEvent = item.meet_events as any;
+            const trackMeet = meetEvent?.track_meets as any;
+            return {
+              id: meetEvent?.id || '',
+              meet_id: meetEvent?.meet_id || '',
+              meet_name: trackMeet?.name || 'Unknown Meet',
+              meet_date: trackMeet?.meet_date || '',
+              location: `${trackMeet?.city || ''}, ${trackMeet?.state || ''}`.trim() || 'Unknown Location',
+              event_name: meetEvent?.event_name || 'Unknown Event',
+              description: trackMeet?.description || '',
+              registration_deadline: trackMeet?.registration_deadline || '',
+              entry_deadline_date: trackMeet?.entry_deadline_date || '',
+              venue_name: trackMeet?.venue_name || '',
+              venue_type: trackMeet?.venue_type || '',
+              event_day: meetEvent?.event_day || null,
+              event_type: meetEvent?.event_type || '',
+              start_time: meetEvent?.start_time || ''
+            };
+          });
+
+          // Filter to upcoming events (future dates)
+          const currentDate = new Date();
+          const upcomingEvents = athleteEvents.filter(event => 
+            new Date(event.meet_date) >= currentDate
+          ).sort((a, b) => new Date(a.meet_date).getTime() - new Date(b.meet_date).getTime());
+
+          if (upcomingEvents.length > 0) {
+            // Group events by meet and get the next upcoming meet
+            const nextMeet = upcomingEvents[0];
+            const nextMeetEvents = upcomingEvents.filter(event => 
+              event.meet_id === nextMeet.meet_id
+            );
+
+            // Format the upcoming event for display
+            const formattedEvent: UpcomingEvent = {
+              id: nextMeet.meet_id,
+              date: formatEventDate(nextMeet.meet_date),
+              title: nextMeet.meet_name,
+              location: nextMeet.location,
+              entryDeadline: nextMeet.entry_deadline_date ? formatEventDate(nextMeet.entry_deadline_date) : undefined,
+              events: nextMeetEvents,
+              venue: nextMeet.venue_name,
+              address: nextMeet.location // Could be enhanced with full address if available
+            };
+
+            setUpcomingEvent(formattedEvent);
+          } else {
+            setUpcomingEvent(null);
+          }
+        } else {
+          setUpcomingEvent(null);
+        }
+      } catch (error) {
+        console.error('Error fetching athlete events:', error);
+        setUpcomingEvent(null);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    setUpcomingEvent(mockEvent);
+    fetchAthleteEvents();
   }, [user]);
 
   // Function to format date if needed
@@ -85,6 +198,24 @@ export const MobileEventCard: React.FC<MobileEventCardProps> = ({ onEventClick }
       });
     } catch {
       return dateStr;
+    }
+  };
+
+  // Function to format individual event date in mm/dd format
+  const formatEventDateShort = (meetDate: string, eventDay?: number | null): string => {
+    try {
+      const baseDate = new Date(meetDate);
+      if (eventDay && eventDay > 1) {
+        // Add days if event is on day 2, 3, etc.
+        baseDate.setDate(baseDate.getDate() + (eventDay - 1));
+      }
+      
+      return baseDate.toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit'
+      });
+    } catch {
+      return '';
     }
   };
 
@@ -111,6 +242,25 @@ export const MobileEventCard: React.FC<MobileEventCardProps> = ({ onEventClick }
     navigate('/athlete/meets');
     setIsDrawerOpen(false);
   };
+
+  if (isLoading) {
+    return (
+      <Box
+        bg={cardBg}
+        borderRadius="xl"
+        p={6}
+        boxShadow="lg"
+        h="160px"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+      >
+        <Text color={textColor} fontSize="sm">
+          Loading events...
+        </Text>
+      </Box>
+    );
+  }
 
   if (!upcomingEvent) {
     return (
@@ -178,17 +328,9 @@ export const MobileEventCard: React.FC<MobileEventCardProps> = ({ onEventClick }
                 color={textColor}
                 lineHeight="1.3"
                 textAlign="center"
+                noOfLines={2}
               >
-                2025 AAU
-              </Text>
-              <Text 
-                fontSize="xl" 
-                fontWeight="bold" 
-                color={textColor}
-                lineHeight="1.3"
-                textAlign="center"
-              >
-                Junior Olympics
+                {upcomingEvent.title}
               </Text>
             </VStack>
           </Flex>
@@ -309,11 +451,14 @@ export const MobileEventCard: React.FC<MobileEventCardProps> = ({ onEventClick }
                   </Text>
                   {upcomingEvent?.events && upcomingEvent.events.length > 0 && (
                     <VStack align="start" spacing={1} pl={0}>
-                      {upcomingEvent.events.map((event, index) => (
-                        <Text key={index} fontSize="md" color={drawerText}>
-                          • {event}
-                        </Text>
-                      ))}
+                      {upcomingEvent.events.map((event, index) => {
+                        const eventDate = formatEventDateShort(event.meet_date, event.event_day);
+                        return (
+                          <Text key={index} fontSize="md" color={drawerText}>
+                            {eventDate} {event.event_name}
+                          </Text>
+                        );
+                      })}
                     </VStack>
                   )}
                 </VStack>
