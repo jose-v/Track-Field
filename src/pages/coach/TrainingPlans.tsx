@@ -981,11 +981,11 @@ export function CoachTrainingPlans() {
   const handlePermanentDelete = async (id: string, type: 'workout' | 'monthlyPlan') => {
     try {
       if (type === 'workout') {
-        await api.workouts.permanentDelete(id);
+        await api.workouts.archiveWorkout(id);
         toast({
-          title: 'Workout permanently deleted',
-          description: 'The workout has been permanently removed.',
-          status: 'info',
+          title: 'Workout archived',
+          description: 'The workout has been moved to history tables and removed from view.',
+          status: 'success',
           duration: 3000,
           isClosable: true
         });

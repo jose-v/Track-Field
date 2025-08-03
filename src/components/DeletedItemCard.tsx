@@ -25,7 +25,7 @@ import {
   Icon,
   Flex
 } from '@chakra-ui/react';
-import { FaUndo, FaTrashAlt, FaCalendarAlt, FaDumbbell, FaClock, FaUser, FaLayerGroup, FaExclamationTriangle } from 'react-icons/fa';
+import { FaUndo, FaTrashAlt, FaCalendarAlt, FaDumbbell, FaClock, FaUser, FaLayerGroup, FaExclamationTriangle, FaLock } from 'react-icons/fa';
 import type { Workout } from '../services/api';
 import type { TrainingPlan } from '../services/dbSchema';
 import { format } from 'date-fns';

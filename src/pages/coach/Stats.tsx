@@ -74,6 +74,7 @@ import { supabase } from '../../lib/supabase';
 import { useQuery } from '@tanstack/react-query';
 import { usePageHeader } from '../../hooks/usePageHeader';
 import PageHeader from '../../components/PageHeader';
+import { RunTimesAnalyticsSection } from '../../components/analytics/RunTimesAnalyticsSection';
 
 // Individual Athlete Data Interface
 interface AthleteAnalytics {
@@ -101,6 +102,7 @@ export function CoachStats() {
   const [selectedAthleteId, setSelectedAthleteId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState('month');
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [sleepViewMode, setSleepViewMode] = useState<'week' | 'month'>('week');
   const [wellnessViewMode, setWellnessViewMode] = useState<'week' | 'month'>('week');
 
@@ -184,9 +186,9 @@ export function CoachStats() {
         .gte('survey_date', startDate.split('T')[0])
         .order('survey_date', { ascending: false });
       
-      // Get exercise results directly from exercise_results table
+      // Get exercise results from unified analytics view (includes both active and archived)
       const { data: exerciseResultsData } = await supabase
-        .from('exercise_results')
+        .from('exercise_results_for_analytics')
         .select(`
           *
         `)
@@ -194,17 +196,38 @@ export function CoachStats() {
         .gte('completed_at', startDate)
         .order('completed_at', { ascending: false });
 
+      // Get ALL exercise results for reps analysis (unfiltered by date range)
+      const { data: allExerciseResultsData } = await supabase
+        .from('exercise_results_for_analytics')
+        .select(`
+          *
+        `)
+        .eq('athlete_id', selectedAthleteId)
+        .order('completed_at', { ascending: false });
+
       console.log('Exercise results data for athlete:', selectedAthleteId, exerciseResultsData);
+      console.log('Date range filter:', { dateRange, days, startDate });
+      console.log('All exercise results (unfiltered):', allExerciseResultsData?.length);
+      console.log('Filtered exercise results:', exerciseResultsData?.length);
+      
+      // Check for the specific 8/2/25 run in unified data
+      const specificRun = allExerciseResultsData?.find(result => {
+        const resultDate = new Date(result.completed_at);
+        return resultDate.toLocaleDateString() === '8/2/2025' && 
+               result.exercise_name?.toLowerCase().includes('400m');
+      });
+      console.log('Specific 8/2/25 400m run found:', specificRun);
+      console.log('Total exercise results (unified):', allExerciseResultsData?.length);
       
       // Get unique workout IDs from exercise results and fetch actual workout names directly from workouts table (same as other components)
       const uniqueWorkoutIds = [...new Set(exerciseResultsData?.map(result => result.workout_id).filter(Boolean) || [])];
       
-      // Fetch workout names directly from workouts table (same approach as MonthlyPlanCard, RPEPromptCard, etc.)
+      // Fetch workout names from analytics view (includes both active and archived workouts)
       const workoutIdToName: Record<string, string> = {};
       if (uniqueWorkoutIds.length > 0) {
         const { data: workoutData, error: workoutError } = await supabase
-          .from('workouts')
-          .select('id, name')
+          .from('workouts_for_analytics')
+          .select('id, name, source')
           .in('id', uniqueWorkoutIds);
         
         if (!workoutError && workoutData) {
@@ -213,7 +236,7 @@ export function CoachStats() {
           });
         }
         
-        console.log('Fetched workout names directly from workouts table:', workoutIdToName);
+        console.log('Fetched workout names from analytics view (includes archived):', workoutIdToName);
       }
       
       // Get training load entries (RPE data) for this athlete and date range
@@ -274,7 +297,9 @@ export function CoachStats() {
         sleep: sleepData || [],
         wellness: wellnessData || [],
         performance: transformedPerformanceData || [],
-        assignments: assignmentsData || []
+        assignments: assignmentsData || [],
+        allExerciseResults: allExerciseResultsData || [],
+        workoutIdToName: workoutIdToName
       };
     },
     enabled: !!selectedAthleteId
@@ -430,6 +455,14 @@ export function CoachStats() {
         return isRunningExercise;
       });
 
+      console.log('Performance records total:', performanceRecords.length);
+      console.log('Run results found:', runResults.length);
+      console.log('Run results dates:', runResults.map(r => ({
+        date: new Date(r.created_at).toLocaleDateString(),
+        exercise: r.exercise_name,
+        has_time: r.has_time_data
+      })));
+
               // Separate exercises with and without time data
         const runsWithTimes = runResults.filter(p => p.has_time_data);
         const runsWithoutTimes = runResults.filter(p => !p.has_time_data);
@@ -498,12 +531,284 @@ export function CoachStats() {
         };
       });
 
+      // Create chart data structure for the RunTimesAnalyticsSection component
+      const chartData = (() => {
+        // Group runs by distance/event type
+        const eventGroups = {
+          '100m': [],
+          '200m': [],
+          '400m': [],
+          '800m': [],
+          '1500m': [],
+          '5000m': []
+        };
+
+        console.log('Processing runsWithTimes for chart:', runsWithTimes.length);
+        console.log('Sample run data:', runsWithTimes.slice(0, 2));
+        console.log('All exercise names:', runsWithTimes.map(r => r.exercise_name));
+
+        // Categorize runs by distance
+        runsWithTimes.forEach(run => {
+          const exerciseName = run.exercise_name.toLowerCase();
+          let eventKey = null;
+          
+          console.log(`Processing exercise: "${run.exercise_name}" (lowercase: "${exerciseName}")`);
+          
+          if (exerciseName.includes('100m') || exerciseName.includes('100 m') || exerciseName.includes('100 meter')) {
+            eventKey = '100m';
+          } else if (exerciseName.includes('200m') || exerciseName.includes('200 m') || exerciseName.includes('200 meter')) {
+            eventKey = '200m';
+          } else if (exerciseName.includes('400m') || exerciseName.includes('400 m') || exerciseName.includes('400 meter')) {
+            eventKey = '400m';
+          } else if (exerciseName.includes('800m') || exerciseName.includes('800 m') || exerciseName.includes('800 meter')) {
+            eventKey = '800m';
+          } else if (exerciseName.includes('1500m') || exerciseName.includes('1500 m') || exerciseName.includes('1500 meter')) {
+            eventKey = '1500m';
+          } else if (exerciseName.includes('5000m') || exerciseName.includes('5000 m') || exerciseName.includes('5000 meter') || exerciseName.includes('5k') || exerciseName.includes('5 km')) {
+            eventKey = '5000m';
+          }
+          
+          console.log(`Exercise: ${run.exercise_name}, Event: ${eventKey}, Has time: ${run.has_time_data}`);
+          
+          if (eventKey && run.has_time_data) {
+            // Calculate total seconds from the time components
+            const totalSeconds = (run.time_minutes || 0) * 60 + (run.time_seconds || 0) + (run.time_hundredths || 0) / 100;
+            const formattedTime = `${run.time_minutes || 0}:${(run.time_seconds || 0).toString().padStart(2, '0')}.${(run.time_hundredths || 0).toString().padStart(2, '0')}`;
+            
+            console.log(`Adding to ${eventKey}: ${formattedTime} (${totalSeconds}s)`);
+            
+            eventGroups[eventKey].push({
+              date: new Date(run.created_at),
+              time: totalSeconds,
+              formattedTime: formattedTime,
+              exerciseName: run.exercise_name
+            });
+          }
+        });
+
+        // Sort each group by date and keep only the best time per date
+        Object.keys(eventGroups).forEach(key => {
+          const runs = eventGroups[key];
+          
+          // Group by date and keep only the best time for each date
+          const dateGroups: Record<string, any[]> = {};
+          runs.forEach(run => {
+            const dateKey = run.date.toISOString().split('T')[0];
+            if (!dateGroups[dateKey]) {
+              dateGroups[dateKey] = [];
+            }
+            dateGroups[dateKey].push(run);
+          });
+          
+          // For each date, keep only the best time (lowest time value)
+          const bestTimesPerDate: any[] = [];
+          Object.values(dateGroups).forEach(dateRuns => {
+            const bestRun = dateRuns.reduce((best, current) => 
+              current.time < best.time ? current : best
+            );
+            bestTimesPerDate.push(bestRun);
+          });
+          
+          // Sort by date
+          bestTimesPerDate.sort((a, b) => a.date.getTime() - b.date.getTime());
+          
+          eventGroups[key] = bestTimesPerDate;
+        });
+
+        console.log('Final chart data (best times only):', eventGroups);
+        return eventGroups;
+      })();
+
+      // Debug logging to verify data structure
+      console.log('Run times chart data for athlete:', selectedAthleteId, chartData);
+      console.log('Available events:', Object.keys(chartData));
+      console.log('Total run results:', runResults.length);
+
+      // Prepare rep analysis data - use ALL data (unfiltered) for reps tab
+      const repAnalysisData = (() => {
+        // Transform all exercise results to the format expected by the analytics
+        const allPerformanceRecords = athleteData.allExerciseResults?.map((result: any) => {
+          return {
+            id: result.id,
+            athlete_id: result.athlete_id,
+            workout_id: result.workout_id,
+            exercise_index: result.exercise_index,
+            exercise_name: result.exercise_name,
+            time_minutes: result.time_minutes,
+            time_seconds: result.time_seconds,
+            time_hundredths: result.time_hundredths,
+            created_at: result.completed_at,
+            workout: { id: result.workout_id, name: `Workout ${result.workout_id.slice(0, 8)}` },
+            rpe_rating: null,
+            has_time_data: !!(result.time_minutes || result.time_seconds || result.time_hundredths),
+            sets_completed: result.sets_completed,
+            reps_completed: result.reps_completed,
+            weight_used: result.weight_used,
+            distance_meters: result.distance_meters,
+            notes: result.notes
+          };
+        }) || [];
+
+        // Filter for running exercises from all data
+        const allRunResults = allPerformanceRecords.filter(p => {
+          const exerciseName = p.exercise_name?.toLowerCase() || '';
+          const isRunningExercise = exerciseName.includes('run') ||
+                                   exerciseName.includes('sprint') ||
+                                   exerciseName.includes('dash') ||
+                                   exerciseName.includes('meter') ||
+                                   exerciseName.includes('mile') ||
+                                   exerciseName.includes('jog');
+          return isRunningExercise;
+        });
+
+        const allRunsWithTimes = allRunResults.filter(p => p.has_time_data);
+        
+        // Group runs by exercise name and date to find multi-rep workouts
+        const workoutGroups: Record<string, any> = {};
+        
+        allRunsWithTimes.forEach(run => {
+          const exerciseName = run.exercise_name;
+          const dateKey = new Date(run.created_at).toISOString().split('T')[0];
+          const groupKey = `${exerciseName}_${dateKey}`;
+          
+          if (!workoutGroups[groupKey]) {
+            workoutGroups[groupKey] = {
+              exerciseName,
+              date: new Date(run.created_at),
+              dateKey,
+              reps: [],
+              sets: new Set()
+            };
+          }
+          
+          // Calculate total seconds
+          const totalSeconds = (run.time_minutes || 0) * 60 + (run.time_seconds || 0) + (run.time_hundredths || 0) / 100;
+          const formattedTime = `${run.time_minutes || 0}:${(run.time_seconds || 0).toString().padStart(2, '0')}.${(run.time_hundredths || 0).toString().padStart(2, '0')}`;
+          
+          // Extract set number from notes or exercise name
+          let setNumber = 1;
+          if (run.notes) {
+            const setMatch = run.notes.match(/set\s*(\d+)/i);
+            if (setMatch) setNumber = parseInt(setMatch[1]);
+          }
+          
+          workoutGroups[groupKey].reps.push({
+            id: run.id,
+            setNumber,
+            repNumber: workoutGroups[groupKey].reps.length + 1,
+            time: totalSeconds,
+            formattedTime,
+            notes: run.notes,
+            created_at: run.created_at
+          });
+          
+          workoutGroups[groupKey].sets.add(setNumber);
+        });
+        
+        // Include all workouts (including single rep workouts)
+        const multiRepWorkouts = Object.values(workoutGroups)
+          .sort((a, b) => b.date.getTime() - a.date.getTime()); // Most recent first
+        
+        console.log('All workouts found (including single rep):', multiRepWorkouts);
+        
+        return multiRepWorkouts;
+      })();
+
       return {
         totalRunTimes: runResults.length,
         exerciseStats: exerciseStats.sort((a, b) => b.totalAttempts - a.totalAttempts), // Sort by most attempts
-        recentRuns: runResults
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-          .slice(0, 5)
+        recentRuns: (() => {
+          // Use all exercise results (unfiltered) for recent runs to ensure we get all data
+          const allRunResults = athleteData.allExerciseResults?.filter((result: any) => {
+            const exerciseName = result.exercise_name?.toLowerCase() || '';
+            const isRunningExercise = exerciseName.includes('run') ||
+                                     exerciseName.includes('sprint') ||
+                                     exerciseName.includes('dash') ||
+                                     exerciseName.includes('meter') ||
+                                     exerciseName.includes('mile') ||
+                                     exerciseName.includes('jog');
+            return isRunningExercise;
+          }).map((result: any) => {
+            const workoutName = athleteData.workoutIdToName?.[result.workout_id] || 
+            (result.workout_id ? `Deleted Workout ${result.workout_id.slice(-6).toUpperCase()}` : 'Unknown Workout');
+            return {
+              id: result.id,
+              athlete_id: result.athlete_id,
+              workout_id: result.workout_id,
+              exercise_index: result.exercise_index,
+              exercise_name: result.exercise_name,
+              time_minutes: result.time_minutes,
+              time_seconds: result.time_seconds,
+              time_hundredths: result.time_hundredths,
+              created_at: result.completed_at,
+              workout: { id: result.workout_id, name: workoutName },
+              rpe_rating: null,
+              has_time_data: !!(result.time_minutes || result.time_seconds || result.time_hundredths),
+              sets_completed: result.sets_completed,
+              reps_completed: result.reps_completed,
+              weight_used: result.weight_used,
+              distance_meters: result.distance_meters,
+              notes: result.notes
+            };
+          }) || [];
+
+          const recentRunsData = allRunResults
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+            .slice(0, 5)
+            .map(run => ({
+              ...run,
+              workout: run.workout || { id: run.workout_id, name: `Workout ${run.workout_id?.slice(0, 8) || 'Unknown'}` }
+            }));
+
+          console.log('All run results (unfiltered):', allRunResults.length);
+          console.log('Recent runs data (top 5):', recentRunsData.map(run => ({
+            date: new Date(run.created_at).toLocaleDateString(),
+            exercise: run.exercise_name,
+            time: run.has_time_data ? `${run.time_minutes || 0}:${(run.time_seconds || 0).toString().padStart(2, '0')}.${(run.time_hundredths || 0).toString().padStart(2, '0')}` : 'Not logged',
+            workout: run.workout,
+            workout_id: run.workout_id,
+            mapped_name: athleteData.workoutIdToName?.[run.workout_id]
+          })));
+          
+          console.log('Recent runs data for table:', recentRunsData.map(run => ({
+            exercise_name: run.exercise_name,
+            created_at: run.created_at,
+            has_time_data: run.has_time_data,
+            workout: run.workout,
+            time_minutes: run.time_minutes,
+            time_seconds: run.time_seconds,
+            time_hundredths: run.time_hundredths,
+            rpe_rating: run.rpe_rating
+          })));
+          
+          return recentRunsData;
+        })(),
+        allRuns: (() => {
+          const allRunsData = athleteData.allExerciseResults?.filter((result: any) => {
+            const exerciseName = result.exercise_name?.toLowerCase() || '';
+            const isRunningExercise = exerciseName.includes('run') ||
+                                     exerciseName.includes('sprint') ||
+                                     exerciseName.includes('dash') ||
+                                     exerciseName.includes('meter') ||
+                                     exerciseName.includes('mile') ||
+                                     exerciseName.includes('jog');
+            return isRunningExercise;
+          }).sort((a, b) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime()) || [];
+          
+          console.log('Historical runs data for reps tab:', allRunsData.map(run => ({
+            exercise_name: run.exercise_name,
+            created_at: run.created_at,
+            has_time_data: !!(run.time_minutes || run.time_seconds || run.time_hundredths),
+            date: new Date(run.created_at).toLocaleDateString(),
+            time_minutes: run.time_minutes,
+            time_seconds: run.time_seconds,
+            time_hundredths: run.time_hundredths
+          })));
+          
+          return allRunsData;
+        })(),
+        chartData: chartData,
+        repAnalysisData: repAnalysisData
       };
     })();
 
@@ -1585,161 +1890,12 @@ export function CoachStats() {
                   </Card>
 
                   {/* Run Times */}
-                  <Card bg={cardBg} borderColor={borderColor}>
-                    <CardHeader>
-                      <HStack>
-                        <Heading size="md">Run Times</Heading>
-                      </HStack>
-                    </CardHeader>
-                    <CardBody px={{ base: 0, md: 6 }} py={{ base: 4, md: 6 }}>
-                      <VStack spacing={8} align="stretch">
-                        <Box px={{ base: 0, md: 0 }}>
-                          <VStack spacing={6} align="flex-end">
-                            <Text fontSize="sm" pr="12px" color={useColorModeValue('gray.600', 'yellow.500')} fontWeight="medium">
-                              Best Training Times
-                            </Text>
-                            <HStack spacing={2} divider={<Box w="1px" h="40px" bg={useColorModeValue('gray.200', 'gray.600')} />}>
-                              {(() => {
-                                // Find best times for different events
-                                const runsWithTime = analytics.runTimes.recentRuns.filter(run => run.has_time_data);
-                                const eventBestTimes = {};
-                                
-                                // Group runs by event and find best time for each
-                                runsWithTime.forEach(run => {
-                                  const exerciseName = run.exercise_name.toLowerCase();
-                                  let eventKey = null;
-                                  
-                                  if (exerciseName.includes('100m') || exerciseName.includes('100 m')) {
-                                    eventKey = '100m';
-                                  } else if (exerciseName.includes('200m') || exerciseName.includes('200 m')) {
-                                    eventKey = '200m';
-                                  } else if (exerciseName.includes('400m') || exerciseName.includes('400 m')) {
-                                    eventKey = '400m';
-                                  } else if (exerciseName.includes('800m') || exerciseName.includes('800 m')) {
-                                    eventKey = '800m';
-                                  } else if (exerciseName.includes('1500m') || exerciseName.includes('1500 m')) {
-                                    eventKey = '1500m';
-                                  } else if (exerciseName.includes('5000m') || exerciseName.includes('5000 m') || exerciseName.includes('5k')) {
-                                    eventKey = '5000m';
-                                  }
-                                  
-                                  if (eventKey) {
-                                    const totalMs = ((run.time_minutes || 0) * 60 + (run.time_seconds || 0)) * 1000 + (run.time_hundredths || 0) * 10;
-                                    if (!eventBestTimes[eventKey] || totalMs < eventBestTimes[eventKey].totalMs) {
-                                      eventBestTimes[eventKey] = {
-                                        totalMs,
-                                        minutes: run.time_minutes || 0,
-                                        seconds: run.time_seconds || 0,
-                                        hundredths: run.time_hundredths || 0
-                                      };
-                                    }
-                                  }
-                                });
-                                
-                                // Get top 3 events or all available events
-                                const availableEvents = Object.keys(eventBestTimes).slice(0, 3);
-                                
-                                if (availableEvents.length === 0) {
-                                  return (
-                                    <VStack spacing={1} px={4}>
-                                      <Text fontSize="xs" color={useColorModeValue('gray.500', 'gray.400')}>No Events</Text>
-                                      <Text fontSize="sm" fontWeight="medium">N/A</Text>
-                                    </VStack>
-                                  );
-                                }
-                                
-                                return availableEvents.map((event, index) => {
-                                  const bestTime = eventBestTimes[event];
-                                  const timeString = bestTime.minutes > 0 
-                                    ? `${bestTime.minutes}:${bestTime.seconds.toString().padStart(2, '0')}.${bestTime.hundredths.toString().padStart(2, '0')}`
-                                    : `${bestTime.seconds}.${bestTime.hundredths.toString().padStart(2, '0')}`;
-                                  
-                                  return (
-                                    <VStack key={event} spacing={1} px={4} minW="60px">
-                                      <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.400')} textAlign="center">
-                                        {event}
-                                      </Text>
-                                      <Text fontSize="sm" fontWeight="medium" textAlign="center">
-                                        {timeString}
-                                      </Text>
-                                    </VStack>
-                                  );
-                                });
-                              })()}
-                            </HStack>
-                          </VStack>
-                        </Box>
-
-                        <Box>
-                          <Text fontWeight="bold" mb={3} px={{ base: 4, md: 0 }}>Recent Run Times</Text>
-                          {analytics.runTimes.recentRuns.length > 0 ? (
-                            <Box overflowX="auto" maxW="100vw">
-                              <Table size="sm" minW="500px">
-                              <Thead>
-                                <Tr>
-                                  <Th position="sticky" left={0} bg={cardBg} zIndex={1} borderRight="1px solid" borderRightColor={borderColor}>Date</Th>
-                                  <Th position="sticky" left="80px" bg={cardBg} zIndex={1} borderRight="1px solid" borderRightColor={borderColor}>Exercise</Th>
-                                  <Th>From Workout</Th>
-                                  <Th>Time</Th>
-                                  <Th>RPE</Th>
-                                </Tr>
-                              </Thead>
-                              <Tbody>
-                                {analytics.runTimes.recentRuns.slice(0, 10).map((run) => (
-                                  <Tr key={run.id} h="48px">
-                                    <Td position="sticky" left={0} bg={cardBg} zIndex={1} borderRight="1px solid" borderRightColor={borderColor} fontSize="sm" fontWeight="medium" h="48px">
-                                      {formatDate(run.created_at)}
-                                    </Td>
-                                    <Td position="sticky" left="80px" bg={cardBg} zIndex={1} borderRight="1px solid" borderRightColor={borderColor} fontSize="sm" fontWeight="medium" h="48px">
-                                      {run.exercise_name}
-                                    </Td>
-                                    <Td fontSize="sm" fontWeight="medium" color="blue.500" maxW="150px" isTruncated h="48px">
-                                      {run.workout?.name || (run.workout_id ? `ID: ${run.workout_id.slice(0, 8)}` : 'Unknown')}
-                                    </Td>
-                                    <Td fontSize="sm" fontWeight="medium" h="48px">
-                                      {run.has_time_data ? (
-                                        <Text color="green.500" fontSize="sm" fontWeight="medium">
-                                          {`${run.time_minutes || 0}:${(run.time_seconds || 0).toString().padStart(2, '0')}.${(run.time_hundredths || 0).toString().padStart(2, '0')}`}
-                                        </Text>
-                                      ) : (
-                                        <Text color="gray.400" fontSize="sm" fontWeight="medium" fontStyle="italic">
-                                          Not logged
-                                        </Text>
-                                      )}
-                                    </Td>
-                                    <Td fontSize="sm" fontWeight="medium" h="48px">
-                                      {run.rpe_rating ? (
-                                        <Badge 
-                                          size="sm" 
-                                          colorScheme={run.rpe_rating <= 6 ? 'green' : run.rpe_rating <= 8 ? 'yellow' : 'red'}
-                                        >
-                                          {run.rpe_rating}
-                                        </Badge>
-                                      ) : (
-                                        <Text fontSize="sm" fontWeight="medium" color="gray.400">N/A</Text>
-                                      )}
-                                    </Td>
-                                  </Tr>
-                                ))}
-                              </Tbody>
-                            </Table>
-                            </Box>
-                          ) : (
-                            <Box px={{ base: 4, md: 0 }}>
-                              <VStack spacing={2} py={6}>
-                                <Text color="gray.500" textAlign="center">
-                                  No running exercises found.
-                                </Text>
-                                <Text color="gray.400" fontSize="xs" textAlign="center">
-                                  Complete workouts with running exercises to see them here.
-                                </Text>
-                              </VStack>
-                            </Box>
-                          )}
-                        </Box>
-                      </VStack>
-                    </CardBody>
-                  </Card>
+                  <RunTimesAnalyticsSection 
+                    analytics={analytics}
+                    dateRange={dateRange}
+                    selectedDate={selectedDate}
+                    setSelectedDate={setSelectedDate}
+                  />
                 </VStack>
               </>
             ) : (

@@ -585,80 +585,209 @@ export const api = {
       }
     },
 
-    // Permanently delete workout (cannot be undone)
-    async permanentDelete(id: string): Promise<void> {
+    // Archive workout (move to history table instead of permanent deletion)
+    async archiveWorkout(id: string): Promise<void> {
       try {
-        // 1. 🔧 COMPREHENSIVE FIX: Remove ALL assignments and related data first
-        
-        // Clean up old athlete_workouts table
-        const { error: assignmentError } = await supabase
-          .from('athlete_workouts')
-          .delete()
-          .eq('workout_id', id);
+        // Add timeout protection for archive operations
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Archive operation timeout')), 15000);
+        });
 
-        if (assignmentError) {
-          console.error('Failed to clean up athlete_workouts:', assignmentError);
-        } else {
-          console.log(`✅ Cleaned up athlete_workouts for permanent delete of workout ${id}`);
-        }
+        const archivePromise = (async () => {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error('No user found');
 
-        // Clean up training plan assignments
-        const { data: planIds } = await supabase
-          .from('training_plans')
-          .select('id')
-          .contains('weekly_workout_ids', [id]);
-        
-        if (planIds && planIds.length > 0) {
-          const { error: planAssignmentError } = await supabase
-            .from('training_plan_assignments')
-            .delete()
-            .in('training_plan_id', planIds.map(p => p.id));
+          // 1. Get the workout data before archiving
+          const { data: workoutData, error: fetchError } = await supabase
+            .from('workouts')
+            .select('*')
+            .eq('id', id)
+            .single();
 
-          if (planAssignmentError) {
-            console.error('Failed to clean up training plan assignments:', planAssignmentError);
-          } else {
-            console.log(`✅ Cleaned up training plan assignments for permanent delete of workout ${id}`);
+          if (fetchError) {
+            console.error('Failed to fetch workout for archiving:', fetchError);
+            throw fetchError;
           }
-        }
 
-        // Clean up unified assignment system - Only clean up actual assignments, not template references
-        const { error: unifiedAssignmentError } = await supabase
-          .from('unified_workout_assignments')
-          .delete()
-          .eq('meta->>original_workout_id', id);
+          if (!workoutData) {
+            throw new Error('Workout not found');
+          }
 
-        if (unifiedAssignmentError) {
-          console.error('Failed to clean up unified workout assignments:', unifiedAssignmentError);
-        } else {
-          console.log(`✅ Cleaned up unified workout assignments for permanent delete of workout ${id}`);
-        }
+          // 2. Insert into workout_history table
+          const { error: historyError } = await supabase
+            .from('workout_history')
+            .insert({
+              original_workout_id: workoutData.id,
+              name: workoutData.name,
+              description: workoutData.description,
+              type: workoutData.type,
+              date: workoutData.date,
+              time: workoutData.time,
+              duration: workoutData.duration,
+              location: workoutData.location,
+              exercises: workoutData.exercises,
+              blocks: workoutData.blocks,
+              is_block_based: workoutData.is_block_based,
+              block_version: workoutData.block_version,
+              is_template: workoutData.is_template,
+              template_type: workoutData.template_type,
+              user_id: workoutData.user_id,
+              created_by: workoutData.created_by,
+              created_at: workoutData.created_at,
+              updated_at: workoutData.updated_at,
+              deleted_at: workoutData.deleted_at,
+              deleted_by: workoutData.deleted_by,
+              archived_at: new Date().toISOString(),
+              archived_by: user.id
+            });
 
-        // 2. Remove exercise results for this workout
-        const { error: resultsError } = await supabase
-          .from('exercise_results')
-          .delete()
-          .eq('workout_id', id);
+          if (historyError) {
+            console.error('Failed to archive workout:', historyError);
+            throw historyError;
+          }
 
-        if (resultsError) {
-          console.error('Failed to clean up exercise results:', resultsError);
-        } else {
-          console.log(`✅ Cleaned up exercise results for workout ${id}`);
-        }
+          // 3. Archive related exercise results
+          const { data: exerciseResults } = await supabase
+            .from('exercise_results')
+            .select('*')
+            .eq('workout_id', id);
 
-        // 3. Finally delete the workout itself
-        const { error: workoutError } = await supabase
-        .from('workouts')
-        .delete()
-        .eq('id', id);
+          if (exerciseResults && exerciseResults.length > 0) {
+            const { error: resultsArchiveError } = await supabase
+              .from('exercise_results_history')
+              .insert(exerciseResults.map(result => ({
+                original_result_id: result.id,
+                athlete_id: result.athlete_id,
+                workout_id: result.workout_id,
+                exercise_id: result.exercise_id,
+                exercise_index: result.exercise_index,
+                exercise_name: result.exercise_name,
+                time_minutes: result.time_minutes,
+                time_seconds: result.time_seconds,
+                time_hundredths: result.time_hundredths,
+                total_time_ms: result.total_time_ms,
+                sets_completed: result.sets_completed,
+                reps_completed: result.reps_completed,
+                weight_used: result.weight_used,
+                distance_meters: result.distance_meters,
+                rpe_rating: result.rpe_rating,
+                notes: result.notes,
+                completed_at: result.completed_at,
+                created_at: result.created_at,
+                updated_at: result.updated_at,
+                archived_at: new Date().toISOString(),
+                archived_by: user.id
+              })));
 
-        if (workoutError) {
-          console.error('Permanent delete failed:', workoutError);
-          throw workoutError;
-        }
+            if (resultsArchiveError) {
+              console.error('Failed to archive exercise results:', resultsArchiveError);
+            } else {
+              console.log(`✅ Archived ${exerciseResults.length} exercise results for workout ${id}`);
+            }
+          }
 
-        console.log(`✅ Permanently deleted workout ${id} and all related data`);
+          // 4. Archive assignment data
+          const { data: assignments } = await supabase
+            .from('athlete_workouts')
+            .select('*')
+            .eq('workout_id', id);
+
+          if (assignments && assignments.length > 0) {
+            const { error: assignmentArchiveError } = await supabase
+              .from('athlete_workouts_history')
+              .insert(assignments.map(assignment => ({
+                ...assignment,
+                archived_at: new Date().toISOString(),
+                archived_by: user.id
+              })));
+
+            if (assignmentArchiveError) {
+              console.error('Failed to archive assignments:', assignmentArchiveError);
+            } else {
+              console.log(`✅ Archived ${assignments.length} assignments for workout ${id}`);
+            }
+          }
+
+          // 5. Finally, delete the workout and related data from active tables
+          // Clean up old athlete_workouts table
+          const { error: assignmentError } = await supabase
+            .from('athlete_workouts')
+            .delete()
+            .eq('workout_id', id);
+
+          if (assignmentError) {
+            console.error('Failed to clean up athlete_workouts:', assignmentError);
+          }
+
+          // Clean up exercise results
+          const { error: resultsError } = await supabase
+            .from('exercise_results')
+            .delete()
+            .eq('workout_id', id);
+
+          if (resultsError) {
+            console.error('Failed to clean up exercise results:', resultsError);
+          }
+
+          // Clean up unified assignment system
+          const { error: unifiedAssignmentError } = await supabase
+            .from('unified_workout_assignments')
+            .delete()
+            .eq('meta->>original_workout_id', id);
+
+          if (unifiedAssignmentError) {
+            console.error('Failed to clean up unified workout assignments:', unifiedAssignmentError);
+          }
+
+          // Finally delete the workout itself
+          const { error: workoutError } = await supabase
+            .from('workouts')
+            .delete()
+            .eq('id', id);
+
+          if (workoutError) {
+            console.error('Archive delete failed:', workoutError);
+            throw workoutError;
+          }
+
+          console.log(`✅ Archived workout ${id} and all related data to history tables`);
+        })();
+
+        await Promise.race([archivePromise, timeoutPromise]);
       } catch (error) {
-        console.error('Error in permanentDelete:', error);
+        console.error('Error in archiveWorkout:', error);
+        throw error;
+      }
+    },
+
+    // Get archived workouts (for admin/data recovery purposes)
+    async getArchivedWorkouts(userId: string): Promise<any[]> {
+      try {
+        const { data, error } = await supabase
+          .from('workout_history')
+          .select('*')
+          .eq('user_id', userId)
+          .order('archived_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+      } catch (error) {
+        console.error('Error fetching archived workouts:', error);
+        throw error;
+      }
+    },
+
+    // Restore archived workout (admin function)
+    async restoreArchivedWorkout(workoutHistoryId: string): Promise<string> {
+      try {
+        const { data, error } = await supabase.rpc('restore_archived_workout', {
+          workout_history_id: workoutHistoryId
+        });
+
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        console.error('Error restoring archived workout:', error);
         throw error;
       }
     },

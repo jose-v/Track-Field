@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Text, Spinner } from '@chakra-ui/react';
+import { Text, Spinner, useColorModeValue } from '@chakra-ui/react';
 
 export const CurrentLocationDisplay: React.FC = () => {
   const [homeLocation, setHomeLocation] = useState<any>(null);
   const [locationText, setLocationText] = useState<string>('');
   const [loading, setLoading] = useState(false);
+
+  // Dark mode styling
+  const textColor = useColorModeValue('gray.600', 'gray.300');
+  const spinnerColor = useColorModeValue('blue.500', 'blue.400');
 
   // Get home location directly from localStorage instead of using the hook
   useEffect(() => {
@@ -129,7 +133,7 @@ export const CurrentLocationDisplay: React.FC = () => {
   }
 
   if (loading) {
-    return <Spinner size="xs" color="white" />;
+    return <Spinner size="xs" color={spinnerColor} />;
   }
 
   if (!locationText) {
@@ -137,7 +141,7 @@ export const CurrentLocationDisplay: React.FC = () => {
   }
 
   return (
-    <Text color="white" fontSize="sm" fontWeight="medium" noOfLines={1}>
+    <Text color={textColor} fontSize="sm" fontWeight="medium" noOfLines={1}>
       {locationText}
     </Text>
   );

@@ -5,7 +5,7 @@ import {
   AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter,
   useDisclosure
 } from '@chakra-ui/react';
-import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaUndo, FaTrashAlt, FaUser, FaCalendarAlt, FaClock, FaExclamationTriangle, FaLayerGroup } from 'react-icons/fa';
+import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaUndo, FaTrashAlt, FaUser, FaCalendarAlt, FaClock, FaExclamationTriangle, FaLayerGroup, FaLock } from 'react-icons/fa';
 import type { Workout } from '../../services/api';
 import { dateUtils } from '../../utils/date';
 import { format } from 'date-fns';
@@ -256,7 +256,7 @@ export function DeletedWorkoutCard({
         </CardBody>
       </Card>
 
-      {/* Permanent Delete Confirmation Dialog */}
+      {/* Archive Confirmation Dialog */}
       <AlertDialog
         isOpen={isOpen}
         leastDestructiveRef={cancelRef}
@@ -266,7 +266,7 @@ export function DeletedWorkoutCard({
         <AlertDialogOverlay>
           <AlertDialogContent>
             <AlertDialogHeader fontSize="lg" fontWeight="bold" color="red.500">
-              Permanently Delete Workout
+              Delete Forever
             </AlertDialogHeader>
 
             <AlertDialogBody>
@@ -277,11 +277,11 @@ export function DeletedWorkoutCard({
                 </HStack>
                 <Text>
                   Are you sure you want to permanently delete "{workout.name}"? 
-                  This will remove it completely from the system.
+                  This will move it to history tables and remove it from view.
                 </Text>
                 <Box bg="red.50" p={3} borderRadius="md" borderLeft="4px solid" borderColor="red.500">
                   <Text fontSize="sm" color="red.700">
-                    ⚠️ This workout will be permanently removed and cannot be recovered.
+                    ℹ️ This workout will be preserved in history tables for data retention and potential recovery.
                   </Text>
                 </Box>
                 

@@ -18,7 +18,8 @@ import {
   Alert,
   AlertIcon,
   AlertDescription,
-  Divider
+  Divider,
+  useColorModeValue
 } from '@chakra-ui/react';
 import { FaMapMarkerAlt, FaLocationArrow } from 'react-icons/fa';
 import { getUserLocation, geocodeLocation, geocodeLocationFallback, setUserHomeLocation } from '../services/travelTime';
@@ -32,6 +33,15 @@ export const LocationSetup: React.FC<LocationSetupProps> = ({ isOpen, onClose })
   const [loading, setLoading] = useState(false);
   const [manualLocation, setManualLocation] = useState({ city: '', state: '' });
   const toast = useToast();
+
+  // Dark mode styling
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const textColor = useColorModeValue('gray.800', 'white');
+  const subtextColor = useColorModeValue('gray.700', 'gray.300');
+  const inputBg = useColorModeValue('white', 'gray.700');
+  const inputBorderColor = useColorModeValue('gray.300', 'gray.600');
+  const overlayColor = useColorModeValue('blackAlpha.600', 'blackAlpha.700');
 
   const handleCurrentLocation = async () => {
     setLoading(true);
@@ -157,10 +167,21 @@ export const LocationSetup: React.FC<LocationSetupProps> = ({ isOpen, onClose })
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} isCentered>
-      <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>Set Your Location</ModalHeader>
-        <ModalCloseButton />
+      <ModalOverlay bg={overlayColor} />
+      <ModalContent 
+        bg={bgColor} 
+        borderWidth="2px" 
+        borderColor={borderColor}
+        color={textColor}
+      >
+        <ModalHeader 
+          color={textColor}
+          borderBottomWidth="1px"
+          borderColor={borderColor}
+        >
+          Set Your Location
+        </ModalHeader>
+        <ModalCloseButton color={textColor} />
         <ModalBody>
           <VStack spacing={4} align="stretch">
             <Alert status="info" borderRadius="md">
@@ -172,7 +193,7 @@ export const LocationSetup: React.FC<LocationSetupProps> = ({ isOpen, onClose })
 
             {/* Current Location Option */}
             <VStack spacing={3} align="stretch">
-              <Text fontWeight="medium">Option 1: Use Current Location</Text>
+              <Text fontWeight="medium" color={subtextColor}>Option 1: Use Current Location</Text>
               <Button
                 leftIcon={<FaLocationArrow />}
                 colorScheme="blue"
@@ -185,26 +206,36 @@ export const LocationSetup: React.FC<LocationSetupProps> = ({ isOpen, onClose })
               </Button>
             </VStack>
 
-            <Divider />
+            <Divider borderColor={borderColor} />
 
             {/* Manual Location Option */}
             <VStack spacing={3} align="stretch">
-              <Text fontWeight="medium">Option 2: Enter Manually</Text>
+              <Text fontWeight="medium" color={subtextColor}>Option 2: Enter Manually</Text>
               <FormControl isRequired>
-                <FormLabel>City</FormLabel>
+                <FormLabel color={subtextColor}>City</FormLabel>
                 <Input
                   placeholder="e.g., San Francisco"
                   value={manualLocation.city}
                   onChange={(e) => setManualLocation(prev => ({ ...prev, city: e.target.value }))}
+                  bg={inputBg}
+                  borderColor={inputBorderColor}
+                  color={textColor}
+                  _hover={{ borderColor: 'blue.400' }}
+                  _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px blue.500' }}
                 />
               </FormControl>
               
               <FormControl>
-                <FormLabel>State</FormLabel>
+                <FormLabel color={subtextColor}>State</FormLabel>
                 <Input
                   placeholder="e.g., CA or California"
                   value={manualLocation.state}
                   onChange={(e) => setManualLocation(prev => ({ ...prev, state: e.target.value }))}
+                  bg={inputBg}
+                  borderColor={inputBorderColor}
+                  color={textColor}
+                  _hover={{ borderColor: 'blue.400' }}
+                  _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px blue.500' }}
                 />
               </FormControl>
               
@@ -222,8 +253,8 @@ export const LocationSetup: React.FC<LocationSetupProps> = ({ isOpen, onClose })
           </VStack>
         </ModalBody>
 
-        <ModalFooter>
-          <Button variant="ghost" onClick={handleClose}>
+        <ModalFooter borderTopWidth="1px" borderColor={borderColor}>
+          <Button variant="ghost" onClick={handleClose} color={subtextColor}>
             Skip for Now
           </Button>
         </ModalFooter>

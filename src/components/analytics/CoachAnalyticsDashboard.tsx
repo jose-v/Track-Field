@@ -66,6 +66,7 @@ import {
   FaMinus
 } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
+import { WorkoutAnalyticsService } from '../../services/analytics/workoutAnalyticsService';
 
 // Import chart components
 import TrainingLoadChart from './charts/TrainingLoadChart';
@@ -248,13 +249,35 @@ export const CoachAnalyticsDashboard: React.FC = () => {
     // Simulate loading data
     const loadData = async () => {
       setIsLoading(true);
-      // In production, fetch from your API here
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setTeamKPIs(mockTeamKPIs);
-      setAthletes(mockAthletes);
-      setAIInsights(mockAIInsights);
-      setIsLoading(false);
+      try {
+        // Fetch real workout analytics data
+        const workoutStats = await WorkoutAnalyticsService.getWorkoutStats({
+          userId: user?.id,
+          timeframe: selectedTimeframe,
+          showArchived: true
+        });
+
+        // Update team KPIs with real data
+        const updatedTeamKPIs = {
+          ...mockTeamKPIs,
+          totalWorkouts: workoutStats.totalWorkouts,
+          avgExercisesPerWorkout: workoutStats.avgExercisesPerWorkout,
+          mostCommonType: workoutStats.mostCommonType || 'Single',
+          dateRange: workoutStats.dateRange || 'Last 30 days'
+        };
+
+        setTeamKPIs(updatedTeamKPIs);
+        setAthletes(mockAthletes); // Keep mock athlete data for now
+        setAIInsights(mockAIInsights); // Keep mock AI insights for now
+      } catch (error) {
+        console.error('Error loading analytics data:', error);
+        // Fallback to mock data if real data fails
+        setTeamKPIs(mockTeamKPIs);
+        setAthletes(mockAthletes);
+        setAIInsights(mockAIInsights);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadData();

@@ -108,26 +108,26 @@ export function DeletedWorkoutsView({
     }
   };
 
-  // Permanently delete workout
-  const handlePermanentDelete = async (workoutId: string) => {
+  // Archive workout (move to history tables)
+  const handleArchiveWorkout = async (workoutId: string) => {
     try {
       setDeleting(workoutId);
-      await api.workouts.permanentDelete(workoutId);
+      await api.workouts.archiveWorkout(workoutId);
       
       // Remove from local state
       setDeletedWorkouts(prev => prev.filter(w => w.id !== workoutId));
       
       toast({
-        title: 'Workout Permanently Deleted',
-        description: 'The workout has been permanently removed.',
+        title: 'Workout Archived',
+        description: 'The workout has been moved to history tables and removed from view.',
         status: 'success',
         duration: 3000,
         isClosable: true
       });
     } catch (error) {
-      console.error('Error permanently deleting workout:', error);
+      console.error('Error archiving workout:', error);
       toast({
-        title: 'Error deleting workout',
+        title: 'Error archiving workout',
         description: 'Please try again later.',
         status: 'error',
         duration: 5000,
@@ -329,7 +329,7 @@ export function DeletedWorkoutsView({
               currentUserId={userId}
               creatorName={userRole === 'athlete' && workout.user_id !== userId ? 'Coach' : undefined}
               onRestore={handleRestore}
-              onPermanentDelete={handlePermanentDelete}
+                              onPermanentDelete={handleArchiveWorkout}
               isRestoring={restoring === workout.id}
               isDeleting={deleting === workout.id}
             />

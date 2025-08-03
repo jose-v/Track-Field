@@ -113,19 +113,24 @@ import { usePageHeader } from '../hooks/usePageHeader';
 import { MobileMeetOptionsDrawer } from '../components/MobileMeetOptionsDrawer';
 
 // Info Badge Component - Shows database stats
-const InfoBadge: React.FC<{ children: React.ReactNode; count?: number }> = ({ children, count }) => (
-  <Text
-    fontSize="xs"
-    fontWeight="medium"
-    color="white"
-    bg="#1A202C"
-    px={3}
-    py={2}
-    borderRadius="md"
-  >
-    {children} {count !== undefined && `(${count})`}
-  </Text>
-);
+const InfoBadge: React.FC<{ children: React.ReactNode; count?: number }> = ({ children, count }) => {
+  const badgeBg = useColorModeValue('gray.700', 'gray.800');
+  const badgeColor = useColorModeValue('white', 'gray.100');
+  
+  return (
+    <Text
+      fontSize="xs"
+      fontWeight="medium"
+      color={badgeColor}
+      bg={badgeBg}
+      px={3}
+      py={2}
+      borderRadius="md"
+    >
+      {children} {count !== undefined && `(${count})`}
+    </Text>
+  );
+};
 
 // Custom Travel Time Component for Dark Theme
 const TravelTimeForMeetsCard: React.FC<{ 
@@ -135,6 +140,9 @@ const TravelTimeForMeetsCard: React.FC<{
 }> = ({ city, state, venueName }) => {
   const [travelTimes, setTravelTimes] = useState<{driving: string; flying: string; distance: number} | null>(null);
   const [loading, setLoading] = useState(false);
+  
+  // Color mode values for travel time card
+  const textColor = useColorModeValue('gray.800', 'white');
 
   useEffect(() => {
     const calculateTimes = async () => {
@@ -187,12 +195,12 @@ const TravelTimeForMeetsCard: React.FC<{
     calculateTimes();
   }, [city, state, venueName]);
 
-  if (loading) {
+    if (loading) {
     return (
-      <VStack align="start" spacing={2} color="white">
+      <VStack align="start" spacing={2} color={textColor}>
         <HStack spacing={2}>
-          <Spinner size="xs" color="white" />
-          <Text fontSize="md" color="white">Calculating...</Text>
+          <Spinner size="xs" color={textColor} />
+          <Text fontSize="md" color={textColor}>Calculating...</Text>
         </HStack>
       </VStack>
     );
@@ -200,29 +208,29 @@ const TravelTimeForMeetsCard: React.FC<{
 
   if (!travelTimes) {
     return (
-      <VStack align="start" spacing={2} color="white">
+      <VStack align="start" spacing={2} color={textColor}>
         <HStack spacing={2}>
           <FaCar size={20} color="currentColor" />
-          <Text fontSize="md" color="white">Distance TBD</Text>
+          <Text fontSize="md" color={textColor}>Distance TBD</Text>
         </HStack>
         <HStack spacing={2}>
           <FaPlane size={20} color="currentColor" />
-          <Text fontSize="md" color="white">Flight TBD</Text>
+          <Text fontSize="md" color={textColor}>Flight TBD</Text>
         </HStack>
       </VStack>
     );
   }
 
   return (
-    <VStack align="start" spacing={2} color="white">
+    <VStack align="start" spacing={2} color={textColor}>
       <HStack spacing={2}>
         <FaCar size={20} color="currentColor" />
-        <Text fontSize="md" color="white" fontWeight="medium">{travelTimes.driving}</Text>
+        <Text fontSize="md" color={textColor} fontWeight="medium">{travelTimes.driving}</Text>
       </HStack>
       {travelTimes.distance > 100 && (
         <HStack spacing={2}>
           <FaPlane size={20} color="currentColor" />
-          <Text fontSize="md" color="white" fontWeight="medium">{travelTimes.flying}</Text>
+          <Text fontSize="md" color={textColor} fontWeight="medium">{travelTimes.flying}</Text>
         </HStack>
       )}
     </VStack>
@@ -317,6 +325,12 @@ const MeetCard: React.FC<MeetCardProps> = ({
 }) => {
   const { user } = useAuth();
   const toast = useToast();
+  
+  // Color mode values for meet card
+  const cardBackgroundColor = useColorModeValue('white', 'gray.800');
+  const textColor = useColorModeValue('gray.800', 'white');
+  const cardBorderColor = useColorModeValue('gray.200', 'gray.700');
+  const mutedTextColor = useColorModeValue('gray.600', 'gray.300');
   // Unified drawer state for both mobile and desktop
   const { isOpen: isDrawerOpen, onOpen: onDrawerOpen, onClose: onDrawerClose } = useDisclosure();
 
@@ -453,14 +467,15 @@ const MeetCard: React.FC<MeetCardProps> = ({
 
   return (
     <Box
-      bg="gray.800"
+      bg={cardBackgroundColor}
+      textColor={textColor}
       borderRadius="2xl"
       shadow="2xl"
       w="full"
       p={8}
       position="relative"
       border="1px solid"
-      borderColor="gray.700"
+      borderColor={cardBorderColor}
       mb={6}
     >
 
@@ -772,12 +787,12 @@ const MeetCard: React.FC<MeetCardProps> = ({
       )}
 
       {/* Event Title */}
-      <Heading size="lg" fontWeight="bold" mb={6} color="white" noOfLines={1}>
+      <Heading size="lg" fontWeight="bold" mb={6} color={textColor} noOfLines={1}>
         {meet.name}
       </Heading>
 
       {/* Responsive Layout - Grid on desktop, VStack on mobile */}
-      <Box color="white">
+      <Box color={textColor}>
         {/* Desktop Layout (md and up) */}
         <Grid 
           templateColumns="40% 30% 30%" 
@@ -792,11 +807,11 @@ const MeetCard: React.FC<MeetCardProps> = ({
             <VStack align="start" spacing={2}>
               {/* Multi Events Date Range */}
               {(meet.multi_events_start_date || meet.multi_events_end_date) && (
-                <HStack spacing={2} color="white">
+                <HStack spacing={2} color={useColorModeValue('gray.800', 'gray.100')}>
                   <FaCalendarAlt size={20} color="blue.400" />
                   <VStack align="start" spacing={0}>
                     <Text fontSize="sm" color="blue.400" fontWeight="medium">Multi Events</Text>
-                    <Text fontSize="md" color="white">
+                    <Text fontSize="md" color={textColor}>
                       {meet.multi_events_start_date && formatDate(meet.multi_events_start_date)}
                       {meet.multi_events_end_date && meet.multi_events_start_date !== meet.multi_events_end_date && 
                         ` - ${formatDate(meet.multi_events_end_date)}`}
@@ -807,11 +822,11 @@ const MeetCard: React.FC<MeetCardProps> = ({
               
               {/* Track & Field Date Range */}
               {(meet.track_field_start_date || meet.track_field_end_date) && (
-                <HStack spacing={2} color="white">
+                <HStack spacing={2} color={useColorModeValue('gray.800', 'gray.100')}>
                   <FaCalendarAlt size={20} color="blue.400" />
                   <VStack align="start" spacing={0}>
                     <Text fontSize="sm" color="blue.400" fontWeight="medium">Track & Field</Text>
-                    <Text fontSize="md" color="white">
+                    <Text fontSize="md" color={textColor}>
                       {meet.track_field_start_date && formatDate(meet.track_field_start_date)}
                       {meet.track_field_end_date && meet.track_field_start_date !== meet.track_field_end_date && 
                         ` - ${formatDate(meet.track_field_end_date)}`}
@@ -823,9 +838,9 @@ const MeetCard: React.FC<MeetCardProps> = ({
               {/* Fallback to original meet_date if no new dates */}
               {!meet.multi_events_start_date && !meet.multi_events_end_date && 
                !meet.track_field_start_date && !meet.track_field_end_date && (
-            <HStack spacing={2} color="white">
+            <HStack spacing={2} color={useColorModeValue('gray.800', 'gray.100')}>
               <FaCalendarAlt size={20} color="currentColor" />
-              <Text fontSize="md" color="white">
+              <Text fontSize="md" color={textColor}>
                 {formatDate(meet.meet_date)}
               </Text>
             </HStack>
@@ -833,10 +848,10 @@ const MeetCard: React.FC<MeetCardProps> = ({
             </VStack>
 
             {/* Location */}
-            <HStack spacing={2} color="white" align="start">
+            <HStack spacing={2} color={useColorModeValue('gray.800', 'gray.100')} align="start">
               <FaMapMarkerAlt size={20} color="currentColor" />
               <VStack align="start" spacing={0}>
-                <Text fontSize="md" color="white" fontWeight="medium">{meet.venue_name || "Venue TBD"}</Text>
+                <Text fontSize="md" color={textColor} fontWeight="medium">{meet.venue_name || "Venue TBD"}</Text>
                 <Link 
                   href={generateMapsLink()}
                   isExternal
@@ -876,7 +891,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
             {/* Registration Info */}
             <VStack align="start" spacing={3}>
               {/* Registration Link */}
-            <HStack spacing={2} color="white">
+            <HStack spacing={2} color={useColorModeValue('gray.800', 'gray.100')}>
               <FaFileAlt size={20} color="currentColor" />
               {meet.join_link ? (
                 <Link
@@ -896,21 +911,21 @@ const MeetCard: React.FC<MeetCardProps> = ({
 
               {/* Registration Fees */}
               {(meet.registration_fee || meet.processing_fee) && (
-                <HStack spacing={2} color="white">
+                <HStack spacing={2} color={useColorModeValue('gray.800', 'gray.100')}>
                   <FaDollarSign size={20} color="blue.400" />
                   <VStack align="start" spacing={0}>
                     <Text fontSize="sm" color="blue.400" fontWeight="medium">Fees</Text>
                     <VStack align="start" spacing={0} width="full" maxW="180px">
                       {meet.registration_fee && (
                         <Flex justify="space-between" width="full">
-                          <Text fontSize="sm" color="white">Registration:</Text>
-                          <Text fontSize="sm" color="white" textAlign="right" ml={4}>{formatFee(meet.registration_fee)}</Text>
-                        </Flex>
-                      )}
-                      {meet.processing_fee && (
-                        <Flex justify="space-between" width="full">
-                          <Text fontSize="sm" color="white">Processing:</Text>
-                          <Text fontSize="sm" color="white" textAlign="right" ml={4}>{formatFee(meet.processing_fee)}</Text>
+                                          <Text fontSize="sm" color={textColor}>Registration:</Text>
+                <Text fontSize="sm" color={textColor} textAlign="right" ml={4}>{formatFee(meet.registration_fee)}</Text>
+              </Flex>
+            )}
+            {meet.processing_fee && (
+              <Flex justify="space-between" width="full">
+                <Text fontSize="sm" color={textColor}>Processing:</Text>
+                <Text fontSize="sm" color={textColor} textAlign="right" ml={4}>{formatFee(meet.processing_fee)}</Text>
                         </Flex>
                       )}
                     </VStack>
@@ -920,11 +935,11 @@ const MeetCard: React.FC<MeetCardProps> = ({
 
               {/* Entry Deadline */}
               {meet.entry_deadline_date && (
-                <HStack spacing={2} color="white">
+                <HStack spacing={2} color={useColorModeValue('gray.800', 'gray.100')}>
                   <FaClock size={20} color="blue.400" />
                   <VStack align="start" spacing={0}>
                     <Text fontSize="sm" color="blue.400" fontWeight="medium">Entry Deadline</Text>
-                    <Text fontSize="sm" color="white">
+                    <Text fontSize="sm" color={textColor}>
                       {formatDate(meet.entry_deadline_date)}
                       {meet.entry_deadline_time && ` at ${formatTime(meet.entry_deadline_time)}`}
                     </Text>
@@ -934,11 +949,11 @@ const MeetCard: React.FC<MeetCardProps> = ({
 
               {/* Packet Pickup Info */}
               {meet.packet_pickup_date && (
-                <HStack spacing={2} color="white" align="start">
+                <HStack spacing={2} color={useColorModeValue('gray.800', 'gray.100')} align="start">
                   <FaBoxOpen size={20} color="blue.400" />
                   <VStack align="start" spacing={0}>
                     <Text fontSize="sm" color="blue.400" fontWeight="medium">Packet Pickup</Text>
-                    <Text fontSize="sm" color="white">{formatDate(meet.packet_pickup_date)}</Text>
+                    <Text fontSize="sm" color={textColor}>{formatDate(meet.packet_pickup_date)}</Text>
                     {(meet.packet_pickup_address || meet.packet_pickup_city) && (
                       <Link
                         href={generatePacketPickupMapsLink(
@@ -990,9 +1005,9 @@ const MeetCard: React.FC<MeetCardProps> = ({
               borderRadius="md"
               fontSize="sm"
             >
-              <HStack spacing={2} color="white" cursor="pointer">
+              <HStack spacing={2} color={useColorModeValue('gray.800', 'gray.100')} cursor="pointer">
                 <FaStickyNote size={20} color="currentColor" />
-                <Text fontSize="md" fontWeight="medium" color="white">Notes</Text>
+                <Text fontSize="md" fontWeight="medium" color={textColor}>Notes</Text>
                 {meet.description && (
                   <Box 
                     width={2} 
@@ -1006,10 +1021,10 @@ const MeetCard: React.FC<MeetCardProps> = ({
             </Tooltip>
 
             {/* Events display for both coaches and athletes */}
-            <HStack spacing={2} color="white">
+            <HStack spacing={2} color={useColorModeValue('gray.800', 'gray.100')}>
               <FaRunning size={20} color="currentColor" />
-              <Text fontSize="md" fontWeight="medium" color="white">Events</Text>
-              <Text fontSize="md" color="white">({eventCount})</Text>
+              <Text fontSize="md" fontWeight="medium" color={textColor}>Events</Text>
+              <Text fontSize="md" color={textColor}>({eventCount})</Text>
             </HStack>
 
             {/* Athletes with Tooltip - Show for both coaches and athletes */}
@@ -1033,7 +1048,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
               p={3}
               borderRadius="md"
             >
-              <HStack spacing={2} color="white" cursor="pointer">
+              <HStack spacing={2} color={useColorModeValue('gray.800', 'gray.100')} cursor="pointer">
                 <FaUsers size={20} color="currentColor" />
                 <Text fontSize="md" fontWeight="medium" color="white">Athletes</Text>
                 <Text fontSize="md" color="white">({athleteCount})</Text>
@@ -1046,7 +1061,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
             {(meet.tickets_link || meet.visitor_guide_link) && (
               <VStack align="start" spacing={2}>
                 {meet.tickets_link && (
-                  <HStack spacing={2} color="white">
+                  <HStack spacing={2} color={useColorModeValue('gray.800', 'gray.100')}>
                     <FaTicketAlt size={20} color="blue.400" />
                     <Link
                       href={meet.tickets_link}
@@ -1061,7 +1076,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
                   </HStack>
                 )}
                 {meet.visitor_guide_link && (
-                  <HStack spacing={2} color="white">
+                  <HStack spacing={2} color={useColorModeValue('gray.800', 'gray.100')}>
                     <FaBook size={20} color="blue.400" />
                     <Link
                       href={meet.visitor_guide_link}
@@ -1081,7 +1096,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
             {/* Files */}
             {meet.files && meet.files.length > 0 && (
               <VStack align="start" spacing={2}>
-                <HStack spacing={2} color="white">
+                <HStack spacing={2} color={useColorModeValue('gray.800', 'gray.100')}>
                   <FaFolder size={20} color="blue.400" />
                   <Text fontSize="sm" color="blue.400" fontWeight="medium">Files</Text>
                 </HStack>
@@ -1102,11 +1117,11 @@ const MeetCard: React.FC<MeetCardProps> = ({
           {/* Event Date Ranges */}
           {/* Multi Events Date Range */}
           {(meet.multi_events_start_date || meet.multi_events_end_date) && (
-            <HStack spacing={3} color="white">
+            <HStack spacing={3} color={useColorModeValue('gray.800', 'gray.100')}>
               <FaCalendarAlt size={18} color="blue.400" />
               <VStack align="start" spacing={0}>
                 <Text fontSize="sm" color="blue.400" fontWeight="medium">Multi Events</Text>
-                <Text fontSize="md" color="white">
+                <Text fontSize="md" color={useColorModeValue('gray.800', 'gray.100')}>
                   {meet.multi_events_start_date && formatDate(meet.multi_events_start_date)}
                   {meet.multi_events_end_date && meet.multi_events_start_date !== meet.multi_events_end_date && 
                     ` - ${formatDate(meet.multi_events_end_date)}`}
@@ -1117,11 +1132,11 @@ const MeetCard: React.FC<MeetCardProps> = ({
           
           {/* Track & Field Date Range */}
           {(meet.track_field_start_date || meet.track_field_end_date) && (
-            <HStack spacing={3} color="white">
+            <HStack spacing={3} color={useColorModeValue('gray.800', 'gray.100')}>
               <FaCalendarAlt size={18} color="blue.400" />
               <VStack align="start" spacing={0}>
                 <Text fontSize="sm" color="blue.400" fontWeight="medium">Track & Field</Text>
-                <Text fontSize="md" color="white">
+                <Text fontSize="md" color={textColor}>
                   {meet.track_field_start_date && formatDate(meet.track_field_start_date)}
                   {meet.track_field_end_date && meet.track_field_start_date !== meet.track_field_end_date && 
                     ` - ${formatDate(meet.track_field_end_date)}`}
@@ -1133,19 +1148,19 @@ const MeetCard: React.FC<MeetCardProps> = ({
           {/* Fallback to original meet_date if no new dates */}
           {!meet.multi_events_start_date && !meet.multi_events_end_date && 
            !meet.track_field_start_date && !meet.track_field_end_date && (
-          <HStack spacing={3} color="white">
+          <HStack spacing={3} color={useColorModeValue('gray.800', 'gray.100')}>
             <FaCalendarAlt size={18} color="currentColor" />
-            <Text fontSize="md" color="white" fontWeight="medium">
+            <Text fontSize="md" color={textColor} fontWeight="medium">
               {formatDate(meet.meet_date)}
             </Text>
           </HStack>
           )}
 
           {/* Location */}
-          <HStack spacing={3} color="white" align="start">
+          <HStack spacing={3} color={useColorModeValue('gray.800', 'gray.100')} align="start">
             <FaMapMarkerAlt size={18} color="currentColor" />
             <VStack align="start" spacing={0}>
-              <Text fontSize="md" color="white" fontWeight="medium">
+              <Text fontSize="md" color={textColor} fontWeight="medium">
                 {meet.venue_name || "Venue TBD"}
               </Text>
               <Link 
@@ -1182,7 +1197,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
           />
 
           {/* Registration */}
-          <HStack spacing={3} color="white">
+          <HStack spacing={3} color={useColorModeValue('gray.800', 'gray.100')}>
             <FaFileAlt size={18} color="currentColor" />
             {meet.join_link ? (
               <Link
@@ -1202,20 +1217,20 @@ const MeetCard: React.FC<MeetCardProps> = ({
 
           {/* Registration Fees */}
           {(meet.registration_fee || meet.processing_fee) && (
-            <HStack spacing={3} color="white" align="start">
+            <HStack spacing={3} color={useColorModeValue('gray.800', 'gray.100')} align="start">
               <FaDollarSign size={18} color="blue.400" />
               <VStack align="start" spacing={0} width="full" maxW="180px">
                 <Text fontSize="sm" color="blue.400" fontWeight="medium">Fees</Text>
                 {meet.registration_fee && (
                   <Flex justify="space-between" width="full">
-                    <Text fontSize="sm" color="white">Registration:</Text>
-                    <Text fontSize="sm" color="white" textAlign="right" ml={4}>{formatFee(meet.registration_fee)}</Text>
+                    <Text fontSize="sm" color={textColor}>Registration:</Text>
+                    <Text fontSize="sm" color={textColor} textAlign="right" ml={4}>{formatFee(meet.registration_fee)}</Text>
                   </Flex>
                 )}
                 {meet.processing_fee && (
                   <Flex justify="space-between" width="full">
-                    <Text fontSize="sm" color="white">Processing:</Text>
-                    <Text fontSize="sm" color="white" textAlign="right" ml={4}>{formatFee(meet.processing_fee)}</Text>
+                    <Text fontSize="sm" color={textColor}>Processing:</Text>
+                    <Text fontSize="sm" color={textColor} textAlign="right" ml={4}>{formatFee(meet.processing_fee)}</Text>
                   </Flex>
                 )}
               </VStack>
@@ -1224,11 +1239,11 @@ const MeetCard: React.FC<MeetCardProps> = ({
 
           {/* Entry Deadline */}
           {meet.entry_deadline_date && (
-            <HStack spacing={3} color="white" align="start">
+            <HStack spacing={3} color={useColorModeValue('gray.800', 'gray.100')} align="start">
               <FaClock size={18} color="blue.400" />
               <VStack align="start" spacing={0}>
                 <Text fontSize="sm" color="blue.400" fontWeight="medium">Entry Deadline</Text>
-                <Text fontSize="sm" color="white">
+                <Text fontSize="sm" color={textColor}>
                   {formatDate(meet.entry_deadline_date)}
                   {meet.entry_deadline_time && ` at ${formatTime(meet.entry_deadline_time)}`}
                 </Text>
@@ -1238,11 +1253,11 @@ const MeetCard: React.FC<MeetCardProps> = ({
 
           {/* Packet Pickup Info */}
           {meet.packet_pickup_date && (
-            <HStack spacing={3} color="white" align="start">
+            <HStack spacing={3} color={textColor} align="start">
               <FaBoxOpen size={18} color="blue.400" />
               <VStack align="start" spacing={0}>
                 <Text fontSize="sm" color="blue.400" fontWeight="medium">Packet Pickup</Text>
-                <Text fontSize="sm" color="white">{formatDate(meet.packet_pickup_date)}</Text>
+                <Text fontSize="sm" color={textColor}>{formatDate(meet.packet_pickup_date)}</Text>
                 {(meet.packet_pickup_address || meet.packet_pickup_city) && (
                   <Link
                     href={generatePacketPickupMapsLink(
@@ -1282,7 +1297,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
 
           {/* Web Links */}
           {meet.tickets_link && (
-            <HStack spacing={3} color="white">
+            <HStack spacing={3} color={textColor}>
               <FaTicketAlt size={18} color="blue.400" />
               <Link
                 href={meet.tickets_link}
@@ -1298,7 +1313,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
           )}
 
           {meet.visitor_guide_link && (
-            <HStack spacing={3} color="white">
+            <HStack spacing={3} color={textColor}>
               <FaBook size={18} color="blue.400" />
               <Link
                 href={meet.visitor_guide_link}
@@ -1327,9 +1342,9 @@ const MeetCard: React.FC<MeetCardProps> = ({
           )}
 
           {/* Notes */}
-          <HStack spacing={3} color="white">
+          <HStack spacing={3} color={textColor}>
             <FaStickyNote size={18} color="currentColor" />
-            <Text fontSize="md" fontWeight="medium" color="white">Notes</Text>
+            <Text fontSize="md" fontWeight="medium" color={textColor}>Notes</Text>
             {meet.description && (
               <Box 
                 width={2} 
@@ -1342,17 +1357,17 @@ const MeetCard: React.FC<MeetCardProps> = ({
           </HStack>
 
           {/* Events count */}
-          <HStack spacing={3} color="white">
+          <HStack spacing={3} color={textColor}>
             <FaRunning size={18} color="currentColor" />
-            <Text fontSize="md" fontWeight="medium" color="white">
+            <Text fontSize="md" fontWeight="medium" color={textColor}>
               Events ({eventCount})
             </Text>
           </HStack>
 
           {/* Athletes count */}
-          <HStack spacing={3} color="white">
+          <HStack spacing={3} color={textColor}>
             <FaUsers size={18} color="currentColor" />
-            <Text fontSize="md" fontWeight="medium" color="white">
+            <Text fontSize="md" fontWeight="medium" color={textColor}>
               Athletes ({athleteCount})
             </Text>
           </HStack>
@@ -1365,7 +1380,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
                 <HStack spacing={2}>
                   <FaChalkboardTeacher size={16} color="currentColor" />
                   <Text fontSize="sm" color="gray.300">Coach:</Text>
-                  <Text fontSize="sm" fontWeight="medium" color="white">{assignedByCoach}</Text>
+                  <Text fontSize="sm" fontWeight="medium" color={textColor}>{assignedByCoach}</Text>
                 </HStack>
                 {coachPhone && (
                   <HStack spacing={2} pl={0}>
@@ -1405,11 +1420,11 @@ const MeetCard: React.FC<MeetCardProps> = ({
               <Box bg="gray.600" h="1px" my={4} />
               <VStack spacing={1} align="start" w="full">
                 {assistantCoach1Name && (
-                  <VStack align="start" spacing={1} color="white">
+                  <VStack align="start" spacing={1} color={textColor}>
                     <HStack spacing={2}>
                       <FaUserTie size={16} color="currentColor" />
                       <Text fontSize="sm" color="gray.400">Assistant:</Text>
-                      <Text fontSize="sm" color="gray.200">{assistantCoach1Name}</Text>
+                      <Text fontSize="sm" color={textColor}>{assistantCoach1Name}</Text>
                     </HStack>
                     {assistantCoach1Phone && (
                       <HStack spacing={2} pl={0}>
@@ -1699,10 +1714,10 @@ const MeetCard: React.FC<MeetCardProps> = ({
           <Box bg="gray.600" h="1px" my={4} />
 
                       <VStack align="start" spacing={2} w="full">
-                        <HStack spacing={2} justify="space-between" w="full" color="white">
+                        <HStack spacing={2} justify="space-between" w="full" color={textColor}>
               <HStack spacing={2}>
                 <FaRunning size={20} color="currentColor" />
-                <Text fontSize="md" fontWeight="medium" color="white">Your Events ({myAssignedEvents.length})</Text>
+                <Text fontSize="md" fontWeight="medium" color={textColor}>Your Events ({myAssignedEvents.length})</Text>
               </HStack>
             </HStack>
             <VStack align="start" spacing={0} pl={6} w="full">
@@ -1733,7 +1748,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
                           size="xs"
                           variant="ghost"
                           colorScheme="blue"
-                          color="white"
+                          color={textColor}
                           _hover={{ color: "gray.300" }}
                           onClick={async (e) => {
                             e.stopPropagation();
@@ -1778,7 +1793,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
                           size="xs"
                           variant="ghost"
                           colorScheme="red"
-                          color="white"
+                          color={textColor}
                           _hover={{ color: "gray.300" }}
                           onClick={async (e) => {
                             e.stopPropagation();
@@ -2821,6 +2836,22 @@ export const Meets: React.FC = () => {
   const assignDrawerHeaderBg = useColorModeValue('green.50', 'green.900');
   const assignDrawerHeaderColor = useColorModeValue('green.700', 'green.200');
 
+  // Color mode values for main page
+  const pageBackgroundColor = useColorModeValue('gray.50', 'gray.900');
+  const cardBackgroundColor = useColorModeValue('white', 'gray.800');
+  const cardBorderColor = useColorModeValue('gray.200', 'gray.700');
+  const textColor = useColorModeValue('gray.800', 'white');
+  const mutedTextColor = useColorModeValue('gray.500', 'gray.400');
+  const tabSelectedBg = useColorModeValue('blue.500', 'gray.800');
+  const tabSelectedColor = useColorModeValue('white', 'white');
+  const tabSelectedBorder = useColorModeValue('blue.500', 'gray.700');
+  const locationBoxBg = useColorModeValue('blue.50', 'gray.800');
+  const locationBoxBorder = useColorModeValue('blue.300', 'green.400');
+  const emptyStateBg = useColorModeValue('gray.100', 'gray.800');
+  const emptyStateBorder = useColorModeValue('gray.300', 'gray.700');
+  const emptyStateTextColor = useColorModeValue('gray.600', 'gray.400');
+  const emptyStateHeadingColor = useColorModeValue('gray.700', 'gray.400');
+
   // Meet filtering logic using timezone-aware utilities
   const filteredMeets = useMemo(() => {
     return categorizeMeetsByDate(meets);
@@ -2834,16 +2865,16 @@ export const Meets: React.FC = () => {
       
       return (
         <Box
-          bg="gray.800"
+          bg={emptyStateBg}
           borderRadius="2xl"
           p={16}
           textAlign="center"
           border="1px solid"
-          borderColor="gray.700"
+          borderColor={emptyStateBorder}
         >
-          <FaCalendarAlt size={48} color="gray.600" style={{ margin: '0 auto 16px' }} />
-          <Heading size="md" color="gray.400" mb={2}>No meets found</Heading>
-          <Text color="gray.500" mb={6}>
+          <FaCalendarAlt size={48} color={mutedTextColor} style={{ margin: '0 auto 16px' }} />
+          <Heading size="md" color={emptyStateHeadingColor} mb={2}>No meets found</Heading>
+          <Text color={emptyStateTextColor} mb={6}>
             {userIsCoach 
               ? (isFirstMeet ? "Create your first track meet to get started." : "No meets found in this category.")
               : "No meets have been assigned to you yet."
@@ -3688,14 +3719,14 @@ export const Meets: React.FC = () => {
 
   if (loading) {
     return (
-      <Box minH="100vh" bg="gray.900" display="flex" alignItems="center" justifyContent="center">
+      <Box minH="100vh" bg={pageBackgroundColor} display="flex" alignItems="center" justifyContent="center">
         <Spinner size="xl" color="blue.500" />
       </Box>
     );
   }
 
   return (
-    <Box minH="100vh" bg="gray.900">
+    <Box minH="100vh" bg={pageBackgroundColor}>
       {/* Desktop Header */}
       <PageHeader
         title="Meets"
@@ -3729,22 +3760,22 @@ export const Meets: React.FC = () => {
         direction="column" 
         align="center" 
         p={0}
-        color="gray.100"
+        color={textColor}
       >
         {/* Meets Tabs */}
         <Box w="full" maxW="4xl">
           {meets.length === 0 ? (
             <Box
-              bg="gray.800"
+              bg={emptyStateBg}
               borderRadius="2xl"
               p={16}
               textAlign="center"
               border="1px solid"
-              borderColor="gray.700"
+              borderColor={emptyStateBorder}
             >
-              <FaCalendarAlt size={48} color="gray.600" style={{ margin: '0 auto 16px' }} />
-              <Heading size="md" color="gray.400" mb={2}>No meets found</Heading>
-              <Text color="gray.500" mb={6}>
+              <FaCalendarAlt size={48} color={mutedTextColor} style={{ margin: '0 auto 16px' }} />
+              <Heading size="md" color={emptyStateHeadingColor} mb={2}>No meets found</Heading>
+              <Text color={emptyStateTextColor} mb={6}>
                 {userIsCoach ? "Create your first track meet to get started." : "No meets have been assigned to you yet."}
               </Text>
               {userIsCoach && (
@@ -3764,7 +3795,7 @@ export const Meets: React.FC = () => {
                 gridTemplateColumns={{ base: "repeat(4, 1fr)", md: "unset" }}
                 gap={{ base: 0, md: "unset" }}
                 borderBottom="0px solid"
-                borderColor="gray.600"
+                borderColor={cardBorderColor}
                 borderRadius="lg"
                 p={{ base: 2, md: 0 }}
               >
@@ -3782,9 +3813,9 @@ export const Meets: React.FC = () => {
                   borderRadius="30"
                   position="relative"
                   _selected={{
-                    bg: "gray.800",
-                    color: "white",
-                    borderColor: "gray.700"
+                    bg: tabSelectedBg,
+                    color: tabSelectedColor,
+                    borderColor: tabSelectedBorder
                   }}
                 >
                   <Text textAlign="center" lineHeight="1.2">
@@ -3824,9 +3855,9 @@ export const Meets: React.FC = () => {
                   borderRadius="30"
                   position="relative"
                   _selected={{
-                    bg: "gray.800",
-                    color: "white",
-                    borderColor: "gray.700"
+                    bg: tabSelectedBg,
+                    color: tabSelectedColor,
+                    borderColor: tabSelectedBorder
                   }}
                 >
                   <Text textAlign="center" lineHeight="1.2">
@@ -3866,9 +3897,9 @@ export const Meets: React.FC = () => {
                   borderRadius="30"
                   position="relative"
                   _selected={{
-                    bg: "gray.800",
-                    color: "white",
-                    borderColor: "gray.700"
+                    bg: tabSelectedBg,
+                    color: tabSelectedColor,
+                    borderColor: tabSelectedBorder
                   }}
                 >
                   <Text textAlign="center" lineHeight="1.2">
@@ -3908,9 +3939,9 @@ export const Meets: React.FC = () => {
                   borderRadius="30"
                   position="relative"
                   _selected={{
-                    bg: "gray.800",
-                    color: "white",
-                    borderColor: "gray.700"
+                    bg: tabSelectedBg,
+                    color: tabSelectedColor,
+                    borderColor: tabSelectedBorder
                   }}
                 >
                   <Text textAlign="center" lineHeight="1.2">
@@ -3940,9 +3971,9 @@ export const Meets: React.FC = () => {
 
               {/* Location Display - Shows on all tabs */}
               <Box 
-                bg="gray.800" 
+                bg={locationBoxBg} 
                 borderLeft="4px solid" 
-                borderColor="green.400" 
+                borderColor={locationBoxBorder} 
                 p={3} 
                 mb={4}
                 mt={4}
