@@ -68,6 +68,7 @@ interface UnifiedAssignmentCardProps {
   compact?: boolean;
   onDelete?: () => void;
   onAssign?: () => void;
+  onEdit?: () => void;
   onRestore?: () => void;
   onPermanentDelete?: () => void;
   isCoach?: boolean;
@@ -102,6 +103,7 @@ export function UnifiedAssignmentCard({
   compact = false,
   onDelete,
   onAssign,
+  onEdit,
   onRestore,
   onPermanentDelete,
   isCoach = false,
@@ -1421,7 +1423,7 @@ export function UnifiedAssignmentCard({
                   >
                     View Details
                   </MenuItem>
-                  {onAssign && isCoach && (
+                  {onAssign && isCoach && !assignment.deleted_at && (
                     <MenuItem 
                           icon={<UserPlus />} 
                       onClick={onAssign}
@@ -1429,7 +1431,94 @@ export function UnifiedAssignmentCard({
                       Assign Athletes
                     </MenuItem>
                   )}
-                      {(onDelete || assignment?.meta?.self_assigned) && (
+                  {(onEdit || assignment?.meta?.self_assigned) && !assignment.deleted_at && (
+                    <MenuItem 
+                          icon={<Edit />} 
+                      onClick={() => {
+                        if (onEdit) {
+                          onEdit();
+                        } else if (assignment?.meta?.self_assigned) {
+                          // For self-assigned workouts without onEdit prop, implement default edit behavior
+                          // Convert assignment to workout format and navigate
+                          const convertAssignmentToWorkoutForEdit = (assignment: any) => {
+                            
+                            const workout = {
+                              id: assignment.id,
+                              name: assignment.exercise_block?.workout_name || assignment.exercise_block?.plan_name || 'Assignment Workout',
+                              description: assignment.exercise_block?.description || '',
+                              type: assignment.assignment_type,
+                              date: assignment.start_date,
+                              duration: assignment.exercise_block?.estimated_duration || '',
+                              notes: assignment.exercise_block?.notes || '',
+                              created_at: assignment.created_at,
+                              user_id: assignment.athlete_id,
+                              exercises: assignment.exercise_block?.exercises || [],
+                              blocks: assignment.exercise_block?.blocks || [],
+                              is_block_based: assignment.exercise_block?.is_block_based || false,
+                              template_type: assignment.assignment_type as 'single' | 'weekly' | 'monthly',
+                              daily_workouts: assignment.exercise_block?.daily_workouts || undefined,
+                              meta: assignment.meta,
+                            };
+
+                            // For single workouts, reconstruct blocks from exercises
+                            if (assignment.assignment_type === 'single' && assignment.exercise_block?.exercises) {
+                              const exercises = assignment.exercise_block.exercises;
+                              if (exercises.length > 0) {
+                                // Create a single main block with all exercises
+                                const mainBlock = {
+                                  id: `block-${Date.now()}`,
+                                  name: 'Main Set',
+                                  category: 'main' as const,
+                                  flow: 'sequential' as const,
+                                  exercises: exercises.map((exercise: any) => ({
+                                    id: exercise.id || `${exercise.name}-${Date.now()}`,
+                                    name: exercise.name,
+                                    category: exercise.category || 'main',
+                                    description: exercise.instructions || exercise.description || '',
+                                    sets: exercise.sets || '3',
+                                    reps: exercise.reps || '10',
+                                    weight: exercise.weight || '',
+                                    distance: exercise.distance || '',
+                                    rest: exercise.rest_seconds ? exercise.rest_seconds.toString() : '60',
+                                    rpe: exercise.rpe || '',
+                                    notes: exercise.notes || '',
+                                    contacts: exercise.contacts || '',
+                                    intensity: exercise.intensity || '',
+                                    direction: exercise.direction || '',
+                                    movement_notes: exercise.movement_notes || '',
+                                    timed_duration: exercise.timed_duration || 0
+                                  })),
+                                  restBetweenExercises: exercises[0]?.rest_between_exercises || 90,
+                                  restBetweenSets: exercises[0]?.rest_seconds || 60
+                                };
+                                
+                                workout.blocks = [mainBlock];
+                              }
+                            }
+                            
+                            return workout;
+                          };
+
+                          try {
+                            // Convert assignment to workout format
+                            const workoutData = convertAssignmentToWorkoutForEdit(assignment);
+                            
+                            // Store the workout data in localStorage for the workout creator to access
+                            localStorage.setItem('editWorkoutData', JSON.stringify(workoutData));
+                            
+                            // Navigate to new workout creator without edit parameter since we're using localStorage
+                            window.location.href = '/athlete/workout-creator-new?step=2';
+                          } catch (error) {
+                            console.error('Error preparing workout for editing:', error);
+                          }
+                        }
+                      }}
+                      color="blue.500"
+                    >
+                      Edit Workout
+                    </MenuItem>
+                  )}
+                      {(onDelete || assignment?.meta?.self_assigned) && !assignment.deleted_at && (
                     <MenuItem 
                           icon={<Trash2 />} 
                       onClick={assignment?.meta?.self_assigned ? handleDeleteWorkout : onDelete}
@@ -1456,12 +1545,14 @@ export function UnifiedAssignmentCard({
                       Delete Forever
                     </MenuItem>
                   )}
-                  <MenuItem 
-                        icon={<Copy />} 
-                    onClick={handleDuplicateAssignment}
-                  >
-                    Duplicate Workout
-                  </MenuItem>
+                  {!assignment.deleted_at && (
+                    <MenuItem 
+                          icon={<Copy />} 
+                      onClick={handleDuplicateAssignment}
+                    >
+                      Duplicate Workout
+                    </MenuItem>
+                  )}
                 </MenuList>
               </Portal>
             </Menu>

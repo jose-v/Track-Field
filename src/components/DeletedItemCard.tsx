@@ -215,28 +215,33 @@ export const DeletedItemCard: React.FC<DeletedItemCardProps> = ({
       <Card 
         borderRadius="xl" 
         overflow="hidden" 
-        borderWidth="2px" 
+        boxShadow="md"
+        borderWidth="1px" 
         borderColor={borderColor}
         bg={cardBg}
-        opacity={0.8}
         transition="all 0.2s"
-        _hover={{ opacity: 1, transform: 'translateY(-2px)' }}
+        _hover={{ transform: 'translateY(-2px)', boxShadow: 'xl' }}
         h="100%"
+        p="0"
       >
-        {/* Header - matching athlete style exactly */}
+        {/* Card header with type info and actions - matching WorkoutCard design */}
         <Box 
           bg={headerBg}
           px={4} 
-          py={3} 
+          py={4} 
           display="flex" 
           alignItems="center" 
           justifyContent="space-between"
+          borderTopLeftRadius="inherit"
+          borderTopRightRadius="inherit"
+          margin="0"
+          width="100%"
         >
           <HStack spacing={3}>
             <Box 
               bg="rgba(255, 255, 255, 0.3)" 
               borderRadius="full" 
-              p={2} 
+              p={2.5} 
               display="flex" 
               alignItems="center" 
               justifyContent="center"
@@ -244,82 +249,82 @@ export const DeletedItemCard: React.FC<DeletedItemCardProps> = ({
               <Icon 
                 as={itemInfo.icon.type} 
                 color="white" 
-                boxSize={5} 
+                boxSize={6} 
               />
             </Box>
-            <VStack align="start" spacing={0}>
-              <Badge colorScheme={getTypeColor(itemInfo.subtitle)} variant="solid" fontSize="xs">
-                {itemInfo.subtitle}
-              </Badge>
-              {itemInfo.templateType && (
-                <Badge colorScheme="purple" variant="outline" fontSize="xs">
-                  {itemInfo.templateType.toUpperCase()}
-                </Badge>
-              )}
-              {itemInfo.isBlockBased && (
-                <Badge colorScheme="green" variant="outline" fontSize="xs">
-                  <HStack spacing={1}>
-                    <Icon as={FaLayerGroup} boxSize={2} color="green.500" />
-                    <Text>BLOCKS</Text>
-                  </HStack>
-                </Badge>
-              )}
-            </VStack>
+            <Badge 
+              bg="rgba(255, 255, 255, 0.2)"
+              color="white"
+              fontSize="sm"
+              fontWeight="bold"
+              py={1.5}
+              px={3}
+              borderRadius="md"
+            >
+              {itemInfo.subtitle}
+            </Badge>
           </HStack>
           
-          <Icon as={FaTrashAlt} color={iconColor} />
+          <Icon as={FaTrashAlt} color="white" />
         </Box>
 
-        <CardBody p={4}>
-          <VStack align="stretch" spacing={3}>
-            {/* Title */}
-            <VStack align="start" spacing={1}>
-              <Heading size="md" color={titleColor} noOfLines={2}>
+        {/* Card content */}
+        <CardBody px={4} py={4}>
+          <VStack align="start" spacing={4} height="100%" justify="space-between">
+            <VStack align="start" spacing={4} width="100%">
+              {/* Title */}
+              <Heading size="lg" mt={1} noOfLines={1} color={titleColor}>
                 {itemInfo.title}
               </Heading>
-            </VStack>
+              
+              {/* Deleted badge */}
+              <Badge 
+                colorScheme="red" 
+                size="sm" 
+                fontSize="xs"
+                fontWeight="bold"
+                px={2}
+                py={1}
+                borderRadius="md"
+                alignSelf="flex-start"
+              >
+                DELETED
+              </Badge>
 
-            {/* Workout Details - matching athlete style */}
-            <VStack align="start" spacing={2}>
-              <HStack spacing={4}>
-                <HStack spacing={1}>
-                  <Icon as={FaDumbbell} boxSize={3} color={textColor} />
-                  <Text fontSize="sm" color={textColor}>
+              {/* Workout details */}
+              <VStack align="start" spacing={2} width="100%">
+                {/* Exercise count or duration */}
+                <Flex align="center" width="100%">
+                  <Icon as={FaDumbbell} mr={2} color={textColor} boxSize={4} />
+                  <Text fontSize="md" color={textColor}>
                     {type === 'workout' ? 
-                      `${itemInfo.exerciseCount} exercise${itemInfo.exerciseCount !== 1 ? 's' : ''}` :
+                      `${itemInfo.exerciseCount} Exercise${itemInfo.exerciseCount !== 1 ? 's' : ''}` :
                       `${itemInfo.duration}`
                     }
                   </Text>
-                </HStack>
-                {itemInfo.duration && type === 'workout' && (
+                </Flex>
+
+                {/* Dates */}
+                <HStack spacing={4} width="100%">
                   <HStack spacing={1}>
-                    <Icon as={FaClock} boxSize={3} color={textColor} />
+                    <Icon as={FaCalendarAlt} color={textColor} boxSize={3} />
                     <Text fontSize="sm" color={textColor}>
-                      {itemInfo.duration}
+                      Created: {createdDate}
                     </Text>
                   </HStack>
-                )}
-              </HStack>
+                </HStack>
 
-              <HStack spacing={4}>
                 <HStack spacing={1}>
-                  <Icon as={FaCalendarAlt} boxSize={3} color={textColor} />
+                  <Icon as={FaTrashAlt} color={textColor} boxSize={3} />
                   <Text fontSize="sm" color={textColor}>
-                    Created: {createdDate}
+                    Deleted: {deletedDate}
                   </Text>
                 </HStack>
-              </HStack>
-
-              <HStack spacing={1}>
-                <Icon as={FaTrashAlt} boxSize={3} color={textColor} />
-                <Text fontSize="sm" color={textColor}>
-                  Deleted: {deletedDate}
-                </Text>
-              </HStack>
+              </VStack>
             </VStack>
 
-            {/* Action Buttons - stacked vertically */}
-            <VStack spacing={2} pt={2} w="100%">
+            {/* Action Buttons */}
+            <VStack spacing={2} width="100%" pt={2}>
               <Button
                 size="sm"
                 leftIcon={<FaUndo />}

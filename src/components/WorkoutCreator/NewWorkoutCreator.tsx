@@ -194,6 +194,8 @@ const NewWorkoutCreator: React.FC = () => {
   const isTemplate = action === 'template';
   const editWorkoutId = searchParams.get('edit');
   const isEditing = !!editWorkoutId;
+  const stepParam = searchParams.get('step');
+  const initialStep = stepParam ? parseInt(stepParam) : 1;
 
   // Sidebar width state management
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -225,8 +227,8 @@ const NewWorkoutCreator: React.FC = () => {
   const summaryBorder = useColorModeValue('gray.200', 'gray.600');
 
   // Step management
-  const [currentStep, setCurrentStep] = useState(1);
-  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [currentStep, setCurrentStep] = useState(initialStep);
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set([1])); // Mark step 1 as completed when starting from step 2
 
   // Form state
   const [workoutName, setWorkoutName] = useState('');
@@ -1044,6 +1046,12 @@ const NewWorkoutCreator: React.FC = () => {
   useEffect(() => {
     if (editWorkoutId) {
       loadWorkoutForEditing(editWorkoutId);
+    } else {
+      // Check for localStorage data even without editWorkoutId (for athlete editing)
+      const editWorkoutData = localStorage.getItem('editWorkoutData');
+      if (editWorkoutData) {
+        loadWorkoutForEditing('localStorage'); // Pass dummy ID for localStorage flow
+      }
     }
   }, [editWorkoutId]);
 
@@ -1051,7 +1059,90 @@ const NewWorkoutCreator: React.FC = () => {
     try {
       setIsLoadingWorkout(true);
       
-      // First try to fetch from workouts table
+      // First check localStorage for assignment data (for athlete editing)
+      const editWorkoutData = localStorage.getItem('editWorkoutData');
+      if (editWorkoutData) {
+        try {
+          const workout = JSON.parse(editWorkoutData);
+          
+          // Populate form with workout data
+          setWorkoutName(workout.name || '');
+          setSelectedTemplateType(workout.template_type as 'single' | 'weekly' | 'monthly' || 'single');
+          setSelectedTemplate('custom'); // Mark as custom since it's an existing workout
+          
+          // Set blocks and exercises
+          
+          if (workout.blocks) {
+            let blocksData = workout.blocks;
+            
+            // Parse blocks if it's a string
+            if (typeof blocksData === 'string') {
+              try {
+                blocksData = JSON.parse(blocksData);
+              } catch (error) {
+                console.error('Error parsing blocks JSON:', error);
+                blocksData = [];
+              }
+            }
+            
+            if (workout.template_type === 'weekly') {
+              // For weekly workouts, convert blocks to daily_workouts format
+              const dailyWorkouts: Record<string, WorkoutBlock[]> = {};
+              Object.entries(blocksData).forEach(([dayName, dayBlocks]: [string, any]) => {
+                dailyWorkouts[dayName] = Array.isArray(dayBlocks) ? dayBlocks : [dayBlocks];
+              });
+              setDailyBlocks(dailyWorkouts);
+            } else {
+              // For single workouts, set blocks directly
+              const blocksArray = Array.isArray(blocksData) ? blocksData : [blocksData];
+              setBlocks(blocksArray);
+            }
+          }
+          
+          if (workout.exercises) {
+            let exercisesData = workout.exercises;
+            
+            // Parse exercises if it's a string
+            if (typeof exercisesData === 'string') {
+              try {
+                exercisesData = JSON.parse(exercisesData);
+              } catch (error) {
+                console.error('Error parsing exercises JSON:', error);
+                exercisesData = [];
+              }
+            }
+            
+            setExercises(exercisesData);
+          }
+          
+          // Mark steps as completed since we're loading existing data
+          setCompletedSteps(new Set([1, 2]));
+          
+          // Set other workout properties
+          setDate(workout.date || '');
+          setDuration(workout.duration || '');
+          setWorkoutLocation(workout.location || '');
+          
+          // Clear localStorage after loading
+          localStorage.removeItem('editWorkoutData');
+          
+          setIsLoadingWorkout(false);
+          return;
+        } catch (error) {
+          console.error('Error parsing workout data from localStorage:', error);
+          localStorage.removeItem('editWorkoutData');
+          // Continue to database fetch if localStorage fails
+        }
+      }
+      
+      // Only try database fetch if no localStorage data was found or if localStorage failed
+      // AND if we're not in localStorage-only mode
+      if (workoutId === 'localStorage') {
+        setIsLoadingWorkout(false);
+        return;
+      }
+      
+      // Try to fetch from workouts table
       let { data: workout, error } = await supabase
         .from('workouts')
         .select('*')

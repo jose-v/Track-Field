@@ -645,25 +645,31 @@ const DraggableExerciseCard: React.FC<DraggableExerciseCardProps> = ({
     }
   }, [isDragging]);
 
-  // If dragging and we have the original position, render in portal
-  if (isDragging && originalRect && transform && typeof document !== 'undefined') {
-    const x = originalRect.left + transform.x;
-    const y = originalRect.top + transform.y;
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    opacity: isDragging ? 0.3 : 1,
+  } : {};
 
-    return (
-      <>
-        {/* Original placeholder with reduced opacity */}
-        <div ref={combineRefs} style={{ opacity: 0.3 }}>
-          {children}
-        </div>
-        
-        {/* Dragged element in portal with correct absolute positioning */}
-        {createPortal(
+  // Always render the base element, but conditionally add portal for dragging
+  return (
+    <>
+      <div 
+        ref={combineRefs} 
+        style={style} 
+        {...listeners} 
+        {...attributes}
+      >
+        {children}
+      </div>
+      
+      {/* Render portal only when dragging */}
+      {isDragging && originalRect && transform && typeof document !== 'undefined' && (
+        createPortal(
           <div 
             style={{
               position: 'fixed',
-              left: x,
-              top: y,
+              left: originalRect.left + transform.x,
+              top: originalRect.top + transform.y,
               zIndex: 999999,
               pointerEvents: 'none',
               opacity: 0.8,
@@ -674,25 +680,9 @@ const DraggableExerciseCard: React.FC<DraggableExerciseCardProps> = ({
             {children}
           </div>,
           document.body
-        )}
-      </>
-    );
-  }
-
-  const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-    opacity: isDragging ? 0.3 : 1,
-  } : {};
-
-  return (
-    <div 
-      ref={combineRefs} 
-      style={style} 
-      {...listeners} 
-      {...attributes}
-    >
-      {children}
-    </div>
+        )
+      )}
+    </>
   );
 };
 
@@ -950,6 +940,10 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
     return thumbnailPath;
   };
 
+  useImperativeHandle(ref, () => ({
+    openAddModal: onAddOpen,
+  }));
+
   if (isLoading) {
     return (
       <Center h="400px">
@@ -960,10 +954,6 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
       </Center>
     );
   }
-
-  useImperativeHandle(ref, () => ({
-    openAddModal: onAddOpen,
-  }));
 
   return (
     <Box w="100%" h="100%" display="flex" flexDirection="column" minH="0">
@@ -1166,12 +1156,27 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
           // Selection mode: Always use list layout for workout creator
           <VStack spacing={2} align="stretch">
             {filteredExercises.map((exercise) => (
-              <DraggableExerciseCard 
-                key={exercise.id} 
-                exercise={exercise} 
-                isSelectionMode={!enableDrag}
-              >
+              enableDrag ? (
+                <DraggableExerciseCard 
+                  key={exercise.id} 
+                  exercise={exercise} 
+                  isSelectionMode={false}
+                >
+                  <ExerciseListCard 
+                    exercise={exercise}
+                    onEditExercise={handleEditExercise}
+                    onDeleteClick={handleDeleteClick}
+                    onExerciseClick={handleExerciseClick}
+                    isExerciseSelected={isExerciseSelected}
+                    getExerciseImage={getExerciseImage}
+                    selectionMode={selectionMode}
+                    currentUserId={currentUserId}
+                    enableDrag={enableDrag}
+                  />
+                </DraggableExerciseCard>
+              ) : (
                 <ExerciseListCard 
+                  key={exercise.id}
                   exercise={exercise}
                   onEditExercise={handleEditExercise}
                   onDeleteClick={handleDeleteClick}
@@ -1182,15 +1187,30 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
                   currentUserId={currentUserId}
                   enableDrag={enableDrag}
                 />
-              </DraggableExerciseCard>
+              )
             ))}
           </VStack>
         ) : viewMode === 'list' ? (
           // List view mode
           <VStack spacing={2} align="stretch">
             {filteredExercises.map((exercise) => (
-              <DraggableExerciseCard key={exercise.id} exercise={exercise} isSelectionMode={!enableDrag}>
+              enableDrag ? (
+                <DraggableExerciseCard key={exercise.id} exercise={exercise} isSelectionMode={false}>
+                  <ExerciseListCard 
+                    exercise={exercise}
+                    onEditExercise={handleEditExercise}
+                    onDeleteClick={handleDeleteClick}
+                    onExerciseClick={handleExerciseClick}
+                    isExerciseSelected={isExerciseSelected}
+                    getExerciseImage={getExerciseImage}
+                    selectionMode={selectionMode}
+                    currentUserId={currentUserId}
+                    enableDrag={enableDrag}
+                  />
+                </DraggableExerciseCard>
+              ) : (
                 <ExerciseListCard 
+                  key={exercise.id}
                   exercise={exercise}
                   onEditExercise={handleEditExercise}
                   onDeleteClick={handleDeleteClick}
@@ -1201,15 +1221,30 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
                   currentUserId={currentUserId}
                   enableDrag={enableDrag}
                 />
-              </DraggableExerciseCard>
+              )
             ))}
           </VStack>
         ) : (
           // Grid view mode (default)
           <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
             {filteredExercises.map((exercise) => (
-              <DraggableExerciseCard key={exercise.id} exercise={exercise} isSelectionMode={!enableDrag}>
+              enableDrag ? (
+                <DraggableExerciseCard key={exercise.id} exercise={exercise} isSelectionMode={false}>
+                  <ExerciseGridCard 
+                    exercise={exercise}
+                    onEditExercise={handleEditExercise}
+                    onDeleteClick={handleDeleteClick}
+                    onExerciseClick={handleExerciseClick}
+                    isExerciseSelected={isExerciseSelected}
+                    getExerciseImage={getExerciseImage}
+                    selectionMode={selectionMode}
+                    currentUserId={currentUserId}
+                    enableDrag={enableDrag}
+                  />
+                </DraggableExerciseCard>
+              ) : (
                 <ExerciseGridCard 
+                  key={exercise.id}
                   exercise={exercise}
                   onEditExercise={handleEditExercise}
                   onDeleteClick={handleDeleteClick}
@@ -1220,7 +1255,7 @@ export const ExerciseLibrary = forwardRef<ExerciseLibraryRef, ExerciseLibraryPro
                   currentUserId={currentUserId}
                   enableDrag={enableDrag}
                 />
-              </DraggableExerciseCard>
+              )
             ))}
           </SimpleGrid>
         )}

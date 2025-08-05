@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Heading,
@@ -31,6 +31,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { BiRun } from 'react-icons/bi';
 import { FaPlus, FaRedo, FaCalendarDay, FaUser } from 'react-icons/fa';
+import { BookOpen } from 'lucide-react';
 import { WorkoutsSidebar } from '../../components';
 import { MobileBottomNavigation } from '../../components/MobileBottomNavigation';
 import PageHeader from '../../components/PageHeader';
@@ -43,9 +44,10 @@ import {
   UnifiedWorkoutExecution,
   useUnifiedAssignments
 } from '../../components/unified';
+import { ExerciseLibrary, Exercise } from '../../components/ExerciseLibrary';
 
 
-type WorkoutsSectionId = 'todays-workout' | 'all-assignments' | 'single-workouts' | 'weekly-plans' | 'monthly-plans' | 'my-workouts' | 'deleted-items';
+type WorkoutsSectionId = 'todays-workout' | 'all-assignments' | 'single-workouts' | 'weekly-plans' | 'monthly-plans' | 'my-workouts' | 'deleted-items' | 'exercise-library';
 
 const workoutsSections = [
   {
@@ -95,12 +97,26 @@ const workoutsSections = [
         description: "Recently deleted workouts"
       }
       ]
+    },
+    {
+      id: 'tools',
+      title: 'Tools & Library',
+      items: [
+        {
+          id: 'exercise-library',
+          label: 'Exercise Library',
+          icon: BookOpen,
+          description: 'Browse and manage exercises',
+          badge: 0
+        }
+      ]
     }
   ];
 
 export function AthleteWorkouts() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  console.log('useNavigate hook result:', navigate);
   const toast = useToast();
   const queryClient = useQueryClient();
   const [activeItem, setActiveItem] = useState<WorkoutsSectionId>('todays-workout');
@@ -115,6 +131,11 @@ export function AthleteWorkouts() {
 
   // Execution state management - robust solution
   const [cachedAssignmentForExecution, setCachedAssignmentForExecution] = useState<any>(null);
+
+  // Exercise Library state
+  const [customExercises, setCustomExercises] = useState<Exercise[]>([]);
+  const [exercisesLoading, setExercisesLoading] = useState(false);
+  const exerciseLibraryRef = useRef<{ openAddModal: () => void } | null>(null);
   
 
 
@@ -237,6 +258,240 @@ export function AthleteWorkouts() {
     // Refresh data after completion
     refetchAssignments();
     refetchToday();
+  };
+
+  const handleEditWorkout = (assignment: any) => {
+    // Convert assignment data to workout format for editing
+    const convertAssignmentToWorkoutForEdit = (assignment: any) => {
+
+      
+      const workout = {
+        id: assignment.id,
+        name: assignment.exercise_block?.workout_name || assignment.exercise_block?.plan_name || 'Assignment Workout',
+        description: assignment.exercise_block?.description || '',
+        type: assignment.assignment_type,
+        date: assignment.start_date,
+        duration: assignment.exercise_block?.estimated_duration || '',
+        notes: assignment.exercise_block?.notes || '',
+        created_at: assignment.created_at,
+        user_id: assignment.athlete_id,
+        exercises: assignment.exercise_block?.exercises || [],
+        blocks: assignment.exercise_block?.blocks || [],
+        is_block_based: assignment.exercise_block?.is_block_based || false,
+        template_type: assignment.assignment_type as 'single' | 'weekly' | 'monthly',
+        daily_workouts: assignment.exercise_block?.daily_workouts || undefined,
+        meta: assignment.meta,
+      };
+
+      // For single workouts, reconstruct blocks from exercises
+      if (assignment.assignment_type === 'single' && assignment.exercise_block?.exercises) {
+        const exercises = assignment.exercise_block.exercises;
+        if (exercises.length > 0) {
+          // Create a single main block with all exercises
+          const mainBlock = {
+            id: `block-${Date.now()}`,
+            name: 'Main Set',
+            category: 'main' as const,
+            flow: 'sequential' as const,
+            exercises: exercises.map((exercise: any) => ({
+              id: exercise.id || `${exercise.name}-${Date.now()}`,
+              name: exercise.name,
+              category: exercise.category || 'main',
+              description: exercise.instructions || exercise.description || '',
+              sets: exercise.sets || '3',
+              reps: exercise.reps || '10',
+              weight: exercise.weight || '',
+              distance: exercise.distance || '',
+              rest: exercise.rest_seconds ? exercise.rest_seconds.toString() : '60',
+              rpe: exercise.rpe || '',
+              notes: exercise.notes || '',
+              contacts: exercise.contacts || '',
+              intensity: exercise.intensity || '',
+              direction: exercise.direction || '',
+              movement_notes: exercise.movement_notes || '',
+              timed_duration: exercise.timed_duration || 0
+            })),
+            restBetweenExercises: exercises[0]?.rest_between_exercises || 90,
+            restBetweenSets: exercises[0]?.rest_seconds || 60
+          };
+          
+          workout.blocks = [mainBlock];
+          console.log('Reconstructed block from exercises:', mainBlock);
+        }
+      }
+      
+
+
+      // For weekly assignments, convert daily_workouts to blocks format
+      if (assignment.assignment_type === 'weekly') {
+        const dailyWorkouts = assignment.exercise_block?.daily_workouts || {};
+        
+        if (Object.keys(dailyWorkouts).length > 0) {
+          const dayBlocks: any = {};
+          
+          Object.entries(dailyWorkouts).forEach(([dayName, dayData]: [string, any]) => {
+            if (dayData && Array.isArray(dayData)) {
+              dayBlocks[dayName] = dayData;
+            } else if (dayData && dayData.exercises) {
+              dayBlocks[dayName] = [{
+                name: `${dayName.charAt(0).toUpperCase() + dayName.slice(1)} Workout`,
+                exercises: dayData.exercises,
+                is_rest_day: dayData.is_rest_day || false
+              }];
+            }
+          });
+          
+          if (Object.keys(dayBlocks).length > 0) {
+            workout.blocks = dayBlocks;
+          }
+        }
+      }
+
+      return workout;
+    };
+
+    try {
+      // Convert assignment to workout format
+      const workoutData = convertAssignmentToWorkoutForEdit(assignment);
+      
+      // Store the workout data in localStorage for the workout creator to access
+      localStorage.setItem('editWorkoutData', JSON.stringify(workoutData));
+      
+      // Navigate to new workout creator without edit parameter since we're using localStorage
+      window.location.href = '/athlete/workout-creator-new?step=2';
+      
+      toast({
+        title: "Edit Workout",
+        description: "Opening workout creator for editing...",
+        status: "info",
+        duration: 2000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error('Error preparing workout for editing:', error);
+      toast({
+        title: "Error",
+        description: "Failed to open workout for editing. Please try again.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  // Exercise Library handlers
+  const loadCustomExercises = async () => {
+    if (!user?.id) return;
+    
+    setExercisesLoading(true);
+    try {
+      const { getExercisesWithTeamSharing } = await import('../../utils/exerciseQueries');
+      const exercises = await getExercisesWithTeamSharing(user.id);
+      setCustomExercises(exercises);
+    } catch (error) {
+      console.error('Error loading custom exercises:', error);
+      toast({
+        title: 'Error loading exercises',
+        description: 'Please try again later.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setExercisesLoading(false);
+    }
+  };
+
+  const handleAddExercise = async (exerciseData: Omit<Exercise, 'id'>) => {
+    if (!user?.id) return;
+    
+    try {
+      const { createExerciseWithSharing } = await import('../../utils/exerciseQueries');
+      await createExerciseWithSharing(exerciseData, user.id);
+      
+      // Refresh exercises
+      await loadCustomExercises();
+      
+      toast({
+        title: 'Exercise added',
+        description: 'The exercise has been added to your library.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error('Error adding exercise:', error);
+      toast({
+        title: 'Error adding exercise',
+        description: 'Please try again later.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleUpdateExercise = async (id: string, exerciseData: Omit<Exercise, 'id'>) => {
+    if (!user?.id) return;
+    
+    try {
+      const { updateExerciseWithSharing } = await import('../../utils/exerciseQueries');
+      await updateExerciseWithSharing(id, exerciseData, user.id);
+      
+      // Refresh exercises
+      await loadCustomExercises();
+      
+      toast({
+        title: 'Exercise updated',
+        description: 'The exercise has been updated.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error('Error updating exercise:', error);
+      toast({
+        title: 'Error updating exercise',
+        description: 'Please try again later.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleDeleteExercise = async (id: string) => {
+    if (!user?.id) return;
+    
+    try {
+      const { supabase } = await import('../../lib/supabase');
+      const { error } = await supabase
+        .from('exercise_library')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      // Update local state
+      setCustomExercises(prev => prev.filter(ex => ex.id !== id));
+      
+      toast({
+        title: 'Exercise deleted',
+        description: 'The exercise has been removed from your library.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error('Error deleting exercise:', error);
+      toast({
+        title: 'Error deleting exercise',
+        description: 'Please try again later.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
   };
 
   const handleRefresh = () => {
@@ -369,6 +624,13 @@ export function AthleteWorkouts() {
     }
   }, [activeItem, user?.id]);
 
+  // Load custom exercises when exercise-library section is active
+  useEffect(() => {
+    if (activeItem === 'exercise-library' && user?.id) {
+      loadCustomExercises();
+    }
+  }, [activeItem, user?.id]);
+
   // Robust execution logic - use cached assignment to prevent flickering
   if (executingAssignmentId && cachedAssignmentForExecution) {
     return (
@@ -440,9 +702,11 @@ export function AthleteWorkouts() {
               
               {todaysWorkout ? (
                 <Box 
-                  w={{ base: "100%", md: "auto" }}
-                  minW={{ base: "100%", md: "340px" }}
-                  maxW={{ base: "100%", md: "340px" }}
+                  display="grid"
+                  gridTemplateColumns="repeat(auto-fill, minmax(300px, 400px))"
+                  gap={{ base: 4, md: 6 }}
+                  w="100%"
+                  justifyContent="start"
                 >
                   <TodaysWorkoutCard
                     assignment={todaysWorkout}
@@ -489,6 +753,7 @@ export function AthleteWorkouts() {
                       onExecute={handleExecuteWorkout}
                       showActions={true}
                       compact={false}
+                      onEdit={() => handleEditWorkout(assignment)}
                     />
                   ))}
                 </Box>
@@ -525,6 +790,7 @@ export function AthleteWorkouts() {
                       onExecute={handleExecuteWorkout}
                       showActions={true}
                       compact={false}
+                      onEdit={() => handleEditWorkout(assignment)}
                     />
                   ))}
                 </Box>
@@ -564,6 +830,7 @@ export function AthleteWorkouts() {
                       isCoach={false}
                       currentUserId={user?.id}
                       onExecute={handleExecuteWorkout}
+                      onEdit={() => handleEditWorkout(assignment)}
                     />
                   ))}
                 </Box>
@@ -680,6 +947,23 @@ export function AthleteWorkouts() {
             </VStack>
           );
 
+        case 'exercise-library':
+          return (
+            <ExerciseLibrary
+              ref={exerciseLibraryRef}
+              exercises={customExercises}
+              onAddExercise={handleAddExercise}
+              onUpdateExercise={handleUpdateExercise}
+              onDeleteExercise={handleDeleteExercise}
+              isLoading={exercisesLoading}
+              currentUserId={user?.id}
+              title=""
+              subtitle=""
+              showAddButton={true}
+              enableDrag={false}
+            />
+          );
+
         default:
           const filteredDefaultAssignments = getFilteredAssignments();
           const sectionTitle = activeItem.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -772,6 +1056,7 @@ export function AthleteWorkouts() {
                       onExecute={handleExecuteWorkout}
                       showActions={true}
                       compact={false}
+                      onEdit={() => handleEditWorkout(assignment)}
                     />
                   ))}
                 </Box>
