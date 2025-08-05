@@ -68,6 +68,8 @@ interface UnifiedAssignmentCardProps {
   compact?: boolean;
   onDelete?: () => void;
   onAssign?: () => void;
+  onRestore?: () => void;
+  onPermanentDelete?: () => void;
   isCoach?: boolean;
   currentUserId?: string;
 }
@@ -100,6 +102,8 @@ export function UnifiedAssignmentCard({
   compact = false,
   onDelete,
   onAssign,
+  onRestore,
+  onPermanentDelete,
   isCoach = false,
   currentUserId
 }: UnifiedAssignmentCardProps) {
@@ -161,6 +165,89 @@ export function UnifiedAssignmentCard({
     }
   };
 
+  // Handle delete exercise for self-created workouts
+  const handleDeleteExercise = async (exerciseIndex: number) => {
+    try {
+      // Get current exercises from assignment
+      const currentExercises = assignment.exercise_block?.exercises || [];
+      
+      // Remove the exercise at the specified index
+      const updatedExercises = currentExercises.filter((_, index) => index !== exerciseIndex);
+      
+      // Update the assignment with the new exercises array
+      const updatedExerciseBlock = {
+        ...assignment.exercise_block,
+        exercises: updatedExercises
+      };
+      
+      // Call the API to update the assignment
+      const { AssignmentService } = await import('../services/assignmentService');
+      const assignmentService = new AssignmentService();
+      
+      await assignmentService.updateAssignment(assignment.id, {
+        exercise_block: updatedExerciseBlock
+      });
+      
+      // Show success message
+      toast({
+        title: 'Exercise deleted',
+        description: 'The exercise has been removed from your workout.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      
+      // Invalidate queries to refresh the data
+      await queryClient.invalidateQueries({ queryKey: ['unifiedAssignments'] });
+      
+    } catch (error) {
+      console.error('Error deleting exercise:', error);
+      toast({
+        title: 'Error deleting exercise',
+        description: 'There was an error removing the exercise. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  // Handle delete entire workout for self-created workouts
+  const handleDeleteWorkout = async () => {
+    try {
+      // Call the API to soft delete the assignment
+      const { AssignmentService } = await import('../services/assignmentService');
+      const assignmentService = new AssignmentService();
+      
+      await assignmentService.softDeleteAssignment(assignment.id);
+      
+      // Show success message
+      toast({
+        title: 'Workout moved to deleted items',
+        description: 'The workout has been moved to the deleted items section. You can restore it from there.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      
+      // Invalidate queries to refresh the data
+      await queryClient.invalidateQueries({ queryKey: ['unified-assignments'] });
+      await queryClient.invalidateQueries({ queryKey: ['unified-todays-assignment'] });
+      await queryClient.invalidateQueries({ queryKey: ['unified-assignments-by-type'] });
+      await queryClient.invalidateQueries({ queryKey: ['deletedAssignments'] });
+      
+    } catch (error) {
+      console.error('Error deleting workout:', error);
+      toast({
+        title: 'Error deleting workout',
+        description: 'There was an error deleting the workout. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
   const convertAssignmentToWorkout = () => {
     if (!assignment) return null;
     
@@ -174,11 +261,13 @@ export function UnifiedAssignmentCard({
       duration: assignment.exercise_block?.estimated_duration || '',
       notes: assignment.exercise_block?.notes || '',
       created_at: assignment.created_at,
+      user_id: assignment.athlete_id, // Add user_id for self-created workout detection
       exercises: assignment.exercise_block?.exercises || [],
       blocks: assignment.exercise_block?.blocks || [],
       is_block_based: assignment.exercise_block?.is_block_based || false,
       template_type: assignment.assignment_type as 'single' | 'weekly' | 'monthly',
       daily_workouts: assignment.exercise_block?.daily_workouts || undefined,
+      meta: assignment.meta, // Add meta information for self-assigned detection
     };
     
     // For weekly assignments, ensure blocks are properly structured for WorkoutDetailsDrawer
@@ -478,8 +567,14 @@ export function UnifiedAssignmentCard({
                     // Blocks is an object with day keys - extract today's exercises directly
                     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
                     const currentDayName = dayNames[today.getDay()];
-                    const dayKey = currentDayName + 's'; // monday -> mondays
-                    const todaysDayExercises = blocks[dayKey] || blocks[currentDayName];
+                    const todaysDayExercises = blocks[currentDayName];
+                    
+                    console.log('Monthly plan exercise extraction:', {
+                      currentDayName,
+                      todaysDayExercises,
+                      availableDays: Object.keys(blocks),
+                      blocks
+                    });
                     
                     if (Array.isArray(todaysDayExercises)) {
                       // Extract exercises from today's day blocks
@@ -1090,9 +1185,19 @@ export function UnifiedAssignmentCard({
 
   // Status formatting
   const getStatusText = () => {
+    // Check if this is a soft-deleted assignment
+    if (assignment.deleted_at) {
+      return 'DELETED';
+    }
+    
     // If marked as completed but progress is less than 100%, show as in progress
     if (assignment.status === 'completed' && finalProgressPct < 100) {
       return 'IN PROGRESS';
+    }
+    
+    // Check if this is a self-created workout
+    if (assignment.meta?.self_assigned) {
+      return 'SELF-CREATED';
     }
     
     switch (assignment.status) {
@@ -1286,7 +1391,7 @@ export function UnifiedAssignmentCard({
               border="1px solid"
               borderColor={useColorModeValue("gray.300", "gray.500")}
             >
-              {assignment.assigned_by ? 'COACH' : 'ATHLETE'}
+              {assignment.meta?.self_assigned ? 'ATHLETE' : (assignment.assigned_by ? 'COACH' : 'ATHLETE')}
             </Button>
             <Button 
               bg={useColorModeValue("gray.200", "gray.600")} 
@@ -1298,7 +1403,7 @@ export function UnifiedAssignmentCard({
               {assignment.assignment_type.toUpperCase()}
             </Button>
           </ButtonGroup>
-                      {isCoach ? (
+                      {(isCoach || assignment?.meta?.self_assigned) ? (
                       <Menu>
               <MenuButton
                 as={IconButton}
@@ -1316,7 +1421,7 @@ export function UnifiedAssignmentCard({
                   >
                     View Details
                   </MenuItem>
-                  {onAssign && (
+                  {onAssign && isCoach && (
                     <MenuItem 
                           icon={<UserPlus />} 
                       onClick={onAssign}
@@ -1324,13 +1429,31 @@ export function UnifiedAssignmentCard({
                       Assign Athletes
                     </MenuItem>
                   )}
-                      {onDelete && (
+                      {(onDelete || assignment?.meta?.self_assigned) && (
                     <MenuItem 
                           icon={<Trash2 />} 
-                      onClick={onDelete}
+                      onClick={assignment?.meta?.self_assigned ? handleDeleteWorkout : onDelete}
                       color="red.500"
                     >
                       Delete Workout
+                    </MenuItem>
+                  )}
+                  {onRestore && (
+                    <MenuItem 
+                          icon={<CheckCircle />} 
+                      onClick={onRestore}
+                      color="green.500"
+                    >
+                      Restore Workout
+                    </MenuItem>
+                  )}
+                  {onPermanentDelete && (
+                    <MenuItem 
+                          icon={<X />} 
+                      onClick={onPermanentDelete}
+                      color="red.600"
+                    >
+                      Delete Forever
                     </MenuItem>
                   )}
                   <MenuItem 
@@ -1361,7 +1484,11 @@ export function UnifiedAssignmentCard({
               {workoutName}
             </Text>
             <Badge
-              colorScheme={isInProgress ? "orange" : isCompleted ? "green" : "gray"}
+              colorScheme={
+                assignment.deleted_at ? "red" : 
+                isInProgress ? "orange" : 
+                isCompleted ? "green" : "gray"
+              }
               fontSize="sm"
               px={3}
               py={1}
@@ -1373,7 +1500,7 @@ export function UnifiedAssignmentCard({
           
           <VStack align="end" spacing={1}>
             <Text fontSize="sm" color={useColorModeValue("gray.500", "gray.300")}>
-              ASSIGNED: {formatDate(assignment.assigned_at || assignment.start_date)}
+              {assignment.meta?.self_assigned ? 'CREATED:' : 'ASSIGNED:'} {formatDate(assignment.assigned_at || assignment.start_date)}
             </Text>
             <Text fontSize="sm" color={useColorModeValue("gray.500", "gray.300")}>
               START DATE: {formatDate(assignment.start_date)}
@@ -1477,6 +1604,9 @@ export function UnifiedAssignmentCard({
         isOpen={isDetailsDrawerOpen}
         onClose={() => setIsDetailsDrawerOpen(false)}
         workout={workoutWithExercises || convertAssignmentToWorkout()}
+        userRole="athlete"
+        currentUserId={currentUserId}
+
       />
 
       {/* Duplicate Workout Modal */}
@@ -1566,6 +1696,53 @@ export function CoachWorkoutCard({
       setShowPlanDetailView(true);
     } else {
     setIsDetailsDrawerOpen(true);
+    }
+  };
+
+  // Handle delete exercise for self-created workouts
+  const handleDeleteExercise = async (exerciseIndex: number) => {
+    try {
+      // Get current exercises from assignment
+      const currentExercises = assignment.exercise_block?.exercises || [];
+      
+      // Remove the exercise at the specified index
+      const updatedExercises = currentExercises.filter((_, index) => index !== exerciseIndex);
+      
+      // Update the assignment with the new exercises array
+      const updatedExerciseBlock = {
+        ...assignment.exercise_block,
+        exercises: updatedExercises
+      };
+      
+      // Call the API to update the assignment
+      const { AssignmentService } = await import('../services/assignmentService');
+      const assignmentService = new AssignmentService();
+      
+      await assignmentService.updateAssignment(assignment.id, {
+        exercise_block: updatedExerciseBlock
+      });
+      
+      // Show success message
+      toast({
+        title: 'Exercise deleted',
+        description: 'The exercise has been removed from your workout.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      
+      // Invalidate queries to refresh the data
+      await queryClient.invalidateQueries({ queryKey: ['unifiedAssignments'] });
+      
+    } catch (error) {
+      console.error('Error deleting exercise:', error);
+      toast({
+        title: 'Error deleting exercise',
+        description: 'There was an error removing the exercise. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
     }
   };
 
@@ -2125,6 +2302,8 @@ export function CoachWorkoutCard({
           isOpen={isDetailsDrawerOpen}
           onClose={() => setIsDetailsDrawerOpen(false)}
           workout={workout}
+          userRole="coach"
+          currentUserId={currentUserId}
         />
       )}
 
@@ -2675,6 +2854,8 @@ export function CoachWorkoutListItem({
           isOpen={isDetailsDrawerOpen}
           onClose={() => setIsDetailsDrawerOpen(false)}
           workout={workout}
+          userRole="coach"
+          currentUserId={currentUserId}
         />
       )}
 

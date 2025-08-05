@@ -23,12 +23,14 @@ import {
   ModalBody,
   ModalCloseButton,
   useDisclosure,
-  useBreakpointValue
+  useBreakpointValue,
+  useToast
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 import { BiRun } from 'react-icons/bi';
-import { FaPlus, FaRedo, FaCalendarDay } from 'react-icons/fa';
+import { FaPlus, FaRedo, FaCalendarDay, FaUser } from 'react-icons/fa';
 import { WorkoutsSidebar } from '../../components';
 import { MobileBottomNavigation } from '../../components/MobileBottomNavigation';
 import PageHeader from '../../components/PageHeader';
@@ -42,7 +44,8 @@ import {
   useUnifiedAssignments
 } from '../../components/unified';
 
-type WorkoutsSectionId = 'todays-workout' | 'all-assignments' | 'single-workouts' | 'weekly-plans' | 'monthly-plans';
+
+type WorkoutsSectionId = 'todays-workout' | 'all-assignments' | 'single-workouts' | 'weekly-plans' | 'monthly-plans' | 'my-workouts' | 'deleted-items';
 
 const workoutsSections = [
   {
@@ -78,7 +81,19 @@ const workoutsSections = [
         label: 'Monthly Plans',
         icon: BiRun,
         description: "Your monthly training programs"
-        }
+      },
+      {
+        id: 'my-workouts',
+        label: 'My Workouts',
+        icon: FaUser,
+        description: "Workouts I created"
+      },
+      {
+        id: 'deleted-items',
+        label: 'Deleted Items',
+        icon: FaRedo,
+        description: "Recently deleted workouts"
+      }
       ]
     }
   ];
@@ -86,6 +101,8 @@ const workoutsSections = [
 export function AthleteWorkouts() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
+  const queryClient = useQueryClient();
   const [activeItem, setActiveItem] = useState<WorkoutsSectionId>('todays-workout');
   const [executingAssignmentId, setExecutingAssignmentId] = useState<string | null>(null);
   
@@ -125,6 +142,14 @@ export function AthleteWorkouts() {
     error: assignmentsError,
     refetch: refetchAssignments
   } = useUnifiedAssignments(user?.id);
+
+  // Self-created assignments state
+  const [createdAssignments, setCreatedAssignments] = useState<any[]>([]);
+  const [createdAssignmentsLoading, setCreatedAssignmentsLoading] = useState(false);
+  
+  // Deleted assignments state
+  const [deletedAssignments, setDeletedAssignments] = useState<any[]>([]);
+  const [deletedAssignmentsLoading, setDeletedAssignmentsLoading] = useState(false);
   
   // Derive today's workout from assignments using flexible logic like the today cards
   const todayStr = new Date().toISOString().split('T')[0];
@@ -257,9 +282,12 @@ export function AthleteWorkouts() {
       filteredAssignments = filteredAssignments.filter(a => a.assignment_type === assignmentTypeFilter);
     }
     
-    // Apply status filter
+    // Apply status filter - by default, exclude completed assignments unless user specifically wants to see them
     if (statusFilter !== 'all') {
       filteredAssignments = filteredAssignments.filter(a => a.status === statusFilter);
+    } else {
+      // Default behavior: exclude completed assignments from main views
+      filteredAssignments = filteredAssignments.filter(a => a.status !== 'completed');
     }
     
     return filteredAssignments;
@@ -292,6 +320,54 @@ export function AthleteWorkouts() {
       }
     }
   }, [executingAssignmentId, cachedAssignmentForExecution, assignments, todaysWorkout]);
+
+  // Fetch self-created assignments
+  useEffect(() => {
+    if (user?.id) {
+      setCreatedAssignmentsLoading(true);
+      import('../../services/assignmentService').then(({ AssignmentService }) => {
+        const assignmentService = new AssignmentService();
+        assignmentService.getAssignments(user.id)
+          .then(assignments => {
+            // Filter for self-created assignments (meta.self_assigned = true)
+            const selfCreatedAssignments = assignments.filter(assignment => 
+              assignment.meta?.self_assigned === true
+            );
+            console.log('Self-created assignments fetched:', selfCreatedAssignments?.length || 0);
+            setCreatedAssignments(selfCreatedAssignments || []);
+          })
+          .catch(error => {
+            console.error('Error fetching self-created assignments:', error);
+            setCreatedAssignments([]);
+          })
+          .finally(() => {
+            setCreatedAssignmentsLoading(false);
+          });
+      });
+    }
+  }, [user?.id]);
+
+  // Fetch deleted assignments when deleted-items section is active
+  useEffect(() => {
+    if (activeItem === 'deleted-items' && user?.id) {
+      setDeletedAssignmentsLoading(true);
+      import('../../services/assignmentService').then(({ AssignmentService }) => {
+        const assignmentService = new AssignmentService();
+        assignmentService.getDeletedAssignments(user.id)
+          .then(assignments => {
+            console.log('Deleted assignments fetched:', assignments?.length || 0);
+            setDeletedAssignments(assignments || []);
+          })
+          .catch(error => {
+            console.error('Error fetching deleted assignments:', error);
+            setDeletedAssignments([]);
+          })
+          .finally(() => {
+            setDeletedAssignmentsLoading(false);
+          });
+      });
+    }
+  }, [activeItem, user?.id]);
 
   // Robust execution logic - use cached assignment to prevent flickering
   if (executingAssignmentId && cachedAssignmentForExecution) {
@@ -459,6 +535,145 @@ export function AthleteWorkouts() {
                   </Text>
                   <Text color="gray.400" fontSize="sm">
                     Your monthly training plans will appear here when available
+                  </Text>
+                </Box>
+              )}
+            </VStack>
+          );
+
+        case 'my-workouts':
+          return (
+            <VStack spacing={6} align="stretch" w="100%">
+              <Heading size="md" display={{ base: "none", md: "block" }}>My Workouts</Heading>
+              {createdAssignmentsLoading ? (
+                <Center py={8}>
+                  <Spinner size="lg" />
+                </Center>
+              ) : createdAssignments.length > 0 ? (
+                <Box 
+                  display="grid"
+                  gridTemplateColumns="repeat(auto-fill, minmax(300px, 400px))"
+                  gap={{ base: 4, md: 6 }}
+                  w="100%"
+                  justifyContent="start"
+                >
+                  {createdAssignments.map((assignment) => (
+                    <UnifiedAssignmentCard
+                      key={assignment.id}
+                      assignment={assignment}
+                      isCoach={false}
+                      currentUserId={user?.id}
+                      onExecute={handleExecuteWorkout}
+                    />
+                  ))}
+                </Box>
+              ) : (
+                <Box bg={cardBg} p={8} borderRadius="lg" border="1px" borderColor="gray.200" textAlign="center">
+                  <Text color="gray.500" fontSize="lg" mb={2}>
+                    No self-created workouts found
+                  </Text>
+                  <Text color="gray.400" fontSize="sm">
+                    Workouts you create will appear here
+                  </Text>
+                </Box>
+              )}
+            </VStack>
+          );
+
+        case 'deleted-items':
+          return (
+            <VStack spacing={6} align="stretch" w="100%">
+              <Heading size="md" display={{ base: "none", md: "block" }}>Deleted Items</Heading>
+              {deletedAssignmentsLoading ? (
+                <Center py={8}>
+                  <Spinner size="lg" />
+                </Center>
+              ) : deletedAssignments.length > 0 ? (
+                <Box 
+                  display="grid"
+                  gridTemplateColumns="repeat(auto-fill, minmax(300px, 400px))"
+                  gap={{ base: 4, md: 6 }}
+                  w="100%"
+                  justifyContent="start"
+                >
+                  {deletedAssignments.map((assignment) => (
+                    <UnifiedAssignmentCard
+                      key={assignment.id}
+                      assignment={assignment}
+                      isCoach={false}
+                      currentUserId={user?.id}
+                      onExecute={handleExecuteWorkout}
+                      onRestore={async () => {
+                        try {
+                          const { AssignmentService } = await import('../../services/assignmentService');
+                          const assignmentService = new AssignmentService();
+                          await assignmentService.restoreAssignment(assignment.id);
+                          
+                          // Refresh data
+                          setDeletedAssignments(prev => prev.filter(a => a.id !== assignment.id));
+                          refetchAssignments();
+                          // Invalidate all assignment queries
+                          await queryClient.invalidateQueries({ queryKey: ['unified-assignments'] });
+                          await queryClient.invalidateQueries({ queryKey: ['unified-todays-assignment'] });
+                          await queryClient.invalidateQueries({ queryKey: ['unified-assignments-by-type'] });
+                          
+                          // Show success message
+                          toast({
+                            title: 'Workout restored',
+                            description: 'The workout has been restored to your active workouts.',
+                            status: 'success',
+                            duration: 3000,
+                            isClosable: true,
+                          });
+                        } catch (error) {
+                          console.error('Error restoring workout:', error);
+                          toast({
+                            title: 'Error restoring workout',
+                            description: 'There was an error restoring the workout. Please try again.',
+                            status: 'error',
+                            duration: 3000,
+                            isClosable: true,
+                          });
+                        }
+                      }}
+                      onPermanentDelete={async () => {
+                        try {
+                          const { AssignmentService } = await import('../../services/assignmentService');
+                          const assignmentService = new AssignmentService();
+                          await assignmentService.permanentDeleteAssignment(assignment.id);
+                          
+                          // Remove from deleted assignments list
+                          setDeletedAssignments(prev => prev.filter(a => a.id !== assignment.id));
+                          
+                          // Show success message
+                          toast({
+                            title: 'Workout permanently deleted',
+                            description: 'The workout has been permanently deleted and moved to history.',
+                            status: 'success',
+                            duration: 3000,
+                            isClosable: true,
+                          });
+                        } catch (error) {
+                          console.error('Error permanently deleting workout:', error);
+                          toast({
+                            title: 'Error deleting workout',
+                            description: 'There was an error permanently deleting the workout. Please try again.',
+                            status: 'error',
+                            duration: 3000,
+                            isClosable: true,
+                          });
+                        }
+                      }}
+                    />
+                  ))}
+                </Box>
+              ) : (
+                <Box bg={cardBg} p={8} borderRadius="lg" border="1px" borderColor="gray.200" textAlign="center">
+                  <Text color="gray.500" fontSize="lg" mb={2}>
+                    No deleted workouts found
+                  </Text>
+                  <Text color="gray.400" fontSize="sm">
+                    Deleted workouts will appear here for 30 days
                   </Text>
                 </Box>
               )}
@@ -637,8 +852,10 @@ export function AthleteWorkouts() {
                 <option value="todays-workout">Today's Workout</option>
                 <option value="all-assignments">All Assignments</option>
                 <option value="single-workouts">Single Workouts</option>
+                <option value="my-workouts">My Workouts</option>
                 <option value="weekly-plans">Weekly Plans</option>
                 <option value="monthly-plans">Monthly Plans</option>
+                <option value="deleted-items">Deleted Items</option>
               </Select>
             </Box>
           </VStack>

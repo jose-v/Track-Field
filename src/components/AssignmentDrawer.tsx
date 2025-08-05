@@ -104,12 +104,20 @@ export function AssignmentDrawer({
                                (workout as any)?.template_type === 'monthly' ? 'monthly' : 'single';
         
         // Look for assignments with the same workout name and meta.original_workout_id
+        console.log('AssignmentDrawer: Loading assignments for workout:', {
+          workoutId: assignmentItem.id,
+          assignmentType: assignmentType,
+          userId: user.id
+        });
+        
         const { data, error } = await supabase
           .from('unified_workout_assignments')
           .select('athlete_id')
           .eq('assigned_by', user.id)
           .eq('assignment_type', assignmentType)
-          .contains('meta', { original_workout_id: assignmentItem.id });
+          .eq('meta->>original_workout_id', assignmentItem.id);
+
+        console.log('AssignmentDrawer: Query result:', { data, error });
 
         if (error) throw error;
         assignedAthleteIds = new Set(data?.map(assignment => assignment.athlete_id) || []);

@@ -78,6 +78,7 @@ export class AssignmentService {
         .from('unified_workout_assignments')
         .select('*')
         .eq('athlete_id', athleteId)
+        .is('deleted_at', null) // Exclude soft-deleted assignments
         .order('assigned_at', { ascending: false });
 
       // Apply filters
@@ -129,6 +130,7 @@ export class AssignmentService {
         .select('*')
         .eq('athlete_id', athleteId)
         .eq('start_date', today)
+        .is('deleted_at', null) // Exclude soft-deleted assignments
         .or('status.eq.assigned,status.eq.in_progress')
         .order('assigned_at', { ascending: false })
         .limit(1)
@@ -401,6 +403,174 @@ export class AssignmentService {
       console.error('AssignmentService.resetProgress error:', error);
       throw error;
     }
+  }
+
+  /**
+   * Update assignment with new data
+   */
+  async updateAssignment(
+    assignmentId: string, 
+    updates: Partial<{
+      exercise_block: any;
+      progress: AssignmentProgress;
+      status: 'assigned' | 'in_progress' | 'completed' | 'overdue';
+      meta: any;
+    }>
+  ): Promise<WorkoutAssignment> {
+    try {
+      const { data, error } = await this.client
+        .from('unified_workout_assignments')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', assignmentId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating assignment:', error);
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('AssignmentService.updateAssignment error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Soft delete an assignment (mark as deleted but keep in database)
+   */
+  async softDeleteAssignment(assignmentId: string): Promise<void> {
+    try {
+      const { data: { user } } = await this.client.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { error } = await this.client
+        .from('unified_workout_assignments')
+        .update({
+          deleted_at: new Date().toISOString(),
+          deleted_by: user.id
+        })
+        .eq('id', assignmentId);
+
+      if (error) {
+        console.error('Error soft deleting assignment:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('AssignmentService.softDeleteAssignment error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Restore a soft-deleted assignment
+   */
+  async restoreAssignment(assignmentId: string): Promise<void> {
+    try {
+      const { error } = await this.client
+        .from('unified_workout_assignments')
+        .update({
+          deleted_at: null,
+          deleted_by: null
+        })
+        .eq('id', assignmentId);
+
+      if (error) {
+        console.error('Error restoring assignment:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('AssignmentService.restoreAssignment error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get soft-deleted assignments for an athlete
+   */
+  async getDeletedAssignments(athleteId: string): Promise<WorkoutAssignment[]> {
+    try {
+      const { data, error } = await this.client
+        .from('unified_workout_assignments')
+        .select('*')
+        .eq('athlete_id', athleteId)
+        .not('deleted_at', 'is', null)
+        .order('deleted_at', { ascending: false });
+
+      if (error) {
+        console.error('Error getting deleted assignments:', error);
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('AssignmentService.getDeletedAssignments error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Permanently delete an assignment (move to history and remove from active table)
+   */
+  async permanentDeleteAssignment(assignmentId: string): Promise<void> {
+    try {
+      // First, get the assignment data to preserve it
+      const { data: assignment, error: fetchError } = await this.client
+        .from('unified_workout_assignments')
+        .select('*')
+        .eq('id', assignmentId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching assignment for permanent delete:', fetchError);
+        throw fetchError;
+      }
+
+      if (!assignment) {
+        throw new Error('Assignment not found');
+      }
+
+      // Insert into history table (create if doesn't exist)
+      const { error: historyError } = await this.client
+        .from('unified_workout_assignments_history')
+        .insert({
+          ...assignment,
+          archived_at: new Date().toISOString(),
+          archived_by: assignment.deleted_by || assignment.assigned_by
+        });
+
+      if (historyError) {
+        console.error('Error inserting into history table:', historyError);
+        // If history table doesn't exist, we'll just delete without archiving
+        console.log('History table may not exist, proceeding with deletion only');
+      }
+
+      // Finally, delete from active table
+      const { error: deleteError } = await this.client
+        .from('unified_workout_assignments')
+        .delete()
+        .eq('id', assignmentId);
+
+      if (deleteError) {
+        console.error('Error permanently deleting assignment:', deleteError);
+        throw deleteError;
+      }
+    } catch (error) {
+      console.error('AssignmentService.permanentDeleteAssignment error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete an assignment (legacy method - now uses soft delete)
+   */
+  async deleteAssignment(assignmentId: string): Promise<void> {
+    // Use soft delete instead of permanent delete
+    return this.softDeleteAssignment(assignmentId);
   }
 
   /**

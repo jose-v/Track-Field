@@ -819,15 +819,20 @@ const NewWorkoutCreator: React.FC = () => {
           savedWorkout = await api.monthlyPlans.create(planData);
         }
         
-        // Assign to athletes if selected
-        if (selectedAthleteIds.length > 0) {
+        // Assign to athletes if selected, or self-assign if athlete creating for themselves
+        let athletesToAssign = selectedAthleteIds;
+        if (profile?.role === 'athlete' && selectedAthleteIds.length === 0 && user?.id) {
+          athletesToAssign = [user.id];
+        }
+        
+        if (athletesToAssign.length > 0) {
           const startDate = date || getTodayLocalDate();
-          await api.monthlyPlanAssignments.assign(savedWorkout.id, selectedAthleteIds, startDate);
+          await api.monthlyPlanAssignments.assign(savedWorkout.id, athletesToAssign, startDate);
           
           // Also create unified assignments
           const exerciseBlock = convertToUnifiedAssignment(planData, 'monthly', savedWorkout);
           
-          for (const athleteId of selectedAthleteIds) {
+          for (const athleteId of athletesToAssign) {
             try {
               await assignmentService.createAssignment({
                 athlete_id: athleteId,
@@ -850,7 +855,8 @@ const NewWorkoutCreator: React.FC = () => {
                   original_plan_id: savedWorkout.id,
                   plan_type: 'monthly',
                   total_weeks: monthlyPlanWeeks.length,
-                  rest_weeks: monthlyPlanWeeks.filter(w => w.is_rest_week).length
+                  rest_weeks: monthlyPlanWeeks.filter(w => w.is_rest_week).length,
+                  self_assigned: profile?.role === 'athlete' && selectedAthleteIds.length === 0
                 }
               });
             } catch (error) {
@@ -910,12 +916,17 @@ const NewWorkoutCreator: React.FC = () => {
           savedWorkout = await api.workouts.create(workoutData as any);
         }
 
-        // Assign to athletes if selected
-        if (selectedAthleteIds.length > 0) {
+        // Assign to athletes if selected, or self-assign if athlete creating for themselves
+        let athletesToAssign = selectedAthleteIds;
+        if (profile?.role === 'athlete' && selectedAthleteIds.length === 0 && user?.id) {
+          athletesToAssign = [user.id];
+        }
+        
+        if (athletesToAssign.length > 0) {
           // Also create unified assignments
           const exerciseBlock = convertToUnifiedAssignment(workoutData, selectedTemplateType, savedWorkout);
           
-          for (const athleteId of selectedAthleteIds) {
+          for (const athleteId of athletesToAssign) {
             try {
               const startDate = workoutData.date || getTodayLocalDate();
               const endDate = selectedTemplateType === 'weekly' 
@@ -946,7 +957,8 @@ const NewWorkoutCreator: React.FC = () => {
                   workout_type: selectedTemplateType,
                   estimated_duration: workoutData.duration,
                   location: workoutData.location,
-                  is_template_derived: !!selectedTemplate && selectedTemplate !== 'scratch'
+                  is_template_derived: !!selectedTemplate && selectedTemplate !== 'scratch',
+                  self_assigned: profile?.role === 'athlete' && selectedAthleteIds.length === 0
                 }
               });
             } catch (error) {

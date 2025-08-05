@@ -2658,6 +2658,24 @@ export function UnifiedWorkoutExecution({
                       } : skipRest}
                       isDisabled={isCountingDown || (!isResting && !isTimedCountdown)}
                     />
+                    <IconButton
+                      aria-label="Complete exercise"
+                      icon={<FaCheck />}
+                      borderRadius="full"
+                      size="md"
+                      variant="outline"
+                      colorScheme="green"
+                      onClick={handleNext}
+                      isDisabled={showRPEScreen || isCountingDown || isResting || isTimedCountdown}
+                      _hover={{
+                        bg: "green.50",
+                        color: "green.600"
+                      }}
+                      _active={{
+                        bg: "green.100",
+                        color: "green.700"
+                      }}
+                    />
                   </HStack>
                 </VStack>
               </Box>

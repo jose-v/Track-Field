@@ -60,6 +60,7 @@ import type { Workout } from '../services/api';
 import { getExercisesFromWorkout, getBlocksFromWorkout } from '../utils/workoutUtils';
 import { AssignmentService } from '../services/assignmentService';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../contexts/AuthContext';
 
 interface MobileWorkoutDetailsProps {
   isOpen: boolean;
@@ -86,6 +87,8 @@ interface MobileWorkoutDetailsProps {
   // Assignment-specific props (for unified assignments)
   assignment?: any;
   onExecute?: (assignmentId: string) => void;
+  // Exercise deletion
+  onDeleteExercise?: (exerciseIndex: number) => void;
 }
 
 function getTypeIcon(type: string | undefined) {
@@ -501,6 +504,7 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
   onViewProgress,
   assignment,
   onExecute,
+  onDeleteExercise,
 }) => {
   // ALL HOOKS MUST BE CALLED FIRST - BEFORE ANY CONDITIONALS OR EARLY RETURNS
   // Essential mounting and stability state
@@ -530,6 +534,10 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
   
   // Query client for data invalidation
   const queryClient = useQueryClient();
+
+  // Get current user ID
+  const { user } = useAuth();
+  const currentUserId = user?.id;
 
   // Theme colors
   const drawerBg = useColorModeValue('white', 'gray.800');
@@ -1676,14 +1684,31 @@ export const MobileWorkoutDetails: React.FC<MobileWorkoutDetailsProps> = ({
               allExercises.map((exercise, index) => (
               <Box key={index} p={4} bg={exerciseCardBg} borderRadius="md">
                 <VStack spacing={2} align="stretch">
-                  <HStack align="center" spacing={3}>
-                    <Text fontWeight="medium" color={drawerText}>
-                      {exercise.name}
-                    </Text>
-                    {exercise.sets && exercise.reps && (
-                      <Text fontSize="sm" color={sectionTitleColor}>
-                        {exercise.sets} sets × {exercise.reps} reps
+                  <HStack align="center" spacing={3} justify="space-between">
+                    <HStack align="center" spacing={3}>
+                      <Text fontWeight="medium" color={drawerText}>
+                        {exercise.name}
                       </Text>
+                      {exercise.sets && exercise.reps && (
+                        <Text fontSize="sm" color={sectionTitleColor}>
+                          {exercise.sets} sets × {exercise.reps} reps
+                        </Text>
+                      )}
+                    </HStack>
+                    {/* Delete button - only show for self-created workouts */}
+                    {onDeleteExercise && (displayWorkout?.user_id === currentUserId || displayWorkout?.meta?.self_assigned) && (
+                      <IconButton
+                        aria-label="Delete exercise"
+                        icon={<FaTrash />}
+                        size="sm"
+                        variant="ghost"
+                        colorScheme="red"
+                        onClick={() => onDeleteExercise(index)}
+                        _hover={{
+                          bg: "red.50",
+                          color: "red.600"
+                        }}
+                      />
                     )}
                   </HStack>
                   {exercise.rest && (

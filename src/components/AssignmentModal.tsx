@@ -86,6 +86,12 @@ export function AssignmentModal({
         const assignmentType = workout.template_type === 'weekly' ? 'weekly' : 
                                workout.template_type === 'monthly' ? 'monthly' : 'single';
         
+        console.log('AssignmentModal: Checking assignments for workout:', {
+          workoutId: workout.id,
+          workoutName: workout.name,
+          assignmentType: assignmentType
+        });
+        
         const { data: workoutAssignments, error } = await supabase
           .from('unified_workout_assignments')
           .select('athlete_id')
@@ -94,12 +100,16 @@ export function AssignmentModal({
 
         if (error) throw error;
         existingAssignments = workoutAssignments || [];
+        
+        console.log('AssignmentModal: Found existing assignments:', existingAssignments);
       } else if (monthlyPlan) {
         const planAssignments = await api.trainingPlanAssignments.getByPlan(monthlyPlan.id);
         existingAssignments = planAssignments.map(a => ({ athlete_id: a.athlete_id }));
       }
 
       const assignedAthleteIds = existingAssignments.map(a => a.athlete_id);
+      
+      console.log('AssignmentModal: Assigned athlete IDs:', assignedAthleteIds);
 
       const athletesWithData = coachAthletes.map((athlete) => ({
         id: athlete.id,
@@ -110,6 +120,8 @@ export function AssignmentModal({
         isAlreadyAssigned: assignedAthleteIds.includes(athlete.id)
       } as AthleteWithAssignment));
 
+      console.log('AssignmentModal: Athletes with assignment data:', athletesWithData);
+      
       setAthletesWithAssignments(athletesWithData);
       setSelectedAthletes(assignedAthleteIds);
     } catch (error) {

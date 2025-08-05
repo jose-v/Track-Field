@@ -16,6 +16,7 @@ import { WorkoutDetailsDrawer } from './WorkoutDetailsDrawer';
 import { MobileWorkoutDetails } from './MobileWorkoutDetails';
 import DuplicateWorkoutModal from './DuplicateWorkoutModal';
 import { AssignmentService } from '../services/assignmentService';
+import { api } from '../services/api';
 
 interface WorkoutListItemProps {
   workout: Workout;
@@ -85,6 +86,49 @@ export function WorkoutListItem({
       onViewDetails();
     } else {
       setIsDetailsDrawerOpen(true);
+    }
+  };
+
+  // Handle delete exercise
+  const handleDeleteExercise = async (exerciseIndex: number) => {
+    try {
+      // Get current exercises from workout
+      const currentExercises = getExercisesFromWorkout(workout);
+      
+      // Remove the exercise at the specified index
+      const updatedExercises = currentExercises.filter((_, index) => index !== exerciseIndex);
+      
+      // Update the workout with the new exercises array
+      const updatedWorkout = {
+        ...workout,
+        exercises: updatedExercises
+      };
+      
+      // Call the API to update the workout
+      await api.workouts.update(workout.id, updatedWorkout);
+      
+      // Show success message
+      toast({
+        title: 'Exercise deleted',
+        description: 'The exercise has been removed from your workout.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      
+      // Invalidate queries to refresh the data
+      await queryClient.invalidateQueries({ queryKey: ['workouts'] });
+      await queryClient.invalidateQueries({ queryKey: ['athleteWorkouts'] });
+      
+    } catch (error) {
+      console.error('Error deleting exercise:', error);
+      toast({
+        title: 'Error deleting exercise',
+        description: 'There was an error removing the exercise. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
     }
   };
   // Theme colors
@@ -339,12 +383,16 @@ export function WorkoutListItem({
           onEdit={onEdit}
           onDelete={onDelete}
           assignment={null}
+          onDeleteExercise={handleDeleteExercise}
         />
       ) : (
         <WorkoutDetailsDrawer
           isOpen={isDetailsDrawerOpen}
           onClose={() => setIsDetailsDrawerOpen(false)}
           workout={workout}
+          userRole={isCoach ? "coach" : "athlete"}
+          currentUserId={currentUserId}
+          onDeleteExercise={handleDeleteExercise}
         />
       )}
 

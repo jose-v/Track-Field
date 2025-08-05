@@ -32,7 +32,7 @@ import {
   MenuItem,
   useToast,
 } from '@chakra-ui/react';
-import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaClock, FaMapMarkerAlt, FaCalendarAlt, FaSignOutAlt, FaEllipsisV, FaCopy } from 'react-icons/fa';
+import { FaRunning, FaDumbbell, FaLeaf, FaRedo, FaClock, FaMapMarkerAlt, FaCalendarAlt, FaSignOutAlt, FaEllipsisV, FaCopy, FaTrash } from 'react-icons/fa';
 import { format } from 'date-fns';
 import type { Workout } from '../services/api';
 import { getExercisesFromWorkout, getBlocksFromWorkout } from '../utils/workoutUtils';
@@ -45,6 +45,7 @@ interface WorkoutDetailsDrawerProps {
   // Optional props for actions
   userRole?: 'athlete' | 'coach';
   currentUserId?: string;
+  onDeleteExercise?: (exerciseIndex: number) => void;
 }
 
 // Helper function to get workout type icon
@@ -63,7 +64,8 @@ export const WorkoutDetailsDrawer: React.FC<WorkoutDetailsDrawerProps> = ({
   onClose, 
   workout,
   userRole = 'athlete',
-  currentUserId 
+  currentUserId,
+  onDeleteExercise
 }) => {
   // Responsive: bottom drawer on mobile, right drawer on desktop
   const isMobile = useBreakpointValue({ base: true, md: false });
@@ -264,14 +266,31 @@ export const WorkoutDetailsDrawer: React.FC<WorkoutDetailsDrawerProps> = ({
                                     {block.exercises.map((exercise: any, exerciseIndex: number) => (
                                       <Box key={exerciseIndex} p={2} bg={useColorModeValue('gray.100', 'gray.600')} borderRadius="md">
                                         <VStack spacing={1} align="stretch">
-                                          <HStack align="center" spacing={3}>
-                                            <Text fontWeight="medium" color={drawerText} fontSize="sm">
-                                              {exercise.name}
-                                            </Text>
-                                            {exercise.sets && exercise.reps && (
-                                              <Text fontSize="xs" color={sectionTitleColor}>
-                                                {exercise.sets} sets × {exercise.reps} reps
+                                          <HStack align="center" spacing={3} justify="space-between">
+                                            <HStack align="center" spacing={3}>
+                                              <Text fontWeight="medium" color={drawerText} fontSize="sm">
+                                                {exercise.name}
                                               </Text>
+                                              {exercise.sets && exercise.reps && (
+                                                <Text fontSize="xs" color={sectionTitleColor}>
+                                                  {exercise.sets} sets × {exercise.reps} reps
+                                                </Text>
+                                              )}
+                                            </HStack>
+                                                                        {/* Delete button - only show for self-created workouts */}
+                            {onDeleteExercise && (workout?.user_id === currentUserId || (workout as any)?.meta?.self_assigned) && (
+                                              <IconButton
+                                                aria-label="Delete exercise"
+                                                icon={<FaTrash />}
+                                                size="xs"
+                                                variant="ghost"
+                                                colorScheme="red"
+                                                onClick={() => onDeleteExercise(exerciseIndex)}
+                                                _hover={{
+                                                  bg: "red.50",
+                                                  color: "red.600"
+                                                }}
+                                              />
                                             )}
                                           </HStack>
                                           {exercise.rest && (
@@ -331,14 +350,31 @@ export const WorkoutDetailsDrawer: React.FC<WorkoutDetailsDrawerProps> = ({
                     {block.exercises?.map((exercise, exerciseIndex) => (
                       <Box key={exerciseIndex} p={3} bg={exerciseCardBg} borderRadius="md">
                         <VStack spacing={2} align="stretch">
-                          <HStack align="center" spacing={3}>
-                            <Text fontWeight="medium" color={drawerText}>
-                              {exercise.name}
-                            </Text>
-                            {exercise.sets && exercise.reps && (
-                              <Text fontSize="sm" color={sectionTitleColor}>
-                                {exercise.sets} sets × {exercise.reps} reps
+                          <HStack align="center" spacing={3} justify="space-between">
+                            <HStack align="center" spacing={3}>
+                              <Text fontWeight="medium" color={drawerText}>
+                                {exercise.name}
                               </Text>
+                              {exercise.sets && exercise.reps && (
+                                <Text fontSize="sm" color={sectionTitleColor}>
+                                  {exercise.sets} sets × {exercise.reps} reps
+                                </Text>
+                              )}
+                            </HStack>
+                            {/* Delete button - only show for self-created workouts */}
+                            {onDeleteExercise && (workout?.user_id === currentUserId || (workout as any)?.meta?.self_assigned) && (
+                              <IconButton
+                                aria-label="Delete exercise"
+                                icon={<FaTrash />}
+                                size="sm"
+                                variant="ghost"
+                                colorScheme="red"
+                                onClick={() => onDeleteExercise(exerciseIndex)}
+                                _hover={{
+                                  bg: "red.50",
+                                  color: "red.600"
+                                }}
+                              />
                             )}
                           </HStack>
                           {exercise.rest && (
@@ -374,14 +410,31 @@ export const WorkoutDetailsDrawer: React.FC<WorkoutDetailsDrawerProps> = ({
             {allExercises.map((exercise, index) => (
               <Box key={index} p={4} bg={exerciseCardBg} borderRadius="md">
                 <VStack spacing={2} align="stretch">
-                  <HStack align="center" spacing={3}>
-                    <Text fontWeight="medium" color={drawerText}>
-                      {exercise.name}
-                    </Text>
-                    {exercise.sets && exercise.reps && (
-                      <Text fontSize="sm" color={sectionTitleColor}>
-                        {exercise.sets} sets × {exercise.reps} reps
+                  <HStack align="center" spacing={3} justify="space-between">
+                    <HStack align="center" spacing={3}>
+                      <Text fontWeight="medium" color={drawerText}>
+                        {exercise.name}
                       </Text>
+                      {exercise.sets && exercise.reps && (
+                        <Text fontSize="sm" color={sectionTitleColor}>
+                          {exercise.sets} sets × {exercise.reps} reps
+                        </Text>
+                      )}
+                    </HStack>
+                    {/* Delete button - only show for self-created workouts */}
+                    {onDeleteExercise && (workout?.user_id === currentUserId || (workout as any)?.meta?.self_assigned) && (
+                      <IconButton
+                        aria-label="Delete exercise"
+                        icon={<FaTrash />}
+                        size="sm"
+                        variant="ghost"
+                        colorScheme="red"
+                        onClick={() => onDeleteExercise(index)}
+                        _hover={{
+                          bg: "red.50",
+                          color: "red.600"
+                        }}
+                      />
                     )}
                   </HStack>
                   {exercise.rest && (
