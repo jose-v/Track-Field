@@ -270,7 +270,7 @@ export const WellnessQuickLogCard: React.FC<WellnessQuickLogCardProps> = ({ onLo
                   colorScheme={metric.color.split('.')[0]}
                 />
                 
-                <HStack justify="space-between" mt={1}>
+                <HStack justify="space-between" mt={1} display={{ base: "flex", lg: "none" }}>
                   <Text fontSize="xs" color={statLabelColor}>
                     {isReverse ? 'High' : 'Low'}
                   </Text>

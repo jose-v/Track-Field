@@ -697,21 +697,7 @@ const MeetCard: React.FC<MeetCardProps> = ({
                   borderColor="gray.500"
                   shadow="xl"
                 >
-                  {/* Manage Events */}
-                  <Tooltip label="View events" placement="top" bg="gray.700" color="white" p={2}>
-                    <IconButton
-                      icon={<FaRunning size={22} color="currentColor" />}
-                      variant="ghost"
-                      size="lg"
-                      color="white"
-                      _hover={{ color: "gray.300" }}
-                      aria-label="View events"
-                      onClick={() => onManageEvents?.(meet)}
-                    />
-                  </Tooltip>
 
-                  {/* Divider */}
-                  <Box w="1px" h="6" bg="gray.400" />
 
                   {/* Download PDF */}
                   <Tooltip label="Download meet information" placement="top" bg="gray.700" color="white" p={2}>

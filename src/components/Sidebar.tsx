@@ -1070,19 +1070,44 @@ const Sidebar = ({ userType }: SidebarProps) => {
             </VStack>
           ) : (
             // Expanded layout: Theme toggle next to hide menu button
-            <HStack justify="space-between" w="100%">
-              <Button 
-                leftIcon={<Icon as={FaChevronLeft} />}
-                size="sm"
+            <VStack spacing={3} w="100%">
+              <HStack justify="space-between" w="100%">
+                <Button 
+                  leftIcon={<Icon as={FaChevronLeft} />}
+                  size="sm"
+                  variant="ghost"
+                  flex="1"
+                  justifyContent="flex-start"
+                  onClick={toggleSidebar}
+                >
+                  HIDE MENU
+                </Button>
+                <ThemeToggle size="sm" />
+              </HStack>
+              <Button
+                leftIcon={<Icon as={FaSignOutAlt} />}
                 variant="ghost"
-                flex="1"
+                size="sm"
+                w="100%"
                 justifyContent="flex-start"
-                onClick={toggleSidebar}
+                onClick={signOut}
+                color="#898989"
+                _hover={{
+                  bg: useColorModeValue('gray.100', 'gray.700'),
+                  color: useColorModeValue('blue.600', 'blue.200')
+                }}
+                _focus={{
+                  boxShadow: 'none',
+                  outline: 'none',
+                }}
+                _focusVisible={{
+                  boxShadow: 'none',
+                  outline: 'none',
+                }}
               >
-                HIDE MENU
+                Sign Out
               </Button>
-              <ThemeToggle size="sm" />
-            </HStack>
+            </VStack>
           )}
         </Box>
       </VStack>

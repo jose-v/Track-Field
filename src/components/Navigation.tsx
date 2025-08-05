@@ -223,7 +223,6 @@ const Navigation = () => {
                     )}
                   </MenuButton>
                   <MenuList>
-                    <MenuItem as={RouterLink} to="/" color={menuTextColor} _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}>Home</MenuItem>
                     <MenuItem as={RouterLink} to={getDashboardPathForRole(displayProfile?.role)} color={menuTextColor} _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}>Dashboard</MenuItem>
                     <MenuItem as={RouterLink} 
                       to={getProfilePathForRole(displayProfile?.role)}
@@ -373,7 +372,6 @@ const Navigation = () => {
                     )}
                   </MenuButton>
                   <MenuList>
-                    <MenuItem as={RouterLink} to="/" color={menuTextColor} _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}>Home</MenuItem>
                     <MenuItem as={RouterLink} to={getDashboardPathForRole(displayProfile?.role)} color={menuTextColor} _hover={{ bg: menuItemHoverBg, color: menuItemHoverColor }}>Dashboard</MenuItem>
                     <MenuItem as={RouterLink} 
                       to={getProfilePathForRole(displayProfile?.role)}
@@ -556,23 +554,7 @@ const Navigation = () => {
               )
             ) : (
               <>
-                <Button 
-                  variant="ghost"
-                  size="sm"
-                  onClick={onToggle}
-                  as={RouterLink} 
-                  to="/"
-                  w="100%"
-                  justifyContent="flex-start"
-                  leftIcon={<FaHome />}
-                  color="gray.700"
-                  _hover={{ 
-                    bg: "gray.100",
-                    color: "blue.500"
-                  }}
-                >
-                  Home
-                </Button>
+
                 <Button 
                   variant="ghost"
                   size="sm"

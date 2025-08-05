@@ -242,7 +242,7 @@ const Step4Schedule: React.FC<Step4ScheduleProps> = ({
         <CardBody>
           <VStack spacing={4} align="stretch">
             <FormControl>
-              <FormLabel>Date & Time</FormLabel>
+              <FormLabel>Date & Time (Optional)</FormLabel>
               {isTemplate ? (
                 <Alert status="info" borderRadius="md">
                   <AlertIcon />
@@ -338,7 +338,7 @@ const Step4Schedule: React.FC<Step4ScheduleProps> = ({
         <CardBody>
           <VStack spacing={4} align="stretch">
             <FormControl>
-              <FormLabel>Start Date & Time</FormLabel>
+              <FormLabel>Start Date & Time (Optional)</FormLabel>
               {isTemplate ? (
                 <Alert status="info" borderRadius="md">
                   <AlertIcon />

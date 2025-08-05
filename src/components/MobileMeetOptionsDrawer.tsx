@@ -145,23 +145,7 @@ export const MobileMeetOptionsDrawer: React.FC<MobileMeetOptionsDrawerProps> = (
               </>
             )}
 
-            {/* Athlete Actions */}
-            {!isCoach && onManageEvents && (
-              <>
-                <Flex
-                  justify="space-between"
-                  align="center"
-                  p={4}
-                  cursor="pointer"
-                  _hover={{ bg: hoverBg }}
-                  onClick={() => handleAction(() => onManageEvents?.(meet))}
-                >
-                  <Text color={drawerText}>View Events</Text>
-                  <Icon as={FaRunning} color={textColor} />
-                </Flex>
-                <Divider />
-              </>
-            )}
+
 
             {/* Download PDF */}
             {onDownloadPDF && (

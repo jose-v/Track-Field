@@ -153,10 +153,10 @@ export function AthleteStats() {
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [tooltipData, setTooltipData] = useState<{ text: string; x: number; y: number } | null>(null);
 
-      // Use page header hook for mobile nav
-    usePageHeader({
-      title: 'My Analytics',
-      subtitle: 'Your performance, sleep, and wellness data',
+  // Use page header hook for mobile nav
+  usePageHeader({
+    title: 'My Analytics',
+    subtitle: 'Your performance, sleep, and wellness data',
     icon: FaChartBar
   });
 

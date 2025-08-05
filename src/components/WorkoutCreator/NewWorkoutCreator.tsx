@@ -275,15 +275,78 @@ const NewWorkoutCreator: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingWorkout, setIsLoadingWorkout] = useState(isEditing); // Start as true if editing
 
+  // Generate unique workout name based on user and template
+  const generateWorkoutName = useCallback(async () => {
+    if (!profile) return '';
+    
+    // Get user initials (first letter of first and last name)
+    const firstName = profile.first_name || '';
+    const lastName = profile.last_name || '';
+    const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+    
+    // Get workout type initial
+    const typeInitial = selectedTemplateType ? selectedTemplateType.charAt(0).toUpperCase() : 'S';
+    
+    // Get current date in MMDDYY format
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const year = String(now.getFullYear()).slice(-2);
+    const dateStr = `${month}${day}${year}`;
+    
+    // Find the next available sequential letter
+    const basePattern = `${typeInitial}${initials}${dateStr}`;
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    
+    try {
+      // Query existing workouts with this pattern
+      const { data: existingWorkouts } = await supabase
+        .from('workouts')
+        .select('name')
+        .like('name', `${basePattern}%`)
+        .eq('user_id', user?.id);
+      
+      // Find the next available letter
+      let nextLetter = 'A';
+      if (existingWorkouts && existingWorkouts.length > 0) {
+        const usedLetters = existingWorkouts
+          .map(w => w.name.slice(-1))
+          .filter(letter => letters.includes(letter))
+          .sort();
+        
+        // Find the first unused letter
+        for (let i = 0; i < letters.length; i++) {
+          if (!usedLetters.includes(letters[i])) {
+            nextLetter = letters[i];
+            break;
+          }
+        }
+        
+        // If all letters are used, start over with 'A' (this shouldn't happen often)
+        if (usedLetters.length >= letters.length) {
+          nextLetter = 'A';
+        }
+      }
+      
+      return `${basePattern}${nextLetter}`;
+    } catch (error) {
+      console.error('Error generating workout name:', error);
+      // Fallback to simple pattern
+      return `${basePattern}A`;
+    }
+  }, [profile, selectedTemplateType, user?.id]);
+
   // Initialize workout name based on template
   useEffect(() => {
-    if (selectedTemplateType && selectedTemplate && !workoutName) {
-      const timestamp = new Date().toLocaleDateString();
-      const templateName = selectedTemplate === 'scratch' ? 'Custom' : selectedTemplate;
-      const typeName = selectedTemplateType.charAt(0).toUpperCase() + selectedTemplateType.slice(1);
-      setWorkoutName(`${templateName} ${typeName} - ${timestamp}`);
-    }
-  }, [selectedTemplateType, selectedTemplate, workoutName]);
+    const initializeWorkoutName = async () => {
+      if (selectedTemplateType && selectedTemplate && !workoutName) {
+        const newName = await generateWorkoutName();
+        setWorkoutName(newName);
+      }
+    };
+    
+    initializeWorkoutName();
+  }, [selectedTemplateType, selectedTemplate, workoutName, profile, selectedTemplateType, user?.id]);
 
   // Note: Step jumping for editing is now handled directly in loadWorkoutForEditing()
 
@@ -444,6 +507,14 @@ const NewWorkoutCreator: React.FC = () => {
       // This could be expanded with more sophisticated template logic
       const templateBlocks = getTemplateBlocks(template);
       setBlocks(templateBlocks);
+    } else {
+      // Clear all blocks when starting from scratch
+      setBlocks([]);
+      // Also clear daily blocks for weekly workouts
+      setDailyBlocks({
+        monday: [], tuesday: [], wednesday: [], thursday: [], 
+        friday: [], saturday: [], sunday: []
+      });
     }
   };
 
